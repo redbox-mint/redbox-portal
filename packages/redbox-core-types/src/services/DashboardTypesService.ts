@@ -3,6 +3,7 @@ import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
+import type { DashboardTypeDefinition } from '../config/dashboardtype.config';
 
 
 export module Services {
@@ -24,10 +25,10 @@ export module Services {
    */
   export interface DashboardTableConfig {
     rowConfig?: DashboardRowConfig[];
-    rowRulesConfig?: UnsafeAny[];
+    rowRulesConfig?: DashboardRuleSet[];
     groupRowConfig?: DashboardRowConfig[];
-    groupRowRulesConfig?: UnsafeAny[];
-    formatRules?: UnsafeAny;
+    groupRowRulesConfig?: DashboardRuleSet[];
+    formatRules?: Record<string, unknown>;
   }
 
   /**
@@ -39,12 +40,29 @@ export module Services {
     showAdminSideBar?: boolean;
   }
 
+  export interface DashboardRule {
+    renderItemTemplate?: string;
+    evaluateRulesTemplate?: string;
+    [key: string]: unknown;
+  }
+
+  export interface DashboardRuleSet {
+    ruleSetName: string;
+    rules?: DashboardRule[];
+    [key: string]: unknown;
+  }
+
+  type DashboardTypeConfig = DashboardTypeDefinition & {
+    searchFilters?: unknown;
+    searchable?: boolean;
+  };
+
   /**
    * Dashboard Types related functions...
    */
   export class DashboardTypes extends services.Core.Service {
 
-    protected override _exportedMethods: UnsafeAny = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'create',
       'get',
@@ -54,10 +72,10 @@ export module Services {
       'extractDashboardTemplates'
     ];
 
-    protected dashboardTypes: UnsafeAny[] = [];
+    protected dashboardTypes: Array<{ name?: string }> = [];
 
-    public async bootstrap(defBrand: BrandingModel): Promise<UnsafeAny> {
-      let dashboardTypes = await DashboardType.find({ branding: defBrand.id });
+    public async bootstrap(defBrand: BrandingModel): Promise<Array<{ name?: string }>> {
+      let dashboardTypes = await DashboardType.find({ branding: defBrand.id }) as Array<{ name?: string }>;
       if (sails.config.appmode.bootstrapAlways) {
         await DashboardType.destroy({ branding: defBrand.id });
         dashboardTypes = [];
@@ -68,15 +86,14 @@ export module Services {
       // }
       sails.log.verbose(`DashboardTypes found: ${dashboardTypes} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
       if (_.isEmpty(dashboardTypes)) {
-        var dashTypes = [];
+        const dashTypes: Array<{ name?: string }> = [];
         sails.log.verbose("Bootstrapping DashboardTypes definitions... ");
         for (let dashboardType in sails.config.dashboardtype) {
-          dashboardTypes.push(dashboardType);
           let config = sails.config.dashboardtype[dashboardType];
           var createdDashboardType = await firstValueFrom(this.create(defBrand, dashboardType, config));
           dashTypes.push(createdDashboardType);
         };
-        this.dashboardTypes = dashboardTypes;
+        this.dashboardTypes = dashTypes;
         return dashTypes;
       }
       sails.log.verbose("Default DashboardTypes definition(s) exist.");
@@ -85,7 +102,7 @@ export module Services {
       return dashboardTypes
     }
 
-    public create(brand: BrandingModel, name: string, config: UnsafeAny) {
+    public create(brand: BrandingModel, name: string, config: DashboardTypeConfig) {
 
       sails.log.verbose(JSON.stringify(config));
 
@@ -99,12 +116,12 @@ export module Services {
     }
 
     public get(brand: BrandingModel, name: string) {
-      const criteria: UnsafeAny = { where: { branding: brand.id, name: name } };
+      const criteria: { where: { branding: string; name: string } } = { where: { branding: brand.id, name: name } };
       return super.getObservable(DashboardType.findOne(criteria));
     }
 
     public getAll(brand: BrandingModel) {
-      const criteria: UnsafeAny = { where: { branding: brand.id } };
+      const criteria: { where: { branding: string } } = { where: { branding: brand.id } };
       return super.getObservable(DashboardType.find(criteria));
     }
 

@@ -37,7 +37,7 @@ export module Services {
    */
   export class Email extends services.Core.Service {
 
-    protected override _exportedMethods: UnsafeAny = [
+    protected override _exportedMethods: string[] = [
       'sendMessage',
       'buildFromTemplate',
       'sendTemplate',
@@ -73,7 +73,7 @@ export module Services {
       msgFormat: string = sails.config.emailnotification.defaults.format,
       cc: string = _.get(sails.config.emailnotification.defaults, 'cc', ''),
       bcc: string = _.get(sails.config.emailnotification.defaults, 'bcc', ''),
-      otherSendOptions: { [dict_key: string]: UnsafeAny } = _.get(sails.config.emailnotification.defaults, 'otherSendOptions', {}),
+      otherSendOptions: Record<string, unknown> = _.get(sails.config.emailnotification.defaults, 'otherSendOptions', {}),
     ): Observable<{ success: boolean, msg: string }> {
 
   return from(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat, cc, bcc, otherSendOptions));
@@ -107,7 +107,7 @@ export module Services {
       msgFormat: string,
       cc: string,
       bcc: string,
-      otherSendOptions: { [dict_key: string]: UnsafeAny } = {},
+      otherSendOptions: Record<string, unknown> = {},
     ): Promise<{ success: boolean, msg: string }> {
       if (!sails.config.emailnotification.settings.enabled) {
         sails.log.debug("Received email notification request, but is disabled. Ignoring.");
@@ -167,7 +167,7 @@ export module Services {
      * @param res The response object. Will contain 'status', 'body', might contain 'ex'.
      * @return The response object with 'status', 'body', and maybe 'ex' set.
      */
-    public async buildFromTemplateAsync(template: string, data: UnsafeAny = {}, res: UnsafeAny = {}) {
+    public async buildFromTemplateAsync(template: string, data: Record<string, unknown> = {}, res: Record<string, unknown> = {}) {
       try {
         let readTemplate = fs.readFileSync(sails.config.emailnotification.settings.templateDir + template + '.ejs', 'utf-8')
 
@@ -198,7 +198,7 @@ export module Services {
      * @param data The variables to use when rendering the template.
      * @return A promise that evaluates to the response object with 'status', 'body', and maybe 'ex' set.
      */
-    public buildFromTemplate(template: string, data: UnsafeAny = {}): Observable<UnsafeAny> {
+    public buildFromTemplate(template: string, data: Record<string, unknown> = {}): Observable<Record<string, unknown>> {
   return from(this.buildFromTemplateAsync(template, data));
     }
 
@@ -217,11 +217,11 @@ export module Services {
       sails.log.verbose("Inside Send Template");
       var buildResponse = this.buildFromTemplate(template, data);
       sails.log.verbose("buildResponse");
-      buildResponse.subscribe((buildResult: UnsafeAny) => {
+      buildResponse.subscribe((buildResult: Record<string, unknown>) => {
         if (buildResult['status'] != 200) {
-          return buildResult;
+          return;
         } else {
-          var sendResponse = this.sendMessage(to, buildResult['body'], subject);
+          var sendResponse = this.sendMessage(to, buildResult['body'] as string, subject);
 
           sendResponse.subscribe(sendResult => {
             return sendResult;
@@ -254,7 +254,7 @@ export module Services {
      * @param response The optional response to return.
      * @return The response if provided or the record data.
      */
-    public async sendRecordNotification(oid: string, record: UnsafeAny, options: UnsafeAny, user: UnsafeAny, response: UnsafeAny) {
+    public async sendRecordNotification(oid: string, record: Record<string, unknown>, options: Record<string, unknown>, user: Record<string, unknown>, response: Record<string, unknown>) {
       const msgPartial = `for oid '${oid}' template '${options.template}'`;
       const isSailsEmailConfigDisabled = String(_.get(sails.config, 'services.email.disabled', false)) === 'true';
       let triggerConditionResult;
@@ -286,7 +286,7 @@ export module Services {
           throw new Error('Invalid email address.');
         }
 
-        const buildResult: UnsafeAny = await firstValueFrom(optionsEvaluated.templateRendered);
+        const buildResult: Record<string, unknown> = await firstValueFrom(optionsEvaluated.templateRendered);
 
         if (buildResult['status'] != 200) {
           sails.log.error(`Failed to build email body ${msgPartial}, result: ${JSON.stringify(buildResult)}`);
@@ -294,13 +294,13 @@ export module Services {
         }
         const sendResult = await firstValueFrom(this.sendMessage(
           optionsEvaluated.toRendered,
-          buildResult['body'],
+          buildResult['body'] as string,
           optionsEvaluated.subjectRendered,
           optionsEvaluated.fromRendered,
           optionsEvaluated.formatRendered,
           optionsEvaluated.ccRendered,
           optionsEvaluated.bccRendered,
-          _.get(options, 'otherSendOptions', {}),
+          _.get(options, 'otherSendOptions', {}) as Record<string, unknown>,
         ));
 
         if (sendResult.success) {
@@ -308,9 +308,9 @@ export module Services {
           const postSendHooks = _.get(options, "onNotifySuccess", null);
           if (postSendHooks) {
             sails.log.verbose(`Processing onNotifySuccess hooks`);
-            _.each(postSendHooks, (postSendHook: UnsafeAny) => {
+            _.each(postSendHooks, (postSendHook: Record<string, unknown>) => {
               const postSendHookFnName = _.get(postSendHook, 'function', null);
-              if (postSendHookFnName) {
+              if (typeof postSendHookFnName === 'string' && postSendHookFnName.length > 0) {
                 sails.log.verbose(`Pre notification onNotifySuccess hook: ${postSendHookFnName}`);
                 const postSendHookFn = eval(postSendHookFnName);
                 const postSendHookOpts = _.get(postSendHook, 'options', null);
@@ -322,7 +322,7 @@ export module Services {
                   postSendHookResult = Promise.resolve(postSendHookResult);
                 }
 
-                (postSendHookResult as Promise<UnsafeAny>).then(result => {
+                (postSendHookResult as Promise<Record<string, unknown>>).then(result => {
                   sails.log.verbose(`Post notification ${msgPartial} sending hook '${postSendHookFnName}' completed with result: ${JSON.stringify(result)}`);
                 }).catch(error => {
                   sails.log.verbose(`Post notification ${msgPartial} sending hook '${postSendHookFnName}' failed with error: ${JSON.stringify(error)}`);
@@ -362,7 +362,7 @@ export module Services {
       cc: string, ccRendered: string,
       bcc: string, bccRendered: string,
       subject: string, subjectRendered: string,
-      template: UnsafeAny, templateRendered: UnsafeAny,
+      template: string | null, templateRendered: Observable<Record<string, unknown>>,
     } {
       let result = {
         format: "", formatRendered: "",
@@ -371,7 +371,7 @@ export module Services {
         cc: "", ccRendered: "",
         bcc: "", bccRendered: "",
         subject: "", subjectRendered: "",
-        template: null, templateRendered: null,
+        template: null, templateRendered: from(Promise.resolve({ status: 500, body: 'Templating error.' })),
       };
 
       if (_.isNil(options)) {
@@ -434,7 +434,11 @@ export module Services {
         );
       }
 
-      return result;
+      const fallbackTemplate = from(Promise.resolve({ status: 500, body: 'Templating error.' }));
+      return {
+        ...result,
+        templateRendered: (result.templateRendered as Observable<Record<string, unknown>> | null) ?? fallbackTemplate,
+      };
     }
 
     /**

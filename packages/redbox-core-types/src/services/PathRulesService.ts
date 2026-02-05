@@ -25,9 +25,9 @@ import { default as UrlPattern } from 'url-pattern';
 
 
 type PathRuleModel = {
-  path: string;
+  path?: string;
   role: { id: string };
-  branding: { id: string; name: string };
+  branding: { id?: string; name: string };
   can_read?: boolean;
   can_update?: boolean;
 };
@@ -35,6 +35,12 @@ type PathRuleModel = {
 type PathRulePattern = {
   pattern: UrlPattern;
   rule: PathRuleModel;
+};
+
+type RoleLike = {
+  id: string;
+  name?: string;
+  branding?: { name: string };
 };
 
 export module Services {
@@ -47,7 +53,7 @@ export module Services {
    */
   export class PathRules extends services.Core.Service {
 
-    protected override _exportedMethods: UnsafeAny = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'getRulesFromPath',
       'canRead',
@@ -57,22 +63,22 @@ export module Services {
     protected pathRules: PathRuleModel[] = [];
     protected rulePatterns: PathRulePattern[] = [];
 
-    public bootstrap = (_defUser: unknown, defRoles: UnsafeAny[]) => {
+    public bootstrap = (_defUser: unknown, defRoles: RoleLike[]) => {
       sails.log.verbose("Bootstrapping path rules....");
       var defBrand:BrandingModel = BrandingService.getDefault();
       return this.loadRules()
         .pipe(flatMap(rules => {
           if (!rules || rules.length == 0) {
             sails.log.verbose("Rules, don't exist, seeding...");
-            var seedRules = sails.config.auth.rules;
-            _.forEach(seedRules, (rule: UnsafeAny) => {
+            const seedRules = sails.config.auth.rules as Array<{ role: string; branding?: string; path: string; can_read?: boolean; can_update?: boolean }>;
+            _.forEach(seedRules, (rule) => {
               var role = RolesService.getRoleWithName(defRoles, rule.role);
               rule.role = role.id;
               rule.branding = defBrand.id;
             });
             return from(seedRules)
-                           .pipe(flatMap((rule: UnsafeAny) => {
-                             return super.getObservable(PathRule.create(rule));
+                           .pipe(flatMap((rule) => {
+                             return super.getObservable(PathRule.create(rule as unknown as PathRuleModel));
                            })
                            ,last()
                            ,flatMap(() => {
@@ -97,7 +103,7 @@ export module Services {
                     this.pathRules = rules;
                     this.rulePatterns = [];
                     _.forEach(rules, (rule: PathRuleModel) => {
-                      this.rulePatterns.push({pattern: new UrlPattern(rule.path), rule: rule});
+                      this.rulePatterns.push({pattern: new UrlPattern(rule.path ?? ''), rule: rule});
                     });
                     return of(this.pathRules);
                   }));
@@ -106,7 +112,7 @@ export module Services {
     * Check path using cached rules...
     @return PathRule[]
     */
-    public getRulesFromPath = (path: string, brand: UnsafeAny): UnsafeAny[] | null => {
+    public getRulesFromPath = (path: string, brand: BrandingModel): PathRuleModel[] | null => {
       var matchedRulePatterns =  _.filter(this.rulePatterns, (rulePattern: PathRulePattern) => {
         var pattern = rulePattern.pattern;
         // matching by path and brand, meaning only brand-specific rules apply
@@ -119,10 +125,10 @@ export module Services {
       }
     }
 
-    public canRead = (rules: UnsafeAny[], roles: UnsafeAny[], brandName: string): boolean => {
-      var matchRule = _.filter(rules, (rule: UnsafeAny) => {
+    public canRead = (rules: PathRuleModel[], roles: RoleLike[], brandName: string): boolean => {
+      var matchRule = _.filter(rules, (rule: PathRuleModel) => {
         // user must have this role, and at least can_read
-        var userRole = _.find(roles, (role: UnsafeAny) => {
+        var userRole = _.find(roles, (role: RoleLike) => {
           // match by id and branding
           return role.id == rule.role.id && rule.branding.name == brandName;
         });
@@ -131,9 +137,9 @@ export module Services {
       return matchRule.length > 0;
     }
 
-    public canWrite = (rules: UnsafeAny[], roles: UnsafeAny[], brandName: string): boolean => {
-      return _.filter(rules, (rule: UnsafeAny) => {
-        var userRole = _.find(roles, (role: UnsafeAny) => {
+    public canWrite = (rules: PathRuleModel[], roles: RoleLike[], brandName: string): boolean => {
+      return _.filter(rules, (rule: PathRuleModel) => {
+        var userRole = _.find(roles, (role: RoleLike) => {
           // match by id and branding
           return role.id == rule.role.id && rule.branding.name == brandName;
         });

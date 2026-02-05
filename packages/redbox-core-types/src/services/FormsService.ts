@@ -30,6 +30,22 @@ import {
   FormModesConfig, ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
 
+type WorkflowStepLike = {
+  id: string;
+  config: { form: string };
+};
+
+type RecordLike = {
+  metaMetadata?: { form?: string; type?: string };
+  metadata?: Record<string, unknown>;
+};
+
+type FormFieldLike = {
+  definition?: { fields?: FormFieldLike[] };
+  fields?: FormFieldLike[];
+  needsEditAccess?: boolean;
+  [key: string]: unknown;
+};
 
 export module Services {
   /**
@@ -40,7 +56,7 @@ export module Services {
    */
   export class Forms extends services.Core.Service {
 
-    protected override _exportedMethods: UnsafeAny = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'getForm',
       'flattenFields',
@@ -53,7 +69,7 @@ export module Services {
       'buildClientFormConfig',
     ];
 
-    public async bootstrap(workflowStep: UnsafeAny): Promise<UnsafeAny> {
+    public async bootstrap(workflowStep: WorkflowStepLike): Promise<unknown> {
       let form = await Form.find({
         workflowStep: workflowStep.id
       })
@@ -71,7 +87,7 @@ export module Services {
       if (!form || form.length == 0) {
         this.logger.verbose("Bootstrapping form definitions..");
         // only bootstrap the form for this workflow step
-        _.forOwn(sails.config.form.forms, (_formDef: UnsafeAny, formName: string) => {
+        _.forOwn(sails.config.form.forms, (_formDef: unknown, formName: string) => {
           if (formName == workflowStep.config.form) {
             formDefs.push(formName);
           }
@@ -88,7 +104,7 @@ export module Services {
       const existingFormDef = await Form.find({
         name: formName
       })
-      let existCheck: { formName: string | null; existingFormDef: UnsafeAny } = {
+      let existCheck: { formName: string | null; existingFormDef: FormModel[] } = {
         formName: formName,
         existingFormDef: existingFormDef
       };
@@ -99,7 +115,7 @@ export module Services {
       if (_.isUndefined(existCheck.existingFormDef) || _.isEmpty(existCheck.existingFormDef)) {
         formName = existCheck.formName
       } else {
-        this.logger.verbose(`Existing form definition for form name: ${existCheck.existingFormDef.name}, ignoring bootstrap.`);
+        this.logger.verbose(`Existing form definition for form name: ${existCheck.existingFormDef[0]?.name}, ignoring bootstrap.`);
       }
 
 
@@ -109,31 +125,31 @@ export module Services {
       if (formName) {
         sails.log.verbose(`Preparing to create form...`);
         // TODO: assess the form config to see what should change
-        const formConfig = sails.config.form.forms[formName] as UnsafeAny;
-        const formObj: FormModel & FormConfigFrame = {
+        const formConfig = sails.config.form.forms[formName] as Record<string, unknown>;
+        const formObj = {
           name: formName,
-          fields: formConfig.fields,
+          fields: (Array.isArray(formConfig.fields) ? formConfig.fields : []) as FormModel['fields'],
           workflowStep: workflowStep.id,
-          type: formConfig.type,
-          messages: formConfig.messages,
-          viewCssClasses: formConfig.viewCssClasses,
-          requiredFieldIndicator: formConfig.requiredFieldIndicator,
-          editCssClasses: formConfig.editCssClasses,
-          skipValidationOnSave: formConfig.skipValidationOnSave,
+          type: typeof formConfig.type === 'string' ? formConfig.type : '',
+          messages: (formConfig.messages && typeof formConfig.messages === 'object' ? formConfig.messages : {}) as FormModel['messages'],
+          viewCssClasses: formConfig.viewCssClasses as FormConfigFrame['viewCssClasses'],
+          requiredFieldIndicator: typeof formConfig.requiredFieldIndicator === 'string' ? formConfig.requiredFieldIndicator : '',
+          editCssClasses: formConfig.editCssClasses as FormConfigFrame['editCssClasses'],
+          skipValidationOnSave: Boolean(formConfig.skipValidationOnSave),
           attachmentFields: formConfig.attachmentFields,
-          customAngularApp: formConfig.customAngularApp || null,
+          customAngularApp: (formConfig.customAngularApp as FormModel['customAngularApp']) ?? { appName: '', appSelector: '' },
 
           // new fields
-          domElementType: formConfig.domElementType,
-          domId: formConfig.domId,
-          defaultComponentConfig: formConfig.defaultComponentConfig,
-          enabledValidationGroups: formConfig.enabledValidationGroups,
-          validators: formConfig.validators,
-          validationGroups: formConfig.validationGroups,
-          defaultLayoutComponent: formConfig.defaultLayoutComponent,
-          componentDefinitions: formConfig.componentDefinitions,
-          debugValue: formConfig.debugValue,
-        };
+          domElementType: formConfig.domElementType as FormConfigFrame['domElementType'],
+          domId: formConfig.domId as FormConfigFrame['domId'],
+          defaultComponentConfig: formConfig.defaultComponentConfig as FormConfigFrame['defaultComponentConfig'],
+          enabledValidationGroups: formConfig.enabledValidationGroups as FormConfigFrame['enabledValidationGroups'],
+          validators: formConfig.validators as FormConfigFrame['validators'],
+          validationGroups: formConfig.validationGroups as FormConfigFrame['validationGroups'],
+          defaultLayoutComponent: formConfig.defaultLayoutComponent as FormConfigFrame['defaultLayoutComponent'],
+          componentDefinitions: (formConfig.componentDefinitions ?? []) as FormConfigFrame['componentDefinitions'],
+          debugValue: formConfig.debugValue as FormConfigFrame['debugValue'],
+        } as FormModel & FormConfigFrame;
 
         result = await Form.create(formObj) as unknown as FormModel;
         this.logger.verbose("Created form record: ");
@@ -170,16 +186,19 @@ export module Services {
       }));
     }
 
-    public async getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: UnsafeAny) {
+    public async getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: RecordLike) {
 
       // allow client to set the form name to use
-      const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
+      const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata?.form : formParam;
 
       if(formName == 'generated-view-only') {
         return await this.generateFormFromSchema(branding, recordType, currentRec);
       } else {
 
-  return await firstValueFrom(this.getFormByName(formName, editMode));
+        if (!formName) {
+          return null;
+        }
+        return await firstValueFrom(this.getFormByName(formName, editMode));
       }
     }
 
@@ -216,12 +235,12 @@ export module Services {
       );
     }
 
-    public inferSchemaFromMetadata(record: UnsafeAny): UnsafeAny {
-      const schema = createSchema(record.metadata);
+    public inferSchemaFromMetadata(record: RecordLike): Record<string, unknown> {
+      const schema = createSchema(record.metadata ?? {});
       return schema;
     }
 
-    public async generateFormFromSchema(branding: BrandingModel, recordType: string, record: UnsafeAny) {
+    public async generateFormFromSchema(branding: BrandingModel, recordType: string, record: RecordLike): Promise<FormConfigFrame | Record<string, unknown>> {
 
       if(recordType == '') {
         recordType = _.get(record,'metaMetadata.type','');
@@ -230,11 +249,11 @@ export module Services {
         }
       }
 
-      let form: FormModel;
+      let form: FormConfigFrame;
 
-      let schema = this.inferSchemaFromMetadata(record);
+      let schema = this.inferSchemaFromMetadata(record) as { properties?: Record<string, unknown> };
 
-      let fieldKeys = _.keys(schema.properties);
+      let fieldKeys = _.keys(schema.properties ?? {});
 
       let buttonsList = [
         {
@@ -340,9 +359,14 @@ export module Services {
 
       for(let fieldKey of fieldKeys) {
 
-        let schemaProperty = schema.properties[fieldKey];
+        let schemaProperty = (schema.properties?.[fieldKey] as {
+          type?: string;
+          items?: { type?: string; properties?: Record<string, { type?: string }> };
+          properties?: Record<string, { type?: string }>;
+        }) ?? {};
 
-        if(_.get(schemaProperty,'type','') == 'string') {
+        const schemaType = schemaProperty.type;
+        if(schemaType === 'string') {
 
           let textField = _.cloneDeep(textFieldTemplate);
           _.set(textField.definition,'name',fieldKey);
@@ -350,9 +374,9 @@ export module Services {
           _.set(textField.definition,'subscribe.form.onFormLoaded[0].template','<%= _.trim(field.fieldMap["'+fieldKey+'"].field.value) == "" ? field.translationService.t("@lookup-record-field-empty") : field.fieldMap["'+fieldKey+'"].field.value %>');
           fieldList.push(textField);
 
-        } if(_.get(schemaProperty,'type','') == 'array') {
-
-          if(_.get(schemaProperty,'items.type','') == 'string') {
+        } if(schemaType === 'array') {
+          const itemType = schemaProperty.items?.type;
+          if(itemType === 'string') {
 
             let textField = _.cloneDeep(textFieldTemplate);
             _.set(textField.definition,'name',fieldKey);
@@ -360,16 +384,16 @@ export module Services {
             _.set(textField.definition,'subscribe.form.onFormLoaded[0].template','<%= _.isEmpty(_.trim(field.fieldMap["'+fieldKey+'"].field.value)) ? [field.translationService.t("@lookup-record-field-empty")] : field.fieldMap["'+fieldKey+'"].field.value %>');
             fieldList.push(textField);
 
-          } else if(_.get(schemaProperty,'items.type','') == 'object') {
+          } else if(itemType === 'object') {
 
-            let objectFieldKeys = _.keys(schemaProperty.items.properties);
+            let objectFieldKeys = _.keys(schemaProperty.items?.properties ?? {});
             let repeatableGroupField = _.cloneDeep(repeatableGroupComponentTemplate);
             let groupField = _.cloneDeep(groupComponentTemplate);
             let groupFieldList = [];
 
             for(let objectFieldKey of objectFieldKeys) {
-              let innerProperty = schemaProperty.items.properties[objectFieldKey];
-              if(_.get(innerProperty,'type','') == 'string') {
+              let innerProperty = schemaProperty.items?.properties?.[objectFieldKey];
+              if(innerProperty?.type === 'string') {
                 let textField = _.cloneDeep(groupTextFieldTemplate);
                 _.set(textField.definition,'name',objectFieldKey);
                 _.set(textField.definition,'label',objectFieldKey);
@@ -386,15 +410,15 @@ export module Services {
             fieldList.push(repeatableGroupField);
           }
 
-        } else if(_.get(schemaProperty,'type','') == 'object') {
+        } else if(schemaType === 'object') {
 
-          let objectFieldKeys = _.keys(schemaProperty.properties);
+          let objectFieldKeys = _.keys(schemaProperty.properties ?? {});
           let groupField = _.cloneDeep(groupComponentTemplate);
           let groupFieldList = [];
 
           for(let objectFieldKey of objectFieldKeys) {
-            let innerProperty = schemaProperty.properties[objectFieldKey];
-            if(_.get(innerProperty,'type','') == 'string') {
+            let innerProperty = schemaProperty.properties?.[objectFieldKey];
+            if(innerProperty?.type === 'string') {
               let textField = _.cloneDeep(groupTextFieldTemplate);
               _.set(textField.definition,'name',objectFieldKey);
               _.set(textField.definition,'label',objectFieldKey);
@@ -420,6 +444,7 @@ export module Services {
         viewCssClasses: 'row col-md-offset-1 col-md-10',
         messages: {},
         attachmentFields: [],
+        componentDefinitions: [],
         fields: [
           {
             class: 'Container',
@@ -461,12 +486,12 @@ export module Services {
         }]
       };
 
-      form = formObject as UnsafeAny;
+      form = formObject as FormConfigFrame;
 
       return form;
     }
 
-    protected setFormEditMode(fields: UnsafeAny[], editMode: boolean): void{
+    protected setFormEditMode(fields: FormFieldLike[], editMode: boolean): void{
       // TODO: Form is processed differently now, see buildClientFormConfig
       // _.remove(fields, field => {
       //   if (editMode) {
@@ -483,19 +508,20 @@ export module Services {
       // });
     }
 
-    public filterFieldsHasEditAccess(fields: UnsafeAny[], hasEditAccess: boolean): void {
-      _.remove(fields, (field: UnsafeAny) => {
+    public filterFieldsHasEditAccess(fields: FormFieldLike[], hasEditAccess: boolean): void {
+      _.remove(fields, (field: FormFieldLike) => {
         return field.needsEditAccess && hasEditAccess != true;
       });
-      _.forEach(fields, (field: UnsafeAny) => {
-        if (!_.isEmpty(field.definition.fields)) {
-          this.filterFieldsHasEditAccess(field.definition.fields, hasEditAccess);
+      _.forEach(fields, (field: FormFieldLike) => {
+        const nestedFields = field.definition?.fields;
+        if (!_.isEmpty(nestedFields)) {
+          this.filterFieldsHasEditAccess(nestedFields as FormFieldLike[], hasEditAccess);
         }
       });
     }
 
-    public flattenFields(fields: UnsafeAny[], fieldArr: UnsafeAny[]): void {
-      _.map(fields, (f: UnsafeAny) => {
+    public flattenFields(fields: FormFieldLike[], fieldArr: FormFieldLike[]): void {
+      _.map(fields, (f: FormFieldLike) => {
         fieldArr.push(f);
         if (f.fields) {
           this.flattenFields(f.fields, fieldArr);

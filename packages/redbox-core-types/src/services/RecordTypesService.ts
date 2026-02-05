@@ -32,7 +32,7 @@ export module Services {
    */
   export class RecordTypes extends services.Core.Service {
 
-    protected override _exportedMethods: UnsafeAny = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'create',
       'get',
@@ -75,7 +75,7 @@ export module Services {
           return recordTypes;
     }
 
-    public create(brand:BrandingModel, name:string, config:RecordTypeModel):Observable<RecordTypeModel> {
+    public create(brand:BrandingModel, name:string, config: RecordTypeModel & { dashboard?: unknown }):Observable<RecordTypeModel> {
     
       return super.getObservable(RecordType.create({
         name: name,
@@ -87,12 +87,12 @@ export module Services {
         transferResponsibility: config.transferResponsibility,
         relatedTo: config.relatedTo,
         searchable: config.searchable,
-        dashboard: (config as UnsafeAny).dashboard
+        dashboard: config.dashboard
       }));
     }
 
     public get(brand:BrandingModel, name:string, fields: string[] | null = null): Observable<RecordTypeModel> {
-      const criteria: UnsafeAny = {where: {branding: brand.id, name: name}};
+      const criteria: { where: { branding: string; name: string }; select?: string[] } = {where: {branding: brand.id, name: name}};
       if (fields) {
         criteria.select = fields;
       }
@@ -100,7 +100,7 @@ export module Services {
     }
 
     public getAll(brand:BrandingModel, fields: string[] | null = null): Observable<RecordTypeModel[]> {
-      const criteria: UnsafeAny = {where: {branding: brand.id}};
+      const criteria: { where: { branding: string }; select?: string[] } = {where: {branding: brand.id}};
       if (fields) {
         criteria.select = fields;
       }

@@ -7,7 +7,7 @@ export module Services {
 
   export class WorkspaceService extends services.Core.Service {
 
-    protected override _exportedMethods: UnsafeAny = [
+    protected override _exportedMethods: string[] = [
       'createWorkspaceRecord',
       'getRecordMeta',
       'updateRecordMeta',
@@ -29,7 +29,7 @@ export module Services {
       super();
     }
 
-    mapToRecord(obj: UnsafeAny, recordMap: Array<{ record: string; ele: string }>) {
+    mapToRecord(obj: Record<string, unknown>, recordMap: Array<{ record: string; ele: string }>) {
       const newObj: Record<string, unknown> = {};
       _.each(recordMap, (value: { record: string; ele: string }) => {
         newObj[value.record] = _.get(obj, value.ele);
@@ -47,7 +47,7 @@ export module Services {
      * @param  targetRecord - the target record to update, leaving it empty will retrieve the record
      * @return
      */
-    public async addWorkspaceToRecord(targetRecordOid: string, workspaceOid: string, workspaceData: UnsafeAny = {}, targetRecord: UnsafeAny = undefined) {
+    public async addWorkspaceToRecord(targetRecordOid: string, workspaceOid: string, workspaceData: Record<string, unknown> = {}, targetRecord: Record<string, unknown> | undefined = undefined) {
       workspaceData.id = workspaceOid;
       return await RecordsService.appendToRecord(targetRecordOid, workspaceData, 'metadata.workspaces', 'array', targetRecord);
     }
@@ -62,7 +62,7 @@ export module Services {
      * @param  targetRecord - the target record to update, leaving it empty will retrieve the record
      * @return
      */
-    public async removeWorkspaceFromRecord(targetRecordOid: string, workspaceOid: string, workspaceData: UnsafeAny = {}, targetRecord: UnsafeAny = undefined) {
+    public async removeWorkspaceFromRecord(targetRecordOid: string, workspaceOid: string, workspaceData: Record<string, unknown> = {}, targetRecord: Record<string, unknown> | undefined = undefined) {
       workspaceData.id = workspaceOid;
       return await RecordsService.removeFromRecord(targetRecordOid, workspaceData, 'metadata.workspaces', targetRecord);
     }    
@@ -75,18 +75,18 @@ export module Services {
      * @param  targetRecord
      * @return list of workspaces
      */
-    public async getWorkspaces(targetRecordOid: string, targetRecord: UnsafeAny = undefined) {
+    public async getWorkspaces(targetRecordOid: string, targetRecord: Record<string, unknown> | undefined = undefined) {
       if (_.isUndefined(targetRecord)) {
         targetRecord = await RecordsService.getMeta(targetRecordOid);
       }
-      const workspaces: UnsafeAny[] = [];
+      const workspaces: Record<string, unknown>[] = [];
       for (const workspaceInfo of (_.get(targetRecord, 'metadata.workspaces', []) as Array<{ id: string }>)) {
         workspaces.push(await RecordsService.getMeta(workspaceInfo.id));
       }
       return workspaces;
     }
 
-    createWorkspaceRecord(config: UnsafeAny, username: string, project: UnsafeAny, recordType: string, workflowStage: string): Observable<AxiosResponse<UnsafeAny>> {
+    createWorkspaceRecord(config: { brandingAndPortalUrl: string; redboxHeaders: Record<string, string> }, username: string, project: Record<string, unknown>, recordType: string, workflowStage: string): Observable<AxiosResponse<unknown>> {
       // TODO: how to get the workflowStage??
       // TODO: Get the project metadata from the form, move this logic to the controller
       sails.log.debug(config);
@@ -108,7 +108,7 @@ export module Services {
   return from(axios(post));
     }
 
-    getRecordMeta(config: UnsafeAny, rdmp: string): Observable<AxiosResponse<UnsafeAny>> {
+    getRecordMeta(config: { brandingAndPortalUrl: string; redboxHeaders: Record<string, string> }, rdmp: string): Observable<AxiosResponse<unknown>> {
       const get = {
         method: 'get',
         url: config.brandingAndPortalUrl + '/api/records/metadata/' + rdmp,
@@ -117,7 +117,7 @@ export module Services {
   return from(axios(get));
     }
 
-    updateRecordMeta(config: UnsafeAny, record: UnsafeAny, id: string): Observable<AxiosResponse<UnsafeAny>> {
+    updateRecordMeta(config: { brandingAndPortalUrl: string; redboxHeaders: Record<string, string> }, record: Record<string, unknown>, id: string): Observable<AxiosResponse<unknown>> {
       const post = {
         method: 'put',
         url: config.brandingAndPortalUrl + '/api/records/metadata/' + id,

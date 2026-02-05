@@ -21,10 +21,26 @@ import { Observable } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { Services as services } from '../CoreService';
-import i18next from "i18next"
+import i18next, { type i18n as I18nInstance } from "i18next"
+
+interface RequestLike {
+  param: (name: string) => string | undefined;
+  session?: { lang?: string; [key: string]: unknown };
+  options: { locals: Record<string, unknown> };
+}
+
+interface ResponseLike {
+  cookie: (name: string, value: string) => void;
+}
+
+type NextFunction = () => void;
 
 // Waterline globals
-declare let BrandingService: UnsafeAny;
+declare let BrandingService: {
+  getBrand: (name: string) => BrandingModel;
+  getAvailable: () => string[];
+  getBrandFromReq: (req: RequestLike) => string;
+};
 
 export module Services {
   /**
@@ -38,13 +54,13 @@ export module Services {
   export class Translation extends services.Core.Service {
 
     // Map of i18next instances per branding
-    private i18nextInstances: UnsafeAny = {};
+    private i18nextInstances: Record<string, I18nInstance> = {};
 
 
     /**
      * Get or create an i18next instance for a specific branding
      */
-    private async getI18nextForBranding(branding: BrandingModel): Promise<UnsafeAny> {
+    private async getI18nextForBranding(branding: BrandingModel): Promise<I18nInstance> {
       if (!branding) {
         branding = BrandingService.getBrand('default');
       }
@@ -85,7 +101,7 @@ export module Services {
       
       const initConfig = {
         ...initBase,
-        lng: availableLanguages[0], // Set primary language
+        lng: availableLanguages[0] ?? 'en', // Set primary language
         supportedLngs: availableLanguages, // Use the complete list of available languages
         preload: availableLanguages, // Preload all available languages
         resources,
@@ -117,7 +133,7 @@ export module Services {
       }
       
       // Change back to the primary language
-      await i18nextInstance.changeLanguage(availableLanguages[0]);
+      await i18nextInstance.changeLanguage(availableLanguages[0] ?? 'en');
 
       // Test translation functionality for each language
       for (const lng of availableLanguages) {
@@ -185,7 +201,7 @@ export module Services {
       this.logger.debug("**************************");
     }
 
-    private async _fetchResourcesFromDb(brand: BrandingModel | null = null): Promise<Record<string, Record<string, any>>> {
+    private async _fetchResourcesFromDb(brand: BrandingModel | null = null): Promise<Record<string, Record<string, Record<string, unknown>>>> {
      
       if(!brand) {
        brand = BrandingService.getBrand('default');
@@ -198,7 +214,7 @@ export module Services {
       const brandingId = brand.id || 'default';
       const namespaces: string[] = (sails?.config?.i18n?.next?.init?.ns as string[]) || ['translation'];
 
-      const resources: Record<string, Record<string, any>> = {};
+      const resources: Record<string, Record<string, Record<string, unknown>>> = {};
       for (const lng of supported) {
         resources[lng] = {};
         for (const ns of namespaces) {
@@ -210,10 +226,10 @@ export module Services {
               const uid = `${brandingId}:${lng}:${ns}`;
               bundle = await I18nBundle.findOne({ uid });
             }
-            const data = (bundle?.data && typeof bundle.data === 'object') ? { ...bundle.data } : {};
-            if (data && typeof data === 'object' && data._meta) {
+            const data = (bundle?.data && typeof bundle.data === 'object') ? { ...(bundle.data as Record<string, unknown>) } : {};
+            if (data && typeof data === 'object' && '_meta' in data) {
               // strip metadata from runtime resources
-              delete (data as UnsafeAny)._meta;
+              delete (data as Record<string, unknown>)._meta;
             }
             resources[lng][ns] = data || {};
           } catch (e) {
@@ -235,10 +251,11 @@ export module Services {
         this.logger.warn(`No i18next instance found for brand name: ${brandingName}, branding id: ${brand.id}, falling back to key`);
         return key;
       }
+      const resolvedLang = langCode || 'en';
       if (context === undefined) {
-        return i18nextInstance.getFixedT(langCode)(key);
+        return i18nextInstance.getFixedT(resolvedLang)(key);
       }
-      return i18nextInstance.getFixedT(langCode)(key, context);
+      return i18nextInstance.getFixedT(resolvedLang)(key, context);
     }
 
     public tInter(key: string, context: Record<string, unknown> | null = null, langCode:string = 'en') {
@@ -264,7 +281,7 @@ export module Services {
     /**
      * Get available languages for a specific branding from DB
      */
-    public async getAvailableLanguagesForBranding(branding: UnsafeAny): Promise<string[]> {
+    public async getAvailableLanguagesForBranding(branding: BrandingModel | null): Promise<string[]> {
       try {
         if (!branding) {
           this.logger.warn('No branding provided, using config fallback');
@@ -272,7 +289,7 @@ export module Services {
         }
 
         const brandingId = branding.id || 'default';
-        const langs: UnsafeAny = {};
+        const langs: Record<string, true> = {};
         
         // Add configured languages as baseline
         const configured = sails?.config?.i18n?.next?.init?.supportedLngs;
@@ -288,7 +305,7 @@ export module Services {
         try {
           const bundles = await I18nBundle.find({ branding: brandingId }).sort('locale');
           this.logger.debug(`Found ${bundles.length} bundles for branding ${brandingId}`);
-          bundles.forEach((b: UnsafeAny) => {
+          bundles.forEach((b: { locale?: string }) => {
             if (b?.locale) {
               this.logger.debug(`Adding language from bundle: ${b.locale}`);
               langs[b.locale] = true;
@@ -309,9 +326,9 @@ export module Services {
       }
     }
 
-    public async handle(req: UnsafeAny, res: UnsafeAny, next: UnsafeAny) {
+    public async handle(req: RequestLike, res: ResponseLike, next: NextFunction) {
       let langCode = req.param('lng');
-      let sessLangCode = req.session.lang;
+      let sessLangCode = req.session?.lang;
       let defaultLang = _.isArray(sails.config.i18n.next.init.fallbackLng) ? sails.config.i18n.next.init.fallbackLng[0] : sails.config.i18n.next.init.fallbackLng;
       if (_.isEmpty(langCode) && _.isEmpty(sessLangCode)) {
         // use the default
@@ -336,30 +353,31 @@ export module Services {
         this.logger.warn(`Unsupported language code: ${langCode}, setting to default.`);
         langCode = defaultLang;
       }
+      const resolvedLang = (langCode || defaultLang || 'en') as string;
       
       // save the lang in the session
       if (_.isEmpty(req.session)) {
         req.session = {};
       }
-      req.session.lang = langCode;
+      req.session.lang = resolvedLang;
       // set the locals lang code
-      req.options.locals.lang = langCode;
+      req.options.locals.lang = resolvedLang;
       // set the cookie
-      res.cookie('lng', langCode);
+      res.cookie('lng', resolvedLang);
 
       // Inject branding-specific i18next instance into locals
       req.options.locals.TranslationService = _.merge(this, {
         t: function(key: string, context?: Record<string, unknown>) {
           if (context === undefined) {
-            return i18nextInstance.getFixedT(langCode)(key);
+            return i18nextInstance.getFixedT(resolvedLang)(key);
           }
-          return i18nextInstance.getFixedT(langCode)(key, context);
+          return i18nextInstance.getFixedT(resolvedLang)(key, context);
         },
         tInter: function(key: string, context?: Record<string, unknown>) {
           if (context === undefined) {
-            return i18nextInstance.getFixedT(langCode)(key);
+            return i18nextInstance.getFixedT(resolvedLang)(key);
           }
-          return i18nextInstance.getFixedT(langCode)(key, context);
+          return i18nextInstance.getFixedT(resolvedLang)(key, context);
         }
       });
       

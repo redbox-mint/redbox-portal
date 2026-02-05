@@ -23,7 +23,47 @@ import { RBValidationError } from '../model/RBValidationError';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { momentShim as moment } from '../shims/momentShim';
 import { DateTime } from 'luxon';
-import axios from 'axios';
+import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
+
+interface RecordWithMetadata extends Record<string, unknown> {
+  metadata: Record<string, unknown>;
+}
+
+interface DataciteForCode {
+  name: string;
+  notation: string;
+}
+
+type DataciteRequest = Record<string, unknown>;
+
+interface DatacitePostBody {
+  data: {
+    type: 'dois';
+    attributes: {
+      event: string;
+      prefix: string;
+      titles: Array<{ lang: string | null; title: string; titleType: string | null }>;
+      publisher: string;
+      publicationYear: string;
+      url: string;
+      sizes: string[];
+      creators: Array<Record<string, unknown>>;
+      dates: Array<{ date: string; dateType: string; dateInformation?: string }>;
+      identifiers: Array<{ identifier: string; identifierType: string }>;
+      subjects: Array<Record<string, unknown>>;
+      descriptions: Array<Record<string, unknown>>;
+      rightsList: Array<Record<string, unknown>>;
+      fundingReferences: Array<Record<string, unknown>>;
+      types: {
+        ris: string;
+        bibtex: string;
+        citeproc: string;
+        schemaOrg: string;
+        resourceTypeGeneral: string;
+      };
+    };
+  };
+}
 
 
 export module Services {
@@ -35,7 +75,7 @@ export module Services {
    *
    */
   export class Doi extends services.Core.Service {
-    protected override _exportedMethods: UnsafeAny = [
+    protected override _exportedMethods: string[] = [
       'publishDoi',
       'publishDoiTrigger',
       'publishDoiTriggerSync',
@@ -52,9 +92,9 @@ export module Services {
       return this._msgPrefix;
     }
 
-    private async makeCreateDoiCall(instance: UnsafeAny, postBody: UnsafeAny, record: UnsafeAny, oid: string) {
+    private async makeCreateDoiCall(instance: AxiosInstance, postBody: DatacitePostBody, _record: RecordWithMetadata, _oid: string) {
       try {
-        let response = await instance.post('/dois', postBody);
+        let response: AxiosResponse<Record<string, any>> = await instance.post('/dois', postBody);
 
         if (response.status == 201) {
           let responseBody = response.data;
@@ -74,9 +114,9 @@ export module Services {
       }
     }
 
-    private async makeUpdateDoiCall(instance: UnsafeAny, postBody: UnsafeAny, doi: string) {
+    private async makeUpdateDoiCall(instance: AxiosInstance, postBody: DatacitePostBody, doi: string) {
       try {
-        let response = await instance.patch(`/dois/${doi}`, postBody)
+        let response: AxiosResponse<Record<string, any>> = await instance.patch(`/dois/${doi}`, postBody)
 
         if (response.status == 200) {
           let responseBody = response.data
@@ -187,8 +227,8 @@ export module Services {
       })
     }
 
-    private processForCodes(forCodes: UnsafeAny[]) {
-      let doiForCodeList = []
+    private processForCodes(forCodes: DataciteForCode[]) {
+      let doiForCodeList: Array<{ subject: string; schemeUri: string; subjectScheme: string; classificationCode: string }> = []
       if (!_.isUndefined(forCodes)) {
         for (let forCode of forCodes) {
           doiForCodeList.push({
@@ -202,7 +242,7 @@ export module Services {
       return doiForCodeList;
     }
 
-    public async publishDoi(oid: string, record: UnsafeAny, event = 'publish', action = 'create') {
+    public async publishDoi(oid: string, record: RecordWithMetadata, event = 'publish', action = 'create') {
 
       let doiPrefix = sails.config.datacite.doiPrefix;
       let baseUrl = sails.config.datacite.baseUrl;
@@ -229,7 +269,7 @@ export module Services {
       let publicationYear = this.runTemplate(mappings.publicationYear, lodashTemplateContext)
       let publisher = this.runTemplate(mappings.publisher, lodashTemplateContext)
 
-      let postBody: UnsafeAny = {
+      let postBody: DatacitePostBody = {
         "data": {
           "type": "dois",
           "attributes": {
@@ -266,7 +306,7 @@ export module Services {
 
       let creatorTemplateContext: Record<string, unknown> = _.clone(lodashTemplateContext)
       let creatorsProperty = sails.config.datacite.creatorsProperty
-      for (let creator of record.metadata[creatorsProperty]) {
+      for (let creator of (record.metadata[creatorsProperty] as Array<Record<string, unknown>>)) {
         creatorTemplateContext['creator'] = creator
         let creatorGivenName = this.runTemplate(mappings.creatorGivenName, creatorTemplateContext)
         let creatorFamilyName = this.runTemplate(mappings.creatorFamilyName, creatorTemplateContext)
@@ -429,12 +469,13 @@ export module Services {
         postBodyValidateError.push('general-resource-type-required')
       }
 
-      if (action == 'update' && _.isEmpty(record.metadata.citation_doi)) {
+      const citationDoi = record.metadata.citation_doi as string | undefined;
+      if (action == 'update' && _.isEmpty(citationDoi)) {
         postBodyValidateError.push('doi-required')
       }
 
-      if (action == 'update' && !_.isEmpty(record.metadata.citation_doi) && !record.metadata.citation_doi.startsWith(doiPrefix)) {
-        sails.log.warn(`The citation DOI ${record.metadata.citation_doi} does not begin with the correct prefix ${doiPrefix}. Will not attempt to update`)
+      if (action == 'update' && citationDoi && !citationDoi.startsWith(doiPrefix)) {
+        sails.log.warn(`The citation DOI ${citationDoi} does not begin with the correct prefix ${doiPrefix}. Will not attempt to update`)
         return null;
       }
 
@@ -449,7 +490,10 @@ export module Services {
       }
       let doi: string | null;
       if (action == 'update') {
-        doi = await this.makeUpdateDoiCall(instance, postBody, record.metadata.citation_doi)
+        if (!citationDoi) {
+          return null;
+        }
+        doi = await this.makeUpdateDoiCall(instance, postBody, citationDoi)
       }
       else {
         doi = await this.makeCreateDoiCall(instance, postBody, record, oid)
@@ -465,7 +509,7 @@ export module Services {
       return buff.toString('base64');
     }
 
-    public async publishDoiTrigger(oid: string, record: UnsafeAny, options: UnsafeAny): Promise<UnsafeAny> {
+    public async publishDoiTrigger(oid: string, record: RecordWithMetadata, options: Record<string, unknown>): Promise<unknown> {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
         const brand: BrandingModel = BrandingService.getBrand('default');
@@ -480,10 +524,10 @@ export module Services {
       return of(null);
     }
 
-    public async publishDoiTriggerSync(oid: string, record: UnsafeAny, options: UnsafeAny): Promise<UnsafeAny> {
+    public async publishDoiTriggerSync(oid: string, record: RecordWithMetadata, options: Record<string, unknown>): Promise<RecordWithMetadata> {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
-        let doi = await this.publishDoi(oid, record, options["event"]);
+        let doi = await this.publishDoi(oid, record, options["event"] as string);
 
         if (doi != null) {
           record = this.addDoiDataToRecord(oid, record, doi)
@@ -493,16 +537,16 @@ export module Services {
       return record;
     }
 
-    public async updateDoiTriggerSync(oid: string, record: UnsafeAny, options: UnsafeAny): Promise<UnsafeAny> {
+    public async updateDoiTriggerSync(oid: string, record: RecordWithMetadata, options: Record<string, unknown>): Promise<RecordWithMetadata> {
 
       let doi: string | null = null
       if (this.metTriggerCondition(oid, record, options) === "true") {
-        doi = await this.publishDoi(oid, record, options["event"], 'update');
+        doi = await this.publishDoi(oid, record, options["event"] as string, 'update');
       }
       return record
     }
 
-    addDoiDataToRecord(oid: string, record: UnsafeAny, doi: string) {
+    addDoiDataToRecord(oid: string, record: RecordWithMetadata, doi: string) {
       let lodashTemplateContext = {
         record: record,
         oid: oid,
@@ -528,11 +572,11 @@ export module Services {
 
     //TODO: This method will be deprecated soon and moved to its own run template service so it can be reused in
     //      which will allow to standardise config structure in all places were object mappings are needed
-    protected runTemplate(template: string, variables: UnsafeAny) {
+    protected runTemplate(template: string, variables: Record<string, unknown>): string {
       if (template && template.indexOf('<%') != -1) {
         return _.template(template)(variables);
       }
-      return _.get(variables, template);
+      return _.get(variables, template) as string;
     }
   }
 }
