@@ -106,7 +106,7 @@ import {
 } from "../component/validation-summary.outline";
 import {ValidationSummaryFieldComponentConfig} from "../component/validation-summary.model";
 
-import {FormModel, ILogger} from "@researchdatabox/redbox-core-types";
+
 import {FieldModelConfigFrame} from "../field-model.outline";
 import {FieldComponentConfigFrame} from "../field-component.outline";
 import {FieldLayoutConfigFrame} from "../field-layout.outline";
@@ -116,7 +116,8 @@ import {AllFormComponentDefinitionOutlines} from "../dictionary.outline";
 import {CanVisit} from "./base.outline";
 import {LineagePathsPartial} from "../names/naming-helpers";
 import {FormComponentClassDefMapType, FormComponentDefinitionMap} from "../dictionary.model";
-import {isTypeFieldDefinitionName, isTypeFormComponentDefinitionName} from "../form-types.outline";
+import {isTypeFormComponentDefinitionName} from "../form-types.outline";
+import {ILogger} from "../../logger.interface";
 
 interface V4ClassNames {
     v4ClassName: string;
@@ -206,6 +207,10 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
         "RepeatableGroupComponent": {
             componentClassName: RepeatableComponentName,
             modelClassName: RepeatableModelName
+        },
+        "RepeatableVocabComponent": {
+            componentClassName: RepeatableComponentName,
+            modelClassName: RepeatableModelName
         }
     },
     "RepeatableContributor": {
@@ -226,6 +231,10 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
     },
     "SelectionField": {
         "DropdownFieldComponent": {
+            componentClassName: DropdownInputComponentName,
+            modelClassName: DropdownInputModelName
+        },
+        "SelectionFieldComponent": {
             componentClassName: DropdownInputComponentName,
             modelClassName: DropdownInputModelName
         }
@@ -309,7 +318,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     private formComponentMap: FormComponentClassDefMapType;
 
-    private v4FormConfig: FormModel;
+    private v4FormConfig: Record<string, unknown>;
     private v5FormConfig: FormConfigOutline;
 
     private v4FormPath: string[];
@@ -341,8 +350,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     }
 
-    start(options: { data: FormModel }): FormConfigOutline {
-        this.v4FormConfig = _cloneDeep(options.data);
+    start(options: { data: any }): FormConfigOutline {
+        this.v4FormConfig = _cloneDeep(this.normaliseV4FormConfig(options.data));
         this.v5FormConfig = new FormConfig();
         this.v4FormPath = [];
 
@@ -386,6 +395,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
         // Convert fields to components
         const fields: Record<string, unknown>[] = currentData.fields ?? [];
+        // this.logger.info(`Processing '${item.name}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
         fields.forEach((field, index) => {
             // Create the instance from the v4 config
             const formComponent = this.constructFormComponent(field);
@@ -446,9 +456,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.sharedPopulateFieldComponentConfig(item.config, field);
 
         const fields = field?.definition?.fields ?? [];
+        // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
         if (fields.length === 1) {
             // Create the instance from the v4 config
-            const formComponent = this.constructFormComponent(field);
+            const formComponent = this.constructFormComponent(fields[0]);
+
+            // The elementTemplate's name must be a falsy value.
+            formComponent.name = "";
 
             // Visit children
             this.acceptV4FormConfigPath(
@@ -458,7 +472,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             );
 
             // Store the instance on the item
-            item.config.elementTemplate = this.constructFormComponent(field);
+            item.config.elementTemplate = formComponent;
         } else {
             this.logger.error(`${this.logName}: Expected one field in definition for repeatable, but found ${fields.length}: ${JSON.stringify(field)}`);
         }
@@ -501,6 +515,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.sharedPopulateFieldComponentConfig(item.config, field);
 
         const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
+        // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
         fields.forEach((field, index) => {
             // Create the instance from the v4 config
             const formComponent = this.constructFormComponent(field);
@@ -536,6 +551,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.sharedPopulateFieldComponentConfig(item.config, field);
 
         const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
+        // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
         fields.forEach((field, index) => {
 
             // TODO: Does this approach to mapping the tab content component lose data?
@@ -579,6 +595,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.sharedPopulateFieldComponentConfig(item.config, field);
 
         const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
+        // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
         fields.forEach((field, index) => {
             // Create the instance from the v4 config
             const formComponent = this.constructFormComponent(field);
@@ -676,7 +693,14 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         item.config = new DropdownInputFieldComponentConfig();
         this.sharedPopulateFieldComponentConfig(item.config, field);
 
-        this.sharedProps.setPropOverride('options', item.config, field?.definition);
+        const options = (field?.definition?.options ?? []).map((option: any) => {
+            return {
+                label: option?.label ?? '',
+                value: option?.value ?? '',
+                disabled: option?.disabled ?? option?.historicalOnly ?? undefined,
+            }
+        });
+        this.sharedProps.setPropOverride('options', item.config, {options: options});
     }
 
     visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
@@ -799,18 +823,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         if (errorMessage || !componentClassName || !formComponentClass) {
             currentData.component.class = ContentComponentName;
 
-            const modelStr = JSON.stringify(currentData.model ?? "");
+            const modelStr = currentData.model ?? "";
             currentData.model = undefined;
 
-            const layoutStr = JSON.stringify(currentData.layout ?? "");
+            const layoutStr = currentData.layout ?? "";
             currentData.layout = {class: DefaultLayoutName, config: {}};
 
             const msgs = [errorMessage, `At path '${JSON.stringify(this.v4FormPath)}'.`];
             if (modelStr) {
-                msgs.push(`Model: ${modelStr}.`);
+                msgs.push(`Model: ${JSON.stringify(modelStr)}.`);
             }
             if (layoutStr) {
-                msgs.push(`Layout: ${layoutStr}.`);
+                msgs.push(`Layout: ${JSON.stringify(layoutStr)}.`);
             }
             if (componentClassName) {
                 msgs.push(`Could not find class for form component class name '${componentClassName}'.`);
@@ -873,11 +897,50 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const data = this.v4FormConfig;
         const path = this.v4FormPath;
 
+        let result;
         if (!path || path.length < 1) {
-            return data;
+            result = data;
+        } else {
+            result = _get(data, path.map(i => i.toString()));
         }
 
-        return _get(data, path.map(i => i.toString()))
+        // this.logger.info(JSON.stringify({path, result}));
+        return result;
+    }
+
+    private normaliseV4FormConfig(formConfig: any): Record<string, unknown> {
+        if (formConfig === undefined || formConfig === null) {
+            formConfig = {};
+        }
+
+        // If the top level is an array, assume it is an array of field definitions.
+        if (Array.isArray(formConfig)) {
+            formConfig = {fields: formConfig};
+        }
+
+        // If the top level has a 'form' property, assume it is an export in the structure form.forms[formId] = formConfig.
+        if (Object.hasOwn(formConfig, 'form')) {
+            const formIds = Object.keys(formConfig.form.forms ?? {}).filter(formId => formId !== '_dontMerge');
+            if (formIds.length === 1) {
+                this.logger.info(`Migrating form id: ${formIds[0]}`);
+                formConfig = formConfig.form.forms[formIds[0]];
+            } else {
+                const topKeys = Object.keys(formConfig);
+                const formKeys = Object.keys(formConfig.form ?? {});
+                const formsKeys = Object.keys(formConfig.form?.forms ?? {});
+                this.logger.error(`Cannot migrate due to more or less than one form id: ${JSON.stringify({
+                    topKeys,
+                    formKeys,
+                    formsKeys
+                })}`);
+                formConfig = {};
+            }
+        }
+
+        // Set the form config name if there isn't one.
+        if (!formConfig.name) {
+            formConfig.name = 'v4FormConfig';
+        }
+        return formConfig;
     }
 }
-
