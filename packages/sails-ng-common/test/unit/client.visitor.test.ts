@@ -222,6 +222,7 @@ describe("Client Visitor", async () => {
                                 "visible": true,
                             }
                         },
+                        model: {class: "SimpleInputModel", config: {}}
                     }
                 ]
             }

@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {Inject, Injectable, WritableSignal} from '@angular/core';
-import {AbstractControl, FormControl, FormGroup} from '@angular/forms';
-import {isEmpty as _isEmpty,  merge as _merge, set as _set, isUndefined as _isUndefined, toNumber as _toNumber, isFinite as _isFinite } from 'lodash-es';
+import {AbstractControl, FormControl} from '@angular/forms';
+import {isEmpty as _isEmpty,  merge as _merge, set as _set, toNumber as _toNumber, isFinite as _isFinite } from 'lodash-es';
 import {
   StaticComponentClassMap,
   StaticModelClassMap,
@@ -53,7 +53,8 @@ import {
   buildLineagePaths as buildLineagePathsHelper,
   queryJSONata,
   getObjectWithJsonPointer,
-  FormModesConfig,
+  FormModesConfig, KindNameDefaultsMap, FieldModelDefinitionKind,
+  FormComponentDefinitionKind, KindNameDefaultsMapType,
 } from '@researchdatabox/sails-ng-common';
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
@@ -81,6 +82,7 @@ export class FormService extends HttpClientService {
   protected compClassMap: AllComponentClassMapType = {};
   protected modelClassMap: AllModelClassMapType = {};
   protected layoutClassMap: AllLayoutClassMapType = {};
+  protected kindNameDefaultsMap: KindNameDefaultsMapType;
   protected validatorsSupport: ValidatorsSupport;
 
   private requestOptions: Record<string, unknown> = {};
@@ -112,6 +114,8 @@ export class FormService extends HttpClientService {
     this.loggerService.debug(`${this.logName}: Static layout classes:`,
       Object.fromEntries(Object.entries(this.layoutClassMap).map(([key, value]) => [key, value?.constructor?.name]))
     );
+
+    this.kindNameDefaultsMap = KindNameDefaultsMap;
 
     this.validatorsSupport = new ValidatorsSupport();
   }
@@ -329,23 +333,33 @@ export class FormService extends HttpClientService {
     const ModelType = compMapEntry.modelClass;
     const modelConfig = compMapEntry.compConfigJson.model;
     const enabledGroups = this.loadedFormConfig?.enabledValidationGroups ?? ["all"];
+
+    const componentClassName = compMapEntry?.compConfigJson?.component?.class;
+    const name = compMapEntry?.compConfigJson?.name;
+    const layoutClassName = compMapEntry?.compConfigJson?.layout?.class;
+    const modelClassName = compMapEntry?.compConfigJson?.model?.class;
+
     if (ModelType && modelConfig) {
       compMapEntry.model = new ModelType(modelConfig);
       this.setValidators(compMapEntry.model.formControl, compMapEntry.model.validators, enabledGroups);
       return compMapEntry.model;
-    } else {
-      // TODO: Is there some way to indicate which components must have a model, and which ones must not?
-      //       Then this could throw an error instead of warning about components that can't have a model.
-      // Model is now optional, so we can return null if the model is not defined.
-      // Log appropriate warning to highlight potential config errors.
-      const name = compMapEntry?.compConfigJson?.name;
-      const componentClassName = compMapEntry?.compConfigJson?.component?.class;
-      const layoutClassName = compMapEntry?.compConfigJson?.layout?.class;
-      const modelClassName = compMapEntry?.compConfigJson?.model?.class;
-      this.loggerService.warn(`${this.logName}: Model class or model config is not defined for component name ${JSON.stringify(name)}. ` +
-        `Component class ${JSON.stringify(componentClassName)} layout class ${JSON.stringify(layoutClassName)} model class ${JSON.stringify(modelClassName)}. ` +
-        `If this is unexpected, check your form configuration.`);
     }
+
+    // Check if there is a default model class name for this field component.
+    const sourceDefaultsMap = this.kindNameDefaultsMap.get(FormComponentDefinitionKind);
+    const targetDefaultsMap = sourceDefaultsMap?.get(componentClassName);
+    const modelClassDefaultName = targetDefaultsMap?.get(FieldModelDefinitionKind);
+    const hasModelClassDefault = modelClassDefaultName !== undefined && modelClassDefaultName !== null;
+
+    if (hasModelClassDefault) {
+      // If there is a default model class name, then assume that there must be a model class.
+      // It is an error to not provide ModelType or not provide modelConfig when there is a default model class name.
+      throw new Error(`${this.logName}: Model class or model config is not defined for component name ${JSON.stringify(name)}. ` +
+        `Component class ${JSON.stringify(componentClassName)} layout class ${JSON.stringify(layoutClassName)} model class ${JSON.stringify(modelClassName)}. ` +
+        `The assumption is that if there is a default model class '${JSON.stringify(modelClassDefaultName)}', then a model class must be provided.`);
+    }
+
+    // Model is optional, so we can return null if the model is not defined and there is no default model class name.
     return null;
   }
 
@@ -359,15 +373,20 @@ export class FormService extends HttpClientService {
     const groupWithFormControl: any = {};
     for (let compEntry of compMap.components) {
       const fieldName = compEntry.compConfigJson.name ?? "";
+
       if (_isEmpty(fieldName)) {
         this.loggerService.info(`Field name is empty for component. If you need this component to be part of the form or participate in events, please provide a name.`, compEntry);
         continue;
       }
+
+      // Populate the map of name to compEntry.
       if (groupMap[fieldName]) {
         throw new Error(`${this.logName}: Field name '${fieldName}' is already used. Names must be unique, please change the names to be unique. ` +
           `The existing grouped component names are: ${Object.keys(groupMap).join(',')}`);
       }
       groupMap[fieldName] = compEntry;
+
+      // Populate the map of name to form control.
       if (compEntry.model) {
         const model = compEntry.model;
         const formControl = model.formControl;
@@ -375,9 +394,11 @@ export class FormService extends HttpClientService {
           groupWithFormControl[fieldName] = formControl;
         }
       } else {
-        // Some components may not have a model themselves, but can 'contain' other components
+        // Some components may not have a model themselves, but can 'contain' other components.
         if (compEntry.formControlMap && !_isEmpty(compEntry.formControlMap)) {
-          // traverse the model map and add the models to the group map
+          // Traverse the model map and add the models to the group map.
+          // The form controls added here are child form controls.
+          // We made the design choice to add them to the parent level to make them available.
           for (const [name, formControl] of Object.entries(compEntry.formControlMap)) {
             if (formControl && name) {
               groupWithFormControl[name] = formControl;
@@ -392,55 +413,37 @@ export class FormService extends HttpClientService {
   }
 
   /**
-   * Get the validation errors for the given control and all child controls.
-   * @param componentDefs Gather the validation errors using these component definitions.
-   * @param name The optional name of the control.
-   * @param control The Angular control instance.
-   * @param parents The names of the parent controls.
-   * @param results The accumulated results.
+   * Get the flat array of validation errors for the given component and all child components.
+   * @param mapEntry Gather the validation errors for this component.
    * @return An array of validation errors.
    */
-  public getFormValidatorSummaryErrors(
-    componentDefs: FormComponentDefinitionFrame[] | null | undefined,
-    name: string | null | undefined = null,
-    control: AbstractControl | null | undefined = null,
-    parents: string[] | null = null,
-    results: FormValidatorSummaryErrors[] | null = null,
-  ): FormValidatorSummaryErrors[] {
-    // Build a flattened array of control errors.
-    // Include the names of the parent controls for each control.
-    if (!parents) {
-      parents = [];
-    }
-    if (!results) {
-      results = [];
+  public getFormValidatorSummaryErrors(mapEntry: FormFieldCompMapEntry | null): FormValidatorSummaryErrors[] {
+    const result: FormValidatorSummaryErrors[] = [];
+
+    if (!mapEntry) {
+      this.loggerService.warn(`Cannot get form validator summary errors due to missing mapEntry.`);
+      return result;
     }
 
-    // control
-    name = name || null;
+    // Get form component id and label.
+    const {id, labelMessage} = this.componentIdLabel(mapEntry.compConfigJson);
 
-    // TODO: Find the component definition that matches the angular form control using the path instead of only name.
-    //  Using name only might find the wrong form component definition, as names are only unique at the same level of nesting.
-    const componentDef = componentDefs?.find(i => !!name && i?.name === name) ?? null;
-    const {id, labelMessage} = this.componentIdLabel(componentDef);
-    const errors = this.getFormValidatorComponentErrors(control);
-
-    // Only add the result if there are errors.
-    if (errors.length > 0) {
-      results.push({id: id, message: labelMessage, errors: errors, parents: parents});
-    }
-
-    // child controls
-    if ("controls" in (control ?? {})) {
-      for (const [name, childControl] of Object.entries((control as FormGroup)?.controls ?? {})) {
-        // Create a new array for the parents, so that the existing array of parent names is not modified.
-        const newParents = !!name ? [...parents, name] : [...parents];
-        this.getFormValidatorSummaryErrors(componentDefs, name, childControl, newParents, results);
+    // Get the validation errors from the form control.
+    const formControl = mapEntry.model?.formControl;
+    const lineagePaths = mapEntry.lineagePaths;
+    if (formControl && lineagePaths) {
+      const errors = this.getFormValidatorComponentErrors(formControl);
+      if (errors.length > 0) {
+        result.push({id, message: labelMessage, errors, lineagePaths});
       }
     }
 
-    // output
-    return results;
+    // Get the validation errors from any child controls.
+    for (const childMapEntry of mapEntry.component?.formFieldCompMapEntries ?? []) {
+      result.push(...this.getFormValidatorSummaryErrors(childMapEntry));
+    }
+
+    return result;
   }
 
   /**
@@ -448,15 +451,7 @@ export class FormService extends HttpClientService {
    * @param control
    */
   public getFormValidatorComponentErrors(control: AbstractControl | null | undefined): FormValidatorComponentErrors[] {
-    return Object.entries(control?.errors ?? {})
-        .map(([key, item]) => {
-          return {
-            class: key,
-            message: item.message ?? null,
-            params: {...item.params},
-          }
-        })
-      ?? [];
+    return this.validatorsSupport.getFormValidatorComponentErrors(control?.errors ?? {});
   }
 
   /**
@@ -808,7 +803,7 @@ export class FormService extends HttpClientService {
 }
 
 /**
- *  This client-side, Angular specific data model of the downloaded form configuration.
+ *  This is a client-side, Angular specific data model of the downloaded form configuration.
  *  This includes Angular's FormControl instances for binding UI components to the form.
  */
 export class FormComponentsMap {
@@ -820,11 +815,14 @@ export class FormComponentsMap {
    * The form configuration from the server.
    */
   formConfig: FormConfigFrame;
-  completeGroupMap: { [key: string]: FormFieldCompMapEntry } | undefined;
+  /**
+   * Map of item name to form field component map entry.
+   */
+  completeGroupMap?: { [key: string]: FormFieldCompMapEntry };
   /**
    * Mapping of name to angular FormControl. Used to create angular form.
    */
-  withFormControl: { [key: string]: FormControl } | undefined;
+  withFormControl?: { [key: string]: FormControl };
 
   constructor(components: FormFieldCompMapEntry[], formConfig: FormConfigFrame) {
     this.components = components;

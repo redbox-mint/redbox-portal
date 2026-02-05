@@ -457,4 +457,8 @@ export class UtilityService {
   public clearDynamicImportCache() {
     this.dynamicImportCache.clear();
   }
+
+  public formFieldConfigName(compMapEntry: { compConfigJson?: {name?: string}, name?: string } | undefined, defaultName?: string) {
+    return compMapEntry?.compConfigJson?.name || compMapEntry?.name || defaultName || "";
+  }
 }

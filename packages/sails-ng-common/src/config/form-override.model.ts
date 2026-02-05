@@ -278,7 +278,7 @@ export class FormOverride {
         }
 
         if (isTransformExpected) {
-            this.logger.warn(`Component '${source?.name}' ${hasTransform ? 'transformed' : 'unmodified'} ` +
+            this.logger.info(`Component '${source?.name}' ${hasTransform ? 'transformed' : 'unmodified'} ` +
                 `from '${originalComponentClassName}' to '${transformComponentClassName}'.`);
         }
 
@@ -398,11 +398,6 @@ export class FormOverride {
         }
 
         const target = this.propertiesHelper.sharedConstructFormComponent(frame);
-        if (!target) {
-            throw new Error(`Could not find class for form component class name 'ContentComponent': ${JSON.stringify(frame)}.`);
-        }
-
-        this.propertiesHelper.sharedPopulateFormComponent(target, frame);
         if (!isTypeFormComponentDefinitionName<ContentFormComponentDefinitionOutline>(target, ContentComponentName)) {
             throw new Error(`Could not create class for form component class name 'ContentComponent': ${JSON.stringify(target)}.`);
         }

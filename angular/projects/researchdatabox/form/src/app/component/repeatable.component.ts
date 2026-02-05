@@ -70,7 +70,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     await this.untilViewIsInitialised();
     // Prepare the element template
     const elementTemplate = (this.componentDefinition?.config as RepeatableFieldComponentConfig)?.elementTemplate;
-    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name;
+    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
     if (!elementTemplate) {
       throw new Error(`${this.logName}: elementTemplate is not defined in the component definition for '${formComponentName}'.`);
     }
@@ -145,12 +145,13 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   protected rebuildLineagePaths() {
     for (let index = 0; index < this.compDefMapEntries.length; index++) {
+      const indexStr = index.toString();
       const lineagePath = this.formService.buildLineagePaths(
       this.formFieldCompMapEntry?.lineagePaths,
       {
-        angularComponents: [`${index}`],
-        dataModel: [],
-        formConfig: [],
+        angularComponents: [indexStr],
+        dataModel: [indexStr],
+        formConfig: ['component', 'config', 'elementTemplate'],
       });
       this.compDefMapEntries[index].defEntry.lineagePaths = lineagePath;
     }
@@ -175,7 +176,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
     // The component and layout names are set from the repeatable component name or a default name,
     // with localUniqueId appended to ensure uniqueness.
-    const baseName = this.formFieldConfigName('repeatable') || 'repeatable-element';
+    const baseName = this.formFieldConfigName('repeatable');
 
     if (elemEntry.compConfigJson) {
       elemEntry.compConfigJson.name = `${baseName}-${localUniqueId}`;

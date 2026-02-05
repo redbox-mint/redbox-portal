@@ -22,7 +22,6 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
           <input type="checkbox"
             class="form-check-input"
             [checked]="isOptionSelected(opt.value)"
-            [required]="isRequired"
             [title]="tooltip"
             (change)="onOptionChange($any($event.target).checked, opt.value)"
             id="{{name}}-{{opt.value}}"

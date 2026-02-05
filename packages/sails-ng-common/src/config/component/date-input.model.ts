@@ -94,4 +94,11 @@ export const DateInputMap = [
     {kind: FieldModelDefinitionKind, def: DateInputFieldModelDefinition, class: DateInputModelName},
     {kind: FormComponentDefinitionKind, def: DateInputFormComponentDefinition, class: DateInputComponentName},
 ];
-
+export const DateInputDefaults = {
+    [FormComponentDefinitionKind]: {
+        [DateInputComponentName]: {
+            [FieldComponentDefinitionKind]: DateInputComponentName,
+            [FieldModelDefinitionKind]: DateInputModelName,
+        },
+    },
+};

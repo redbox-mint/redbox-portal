@@ -68,9 +68,8 @@ import {
 import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {FieldModelDefinitionFrame} from "../field-model.outline";
 import {ILogger} from "../../logger.interface";
-import {LineagePath} from "../names/naming-helpers";
 import {FormConfig} from "../form-config.model";
-import {FormConfigPathHelper} from "./common.model";
+import {FormPathHelper} from "./common.model";
 
 /**
  * Visit each form config component and extract the value for each field.
@@ -82,23 +81,20 @@ import {FormConfigPathHelper} from "./common.model";
 export class DataValueFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "DataValueFormConfigVisitor";
 
-    private dataModelPath: LineagePath;
-
     private dataValues: Record<string, unknown>;
 
     private formConfig: FormConfigOutline;
 
-    private formConfigPathHelper: FormConfigPathHelper;
+    private formPathHelper: FormPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
-        this.dataModelPath = [];
 
         this.dataValues = {};
 
         this.formConfig = new FormConfig();
 
-        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
+        this.formPathHelper = new FormPathHelper(logger, this);
     }
 
     /**
@@ -107,8 +103,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
      * @param options.form The constructed form.
      */
     start(options: { form: FormConfigOutline }): Record<string, unknown> {
-        this.dataModelPath = [];
-        this.formConfigPathHelper.reset();
+        this.formPathHelper.reset();
 
         this.dataValues = {};
 
@@ -123,7 +118,10 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     visitFormConfig(item: FormConfigOutline): void {
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["componentDefinitions", index.toString()]);
+            this.formPathHelper.acceptFormPath(
+                componentDefinition,
+                this.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index),
+            );
         });
     }
 
@@ -137,7 +135,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Content */
@@ -146,7 +144,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Repeatable  */
@@ -155,9 +153,6 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
         // The value in the elementTemplate is the value for *new* items,
         // no new array elements are created as part of the data value visitor.
         // So, don't process the element template.
-        // if (item.config?.elementTemplate) {
-        //     this.formConfigPathHelper.acceptFormConfigPath(item.config?.elementTemplate, ["config", "elementTemplate"]);
-        // }
     }
 
     visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
@@ -168,7 +163,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Validation Summary */
@@ -177,7 +172,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Group */
@@ -185,7 +180,10 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formPathHelper.acceptFormPath(
+                componentDefinition,
+                this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(componentDefinition, index),
+            );
         });
     }
 
@@ -194,7 +192,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Tab  */
@@ -202,7 +200,10 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.formPathHelper.acceptFormPath(
+                componentDefinition,
+                this.formPathHelper.lineagePathsForTabFieldComponentDefinition(componentDefinition, index),
+            );
         });
     }
 
@@ -210,7 +211,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /*  Tab Content */
@@ -218,7 +219,10 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.formPathHelper.acceptFormPath(
+                componentDefinition,
+                this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index),
+            );
         });
     }
 
@@ -226,7 +230,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Save Button  */
@@ -235,7 +239,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Text Area */
@@ -248,7 +252,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Default Layout  */
@@ -266,7 +270,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Dropdown Input */
@@ -279,7 +283,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Radio Input */
@@ -292,7 +296,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Date Input */
@@ -305,7 +309,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Shared */
@@ -322,32 +326,13 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
      * @protected
      */
     protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
+        const dataModelPath = this.formPathHelper.formPath.dataModel;
         if (item?.config?.value !== undefined) {
-            _set(this.dataValues, this.dataModelPath, item?.config?.value);
+            _set(this.dataValues, dataModelPath, item?.config?.value);
         }
     }
 
-    /**
-     * Visit the component, model, and layout for a form component.
-     * @param item
-     * @protected
-     */
-    protected acceptFormComponentDefinitionWithModel(item: FormComponentDefinitionOutline) {
-        const original = [...(this.dataModelPath ?? [])];
-        const itemName = item?.name ?? "";
-        try {
-            if (item.model && itemName) {
-                // NOTE: The repeatable elementTemplate should not be part of the data model path.
-                // It might have a model, but it must have a 'falsy' name.
-                this.dataModelPath = [...original, itemName];
-            }
-
-            this.formConfigPathHelper.acceptFormComponentDefinition(item);
-        } catch (error) {
-            // rethrow error - the finally block will ensure the dataModelPath is correct
-            throw error;
-        } finally {
-            this.dataModelPath = original;
-        }
+    protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
+        this.formPathHelper.acceptFormComponentDefinition(item);
     }
 }

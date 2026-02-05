@@ -326,42 +326,42 @@ describe('The FormsService', function () {
                         component: {
                             class: 'ContentComponent',
                             config: makeCompConfig({
-                                // TODO
-                                // content: "value text_1", template: `<span>{{content}}</span>`
+                                content: "value text_1",
+                                template: `<span>{{content}}</span>`
                             })
                         },
                     },
                     {
                         name: 'repeatable_1',
                         // TODO: As view mode transforms SimpleInput to Content component,
-                        //  groups & repeatables don't work, as they need at least one nested FormControl,
-                        //  and Content components don't have a model, so no from control.
-                        //  To discuss: this will likely be solved by transforming the groups & repeatables
-                        // model: {
-                        //     class: "RepeatableModel",
-                        //     config: {
-                        //         value: [
-                        //             {
-                        //                 repeatable_2: [
-                        //                     {
-                        //                         text_3: "value repeatable_1.0.repeatable_2.0.text_3",
-                        //                         group_1: {
-                        //                             text_4: "value repeatable_1.0.repeatable_2.0.group_1.text_4",
-                        //                         }
-                        //                     }
-                        //                 ]
-                        //             },
-                        //             {
-                        //                 text_2: "value repeatable_1.1.text_2",
-                        //                 repeatable_2: [
-                        //                     {
-                        //                         text_3: "value repeatable_1.1.repeatable_2.0.text_3",
-                        //                     }
-                        //                 ]
-                        //             }
-                        //         ]
-                        //     }
-                        // },
+                        //  groups & repeatables may need at least one nested FormControl,
+                        //  and Content components don't have a model, so no form control.
+                        //  To discuss: does this make sense, or is there a different approach?
+                        model: {
+                            class: "RepeatableModel",
+                            config: {
+                                value: [
+                                    {
+                                        repeatable_2: [
+                                            {
+                                                text_3: "value repeatable_1.0.repeatable_2.0.text_3",
+                                                group_1: {
+                                                    text_4: "value repeatable_1.0.repeatable_2.0.group_1.text_4",
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        text_2: "value repeatable_1.1.text_2",
+                                        repeatable_2: [
+                                            {
+                                                text_3: "value repeatable_1.1.repeatable_2.0.text_3",
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        },
                         component: {
                             class: 'RepeatableComponent', config: makeCompConfig({
                                 elementTemplate: {
@@ -402,18 +402,22 @@ describe('The FormsService', function () {
                                                                                             },
                                                                                         ]
                                                                                     })
-                                                                                }
+                                                                                },
+                                                                                model: {class: "GroupModel", config: {}},
                                                                             },
                                                                         ]
                                                                     })
-                                                                }
+                                                                },
+                                                                model: {class: "GroupModel", config: {}},
                                                             }
                                                         })
-                                                    }
+                                                    },
+                                                    model: {class: "RepeatableModel", config: {}},
                                                 }
                                             ]
                                         })
-                                    }
+                                    },
+                                    model: {class: "GroupModel", config: {}},
                                 }
                             })
                         },
@@ -632,6 +636,7 @@ describe('The FormsService', function () {
                                 visible: true,
                             },
                         },
+                        model: {class: "SimpleInputModel", config: {}}
                     }
                 ]
             };

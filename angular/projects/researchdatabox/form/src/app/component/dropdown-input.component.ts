@@ -22,7 +22,6 @@ export class DropdownInputModel extends FormFieldModel<DropdownInputModelValueTy
         class="form-select"
         [class.is-valid]="isValid"
         [class.is-invalid]="!isValid"
-        [required]="isRequired"
         [title]="tooltip">
         @if (placeholder) {
           <option [ngValue]="null" disabled>{{placeholder}}</option>

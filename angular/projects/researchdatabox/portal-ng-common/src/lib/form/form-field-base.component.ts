@@ -113,7 +113,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType>;
     this.componentDefinition = this.formFieldCompMapEntry.compConfigJson?.component as FormFieldComponentOrLayoutDefinition;
     this.expressions = this.formFieldCompMapEntry.compConfigJson?.expressions;
-    if(!_isUndefined(this.formFieldCompMapEntry.compConfigJson.name)) {
+    if(this.formFieldCompMapEntry.compConfigJson?.name) {
       this.name = this.formFieldCompMapEntry.compConfigJson.name;
     }
   }
@@ -343,16 +343,22 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     });
   }
 
+  /**
+   * Get the child form field components.
+   */
   public get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
     return [];
   }
 
+  /**
+   * Get the child form field component map entries.
+   */
   public get formFieldCompMapEntries() : FormFieldCompMapEntry[] {
     return [];
   }
 
   public formFieldConfigName(defaultName?: string){
-    return this.formFieldCompMapEntry?.compConfigJson?.name || this.formFieldCompMapEntry?.name || defaultName || '(not set)';
+    return this.utilityService.formFieldConfigName(this.formFieldCompMapEntry, defaultName);
   }
 }
 
@@ -383,5 +389,5 @@ export interface FormFieldCompMapEntry {
 
 /** Specialised interface for querying. */
 export interface JSONataClientQuerySourceProperty extends JSONataQuerySourceProperty {
-  // Placeholder for additional client-specific properties can be added here in the future 
+  // Placeholder for additional client-specific properties can be added here in the future
 }

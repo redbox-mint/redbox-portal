@@ -80,7 +80,12 @@ describe("Validator Visitor", async () => {
                 ],
                 id: "text_7",
                 message: "TextField with default wrapper defined",
-                parents: [],
+                lineagePaths: {
+                    formConfig: ["componentDefinitions", "0"],
+                    dataModel: ["text_7"],
+                    angularComponents: ["text_7"],
+                    angularComponentsJsonPointer: "/text_7",
+                },
             }
         ];
 
@@ -168,7 +173,12 @@ describe("Validator Visitor", async () => {
                 ],
                 id: "text_7",
                 message: "TextField with default wrapper defined",
-                parents: [],
+                lineagePaths: {
+                    formConfig: ["componentDefinitions", "0"],
+                    dataModel: ["text_7"],
+                    angularComponents: ["text_7"],
+                    angularComponentsJsonPointer: "/text_7",
+                },
             }
         ];
 
@@ -239,7 +249,12 @@ describe("Validator Visitor", async () => {
                 ],
                 id: "text_7",
                 message: "TextField with default wrapper defined",
-                parents: [],
+                lineagePaths: {
+                    formConfig: ["componentDefinitions", "0"],
+                    dataModel: ["text_7"],
+                    angularComponents: ["text_7"],
+                    angularComponentsJsonPointer: "/text_7",
+                },
             }
         ];
 
@@ -268,7 +283,23 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "text_1_event",
                 "message": null,
-                "parents": [],
+                lineagePaths: {
+                    "formConfig": [
+                        "componentDefinitions",
+                        "0",
+                        "component",
+                        "config",
+                        "tabs",
+                        "0",
+                        "component",
+                        "config",
+                        "componentDefinitions",
+                        "8",
+                    ],
+                    "dataModel": ["text_1_event"],
+                    "angularComponents": ["main_tab", "tab_1", "text_1_event"],
+                    "angularComponentsJsonPointer": "/main_tab/tab_1/text_1_event",
+                },
             },
             {
                 "errors": [
@@ -280,7 +311,23 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "text_2_event",
                 "message": null,
-                "parents": [],
+                lineagePaths: {
+                    formConfig: [
+                        "componentDefinitions",
+                        "0",
+                        "component",
+                        "config",
+                        "tabs",
+                        "0",
+                        "component",
+                        "config",
+                        "componentDefinitions",
+                        "11",
+                    ],
+                    dataModel: ["text_2_event"],
+                    angularComponents: ["main_tab", "tab_1", "text_2_event"],
+                    angularComponentsJsonPointer: "/main_tab/tab_1/text_2_event",
+                },
             },
             {
                 "errors": [
@@ -292,7 +339,23 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "text_3_event",
                 "message": null,
-                "parents": [],
+                lineagePaths: {
+                    formConfig: [
+                        "componentDefinitions",
+                        "0",
+                        "component",
+                        "config",
+                        "tabs",
+                        "0",
+                        "component",
+                        "config",
+                        "componentDefinitions",
+                        "13",
+                    ],
+                    dataModel: ["text_3_event"],
+                    angularComponents: ["main_tab", "tab_1", "text_3_event"],
+                    angularComponentsJsonPointer: "/main_tab/tab_1/text_3_event",
+                },
             },
             {
                 "errors": [
@@ -304,7 +367,31 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "text_5",
                 "message": "TextField with default wrapper defined",
-                "parents": ["group_1_component", "group_2_component"]
+                lineagePaths: {
+                    formConfig: [
+                        "componentDefinitions",
+                        "0",
+                        "component",
+                        "config",
+                        "tabs",
+                        "1",
+                        "component",
+                        "config",
+                        "componentDefinitions",
+                        "0",
+                        "component",
+                        "config",
+                        "componentDefinitions",
+                        "2",
+                        "component",
+                        "config",
+                        "componentDefinitions",
+                        "0",
+                    ],
+                    dataModel: ["group_1_component", "group_2_component", "text_5"],
+                    angularComponents: ["main_tab", "tab_2", "group_1_component", "group_2_component", "text_5"],
+                    angularComponentsJsonPointer: "/main_tab/tab_2/group_1_component/group_2_component/text_5"
+                },
             },
             {
                 "errors": [
@@ -321,7 +408,7 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "default-1.0-draft",
                 "message": null,
-                "parents": [],
+                lineagePaths: {formConfig: [], dataModel: [], angularComponents: [], angularComponentsJsonPointer: ""},
             },
         ];
 

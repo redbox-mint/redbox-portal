@@ -133,5 +133,14 @@ export const RepeatableMap = [
     {kind: FieldModelDefinitionKind, def: RepeatableFieldModelDefinition, class: RepeatableModelName},
     {kind: FieldLayoutConfigKind, def: RepeatableElementFieldLayoutConfig},
     {kind: FieldLayoutDefinitionKind, def: RepeatableElementFieldLayoutDefinition, class: RepeatableElementLayoutName},
-    {kind: FormComponentDefinitionKind, def: RepeatableFormComponentDefinition, class:RepeatableComponentName},
+    {kind: FormComponentDefinitionKind, def: RepeatableFormComponentDefinition, class: RepeatableComponentName},
 ];
+export const RepeatableDefaults = {
+    [FormComponentDefinitionKind]: {
+        [RepeatableComponentName]: {
+            [FieldComponentDefinitionKind]: RepeatableComponentName,
+            [FieldModelDefinitionKind]: RepeatableModelName,
+        },
+    },
+};
+
