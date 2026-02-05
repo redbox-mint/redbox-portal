@@ -1,4 +1,5 @@
 import { APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, UserModel, UserAPITokenAPIResponse, APIActionResponse, BrandingModel } from '../../index';
+import { UserAttributes } from '../../waterline-models/User';
 import { v4 as uuidv4 } from 'uuid';
 
 
@@ -56,7 +57,7 @@ export module Controllers {
       User.count({
         where: queryObject
       }).exec(function (err: any, count: number) {
-        let response: ListAPIResponse<any> = new ListAPIResponse<any>();
+        let response: ListAPIResponse<UserAttributes> = new ListAPIResponse<UserAttributes>();
         response.summary.numFound = count;
         response.summary.page = page;
 
@@ -68,13 +69,14 @@ export module Controllers {
             where: queryObject,
             limit: pageSize,
             skip: skip
-          }).exec(function (err: any, users: UnsafeAny[]) {
+          }).exec(function (err: any, users: Sails.QueryResult[]) {
 
-            _.each(users, (user: any) => {
+            const userRecords = users as unknown as UserAttributes[];
+            _.each(userRecords, (user: UserAttributes) => {
               delete user["token"];
               delete user["password"]
             });
-            response.records = users;
+            response.records = userRecords;
 
             return that.apiRespond(req, res, response);
           });
@@ -88,7 +90,7 @@ export module Controllers {
       var query = req.param('query');
       const queryObject: Record<string, unknown> = {};
       queryObject[searchField] = query;
-      User.findOne(queryObject).exec(function (err: any, user: UnsafeAny) {
+      User.findOne(queryObject).exec(function (err: any, user: UserAttributes | null) {
         if (err != null) {
           sails.log.error(err)
           return that.sendResp(req, res, {

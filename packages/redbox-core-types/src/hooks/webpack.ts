@@ -54,7 +54,7 @@ export function defineWebpackHook(sailsInstance: Sails.Application, _webpack = w
         initialize: async function (done: () => void) {
             sailsInstance.log.info('Initializing custom hook (`webpack`)');
 
-            const isSailsScriptEnv = () => (global as UnsafeAny).isSailsScriptEnv;
+            const isSailsScriptEnv = () => Boolean((global as { isSailsScriptEnv?: boolean }).isSailsScriptEnv);
             if (isSailsScriptEnv()) {
                 done();
                 return;

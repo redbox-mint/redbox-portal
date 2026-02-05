@@ -1,11 +1,5 @@
 import { bindNodeCallback, bindCallback, Observable } from 'rxjs';
 
-declare global {
-  // Transitional strict-migration alias used across legacy services.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  type UnsafeAny = any;
-}
-
 
 // changed to a manual lodash load instead of relying on Sails global object
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
