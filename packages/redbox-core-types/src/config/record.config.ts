@@ -51,6 +51,8 @@ export interface RecordConfig {
     maxUploadSize: number;
     mongodbDisk: string;
     diskSpaceThreshold: number;
+    checkTotalSizeOfFilesInRecordLogLevel?: string;
+    processRecordCountersLogLevel?: string;
     api: Record<string, RecordAPIEndpoint>;
     customFields: Record<string, RecordCustomFieldConfig>;
     export: RecordExportConfig;

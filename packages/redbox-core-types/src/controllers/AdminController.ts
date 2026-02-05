@@ -4,9 +4,6 @@ import { of } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { v4 as uuidv4 } from 'uuid';
 
-declare var module: any;
-declare var sails: any;
-declare var _: any;
 
 export module Controllers {
   /**

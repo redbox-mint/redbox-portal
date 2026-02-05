@@ -20,9 +20,6 @@
 import { Observable } from 'rxjs';
 import { Services as services } from '../CoreService';
 
-declare var sails: any;
-declare var _: any;
-declare var AsynchProgress: any;
 import { DateTime } from 'luxon';
 
 export module Services {
@@ -33,7 +30,7 @@ export module Services {
    */
   export class Asynchs extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'start',
       'update',
       'finish',

@@ -21,7 +21,9 @@ import { Observable, from, of, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, last } from 'rxjs/operators';
 import { ListAPIResponse } from '../model/ListAPIResponse';
 import { ReportConfig, ReportFilterType, ReportSource, ReportResult } from '../model/config/ReportConfig';
+import type { ReportDefinition } from '../config/report.config';
 import { ReportModel } from '../model/storage/ReportModel';
+import type { ReportWaterlineModel } from '../waterline-models/RBReport';
 import { SearchService } from '../SearchService';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
@@ -31,10 +33,6 @@ import { stringify } from 'csv-stringify/sync';
 import { NamedQueryResponseRecord } from './NamedQueryService'
 import Handlebars from "handlebars";
 
-declare var sails: any;
-declare var Report: any;
-declare var _this: any;
-declare var _: any;
 
 export module Services {
   /**
@@ -51,7 +49,7 @@ export module Services {
     // Flag to track if helpers are registered
     private helpersRegistered: boolean = false;
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'bootstrap',
       'create',
       'findAllReportsForBrand',
@@ -65,15 +63,26 @@ export module Services {
       'getCSVHeaderRow'
     ];
 
+    private getReportModel(): ReportWaterlineModel {
+      return RBReport;
+    }
+
     public bootstrap = (defBrand: BrandingModel) => {
-      return super.getObservable(Report.find({
+      let reportModel: ReportWaterlineModel;
+      try {
+        reportModel = this.getReportModel();
+      } catch (error) {
+        sails.log.warn(`${this.logHeader} bootstrap() -> Report model unavailable, skipping report bootstrap.`);
+        return of({} as ReportModel);
+      }
+      return super.getObservable(reportModel.find({
         branding: defBrand.id
       })).pipe(flatMap(reports => {
         if (_.isEmpty(reports)) {
           const rTypes: Observable<ReportModel>[] = [];
           sails.log.verbose("Bootstrapping report definitions... ");
-          _.forOwn(sails.config.reports, (config: ReportConfig, report: string) => {
-            const obs = this.create(defBrand, report, config);
+          _.forOwn(sails.config.reports, (config: ReportDefinition, report: string) => {
+            const obs = this.create(defBrand, report, config as unknown as ReportConfig);
             obs.subscribe(() => { });
             rTypes.push(obs);
           });
@@ -92,19 +101,22 @@ export module Services {
     }
 
     public findAllReportsForBrand(brand: BrandingModel) {
-      return super.getObservable(Report.find({
+      const reportModel = this.getReportModel();
+      return super.getObservable(reportModel.find({
         branding: brand.id
       }));
     }
 
     public async get(brand: BrandingModel, name: string) {
-      return await Report.findOne({
+      const reportModel = this.getReportModel();
+      return await reportModel.findOne({
         key: brand.id + "_" + name
       })
     }
 
     public create(brand: BrandingModel, name: string, config: ReportConfig): Observable<ReportModel> {
-      return super.getObservable(Report.create({
+      const reportModel = this.getReportModel();
+      return super.getObservable(reportModel.create({
         name: name,
         branding: brand.id,
         solrQuery: config.solrQuery,
@@ -116,7 +128,7 @@ export module Services {
       }));
     }
 
-    private buildSolrParams(brand: BrandingModel, req: any, report: ReportConfig, start: number, rows: number, format = 'json') {
+    private buildSolrParams(brand: BrandingModel, req: UnsafeAny, report: ReportConfig, start: number, rows: number, format = 'json') {
       let params = this.getQueryValue(report);
       params = this.addPaginationParams(params, start, rows);
       params = params + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
@@ -150,8 +162,9 @@ export module Services {
       return params;
     }
 
-    public async getResults(brand: BrandingModel, name = '', req: any, start = 0, rows = 10) {
-      const reportObs = super.getObservable(Report.findOne({
+    public async getResults(brand: BrandingModel, name = '', req: UnsafeAny, start = 0, rows = 10) {
+      const reportModel = this.getReportModel();
+      const reportObs = super.getObservable(reportModel.findOne({
         key: brand.id + "_" + name
       }));
 
@@ -188,7 +201,7 @@ export module Services {
       response.pageNum = pageNumber;
       response.recordPerPage = startIndex;
 
-      const items: any[] = [];
+      const items: UnsafeAny[] = [];
       const docs = dbResult.records;
 
       for (let i = 0; i < docs.length; i++) {
@@ -202,7 +215,7 @@ export module Services {
       return response;
     }
 
-    buildNamedQueryParamMap(req: any, report: ReportConfig) {
+    buildNamedQueryParamMap(req: UnsafeAny, report: ReportConfig) {
       const paramMap: Record<string, unknown> = {}
       if (report.filter != null) {
         for (let filter of report.filter) {
@@ -227,7 +240,7 @@ export module Services {
     }
 
 
-    getTranslateSolrResultToReportResult(results: any, noItems: number) {
+    getTranslateSolrResultToReportResult(results: UnsafeAny, noItems: number) {
       const totalItems = results["response"]["numFound"];
       const startIndex = results["response"]["start"];
       const pageNumber = (startIndex / noItems) + 1;
@@ -257,7 +270,7 @@ export module Services {
       return sails.services[sails.config.search.serviceName];
     }
 
-    private convertLegacyReport(report: any) {
+    private convertLegacyReport(report: UnsafeAny) {
       if (!_.isArray(report["filter"])) {
         let filterArray: object[] = []
         if (report["filter"] != null) {
@@ -269,9 +282,9 @@ export module Services {
       return report;
     }
 
-    public async getCSVResult(brand: BrandingModel, name = '', req: any, start = 0, rows = 1000000000) {
-
-      var report:ReportModel = await firstValueFrom(super.getObservable(Report.findOne({
+    public async getCSVResult(brand: BrandingModel, name = '', req: UnsafeAny, start = 0, rows = 1000000000) {
+      const reportModel = this.getReportModel();
+      var report:ReportModel = await firstValueFrom(super.getObservable(reportModel.findOne({
         key: brand.id + "_" + name
       })));
 
@@ -306,7 +319,7 @@ export module Services {
 
     }
 
-    buildOptTemplateData(req: any) {
+    buildOptTemplateData(req: UnsafeAny) {
       let templateData = {
         'brandingAndPortalUrl': BrandingService.getFullPath(req)
       }
@@ -314,7 +327,7 @@ export module Services {
     }
 
     //TODO: It's public only because we need it at the moment to unit test it
-    public getDataRows(report: any, data: any[], optTemplateData: any): string[][] {
+    public getDataRows(report: UnsafeAny, data: UnsafeAny[], optTemplateData: UnsafeAny): string[][] {
       let dataRows: string[][] = [];
 
       for (let row of data) {
@@ -324,7 +337,7 @@ export module Services {
       return dataRows;
     }
 
-    getDataRow(row: any, columns: any, optTemplateData: any): string[] {
+    getDataRow(row: UnsafeAny, columns: UnsafeAny, optTemplateData: UnsafeAny): string[] {
       let dataRow: string[] = [];
       for (let column of columns) {
         dataRow.push(this.getColValue(row, column, optTemplateData))
@@ -332,7 +345,7 @@ export module Services {
       return dataRow;
     }
 
-    getColValue(row: any, col: any, optTemplateData: any): string {
+    getColValue(row: UnsafeAny, col: UnsafeAny, optTemplateData: UnsafeAny): string {
       if (col.multivalue) {
         let retVal = [];
         for (let val of _.get(row, col.property)) {
@@ -344,7 +357,7 @@ export module Services {
       }
     }
 
-    getEntryValue(row: any, col: any, val: any = undefined, optTemplateData: any = {}) {
+    getEntryValue(row: UnsafeAny, col: UnsafeAny, val: UnsafeAny = undefined, optTemplateData: UnsafeAny = {}) {
       let retVal = '';
       let template = this.getExportTemplate(col);
       if (template != null) {
@@ -363,7 +376,7 @@ export module Services {
       return retVal;
     }
 
-    getExportTemplate(col: any) {
+    getExportTemplate(col: UnsafeAny) {
       if (!_.isEmpty(col.exportTemplate)) {
         return col.exportTemplate;
       }
@@ -407,7 +420,7 @@ export module Services {
      * @param additionalImports Additional data to merge into context (deprecated, for backward compat)
      * @param field Optional field data (deprecated, for backward compat)
      */
-    runTemplate(data: any, config: any, additionalImports: any = {}, field: any = undefined) {
+    runTemplate(data: UnsafeAny, config: UnsafeAny, additionalImports: UnsafeAny = {}, field: UnsafeAny = undefined) {
       try {
         const template = this.getCompiledTemplate(config.template);
         // Build context compatible with the new Handlebars templates
@@ -458,7 +471,7 @@ export module Services {
           entries.push({
             key: [reportName, 'columns', i.toString(), 'render'],
             kind: 'handlebars',
-            value: col.template
+            value: col.template ?? ''
           });
         }
 
@@ -467,7 +480,7 @@ export module Services {
           entries.push({
             key: [reportName, 'columns', i.toString(), 'export'],
             kind: 'handlebars',
-            value: col.exportTemplate
+            value: col.exportTemplate ?? ''
           });
         }
       }
@@ -476,7 +489,7 @@ export module Services {
       return entries;
     }
 
-    public getCSVHeaderRow(report: any): string[] {
+    public getCSVHeaderRow(report: UnsafeAny): string[] {
       let headerRow: string[] = [];
       for (let column of report.columns) {
         headerRow.push(column.label)
@@ -504,7 +517,7 @@ export module Services {
       return params;
     }
 
-    public getReportDto(reportModel: any): ReportDto {
+    public getReportDto(reportModel: UnsafeAny): ReportDto {
       return this.convertToType<ReportDto>(reportModel, new ReportDto(), {
         "solr_query": "solrQuery"
       }, true);

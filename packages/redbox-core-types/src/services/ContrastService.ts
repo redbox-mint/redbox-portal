@@ -20,8 +20,6 @@
 import { Services as services } from '../CoreService';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 
-declare var sails: any;
-declare var _: any;
 
 const textSizes = ['normal', 'large'] as const;
 type TextSize = typeof textSizes[number];
@@ -57,7 +55,7 @@ export interface ContrastViolation {
 export module Services {
     export class Contrast extends services.Core.Service {
 
-        protected override _exportedMethods: any = [
+        protected override _exportedMethods: string[] = [
             'validate',
             'suggestCompliant',
             'calculateRatio',
@@ -271,4 +269,3 @@ export module Services {
 declare global {
     let ContrastService: Services.Contrast;
 }
-

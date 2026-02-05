@@ -1,8 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 import { Services } from '../services/EmailService';
 
-declare var sails: any;
-declare var _: any;
 
 export module Controllers {
   /**

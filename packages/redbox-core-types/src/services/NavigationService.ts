@@ -44,16 +44,14 @@ import {
   DEFAULT_ADMIN_SIDEBAR_CONFIG
 } from '../configmodels/AdminSidebarConfig';
 
-declare var sails: any;
-declare var _: any;
 
 /**
  * Context object containing request state for visibility checks
  */
 interface ResolutionContext {
   isAuthenticated: boolean;
-  user: any;
-  brand: any;
+  user: UnsafeAny;
+  brand: UnsafeAny;
   brandPortalPath: string;
   currentPath: string;
 }
@@ -83,7 +81,7 @@ export module Services {
    * Author: Generated based on design.md
    */
   export class Navigation extends services.Core.Service {
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'resolveMenu',
       'resolveHomePanels',
       'resolveAdminSidebar',
@@ -123,7 +121,7 @@ export module Services {
      * @param req - The Express/Sails request object
      * @returns ResolvedMenu ready for rendering in templates
      */
-    public async resolveMenu(req: any): Promise<ResolvedMenu> {
+    public async resolveMenu(req: UnsafeAny): Promise<ResolvedMenu> {
       try {
         const context = this.buildResolutionContext(req);
 
@@ -160,7 +158,7 @@ export module Services {
      * @param req - The Express/Sails request object
      * @returns ResolvedHomePanels ready for rendering in templates
      */
-    public async resolveHomePanels(req: any): Promise<ResolvedHomePanels> {
+    public async resolveHomePanels(req: UnsafeAny): Promise<ResolvedHomePanels> {
       try {
         const context = this.buildResolutionContext(req);
 
@@ -202,7 +200,7 @@ export module Services {
      * @param req - The Express/Sails request object
      * @returns ResolvedAdminSidebar ready for rendering in templates
      */
-    public async resolveAdminSidebar(req: any): Promise<ResolvedAdminSidebar> {
+    public async resolveAdminSidebar(req: UnsafeAny): Promise<ResolvedAdminSidebar> {
       try {
         const context = this.buildResolutionContext(req);
 
@@ -267,7 +265,7 @@ export module Services {
     /**
      * Builds the resolution context from a request
      */
-    private buildResolutionContext(req: any): ResolutionContext {
+    private buildResolutionContext(req: UnsafeAny): ResolutionContext {
       const brandName = BrandingService.getBrandFromReq(req);
       const brand = BrandingService.getBrand(brandName);
       const brandPortalPath = BrandingService.getBrandAndPortalPath(req);
@@ -654,7 +652,7 @@ export module Services {
     /**
      * Checks if user has any of the specified roles for the brand
      */
-    private userHasAnyRole(user: any, brand: any, roleNames: string[]): boolean {
+    private userHasAnyRole(user: UnsafeAny, brand: UnsafeAny, roleNames: string[]): boolean {
       if (!user || !brand) {
         return false;
       }

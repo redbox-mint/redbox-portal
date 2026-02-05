@@ -1,8 +1,8 @@
 
 export class RecordTypeModel {
     packageType: string = '';
-    searchCore: string = '';
-    hooks: RecordTypeHooks = new RecordTypeHooks();
+    searchCore?: string = '';
+    hooks?: RecordTypeHooks = new RecordTypeHooks();
     relatedTo: RelatedTo[] = [];
     searchFilters: SearchFilter[] = [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -4,9 +4,6 @@ import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
 
-declare var sails: any;
-declare var DashboardType: any;
-declare var _: any;
 
 export module Services {
 
@@ -27,10 +24,10 @@ export module Services {
    */
   export interface DashboardTableConfig {
     rowConfig?: DashboardRowConfig[];
-    rowRulesConfig?: any[];
+    rowRulesConfig?: UnsafeAny[];
     groupRowConfig?: DashboardRowConfig[];
-    groupRowRulesConfig?: any[];
-    formatRules?: any;
+    groupRowRulesConfig?: UnsafeAny[];
+    formatRules?: UnsafeAny;
   }
 
   /**
@@ -47,7 +44,7 @@ export module Services {
    */
   export class DashboardTypes extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'bootstrap',
       'create',
       'get',
@@ -57,9 +54,9 @@ export module Services {
       'extractDashboardTemplates'
     ];
 
-    protected dashboardTypes: any[] = [];
+    protected dashboardTypes: UnsafeAny[] = [];
 
-    public async bootstrap(defBrand: BrandingModel): Promise<any> {
+    public async bootstrap(defBrand: BrandingModel): Promise<UnsafeAny> {
       let dashboardTypes = await DashboardType.find({ branding: defBrand.id });
       if (sails.config.appmode.bootstrapAlways) {
         await DashboardType.destroy({ branding: defBrand.id });
@@ -88,7 +85,7 @@ export module Services {
       return dashboardTypes
     }
 
-    public create(brand: BrandingModel, name: string, config: any) {
+    public create(brand: BrandingModel, name: string, config: UnsafeAny) {
 
       sails.log.verbose(JSON.stringify(config));
 
@@ -102,12 +99,12 @@ export module Services {
     }
 
     public get(brand: BrandingModel, name: string) {
-      const criteria: any = { where: { branding: brand.id, name: name } };
+      const criteria: UnsafeAny = { where: { branding: brand.id, name: name } };
       return super.getObservable(DashboardType.findOne(criteria));
     }
 
     public getAll(brand: BrandingModel) {
-      const criteria: any = { where: { branding: brand.id } };
+      const criteria: UnsafeAny = { where: { branding: brand.id } };
       return super.getObservable(DashboardType.find(criteria));
     }
 

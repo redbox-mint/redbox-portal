@@ -20,9 +20,6 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
 
-declare var module: any;
-declare var sails: any;
-declare var _: any;
 let flat: any;
 
 export module Controllers {
@@ -166,7 +163,9 @@ export module Controllers {
       const givenNames = req.param('givenNames');
       const surname = req.param('surname');
       let that = this;
-      sails.config.peopleSearch[source](givenNames, surname, page).subscribe((response: unknown) => {
+      const searchConfig = sails.config.peopleSearch[source];
+      const searchFn = (typeof searchConfig === 'function') ? searchConfig : eval(searchConfig);
+      searchFn(givenNames, surname, page).subscribe((response: unknown) => {
         // only return the response...
         that.sendResp(req, res, { data: response, headers: that.getNoCacheHeaders() });
       }, (error: unknown) => {

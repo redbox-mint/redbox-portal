@@ -22,9 +22,6 @@ import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordTypeModel } from '../model/storage/RecordTypeModel';
 
-declare var sails: any;
-declare var RecordType: any;
-declare var _: any;
 
 export module Services {
   /**
@@ -35,7 +32,7 @@ export module Services {
    */
   export class RecordTypes extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'bootstrap',
       'create',
       'get',
@@ -67,7 +64,7 @@ export module Services {
           this.recordTypes= recordTypes;
           let rTypes = [];
           for(let recordType in sails.config.recordtype) {
-            let config:RecordTypeModel = sails.config.recordtype[recordType];
+            let config:RecordTypeModel = sails.config.recordtype[recordType] as unknown as RecordTypeModel;
             rTypes.push(await firstValueFrom(this.create(defBrand, recordType, config)))
           }    
           return rTypes;
@@ -90,12 +87,12 @@ export module Services {
         transferResponsibility: config.transferResponsibility,
         relatedTo: config.relatedTo,
         searchable: config.searchable,
-        dashboard: (config as any).dashboard
+        dashboard: (config as UnsafeAny).dashboard
       }));
     }
 
     public get(brand:BrandingModel, name:string, fields: string[] | null = null): Observable<RecordTypeModel> {
-      const criteria:any = {where: {branding: brand.id, name: name}};
+      const criteria: UnsafeAny = {where: {branding: brand.id, name: name}};
       if (fields) {
         criteria.select = fields;
       }
@@ -103,7 +100,7 @@ export module Services {
     }
 
     public getAll(brand:BrandingModel, fields: string[] | null = null): Observable<RecordTypeModel[]> {
-      const criteria:any = {where: {branding: brand.id}};
+      const criteria: UnsafeAny = {where: {branding: brand.id}};
       if (fields) {
         criteria.select = fields;
       }

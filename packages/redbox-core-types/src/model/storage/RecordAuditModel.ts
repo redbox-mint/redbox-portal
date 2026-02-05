@@ -1,4 +1,3 @@
-declare var _:any;
 export class RecordAuditModel {
     redboxOid: string;
     action:RecordAuditActionType;

@@ -25,8 +25,6 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as services } from '../CoreService';
 import axios, { AxiosResponse } from 'axios';
 
-declare var sails: any;
-declare var _: any;
 
 export module Services {
   /**
@@ -38,7 +36,7 @@ export module Services {
    */
   export class Vocab extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'bootstrap',
       'getVocab',
       'loadCollection',
@@ -62,15 +60,15 @@ export module Services {
     }
 
     public async findInMintTriggerWrapper(user: object, options: object, failureMode: string) {
-      let additionalInfoFound = _.get(user, 'additionalInfoFound');
+      let additionalInfoFound = _.get(user as UnsafeAny, 'additionalInfoFound') as UnsafeAny[] | undefined;
       if (!_.isArray(additionalInfoFound)) {
         additionalInfoFound = [];
       }
       try {
-        let sourceType = _.get(options, 'sourceType');
-        let queryStringTmp = _.get(options, 'queryString');
+        let sourceType = _.get(options, 'sourceType', '');
+        let queryStringTmp = _.get(options, 'queryString', '');
         let compiledTemplate = _.template(queryStringTmp, {});
-        let fieldsToMap = _.get(options, 'fieldsToMap');
+        let fieldsToMap = _.get(options, 'fieldsToMap', []);
 
         let queryString = compiledTemplate({ user: user });
         let mintResponse = await this.findInMint(sourceType, queryString);
@@ -101,7 +99,7 @@ export module Services {
       }
     }
 
-    private setSuccessOrFailure(user: object, additionalInfoFound: any, failureMode: string, forceSuccess: boolean = false) {
+    private setSuccessOrFailure(user: object, additionalInfoFound: UnsafeAny, failureMode: string, forceSuccess: boolean = false) {
 
       if (forceSuccess) {
 
@@ -131,7 +129,7 @@ export module Services {
       }
     }
 
-    public async findInMint(sourceType: string, queryString: string): Promise<any> {
+    public async findInMint(sourceType: string, queryString: string): Promise<UnsafeAny> {
       queryString = _.trim(queryString);
       let searchString = '';
       if (!_.isEmpty(queryString)) {
@@ -139,7 +137,7 @@ export module Services {
       }
 
       const mintUrl = `${sails.config.record.baseUrl.mint}${sails.config.mint.api.search.url}?q=repository_type:${sourceType}${searchString}&version=2.2&wt=json&start=0`;
-      sails.log(mintUrl);
+      sails.log.info(mintUrl);
       const options = this.getMintOptions(mintUrl, sails.config.record.api.search.method);
       sails.log.verbose(options);
 
@@ -147,9 +145,9 @@ export module Services {
       return response.data;
     }
 
-    public async findRecords(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number, user:any): Promise<any> {
+    public async findRecords(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number, user: UnsafeAny): Promise<UnsafeAny> {
 
-      const queryConfig:VocabQueryConfig = sails.config.vocab.queries[sourceType];
+      const queryConfig = sails.config.vocab.queries[sourceType] as unknown as VocabQueryConfig;
 
       if (queryConfig.querySource == 'database') {
 
@@ -172,7 +170,7 @@ export module Services {
       }
     }
 
-    buildNamedQueryParamMap(queryConfig:VocabQueryConfig, searchString:string, user:any):any {
+    buildNamedQueryParamMap(queryConfig:VocabQueryConfig, searchString:string, user: UnsafeAny): UnsafeAny {
       const paramMap: Record<string, unknown> = {}
       if (queryConfig.queryField.type == 'text') {
         paramMap[queryConfig.queryField.property] = searchString;
@@ -185,7 +183,7 @@ export module Services {
       return paramMap;
     }
 
-    private buildSolrParams(brand:BrandingModel, searchString:string, queryConfig:VocabQueryConfig, start:number, rows:number, format:string = 'json', user: any):string {
+    private buildSolrParams(brand:BrandingModel, searchString:string, queryConfig:VocabQueryConfig, start:number, rows:number, format:string = 'json', user: UnsafeAny):string {
       let query = `${queryConfig.searchQuery.baseQuery}&sort=date_object_modified desc&version=2.2&start=${start}&rows=${rows}`;
       query = query + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
 
@@ -212,7 +210,7 @@ export module Services {
       return query;
     }
 
-    getResultObjectMappings(results:any, queryConfig:VocabQueryConfig) {
+    getResultObjectMappings(results: UnsafeAny, queryConfig:VocabQueryConfig) {
 
       let responseRecords = _.get(results,'response.docs','');
       if(responseRecords == '') {
@@ -230,7 +228,7 @@ export module Services {
           let defaultMetadata = {};
           if(!_.isEmpty(resultObjectMapping)) {
             let resultMetadata = _.cloneDeep(resultObjectMapping);
-            _.forOwn(resultObjectMapping, function(value: any, key: string) {
+            _.forOwn(resultObjectMapping, function(value: UnsafeAny, key: string) {
               _.set(resultMetadata,key,that.runTemplate(value,variables));
             });
             defaultMetadata = resultMetadata;
@@ -250,14 +248,14 @@ export module Services {
       return sails.services[sails.config.search.serviceName];
     }
 
-    private runTemplate(templateOrPath: string, variables: any) {
+    private runTemplate(templateOrPath: string, variables: UnsafeAny) {
       if (templateOrPath && templateOrPath.indexOf('<%') != -1) {
           return _.template(templateOrPath)(variables);
       }
       return _.get(variables, templateOrPath);
     }
 
-    public async findInExternalService(providerName: string, params: any): Promise<any> {
+    public async findInExternalService(providerName: string, params: UnsafeAny): Promise<UnsafeAny> {
       const method = sails.config.vocab.external[providerName].method;
       let url = sails.config.vocab.external[providerName].url;
 
@@ -303,7 +301,7 @@ export module Services {
     }
 
 
-    public getVocab = (vocabId: string): Observable<any> => {
+    public getVocab = (vocabId: string): Observable<UnsafeAny> => {
       // Check cache
       return from(CacheService.get(vocabId)).pipe(
         flatMap(data => {
@@ -316,11 +314,11 @@ export module Services {
           }
           const url = `${sails.config.vocab.rootUrl}${vocabId}/${sails.config.vocab.conceptUri}`;
           let items: Array<{ uri: string; notation: string; label: string }> | null = null; // a flat array containing all the entries
-          const rawItems: any[] = [];
+          const rawItems: UnsafeAny[] = [];
           return this.getConcepts(url, rawItems).pipe(
             flatMap(allRawItems => {
               // we only are interested in notation, label and the uri
-              items = _.map(allRawItems, (rawItem: any) => {
+              items = _.map(allRawItems, (rawItem: UnsafeAny) => {
                 return { uri: rawItem._about, notation: rawItem.notation, label: rawItem.prefLabel._value };
               });
               CacheService.set(vocabId, items);
@@ -332,11 +330,11 @@ export module Services {
     }
 
     // have to do this since ANDS endpoint ignores _pageSize
-    protected getConcepts(url: string, rawItems: any[]): Observable<any[]> {
+    protected getConcepts(url: string, rawItems: UnsafeAny[]): Observable<UnsafeAny[]> {
       console.log(`Getting concepts....${url}`);
       return from(axios.get(url)).pipe(
-        flatMap((resp): Observable<any[]> => {
-          let response: any = resp.data;
+        flatMap((resp): Observable<UnsafeAny[]> => {
+          let response: UnsafeAny = resp.data;
           rawItems = rawItems.concat(response.result.items);
           if (response.result && response.result.next) {
             return this.getConcepts(response.result.next, rawItems);
@@ -346,7 +344,7 @@ export module Services {
       );
     }
 
-    protected getNonAndsVocab(vocabId: string): Observable<AxiosResponse<any>> {
+    protected getNonAndsVocab(vocabId: string): Observable<AxiosResponse<UnsafeAny>> {
       const url = sails.config.vocab.nonAnds[vocabId].url;
       return from(axios.get(url)).pipe(flatMap(response => {
         CacheService.set(vocabId, response.data);
@@ -359,8 +357,8 @@ export module Services {
       const getMethod = sails.config.vocab.collection[collectionId].getMethod;
       const bufferCount = sails.config.vocab.collection[collectionId].processingBuffer;
       const processWindow = sails.config.vocab.collection[collectionId].processingTime;
-      let collectionData: any[] | null = null;
-      return (this as any)[getMethod](collectionId).pipe(flatMap((data: any) => {
+      let collectionData: UnsafeAny[] | null = null;
+      return (this as UnsafeAny)[getMethod](collectionId).pipe(flatMap((data: UnsafeAny) => {
         if (_.isEmpty(data) || force) {
           // return a receipt and then start the process of loading...
           const url = sails.config.vocab.collection[collectionId].url;
@@ -368,7 +366,7 @@ export module Services {
           const methodName = sails.config.vocab.collection[collectionId].saveMethod;
           return from(axios.get(url)).pipe(
             flatMap(resp => {
-              let response: any = resp.data;
+              let response: UnsafeAny = resp.data;
               sails.log.verbose(`Got response retrieving data for collection: ${collectionId}, saving...`);
               sails.log.verbose(`Number of items: ${response.length}`);
               const itemsToSave = _.chunk(response, bufferCount);
@@ -381,7 +379,7 @@ export module Services {
               sails.log.verbose(`Updated asynch progress...`);
               return from(collectionData || []);
             }),
-            concatMap((buffer: any, i: number) => {
+            concatMap((buffer: UnsafeAny, i: number) => {
               sails.log.verbose(`Processing chunk: ${i}`);
               return of(buffer).pipe(
                   delay(i * processWindow),
@@ -406,15 +404,15 @@ export module Services {
       }));
     }
 
-    protected saveCollectionChunk(methodName: string, buffer: any, i: number) {
-      return (this as any)[methodName](buffer);
+    protected saveCollectionChunk(methodName: string, buffer: UnsafeAny, i: number) {
+      return (this as UnsafeAny)[methodName](buffer);
     }
 
     findCollection(collectionId: string, searchString: string) {
-      return (this as any)[sails.config.vocab.collection[collectionId].searchMethod](searchString);
+      return (this as UnsafeAny)[sails.config.vocab.collection[collectionId].searchMethod](searchString);
     }
 
-    public rvaGetResourceDetails(uri: string, vocab: string): Observable<AxiosResponse<any>> {
+    public rvaGetResourceDetails(uri: string, vocab: string): Observable<AxiosResponse<UnsafeAny>> {
       const url = sails.config.vocab.rootUrl + `${vocab}/resource.json?uri=${uri}`;
       return from(axios.get(url)).pipe(flatMap(response => {
         CacheService.set(vocab, response.data);

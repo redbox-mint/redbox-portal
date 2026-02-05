@@ -12,7 +12,6 @@ import {
 } from "./model";
 
 
-declare var sails: Sails.Application;
 
 
 

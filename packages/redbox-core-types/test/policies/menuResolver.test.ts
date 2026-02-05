@@ -2,7 +2,6 @@ import { expect } from 'chai';
 import { menuResolver } from '../../src/policies/menuResolver';
 
 // Mock globals
-declare var sails: any;
 
 (global as any).sails = {
     log: {

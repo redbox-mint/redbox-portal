@@ -4,7 +4,6 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as AppConfigServiceModule } from '../services/AppConfigService';
 import { Services as BrandingServiceModule } from '../services/BrandingService';
 
-declare var sails: any;
 
 export module Controllers {
   /**

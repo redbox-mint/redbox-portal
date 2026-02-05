@@ -4,6 +4,8 @@ import express = require("express");
 import type { SailsConfig } from "./config";
 
 declare global {
+	var sails: Sails.Application;
+
 	namespace Sails {
 
 		// Re-export SailsConfig for use in config typing
@@ -25,6 +27,11 @@ declare global {
 			verbose: (...args: any[]) => void;
 			silly: (...args: any[]) => void;
 			blank: (...args: any[]) => void;
+			trace: (...args: any[]) => void;
+			log: (...args: any[]) => void;
+			fatal: (...args: any[]) => void;
+			silent: (...args: any[]) => void;
+			[key: string]: (...args: any[]) => void;
 		}
 
 		export interface Application {
@@ -226,7 +233,6 @@ declare global {
 
 // Export type alias for use in TypeScript files
 // Use: import type { Sails } from '@researchdatabox/redbox-core-types';
-// Or:  declare var sails: Sails.Application;
-export type SailsApplication = Sails.Application;
+// Or:  export type SailsApplication = Sails.Application;
 
 export { }; // Ensure the file is treated as a module

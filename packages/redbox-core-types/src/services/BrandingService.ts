@@ -23,11 +23,6 @@ import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import * as crypto from 'crypto';
 
-declare var sails: any;
-declare var _: any;
-declare var BrandingConfig: any;
-declare var BrandingConfigHistory: any;
-declare var CacheEntry: any;
 
 export module Services {
   /**
@@ -37,7 +32,7 @@ export module Services {
    */
   export class Branding extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'bootstrap',
       'loadAvailableBrands',
       'getDefault',
@@ -58,11 +53,11 @@ export module Services {
       'refreshBrandingCache'
     ];
 
-    protected availableBrandings: any = []
-    protected brandings: any = []
+    protected availableBrandings: UnsafeAny = []
+    protected brandings: UnsafeAny = []
     protected dBrand = { name: 'default' };
 
-    public bootstrap = (): Observable<any> => {
+    public bootstrap = (): Observable<UnsafeAny> => {
       return super.getObservable(BrandingConfig.findOne(this.dBrand))
         .pipe(flatMap(defaultBrand => {
           if (_.isEmpty(defaultBrand)) {
@@ -76,7 +71,7 @@ export module Services {
           , flatMap(this.loadAvailableBrands));
     }
 
-    public loadAvailableBrands = (_defBrand: unknown): Observable<any> => {
+    public loadAvailableBrands = (_defBrand: unknown): Observable<UnsafeAny> => {
       sails.log.verbose("Loading available brands......");
       // Find all the BrandingConfig we have and add them to the availableBrandings array.
       // A policy is configured to reject any branding values not present in this array.
@@ -106,14 +101,14 @@ export module Services {
     }
 
     public async getBrandingFromDB(name: string): Promise<BrandingModel> {
-      return BrandingConfig.findOne({ name: name });
+      return BrandingConfig.findOne({ name: name }) as unknown as BrandingModel;
     }
 
     public getAvailable = () => {
       return this.availableBrandings;
     }
 
-    public getBrandAndPortalPath(req: any): string {
+    public getBrandAndPortalPath(req: UnsafeAny): string {
       const branding = this.getBrandFromReq(req);
       const portal = this.getPortalFromReq(req);
       const rootContext = this.getRootContext();
@@ -135,11 +130,11 @@ export module Services {
     }
 
 
-    public getFullPath(req: any): string {
+    public getFullPath(req: UnsafeAny): string {
       return sails.config.appUrl + this.getBrandAndPortalPath(req);
     }
 
-    public getBrandFromReq(req: any): string {
+    public getBrandFromReq(req: UnsafeAny): string {
       var branding = null;
       if (req && req.params) {
         branding = req.params['branding'];
@@ -161,7 +156,7 @@ export module Services {
       return branding;
     }
 
-    public getPortalFromReq(req: any): string {
+    public getPortalFromReq(req: UnsafeAny): string {
       var portal = null;
       if (req && req.params) {
         portal = req.params['portal'];
@@ -184,7 +179,7 @@ export module Services {
     }
 
     /** Save draft variables after whitelist + contrast validation */
-    public async saveDraft(input: { branding: string; variables: Record<string, string>; actor?: any; }): Promise<any> {
+    public async saveDraft(input: { branding: string; variables: Record<string, string>; actor?: UnsafeAny; }): Promise<UnsafeAny> {
       const whitelist: string[] = _.get(sails, 'config.branding.variableAllowList', []) || [];
       const normalized: Record<string, string> = {};
       for (const [k, v] of Object.entries(input.variables || {})) {
@@ -247,11 +242,11 @@ export module Services {
       }
       // Single-use: destroy after first successful fetch
       await CacheEntry.destroy({ id: entry.id });
-      return entry.data;
+      return entry.data as { css: string; branding: string; portal: string; hash: string; };
     }
 
     /** Publish current draft (variables) -> CSS, bump version, persist hash, history */
-    public async publish(branding: string, portal: string, actor: any, opts?: { expectedVersion?: number; }): Promise<{ version: number; hash: string; idempotent?: boolean; }> {
+    public async publish(branding: string, portal: string, actor: UnsafeAny, opts?: { expectedVersion?: number; }): Promise<{ version: number; hash: string; idempotent?: boolean; }> {
       const brand = await BrandingConfig.findOne({ name: branding });
       if (!brand) throw new Error('branding-not-found');
       if (opts?.expectedVersion != null && brand.version != null && opts.expectedVersion !== brand.version) {
@@ -270,7 +265,7 @@ export module Services {
     }
 
     /** Rollback to a previous published version via history id */
-    public async rollback(historyId: string, actor: any): Promise<{ version: number; hash: string; branding: any; }> {
+    public async rollback(historyId: string, actor: UnsafeAny): Promise<{ version: number; hash: string; branding: UnsafeAny; }> {
       const historyEntry = await BrandingConfigHistory.findOne({ id: historyId }).populate('branding');
       if (!historyEntry) throw new Error('history-not-found');
       const branding = historyEntry.branding;
@@ -292,7 +287,7 @@ export module Services {
     }
 
     /** Refresh a single branding record in the in-memory cache (this.brandings & availableBrandings) */
-    public async refreshBrandingCache(id: any) {
+    public async refreshBrandingCache(id: UnsafeAny) {
       const updated = await BrandingConfig.findOne({ id }).populate('roles');
       if (updated) {
         const idx = this.brandings.findIndex((b: BrandingModel) => b.id === id);

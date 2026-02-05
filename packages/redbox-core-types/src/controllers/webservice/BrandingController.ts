@@ -1,7 +1,5 @@
 import { Controllers as controllers } from '../../index';
 
-declare var sails: any;
-declare var BrandingConfigHistory: any;
 
 function mapError(e: Error): { status: number; body: any } {
   const msg = e.message || '';

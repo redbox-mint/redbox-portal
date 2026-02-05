@@ -24,7 +24,6 @@ import Handlebars, { TemplateDelegate as HandlebarsTemplateDelegate } from "hand
 import { TemplateCompileItem, TemplateCompileInput, templateCompileKind, registerSharedHandlebarsHelpers, buildKeyString } from "@researchdatabox/sails-ng-common";
 
 
-declare var sails: any;
 
 export module Services {
 

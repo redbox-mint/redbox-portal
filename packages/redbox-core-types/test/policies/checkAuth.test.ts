@@ -2,7 +2,6 @@ import { expect } from 'chai';
 import { checkAuth } from '../../src/policies/checkAuth';
 
 // Mock globals
-declare var sails: any;
 
 (global as any).sails = {
     config: {

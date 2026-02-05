@@ -31,7 +31,7 @@ describe('AppConfigService', function() {
     };
 
     sinon.stub(ConfigModels, 'getConfigKeys').returns([]);
-    sinon.stub(ConfigModels, 'getModelInfo').returns({ class: class MockModel {} });
+    sinon.stub(ConfigModels, 'getModelInfo').returns({ modelName: 'MockModel', class: class MockModel {} });
 
     service = new Services.AppConfigs();
     service.brandingAppConfigMap = {};

@@ -17,9 +17,6 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-declare var module: any;
-declare var sails: any;
-declare var _: any;
 import { Observable } from 'rxjs';
 import { default as util } from 'util';
 import { default as stream } from 'stream';

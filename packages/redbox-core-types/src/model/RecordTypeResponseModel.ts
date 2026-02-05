@@ -5,9 +5,9 @@ export class RecordTypeResponseModel{
     searchFilters:SearchFilter;
     searchable: boolean;
 
-    constructor(name:string,packageType:string,searchFilters:any, searchable:boolean = true) {
-        this.name = name;
-        this.packageType = packageType;
+    constructor(name:string | undefined,packageType:string | undefined,searchFilters:any, searchable:boolean = true) {
+        this.name = name ?? '';
+        this.packageType = packageType ?? '';
         this.searchFilters = searchFilters;
         this.searchable = searchable;
     }

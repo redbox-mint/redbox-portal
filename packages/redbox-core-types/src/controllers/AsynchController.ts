@@ -2,8 +2,6 @@ import { Observable } from 'rxjs';
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model/storage/BrandingModel';
 
-declare var sails: any;
-declare var _: any;
 
 export module Controllers {
   /**

@@ -36,9 +36,6 @@ import {
 
 import { v4 as UUIDGenerator } from 'uuid';
 
-declare var sails: any;
-declare var _: any;
-declare var Record: any;
 
 export module Controllers {
   /**
@@ -614,7 +611,7 @@ export module Controllers {
         if (error) {
           return self.sendResp(req, res, {
             errors: [self.asError(error)],
-            displayErrors: [{ detail: `There was a problem adding datastream(s) to: ${sails.config.record.attachment.stageDir}` }]
+            displayErrors: [{ detail: `There was a problem adding datastream(s) to: ${sails.config.record.attachments.stageDir}` }]
           });
         }
         sails.log.verbose(UploadedFileMetadata);
@@ -802,7 +799,7 @@ export module Controllers {
         filterString = undefined;
       }
 
-      if (rows > parseInt(sails.config.api.max_requests)) {
+      if (rows > sails.config.api.max_requests) {
         return this.reachedMaxRequestRows(req, res);
       } else {
         // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
@@ -1359,7 +1356,7 @@ export module Controllers {
         filterString = undefined;
       }
 
-      if (rows > parseInt(sails.config.api.max_requests)) {
+      if (rows > sails.config.api.max_requests) {
         return this.reachedMaxRequestRows(req, res);
       } else {
         // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);

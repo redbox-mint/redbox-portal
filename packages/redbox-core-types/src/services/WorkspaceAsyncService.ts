@@ -1,12 +1,10 @@
 import { Observable } from 'rxjs';
 import { Services as services } from '../CoreService';
+import type { WorkspaceAsyncAttributes } from '../waterline-models/WorkspaceAsync';
 
 const util = require('util');
 import { DateTime } from 'luxon';
 
-declare var sails: any;
-declare var _: any;
-declare var WorkspaceAsync: any;
 
 type WorkspaceAsyncStartInput = {
   name: string;
@@ -25,7 +23,7 @@ export module Services {
    */
   export class WorkspaceAsyncService extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'start',
       'update',
       'pending',
@@ -63,7 +61,7 @@ export module Services {
       );
     }
 
-    public pending() {
+    public pending(): Observable<WorkspaceAsyncAttributes[]> {
       return super.getObservable(
         WorkspaceAsync.find({status: 'pending'})
       );
@@ -72,8 +70,8 @@ export module Services {
     loop(): void {
       sails.log.verbose('::::LOOP PENDING STATE::::::');
       //sails.log.debug(util.inspect(sails.services, {showHidden: false, depth: null}))
-      this.pending().subscribe((pending: any[]) => {
-        _.forEach(pending, (wa: any) => {
+      this.pending().subscribe((pending: WorkspaceAsyncAttributes[]) => {
+        _.forEach(pending, (wa: WorkspaceAsyncAttributes) => {
           const args = wa.args || null;
           sails.services[wa.service][wa.method](args).subscribe((message: unknown) => {
             this.update(wa.id, {status: 'finished', message: message}).subscribe();

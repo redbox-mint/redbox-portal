@@ -23,9 +23,6 @@ import { Services as services } from '../CoreService';
 import { default as NodeCache } from "node-cache";
 import { DateTime } from 'luxon';
 import { readdir, access } from 'node:fs/promises';
-declare var sails: any;
-declare var _: any;
-declare var CacheEntry: any;
 
 export module Services {
   /**
@@ -36,7 +33,7 @@ export module Services {
    */
   export class Cache extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'get',
       'set',
@@ -54,7 +51,7 @@ export module Services {
       await this.buildNgAppFileHash();
     }
 
-    public get(name: string): Observable<any> {
+    public get(name: string): Observable<unknown | null> {
       const cacheGet = of(this.cache.get(name));
       return cacheGet.pipe(flatMap(data => {
         if (data) {

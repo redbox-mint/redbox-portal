@@ -1,6 +1,6 @@
 export class ReportConfig {
     title: string = '';
-    reportSource: ReportSource = ReportSource.solr;
+  reportSource?: ReportSource = ReportSource.solr;
     databaseQuery: ReportDatabaseQueryConfig | null = null;
     solrQuery: ReportSolrQueryConfig | null = null;
     filter: ReportFilterConfig[] = [];

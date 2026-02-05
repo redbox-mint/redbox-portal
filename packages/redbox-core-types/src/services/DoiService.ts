@@ -25,8 +25,6 @@ import { momentShim as moment } from '../shims/momentShim';
 import { DateTime } from 'luxon';
 import axios from 'axios';
 
-declare var sails: any;
-declare var _: any;
 
 export module Services {
   /**
@@ -37,7 +35,7 @@ export module Services {
    *
    */
   export class Doi extends services.Core.Service {
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'publishDoi',
       'publishDoiTrigger',
       'publishDoiTriggerSync',
@@ -54,7 +52,7 @@ export module Services {
       return this._msgPrefix;
     }
 
-    private async makeCreateDoiCall(instance: any, postBody: any, record: any, oid: string) {
+    private async makeCreateDoiCall(instance: UnsafeAny, postBody: UnsafeAny, record: UnsafeAny, oid: string) {
       try {
         let response = await instance.post('/dois', postBody);
 
@@ -76,7 +74,7 @@ export module Services {
       }
     }
 
-    private async makeUpdateDoiCall(instance: any, postBody: any, doi: string) {
+    private async makeUpdateDoiCall(instance: UnsafeAny, postBody: UnsafeAny, doi: string) {
       try {
         let response = await instance.patch(`/dois/${doi}`, postBody)
 
@@ -189,7 +187,7 @@ export module Services {
       })
     }
 
-    private processForCodes(forCodes: any[]) {
+    private processForCodes(forCodes: UnsafeAny[]) {
       let doiForCodeList = []
       if (!_.isUndefined(forCodes)) {
         for (let forCode of forCodes) {
@@ -204,7 +202,7 @@ export module Services {
       return doiForCodeList;
     }
 
-    public async publishDoi(oid: string, record: any, event = 'publish', action = 'create') {
+    public async publishDoi(oid: string, record: UnsafeAny, event = 'publish', action = 'create') {
 
       let doiPrefix = sails.config.datacite.doiPrefix;
       let baseUrl = sails.config.datacite.baseUrl;
@@ -231,7 +229,7 @@ export module Services {
       let publicationYear = this.runTemplate(mappings.publicationYear, lodashTemplateContext)
       let publisher = this.runTemplate(mappings.publisher, lodashTemplateContext)
 
-      let postBody: any = {
+      let postBody: UnsafeAny = {
         "data": {
           "type": "dois",
           "attributes": {
@@ -266,7 +264,7 @@ export module Services {
         postBody.data.attributes.titles.push({ "lang": null, "title": title, "titleType": null })
       }
 
-      let creatorTemplateContext = _.clone(lodashTemplateContext)
+      let creatorTemplateContext: Record<string, unknown> = _.clone(lodashTemplateContext)
       let creatorsProperty = sails.config.datacite.creatorsProperty
       for (let creator of record.metadata[creatorsProperty]) {
         creatorTemplateContext['creator'] = creator
@@ -467,7 +465,7 @@ export module Services {
       return buff.toString('base64');
     }
 
-    public async publishDoiTrigger(oid: string, record: any, options: any): Promise<any> {
+    public async publishDoiTrigger(oid: string, record: UnsafeAny, options: UnsafeAny): Promise<UnsafeAny> {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
         const brand: BrandingModel = BrandingService.getBrand('default');
@@ -482,7 +480,7 @@ export module Services {
       return of(null);
     }
 
-    public async publishDoiTriggerSync(oid: string, record: any, options: any): Promise<any> {
+    public async publishDoiTriggerSync(oid: string, record: UnsafeAny, options: UnsafeAny): Promise<UnsafeAny> {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
         let doi = await this.publishDoi(oid, record, options["event"]);
@@ -495,7 +493,7 @@ export module Services {
       return record;
     }
 
-    public async updateDoiTriggerSync(oid: string, record: any, options: any): Promise<any> {
+    public async updateDoiTriggerSync(oid: string, record: UnsafeAny, options: UnsafeAny): Promise<UnsafeAny> {
 
       let doi: string | null = null
       if (this.metTriggerCondition(oid, record, options) === "true") {
@@ -504,7 +502,7 @@ export module Services {
       return record
     }
 
-    addDoiDataToRecord(oid: string, record: any, doi: string) {
+    addDoiDataToRecord(oid: string, record: UnsafeAny, doi: string) {
       let lodashTemplateContext = {
         record: record,
         oid: oid,
@@ -530,7 +528,7 @@ export module Services {
 
     //TODO: This method will be deprecated soon and moved to its own run template service so it can be reused in
     //      which will allow to standardise config structure in all places were object mappings are needed
-    protected runTemplate(template: string, variables: any) {
+    protected runTemplate(template: string, variables: UnsafeAny) {
       if (template && template.indexOf('<%') != -1) {
         return _.template(template)(variables);
       }

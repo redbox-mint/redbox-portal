@@ -80,7 +80,7 @@ export class UserClass {
   public password?: string;
 
   @Attr({ type: 'string', columnType: 'datetime' })
-  public lastLogin?: string;
+  public lastLogin?: string | Date;
 
   @Attr({ type: 'string', required: true })
   public type!: string;
@@ -110,11 +110,18 @@ export const UserWLDef = toWaterlineModelDef(UserClass);
 // Type interface for backwards compatibility
 export interface UserAttributes extends Sails.WaterlineAttributes {
   additionalAttributes?: Record<string, unknown>;
+  cn?: string;
+  displayname?: string;
+  edupersonprincipalname?: string;
+  edupersonscopedaffiliation?: string;
+  edupersontargetedid?: string;
   email: string;
-  lastLogin?: string;
+  givenname?: string;
+  lastLogin?: string | Date;
   name: string;
   password?: string;
   roles?: unknown[];
+  surname?: string;
   token?: string;
   type: string;
   username: string;

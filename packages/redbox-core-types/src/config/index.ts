@@ -130,7 +130,7 @@ import { auth } from './auth.config';
 import type { NextFunction, Request, Response } from 'express';
 // Complex/Large config imports (interface-only)
 import { BrandingConfig, branding } from './branding.config';
-import { BrandingConfigurationDefaultsConfig, brandingConfigurationDefaults } from './brandingConfigurationDefaults.config';
+import { BrandingConfigurationDefaultsConfig, brandingConfigurationDefaults, BrandAuthConfig, AuthBootstrapConfig } from './brandingConfigurationDefaults.config';
 import { RaidConfig, raid } from './raid.config';
 import { ReportsConfig, reports } from './report.config';
 import { FigshareApiConfig, figshareAPI } from './figshareAPI.config';
@@ -150,23 +150,20 @@ import { figshareAPIEnv, FigshareApiEnvConfig } from './figshareAPIEnv.config';
 import { typescript, TypeScriptHookConfig } from './typescript.config';
 import { custom_cache, CustomCacheConfig } from './custom_cache.config';
 import { validators, ValidatorsConfig } from './validators.config';
+import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 
 /**
  * Branding-aware config function type
  * Returns branding-specific configuration based on brand name
  */
-export type BrandingAwareFunction = (brandName?: string) => Record<string, unknown>;
+export type BrandingAwareFunction = (brandName?: string) => BrandingConfigurationDefaultsConfig & {
+    authorizedDomainsEmails?: AuthorizedDomainsEmails;
+};
 
 /**
  * Auth config for authentication settings
  */
-export interface AuthConfig {
-    active: string[];
-    default?: string;
-    loginPath: string;
-    postLogoutRedir?: string;
-    [key: string]: unknown;
-}
+export type AuthConfig = AuthBootstrapConfig & BrandAuthConfig;
 
 /**
  * Passport strategy config with authenticate method
@@ -266,6 +263,10 @@ export interface SailsConfig {
 
     // Runtime/function configs
     brandingAware: BrandingAwareFunction;
+
+    // Legacy/runtime flags
+    angularDev?: string | boolean;
+    workspacetype_services?: string[];
 
     // Sails built-in configs
     appPath: string;

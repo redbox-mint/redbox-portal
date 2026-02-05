@@ -2,7 +2,6 @@ import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
 import { from } from 'rxjs';
 
-declare var sails: any;
 
 export module Controllers {
   /**

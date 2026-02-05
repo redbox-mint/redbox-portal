@@ -21,12 +21,8 @@ import { Observable, zip, from, of, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 
-declare var sails: any;
-declare var WorkflowStep: any;
-declare var RecordType: any;
-declare var _: any;
 
-type RecordTypeLike = any;
+type RecordTypeLike = UnsafeAny;
 
 export module Services {
   /**
@@ -37,7 +33,7 @@ export module Services {
    */
   export class WorkflowSteps extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'bootstrap',
       'create',
       'get',
@@ -45,7 +41,7 @@ export module Services {
       'getAllForRecordType'
     ];
 
-    public async bootstrap(recordTypes: RecordTypeLike[]): Promise<any> {
+    public async bootstrap(recordTypes: RecordTypeLike[]): Promise<UnsafeAny> {
       let workflows = await WorkflowStep.find({});
       if (sails.config.appmode.bootstrapAlways) {
         await WorkflowStep.destroy({});
@@ -64,7 +60,7 @@ export module Services {
               }
               this.logger.verbose("Processing recordType: " + recordTypeName);
               wfSteps[recordTypeName] = []
-              _.forOwn(sails.config.workflow[recordTypeName], (_workflowConf: any, workflowName: string) => {
+              _.forOwn(sails.config.workflow[recordTypeName], (_workflowConf: UnsafeAny, workflowName: string) => {
                 if (workflowName != null) {
                   this.logger.verbose("workflow step added to list: " + workflowName)
                   wfSteps[recordTypeName].push({ "recordType": recordType, "workflow": workflowName });
@@ -78,11 +74,11 @@ export module Services {
           if (_.isArray(wfSteps) && wfSteps[0]["config"] != null) {
             
           } else {
-            var workflowSteps: any[] = [];
+            var workflowSteps: UnsafeAny[] = [];
             for(let recordTypeName in wfSteps) {
               let workflowStepsObject = wfSteps[recordTypeName] as Array<{ recordType: RecordTypeLike; workflow: string }>;
               for (let workflowStep of workflowStepsObject){
-                let workflowConf = sails.config.workflow[recordTypeName][workflowStep["workflow"]] as any;
+                let workflowConf = sails.config.workflow[recordTypeName][workflowStep["workflow"]] as UnsafeAny;
                 let form = _.get(workflowConf,'config.form','');
                 if(form == '') {
                   _.set(workflowConf.config,'form','generated-view-only');

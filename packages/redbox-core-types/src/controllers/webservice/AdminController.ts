@@ -1,7 +1,5 @@
 import { APIActionResponse, APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
 
-declare var sails: any;
-declare var _: any;
 
 export module Controllers {
   /**

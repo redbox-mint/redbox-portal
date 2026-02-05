@@ -19,14 +19,12 @@
 
 import { Observable } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import { AppConfigAttributes } from '../waterline-models/AppConfig';
 import { Services as services } from '../CoreService';
 import { ConfigModels } from '../configmodels/ConfigModels';
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
 
-declare var AppConfig: any;
-declare var sails: any;
-declare var _: any;
 
 
 export module Services {
@@ -40,7 +38,7 @@ export module Services {
     modelSchemaMap: Record<string, any> = {};
     private extraTsGlobs: Set<string> = new Set();
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'bootstrap',
       'getAllConfigurationForBrand',
       'loadAppConfigurationModel',
@@ -73,12 +71,12 @@ export module Services {
 
     }
 
-    async initAllConfigFormSchemas(): Promise<any> {
+    async initAllConfigFormSchemas(): Promise<UnsafeAny> {
       const configKeys: string[] = ConfigModels.getConfigKeys();
       
       // First pass: collect all TS globs before generating any schemas
       for (const configKey of configKeys) {
-        const modelDefinition: any = ConfigModels.getModelInfo(configKey);
+        const modelDefinition: UnsafeAny = ConfigModels.getModelInfo(configKey);
         if (modelDefinition?.tsGlob) {
           const globs = Array.isArray(modelDefinition.tsGlob) ? modelDefinition.tsGlob : [modelDefinition.tsGlob];
           globs.filter(Boolean).forEach((g: string) => this.extraTsGlobs.add(g));
@@ -87,7 +85,7 @@ export module Services {
 
       // Second pass: generate schemas (now all globs are available)
       for (const configKey of configKeys) {
-        const modelDefinition: any = ConfigModels.getModelInfo(configKey);
+        const modelDefinition: UnsafeAny = ConfigModels.getModelInfo(configKey);
         // Init schema and put it in the cache
         this.getJsonSchema(modelDefinition);
       }
@@ -98,15 +96,15 @@ export module Services {
       this.brandingAppConfigMap[branding.name] = appConfig;
     }
 
-    public getAppConfigurationForBrand(brandName: string): any {
+    public getAppConfigurationForBrand(brandName: string): UnsafeAny {
       return _.get(this.brandingAppConfigMap, brandName, sails.config.brandingConfigurationDefaults == undefined ? {} : sails.config.brandingConfigurationDefaults);
     }
 
-    public getAllConfigurationForBrand = (brandId: string): Promise<any> => {
+    public getAllConfigurationForBrand = (brandId: string): Promise<UnsafeAny> => {
       return AppConfig.find({ branding: brandId });
     }
 
-    public async loadAppConfigurationModel(brandId: string): Promise<any> {
+    public async loadAppConfigurationModel(brandId: string): Promise<UnsafeAny> {
       let appConfiguration = {};
       const modelNames = ConfigModels.getConfigKeys();
       for (let modelName of modelNames) {
@@ -123,14 +121,14 @@ export module Services {
       _.merge(appConfiguration, sails.config.brandingConfigurationDefaults);
 
 
-      let appConfigItems: any[] = await this.getAllConfigurationForBrand(brandId);
+      let appConfigItems: UnsafeAny[] = await this.getAllConfigurationForBrand(brandId);
       for (let appConfigItem of appConfigItems) {
         _.set(appConfiguration, appConfigItem.configKey, appConfigItem.configData);
       }
       return appConfiguration;
     }
 
-    public async getAppConfigByBrandAndKey(brandId: string, configKey: string): Promise<any> {
+    public async getAppConfigByBrandAndKey(brandId: string, configKey: string): Promise<UnsafeAny> {
       let dbConfig = await AppConfig.findOne({ branding: brandId, configKey });
 
       // If no config exists in the DB return the default settings
@@ -140,7 +138,7 @@ export module Services {
 
       let config = _.get(sails.config.brandingConfigurationDefaults, configKey, {});
       if (_.isEmpty(config)) {
-        const modelInfo: any = ConfigModels.getModelInfo(configKey);
+        const modelInfo: UnsafeAny = ConfigModels.getModelInfo(configKey);
         if (modelInfo == null) {
           throw Error(`No config found for config key ${configKey}`);
         }
@@ -150,7 +148,7 @@ export module Services {
       return config;
     }
 
-    public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: string): Promise<any> {
+    public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: string): Promise<UnsafeAny> {
       const dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
 
       // Create if no config exists
@@ -162,10 +160,10 @@ export module Services {
       }
 
       await this.refreshBrandingAppConfigMap(branding);
-      return record.configData;
+      return (record as unknown as AppConfigAttributes).configData;
     }
 
-    public async createConfig(brandName: string, configKey: string, configData: string): Promise<any> {
+    public async createConfig(brandName: string, configKey: string, configData: string): Promise<UnsafeAny> {
       let branding: BrandingModel = BrandingService.getBrand(brandName);
       let dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
 
@@ -174,25 +172,25 @@ export module Services {
         let createdRecord = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: configData });
 
         await this.refreshBrandingAppConfigMap(branding);
-        return createdRecord.configData;
+        return (createdRecord as unknown as AppConfigAttributes).configData;
       }
 
       throw Error(`Config with key ${configKey} for branding ${brandName} already exists`);
     }
 
-    public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<any> {
+    public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<UnsafeAny> {
 
       let appConfig = this.getAppConfigurationForBrand(branding.name);
 
-      let modelDefinition: any = ConfigModels.getModelInfo(configForm);
+      let modelDefinition: UnsafeAny = ConfigModels.getModelInfo(configForm);
       let model = _.get(appConfig, configForm, new modelDefinition.class());
-      const jsonSchema: any = this.getJsonSchema(modelDefinition);
+      const jsonSchema: UnsafeAny = this.getJsonSchema(modelDefinition);
 
       let configData = { model: model, schema: jsonSchema, fieldOrder: modelDefinition.class.getFieldOrder() };
       return configData;
     }
 
-    private getJsonSchema(modelDefinition: any): any {
+    private getJsonSchema(modelDefinition: UnsafeAny): UnsafeAny {
       // Check if schema is already cached
       if (this.modelSchemaMap[modelDefinition.modelName] != undefined) {
         return this.modelSchemaMap[modelDefinition.modelName];
@@ -236,7 +234,7 @@ export module Services {
      * - If a prebuilt JSON schema is provided, it will be cached and preferred.
      * - If a TS glob is provided, it will be used to find model types for schema generation.
      */
-    public registerConfigModel(info: { key: string; modelName: string; class: any; schema?: any; tsGlob?: string | string[] }): void {
+    public registerConfigModel(info: { key: string; modelName: string; class: UnsafeAny; schema?: UnsafeAny; tsGlob?: string | string[] }): void {
       // persist in ConfigModels registry
       ConfigModels.register(info.key, { modelName: info.modelName, class: info.class, schema: info.schema, tsGlob: info.tsGlob });
       // cache schema if provided

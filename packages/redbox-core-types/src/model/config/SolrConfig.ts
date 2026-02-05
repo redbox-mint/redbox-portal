@@ -48,7 +48,7 @@ interface SolrFlattenOptions {
     object?: boolean;
     overwrite?: boolean;
     maxDepth?: number;
-    transformKey: Function; 
+    transformKey?: Function; 
   };
 
 export class SolrField {
@@ -56,7 +56,8 @@ export class SolrField {
     type: string = '';
     indexed: boolean = false;
     stored: boolean = false;
-    multiValued: boolean = false;
+    multiValued?: boolean = false;
+    required?: boolean = false;
 }
 
 export class SolrCopyField {
@@ -65,8 +66,8 @@ export class SolrCopyField {
 }
 
 export class SolrOptions {
-    https: boolean = false;
+    https?: boolean = false;
     host: string = '';
-    port: string = '';
+    port: string | number = '';
     core: string = '';
 }

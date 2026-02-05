@@ -17,13 +17,10 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { zip, of } from 'rxjs';
+import { zip, of, Observable } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 
-declare var sails: any;
-declare var WorkspaceType: any;
-declare var _: any;
 
 type BrandingLike = { id: string };
 type WorkspaceTypeConfig = {
@@ -44,7 +41,7 @@ export module Services {
    */
   export class WorkspaceTypes extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'create',
       'get',
@@ -53,7 +50,7 @@ export module Services {
 
     public bootstrap = (defBrand: BrandingLike) => {
       return super.getObservable(WorkspaceType.destroy({ branding: defBrand.id })).pipe(flatMap(() => {
-        const obsArr: any[] = [];
+        const obsArr: Array<Observable<unknown>> = [];
         sails.log.debug('WorkspaceTypes::Bootstrap');
         sails.log.debug(sails.config.workspacetype);
         let workspaceTypes: string[] = [];

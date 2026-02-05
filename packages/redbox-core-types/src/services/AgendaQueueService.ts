@@ -43,9 +43,6 @@ import { QueueService } from '../QueueService';
 import { Agenda } from 'agenda';
 
 
-declare var sails: any;
-declare var User: Sails.Model<any>;
-declare var _: any;
 
 export module Services {
   /**
@@ -53,7 +50,7 @@ export module Services {
    *
    */
   export class AgendaQueue extends services.Core.Service implements QueueService {
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'every',
       'schedule',
       'now',
@@ -82,7 +79,7 @@ export module Services {
 
         // set the options for Agenda, see: https://github.com/agenda/agenda#configuring-an-agenda
         const agendaOpts: Record<string, unknown> = {};
-        _.forOwn(sails.config.agendaQueue.options, (optionVal: any, optionName: string) => {
+        _.forOwn(sails.config.agendaQueue.options, (optionVal: UnsafeAny, optionName: string) => {
           that.setOptionIfDefined(agendaOpts, optionName, optionVal);
         });
         const dbManager = User.getDatastore().manager;
@@ -99,10 +96,10 @@ export module Services {
           sails.log.error(`AgendaQueue:: Error:`);
           sails.log.error(JSON.stringify(err));
         });
-        that.agenda.on('start', (job: any) => {
+        that.agenda.on('start', (job: UnsafeAny) => {
           sails.log.verbose(`AgendaQueue:: Job ${job.attrs.name} starting`,);
         });
-        that.agenda.on('complete', (job: any) => {
+        that.agenda.on('complete', (job: UnsafeAny) => {
           sails.log.verbose(`AgendaQueue:: Job ${job.attrs.name} finished`);
         });
         that.agenda.on('fail', (err, job) => {
@@ -117,7 +114,7 @@ export module Services {
         await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1 });
 
         // check for in-line job schedule
-        _.each(sails.config.agendaQueue.jobs, (job: any) => {
+        _.each(sails.config.agendaQueue.jobs, (job: UnsafeAny) => {
           if (!_.isEmpty(job.schedule)) {
             const method = job.schedule.method;
             const intervalOrSchedule = job.schedule.intervalOrSchedule;
@@ -155,8 +152,8 @@ export module Services {
       }
      ]
      */
-    public defineJobs(jobs: any[], ref: AgendaQueue = this): void {
-      _.each(jobs, (job: any) => {
+    public defineJobs(jobs: UnsafeAny[], ref: AgendaQueue = this): void {
+      _.each(jobs, (job: UnsafeAny) => {
         const serviceFn = _.get(sails.services, job.fnName);
         if (_.isUndefined(serviceFn)) {
           sails.log.error(`AgendaQueue:: Job name: ${job.name}'s service function not found: ${job.fnName}`);
@@ -173,7 +170,7 @@ export module Services {
       });
     }
 
-    public defineJob(name: string, options: unknown, serviceFn: any) {
+    public defineJob(name: string, options: unknown, serviceFn: UnsafeAny) {
       if (!this.agenda) {
         sails.log.error(`AgendaQueue:: defineJob called before init for job: ${name}`);
         return;
@@ -181,7 +178,7 @@ export module Services {
       if (_.isEmpty(options)) {
         this.agenda.define(name, serviceFn);
       } else {
-        this.agenda.define(name, serviceFn, options as any);
+        this.agenda.define(name, serviceFn, options as UnsafeAny);
       }
       sails.log.verbose(`AgendaQueue:: Defined job: ${name}`);
     }
@@ -192,10 +189,10 @@ export module Services {
      * 
      * @param job 
      */
-    public async moveCompletedJobsToHistory(job: any) {
+    public async moveCompletedJobsToHistory(job: UnsafeAny) {
       const dbManager = User.getDatastore().manager;
       const collectionName = _.get(sails.config.agendaQueue, 'collection', 'agendaJobs');
-      await dbManager.collection(collectionName).find({ nextRunAt: null }).forEach(async (doc: any) => {
+      await dbManager.collection(collectionName).find({ nextRunAt: null }).forEach(async (doc: UnsafeAny) => {
         await dbManager.collection(`${collectionName}History`).insertOne(doc);
         await dbManager.collection(collectionName).deleteOne({ _id: doc._id });
       });
@@ -215,15 +212,15 @@ export module Services {
       sails.log.info(JSON.stringify(job));
     }
 
-    public every(jobName: string, interval: string, data: any = undefined, options: any = undefined) {
+    public every(jobName: string, interval: string, data: UnsafeAny = undefined, options: UnsafeAny = undefined) {
       this.agenda.every(interval, jobName, data, options);
     }
 
-    public schedule(jobName: string, schedule: string, data: any = undefined) {
+    public schedule(jobName: string, schedule: string, data: UnsafeAny = undefined) {
       this.agenda.schedule(schedule, jobName, data);
     }
 
-    public now(jobName: string, data: any = undefined) {
+    public now(jobName: string, data: UnsafeAny = undefined) {
       sails.log.verbose(`AgendaQueue:: Starting job: '${jobName}' now!`)
       try {
         this.agenda.now(jobName, data);
@@ -233,7 +230,7 @@ export module Services {
       }
     }
 
-    public async jobs(query: any = {}, sort = {}, limit = 0, skip = 0) {
+    public async jobs(query: UnsafeAny = {}, sort = {}, limit = 0, skip = 0) {
       return await this.agenda.jobs(query, sort, limit, skip);
     }
   }

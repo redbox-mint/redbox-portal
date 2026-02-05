@@ -2,8 +2,6 @@ import { APIErrorResponse, BrandingModel, Controllers as controllers } from '../
 import { default as util } from 'util';
 import { default as stream } from 'stream';
 
-declare var sails: any;
-declare var _: any;
 
 const pipeline = util.promisify(stream.pipeline);
 /**

@@ -21,7 +21,6 @@ import { Controllers as controllers } from '../CoreController';
 import { momentShim as moment } from '../shims/momentShim';
 import { orderBy } from 'lodash';
 import { RecordsService } from '../RecordsService';
-declare var sails: any;
 
 export module Controllers {
   /**

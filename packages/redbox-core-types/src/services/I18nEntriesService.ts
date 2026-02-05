@@ -21,25 +21,21 @@ import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 
-declare var sails: any;
-declare var _: any;
 
 // Waterline globals
-declare var I18nTranslation: any;
-declare var I18nBundle: any;
-declare let BrandingService: any;
+declare let BrandingService: UnsafeAny;
 
 export module Services {
 
   export interface Bundle {
     id?: string | number;
-    branding?: any;
+    branding?: UnsafeAny;
     locale: string;
     namespace?: string;
-    data: any;
+    data: UnsafeAny;
   }
 
-  export function isBundle(obj: any): obj is Bundle {
+  export function isBundle(obj: UnsafeAny): obj is Bundle {
     return (
       obj &&
       typeof obj === 'object' &&
@@ -138,7 +134,7 @@ export module Services {
     }
 
     // Basic flatten utility for dot-notation keys that fits the pattern required for i18next entries
-    private flatten(obj: any, prefix = '', out: any = {}): any {
+    private flatten(obj: UnsafeAny, prefix = '', out: UnsafeAny = {}): UnsafeAny {
       for (const key of Object.keys(obj || {})) {
         const value = obj[key];
         const newKey = prefix ? `${prefix}.${key}` : key;
@@ -152,8 +148,8 @@ export module Services {
     }
 
     // Minimal unflatten utility for dot-notation keys that i18next uses
-    private unflatten(flatObj: any): any {
-      const result: any = {};
+    private unflatten(flatObj: UnsafeAny): UnsafeAny {
+      const result: UnsafeAny = {};
       for (const flatKey of Object.keys(flatObj || {})) {
         const parts = flatKey.split('.');
         let cursor = result;
@@ -171,7 +167,7 @@ export module Services {
     }
 
     // Minimal setter for dot-notation keys inside an object
-    private setNested(obj: any, dottedKey: string, value: any): void {
+    private setNested(obj: UnsafeAny, dottedKey: string, value: UnsafeAny): void {
       if (!obj) return;
       const parts = String(dottedKey).split('.');
       let cursor = obj;
@@ -188,7 +184,7 @@ export module Services {
     }
 
     // Remove a dot-notation key from an object (best-effort, leaves empty parent objects in place)
-    private removeNested(obj: any, dottedKey: string): void {
+    private removeNested(obj: UnsafeAny, dottedKey: string): void {
       if (!obj) return;
       const parts = String(dottedKey).split('.');
       let cursor = obj;
@@ -224,12 +220,12 @@ export module Services {
       locale: string,
       namespace: string,
       key: string,
-      value: any,
+      value: UnsafeAny,
       options?: { bundleId?: string; category?: string; description?: string; noReload?: boolean }
-    ): Promise<any> {
+    ): Promise<UnsafeAny> {
       const brandingId = this.resolveBrandingId(branding);
       const existing = await this.getEntry(branding, locale, namespace, key);
-      const updates: any = {
+      const updates: UnsafeAny = {
         value,
         branding: brandingId,
         locale,
@@ -266,7 +262,7 @@ export module Services {
 
       // Trigger i18next cache refresh (best-effort) unless suppressed (e.g., batch operations)
       if (!options?.noReload) {
-        try { (global as any).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
+        try { (global as UnsafeAny).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
       }
       return saved;
     }
@@ -290,12 +286,12 @@ export module Services {
       return !!deleted;
     }
 
-    public async listEntries(branding: BrandingModel, locale: string, namespace: string, keyPrefix?: string): Promise<any[]> {
+    public async listEntries(branding: BrandingModel, locale: string, namespace: string, keyPrefix?: string): Promise<UnsafeAny[]> {
       const brandingId = this.resolveBrandingId(branding);
-      const where: any = { branding: brandingId, locale, namespace };
+      const where: UnsafeAny = { branding: brandingId, locale, namespace };
       if (keyPrefix) {
         // Mongo-specific regex for prefix match
-        where.key = { startsWith: keyPrefix } as any;
+        where.key = { startsWith: keyPrefix } as UnsafeAny;
       }
       return await I18nTranslation.find({ where }).sort('key ASC');
     }
@@ -306,7 +302,7 @@ export module Services {
       return await I18nBundle.findOne({ uid });
     }
 
-    public async listBundles(branding: BrandingModel): Promise<any[]> {
+    public async listBundles(branding: BrandingModel): Promise<UnsafeAny[]> {
       const brandingId = this.resolveBrandingId(branding);
       return await I18nBundle.find({ branding: brandingId });
     }
@@ -315,10 +311,10 @@ export module Services {
       branding: BrandingModel,
       locale: string,
       namespace: string,
-      data: any,
+      data: UnsafeAny,
       displayName?: string,
       options?: { splitToEntries?: boolean; overwriteEntries?: boolean }
-    ): Promise<any> {
+    ): Promise<UnsafeAny> {
       const brandingId = this.resolveBrandingId(branding);
       
       // Use provided display name or get default for the language
@@ -350,7 +346,7 @@ export module Services {
         this.logger.warn('Entry sync failed for', brandingId, locale, namespace, (e as Error)?.message || e);
       }
       // After full bundle update & sync, refresh translations
-      try { (global as any).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
+      try { (global as UnsafeAny).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
       return bundle;
     }
 
@@ -359,7 +355,7 @@ export module Services {
       locale: string,
       namespace: string,
       enabled: boolean
-    ): Promise<any> {
+    ): Promise<UnsafeAny> {
       const brandingId = this.resolveBrandingId(branding);
       
       const bundle = await I18nBundle.updateOne({ 
@@ -375,22 +371,24 @@ export module Services {
       return bundle;
     }
 
-    public composeNamespace(entries: Array<{ key: string; value: any }>): any {
-      const flat: any = {};
+    public composeNamespace(entries: Array<{ key: string; value: UnsafeAny }>): UnsafeAny {
+      const flat: UnsafeAny = {};
       for (const e of entries) {
         flat[e.key] = e.value;
       }
       return this.unflatten(flat);
     }
 
-  public async syncEntriesFromBundle(bundleOrId: any, overwrite = false): Promise<void> {
+  public async syncEntriesFromBundle(bundleOrId: UnsafeAny, overwrite = false): Promise<void> {
       const bundle = isBundle(bundleOrId)
         ? bundleOrId
         : await I18nBundle.findOne({ id: bundleOrId });
       if (!bundle) throw new Error('Bundle not found');
 
       const { branding, locale, namespace, id: bundleId } = bundle;
-      const brandingId = this.resolveBrandingId(branding as any);
+      const safeLocale = locale ?? 'en';
+      const safeNamespace = namespace ?? 'translation';
+      const brandingId = this.resolveBrandingId(branding as UnsafeAny);
       const data = bundle.data || {};
       
       // Load centralized metadata
@@ -418,13 +416,13 @@ export module Services {
         || ({ id: brandingId } as BrandingModel));
 
       // Track existing keys to detect removals
-      const existingEntries = await I18nTranslation.find({ branding: brandingId, locale, namespace });
-      const existingKeysSet = new Set(existingEntries.map((e: any) => e.key));
+      const existingEntries = await I18nTranslation.find({ branding: brandingId, locale: safeLocale, namespace: safeNamespace });
+      const existingKeysSet = new Set(existingEntries.map((e: UnsafeAny) => e.key));
 
       for (const key of keys) {
         let val = flat[key];
         existingKeysSet.delete(key); // still present
-        const existing = await this.getEntry(brandingModel, locale, namespace, key);
+        const existing = await this.getEntry(brandingModel, safeLocale, safeNamespace, key);
 
         if (existing && !overwrite) continue;
 
@@ -432,20 +430,20 @@ export module Services {
           if(val === '' || val === null || val === undefined) {
             val = key; // default empty values to the key itself
           }
-          await this.setEntry(brandingModel, locale, namespace, key, val, { bundleId, category: meta?.[key]?.category, description: meta?.[key]?.description, noReload: true });
+          await this.setEntry(brandingModel, safeLocale, safeNamespace, key, val, { bundleId: bundleId != null ? String(bundleId) : undefined, category: meta?.[key]?.category, description: meta?.[key]?.description, noReload: true });
         } catch (e) {
           throw e;
         }
       }
   for (const obsoleteKey of existingKeysSet) {
         try {
-  await this.deleteEntry(brandingModel, locale, namespace, String(obsoleteKey));
+  await this.deleteEntry(brandingModel, safeLocale, safeNamespace, String(obsoleteKey));
         } catch (e) {
           this.logger.warn('Failed to prune obsolete key', obsoleteKey, (e as Error)?.message || e);
         }
       }
   // Bulk operation complete; reload once
-  try { (global as any).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
+  try { (global as UnsafeAny).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
     }
 
 

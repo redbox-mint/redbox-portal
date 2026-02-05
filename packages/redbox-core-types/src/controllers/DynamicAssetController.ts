@@ -24,8 +24,6 @@ import { Controllers as controllers } from '../CoreController';
 import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
 import { firstValueFrom } from "rxjs";
 
-declare var module: any;
-declare var sails: any;
 
 /**
  * Package that contains all Controllers.

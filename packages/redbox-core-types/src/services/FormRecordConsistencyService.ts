@@ -29,8 +29,6 @@ import {firstValueFrom} from "rxjs";
 
 
 
-declare var sails: any;
-declare var _: any;
 
 export module Services {
 

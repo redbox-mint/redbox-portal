@@ -20,7 +20,6 @@
 import { existsSync } from 'fs';
 import { Services as services } from '../CoreService';
 
-declare var sails: any;
 
 export module Services {
   /**

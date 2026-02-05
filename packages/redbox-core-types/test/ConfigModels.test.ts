@@ -16,9 +16,9 @@ describe('ConfigModels', function () {
   it('should get model info for existing key', () => {
     const modelInfo = ConfigModels.getModelInfo('systemMessage');
     expect(modelInfo).to.not.be.null;
-    expect(modelInfo.modelName).to.equal('SystemMessage');
-    expect(modelInfo.title).to.equal('System Messages');
-    expect(modelInfo.class).to.not.be.undefined;
+    expect(modelInfo!.modelName).to.equal('SystemMessage');
+    expect(modelInfo!.title).to.equal('System Messages');
+    expect(modelInfo!.class).to.not.be.undefined;
   });
 
   it('should return undefined for non-existing key', () => {
@@ -31,18 +31,18 @@ describe('ConfigModels', function () {
     expect(models).to.include('menu');
 
     const menuModelInfo = ConfigModels.getModelInfo('menu');
-    expect(menuModelInfo.schema).to.not.be.undefined;
+    expect(menuModelInfo!.schema).to.not.be.undefined;
     // Expect absolute path ending with src/configmodels/MenuConfig.ts
-    expect(menuModelInfo.tsGlob).to.contain('src/configmodels/MenuConfig.ts');
+    expect(menuModelInfo!.tsGlob).to.contain('src/configmodels/MenuConfig.ts');
 
     const homePanelsModelInfo = ConfigModels.getModelInfo('homePanels');
-    expect(homePanelsModelInfo.schema).to.not.be.undefined;
-    expect(homePanelsModelInfo.tsGlob).to.contain('src/configmodels/HomePanelConfig.ts');
+    expect(homePanelsModelInfo!.schema).to.not.be.undefined;
+    expect(homePanelsModelInfo!.tsGlob).to.contain('src/configmodels/HomePanelConfig.ts');
 
     const adminSidebarInfo = ConfigModels.getModelInfo('adminSidebar');
     expect(adminSidebarInfo).to.not.be.undefined;
-    expect(adminSidebarInfo.schema).to.exist;
-    expect(adminSidebarInfo.tsGlob).to.contain('src/configmodels/AdminSidebarConfig.ts');
+    expect(adminSidebarInfo!.schema).to.exist;
+    expect(adminSidebarInfo!.tsGlob).to.contain('src/configmodels/AdminSidebarConfig.ts');
   });
 
   it('should register a new config model', () => {
@@ -92,7 +92,7 @@ describe('ConfigModels', function () {
     ConfigModels.register('testConfigWithSchema', modelInfo);
 
     const retrievedInfo = ConfigModels.getModelInfo('testConfigWithSchema');
-    expect(retrievedInfo.schema).to.deep.equal(mockSchema);
+    expect(retrievedInfo!.schema).to.deep.equal(mockSchema);
   });
 
   it('should register a config model with tsGlob', () => {
@@ -112,7 +112,7 @@ describe('ConfigModels', function () {
     ConfigModels.register('testConfigWithGlob', modelInfo);
 
     const retrievedInfo = ConfigModels.getModelInfo('testConfigWithGlob');
-    expect(retrievedInfo.tsGlob).to.equal('/some/path/*.ts');
+    expect(retrievedInfo!.tsGlob).to.equal('/some/path/*.ts');
   });
 
   it('should register a config model with array of tsGlobs', () => {
@@ -133,7 +133,7 @@ describe('ConfigModels', function () {
     ConfigModels.register('testConfigWithMultipleGlobs', modelInfo);
 
     const retrievedInfo = ConfigModels.getModelInfo('testConfigWithMultipleGlobs');
-    expect(retrievedInfo.tsGlob).to.deep.equal(tsGlobs);
+    expect(retrievedInfo!.tsGlob).to.deep.equal(tsGlobs);
   });
 
   it('should overwrite existing config model by default', () => {
@@ -164,8 +164,8 @@ describe('ConfigModels', function () {
     });
 
     const retrievedInfo = ConfigModels.getModelInfo('overwriteTest');
-    expect(retrievedInfo.modelName).to.equal('NewModel');
-    expect(retrievedInfo.class).to.equal(newClass);
+    expect(retrievedInfo!.modelName).to.equal('NewModel');
+    expect(retrievedInfo!.class).to.equal(newClass);
   });
 
   it('should not overwrite existing config model when preventOverride is true', () => {
@@ -197,8 +197,8 @@ describe('ConfigModels', function () {
     }, { preventOverride: true });
 
     const retrievedInfo = ConfigModels.getModelInfo('preventOverrideTest');
-    expect(retrievedInfo.modelName).to.equal('OriginalPreventModel');
-    expect(retrievedInfo.class).to.equal(originalClass);
+    expect(retrievedInfo!.modelName).to.equal('OriginalPreventModel');
+    expect(retrievedInfo!.class).to.equal(originalClass);
   });
 
   it('should allow registration with preventOverride when key does not exist', () => {
@@ -222,8 +222,8 @@ describe('ConfigModels', function () {
     }, { preventOverride: true });
 
     const retrievedInfo = ConfigModels.getModelInfo('preventNewTest');
-    expect(retrievedInfo.modelName).to.equal('PreventNewModel');
-    expect(retrievedInfo.class).to.equal(mockClass);
+    expect(retrievedInfo!.modelName).to.equal('PreventNewModel');
+    expect(retrievedInfo!.class).to.equal(mockClass);
 
     ConfigModels.register('preventNewTest', {
       modelName: 'PreventNewModelDuplicate',
@@ -231,8 +231,8 @@ describe('ConfigModels', function () {
     }, { preventOverride: true });
 
     const duplicateRetrievedInfo = ConfigModels.getModelInfo('preventNewTest');
-    expect(duplicateRetrievedInfo.modelName).to.equal('PreventNewModel');
-    expect(duplicateRetrievedInfo.class).to.equal(mockClass);
+    expect(duplicateRetrievedInfo!.modelName).to.equal('PreventNewModel');
+    expect(duplicateRetrievedInfo!.class).to.equal(mockClass);
   });
 
   it('should handle preventOverride set to false explicitly', () => {
@@ -263,8 +263,8 @@ describe('ConfigModels', function () {
     }, { preventOverride: false });
 
     const retrievedInfo = ConfigModels.getModelInfo('explicitOverrideTest');
-    expect(retrievedInfo.modelName).to.equal('NewExplicitModel');
-    expect(retrievedInfo.class).to.equal(newClass);
+    expect(retrievedInfo!.modelName).to.equal('NewExplicitModel');
+    expect(retrievedInfo!.class).to.equal(newClass);
   });
 
 });

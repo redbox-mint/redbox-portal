@@ -1,8 +1,6 @@
 import { APIErrorResponse, APIObjectActionResponse, BrandingModel, Controllers as controllers, RecordTypeModel, RecordModel, RecordsService, SearchService } from '../../index';
 import { firstValueFrom } from 'rxjs';
 
-declare var sails: any;
-declare var _: any;
 
 export module Controllers {
   /**

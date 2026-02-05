@@ -230,6 +230,7 @@ describe('The EmailService', function () {
         });
 
         it('should send email when trigger condition matches and execute onNotifySuccess', async function () {
+            _.set(sails.config, 'services.email.disabled', "false");
             const oid = "test-oid";
             const record: any = {
                 metadata: {
@@ -268,6 +269,7 @@ describe('The EmailService', function () {
         });
 
         it('should not send email when trigger condition does not match user', async function () {
+            _.set(sails.config, 'services.email.disabled', "false");
             const oid = "test-oid";
             const record: any = {
                 metadata: {

@@ -1,7 +1,12 @@
 import { bindNodeCallback, bindCallback, Observable } from 'rxjs';
 
+declare global {
+  // Transitional strict-migration alias used across legacy services.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type UnsafeAny = any;
+}
 
-declare var sails: Sails.Application;
+
 // changed to a manual lodash load instead of relying on Sails global object
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
 import * as _ from 'lodash';
@@ -213,6 +218,9 @@ export module Services.Core {
       const triggerCondition = _.get(options, "triggerCondition", "") as string;
       const forceRun = _.get(options, "forceRun", false) as boolean;
       const variables = {
+        record: record,
+        oid: oid,
+        user: user || null,
         imports: {
           record: record,
           oid: oid,

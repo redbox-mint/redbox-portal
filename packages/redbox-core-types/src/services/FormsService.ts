@@ -30,11 +30,6 @@ import {
   FormModesConfig, ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
 
-declare var sails: any;
-declare var Form: any;
-declare var RecordType: any;
-declare var WorkflowStep: any;
-declare var _: any;
 
 export module Services {
   /**
@@ -45,7 +40,7 @@ export module Services {
    */
   export class Forms extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'bootstrap',
       'getForm',
       'flattenFields',
@@ -58,7 +53,7 @@ export module Services {
       'buildClientFormConfig',
     ];
 
-    public async bootstrap(workflowStep: any): Promise<any> {
+    public async bootstrap(workflowStep: UnsafeAny): Promise<UnsafeAny> {
       let form = await Form.find({
         workflowStep: workflowStep.id
       })
@@ -76,7 +71,7 @@ export module Services {
       if (!form || form.length == 0) {
         this.logger.verbose("Bootstrapping form definitions..");
         // only bootstrap the form for this workflow step
-        _.forOwn(sails.config.form.forms, (_formDef: any, formName: string) => {
+        _.forOwn(sails.config.form.forms, (_formDef: UnsafeAny, formName: string) => {
           if (formName == workflowStep.config.form) {
             formDefs.push(formName);
           }
@@ -93,7 +88,7 @@ export module Services {
       const existingFormDef = await Form.find({
         name: formName
       })
-      let existCheck: { formName: string | null; existingFormDef: any } = {
+      let existCheck: { formName: string | null; existingFormDef: UnsafeAny } = {
         formName: formName,
         existingFormDef: existingFormDef
       };
@@ -114,7 +109,7 @@ export module Services {
       if (formName) {
         sails.log.verbose(`Preparing to create form...`);
         // TODO: assess the form config to see what should change
-        const formConfig = sails.config.form.forms[formName];
+        const formConfig = sails.config.form.forms[formName] as UnsafeAny;
         const formObj: FormModel & FormConfigFrame = {
           name: formName,
           fields: formConfig.fields,
@@ -140,7 +135,7 @@ export module Services {
           debugValue: formConfig.debugValue,
         };
 
-        result = await Form.create(formObj);
+        result = await Form.create(formObj) as unknown as FormModel;
         this.logger.verbose("Created form record: ");
         this.logger.verbose(result);
       }
@@ -175,7 +170,7 @@ export module Services {
       }));
     }
 
-    public async getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: any) {
+    public async getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: UnsafeAny) {
 
       // allow client to set the form name to use
       const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
@@ -221,12 +216,12 @@ export module Services {
       );
     }
 
-    public inferSchemaFromMetadata(record: any): any {
+    public inferSchemaFromMetadata(record: UnsafeAny): UnsafeAny {
       const schema = createSchema(record.metadata);
       return schema;
     }
 
-    public async generateFormFromSchema(branding: BrandingModel, recordType: string, record: any) {
+    public async generateFormFromSchema(branding: BrandingModel, recordType: string, record: UnsafeAny) {
 
       if(recordType == '') {
         recordType = _.get(record,'metaMetadata.type','');
@@ -466,12 +461,12 @@ export module Services {
         }]
       };
 
-      form = formObject as any;
+      form = formObject as UnsafeAny;
 
       return form;
     }
 
-    protected setFormEditMode(fields: any[], editMode: boolean): void{
+    protected setFormEditMode(fields: UnsafeAny[], editMode: boolean): void{
       // TODO: Form is processed differently now, see buildClientFormConfig
       // _.remove(fields, field => {
       //   if (editMode) {
@@ -488,19 +483,19 @@ export module Services {
       // });
     }
 
-    public filterFieldsHasEditAccess(fields: any[], hasEditAccess: boolean): void {
-      _.remove(fields, (field: any) => {
+    public filterFieldsHasEditAccess(fields: UnsafeAny[], hasEditAccess: boolean): void {
+      _.remove(fields, (field: UnsafeAny) => {
         return field.needsEditAccess && hasEditAccess != true;
       });
-      _.forEach(fields, (field: any) => {
+      _.forEach(fields, (field: UnsafeAny) => {
         if (!_.isEmpty(field.definition.fields)) {
           this.filterFieldsHasEditAccess(field.definition.fields, hasEditAccess);
         }
       });
     }
 
-    public flattenFields(fields: any[], fieldArr: any[]): void {
-      _.map(fields, (f: any) => {
+    public flattenFields(fields: UnsafeAny[], fieldArr: UnsafeAny[]): void {
+      _.map(fields, (f: UnsafeAny) => {
         fieldArr.push(f);
         if (f.fields) {
           this.flattenFields(f.fields, fieldArr);

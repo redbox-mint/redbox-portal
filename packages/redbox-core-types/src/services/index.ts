@@ -95,9 +95,9 @@ export { WorkspaceTypesServiceModule as WorkspaceTypesService };
  * Using getters for lazy instantiation to avoid issues during testing and before
  * sails globals are available.
  */
-const serviceCache: Record<string, any> = {};
+const serviceCache: Record<string, unknown> = {};
 
-function getOrCreateService(name: string, factory: () => any): any {
+function getOrCreateService(name: string, factory: () => unknown): unknown {
   if (!serviceCache[name]) {
     serviceCache[name] = factory();
   }

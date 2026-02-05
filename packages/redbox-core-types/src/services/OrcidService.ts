@@ -23,10 +23,6 @@ import { Services as services } from '../CoreService';
 // import * as request from "request-promise";
 import axios from 'axios';
 
-declare var sails: any;
-declare var Report: any;
-declare var _this: any;
-declare var _: any;
 
 
 export module Services {
@@ -38,11 +34,11 @@ export module Services {
    */
   export class Orcids extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'searchOrcid'
     ];
 
-    public bootstrap = (defBrand: any) => {
+    public bootstrap = (defBrand: UnsafeAny) => {
 
     }
 
@@ -53,8 +49,8 @@ export module Services {
       const options = this.getOptions(url, sails.config.record.api.search.method);
       const orcidRes = from(axios(options));
 
-      return orcidRes.pipe(flatMap((response: any) => {
-        const orcidResult: any = response.data;
+      return orcidRes.pipe(flatMap((response: UnsafeAny) => {
+        const orcidResult: UnsafeAny = response.data;
         const results: Record<string, any> = {};
         results["numFound"] = orcidResult["orcid-search-results"]["num-found"];
         results["items"] = [];
@@ -68,7 +64,7 @@ export module Services {
       }));
     }
 
-    protected mapToPeopleSearchResult(orcidSearchResult: any) {
+    protected mapToPeopleSearchResult(orcidSearchResult: UnsafeAny) {
       const item: Record<string, any> = {};
 
       const profile = orcidSearchResult["orcid-profile"];
@@ -99,10 +95,10 @@ export module Services {
 
       let researcherUrls: Record<string, any> | null = profile["orcid-bio"]["researcher-urls"] == null ? null : {};
       if (researcherUrls != null) {
-        const researcherUrlsValueArray: any[] = [];
+        const researcherUrlsValueArray: UnsafeAny[] = [];
         const researcherUrlsArray = profile["orcid-bio"]["researcher-urls"]["researcher-url"];
 
-        _.forEach(researcherUrlsArray, function (researcherUrl: any) {
+        _.forEach(researcherUrlsArray, function (researcherUrl: UnsafeAny) {
             const researcherUrlItem: Record<string, unknown> = {};
             researcherUrlItem["value"] = researcherUrl["url-name"]["value"];
             researcherUrlItem["url"] = researcherUrl["url"]["value"];
@@ -127,7 +123,7 @@ export module Services {
       return item;
     }
 
-    private getExtendedAttributeObject(label: string, value: any) {
+    private getExtendedAttributeObject(label: string, value: UnsafeAny) {
       const extendedAttributes: Record<string, unknown> = {};
       extendedAttributes["label"] = label;
       extendedAttributes["value"] = value;

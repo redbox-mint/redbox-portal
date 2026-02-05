@@ -23,7 +23,6 @@ import { JsonMap } from '../waterline-models/types';
 import * as fs from 'fs-extra';
 import { resolve, basename } from 'path';
 import * as _ from 'lodash';
-declare var sails: any;
 
 export module Services {
   /**

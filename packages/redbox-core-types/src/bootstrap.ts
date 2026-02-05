@@ -10,6 +10,7 @@
  */
 
 import { lastValueFrom } from 'rxjs';
+import type { BrandingAwareFunction } from './config';
 import type { LoDashStatic } from 'lodash';
 
 declare const sails: Sails.Application;
@@ -97,7 +98,7 @@ export async function coreBootstrap(): Promise<void> {
     // Initialise the applicationConfig for all the brands
     await sails.services.appconfigservice.bootstrap();
     // bind convenience function to sails.config so that configuration access syntax is consistent
-    sails.config.brandingAware = AppConfigService.getAppConfigurationForBrand as (brandName?: string) => Record<string, unknown>;
+    sails.config.brandingAware = AppConfigService.getAppConfigurationForBrand as BrandingAwareFunction;
 
     sails.log.verbose("Cron service, bootstrapped.");
 

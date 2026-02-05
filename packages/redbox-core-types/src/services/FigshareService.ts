@@ -32,14 +32,14 @@ const _ = require('lodash');
 const fs = require('fs');
 const checkDiskSpace = require('check-disk-space').default;
 
-declare let sails: any;
-declare let TranslationService: any;
-declare let BrandingService: any;
-declare let RecordsService: any;
-declare let NamedQueryService: any;
-declare let RecordTypesService: any;
-declare let WorkflowStepsService: any;
-declare let UsersService: any;
+declare let sails: UnsafeAny;
+declare let TranslationService: UnsafeAny;
+declare let BrandingService: UnsafeAny;
+declare let RecordsService: UnsafeAny;
+declare let NamedQueryService: UnsafeAny;
+declare let RecordTypesService: UnsafeAny;
+declare let WorkflowStepsService: UnsafeAny;
+declare let UsersService: UnsafeAny;
 
 type FigshareRuntimeConfig = {
   apiToken: string;
@@ -47,9 +47,9 @@ type FigshareRuntimeConfig = {
   frontEndURL: string;
   logLevel: string;
   extraVerboseLogging: boolean;
-  mappingArtifacts: any;
-  mapping: any;
-  forCodesMapping: any;
+  mappingArtifacts: UnsafeAny;
+  mapping: UnsafeAny;
+  forCodesMapping: UnsafeAny;
   figArticleIdPathInRecord: string;
   figArticleURLPathInRecordList: string[];
   dataLocationsPathInRecord: string;
@@ -61,8 +61,8 @@ type FigshareRuntimeConfig = {
   figNeedsPublishAfterFileUpload: boolean;
   recordAuthorExternalName: string;
   recordAuthorUniqueBy: string;
-  figshareItemGroupId: any;
-  figshareItemType: any;
+  figshareItemGroupId: UnsafeAny;
+  figshareItemType: UnsafeAny;
 };
 
 type FigshareRetryConfig = {
@@ -80,8 +80,8 @@ type FigshareRequestOptions = {
 };
 
 const DEFAULT_RETRY_STATUS_CODES = [408, 429, 500, 502, 503, 504];
-let figshareLicenseCache: any | null = null;
-let figshareLicensePromise: Promise<any> | null = null;
+let figshareLicenseCache: UnsafeAny | null = null;
+let figshareLicensePromise: Promise<UnsafeAny> | null = null;
 
 export module Services {
 
@@ -90,7 +90,7 @@ export module Services {
     private datastreamService!: DatastreamService;
     private queueService!: QueueService;
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'createUpdateFigshareArticle',
       'uploadFilesToFigshareArticle',
       'deleteFilesFromRedbox',
@@ -144,7 +144,7 @@ export module Services {
       const overrideArtifacts = _.get(sails.config, 'figshareAPIEnv.overrideArtifacts', {});
       const baseMapping = figshareConfig.mapping || {};
       const overrideMapping = _.get(overrideArtifacts, 'mapping', {});
-      const mapping = _.mergeWith({}, baseMapping, overrideMapping, (_objValue: any, srcValue: any) => {
+      const mapping = _.mergeWith({}, baseMapping, overrideMapping, (_objValue: UnsafeAny, srcValue: UnsafeAny) => {
         if (_.isArray(srcValue)) {
           return srcValue;
         }
@@ -185,7 +185,7 @@ export module Services {
       return !_.isEmpty(config.apiToken) && !_.isEmpty(config.baseURL) && !_.isEmpty(config.frontEndURL);
     }
 
-    private getAxiosConfig(config: FigshareRuntimeConfig, method: string, urlSectionPattern: string, requestBody: any): any {
+    private getAxiosConfig(config: FigshareRuntimeConfig, method: string, urlSectionPattern: string, requestBody: UnsafeAny): UnsafeAny {
       let figshareBaseUrl = config.baseURL + urlSectionPattern;
       let figAccessToken = 'token ' + config.apiToken;
 
@@ -194,7 +194,7 @@ export module Services {
         'Authorization': figAccessToken
       };
 
-      const axiosConfig: any = {
+      const axiosConfig: UnsafeAny = {
         method: method,
         url: figshareBaseUrl,
         headers: figHeaders,
@@ -212,12 +212,12 @@ export module Services {
       return axiosConfig;
     }
 
-    private logWithLevel(logLevel: string, ...args: any[]) {
+    private logWithLevel(logLevel: string, ...args: UnsafeAny[]) {
       const logger = sails.log[logLevel] || sails.log.info;
       logger(...args);
     }
 
-    private logVerbose(config: FigshareRuntimeConfig, ...args: any[]) {
+    private logVerbose(config: FigshareRuntimeConfig, ...args: UnsafeAny[]) {
       if (config.extraVerboseLogging) {
         this.logWithLevel(config.logLevel, ...args);
       }
@@ -248,7 +248,7 @@ export module Services {
       };
     }
 
-    private shouldRetryRequest(error: any, axiosConfig: any, retryConfig: FigshareRetryConfig): boolean {
+    private shouldRetryRequest(error: UnsafeAny, axiosConfig: UnsafeAny, retryConfig: FigshareRetryConfig): boolean {
       const method = _.get(axiosConfig, 'method', 'get').toLowerCase();
       if (!retryConfig.retryOnMethods.includes(method)) {
         return false;
@@ -260,7 +260,7 @@ export module Services {
       return retryConfig.retryOnStatusCodes.includes(status);
     }
 
-    private redactAxiosConfig(axiosConfig: any): any {
+    private redactAxiosConfig(axiosConfig: UnsafeAny): UnsafeAny {
       if (!axiosConfig || !axiosConfig.headers) {
         return axiosConfig;
       }
@@ -273,7 +273,7 @@ export module Services {
       };
     }
 
-    private describeAxiosError(error: any): string {
+    private describeAxiosError(error: UnsafeAny): string {
       const status = _.get(error, 'response.status');
       const statusText = _.get(error, 'response.statusText');
       const message = error?.message;
@@ -285,7 +285,7 @@ export module Services {
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
 
-    private async requestWithRetry(config: FigshareRuntimeConfig, axiosConfig: any, options: FigshareRequestOptions = {}) {
+    private async requestWithRetry(config: FigshareRuntimeConfig, axiosConfig: UnsafeAny, options: FigshareRequestOptions = {}) {
       const retryConfig = this.getRetryConfig(options.retry);
       const label = options.label || `${(axiosConfig?.method || 'get').toUpperCase()} ${axiosConfig?.url || ''}`.trim();
       for (let attempt = 1; attempt <= retryConfig.maxAttempts; attempt++) {
@@ -314,8 +314,8 @@ export module Services {
       throw new Error(`FigService - request ${label} failed after retries`);
     }
 
-    private getValueFromObject(config: FigshareRuntimeConfig, field: any, pathOrTemplate: any) {
-      let value: any;
+    private getValueFromObject(config: FigshareRuntimeConfig, field: UnsafeAny, pathOrTemplate: UnsafeAny) {
+      let value: UnsafeAny;
       if (pathOrTemplate.indexOf('<%') != -1) {
         let context = {
           moment: moment,
@@ -330,8 +330,8 @@ export module Services {
       return value;
     }
 
-    private getValueFromRecord(config: FigshareRuntimeConfig, record: any, pathOrTemplate: any) {
-      let value: any;
+    private getValueFromRecord(config: FigshareRuntimeConfig, record: UnsafeAny, pathOrTemplate: UnsafeAny) {
+      let value: UnsafeAny;
       if (pathOrTemplate.indexOf('<%') != -1) {
         let context = {
           moment: moment,
@@ -352,7 +352,7 @@ export module Services {
       return value;
     }
 
-    private setFieldInRecord(config: FigshareRuntimeConfig, record: any, article: any, field: any) {
+    private setFieldInRecord(config: FigshareRuntimeConfig, record: UnsafeAny, article: UnsafeAny, field: UnsafeAny) {
       let value = '';
       let template = _.get(field, 'template', '');
       let runByNameOnly = _.get(field, 'runByNameOnly', false);
@@ -402,7 +402,7 @@ export module Services {
       }
     }
 
-    private setStandardFieldInRequestBody(config: FigshareRuntimeConfig, record: any, requestBody: any, standardField: any) {
+    private setStandardFieldInRequestBody(config: FigshareRuntimeConfig, record: UnsafeAny, requestBody: UnsafeAny, standardField: UnsafeAny) {
       let value = '';
       let template = _.get(standardField, 'template', '');
       let runByNameOnly = _.get(standardField, 'runByNameOnly', false);
@@ -437,7 +437,7 @@ export module Services {
       }
     }
 
-    private setCustomFieldInRequestBody(config: FigshareRuntimeConfig, record: any, customFieldsTemplate: any, keyName: string, customFieldsMappings: any) {
+    private setCustomFieldInRequestBody(config: FigshareRuntimeConfig, record: UnsafeAny, customFieldsTemplate: UnsafeAny, keyName: string, customFieldsMappings: UnsafeAny) {
       let customField = _.find(customFieldsMappings, { 'figName': keyName });
       let value = '';
       if (_.isObject(customField)) {
@@ -461,7 +461,7 @@ export module Services {
       }
     }
 
-    private setFieldByNameInRequestBody(config: FigshareRuntimeConfig, record: any, requestBody: any, fieldConfig: any, fieldName: string, runtimeArtifacts: any = {}) {
+    private setFieldByNameInRequestBody(config: FigshareRuntimeConfig, record: UnsafeAny, requestBody: UnsafeAny, fieldConfig: UnsafeAny, fieldName: string, runtimeArtifacts: UnsafeAny = {}) {
       let value = '';
       let field = _.find(fieldConfig, { figName: fieldName });
       if (!_.isEmpty(field)) {
@@ -507,7 +507,7 @@ export module Services {
 
     //These method takes the list of contributors found in the ReDBox record and will try to match the
     //ReDBox Id to a Figshare Id. The Identifier(s) to be used are defined in figshareAPI config file
-    private async getAuthorUserIDs(config: FigshareRuntimeConfig, authors: any) {
+    private async getAuthorUserIDs(config: FigshareRuntimeConfig, authors: UnsafeAny) {
       this.logWithLevel(config.logLevel, 'FigService - getAuthorUserIDs enter');
       let authorList = [];
       let uniqueAuthors = authors;
@@ -619,7 +619,7 @@ export module Services {
     //This method allows for defining rules to gather a list of all relevant contributors from a ReDBox record
     //The rules can be configured in the artifacts method getContributorsFromRecord that uses a lodash template
     //and these rules are meant to be project spefic and hence these are set in figshareAPI config file
-    private getContributorsFromRecord(config: FigshareRuntimeConfig, record: any) {
+    private getContributorsFromRecord(config: FigshareRuntimeConfig, record: UnsafeAny) {
       let authors = [];
       let template = sails.config.figshareAPI.mapping.runtimeArtifacts.getContributorsFromRecord.template;
       if (!_.isUndefined(template) && template.indexOf('<%') != -1) {
@@ -636,7 +636,7 @@ export module Services {
     }
 
     //This method allows for defining rules to check if an ReDBox record is embargoed
-    private isRecordEmbargoed(config: FigshareRuntimeConfig, request: any, filesOrURLsAttached: boolean) {
+    private isRecordEmbargoed(config: FigshareRuntimeConfig, request: UnsafeAny, filesOrURLsAttached: boolean) {
       let isEmbargoed = false;
       if (!_.isEmpty(sails.config.figshareAPI.mapping.standardFields.embargo)) {
         let template = sails.config.figshareAPI.mapping.runtimeArtifacts.isRecordEmbargoed.template;
@@ -655,7 +655,7 @@ export module Services {
       return isEmbargoed;
     }
 
-    private async isClearEmbargoNeeded(config: FigshareRuntimeConfig, request: any, articleId: string, articleDetails: any) {
+    private async isClearEmbargoNeeded(config: FigshareRuntimeConfig, request: UnsafeAny, articleId: string, articleDetails: UnsafeAny) {
 
       let isEmbargoCleared = false;
       if (_.isUndefined(articleDetails) || _.isEmpty(articleDetails)) {
@@ -682,7 +682,7 @@ export module Services {
       return isEmbargoCleared;
     }
 
-    private async checkEmbargoDetailsChanged(config: FigshareRuntimeConfig, requestEmbargoBody: any, articleId: string, articleDetails: any) {
+    private async checkEmbargoDetailsChanged(config: FigshareRuntimeConfig, requestEmbargoBody: UnsafeAny, articleId: string, articleDetails: UnsafeAny) {
 
       let embargoDetailsChanged = false;
 
@@ -716,7 +716,7 @@ export module Services {
       return embargoDetailsChanged;
     }
 
-    private findCategoryIDs(config: FigshareRuntimeConfig, record: any) {
+    private findCategoryIDs(config: FigshareRuntimeConfig, record: UnsafeAny) {
       let catIDs = [];
       if (!_.isUndefined(config.forCodesMapping) && !_.isEmpty(config.forCodesMapping)) {
         let template = sails.config.figshareAPI.mapping.runtimeArtifacts.getCategoryIDs.template;
@@ -781,7 +781,7 @@ export module Services {
       return articleDetails;
     }
 
-    private async isArticleApprovedAndPublished(config: FigshareRuntimeConfig, articleId: string, articleDetails: any) {
+    private async isArticleApprovedAndPublished(config: FigshareRuntimeConfig, articleId: string, articleDetails: UnsafeAny) {
 
       if (_.isUndefined(articleDetails) || _.isEmpty(articleDetails)) {
         articleDetails = await this.getArticleDetails(config, articleId);
@@ -831,7 +831,7 @@ export module Services {
       return articleFileList;
     }
 
-    private async isFileUploadInProgress(config: FigshareRuntimeConfig, articleId: string, articleFileList: any[]) {
+    private async isFileUploadInProgress(config: FigshareRuntimeConfig, articleId: string, articleFileList: UnsafeAny[]) {
 
       if (_.isUndefined(articleFileList) || _.isEmpty(articleFileList)) {
         articleFileList = await this.getArticleFileList(config, articleId);
@@ -846,7 +846,7 @@ export module Services {
       }
     }
 
-    private async checkArticleHasURLsOrFilesAttached(config: FigshareRuntimeConfig, articleId: string, articleFileList: any[]) {
+    private async checkArticleHasURLsOrFilesAttached(config: FigshareRuntimeConfig, articleId: string, articleFileList: UnsafeAny[]) {
       let stringifyFileList = '';
       if (!_.isUndefined(articleFileList)) {
         stringifyFileList = JSON.stringify(articleFileList);
@@ -871,7 +871,7 @@ export module Services {
       }
     }
 
-    private getArticleUpdateRequestBody(config: FigshareRuntimeConfig, record: any, figshareAccountAuthorIDs: any, figCategoryIDs: any, figLicenceIDs: any) {
+    private getArticleUpdateRequestBody(config: FigshareRuntimeConfig, record: UnsafeAny, figshareAccountAuthorIDs: UnsafeAny, figCategoryIDs: UnsafeAny, figLicenceIDs: UnsafeAny) {
       //Custom_fields is a dict not an array
       let customFields = _.clone(sails.config.figshareAPI.mapping.templates.customFields.update);
 
@@ -898,7 +898,7 @@ export module Services {
       return requestBodyUpdate;
     }
 
-    private getArticleCreateRequestBody(config: FigshareRuntimeConfig, record: any, figshareAccountAuthorIDs: any, figCategoryIDs: any, figLicenceIDs: any) {
+    private getArticleCreateRequestBody(config: FigshareRuntimeConfig, record: UnsafeAny, figshareAccountAuthorIDs: UnsafeAny, figCategoryIDs: UnsafeAny, figLicenceIDs: UnsafeAny) {
       //Encountered shared reference issues even when creating a new object hence _.cloneDeep is required
       let requestBodyCreate = _.cloneDeep(new FigshareArticleCreate());
       //Open Access and Full Text URL custom fields have to be set on create because the figshare article
@@ -922,7 +922,7 @@ export module Services {
       return requestBodyCreate;
     }
 
-    private getEmbargoRequestBody(config: FigshareRuntimeConfig, record: any, figshareAccountAuthorIDs?: any[]) {
+    private getEmbargoRequestBody(config: FigshareRuntimeConfig, record: UnsafeAny, figshareAccountAuthorIDs?: UnsafeAny[]) {
 
       let requestEmbargoBody = {};
       if (!_.isEmpty(sails.config.figshareAPI.mapping.standardFields.embargo)) {
@@ -940,13 +940,13 @@ export module Services {
       return requestEmbargoBody;
     }
 
-    private getPublishRequestBody(config: FigshareRuntimeConfig, figshareAccountAuthorIDs?: any[]) {
+    private getPublishRequestBody(config: FigshareRuntimeConfig, figshareAccountAuthorIDs?: UnsafeAny[]) {
       let requestBody = sails.config.figshareAPI.mapping.templates.impersonate;
       this.setFieldByNameInRequestBody(config, {}, requestBody, sails.config.figshareAPI.mapping.targetState.publish, 'impersonate', figshareAccountAuthorIDs || []);
       return requestBody;
     }
 
-    private async sendDataPublicationToFigshare(record: any) {
+    private async sendDataPublicationToFigshare(record: UnsafeAny) {
       const config = this.getRuntimeConfig();
       if (!this.isFigshareAPIEnabled(config)) {
         this.logWithLevel('warn', 'FigService - Figshare API is disabled. Skipping sendDataPublicationToFigshare.');
@@ -1018,7 +1018,7 @@ export module Services {
           this.logWithLevel(config.logLevel, 'FigService - sendDataPublicationToFigshare before post -------------------------------------------');
 
           //create article
-          let responseCreate: any = {
+          let responseCreate: UnsafeAny = {
             status: '',
             statusText: '',
             data: {
@@ -1243,7 +1243,7 @@ export module Services {
       return record;
     }
 
-    private validateEmbargoRequestBody(config: FigshareRuntimeConfig, record: any, requestBody: any) {
+    private validateEmbargoRequestBody(config: FigshareRuntimeConfig, record: UnsafeAny, requestBody: UnsafeAny) {
       let valid = '';
       if (!_.isEmpty(sails.config.figshareAPI.mapping.standardFields.embargo)) {
         for (let embargoField of sails.config.figshareAPI.mapping.standardFields.embargo) {
@@ -1258,7 +1258,7 @@ export module Services {
       }
     }
 
-    private checkCreateFields(config: FigshareRuntimeConfig, requestBody: any) {
+    private checkCreateFields(config: FigshareRuntimeConfig, requestBody: UnsafeAny) {
       let valid = '';
 
       let impersonate = sails.config.figshareAPI.mapping.standardFields.create;
@@ -1288,7 +1288,7 @@ export module Services {
       return valid;
     }
 
-    private validateFieldInRequestBody(config: FigshareRuntimeConfig, requestBody: any, field: any, customFieldPath: string = '', record: any = {}) {
+    private validateFieldInRequestBody(config: FigshareRuntimeConfig, requestBody: UnsafeAny, field: UnsafeAny, customFieldPath: string = '', record: UnsafeAny = {}) {
       let invalidValueForField = TranslationService.t('@backend-prefix-validationMessage'); //Invalid value for field:
       let maxLengthIs = TranslationService.t('@backend-maxlength-validationMessage'); //maximum length is
       let minLengthIs = TranslationService.t('@backend-minlength-validationMessage'); //minimum length is
@@ -1414,7 +1414,7 @@ export module Services {
       return valid;
     }
 
-    private validateCreateRequestBody(config: FigshareRuntimeConfig, requestBody: any) {
+    private validateCreateRequestBody(config: FigshareRuntimeConfig, requestBody: UnsafeAny) {
       let valid = this.checkCreateFields(config, requestBody);
       this.logWithLevel(config.logLevel, `FigService - validateCreateArticleRequestBody - validMessage ${valid}`);
       if (valid != '') {
@@ -1425,7 +1425,7 @@ export module Services {
       }
     }
 
-    private checkRequestUpdateFields(config: FigshareRuntimeConfig, requestBody: any) {
+    private checkRequestUpdateFields(config: FigshareRuntimeConfig, requestBody: UnsafeAny) {
       let valid = '';
 
       for (let standardField of sails.config.figshareAPI.mapping.standardFields.update) {
@@ -1445,7 +1445,7 @@ export module Services {
       return valid;
     }
 
-    private validateUpdateRequestBody(config: FigshareRuntimeConfig, requestBody: any) {
+    private validateUpdateRequestBody(config: FigshareRuntimeConfig, requestBody: UnsafeAny) {
       let valid = this.checkRequestUpdateFields(config, requestBody);
       this.logWithLevel(config.logLevel, `FigService - validateUpdateArticleRequestBody - validMessage ${valid}`);
       if (valid != '') {
@@ -1456,7 +1456,7 @@ export module Services {
       }
     }
 
-    private isFileAttachmentInDataLocations(dataLocations: any[]) {
+    private isFileAttachmentInDataLocations(dataLocations: UnsafeAny[]) {
       let foundAttachment = false;
       if (sails.config.figshareAPI.mapping.figshareOnlyPublishSelectedAttachmentFiles) {
         for (let attachmentFile of dataLocations) {
@@ -1476,7 +1476,7 @@ export module Services {
       return foundAttachment;
     }
 
-    private isURLAttachmentInDataLocations(dataLocations: any[]) {
+    private isURLAttachmentInDataLocations(dataLocations: UnsafeAny[]) {
       let foundURLAttachment = false;
       if (sails.config.figshareAPI.mapping.figshareOnlyPublishSelectedAttachmentFiles) {
         for (let urlAttachment of dataLocations) {
@@ -1496,7 +1496,7 @@ export module Services {
       return foundURLAttachment;
     }
 
-    private countFileAttachmentsInDataLocations(dataLocations: any[]) {
+    private countFileAttachmentsInDataLocations(dataLocations: UnsafeAny[]) {
       let count = 0;
       if (sails.config.figshareAPI.mapping.figshareOnlyPublishSelectedAttachmentFiles) {
         for (let attachmentFile of dataLocations) {
@@ -1514,7 +1514,7 @@ export module Services {
       return count;
     }
 
-    private async checkUploadFilesPending(config: FigshareRuntimeConfig, record: any, oid: string, user: any, figshareAccountAuthorIDs?: any[]) {
+    private async checkUploadFilesPending(config: FigshareRuntimeConfig, record: UnsafeAny, oid: string, user: UnsafeAny, figshareAccountAuthorIDs?: UnsafeAny[]) {
 
       try {
         this.logWithLevel(config.logLevel, 'FigService - -------------------------------------------');
@@ -1797,7 +1797,7 @@ export module Services {
       return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     }
 
-    private async processFileUploadToFigshare(config: FigshareRuntimeConfig, oid: string, attachId: string, articleId: string, record: any, fileName: string, fileSize: number, user: any, figshareAccountAuthorIDs: any[] | undefined = undefined) {
+    private async processFileUploadToFigshare(config: FigshareRuntimeConfig, oid: string, attachId: string, articleId: string, record: UnsafeAny, fileName: string, fileSize: number, user: UnsafeAny, figshareAccountAuthorIDs: UnsafeAny[] | undefined = undefined) {
 
       this.logWithLevel(config.logLevel, 'FigService - processFileUploadToFigshare - enter');
       this.logWithLevel(config.logLevel, 'FigService - processFileUploadToFigshare - oid ' + oid);
@@ -1822,7 +1822,7 @@ export module Services {
           if (response.readstream) {
             await new Promise((resolve, reject) => {
               response.readstream.pipe(file);
-              response.readstream.on("error", (err: any) => {
+              response.readstream.on("error", (err: UnsafeAny) => {
                 reject(err);
               });
               response.readstream.on("close", () => {
@@ -2025,7 +2025,7 @@ export module Services {
       return record;
     }
 
-    private async deleteFilesAndUpdateDataLocationEntries(config: FigshareRuntimeConfig, record: any, oid: string) {
+    private async deleteFilesAndUpdateDataLocationEntries(config: FigshareRuntimeConfig, record: UnsafeAny, oid: string) {
 
       try {
         this.logWithLevel(config.logLevel, 'FigService - -------------------------------------------');
@@ -2118,7 +2118,7 @@ export module Services {
       return true;
     }
 
-    private async transitionRecordWorkflowFromFigshareArticleProperties(config: FigshareRuntimeConfig, brand: any, user: any, oid: string, articleId: string, targetStep: string, figshareTargetFieldKey: string, figshareTargetFieldValue: string) {
+    private async transitionRecordWorkflowFromFigshareArticleProperties(config: FigshareRuntimeConfig, brand: UnsafeAny, user: UnsafeAny, oid: string, articleId: string, targetStep: string, figshareTargetFieldKey: string, figshareTargetFieldValue: string) {
       const prefix = "FigService -"
       const msgPartial = `record oid '${oid}' with figshare article id '${articleId}' to step '${targetStep}'`;
 
@@ -2159,7 +2159,7 @@ export module Services {
 
     //This method has been designed to be called by a pre save trigger that executes after a user has performed an action
     //In example when a record is moved from one workflow state to another and the trigger conditons are met
-    public createUpdateFigshareArticle(oid: string, record: any, options: any, user: any) {
+    public createUpdateFigshareArticle(oid: string, record: UnsafeAny, options: UnsafeAny, user: UnsafeAny) {
       const config = this.getRuntimeConfig();
       sails.log.info(`FigService - createUpdateFigshareArticle - log level ${config.logLevel}`);
 
@@ -2172,7 +2172,7 @@ export module Services {
 
     //This method has been designed to be called by a post save trigger that executes after a user has performed an action
     //In example when a record is moved from one workflow state to another and the trigger conditons are met
-    public uploadFilesToFigshareArticle(oid: string, record: any, options: any, user: any) {
+    public uploadFilesToFigshareArticle(oid: string, record: UnsafeAny, options: UnsafeAny, user: UnsafeAny) {
       const config = this.getRuntimeConfig();
       sails.log.info(`FigService - uploadFilesToFigshareArticle - log level ${config.logLevel}`);
 
@@ -2185,7 +2185,7 @@ export module Services {
 
     //This method has been designed to be called by a pre save trigger that executes after a user has performed an action
     //In example when a record is moved from one workflow state to another and the trigger conditons are met
-    public deleteFilesFromRedboxTrigger(oid: string, record: any, options: any, user: any) {
+    public deleteFilesFromRedboxTrigger(oid: string, record: UnsafeAny, options: UnsafeAny, user: UnsafeAny) {
       const config = this.getRuntimeConfig();
       sails.log.info(`FigService - deleteFilesFromRedboxTrigger - log level ${config.logLevel}`);
 
@@ -2198,7 +2198,7 @@ export module Services {
 
     //This method will be called automatically when the setting figshareNeedsPublishAfterFileUpload is set to true
     //and will be called by a scheduled agendaQueue job
-    public async publishAfterUploadFilesJob(job: any) {
+    public async publishAfterUploadFilesJob(job: UnsafeAny) {
       let data = job.attrs.data;
       const config = this.getRuntimeConfig();
       this.logWithLevel(config.logLevel, 'FigService - publishAfterUploadFilesJob - data ' + JSON.stringify(data));
@@ -2236,7 +2236,7 @@ export module Services {
 
     //This method will be called automatically when the setting figshareNeedsPublishAfterFileUpload is set to true
     //and will be called by a scheduled agendaQueue job
-    public async deleteFilesFromRedbox(job: any) {
+    public async deleteFilesFromRedbox(job: UnsafeAny) {
       let data = job.attrs.data;
       const config = this.getRuntimeConfig();
       this.logWithLevel(config.logLevel, 'FigService - deleteFilesFromRedbox - data ' + JSON.stringify(data));
@@ -2275,7 +2275,7 @@ export module Services {
 
     //This method will be called automatically when the setting figshareNeedsPublishAfterFileUpload is set to true
     //and will be scheduled after all the file uploads have been finished successfully for a particular article
-    public queuePublishAfterUploadFiles(oid: string, articleId: string, user: any, brandId: string) {
+    public queuePublishAfterUploadFiles(oid: string, articleId: string, user: UnsafeAny, brandId: string) {
 
       let jobName = 'Figshare-PublishAfterUpload-Service';
       let queueMessage = {
@@ -2299,7 +2299,7 @@ export module Services {
 
     //This method will be called automatically when the setting figshareNeedsPublishAfterFileUpload is set to true
     //and will be scheduled after the Figshare-PublishAfterUpload-Service job has finished
-    public queueDeleteFiles(oid: string, user: any, brandId: string, articleId: string) {
+    public queueDeleteFiles(oid: string, user: UnsafeAny, brandId: string, articleId: string) {
 
       let jobName = 'Figshare-UploadedFilesCleanup-Service';
       let queueMessage = {
@@ -2321,7 +2321,7 @@ export module Services {
       }
     }
 
-    public async transitionRecordWorkflowFromFigshareArticlePropertiesJob(job: any): Promise<void> {
+    public async transitionRecordWorkflowFromFigshareArticlePropertiesJob(job: UnsafeAny): Promise<void> {
       const prefix = "FigService -";
       const config = this.getRuntimeConfig();
 

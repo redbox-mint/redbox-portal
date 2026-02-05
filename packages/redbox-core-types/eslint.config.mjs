@@ -44,6 +44,17 @@ export default tseslint.config(
     },
   },
   {
+    files: ['src/services/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': ['error', { fixToUnknown: true }],
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_'
+      }],
+    },
+  },
+  {
     ignores: ['dist/**', 'node_modules/**', '**/*.js', '**/*.mjs'],
   }
 );

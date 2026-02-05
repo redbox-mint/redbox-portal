@@ -1,47 +1,46 @@
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { Services as coreServices } from '../CoreService';
+import type { DomPurifyConfig } from '../config/dompurify.config';
 
 import domPurify = require('dompurify');
 import { Buffer } from 'buffer';
 import { JSDOM } from 'jsdom';
 
-declare var sails: any;
-declare var _: any;
 
 //TODO: Move to a shared place when we want to reuse dompurify 
 type DomPurifyInstance = {
   sanitize: (input: string, config?: Record<string, any>) => string;
-  addHook: (hook: string, cb: (...args: any[]) => void) => void;
+  addHook: (hook: string, cb: (...args: UnsafeAny[]) => void) => void;
   removeHook: (hook: string) => void;
 };
 
-const isDomPurifyInstance = (candidate: any): candidate is DomPurifyInstance => (
+const isDomPurifyInstance = (candidate: UnsafeAny): candidate is DomPurifyInstance => (
   candidate && typeof candidate.sanitize === 'function' && typeof candidate.addHook === 'function' && typeof candidate.removeHook === 'function'
 );
 
 const getWindow = () => {
-  const globalWindow = (globalThis as any).window;
+  const globalWindow = (globalThis as UnsafeAny).window;
   if (globalWindow && typeof globalWindow.document !== 'undefined') {
     return globalWindow;
   }
 
   const cacheKey = '__svgSanitizerWindow';
-  if (!(globalThis as any)[cacheKey]) {
+  if (!(globalThis as UnsafeAny)[cacheKey]) {
     const { window } = new JSDOM('', { pretendToBeVisual: true });
-    (globalThis as any)[cacheKey] = window;
+    (globalThis as UnsafeAny)[cacheKey] = window;
   }
 
-  return (globalThis as any)[cacheKey];
+  return (globalThis as UnsafeAny)[cacheKey];
 };
 
-const instantiateDomPurify = (factoryModule: any): DomPurifyInstance | null => {
+const instantiateDomPurify = (factoryModule: UnsafeAny): DomPurifyInstance | null => {
   if (!factoryModule) {
     return null;
   }
 
   const windowRef = getWindow();
 
-  const tryGet = (candidate: any) => (isDomPurifyInstance(candidate) ? candidate : null);
+  const tryGet = (candidate: UnsafeAny) => (isDomPurifyInstance(candidate) ? candidate : null);
 
   const candidates = [
     () => tryGet(factoryModule),
@@ -92,7 +91,7 @@ const initialiseDOMPurify = (): DomPurifyInstance => {
 
 const DOMPurify = initialiseDOMPurify();
 
-(globalThis as any).DOMPurify = DOMPurify;
+(globalThis as UnsafeAny).DOMPurify = DOMPurify;
 
 export module Services {
   /**
@@ -194,7 +193,7 @@ export module Services {
      * @param profileName - The configuration profile to use (defaults to 'svg')
      */
     private getDOMPurifyConfig(profileName: string = 'svg') {
-      const dompurifyConfig = _.get(sails.config, 'dompurify', {});
+      const dompurifyConfig = _.get(sails.config, 'dompurify', {}) as DomPurifyConfig;
       const profiles = dompurifyConfig.profiles || {};
       const globalSettings = dompurifyConfig.globalSettings || {};
 
@@ -346,16 +345,16 @@ export module Services {
         // Use DOMPurify to sanitize the SVG
         const config = this.getDOMPurifyConfig();
 
-        const beforeSanitizeElementsHook = (node: any) => {
+        const beforeSanitizeElementsHook = (node: UnsafeAny) => {
           if (node.tagName && /^(script|iframe|embed|object|applet)$/i.test(node.tagName)) {
             node.remove();
           }
         };
 
-        const beforeSanitizeAttributesHook = (node: any) => {
+        const beforeSanitizeAttributesHook = (node: UnsafeAny) => {
           if (node.attributes) {
             const attrs = Array.from(node.attributes);
-            attrs.forEach((attr: any) => {
+            attrs.forEach((attr: UnsafeAny) => {
               if (attr.name.toLowerCase().startsWith('on')) {
                 node.removeAttribute(attr.name);
                 warnings.push('event-handlers-removed');
@@ -404,7 +403,7 @@ export module Services {
         DOMPurify.addHook('beforeSanitizeElements', beforeSanitizeElementsHook);
         DOMPurify.addHook('beforeSanitizeAttributes', beforeSanitizeAttributesHook);
 
-        let sanitized: any;
+        let sanitized: UnsafeAny;
         try {
           sanitized = DOMPurify.sanitize(svg, config);
         } finally {
@@ -469,8 +468,6 @@ export module Services {
   }
 }
 
-declare var module: any;
-declare var exports: any;
 
 export default Services;
 PopulateExportedMethods(Services.SvgSanitizer);

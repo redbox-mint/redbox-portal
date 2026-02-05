@@ -21,8 +21,6 @@ import { Controllers as controllers } from '../CoreController';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 
-declare var sails: any;
-declare var I18nEntriesService: any;
 
 export module Controllers {
   /**

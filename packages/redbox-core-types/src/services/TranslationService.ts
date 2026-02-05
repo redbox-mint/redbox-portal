@@ -23,11 +23,8 @@ import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.de
 import { Services as services } from '../CoreService';
 import i18next from "i18next"
 
-declare var _: any;
-declare var sails: any;
 // Waterline globals
-declare var I18nBundle: any;
-declare let BrandingService: any;
+declare let BrandingService: UnsafeAny;
 
 export module Services {
   /**
@@ -41,13 +38,13 @@ export module Services {
   export class Translation extends services.Core.Service {
 
     // Map of i18next instances per branding
-    private i18nextInstances: any = {};
+    private i18nextInstances: UnsafeAny = {};
 
 
     /**
      * Get or create an i18next instance for a specific branding
      */
-    private async getI18nextForBranding(branding: BrandingModel): Promise<any> {
+    private async getI18nextForBranding(branding: BrandingModel): Promise<UnsafeAny> {
       if (!branding) {
         branding = BrandingService.getBrand('default');
       }
@@ -98,7 +95,7 @@ export module Services {
         // Make sure all languages are loaded
         initImmediate: false,
         // Force i18next to load all languages during init
-        load: 'all'
+        load: 'all' as const
       };
       
       this.logger.debug(`Final init config: ${JSON.stringify(initConfig, null, 2)}`);
@@ -216,7 +213,7 @@ export module Services {
             const data = (bundle?.data && typeof bundle.data === 'object') ? { ...bundle.data } : {};
             if (data && typeof data === 'object' && data._meta) {
               // strip metadata from runtime resources
-              delete (data as any)._meta;
+              delete (data as UnsafeAny)._meta;
             }
             resources[lng][ns] = data || {};
           } catch (e) {
@@ -267,7 +264,7 @@ export module Services {
     /**
      * Get available languages for a specific branding from DB
      */
-    public async getAvailableLanguagesForBranding(branding: any): Promise<string[]> {
+    public async getAvailableLanguagesForBranding(branding: UnsafeAny): Promise<string[]> {
       try {
         if (!branding) {
           this.logger.warn('No branding provided, using config fallback');
@@ -275,7 +272,7 @@ export module Services {
         }
 
         const brandingId = branding.id || 'default';
-        const langs: any = {};
+        const langs: UnsafeAny = {};
         
         // Add configured languages as baseline
         const configured = sails?.config?.i18n?.next?.init?.supportedLngs;
@@ -291,7 +288,7 @@ export module Services {
         try {
           const bundles = await I18nBundle.find({ branding: brandingId }).sort('locale');
           this.logger.debug(`Found ${bundles.length} bundles for branding ${brandingId}`);
-          bundles.forEach((b: any) => {
+          bundles.forEach((b: UnsafeAny) => {
             if (b?.locale) {
               this.logger.debug(`Adding language from bundle: ${b.locale}`);
               langs[b.locale] = true;
@@ -312,7 +309,7 @@ export module Services {
       }
     }
 
-    public async handle(req: any, res: any, next: any) {
+    public async handle(req: UnsafeAny, res: UnsafeAny, next: UnsafeAny) {
       let langCode = req.param('lng');
       let sessLangCode = req.session.lang;
       let defaultLang = _.isArray(sails.config.i18n.next.init.fallbackLng) ? sails.config.i18n.next.init.fallbackLng[0] : sails.config.i18n.next.init.fallbackLng;

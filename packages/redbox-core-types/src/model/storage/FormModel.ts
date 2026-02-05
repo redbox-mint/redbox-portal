@@ -1,4 +1,5 @@
 export interface FormModel {
+    id?: string;
     name: string;
     customAngularApp: FormCustomAngularApp;
     fields: {

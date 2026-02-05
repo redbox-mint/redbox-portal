@@ -38,10 +38,6 @@ import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
 
-declare var module: any;
-declare var sails: any;
-declare var _: any;
-declare var url: any;
 
 /**
  * Package that contains all Controllers.

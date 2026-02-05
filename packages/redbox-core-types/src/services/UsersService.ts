@@ -25,6 +25,7 @@ import {
 } from 'rxjs';
 
 import { BrandingModel } from '../model/storage/BrandingModel';
+import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 import { RoleModel } from '../model/storage/RoleModel';
 import { SearchService } from '../SearchService';
 import { UserModel } from '../model/storage/UserModel';
@@ -33,13 +34,7 @@ import { Services as services } from '../CoreService';
 import * as crypto from 'crypto';
 
 
-declare var sails: any;
-declare var User: Sails.Model<any>;
-declare var Role: Sails.Model<any>;
-declare var UserAudit: Sails.Model<any>;
-declare var Record: Sails.Model<any>;
 declare const Buffer: typeof globalThis.Buffer;
-declare var _: any;
 
 export module Services {
   interface AuthBrandConfig {
@@ -84,7 +79,7 @@ export module Services {
    */
   export class Users extends services.Core.Service {
     
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'bootstrap',
       'updateUserRoles',
       'updateUserDetails',
@@ -120,19 +115,19 @@ export module Services {
       //
       sails.config.passport = require('passport')
       var LocalStrategy = require('passport-local').Strategy;
-      let bcrypt: any;
+      let bcrypt: UnsafeAny;
       try {
         bcrypt = require('bcrypt');
       } catch (err) {
         bcrypt = require('bcryptjs');
       }
-      sails.config.passport.serializeUser(function (user: any, done: any) {
+      sails.config.passport.serializeUser(function (user: UnsafeAny, done: UnsafeAny) {
         done(null, user.id);
       });
-      sails.config.passport.deserializeUser(function (id: any, done: any) {
+      sails.config.passport.deserializeUser(function (id: UnsafeAny, done: UnsafeAny) {
         User.findOne({
           id: id
-        }).populate('roles').exec(function (err: any, user: any) {
+        }).populate('roles').exec(function (err: UnsafeAny, user: UnsafeAny) {
           done(err, user);
         });
       });
@@ -146,11 +141,11 @@ export module Services {
           usernameField: usernameField,
           passwordField: passwordField
         },
-        function (username: string, password: string, done: any) {
+        function (username: string, password: string, done: UnsafeAny) {
 
           User.findOne({
             username: username
-          }).populate('roles').exec(function (err: any, foundUser: any) {
+          }).populate('roles').exec(function (err: UnsafeAny, foundUser: UnsafeAny) {
             if (err) {
               return done(err);
             }
@@ -160,7 +155,7 @@ export module Services {
               });
             }
 
-            bcrypt.compare(password, foundUser.password, function (err: any, res: any) {
+            bcrypt.compare(password, foundUser.password, function (err: UnsafeAny, res: UnsafeAny) {
 
               if (!res) {
                 return done(null, false, {
@@ -170,7 +165,7 @@ export module Services {
 
               // foundUser.lastLogin = new Date();
 
-              let configLocal = _.get(defAuthConfig, 'local');
+              let configLocal = _.get(defAuthConfig, 'local', {});
               if(that.hasPreSaveTriggerConfigured(configLocal, 'onUpdate')) {
                 that.triggerPreSaveTriggers(foundUser, configLocal).then((userAdditionalInfo) => {
 
@@ -183,7 +178,7 @@ export module Services {
                         {
                           lastLogin: new Date(),
                           additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes')
-                        }).exec(function (err: any, user: any) {
+                        }).exec(function (err: UnsafeAny, user: UnsafeAny) {
                           if (err) {
                             sails.log.error("Error updating user:");
                             sails.log.error(err);
@@ -223,7 +218,7 @@ export module Services {
 
                 User.update({
                   username: username
-                  }).set({lastLogin: new Date()}).exec(function (err: any, user: any) {
+                  }).set({lastLogin: new Date()}).exec(function (err: UnsafeAny, user: UnsafeAny) {
                     if (err) {
                       sails.log.error("Error updating user:");
                       sails.log.error(err);
@@ -258,7 +253,7 @@ export module Services {
       ));
     }
 
-    private hasPreSaveTriggerConfigured(config: string, mode: string) {
+    private hasPreSaveTriggerConfigured(config: UnsafeAny, mode: string) {
       let hasPreTrigger = false;
       let preSaveHooks = _.get(config, `hooks.${mode}.pre`, null);
       if (_.isArray(preSaveHooks)) {
@@ -271,7 +266,7 @@ export module Services {
       return hasPreTrigger;
     }
 
-    private hasPostSaveTriggerConfigured(config: string, mode: string) {
+    private hasPostSaveTriggerConfigured(config: UnsafeAny, mode: string) {
       let hasPreTrigger = false;
       let preSaveHooks = _.get(config, `hooks.${mode}.post`, null);
       if (_.isArray(preSaveHooks)) {
@@ -284,7 +279,7 @@ export module Services {
       return hasPreTrigger;
     }
 
-    private hasPostSaveSyncTriggerConfigured(config: string, mode: string) {
+    private hasPostSaveSyncTriggerConfigured(config: UnsafeAny, mode: string) {
       let hasPreTrigger = false;
       let preSaveHooks = _.get(config, `hooks.${mode}.postSync`, null);
       if (_.isArray(preSaveHooks)) {
@@ -299,7 +294,7 @@ export module Services {
 
     private checkAllTriggersSuccessOrFailure(user: object) {
       let preTriggersSuccessOrFailure = true;
-      let preSaveHooksSuccessOrFailure =_.get(user, 'additionalInfoFound');
+      let preSaveHooksSuccessOrFailure = _.get(user as UnsafeAny, 'additionalInfoFound') as UnsafeAny[] | undefined;
       if (_.isArray(preSaveHooksSuccessOrFailure)) {
         for (let preSaveHook of preSaveHooksSuccessOrFailure) {
           let success = _.get(preSaveHook, 'isSuccess');
@@ -312,11 +307,11 @@ export module Services {
     }
     
     //Post login and pre update/create user
-    private async triggerPreSaveTriggers(user: object, config: object, mode: string = 'onUpdate') {
+    private async triggerPreSaveTriggers(user: object, config: UnsafeAny, mode: string = 'onUpdate') {
       sails.log.verbose("Triggering pre save triggers for user login: ");
       sails.log.verbose(`hooks.${mode}.pre`);
       sails.log.verbose(JSON.stringify(config));
-      let preSaveUpdateHooks = _.get(config, `hooks.${mode}.pre`, null);
+      let preSaveUpdateHooks = _.get(config, `hooks.${mode}.pre`, null) as UnsafeAny[] | null;
       sails.log.debug(preSaveUpdateHooks);
 
       if (_.isArray(preSaveUpdateHooks)) {
@@ -355,11 +350,11 @@ export module Services {
     }
 
     //Post login and post update/create user sync
-    public async triggerPostSaveSyncTriggers(user: object, config: object, mode: string = 'onUpdate', response: any = {}) {
+    public async triggerPostSaveSyncTriggers(user: object, config: UnsafeAny, mode: string = 'onUpdate', response: UnsafeAny = {}) {
       sails.log.verbose("Triggering post save sync triggers ");
       sails.log.verbose(`hooks.${mode}.postSync`);
       sails.log.verbose(JSON.stringify(config));
-      let postSaveSyncHooks = _.get(config, `hooks.${mode}.postSync`, null);
+      let postSaveSyncHooks = _.get(config, `hooks.${mode}.postSync`, null) as UnsafeAny[] | null;
       if (_.isArray(postSaveSyncHooks)) {
         for (var i = 0; i < postSaveSyncHooks.length; i++) {
           let postSaveSyncHook = postSaveSyncHooks[i];
@@ -392,13 +387,13 @@ export module Services {
     }
 
     //Post login and post update/create user
-    public triggerPostSaveTriggers(user: object, config: object, mode: string = 'onUpdate'): void {
+    public triggerPostSaveTriggers(user: object, config: UnsafeAny, mode: string = 'onUpdate'): void {
       sails.log.verbose("Triggering post save triggers ");
       sails.log.verbose(`hooks.${mode}.post`);
       sails.log.verbose(JSON.stringify(config));
       let postSaveCreateHooks = _.get(config, `hooks.${mode}.post`, null);
       if (_.isArray(postSaveCreateHooks)) {
-        _.each(postSaveCreateHooks, (postSaveCreateHook: any) => {
+        _.each(postSaveCreateHooks, (postSaveCreateHook: UnsafeAny) => {
           sails.log.debug(postSaveCreateHook);
           let postSaveCreateHookFunctionString = _.get(postSaveCreateHook, "function", null);
           if (postSaveCreateHookFunctionString != null) {
@@ -421,7 +416,7 @@ export module Services {
       }
     }
 
-    private resolveHookResponse(hookResponse: any) {
+    private resolveHookResponse(hookResponse: UnsafeAny) {
       if (isObservable(hookResponse)) {
         return firstValueFrom(hookResponse);
       } else {
@@ -443,7 +438,7 @@ export module Services {
           ExtractJwt = require('passport-jwt').ExtractJwt;
         const aafOpts = (defAuthConfig.aaf?.opts ?? {}) as Record<string, unknown>;
         aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
-        sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req: any, jwt_payload: any, done: any) {
+        sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req: UnsafeAny, jwt_payload: UnsafeAny, done: UnsafeAny) {
           const brandName:string = BrandingService.getBrandFromReq(req);
 
           const brand:BrandingModel = BrandingService.getBrand(brandName);
@@ -489,7 +484,7 @@ export module Services {
               user.givenname = jwt_payload[aafAttributes].givenname;
               user.surname = jwt_payload[aafAttributes].surname;
 
-              let configAAF = _.get(defAuthConfig, 'aaf');
+              let configAAF = _.get(defAuthConfig, 'aaf', {});
               if(that.hasPreSaveTriggerConfigured(configAAF, 'onUpdate')) {
                 that.triggerPreSaveTriggers(user, configAAF).then((userAdditionalInfo) => {
 
@@ -565,7 +560,7 @@ export module Services {
             } else {
               sails.log.verbose("At AAF Strategy verify, creating new user...");
               // first time login, create with default role
-              let userToCreate:any = {
+              let userToCreate: UnsafeAny = {
                 username: userName,
                 name: jwt_payload[aafAttributes].cn,
                 email: jwt_payload[aafAttributes].mail.toLowerCase(),
@@ -587,9 +582,9 @@ export module Services {
                 return done("authorized-email-denied", false);
               }
 
-              let configAAF = _.get(defAuthConfig, 'aaf');
+              let configAAF = _.get(defAuthConfig, 'aaf', {});
               if(that.hasPreSaveTriggerConfigured(configAAF, 'onCreate')) {
-                that.triggerPreSaveTriggers(userToCreate, configAAF).then((userAdditionalInfo:any) => {
+                that.triggerPreSaveTriggers(userToCreate, configAAF).then((userAdditionalInfo: UnsafeAny) => {
                   
                   let success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                   if(success) {
@@ -689,11 +684,11 @@ export module Services {
                 sails.log.verbose(`OIDC, Got issuer config, after ${discoverAttemptsCtr} attempt(s).`);
                 sails.log.verbose(issuer);
                 const oidcClient = new issuer.Client(oidcOpts.client);
-                let verifyCallbackFn = (req: any, tokenSet: any, userinfo: any, done: any) => {
+                let verifyCallbackFn = (req: UnsafeAny, tokenSet: UnsafeAny, userinfo: UnsafeAny, done: UnsafeAny) => {
                   that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, userinfo, done);
                 };
                 if (oidcConfig.userInfoSource == 'tokenset_claims') {
-                  verifyCallbackFn = (req: any, tokenSet: any, done: any) => {
+                  verifyCallbackFn = (req: UnsafeAny, tokenSet: UnsafeAny, done: UnsafeAny) => {
                     that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, undefined, done);
                   };
                 }
@@ -721,7 +716,7 @@ export module Services {
       });
     }
 
-    protected openIdConnectAuthVerifyCallback(oidcConfig: any, issuer: any, req: any, tokenSet: any, userinfo: any = undefined, done: any) {
+    protected openIdConnectAuthVerifyCallback(oidcConfig: UnsafeAny, issuer: UnsafeAny, req: UnsafeAny, tokenSet: UnsafeAny, userinfo: UnsafeAny = undefined, done: UnsafeAny) {
       const that = this;
       const logoutFromAuthServer = _.get(oidcConfig,'logoutFromAuthServer', true);
       if(logoutFromAuthServer) {
@@ -968,7 +963,7 @@ export module Services {
     protected bearerTokenAuthInit = () => {
       var BearerStrategy = require('passport-http-bearer').Strategy;
       sails.config.passport.use('bearer', new BearerStrategy(
-        function (token: string, done: any) {
+        function (token: string, done: UnsafeAny) {
           if (!_.isEmpty(token) && !_.isUndefined(token)) {
             const tokenHash = crypto.createHash('sha256').update(token).digest('base64');
             User.findOne({
@@ -993,11 +988,11 @@ export module Services {
       ));
     }
 
-    protected initDefAdmin = (defRoles: any[], defAdminRole: any) => {
+    protected initDefAdmin = (defRoles: UnsafeAny[], defAdminRole: UnsafeAny) => {
       const authConfig = this.getAuthConfig(BrandingService.getDefault().name);
       const usernameField = authConfig.local?.usernameField ?? 'username';
       const passwordField = authConfig.local?.passwordField ?? 'password';
-      var defaultUser = _.find(defAdminRole.users, (o: any) => {
+      var defaultUser = _.find(defAdminRole.users, (o: UnsafeAny) => {
         return o[usernameField] == authConfig.local?.default?.adminUser
       });
 
@@ -1016,7 +1011,7 @@ export module Services {
         return super.getObservable(User.create(defaultUser))
           .pipe(flatMap(defUser => {
             // START Sails 1.0 upgrade
-            const defRoleIds = _.map(defRoles, (o: any) => {
+            const defRoleIds = _.map(defRoles, (o: UnsafeAny) => {
               return o.id;
             });
             let q = User.addToCollection(defUser.id, 'roles').members(defRoleIds);
@@ -1025,7 +1020,7 @@ export module Services {
               .pipe(flatMap(dUser => {
                 return from(defRoles)
                   .pipe(map(roleObserved => {
-                    let role: any = roleObserved;
+                    let role: UnsafeAny = roleObserved;
                     // START Sails 1.0 upgrade
                     // role.users.add(defUser.id)
                     q = Role.addToCollection(role.id, 'users').members([defUser.id]);
@@ -1049,7 +1044,7 @@ export module Services {
       }
     }
 
-    protected mapAdditionalAttributes(profile: any, attributeMappings: Record<string, string>) {
+    protected mapAdditionalAttributes(profile: UnsafeAny, attributeMappings: Record<string, string>) {
       const additionalAttributes: Record<string, unknown> = {};
       for (let attributeMapping in attributeMappings) {
         additionalAttributes[attributeMapping] = _.get(profile, attributeMapping);
@@ -1061,7 +1056,7 @@ export module Services {
      * Creates a user audit record
      *
      */
-    public addUserAuditEvent = (user: any, action: string, additionalContext: unknown) => {
+    public addUserAuditEvent = (user: UnsafeAny, action: string, additionalContext: unknown) => {
       // ignore audit events for users with no user, which had crashed the app when user has already logged out
       if (_.isEmpty(user)) {
         sails.log.verbose('No user to audit, ignoring: ' + action);
@@ -1080,7 +1075,7 @@ export module Services {
   return firstValueFrom(super.getObservable(UserAudit.create(auditEvent)));
     }
 
-    stringifyObject(object: any): any {
+    stringifyObject(object: UnsafeAny): UnsafeAny {
       return JSON.stringify(object, function(key, value) {
         if (typeof value === 'function') {
           return 'function-property-not-exported'
@@ -1134,7 +1129,7 @@ export module Services {
           defRoles: the default brand's roles
         }
     */
-    public bootstrap = (defRoles: any) => {
+    public bootstrap = (defRoles: UnsafeAny) => {
       let that = this;
       const defAuthConfig = this.getAuthConfig(BrandingService.getDefault().name);
       sails.log.verbose("Bootstrapping users....");
@@ -1167,7 +1162,7 @@ export module Services {
     /**
      * @return Collection of all users (local and AAF)
      */
-    public getUsers = (): Observable < any > => {
+    public getUsers = (): Observable<UnsafeAny> => {
       return super.getObservable(User.find({}).populate('roles'));
     }
 
@@ -1175,7 +1170,7 @@ export module Services {
      * Retrieve all users that hold at least one role for the supplied brand.
      * @param brand The brand or brand id to scope the search to.
      */
-    public getUsersForBrand = (brand: BrandingModel | string): Observable<any> => {
+    public getUsersForBrand = (brand: BrandingModel | string): Observable<UnsafeAny> => {
       const brandId = typeof brand === 'string' ? brand : _.get(brand, 'id');
       if (_.isEmpty(brandId)) {
         return of([]);
@@ -1183,8 +1178,8 @@ export module Services {
 
       return super.getObservable(User.find({}).populate('roles'))
         .pipe(map(users => {
-          return _.filter(users, (user: any) => {
-            return _.some(user.roles, (role: any) => role.branding == brandId);
+          return _.filter(users, (user: UnsafeAny) => {
+            return _.some(user.roles, (role: UnsafeAny) => role.branding == brandId);
           });
         }));
     }
@@ -1219,7 +1214,7 @@ export module Services {
           }
 
           if (!_.isEmpty(password)) {
-            let bcrypt: any;
+            let bcrypt: UnsafeAny;
             try {
               bcrypt = require('bcrypt');
             } catch (err) {
@@ -1254,10 +1249,10 @@ export module Services {
       }));
     }
 
-    private updateUserAfterLogin(user: any, done: (err: any, user: any) => void){
+    private updateUserAfterLogin(user: UnsafeAny, done: (err: UnsafeAny, user: UnsafeAny) => void){
       User.update({
         username: user.username
-        }).set(user).exec(function (err: any, user: any) {
+        }).set(user).exec(function (err: UnsafeAny, user: UnsafeAny) {
         if (err) {
           sails.log.error("Error updating user:");
           sails.log.error(err);
@@ -1274,13 +1269,13 @@ export module Services {
       });
     }
 
-    public hasRole(user: any, targetRole: any): RoleModel {
-      return _.find(user.roles, (role: any) => {
+    public hasRole(user: UnsafeAny, targetRole: UnsafeAny): RoleModel {
+      return _.find(user.roles, (role: UnsafeAny) => {
         return role.id == targetRole.id;
       });
     }
 
-    public findUsersWithName(name: string, brandId: string, source: any = null) {
+    public findUsersWithName(name: string, brandId: string, source: UnsafeAny = null) {
       const query = {
         name: {
           'contains': name
@@ -1290,7 +1285,7 @@ export module Services {
       return this.findUsersWithQuery(query, brandId, source);
     }
     // S2TEST-21
-    public findUsersWithEmail(email: string, brandId: string | null, source: any = null) {
+    public findUsersWithEmail(email: string, brandId: string | null, source: UnsafeAny = null) {
       const query = {
         email: {
           'contains': email
@@ -1299,15 +1294,15 @@ export module Services {
       return this.findUsersWithQuery(query, brandId, source);
     }
     // S2TEST-21
-    public findUsersWithQuery(query: any, brandId: string | null, source: any = null): Observable<UserModel[]> {
+    public findUsersWithQuery(query: UnsafeAny, brandId: string | null, source: UnsafeAny = null): Observable<UserModel[]> {
       if (!_.isEmpty(source) && !_.isUndefined(source) && !_.isNull(source)) {
         query['type'] = source;
       }
       return this.getObservable(User.find(query).populate('roles'))
         .pipe(flatMap(users => {
           if (brandId) {
-            _.remove(users, (user: any) => {
-              const isInBrand = _.find(user.roles, (role: any) => {
+            _.remove(users, (user: UnsafeAny) => {
+              const isInBrand = _.find(user.roles, (role: UnsafeAny) => {
                 return role.branding == brandId;
               });
               return !isInBrand;
@@ -1334,7 +1329,7 @@ export module Services {
         }]
       }).meta({
         enableExperimentalDeepTargets:true
-      }).then(records => {
+      }).then((records: UnsafeAny[]) => {
       
         if (_.isEmpty(records)) {
           sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> No pending records: ${pendingValue}`);
@@ -1344,7 +1339,7 @@ export module Services {
         for (let record of records) {
           RecordsService.provideUserAccessAndRemovePendingAccess(record.redboxOid, userid, pendingValue);
         }
-      }).catch((error: any) => {
+      }).catch((error: UnsafeAny) => {
         sails.log.warn(`Failed to assign access for user: ${pendingValue}`);
         sails.log.warn(error);
       });
@@ -1374,7 +1369,7 @@ export module Services {
 
       // Get the configuration data.
       const brandingAwareData = sails.config.brandingAware(branding);
-      const authorizedDomainsEmails = _.get(brandingAwareData, 'authorizedDomainsEmails', {});
+      const authorizedDomainsEmails = _.get(brandingAwareData, 'authorizedDomainsEmails', {}) as AuthorizedDomainsEmails;
 
       if (authorizedDomainsEmails.enabled?.toString() !== 'true') {
         sails.log.warn("Authorized email configuration is disabled.");

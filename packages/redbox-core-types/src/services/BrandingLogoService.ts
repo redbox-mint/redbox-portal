@@ -9,10 +9,15 @@ import { GridFSBucket, Db } from 'mongodb';
  * - putLogo({branding, portal, fileBuf, contentType}) -> GridFS path `${branding}/${portal}/images/logo.(ext)`
  */
 
-declare const sails: any;
-declare const _: any;
-declare const BrandingConfig: any;
-declare const SvgSanitizerService: any;
+declare const SvgSanitizerService: {
+  sanitize: (svg: string) => {
+    safe: boolean;
+    sanitized: string;
+    errors: string[];
+    warnings: string[];
+    info: { originalBytes: number; sanitizedBytes: number };
+  };
+};
 // Using skipper-gridfs adapter pattern like BrandingController
 // We'll lazily require to avoid circular load issues.
 
@@ -70,7 +75,8 @@ export module Services {
       }
 
       try {
-        const ds = (sails as any).getDatastore ? (sails as any).getDatastore('mongodb') : null;
+        const ds = (sails as unknown as { getDatastore?: (name: string) => { manager?: Db } | null })
+          .getDatastore?.('mongodb') ?? null;
         const db: Db | undefined = ds?.manager; // sails-mongo exposes native Db as manager
         if (!db) return null;
         

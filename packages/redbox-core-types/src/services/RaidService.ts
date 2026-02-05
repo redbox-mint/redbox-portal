@@ -37,8 +37,6 @@ import numeral from 'numeral';
 import axios from 'axios';
 
 
-declare var sails: any;
-declare var _: any;
 
 export module Services {
   /**
@@ -48,7 +46,7 @@ export module Services {
    *
    */
   export class Raid extends services.Core.Service {
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: UnsafeAny = [
       'mintTrigger',
       'buildContributors',
       'buildContribVal',
@@ -59,7 +57,7 @@ export module Services {
     protected oauthTokenData: {
       accessTokenExpiryMillis: number | null;
       accessToken: string | null;
-      responseData: any;
+      responseData: UnsafeAny;
     } = {
       accessTokenExpiryMillis: null,
       accessToken: null,
@@ -71,7 +69,7 @@ export module Services {
       this.logHeader = "RaidService::";
     }
 
-    public async mintTrigger(oid: string, record: any, options: any): Promise<any> {
+    public async mintTrigger(oid: string, record: UnsafeAny, options: UnsafeAny): Promise<UnsafeAny> {
       if (this.metTriggerCondition(oid, record, options) === "true") {
         await this.mintRaid(oid, record, options);
       } else {
@@ -83,7 +81,7 @@ export module Services {
     /**
      * Light AgendaQueue wrapper for the main mint method.
     */
-    public async mintRetryJob(job: any) {
+    public async mintRetryJob(job: UnsafeAny) {
       const data = job.attrs.data;
       const record = await RecordsService.getMeta(data.oid);
       await this.mintRaid(data.oid, record, data.options, data.attemptCount);
@@ -95,7 +93,7 @@ export module Services {
      * @param record
      * @param options
      */
-    public async mintPostCreateRetryHandler(oid: string, record: any, options: any) {
+    public async mintPostCreateRetryHandler(oid: string, record: UnsafeAny, options: UnsafeAny) {
       const attemptCount = _.get(record.metaMetadata, 'raid.attemptCount');
       if (!_.isEmpty(oid) && attemptCount > 0) {
         sails.log.verbose(`${this.logHeader} mintPostCreateRetryHandler() -> Scheduled for ${oid} `);
@@ -150,7 +148,7 @@ export module Services {
           this.oauthTokenData.accessTokenExpiryMillis = Date.now() + (auth1.expires_in * 1000);
           this.oauthTokenData.accessToken = auth1.access_token;
         }
-      } catch (err: any) {
+      } catch (err: UnsafeAny) {
         throw new RBValidationError({
           message: "Failed to get token",
           options: { cause: err },
@@ -160,7 +158,7 @@ export module Services {
       return this.oauthTokenData.accessToken;
     }
 
-    private async fetchAuthToken(oauthConfig: any): Promise<any> {
+    private async fetchAuthToken(oauthConfig: UnsafeAny): Promise<UnsafeAny> {
 
       try {
         const response = await axios.post(oauthConfig.url,
@@ -178,7 +176,7 @@ export module Services {
         const tokenData = response.data;
         return tokenData;
 
-      } catch (error: any) {
+      } catch (error: UnsafeAny) {
         throw new RBValidationError({
           message: "Error fetching the token",
           options: { cause: error },
@@ -187,12 +185,12 @@ export module Services {
       }
     }
 
-    private async mintRaid(oid: string, record: any, options: any, attemptCount: number = 0): Promise<any> {
+    private async mintRaid(oid: string, record: UnsafeAny, options: UnsafeAny, attemptCount: number = 0): Promise<UnsafeAny> {
       const basePath = sails.config.raid.basePath;
       const apiToken = await this.getToken();
       const configuration = new Configuration({
         basePath: basePath,
-        accessToken: apiToken
+        accessToken: apiToken || undefined
       });
       const api = new RaidApi(configuration);
       const request: RaidCreateRequest = {} as RaidCreateRequest;
@@ -244,7 +242,7 @@ export module Services {
       }
       let raid = undefined;
       let metaMetadataInfo = undefined;
-      let response: any = undefined;
+      let response: UnsafeAny = undefined;
       let body = undefined;
       try {
         sails.log.verbose(`${this.logHeader} mintRaid() ${oid} -> Sending data::`);
@@ -269,7 +267,7 @@ export module Services {
             displayErrors: [{ code: 'raid-mint-server-error', status: String(response?.status) }],
           });
         }
-      } catch (error: any) {
+      } catch (error: UnsafeAny) {
         _.set(error, 'response.request.headers.Authorization', '-redacted-');
         const statusCode = _.get(error, 'statusCode');
         const msgs: string[] = [];
@@ -325,11 +323,11 @@ export module Services {
       return record;
     }
 
-    private scheduleMintRetry(data: any) {
+    private scheduleMintRetry(data: UnsafeAny) {
       AgendaQueueService.schedule(sails.config.raid.retryJobName, sails.config.raid.retryJobSchedule, data);
     }
 
-    public getContributors(record: any, options: any, fieldConfig?: any, mappedData?: any) {
+    public getContributors(record: UnsafeAny, options: UnsafeAny, fieldConfig?: UnsafeAny, mappedData?: UnsafeAny) {
       // start with a map to simplify uniqueness guarantees
       const contributors: Record<string, any> = {};
       const contributorMapConfig = fieldConfig.contributorMap;
@@ -347,10 +345,10 @@ export module Services {
         }
       }
       // convert to array for the API
-      return _.map(contributors, (val: any) => { return val });
+      return _.map(contributors, (val: UnsafeAny) => { return val });
     }
 
-    public buildContribVal(contributors: Record<string, any>, contribVal: any, contribConfig: any, startDate: string, endDate?: string) {
+    public buildContribVal(contributors: Record<string, any>, contribVal: UnsafeAny, contribConfig: UnsafeAny, startDate: string, endDate?: string) {
       if (_.isEmpty(contribVal.text_full_name)) {
         sails.log.verbose(`${this.logHeader} buildContribVal() -> Ignoring blank record.`);
         return;
@@ -404,11 +402,11 @@ export module Services {
       }
     }
 
-    private setContributorFlags(contrib: any, contribConfig: any) {
+    private setContributorFlags(contrib: UnsafeAny, contribConfig: UnsafeAny) {
       // setting the required flags: https://metadata.raid.org/en/latest/core/contributors.html
       const configFlags = sails.config.raid.types.contributor.flags;
       for (let configFlagName in configFlags) {
-        if (_.includes(configFlags[configFlagName], contribConfig.position)) {
+          if (_.includes(configFlags[configFlagName], contribConfig.position as string)) {
           _.set(contrib, configFlagName, true);
         }
       }
@@ -423,18 +421,17 @@ export module Services {
      * @param contribConfig
      * @returns
      */
-    private getContributorId(contribVal: any, contribConfig: any) {
-      let id = _.replace(_.get(contribVal, contribConfig.fieldMap.id), sails.config.raid.orcidBaseUrl, '');
-      let regex = /(\d{4}-){3}\d{3}(\d|X)/;
-      if (_.isEmpty(id) || _.size(id) != 19 || regex.test(id) === false) {
-        id = undefined;
+    private getContributorId(contribVal: UnsafeAny, contribConfig: UnsafeAny) {
+      const rawId = _.get(contribVal, contribConfig.fieldMap.id);
+      const strippedId = _.replace(rawId, sails.config.raid.orcidBaseUrl, '');
+      const regex = /(\d{4}-){3}\d{3}(\d|X)/;
+      if (_.isEmpty(strippedId) || _.size(strippedId) !== 19 || regex.test(strippedId) === false) {
+        return '';
       }
-      if (!_.isUndefined(id)) {
-        // ID now should be the full ORCID Url
-        id = _.get(contribVal, contribConfig.fieldMap.id);
-        if (!_.startsWith(id, sails.config.raid.orcidBaseUrl)) {
-          id = `${sails.config.raid.orcidBaseUrl}${id}`;
-        }
+      // ID now should be the full ORCID Url
+      let id = rawId;
+      if (!_.startsWith(id, sails.config.raid.orcidBaseUrl)) {
+        id = `${sails.config.raid.orcidBaseUrl}${id}`;
       }
       return id;
     }
@@ -455,7 +452,7 @@ export module Services {
       } // not currently matching to any generated class so returning as POJO
     }
 
-    private getMappedData(record: any, fields: any, options: any): any {
+    private getMappedData(record: UnsafeAny, fields: UnsafeAny, options: UnsafeAny): UnsafeAny {
       const mappedData: Record<string, unknown> = {};
       for (let fieldName in fields) {
         try {
@@ -501,7 +498,7 @@ export module Services {
       return mappedData;
     }
 
-    public getSubject(record: any, options: any, fieldConfig?: any, subjects: any[] = [], subjectType: string = '', subjectData?: any) {
+    public getSubject(record: UnsafeAny, options: UnsafeAny, fieldConfig?: UnsafeAny, subjects: UnsafeAny[] = [], subjectType: string = '', subjectData?: UnsafeAny) {
       if (_.isArray(subjectData) && !_.isEmpty(subjectData) && !_.isEmpty(subjectType)) {
         for (let subject of subjectData) {
           subjects.push({
@@ -520,7 +517,7 @@ export module Services {
       return subjects;
     }
 
-    private async saveRaid(raid: any, record: any, options: any, metaMetadataInfo: any): Promise<void> {
+    private async saveRaid(raid: UnsafeAny, record: UnsafeAny, options: UnsafeAny, metaMetadataInfo: UnsafeAny): Promise<void> {
       // add raid to record, defaults to 'raidUrl'
       _.set(record.metadata, _.get(sails.config.raid, 'raidFieldName', 'raidUrl'), raid.id);
       if (sails.config.raid.saveBodyInMeta) {

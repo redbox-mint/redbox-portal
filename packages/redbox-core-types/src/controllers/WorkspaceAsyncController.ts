@@ -1,6 +1,5 @@
 import { Controllers as controllers } from '../CoreController';
 
-declare var sails: any;
 
 export module Controllers {
   /**
@@ -47,6 +46,17 @@ export module Controllers {
           const payload = error ?? { status: false, message: 'Error checking status async workspace' };
           this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
         })
+    }
+
+    public loop(req: Sails.Req, res: Sails.Res) {
+      try {
+        WorkspaceAsyncService.loop();
+        this.sendResp(req, res, { data: { status: true }, headers: this.getNoCacheHeaders() });
+      } catch (error: unknown) {
+        sails.log.error(error);
+        const payload = error ?? { status: false, message: 'Error running async workspace loop' };
+        this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
+      }
     }
 
   }

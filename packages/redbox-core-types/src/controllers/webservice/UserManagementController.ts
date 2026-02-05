@@ -1,9 +1,6 @@
 import { APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, UserModel, UserAPITokenAPIResponse, APIActionResponse, BrandingModel } from '../../index';
 import { v4 as uuidv4 } from 'uuid';
 
-declare var sails: any;
-declare var User: any;
-declare var _: any;
 
 export module Controllers {
   /**
@@ -71,7 +68,7 @@ export module Controllers {
             where: queryObject,
             limit: pageSize,
             skip: skip
-          }).exec(function (err: any, users: UserModel[]) {
+          }).exec(function (err: any, users: UnsafeAny[]) {
 
             _.each(users, (user: any) => {
               delete user["token"];
@@ -91,7 +88,7 @@ export module Controllers {
       var query = req.param('query');
       const queryObject: Record<string, unknown> = {};
       queryObject[searchField] = query;
-      User.findOne(queryObject).exec(function (err: any, user: UserModel) {
+      User.findOne(queryObject).exec(function (err: any, user: UnsafeAny) {
         if (err != null) {
           sails.log.error(err)
           return that.sendResp(req, res, {

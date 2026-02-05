@@ -1,8 +1,6 @@
 import { APIErrorResponse, FormModel, ListAPIResponse, ListAPISummary, FormsService as FormsServiceModule, Controllers as controllers } from '../../index';
 import { firstValueFrom } from 'rxjs';
 
-declare var sails: any;
-declare var _: any;
 
 export module Controllers {
   /**
