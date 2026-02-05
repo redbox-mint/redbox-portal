@@ -37,7 +37,7 @@ import {FormValidatorSummaryErrors, ValidationSummaryComponentName} from "@resea
                 {{ "@validator-label-default" | i18next }}:
               </span>
             }
-            @for (error of summary.errors; track error.class ?? $index) {
+            @for (error of summary.errors; track (error.class ?? 'err') + '-' + $index) {
               <span [attr.data-validation-error-class]="error.class"
                     [attr.data-validation-error-message]="error.message">
                 {{ $index + 1 }}) {{ error.message | i18next: error.params }}
