@@ -90,6 +90,9 @@ export module Services {
 		public async exportDataset(oid, record, options, user) {
 			if( this.metTriggerCondition(oid, record, options) === "true") {
 				const rootColConfig = sails.config.datapubs.rootCollection;
+				if (!rootColConfig || !rootColConfig.rootCollectionId) {
+					throw this.getRBError(`${this.logHeader} exportDataset()`, "Missing datapubs.rootCollection.rootCollectionId");
+				}
 				const site = sails.config.datapubs.sites[options['site']];
 				if( ! site ) {
 					throw this.getRBError(`${this.logHeader } exportDataset()`, "Unknown publication site " + options['site']);
@@ -131,10 +134,12 @@ export module Services {
 				} catch (err) {
 					throw this.getRBError(`${this.logHeader} exportDataset()`, `Error connecting to target collector ${site.dir}: ${err}`);
 				}
-				let rootCollection = targetCollector.repo.object(rootColConfig.rootCollectionId);
+				let rootCollection;
 				try {
+					rootCollection = targetCollector.repo.object(rootColConfig.rootCollectionId);
 					await rootCollection.load();
-					// check if the root collection exists in disk, otherwise populate the root collection's properties
+				} catch (err) {
+					// If the root collection does not exist yet, create and persist it.
 					rootCollection = targetCollector.newObject();
 					rootCollection.crate.addProfile(languageProfileURI("Collection"));
 					rootCollection.rootDataset["@type"] = rootColConfig.dsType;
@@ -143,11 +148,16 @@ export module Services {
 					rootCollection.rootDataset.name = rootColConfig.targetRepoColName;
 					rootCollection.rootDataset.description = rootColConfig.targetRepoColDescription;
 					rootCollection.rootDataset.license = rootColConfig.defaultLicense;
+					// ensure required publication dates are present for the root collection
+					rootCollection.rootDataset.datePublished = (new Date()).toISOString();
+					try {
+						rootCollection.rootDataset.yearPublished = this.getYearFromDate(rootCollection.rootDataset.datePublished);
+					} catch (e) {
+						/* ignore */
+					}
 					if (await this.pathExists(rootCollection.root) === false) {
 						await rootCollection.addToRepo();
-					} 
-				} catch (err) {
-					throw this.getRBError(`${this.logHeader} exportDataset()`, `Error loading root collection ${site.rootCollectionId}: ${err}`);
+					}
 				}
 				
 				let creator = await UsersService.getUserWithUsername(record['metaMetadata']['createdBy']).toPromise();
@@ -156,7 +166,8 @@ export module Services {
 					throw this.getRBError(`${this.logHeader} exportDataset()`, `Error getting creator for record ${oid} :: ${record['metaMetadata']['createdBy']}`);
 				}
 				try {
-					await this.writeDatasetObject(creator, user, oid, drid, targetCollector, rootCollection, record, site.tempDir);
+					const tempDir = site.tempDir || site.tempPath || site.dir;
+					await this.writeDatasetObject(creator, user, oid, drid, targetCollector, rootCollection, record, tempDir);
 				} catch (err) {
 					throw this.getRBError(`${this.logHeader} exportDataset()`, `Error writing dataset object for ${oid}: ${err}`);
 				}
