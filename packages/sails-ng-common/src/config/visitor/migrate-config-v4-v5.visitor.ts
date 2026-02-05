@@ -457,7 +457,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
         const fields = field?.definition?.fields ?? [];
         // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
+
         if (fields.length === 1) {
+
             // Create the instance from the v4 config
             const formComponent = this.constructFormComponent(fields[0]);
 
@@ -470,6 +472,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
                 this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(formComponent),
                 ["definition", "fields", "0"],
             );
+
+            // TODO: this check & change needs to be done for all nested components as well.
+            // Overall repeatable default: repeatable.model.config.defaultValue
+            // New item default: elementTemplate.model.config.newEntryValue
+            // The elementTemplate defaultValue must be set in newEntryValue
+            if (formComponent?.model?.config?.defaultValue !== undefined) {
+                formComponent.model.config.newEntryValue = formComponent?.model?.config?.defaultValue;
+                formComponent.model.config.defaultValue = undefined;
+            }
 
             // Store the instance on the item
             item.config.elementTemplate = formComponent;

@@ -21,11 +21,19 @@ export function isTypeFieldDefinition(item: unknown): item is FieldDefinitionFra
     }
     const i = item as FieldDefinitionFrame;
 
-    const hasExpectedPropClass = 'class' in i && guessType(i?.class) === 'string';
+    const propClassGuessType = guessType(i?.class);
+    const hasExpectedPropClass = 'class' in i && propClassGuessType === 'string';
     // 'config' can be null or object or not set
-    const hasExpectedPropConfig = ('config' in i && ["object", "null"].includes(guessType(i.config))) || i?.config === undefined;
+    const propConfigGuessType =  guessType(i.config);
+    const hasExpectedPropConfig = ('config' in i && ["object", "null"].includes(propConfigGuessType)) || i?.config === undefined;
 
-    return hasExpectedPropClass && hasExpectedPropConfig;
+    const isFieldDefinition = hasExpectedPropClass && hasExpectedPropConfig;
+    if (!isFieldDefinition)
+    {
+        console.log(`isTypeFieldDefinition propClassGuessType ${propClassGuessType} propConfigGuessType ${propConfigGuessType}`);
+    }
+
+    return isFieldDefinition;
 }
 
 /**

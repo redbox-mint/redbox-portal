@@ -2,6 +2,7 @@ import {MigrationV4ToV5FormConfigVisitor} from "../../src/config/visitor/migrate
 import fs from "fs";
 import path from "path";
 import {logger} from "./helpers";
+import {ClientFormConfigVisitor, ConstructFormConfigVisitor} from "../../src";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -10,8 +11,8 @@ async function migrateV4ToV5(v4InputFile: string, v5OutputFile: string) {
     logger.info(`Migrate form config v4 to v5: ${v4InputFile} -> ${v5OutputFile}`);
     let formConfig = require(v4InputFile);
 
-    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-    const actual = visitor.start({data: formConfig});
+    const migrateVisitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const actual = migrateVisitor.start({data: formConfig});
 
     const tsContent = `
 import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
@@ -19,6 +20,18 @@ const formConfig: FormConfigFrame = ${JSON.stringify(actual, null, 2)};
 module.exports = formConfig;
 `;
     fs.writeFileSync(v5OutputFile, tsContent, "utf8");
+
+    // Also run the construct and client visitors to check for issues in the migration.
+    const constructVisitor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructVisitor.start({
+        data: actual, formMode: "edit"
+    });
+
+    const clientVisitor = new ClientFormConfigVisitor(logger);
+    const result = clientVisitor.start({
+        form: constructed, formMode: "edit", userRoles: ["Admin", "Librarians", "Researcher", "Guest"]
+    });
+
     return actual;
 }
 
