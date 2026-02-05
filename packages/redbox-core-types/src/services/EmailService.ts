@@ -286,7 +286,8 @@ export module Services {
           throw new Error('Invalid email address.');
         }
 
-        const buildResult: Record<string, unknown> = await firstValueFrom(optionsEvaluated.templateRendered);
+        const templateRendered = optionsEvaluated.templateRendered ?? from(Promise.resolve({ status: 500, body: 'Templating error.' }));
+        const buildResult: Record<string, unknown> = await firstValueFrom(templateRendered);
 
         if (buildResult['status'] != 200) {
           sails.log.error(`Failed to build email body ${msgPartial}, result: ${JSON.stringify(buildResult)}`);
@@ -362,7 +363,7 @@ export module Services {
       cc: string, ccRendered: string,
       bcc: string, bccRendered: string,
       subject: string, subjectRendered: string,
-      template: string | null, templateRendered: Observable<Record<string, unknown>>,
+      template: string | null, templateRendered: Observable<Record<string, unknown>> | null,
     } {
       let result = {
         format: "", formatRendered: "",
@@ -371,7 +372,7 @@ export module Services {
         cc: "", ccRendered: "",
         bcc: "", bccRendered: "",
         subject: "", subjectRendered: "",
-        template: null, templateRendered: from(Promise.resolve({ status: 500, body: 'Templating error.' })),
+        template: null, templateRendered: null,
       };
 
       if (_.isNil(options)) {
@@ -435,9 +436,12 @@ export module Services {
       }
 
       const fallbackTemplate = from(Promise.resolve({ status: 500, body: 'Templating error.' }));
+      const templateRendered = !_.isNil(result.template)
+        ? (result.templateRendered as Observable<Record<string, unknown>> | null) ?? fallbackTemplate
+        : null;
       return {
         ...result,
-        templateRendered: (result.templateRendered as Observable<Record<string, unknown>> | null) ?? fallbackTemplate,
+        templateRendered,
       };
     }
 

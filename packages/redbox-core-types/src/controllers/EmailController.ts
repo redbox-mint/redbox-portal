@@ -98,6 +98,13 @@ export module Controllers {
             const subjectRendered = emailProperties.subjectRendered;
             // const template = emailProperties.template;
             const templateRendered = emailProperties.templateRendered;
+            if (!templateRendered) {
+                return this.sendResp(req, res, {
+                    status: 500,
+                    displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
+                    headers: this.getNoCacheHeaders()
+                });
+            }
 
             return templateRendered.subscribe((buildResult: any) => {
                 if (buildResult['status'] != 200) {

@@ -36,6 +36,8 @@ export module Services {
     defaultRole?: string;
   }
 
+  type ConfigRoleResult = AuthRoleConfig | Record<string, AuthRoleConfig | Record<string, unknown>>;
+
   /**
    * Roles services
    *
@@ -173,13 +175,15 @@ export module Services {
       return (_.find(rolesConfig, (o: AuthRoleConfig) => { return o.name == roleName }) ?? { name: roleName }) as AuthRoleConfig;
     }
 
-    protected getConfigRoles = (roleProp: string | null = null, customObj: Record<string, unknown> | null = null): any[] => {
+    protected getConfigRoles(): AuthRoleConfig[];
+    protected getConfigRoles(roleProp: string, customObj?: Record<string, unknown> | null): Array<Record<string, AuthRoleConfig | Record<string, unknown>>>;
+    protected getConfigRoles(roleProp: string | null = null, customObj: Record<string, unknown> | null = null): ConfigRoleResult[] {
       const rolesConfig = sails.config.auth.roles as AuthRoleConfig[];
-      let retVal: any[] = rolesConfig;
+      let retVal: ConfigRoleResult[] = rolesConfig;
       if (roleProp) {
         retVal = []
         _.map(rolesConfig, (o: AuthRoleConfig) => {
-          const newObj: Record<string, unknown> = {};
+          const newObj: Record<string, AuthRoleConfig | Record<string, unknown>> = {};
           newObj[roleProp] = o;
           if (customObj) {
             newObj['custom'] = customObj;

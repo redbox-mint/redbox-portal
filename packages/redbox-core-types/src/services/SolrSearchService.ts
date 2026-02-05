@@ -35,12 +35,14 @@ type SolrConfig = SolrSearchConfig;
 const axios = require('axios');
 const util = require('util');
 const querystring = require('querystring');
-let flat: any = null;
-const luceneEscapeQueryModule: any = require("lucene-escape-query");
+type FlatModule = { flatten: (obj: Record<string, unknown>, options?: Record<string, unknown>) => Record<string, unknown> };
+type LuceneEscapeQueryModule = ((value: string) => string) | { escape?: (value: string) => string; default?: (value: string) => string };
+let flat: FlatModule | null = null;
+const luceneEscapeQueryModule: LuceneEscapeQueryModule = require("lucene-escape-query");
 const luceneEscapeQuery: (value: string) => string =
   typeof luceneEscapeQueryModule === 'function'
     ? luceneEscapeQueryModule
-    : (luceneEscapeQueryModule?.escape || luceneEscapeQueryModule?.default);
+    : (luceneEscapeQueryModule?.escape || luceneEscapeQueryModule?.default || ((value: string) => value));
 
 
 
@@ -100,9 +102,18 @@ class Solr {
 }
 
 export module Services {
-  type SolrResponse = any;
+  type SolrFacetFields = Record<string, Array<string | number>>;
+  type SolrResponse = {
+    response: { numFound: number; docs: Array<Record<string, unknown>> };
+    facet_counts?: { facet_fields: SolrFacetFields };
+  };
   type SearchField = { name: string; value?: string | number | null };
-  type QueueJob = { attrs: { data: any } };
+  type QueueJob<T = unknown> = { attrs: { data: T } };
+  type PreIndexMoveConfig = { source: string; dest?: string };
+  type PreIndexCopyConfig = { source: string; dest: string };
+  type PreIndexJsonStringConfig = { source: string; dest?: string };
+  type PreIndexTemplateConfig = { source?: string; dest?: string; template: string };
+  type PreIndexFlattenSpecialConfig = { field: string; source: string; dest?: string; options?: Record<string, unknown> };
 
   /**
    * Service class for adding documents to Solr.
@@ -303,36 +314,39 @@ export module Services {
       url = this.addAuthFilter(url, username, roles, brand, false);
       sails.log.verbose(`Searching fuzzy using: ${url}`);
       const response = await axios.get(url).then((response: { data: SolrResponse }) => response.data);
-      const customResp: any = {
+      const customResp: { records: Array<Record<string, unknown>>; facets?: Array<{ name: string; values: Array<{ value: string; count: number }> }>; totalItems?: number } = {
         records: []
       };
       let totalItems = response.response.numFound;
 
-      _.forEach(response.response.docs, (solrdoc: any) => {
-        const customDoc: any = {};
+      _.forEach(response.response.docs, (solrdoc: Record<string, unknown>) => {
+        const customDoc: Record<string, unknown> = {};
         _.forEach(returnFields, (retField: string) => {
-          if (_.isArray(solrdoc[retField])) {
-            customDoc[retField] = solrdoc[retField][0];
+          const fieldValue = solrdoc[retField];
+          if (Array.isArray(fieldValue)) {
+            customDoc[retField] = fieldValue[0];
           } else {
-            customDoc[retField] = solrdoc[retField];
+            customDoc[retField] = fieldValue;
           }
         });
         customDoc["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, solrdoc);
         customResp.records.push(customDoc);
       });
       // check if have facets turned on...
-      if (response.facet_counts) {
-        customResp['facets'] = [];
-        _.forOwn(response.facet_counts.facet_fields, (facet_field: any[], facet_name: string) => {
+      const facetFields = response.facet_counts?.facet_fields;
+      if (facetFields) {
+        const facets: Array<{ name: string; values: Array<{ value: string; count: number }> }> = [];
+        customResp['facets'] = facets;
+        _.forOwn(facetFields, (facet_field: Array<string | number>, facet_name: string) => {
           const numFacetsValues = _.size(facet_field) / 2;
           const facetValues: Array<{ value: string; count: number }> = [];
           for (let i = 0, j = 0; i < numFacetsValues; i++) {
             facetValues.push({
-              value: facet_field[j++],
-              count: facet_field[j++]
+              value: String(facet_field[j++]),
+              count: Number(facet_field[j++])
             });
           }
-          customResp['facets'].push({
+          facets.push({
             name: facet_name,
             values: facetValues
           });
@@ -351,9 +365,9 @@ export module Services {
       }
     }
 
-    public async solrAddOrUpdate(job: QueueJob) {
+    public async solrAddOrUpdate(job: QueueJob<RecordModel>) {
       try {
-        let data: RecordModel = job.attrs.data as unknown as RecordModel;
+        let data: RecordModel = job.attrs.data as RecordModel;
         let coreId = _.get(data, 'metaMetadata.searchCore', 'default');
         // storage_id is used as the main ID in searches
         let solrDocument: SolrDocument = new SolrDocument(data);
@@ -375,14 +389,14 @@ export module Services {
     // TODO: This method shouldn't need to be public 
     // but can't unit test it easily if it isn't
     public preIndex(data: SolrDocument): Record<string, unknown> {
-      let processedData: any = _.cloneDeep(data);
+      let processedData: Record<string, unknown> = _.cloneDeep(data) as unknown as Record<string, unknown>;
 
       let coreId = _.get(data, 'metaMetadata.searchCore', 'default');
-      let moveObj = _.get(sails.config.solr.cores, coreId + '.preIndex.move') as unknown as any[];
+      let moveObj = _.get(sails.config.solr.cores, coreId + '.preIndex.move') as unknown as PreIndexMoveConfig[];
       // moving
-      _.each(moveObj, (moveConfig: any) => {
+      _.each(moveObj, (moveConfig: PreIndexMoveConfig) => {
         const source: string = moveConfig.source;
-        const dest: string = moveConfig.dest;
+        const dest: string = moveConfig.dest ?? '';
         // the data used will always be the original object
         const moveData: unknown = _.get(data, source);
         if (!_.isEmpty(moveData)) {
@@ -397,23 +411,23 @@ export module Services {
           sails.log.verbose(`${this.logHeader} no data to move from: ${moveConfig.source}, ignoring.`);
         }
       });
-      let copyObj = _.get(sails.config.solr.cores, coreId + '.preIndex.copy') as unknown as any[];
+      let copyObj = _.get(sails.config.solr.cores, coreId + '.preIndex.copy') as unknown as PreIndexCopyConfig[];
       // copying
-      _.each(copyObj, (copyConfig: any) => {
+      _.each(copyObj, (copyConfig: PreIndexCopyConfig) => {
         _.set(processedData, copyConfig.dest, _.get(data, copyConfig.source));
       });
-      let jsonStringObj = _.get(sails.config.solr.cores, coreId + '.preIndex.jsonString') as unknown as any[];
-      _.each(jsonStringObj, (jsonStringConfig: any) => {
+      let jsonStringObj = _.get(sails.config.solr.cores, coreId + '.preIndex.jsonString') as unknown as PreIndexJsonStringConfig[];
+      _.each(jsonStringObj, (jsonStringConfig: PreIndexJsonStringConfig) => {
         let setProperty: string = jsonStringConfig.source;
         if (jsonStringConfig.dest != null) {
           setProperty = jsonStringConfig.dest;
         }
         _.set(processedData, setProperty, JSON.stringify(_.get(data, jsonStringConfig.source, undefined)));
       });
-      let templateObj = _.get(sails.config.solr.cores, coreId + '.preIndex.template') as unknown as any[];
+      let templateObj = _.get(sails.config.solr.cores, coreId + '.preIndex.template') as unknown as PreIndexTemplateConfig[];
       //Evaluate a template to generate a value for the solr document
-      _.each(templateObj, (templateConfig: any) => {
-        let setProperty: string = templateConfig.source;
+      _.each(templateObj, (templateConfig: PreIndexTemplateConfig) => {
+        let setProperty: string = templateConfig.source ?? '';
         if (templateConfig.dest != null) {
           setProperty = templateConfig.dest;
         }
@@ -430,25 +444,26 @@ export module Services {
         _.set(processedData, setProperty, template({ data: templateData }));
       });
 
-      let flattenSpecialObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.special') as unknown as any[];
+      let flattenSpecialObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.special') as unknown as PreIndexFlattenSpecialConfig[];
       // flattening...
       // first remove those with special flattening options
-      _.each(flattenSpecialObj, (specialFlattenConfig: any) => {
+      _.each(flattenSpecialObj, (specialFlattenConfig: PreIndexFlattenSpecialConfig) => {
         _.unset(processedData, specialFlattenConfig.field);
       });
-      let flattenOptionsObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.options');
-      if (!flat) {
+      let flattenOptionsObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.options') as unknown as Record<string, unknown> | undefined;
+      const flatModule = flat;
+      if (!flatModule) {
         throw new Error('flat module not loaded');
       }
-      processedData = flat.flatten(processedData, flattenOptionsObj);
-      _.each(flattenSpecialObj, (specialFlattenConfig: any) => {
+      processedData = flatModule.flatten(processedData, flattenOptionsObj);
+      _.each(flattenSpecialObj, (specialFlattenConfig: PreIndexFlattenSpecialConfig) => {
         const dataToFlatten: Record<string, unknown> = {};
         if (specialFlattenConfig.dest) {
           _.set(dataToFlatten, specialFlattenConfig.dest, _.get(data, specialFlattenConfig.source));
         } else {
           _.set(dataToFlatten, specialFlattenConfig.source, _.get(data, specialFlattenConfig.source));
         }
-        let flattened = flat.flatten(dataToFlatten, specialFlattenConfig.options);
+        let flattened = flatModule.flatten(dataToFlatten, specialFlattenConfig.options);
         _.merge(processedData, flattened);
       });
 
@@ -485,7 +500,7 @@ export module Services {
       return url;
     }
 
-    public async solrDelete(job: QueueJob, done: unknown) {
+    public async solrDelete(job: QueueJob<RecordModel>, done: unknown) {
       try {
         let data = job.attrs.data;
         let coreId = _.get(data, 'searchCore', 'default');

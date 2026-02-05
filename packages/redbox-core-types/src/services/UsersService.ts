@@ -323,7 +323,7 @@ export module Services {
             try {
               let preSaveUpdateHookFunction = eval(preSaveUpdateHookFunctionString);
               let options = _.get(preSaveUpdateHook, 'options', {});
-              let failureMode: any = _.get(preSaveUpdateHook, 'failureMode');
+              let failureMode = String(_.get(preSaveUpdateHook, 'failureMode', ''));
               if(_.isUndefined(failureMode) || (failureMode != 'continue' && failureMode != 'stop')) {
                 failureMode = 'continue';
               }
