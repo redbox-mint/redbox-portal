@@ -392,7 +392,8 @@ export namespace Controllers {
           sails.log.verbose(`Processing datastreams of: ${oid}`);
           for (const attField of record.metaMetadata.attachmentFields) {
             // TODO: add support for removing datastreams
-            const result: DatastreamServiceResponse = await this.DatastreamService.addDatastreams(oid, _.get(record['metadata'], attField, []));
+            const datastreams = _.get(record['metadata'], attField, []) as Datastream[];
+            const result: DatastreamServiceResponse = await this.DatastreamService.addDatastreams(oid, datastreams);
           }
           return this.sendResp(req, res, { data: result });
         } else {
@@ -479,7 +480,7 @@ export namespace Controllers {
 
                 if (workflowStage) {
                   WorkflowStepsService.get(recordTypeModel, workflowStage).subscribe(wfStep => {
-                    that.RecordsService.setWorkflowStepRelatedMetadata(request, wfStep);
+                    that.RecordsService.setWorkflowStepRelatedMetadata(request, wfStep as globalThis.Record<string, unknown>);
                   });
                 }
                 return this.sendResp(req, res, {
@@ -519,19 +520,6 @@ export namespace Controllers {
       const datastreamId = req.param('datastreamId');
       sails.log.debug(`getDataStream ${oid} ${datastreamId}`);
       try {
-        // let found: any = null;
-        // let currentRec = await this.RecordsService.getMeta(oid)
-        // for(let attachmentField of currentRec.metaMetadata.attachmentFields) {
-        //   if(found == null) {
-        //     const attFieldVal = currentRec.metadata[attachmentField];
-        //     found = _.find(attFieldVal, (attVal) => {
-        //       return attVal.fileId == datastreamId
-        //     });
-        //   } else {
-        //     break;
-        //   }
-        // }
-
         let found: any = null;
         const attachments = await this.RecordsService.getAttachments(oid);
         for (const attachment of attachments) {
@@ -571,7 +559,9 @@ export namespace Controllers {
             });
             response.readstream.pipe(res);
           } else {
-            res.end(Buffer.from(response.body), 'binary');
+            const body = response.body ?? '';
+            const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body);
+            res.end(buffer, 'binary');
           }
           return
         } catch (error) {
@@ -704,11 +694,12 @@ export namespace Controllers {
       const docs = results["items"];
 
       for (let i = 0; i < docs.length; i++) {
-        const doc = docs[i];
+        const doc = docs[i] as globalThis.Record<string, unknown>;
         const item: { [key: string]: unknown } = {};
         item["oid"] = doc["redboxOid"];
-        item["title"] = doc["metadata"]["title"];
-        item["metadata"] = doc["metadata"];
+        const docMetadata = (doc["metadata"] ?? {}) as globalThis.Record<string, unknown>;
+        item["title"] = docMetadata["title"];
+        item["metadata"] = docMetadata;
         item["dateCreated"] = doc["dateCreated"];
         item["dateModified"] = doc["lastSaveDate"];
         item["hasEditAccess"] = this.RecordsService.hasEditAccess(brand, user, roles, doc);
@@ -750,11 +741,13 @@ export namespace Controllers {
       const docs = results["items"];
 
       for (let i = 0; i < docs.length; i++) {
-        const doc = docs[i];
+        const doc = docs[i] as globalThis.Record<string, unknown>;
         const item: { [key: string]: unknown } = {};
+        const deletedRecord = (doc["deletedRecordMetadata"] ?? {}) as globalThis.Record<string, unknown>;
+        const deletedRecordMetadata = (deletedRecord["metadata"] ?? {}) as globalThis.Record<string, unknown>;
         item["oid"] = doc["redboxOid"];
-        item["title"] = doc["deletedRecordMetadata"]["metadata"]["title"];
-        item["deletedRecord"] = doc["deletedRecordMetadata"];
+        item["title"] = deletedRecordMetadata["title"];
+        item["deletedRecord"] = deletedRecord;
         item["dateCreated"] = doc["dateCreated"];
         item["dateModified"] = doc["lastSaveDate"];
         item["dateDeleted"] = doc["dateDeleted"];
@@ -833,7 +826,7 @@ export namespace Controllers {
         sails.log.verbose(JSON.stringify(response));
         return this.sendResp(req, res, {
           status: 500,
-          displayErrors: [{ title: response.message, detail: response.details }]
+          displayErrors: [{ title: response.message, detail: String(response.details ?? '') }]
         });
       }
     }
@@ -868,7 +861,7 @@ export namespace Controllers {
       } else {
         return this.sendResp(req, res, {
           status: 500,
-          displayErrors: [{ title: response.message, detail: response.details + ` Delete attempt failed for OID: ${oid}` }]
+          displayErrors: [{ title: response.message, detail: `${String(response.details ?? '')} Delete attempt failed for OID: ${oid}` }]
         });
       }
     }
@@ -887,7 +880,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: response });
       } else {
         return this.sendResp(req, res, {
-          status: 500, displayErrors: [{ title: response.message, detail: response.details + ` Destroy attempt failed for OID: ${oid}` }]
+          status: 500, displayErrors: [{ title: response.message, detail: `${String(response.details ?? '')} Destroy attempt failed for OID: ${oid}` }]
         });
       }
     }
@@ -1131,7 +1124,13 @@ export namespace Controllers {
             } else {
               const oid = existingRecord[0].redboxOid;
               if (updateMode != "ignore") {
-                recordResponses.push(await this.updateHarvestRecord(brand, recordTypeModel, updateMode, record['recordRequest']['metadata'], oid, harvestId, user));
+                const newMetadata = record['recordRequest']?.metadata ?? record['recordRequest'];
+                const existingMetadata = existingRecord[0]?.metadata ?? {};
+                if (this.isMetadataEqual(newMetadata, existingMetadata)) {
+                  recordResponses.push(new APIHarvestResponse(harvestId, oid, true, `Record ignored as the record already exists. oid: ${oid}`))
+                } else {
+                  recordResponses.push(await this.updateHarvestRecord(brand, recordTypeModel, updateMode, record['recordRequest']['metadata'], oid, harvestId, user));
+                }
               } else {
                 recordResponses.push(new APIHarvestResponse(harvestId, oid, true, `Record ignored as the record already exists. oid: ${oid}`))
               }
@@ -1141,19 +1140,6 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: recordResponses });
       }
       return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: "Invalid request" }] });
-    }
-
-    private isMetadataEqual(meta1: any, meta2: any): boolean {
-
-      const keys = _.keys(meta1);
-
-      for (const key of keys) {
-        if (!_.isEqual(meta1?.[key], meta2?.[key])) {
-          return false;
-        }
-      }
-
-      return true;
     }
 
     public async legacyHarvest(req: Sails.Req, res: Sails.Res) {
@@ -1174,6 +1160,7 @@ export namespace Controllers {
         }
         const recordResponses = [];
         const records = body['records'];
+
         for (const record of records) {
           const harvestId = record['harvest_id'];
           if (_.isEmpty(harvestId)) {
@@ -1304,7 +1291,7 @@ export namespace Controllers {
 
         if (workflowStage) {
           const wfStep = await firstValueFrom(WorkflowStepsService.get(recordTypeModel, workflowStage));
-          this.RecordsService.setWorkflowStepRelatedMetadata(request, wfStep);
+          this.RecordsService.setWorkflowStepRelatedMetadata(request, wfStep as globalThis.Record<string, unknown>);
         }
 
         if (response.isSuccessful()) {
@@ -1321,22 +1308,31 @@ export namespace Controllers {
       }
     }
 
+    private isMetadataEqual(meta1: any, meta2: any): boolean {
+
+      const keys = _.keys(meta1);
+
+      for (const key of keys) {
+        if (!_.isEqual(meta1?.[key], meta2?.[key])) {
+          return false;
+        }
+      }
+
+      return true;
+    }
 
     public listDeletedRecords(req: Sails.Req, res: Sails.Res) {
-      //sails.log.debug('api-list-records');
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const editAccessOnly = req.query.editOnly;
 
       let roles = [];
-      let username = "guest";
       let user: any = {};
       if (req.isAuthenticated()) {
         roles = req.user.roles;
         user = req.user;
-        username = req.user.username;
       } else {
         // assign default role if needed...
-        user = { username: username };
+        user = { username: "guest" };
         roles = [];
         roles.push(RolesService.getDefUnathenticatedRole(brand));
       }
@@ -1359,8 +1355,6 @@ export namespace Controllers {
       if (rows > sails.config.api.max_requests) {
         return this.reachedMaxRequestRows(req, res);
       } else {
-        // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
-        // sails.log.debug(`${rows} ${packageType} ${sort}`);
         return this.getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString)
           .then(response => {
             this.sendResp(req, res, { data: response });

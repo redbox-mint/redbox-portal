@@ -368,7 +368,7 @@ export namespace Services {
     public async solrAddOrUpdate(job: QueueJob<RecordModel>) {
       try {
         const data: RecordModel = job.attrs.data as RecordModel;
-        const coreId = _.get(data, 'metaMetadata.searchCore', 'default');
+        const coreId = String(_.get(data, 'metaMetadata.searchCore', 'default'));
         // storage_id is used as the main ID in searches
         const solrDocument: SolrDocument = new SolrDocument(data);
         sails.log.verbose(`${this.logHeader} adding document: ${solrDocument.id} to index`);
@@ -503,7 +503,7 @@ export namespace Services {
     public async solrDelete(job: QueueJob<RecordModel>, done: unknown) {
       try {
         const data = job.attrs.data;
-        const coreId = _.get(data, 'searchCore', 'default');
+        const coreId = String(_.get(data, 'searchCore', 'default'));
         const solrDocument: SolrDocument = new SolrDocument(data);
         sails.log.verbose(`${this.logHeader} deleting document: ${solrDocument.id}`);
         await this.clients[coreId].delete('id', solrDocument.id);

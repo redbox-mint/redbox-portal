@@ -1055,7 +1055,7 @@ export namespace Services {
           defaultUser["token"] = crypto.createHash('sha256').update(authConfig.local.default.token).digest('base64');
         }
         sails.log.verbose("Default user missing, creating...");
-        return super.getObservable(User.create(defaultUser))
+        return super.getObservable<UserModel>(User.create(defaultUser))
           .pipe(flatMap(defUser => {
             // START Sails 1.0 upgrade
             const defRoleIds = _.map(defRoles, (o: AnyRecord) => {
@@ -1064,7 +1064,7 @@ export namespace Services {
             const defUserId = (defUser as AnyRecord).id as string | number;
             let q = User.addToCollection(defUserId, 'roles').members(defRoleIds);
             // END Sails 1.0 upgrade
-            return super.getObservable(q, 'exec', 'simplecb')
+            return super.getObservable<Record<string, unknown>>(q, 'exec', 'simplecb')
               .pipe(flatMap(dUser => {
                 return from(defRoles)
                   .pipe(map(roleObserved => {
@@ -1074,7 +1074,7 @@ export namespace Services {
                     const roleId = role.id as string | number;
                     q = Role.addToCollection(roleId, 'users').members([defUserId]);
                     // END Sails 1.0 upgrade
-                    return super.getObservable(q, 'exec', 'simplecb');
+                    return super.getObservable<Record<string, unknown>>(q, 'exec', 'simplecb');
                   }));
               })
               ,last()
@@ -1122,7 +1122,7 @@ export namespace Services {
       auditEvent['additionalContext'] = this.stringifyObject(additionalContext);
       sails.log.verbose('Adding user audit event');
       sails.log.verbose(auditEvent);
-      return firstValueFrom(super.getObservable(UserAudit.create(auditEvent)));
+      return firstValueFrom(super.getObservable<Record<string, unknown>>(UserAudit.create(auditEvent)));
     }
 
     stringifyObject(object: unknown): unknown {
@@ -1161,7 +1161,7 @@ export namespace Services {
               }
               newUser[usernameField] = username;
               newUser[passwordField] = password;
-              return super.getObservable(User.create(newUser));
+              return super.getObservable<UserModel>(User.create(newUser));
             }
           }));
         }
@@ -1197,14 +1197,14 @@ export namespace Services {
         }));
     }
 
-    public getUserWithUsername = (username: string) => {
-      return this.getObservable(User.findOne({
+    public getUserWithUsername = (username: string): Observable<UserModel | null> => {
+      return this.getObservable<UserModel | null>(User.findOne({
         username: username
       }).populate('roles'));
     }
 
-    public getUserWithId = (userid: string | number) => {
-      return this.getObservable(User.findOne({
+    public getUserWithId = (userid: string | number): Observable<UserModel | null> => {
+      return this.getObservable<UserModel | null>(User.findOne({
         id: userid
       }).populate('roles'));
     }
@@ -1212,21 +1212,21 @@ export namespace Services {
     /**
      * @return Collection of all users (local and AAF)
      */
-    public getUsers = (): Observable<unknown> => {
-      return super.getObservable(User.find({}).populate('roles'));
+    public getUsers = (): Observable<UserModel[]> => {
+      return super.getObservable<UserModel[]>(User.find({}).populate('roles'));
     }
 
     /**
      * Retrieve all users that hold at least one role for the supplied brand.
      * @param brand The brand or brand id to scope the search to.
      */
-    public getUsersForBrand = (brand: BrandingModel | string): Observable<unknown> => {
+    public getUsersForBrand = (brand: BrandingModel | string): Observable<UserModel[]> => {
       const brandId = typeof brand === 'string' ? brand : _.get(brand, 'id');
       if (_.isEmpty(brandId)) {
         return of([]);
       }
 
-      return super.getObservable(User.find({}).populate('roles'))
+      return super.getObservable<UserModel[]>(User.find({}).populate('roles'))
         .pipe(map(users => {
           return _.filter(users, (user: unknown) => {
             const userObj = user as AnyRecord;
@@ -1235,7 +1235,7 @@ export namespace Services {
         }));
     }
 
-    public setUserKey = (userid: string | number, uuid: string | null) => {
+    public setUserKey = (userid: string | number, uuid: string | null): Observable<UserModel> => {
       const uuidHash = _.isEmpty(uuid) ? null : crypto.createHash('sha256').update(uuid as string).digest('base64');
       return this.getUserWithId(userid).pipe(flatMap(user => {
         if (user) {
@@ -1244,7 +1244,8 @@ export namespace Services {
           }, {
             token: uuidHash
           });
-          return this.getObservable(q, 'exec', 'simplecb');
+          return this.getObservable<UserModel[]>(q, 'exec', 'simplecb')
+            .pipe(map((updatedUsers: UserModel[]) => updatedUsers[0] ?? user));
         } else {
           return throwError(new Error('No such user with id:' + userid));
         }
@@ -1277,7 +1278,7 @@ export namespace Services {
           const q = User.update({
             id: userid
           }, update);
-          return this.getObservable(q, 'exec', 'simplecb');
+          return this.getObservable<UserModel[]>(q, 'exec', 'simplecb');
         } else {
           return throwError(new Error('No such user with id:' + userid));
         }
@@ -1293,7 +1294,7 @@ export namespace Services {
           // START Sails 1.0 upgrade
           const q = User.replaceCollection(user.id, 'roles').members(newRoleIds);
           // END Sails 1.0 upgrade
-          return this.getObservable(q, 'exec', 'simplecb');
+          return this.getObservable<UserModel>(q, 'exec', 'simplecb');
         } else {
           return throwError(new Error('No such user with id:' + userid));
         }
@@ -1354,7 +1355,7 @@ export namespace Services {
       if (!_.isEmpty(source) && !_.isUndefined(source) && !_.isNull(source)) {
         queryObj['type'] = source;
       }
-      return this.getObservable(User.find(queryObj).populate('roles'))
+      return this.getObservable<UserModel[]>(User.find(queryObj).populate('roles'))
         .pipe(flatMap(users => {
           if (brandId) {
             _.remove(users, (user: unknown) => {

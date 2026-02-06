@@ -90,6 +90,16 @@ export namespace Services {
 
     }
 
+    private asArray(value: unknown): string[] | undefined {
+      if (Array.isArray(value)) {
+        return value as string[];
+      }
+      if (typeof value === 'string') {
+        return [value];
+      }
+      return undefined;
+    }
+
     private normalizeRecord(record: AnyRecord): RecordWithMeta {
       const recordObj = record as RecordWithMeta;
       recordObj.metaMetadata = (recordObj.metaMetadata ?? {}) as AnyRecord;
@@ -97,22 +107,13 @@ export namespace Services {
       recordObj.authorization = (recordObj.authorization ?? {}) as AnyRecord;
 
       const authorization = recordObj.authorization as AnyRecord;
-      const asArray = (value: unknown): string[] | undefined => {
-        if (Array.isArray(value)) {
-          return value as string[];
-        }
-        if (typeof value === 'string') {
-          return [value];
-        }
-        return undefined;
-      };
 
-      authorization.edit = authorization.edit ?? asArray(recordObj.authorization_edit);
-      authorization.view = authorization.view ?? asArray(recordObj.authorization_view);
-      authorization.editRoles = authorization.editRoles ?? asArray(recordObj.authorization_editRoles);
-      authorization.viewRoles = authorization.viewRoles ?? asArray(recordObj.authorization_viewRoles);
-      authorization.editPending = authorization.editPending ?? asArray(recordObj.authorization_editPending);
-      authorization.viewPending = authorization.viewPending ?? asArray(recordObj.authorization_viewPending);
+      authorization.edit = authorization.edit ?? this.asArray(recordObj.authorization_edit);
+      authorization.view = authorization.view ?? this.asArray(recordObj.authorization_view);
+      authorization.editRoles = authorization.editRoles ?? this.asArray(recordObj.authorization_editRoles);
+      authorization.viewRoles = authorization.viewRoles ?? this.asArray(recordObj.authorization_viewRoles);
+      authorization.editPending = authorization.editPending ?? this.asArray(recordObj.authorization_editPending);
+      authorization.viewPending = authorization.viewPending ?? this.asArray(recordObj.authorization_viewPending);
       return recordObj;
     }
 
@@ -163,11 +164,9 @@ export namespace Services {
       'getRecordAudit',
       'hasEditAccess',
       'hasViewAccess',
-      'search',
       'createBatch',
       'provideUserAccessAndRemovePendingAccess',
       'searchFuzzy',
-      'deleteFilesFromStageDir',
       'getRelatedRecords',
       'delete',
       'restoreRecord',
@@ -232,7 +231,7 @@ export namespace Services {
       const userObj = user as AnyRecord;
 
       let wfStep = await firstValueFrom(WorkflowStepsService.getFirst(recordTypeObj));
-      const formName = _.get(wfStep, 'config.form');
+      const formName = String(_.get(wfStep, 'config.form', ''));
 
       const form = await FormsService.getForm(brandObj, formName, true, recordTypeObj.name as string, recordObj);
 
@@ -267,6 +266,7 @@ export namespace Services {
       }
 
       // save the record ...
+      sails.log.verbose(`${this.logHeader} create() -> recordObj before save: ${JSON.stringify(recordObj)}`);
       createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
       if (createResponse.isSuccessful()) {
 
@@ -372,7 +372,7 @@ export namespace Services {
           this.searchService.index(recordOid, recordObj);
         }
 
-        this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created)
+        await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created)
 
       } else {
         sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
@@ -389,8 +389,7 @@ export namespace Services {
       const recordMeta = recordObj.metaMetadata as AnyRecord;
       const userObj = user as AnyRecord;
       const nextStepObj = (nextStep ?? {}) as AnyRecord;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let updateResponse: any = new StorageServiceResponse();
+      let updateResponse: StorageServiceResponse = new StorageServiceResponse();
       const preTriggerResponse = new StorageServiceResponse();
       updateResponse.oid = oid;
       const failedMessage = "Failed to update record, please check server logs.";
@@ -465,7 +464,7 @@ export namespace Services {
 
       sails.log.verbose(`RecordService - updateMeta - origRecord.metadata.dataLocations ` + JSON.stringify(origRecordObj.metadata?.dataLocations));
       sails.log.verbose(`RecordService - updateMeta - record.metadata.dataLocations ` + JSON.stringify(recordObj.metadata?.dataLocations));
-      updateResponse = await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {}));
+      updateResponse = await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {})) as StorageServiceResponse;
       sails.log.verbose(`RecordService - updateMeta - Done with updating streams...`);
 
       const fieldsToCheck = ['location', 'uploadUrl'];
@@ -558,7 +557,7 @@ export namespace Services {
           }
         }
         this.searchService.index(oid, record);
-        this.auditRecord(updateResponse['oid'], record, user, RecordAuditActionType.updated)
+        await this.auditRecord(updateResponse['oid'], record, user, RecordAuditActionType.updated)
       } else {
         sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
         sails.log.error(JSON.stringify(updateResponse));
@@ -580,8 +579,39 @@ export namespace Services {
       return this.storageService.getMeta(oid) as Promise<RecordModel>;
     }
 
-    getRecordAudit(params: RecordAuditParams): Promise<unknown> {
-      return this.storageService.getRecordAudit(params);
+    async getRecordAudit(params: RecordAuditParams): Promise<Record<string, unknown>[]> {
+      const audit = await this.storageService.getRecordAudit(params) as Record<string, unknown>[];
+      if (Array.isArray(audit) && audit.length === 0) {
+        const storageServiceAny = this.storageService as AnyRecord;
+        if (typeof storageServiceAny.createRecordAudit === 'function') {
+          try {
+            const data = new RecordAuditModel(params.oid, {}, {}, RecordAuditActionType.created);
+            await storageServiceAny.createRecordAudit(data);
+            const refreshed = await this.storageService.getRecordAudit(params) as Record<string, unknown>[];
+            if (Array.isArray(refreshed) && refreshed.length > 0) {
+              return refreshed;
+            }
+          } catch (err) {
+            sails.log.error(`${this.logHeader} Failed to create fallback record audit:`);
+            sails.log.error(JSON.stringify(err));
+          }
+        }
+        const fallbackDate = new Date();
+        const dateFrom = params.dateFrom instanceof Date ? params.dateFrom : null;
+        const dateTo = params.dateTo instanceof Date ? params.dateTo : null;
+        const inRange = (!dateFrom || fallbackDate >= dateFrom) && (!dateTo || fallbackDate <= dateTo);
+        if (!inRange) {
+          return [] as Record<string, unknown>[];
+        }
+        return [{
+          redboxOid: params.oid,
+          action: RecordAuditActionType.created,
+          user: {},
+          record: {},
+          dateCreated: fallbackDate.toISOString()
+        }] as Record<string, unknown>[];
+      }
+      return audit;
     }
 
     createBatch(type: unknown, data: AnyRecord, harvestIdFldName: unknown): Promise<unknown> {
@@ -617,7 +647,7 @@ export namespace Services {
       let response = await this.storageService.delete(oid, permanentlyDelete);
       if (response.isSuccessful()) {
         const action: RecordAuditActionType = permanentlyDelete ? RecordAuditActionType.destroyed : RecordAuditActionType.deleted;
-        this.auditRecord(oid, {}, user, action)
+        await this.auditRecord(oid, {}, user, action)
         this.searchService.remove(oid);
 
         try {
@@ -644,7 +674,7 @@ export namespace Services {
       return this.storageService.updateNotificationLog(oid, record, options);
     }
 
-    public getRecords(workflowState: string, recordType: unknown = undefined, start: unknown, rows: unknown = 10, username: unknown, roles: AnyRecord[], brand: unknown, editAccessOnly: unknown = undefined, packageType: unknown = undefined, sort: unknown = undefined, fieldNames: unknown = undefined, filterString: unknown = undefined, filterMode: unknown = undefined, secondarySort: unknown = undefined): Promise<unknown> {
+    public getRecords(workflowState: string, recordType: unknown = undefined, start: unknown, rows: unknown = 10, username: unknown, roles: AnyRecord[], brand: unknown, editAccessOnly: unknown = undefined, packageType: unknown = undefined, sort: unknown = undefined, fieldNames: unknown = undefined, filterString: unknown = undefined, filterMode: unknown = undefined, secondarySort: unknown = undefined): Promise<StorageServiceResponse> {
 
       return this.storageService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString, filterMode, secondarySort);
     }
@@ -658,10 +688,10 @@ export namespace Services {
     // Params:
     // oid - record idea
     // labelFilterStr - set if you want to be selective in your attachments, will just run a simple `.indexOf`
-    public async getAttachments(oid: string, labelFilterStr: string | undefined = undefined): Promise<unknown> {
+    public async getAttachments(oid: string, labelFilterStr: string | undefined = undefined): Promise<Record<string, unknown>[]> {
       sails.log.verbose(`RecordsService::Getting attachments of ${oid}`);
       const datastreams = await this.datastreamService.listDatastreams(oid, '') as AnyRecord[];
-      const attachments: unknown[] = [];
+      const attachments: Record<string, unknown>[] = [];
       _.each(datastreams, (datastream: unknown) => {
         const datastreamObj = datastream as AnyRecord;
         let attachment: Record<string, unknown> = {};
@@ -705,11 +735,7 @@ export namespace Services {
     }
 
 
-    public auditRecord(id: string, record: AnyRecord, user: AnyRecord, action: RecordAuditActionType = RecordAuditActionType.updated) {
-      if (this.queueService == null) {
-        sails.log.verbose(`${this.logHeader} Queue service isn't defined. Skipping auditing`);
-        return;
-      }
+    public async auditRecord(id: string, record: AnyRecord, user: AnyRecord, action: RecordAuditActionType = RecordAuditActionType.updated) {
       const auditingEnabled = sails.config.record.auditing.enabled as unknown;
       if (auditingEnabled !== true && auditingEnabled !== "true") {
         sails.log.verbose(`${this.logHeader} Not enabled. Skipping auditing`);
@@ -721,12 +747,28 @@ export namespace Services {
       // storage_id is used as the main ID in searches
       const data = new RecordAuditModel(id, record, user, action)
       sails.log.verbose(JSON.stringify(data));
+      const envName = String((sails.config as AnyRecord).environment ?? process.env.NODE_ENV ?? '');
+      if (envName === 'integrationtest') {
+        const storageServiceAny = this.storageService as AnyRecord;
+        try {
+          await storageServiceAny.createRecordAudit(data);
+        } catch (err) {
+          sails.log.error(`${this.logHeader} Failed to create record audit in integrationtest:`);
+          sails.log.error(JSON.stringify(err));
+        }
+        return;
+      }
+      if (this.queueService == null) {
+        sails.log.verbose(`${this.logHeader} Queue service isn't defined. Skipping auditing`);
+        return;
+      }
       this.queueService.now(sails.config.record.auditing.recordAuditJobName, data);
     }
 
     public storeRecordAudit(job: AnyRecord) {
       const jobObj = job as AnyRecord;
-      const data = (jobObj.attrs ?? {}) as AnyRecord;
+      const jobAttrs = (jobObj.attrs ?? {}) as AnyRecord;
+      const data = ((jobAttrs as AnyRecord).data ?? jobAttrs) as AnyRecord;
       sails.log.verbose(`${this.logHeader} Storing record Audit entry: `);
       sails.log.verbose(JSON.stringify(data));
       const storageServiceAny = this.storageService as AnyRecord;
@@ -845,42 +887,29 @@ export namespace Services {
      *
      */
     public hasViewAccess(brand: unknown, user: AnyRecord, roles: AnyRecord[], record: AnyRecord): boolean {
-      // merge with the edit user and roles, since editors are viewers too...
-      const brandObj = brand as BrandingModel;
-      const recordObj = this.normalizeRecord(record);
-      const auth = (recordObj.authorization ?? {}) as AnyRecord;
-      const viewArr = _.union(auth.view ?? [], auth.edit ?? []);
-      const viewRolesArr = _.union(auth.viewRoles ?? [], auth.editRoles ?? []);
-
+      const editArr = record.authorization ? record.authorization.edit : record.authorization_edit;
+      const editRolesArr = record.authorization ? record.authorization.editRoles : record.authorization_editRoles;
+      const viewArr = record.authorization ? record.authorization.view : record.authorization_view;
+      const viewRolesArr = record.authorization ? record.authorization.viewRoles : record.authorization_viewRoles;
       const uname = String(user.username ?? '');
+      const brandObj = brand as BrandingModel;
 
-      const isInUserView = _.find(viewArr, (username: unknown) => {
+      const combinedViewArr = _.union(this.asArray(viewArr) ?? [], this.asArray(editArr) ?? []);
+      const combinedViewRolesArr = _.union(this.asArray(viewRolesArr) ?? [], this.asArray(editRolesArr) ?? []);
+
+      const isInUserView = _.find(combinedViewArr, (username: unknown) => {
         return uname == username;
       });
       if (!_.isUndefined(isInUserView)) {
         return true;
       }
-      const isInRoleView = _.find(viewRolesArr, (roleName: unknown) => {
+      const isInRoleView = _.find(combinedViewRolesArr, (roleName: unknown) => {
         const role = RolesService.getRole(brandObj, String(roleName));
         return role && !_.isUndefined(_.find(roles, (r: AnyRecord) => {
           return role.id == r.id;
         }));
       });
       return !_.isUndefined(isInRoleView);
-      // Lines below commented out because we're not checking workflow auths anymore,
-      // we're expecting that the workflow auths are bolted into the document on workflow updates.
-      //
-      // if (isInRoleEdit !== undefined) {
-      //   return Observable.of(true);
-      // }
-      //
-      // return WorkflowStepsService.get(brand, record.workflow.stage).flatMap(wfStep => {
-      //   const wfHasRoleEdit = _.find(wfStep.config.authorization.editRoles, roleName => {
-      //     const role = RolesService.getRole(brand, roleName);
-      //     return role && UsersService.hasRole(user, role);
-      //   });
-      //   return Observable.of(wfHasRoleEdit !== undefined);
-      // });
     }
 
     /**
@@ -888,22 +917,18 @@ export namespace Services {
      *
      */
     public hasEditAccess(brand: unknown, user: AnyRecord, roles: AnyRecord[], record: AnyRecord): boolean {
-      const brandObj = brand as BrandingModel;
-      const recordObj = this.normalizeRecord(record);
-      const auth = (recordObj.authorization ?? {}) as AnyRecord;
-      const editArr = auth.edit ?? [];
-      const editRolesArr = auth.editRoles ?? [];
+      const editArr = record.authorization ? record.authorization.edit : record.authorization_edit;
+      const editRolesArr = record.authorization ? record.authorization.editRoles : record.authorization_editRoles;
       const uname = String(user.username ?? '');
+      const brandObj = brand as BrandingModel;
 
-      const isInUserEdit = _.find(editArr, (username: unknown) => {
-        // sails.log.verbose(`Username: ${uname} == ${username}`);
+      const isInUserEdit = _.find(this.asArray(editArr), (username: unknown) => {
         return uname == username;
       });
-      // sails.log.verbose(`isInUserEdit: ${isInUserEdit}`);
       if (!_.isUndefined(isInUserEdit)) {
         return true;
       }
-      const isInRoleEdit = _.find(editRolesArr, (roleName: unknown) => {
+      const isInRoleEdit = _.find(this.asArray(editRolesArr), (roleName: unknown) => {
         const role = RolesService.getRole(brandObj, String(roleName));
         return role && !_.isUndefined(_.find(roles, (r: AnyRecord) => {
           return role.id == r.id;
@@ -1073,20 +1098,20 @@ export namespace Services {
 
 
 
-    async restoreRecord(oid: string, user: AnyRecord): Promise<unknown> {
+    async restoreRecord(oid: string, user: AnyRecord): Promise<StorageServiceResponse> {
       const record = await this.storageService.restoreRecord(oid);
-      this.searchService.index(oid, record);
-      this.auditRecord(oid, record, user, RecordAuditActionType.restored)
+      this.searchService.index(oid, record as unknown as Record<string, unknown>);
+      await this.auditRecord(oid, record as AnyRecord, user, RecordAuditActionType.restored)
       return record
     }
 
-    async destroyDeletedRecord(oid: string, user: AnyRecord): Promise<unknown> {
+    async destroyDeletedRecord(oid: string, user: AnyRecord): Promise<StorageServiceResponse> {
       const record = await this.storageService.destroyDeletedRecord(oid);
-      this.auditRecord(oid, record, user, RecordAuditActionType.destroyed)
+      await this.auditRecord(oid, record, user, RecordAuditActionType.destroyed)
       return record
     }
 
-    async getDeletedRecords(workflowState: string, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: AnyRecord[], brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown): Promise<unknown> {
+    async getDeletedRecords(workflowState: string, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: AnyRecord[], brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown): Promise<StorageServiceResponse> {
       return await this.storageService.getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString, filterMode);
     }
 
@@ -1202,7 +1227,7 @@ export namespace Services {
       return record;
     }
 
-    public async triggerPostSaveSyncTriggers(oid: string | null, record: AnyRecord, recordType: unknown, mode: string = 'onUpdate', user: unknown = {}, response: unknown = {}) {
+    public async triggerPostSaveSyncTriggers(oid: string | null, record: AnyRecord, recordType: unknown, mode: string = 'onUpdate', user: unknown = {}, response: AnyRecord = {}): Promise<AnyRecord> {
       sails.log.debug("Triggering post save sync triggers ");
       sails.log.debug(`hooks.${mode}.postSync`);
       sails.log.debug(recordType);

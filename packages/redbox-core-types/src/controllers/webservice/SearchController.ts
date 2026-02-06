@@ -68,8 +68,9 @@ export namespace Controllers {
         sails.log.verbose(`SearchController::indexAll() -> Indexing ${totalItems} records(s), page: ${pageCount} of ${totalPages}`);
         itemsRead += _.size(response.items);
         for (const responseRec of response.items) {
-          _.unset(responseRec, '_id');
-          await this.searchService.index(responseRec.redboxOid, responseRec);
+          const responseRecObj = responseRec as Record<string, unknown> & { redboxOid?: string };
+          _.unset(responseRecObj, '_id');
+          await this.searchService.index(String(responseRecObj.redboxOid ?? ''), responseRecObj);
         }
       } while (itemsRead < totalItems)
 

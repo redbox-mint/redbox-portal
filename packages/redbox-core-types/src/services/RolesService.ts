@@ -105,7 +105,7 @@ export namespace Services {
     }
 
     public getRolesWithBrand = (brand: BrandingModel): Observable<RoleModel[]> => {
-      return super.getObservable(Role.find({ branding: brand.id }).populate('users'));
+      return super.getObservable<RoleModel[]>(Role.find({ branding: brand.id }).populate('users'));
     }
 
     public getRoleIds = (fromRoles: RoleModel[], roleNames: string[]) => {
@@ -135,7 +135,7 @@ export namespace Services {
         const newRole = await Role.create(roleConfig);
         sails.log.verbose("createRoleWithBrand - adding role to brand " + newRole.id);
         const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
-  return await firstValueFrom(super.getObservable(q, 'exec', 'simplecb'));
+  return await firstValueFrom(super.getObservable<BrandingModel>(q, 'exec', 'simplecb'));
       } else {
         sails.log.verbose('createRoleWithBrand - role ' + roleName + ' exists');
         return of(brand);
@@ -148,7 +148,7 @@ export namespace Services {
         sails.log.verbose("Creating default admin, and other roles...");
         return from(this.getConfigRoles())
                          .pipe(flatMap((roleConfig: AuthRoleConfig) => {
-                           return super.getObservable(Role.create(roleConfig))
+                           return super.getObservable<RoleModel>(Role.create(roleConfig))
                                        .pipe(flatMap((newRole: RoleModel) => {
                                          sails.log.verbose("Adding role to brand:" + newRole.id);
                                          const brand:BrandingModel = sails.services.brandingservice.getDefault();
@@ -156,7 +156,7 @@ export namespace Services {
                                          // brand.roles.add(newRole.id);
                                          const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
                                          // return super.getObservable(brand, 'save', 'simplecb');
-                                         return super.getObservable(q, 'exec', 'simplecb');
+                                         return super.getObservable<BrandingModel>(q, 'exec', 'simplecb');
                                          // END Sails 1.0 upgrade
                                        }));
                          }),

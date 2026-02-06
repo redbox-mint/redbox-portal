@@ -38,8 +38,14 @@ export namespace Controllers {
         if (editable == null) {
           editable = true;
         }
-        const form: FormModel = await firstValueFrom(FormsService.getFormByName(name, editable));
-
+        const form = await firstValueFrom(FormsService.getFormByName(name, editable));
+        if (!form) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ title: 'Form not found' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
         return this.apiRespond(req, res, form, 200)
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));

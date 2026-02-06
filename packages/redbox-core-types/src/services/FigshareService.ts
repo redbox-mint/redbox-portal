@@ -1922,13 +1922,14 @@ export namespace Services {
         try {
           const response = await this.datastreamService.getDatastream(oid, attachId);
 
-          if (response.readstream) {
+          const readStream = response.readstream;
+          if (readStream) {
             await new Promise((resolve, reject) => {
-              response.readstream.pipe(file);
-              response.readstream.on("error", (err: unknown) => {
+              readStream.pipe(file);
+              readStream.on("error", (err: unknown) => {
                 reject(err);
               });
-              response.readstream.on("close", () => {
+              readStream.on("close", () => {
                 resolve(file);
               });
             });

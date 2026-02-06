@@ -258,7 +258,8 @@ export namespace Services {
 						if (datastream.readstream) {
 							dataFile = datastream.readstream;
 						} else {
-							dataFile = Buffer.from(datastream.body);
+							const body = datastream.body ?? '';
+							dataFile = Buffer.isBuffer(body) ? body : Buffer.from(body);
 						}
 						await this.writeDatastream(dataFile, String(a['parentDir'] ?? ''), String(a['name'] ?? ''));
 					}

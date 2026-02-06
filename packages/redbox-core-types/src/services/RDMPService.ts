@@ -130,7 +130,7 @@ export namespace Services {
           sails.log[processRecordCountersLogLevel]('processRecordCounters - before - counter:');
           sails.log[processRecordCountersLogLevel](counter);
 
-          const promiseCounter = await firstValueFrom(this.getObservable(Counter.findOrCreate({
+          const promiseCounter = await firstValueFrom(this.getObservable<Array<{ id?: string | number; value: number }>>(Counter.findOrCreate({
             name: counterData.field_name,
             branding: brandId
           }, {
@@ -156,7 +156,7 @@ export namespace Services {
             this.incrementCounter(recordData, counterData, newVal);
 
             //Update global counter
-            const updateOnePromise = await firstValueFrom(this.getObservable(Counter.updateOne({
+            const updateOnePromise = await firstValueFrom(this.getObservable<Record<string, unknown>>(Counter.updateOne({
               id: promiseCounter[0].id
             }, {
               value: newVal
@@ -499,7 +499,7 @@ export namespace Services {
      * @param record The record to update.
      * @param options The options for modifying the record.
      */
-    public assignPermissions(oid: string, record: RecordWithMeta, options: unknown) {
+    public assignPermissions(oid: string, record: RecordWithMeta, options: unknown, user: UserLike) {
       const optionsObj = options as AnyRecord;
       const triggerCondition = _.get(optionsObj, "triggerCondition", "");
       if (_.isEmpty(triggerCondition) || this.metTriggerCondition(oid, record, optionsObj) === "true") {
@@ -525,7 +525,8 @@ export namespace Services {
         return this.assignContributorRecordPermissions(
           oid, record, recordCreatorPermissions,
           editContributorEmails, editContributorObs,
-          viewContributorEmails, viewContributorObs
+          viewContributorEmails, viewContributorObs, 
+          user
         );
       }
       return of(record);
@@ -543,11 +544,11 @@ export namespace Services {
      * @private
      */
     private assignContributorRecordPermissions(
-      oid: string, record: RecordWithMeta, recordCreatorPermissions: unknown,
-      editContributorEmails: string[], editContributorObs: Array<Observable<unknown>>,
-      viewContributorEmails: string[], viewContributorObs: Array<Observable<unknown>>) {
+oid: string, record: RecordWithMeta, recordCreatorPermissions: unknown, editContributorEmails: string[], editContributorObs: Array<Observable<unknown>>, viewContributorEmails: string[], viewContributorObs: Array<Observable<unknown>>, user?: UserLike) {
       const auth = (record.authorization ?? {}) as AnyRecord;
       record.authorization = auth;
+      const createdBy = record.metaMetadata?.createdBy ?? user?.username;
+      const hasContributors = !_.isEmpty(editContributorEmails) || !_.isEmpty(viewContributorEmails);
       if (_.isEmpty(editContributorEmails)) {
         sails.log.error(`No editors for record: ${oid}`);
       }
@@ -555,11 +556,10 @@ export namespace Services {
         sails.log.error(`No viewers for record: ${oid}`);
       }
       const useDefaultViewList = _.isEmpty(viewContributorEmails)
-        && (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit");
+        && (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit")
+        && !(_.isEmpty(editContributorEmails) && _.isEmpty(viewContributorEmails));
       if (useDefaultViewList) {
-        const defaultViewList = new Array(Object.keys(record as AnyRecord).length + 1)
-          .fill(undefined as unknown as string);
-        auth.view = defaultViewList;
+        auth.view = [createdBy] as string[];
         auth.viewPending = viewContributorEmails;
       }
       // when both are empty, simpy return the record
@@ -581,6 +581,14 @@ export namespace Services {
       }
       let zippedViewContributorUsers: Observable<unknown>;
       if (editContributorObs.length == 0) {
+        const newEditList: string[] = [];
+        if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
+          if (hasContributors) {
+            newEditList.push(createdBy as string);
+          }
+        }
+        auth.edit = newEditList;
+        auth.editPending = editContributorEmails;
         zippedViewContributorUsers = zip(...viewContributorObs);
       } else {
         zippedViewContributorUsers = zip(...editContributorObs)
@@ -588,7 +596,7 @@ export namespace Services {
             const newEditList: string[] = [];
             this.filterPending(editContributorUsers, editContributorEmails, newEditList);
             if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
-              newEditList.push(record.metaMetadata.createdBy as string);
+              newEditList.push(createdBy as string);
             }
             auth.edit = newEditList;
             auth.editPending = editContributorEmails;
@@ -607,7 +615,7 @@ export namespace Services {
         const newViewList: string[] = [];
         this.filterPending(viewUsers, viewContributorEmails, newViewList);
         if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
-          newViewList.push(record.metaMetadata.createdBy as string);
+          newViewList.push(createdBy as string);
         }
         auth.view = newViewList;
         auth.viewPending = viewContributorEmails;
@@ -668,16 +676,20 @@ export namespace Services {
       if (this.metTriggerCondition(oid, record, options as AnyRecord) === "true") {
         const stored = (auth.stored ?? {}) as AnyRecord;
         auth.stored = stored;
-        if (stored != undefined) {
-          auth.edit = _.map(stored.edit as AnyRecord[], _.clone);
-          auth.view = _.map(stored.view as AnyRecord[], _.clone);
+        if (!_.isEmpty(stored)) {
+          if (stored.edit != undefined) {
+            auth.edit = _.map(stored.edit as AnyRecord[], _.clone);
+          }
+          if (stored.view != undefined) {
+            auth.view = _.map(stored.view as AnyRecord[], _.clone);
+          }
           if (stored.editPending != undefined) {
             auth.editPending = _.map(stored.editPending as AnyRecord[], _.clone);
           }
           if (stored.viewPending != undefined) {
             auth.viewPending = _.map(stored.viewPending as AnyRecord[], _.clone);
           }
-          delete auth.stored
+          delete auth.stored;
         }
       }
       return of(record);

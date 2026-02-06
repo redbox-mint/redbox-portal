@@ -11,7 +11,6 @@ export namespace Services {
       'createWorkspaceRecord',
       'getRecordMeta',
       'updateRecordMeta',
-      'registerUserApp',
       'userInfo',
       'provisionerUser',
       'infoFormUserId',

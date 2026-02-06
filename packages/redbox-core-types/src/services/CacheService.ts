@@ -58,16 +58,17 @@ export namespace Services {
           return of(data);
         } else {
           sails.log.verbose(`Getting DB cache entry for name: ${name}`);
-          return super.getObservable(CacheEntry.findOne({name: name})).pipe(flatMap(dbData => {
+          return super.getObservable<Record<string, unknown> | null>(CacheEntry.findOne({name: name})).pipe(flatMap(dbData => {
             if (!_.isEmpty(dbData)) {
               sails.log.verbose(`Got DB cache entry`);
               // check if entry is expired...
-              if (Math.floor(DateTime.local().toSeconds()) - dbData.ts_added > sails.config.custom_cache.cacheExpiry) {
+              const dbDataObj = dbData as { ts_added?: number; data?: unknown };
+              if (Math.floor(DateTime.local().toSeconds()) - (dbDataObj.ts_added ?? 0) > sails.config.custom_cache.cacheExpiry) {
                 sails.log.verbose(`Cache entry for ${name} has expired while on the DB, returning null...`);
                 return of(null);
               } else {
-                this.cache.set(name, dbData.data);
-                return of(dbData.data);
+                this.cache.set(name, dbDataObj.data);
+                return of(dbDataObj.data ?? null);
               }
             }
             sails.log.verbose(`No DB cache entry for: ${name}`);

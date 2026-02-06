@@ -7,8 +7,7 @@ import * as _ from 'lodash';
 import { ILogger } from './Logger';
 
 // Type alias for query objects used with RxJS bindings
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type QueryObject = { [key: string]: any };
+type QueryObject = object;
 
 export namespace Services.Core {
   export class Service {
@@ -95,12 +94,12 @@ export namespace Services.Core {
     * @param method The method to call on q (default: 'exec')
     * @param type The binding type: 'node' for node-style callbacks, otherwise regular callbacks
     */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    protected getObservable<T = any>(q: QueryObject, method: string = 'exec', type: string = 'node'): Observable<T> {
-      if (type == 'node')
-        return bindNodeCallback(q[method].bind(q))() as Observable<T>;
-      else
-        return bindCallback(q[method].bind(q))() as Observable<T>;
+    protected getObservable<T = unknown>(q: QueryObject, method: string = 'exec', type: string = 'node'): Observable<T> {
+      const fn = (q as Record<string, (...args: unknown[]) => unknown>)[method];
+      if (type == 'node') {
+        return bindNodeCallback(fn.bind(q))() as Observable<T>;
+      }
+      return bindCallback(fn.bind(q))() as Observable<T>;
     }
 
     /**
@@ -191,7 +190,10 @@ export namespace Services.Core {
               this.logger.error(`The service method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`);
             }
           } else {
-            this.logger.error(`The service method "${methodName}" does not exist on ${this.constructor?.name}`);
+            // _config is optional for Sails services, so we don't log an error if it's missing.
+            if (methodName !== '_config') {
+              this.logger.error(`The service method "${methodName}" does not exist on ${this.constructor?.name}`);
+            }
           }
         }
       }

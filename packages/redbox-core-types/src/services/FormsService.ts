@@ -33,6 +33,7 @@ import {
 type WorkflowStepLike = {
   id: string;
   config: { form: string };
+  starting?: boolean;
 };
 
 type RecordLike = {
@@ -170,12 +171,12 @@ export namespace Services {
     }
 
     public listForms = (): Observable<FormModel[]> => {
-      return super.getObservable(Form.find({}));
+      return super.getObservable<FormModel[]>(Form.find({}));
     }
 
 
-    public getFormByName = (formName: string, editMode: boolean): Observable<FormModel> => {
-      return super.getObservable(Form.findOne({
+    public getFormByName = (formName: string, editMode: boolean): Observable<FormModel | null> => {
+      return super.getObservable<FormModel | null>(Form.findOne({
         name: formName
       })).pipe(flatMap(form => {
         if (form) {
@@ -206,18 +207,19 @@ export namespace Services {
 
       const starting = true;
 
-      return super.getObservable(RecordType.findOne({
+      return super.getObservable<Record<string, unknown> | null>(RecordType.findOne({
         key: branding.id + "_" + recordType
       })).pipe(
         flatMap(recordType => {
-          return super.getObservable(WorkflowStep.findOne({
-            recordType: recordType.id,
+          const recordTypeId = String((recordType as Record<string, unknown>)?.id ?? '');
+          return super.getObservable<WorkflowStepLike | null>(WorkflowStep.findOne({
+            recordType: recordTypeId,
             starting: starting
           }));
         }),
         flatMap(workflowStep => {
-          if (workflowStep.starting == true) {
-            return super.getObservable(Form.findOne({
+          if (workflowStep?.starting == true) {
+            return super.getObservable<FormModel | null>(Form.findOne({
               name: workflowStep.config.form
             }));
           }

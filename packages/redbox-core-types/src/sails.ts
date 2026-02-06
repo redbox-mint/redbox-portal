@@ -148,7 +148,12 @@ declare global {
 			addToCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
 			replaceCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
 			removeFromCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
-            getDatastore(): { manager: any };
+            getDatastore(): { manager: { collection: (name: string) => {
+              createIndex: (spec: object) => Promise<unknown>;
+              find: (filter: object) => { forEach: (cb: (doc: globalThis.Record<string, unknown>) => void | Promise<void>) => Promise<void> | void };
+              insertOne: (doc: globalThis.Record<string, unknown>) => Promise<unknown>;
+              deleteOne: (filter: object) => Promise<unknown>;
+            } } };
 		}
 
 		export interface WaterlineAttributes {
@@ -172,19 +177,14 @@ declare global {
 		export interface Res extends Omit<express.Response, 'badRequest'> {
 			attachement(filename: string): void;
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			badRequest(data?: any, pathToView?: string): any;
+			badRequest(data?: unknown, pathToView?: string): this;
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			serverError(data?: any, pathToView?: string): any;
+			serverError(data?: unknown, pathToView?: string): this;
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			notFound(data?: any, pathToView?: string): any;
+			notFound(data?: unknown, pathToView?: string): this;
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			view(route: string, options?: any): void;
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			guessView(options: any, cb: () => void): void;
+			view(route: string, options?: unknown): void;
+			guessView(options: unknown, cb: () => void): void;
 		}
 
 		export type Policy = (req: Req, res: Res, next: NextFunction) => Promise<void> | void;

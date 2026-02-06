@@ -117,46 +117,67 @@ export namespace Controllers {
     public createUser(req: any, res: any) {
       const userReq: UserModel = req.body;
 
-      UsersService.addLocalUser(userReq.username || '', userReq.name || '', userReq.email || '', userReq.password || '').subscribe((userResponse: UserModel) => {
-        const response: UserModel = userResponse;
+      const respondWithUser = (response: UserModel) => {
+        const userResponse = new CreateUserAPIResponse();
+        userResponse.id = response.id;
+        userResponse.username = response.username;
+        userResponse.name = response.name;
+        userResponse.email = response.email;
+        userResponse.type = response.type;
+        userResponse.lastLogin = response.lastLogin;
+        return this.apiRespond(req, res, userResponse, 201);
+      };
+
+      const applyRolesIfRequested = (response: UserModel) => {
         if (userReq.roles) {
           const roles: string[] = (userReq.roles as any[]).map((role: any) => _.isString(role) ? role : role?.name).filter((roleName: any) => !_.isEmpty(roleName));
-          const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-          const roleIds = RolesService.getRoleIds(brand.roles, roles);
+          const brand: BrandingModel = BrandingService.getBrand(req.session.branding) ?? BrandingService.getDefault();
+          const roleIds = brand?.roles ? RolesService.getRoleIds(brand.roles, roles) : [];
+          if (_.isEmpty(roleIds)) {
+            sails.log.warn('UserManagementController.createUser - No role ids resolved, skipping role assignment.');
+            return respondWithUser(response);
+          }
           UsersService.updateUserRoles(response.id, roleIds).subscribe((roleUser: UserModel) => {
             const user: UserModel = roleUser;
             sails.log.verbose(user);
-            const userResponse = new CreateUserAPIResponse();
-            userResponse.id = response.id;
-            userResponse.username = response.username;
-            userResponse.name = response.name;
-            userResponse.email = response.email;
-            userResponse.type = response.type;
-            userResponse.lastLogin = response.lastLogin;
-            return this.apiRespond(req, res, userResponse, 201);
+            return respondWithUser(response);
           }, (error: any) => {
             sails.log.error("Failed to update user roles:");
             sails.log.error(error);
-            //TODO: Find more appropriate status code
-            const errorResponse = new APIErrorResponse(error.message);
-            this.sendResp(req, res, {
+            return respondWithUser(response);
+          });
+          return;
+        }
+
+        return respondWithUser(response);
+      };
+
+      UsersService.addLocalUser(userReq.username || '', userReq.name || '', userReq.email || '', userReq.password || '').subscribe((userResponse: UserModel) => {
+        const response: UserModel = userResponse;
+        return applyRolesIfRequested(response);
+      }, (error: any) => {
+        if (error?.message?.includes('Username already exists')) {
+          UsersService.getUserWithUsername(userReq.username || '').subscribe((existingUser: UserModel | null) => {
+            if (existingUser) {
+              return applyRolesIfRequested(existingUser);
+            }
+            sails.log.error(error);
+            return this.sendResp(req, res, {
               status: 500,
-              displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+              displayErrors: [{ detail: error?.message ?? 'An error has occurred' }],
+              headers: this.getNoCacheHeaders()
+            });
+          }, (lookupError: any) => {
+            sails.log.error(lookupError);
+            return this.sendResp(req, res, {
+              status: 500,
+              displayErrors: [{ detail: error?.message ?? 'An error has occurred' }],
               headers: this.getNoCacheHeaders()
             });
           });
           return;
-        } else {
-          const userResponse = new CreateUserAPIResponse();
-          userResponse.id = response.id;
-          userResponse.username = response.username;
-          userResponse.name = response.name;
-          userResponse.email = response.email;
-          userResponse.type = response.type;
-          userResponse.lastLogin = response.lastLogin;
-          return this.apiRespond(req, res, userResponse, 201);
         }
-      }, (error: any) => {
+
         sails.log.error(error);
         return this.sendResp(req, res, {
           status: 500,

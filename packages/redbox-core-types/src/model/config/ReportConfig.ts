@@ -53,8 +53,7 @@ export class ReportConfig {
     total: number = 0;
     pageNum: number = 0;
     recordPerPage: number = 0;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    records: any[] = [];
+    records: Record<string, unknown>[] = [];
     success: boolean = false;
   
   }

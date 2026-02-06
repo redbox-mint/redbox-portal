@@ -105,7 +105,7 @@ export namespace Services {
         sails.log.warn(`${this.logHeader} bootstrap() -> Report model unavailable, skipping report bootstrap.`);
         return of({} as ReportModel);
       }
-      return super.getObservable(reportModel.find({
+      return super.getObservable<ReportModel[]>(reportModel.find({
         branding: defBrand.id
       })).pipe(flatMap(reports => {
         if (_.isEmpty(reports)) {
@@ -132,7 +132,7 @@ export namespace Services {
 
     public findAllReportsForBrand(brand: BrandingModel) {
       const reportModel = this.getReportModel();
-      return super.getObservable(reportModel.find({
+      return super.getObservable<ReportModel[]>(reportModel.find({
         branding: brand.id
       }));
     }
@@ -146,7 +146,7 @@ export namespace Services {
 
     public create(brand: BrandingModel, name: string, config: ReportConfig): Observable<ReportModel> {
       const reportModel = this.getReportModel();
-      return super.getObservable(reportModel.create({
+      return super.getObservable<ReportModel>(reportModel.create({
         name: name,
         branding: brand.id,
         solrQuery: config.solrQuery,
@@ -194,14 +194,14 @@ export namespace Services {
 
     public async getResults(brand: BrandingModel, name = '', req: RequestLike, start = 0, rows = 10) {
       const reportModel = this.getReportModel();
-      const reportObs = super.getObservable(reportModel.findOne({
+      const reportObs = super.getObservable<ReportModel | null>(reportModel.findOne({
         key: brand.id + "_" + name
       }));
 
       let reportObject = await firstValueFrom(reportObs)
 
 
-      reportObject = this.convertLegacyReport(reportObject);
+      reportObject = this.convertLegacyReport(reportObject as ReportModel);
       const report: ReportConfig = reportObject as ReportConfig;
       if (report.reportSource == ReportSource.database) {
         if (!report.databaseQuery) {
@@ -217,7 +217,7 @@ export namespace Services {
         }
         const url = this.buildSolrParams(brand, req, report, start, rows, 'json');
         const solrResults = await this.getSearchService().searchAdvanced(report.solrQuery.searchCore, '', url);
-        return this.getTranslateSolrResultToReportResult(solrResults, rows);
+        return this.getTranslateSolrResultToReportResult(solrResults as SolrSearchResponse, rows);
       }
     }
 
@@ -316,7 +316,7 @@ export namespace Services {
 
     public async getCSVResult(brand: BrandingModel, name = '', req: RequestLike, start = 0, rows = 1000000000) {
       const reportModel = this.getReportModel();
-      let report:ReportModel = await firstValueFrom(super.getObservable(reportModel.findOne({
+      let report:ReportModel = await firstValueFrom(super.getObservable<ReportModel>(reportModel.findOne({
         key: brand.id + "_" + name
       })));
 
@@ -339,7 +339,7 @@ export namespace Services {
         }
         const url = this.buildSolrParams(brand, req, report, start, rows, 'json');
         const solrResults = await this.getSearchService().searchAdvanced(report.solrQuery.searchCore, '', url); 
-        result = this.getTranslateSolrResultToReportResult(solrResults, rows);
+        result = this.getTranslateSolrResultToReportResult(solrResults as SolrSearchResponse, rows);
       }
 
       const headerRow: string[] = this.getCSVHeaderRow(report)

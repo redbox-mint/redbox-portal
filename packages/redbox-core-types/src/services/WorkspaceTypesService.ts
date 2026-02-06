@@ -77,8 +77,8 @@ export namespace Services {
       }));
     }
 
-    public create(brand: BrandingLike, workspaceType: WorkspaceTypeConfig) {
-      return super.getObservable(
+    public create(brand: BrandingLike, workspaceType: WorkspaceTypeConfig): Observable<Record<string, unknown>> {
+      return super.getObservable<Record<string, unknown>>(
         WorkspaceType.create({
           name: workspaceType['name'],
           label: workspaceType['label'],
@@ -91,12 +91,12 @@ export namespace Services {
       )
     }
 
-    public get(brand: BrandingLike) {
-      return super.getObservable(WorkspaceType.find({ branding: brand.id }));
+    public get(brand: BrandingLike): Observable<Record<string, unknown>[]> {
+      return super.getObservable<Record<string, unknown>[]>(WorkspaceType.find({ branding: brand.id }));
     }
 
-    public getOne(brand: BrandingLike, name: string) {
-      return super.getObservable(WorkspaceType.findOne({ branding: brand.id, name: name }));
+    public getOne(brand: BrandingLike, name: string): Observable<Record<string, unknown> | null> {
+      return super.getObservable<Record<string, unknown> | null>(WorkspaceType.findOne({ branding: brand.id, name: name }));
     }
   }
 }

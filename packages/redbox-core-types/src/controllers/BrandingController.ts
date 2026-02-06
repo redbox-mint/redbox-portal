@@ -14,8 +14,7 @@ export namespace Controllers {
 
   export class Branding extends controllers.Core.Controller {
     private mongoUri!: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private blobAdapter: any;
+    private blobAdapter: unknown;
 
     /**
      * Generate a weak ETag for the given content hash or string.
@@ -38,7 +37,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'init',
       'renderCss',
       'renderImage',

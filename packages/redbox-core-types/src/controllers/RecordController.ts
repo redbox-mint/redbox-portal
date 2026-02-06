@@ -197,6 +197,12 @@ export namespace Controllers {
       sails.log.debug('RECORD::APP formName: ' + extFormName);
       if (recordType != '' && extFormName == '') {
         FormsService.getFormByStartingWorkflowStep(brand, recordType, true).subscribe(form => {
+          if (!form) {
+            return this.sendResp(req, res, {
+              status: 404,
+              displayErrors: [{ detail: 'Form not found' }]
+            });
+          }
           if (form['customAngularApp'] != null) {
             appSelector = form['customAngularApp']['appSelector'];
             appName = form['customAngularApp']['appName'];
@@ -212,6 +218,12 @@ export namespace Controllers {
         });
       } else if (extFormName != '') {
         FormsService.getFormByName(extFormName, true).subscribe(form => {
+          if (!form) {
+            return this.sendResp(req, res, {
+              status: 404,
+              displayErrors: [{ detail: 'Form not found' }]
+            });
+          }
           if (form['customAngularApp'] != null) {
             appSelector = form['customAngularApp']['appSelector'];
             appName = form['customAngularApp']['appName'];
@@ -235,6 +247,12 @@ export namespace Controllers {
           const formName = record.metaMetadata.form;
           return FormsService.getFormByName(formName, true);
         })).subscribe(form => {
+          if (!form) {
+            return this.sendResp(req, res, {
+              status: 404,
+              displayErrors: [{ detail: 'Form not found' }]
+            });
+          }
           sails.log.debug(form);
           if (form['customAngularApp'] != null) {
             appSelector = form['customAngularApp']['appSelector'];
@@ -692,7 +710,7 @@ export namespace Controllers {
                 sails.log.verbose(currentRec);
                 sails.log.verbose("Next step:");
                 sails.log.verbose(nextStep);
-                this.recordsService.setWorkflowStepRelatedMetadata(currentRec, nextStep);
+                this.recordsService.setWorkflowStepRelatedMetadata(currentRec, nextStep as globalThis.Record<string, unknown>);
                 return this.updateMetadata(brand, oid, currentRec, req.user);
               }));
           }))
@@ -821,10 +839,12 @@ export namespace Controllers {
     }
 
     public getDashboardType(req: Sails.Req, res: Sails.Res) {
-      const dashboardTypeParam = req.param('dashboardType');
+      const dashboardTypeParam = req.param('dashboardType') || '';
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       DashboardTypesService.get(brand, dashboardTypeParam).subscribe(dashboardType => {
-        const dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType, 'formatRules'));
+        const name = String(_.get(dashboardType, 'name', ''));
+        const formatRules = _.get(dashboardType, 'formatRules');
+        const dashboardTypeModel = new DashboardTypeResponseModel(name, formatRules);
         this.sendResp(req, res, {data: dashboardTypeModel});
       }, error => {
         this.sendResp(req, res, {errors: [this.asError(error)], v1:error.message});
@@ -948,7 +968,9 @@ export namespace Controllers {
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {
-            res.end(Buffer.from(response.body), 'binary');
+            const body = response.body ?? '';
+            const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body);
+            res.end(buffer, 'binary');
           }
           return of(oid);
         } catch (error) {
@@ -1101,7 +1123,9 @@ export namespace Controllers {
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {
-            res.end(Buffer.from(response.body), 'binary');
+            const body = response.body ?? '';
+            const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body);
+            res.end(buffer, 'binary');
           }
           return of(oid);
         } catch (error) {
@@ -1350,10 +1374,11 @@ export namespace Controllers {
       const docs = results.items;
 
       for (let i = 0; i < docs.length; i++) {
-        const doc = docs[i];
+        const doc = docs[i] as globalThis.Record<string, unknown>;
         const item: { [key: string]: unknown } = {};
         item["oid"] = doc["redboxOid"];
-        item["title"] = doc["metadata"]["title"];
+        const docMetadata = (doc["metadata"] ?? {}) as globalThis.Record<string, unknown>;
+        item["title"] = docMetadata["title"];
         item["metadata"] = this.getDocMetadata(doc);
         item["dateCreated"] = doc["dateCreated"];
         item["dateModified"] = doc["lastSaveDate"];
@@ -1393,14 +1418,15 @@ export namespace Controllers {
       const docs = results.items;
 
       for (let i = 0; i < docs.length; i++) {
-        const doc = docs[i];
+        const doc = docs[i] as globalThis.Record<string, unknown>;
         const item: { [key: string]: unknown } = {};
-        const delRecordMeta= doc["deletedRecordMetadata"]
+        const delRecordMeta = (doc["deletedRecordMetadata"] ?? {}) as globalThis.Record<string, unknown>;
         item["oid"] = doc["redboxOid"];
-        item["title"] = delRecordMeta["metadata"]["title"];
+        const delRecordMetadata = (delRecordMeta["metadata"] ?? {}) as globalThis.Record<string, unknown>;
+        item["title"] = delRecordMetadata["title"];
         item["dateCreated"] = delRecordMeta["dateCreated"];
         item["dateModified"] = delRecordMeta["lastSaveDate"];
-        item["dateDeleted"]  = doc["dateDeleted"];
+        item["dateDeleted"] = doc["dateDeleted"];
         items.push(item);
       }
 

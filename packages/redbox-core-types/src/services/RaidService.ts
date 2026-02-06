@@ -54,7 +54,7 @@ export namespace Services {
   export class Raid extends services.Core.Service {
     protected override _exportedMethods: string[] = [
       'mintTrigger',
-      'buildContributors',
+      'getContributors',
       'buildContribVal',
       'mintPostCreateRetryHandler',
       'mintRetryJob'

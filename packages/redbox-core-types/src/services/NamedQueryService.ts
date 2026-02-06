@@ -62,7 +62,7 @@ export namespace Services {
     ];
 
   public async bootstrap (defBrand: BrandingModel) {
-      const namedQueries = await firstValueFrom(super.getObservable(NamedQuery.find({
+      const namedQueries = await firstValueFrom(super.getObservable<Array<{ id?: string | number }>>(NamedQuery.find({
         branding: defBrand.id
    })));
       
@@ -343,7 +343,7 @@ export namespace Services {
       return await this.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user, sort);
     }
 
-    public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand: BrandingModel, queryName: string, start: number = 0,rows: number = 30, maxRecords: number = 100, user = undefined) {
+    public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand: BrandingModel, queryName: string, start: number = 0,rows: number = 30, maxRecords: number = 100, user: unknown = undefined) {
       const records = [];
       let requestCount = 0;
       sails.log.debug(`All named query results: start query with name '${queryName}' brand ${JSON.stringify(brand)} start ${start} rows ${rows} paramMap ${JSON.stringify(paramMap)}`);

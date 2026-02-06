@@ -37,30 +37,30 @@ export namespace Services {
       'get'
     ];
 
-    public start(progressObj: Record<string, unknown>) {
+    public start(progressObj: Record<string, unknown>): Observable<Record<string, unknown>> {
       if (_.isEmpty(progressObj.date_started) || _.isUndefined(progressObj.date_completed)) {
   // Using ISO-like local timestamp without timezone
   progressObj.date_started = DateTime.local().toFormat("yyyy-LL-dd'T'HH:mm:ss");
       }
-      return super.getObservable(AsynchProgress.create(progressObj));
+      return super.getObservable<Record<string, unknown>>(AsynchProgress.create(progressObj));
     }
 
-    public update(criteria: Record<string, unknown>, progressObj: Record<string, unknown>) {
-      return super.getObservable(AsynchProgress.update(criteria, progressObj));
+    public update(criteria: Record<string, unknown>, progressObj: Record<string, unknown>): Observable<Record<string, unknown>[]> {
+      return super.getObservable<Record<string, unknown>[]>(AsynchProgress.update(criteria, progressObj));
     }
 
-    public finish(progressId: string, progressObj: Record<string, unknown> | null = null) {
+    public finish(progressId: string, progressObj: Record<string, unknown> | null = null): Observable<Record<string, unknown>[]> {
       if (progressObj) {
           progressObj.date_completed = DateTime.local().toFormat('yyyy-LL-dd HH:mm:ss');
       } else {
           progressObj = {date_completed: DateTime.local().toFormat('yyyy-LL-dd HH:mm:ss')};
       }
       progressObj.status = 'finished';
-      return super.getObservable(AsynchProgress.update({id:progressId}, progressObj));
+      return super.getObservable<Record<string, unknown>[]>(AsynchProgress.update({id:progressId}, progressObj));
     }
 
-    public get(criteria: Record<string, unknown>) {
-      return super.getObservable(AsynchProgress.find(criteria));
+    public get(criteria: Record<string, unknown>): Observable<Record<string, unknown>[]> {
+      return super.getObservable<Record<string, unknown>[]>(AsynchProgress.find(criteria));
     }
 
   }

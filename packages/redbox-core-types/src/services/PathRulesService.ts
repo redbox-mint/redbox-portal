@@ -79,7 +79,7 @@ export namespace Services {
             });
             return from(seedRules)
                            .pipe(flatMap((rule) => {
-                             return super.getObservable(PathRule.create(rule as unknown as PathRuleModel));
+                             return super.getObservable<PathRuleModel>(PathRule.create(rule as unknown as PathRuleModel));
                            })
                            ,last()
                            ,flatMap(() => {
@@ -99,7 +99,7 @@ export namespace Services {
     * Loads and caches rules...
     */
     public loadRules = (): Observable<PathRuleModel[]> => {
-      return super.getObservable(PathRule.find({}).populate('role').populate('branding'))
+      return super.getObservable<PathRuleModel[]>(PathRule.find({}).populate('role').populate('branding'))
                   .pipe(flatMap((rules: PathRuleModel[]) => {
                     this.pathRules = rules;
                     this.rulePatterns = [];

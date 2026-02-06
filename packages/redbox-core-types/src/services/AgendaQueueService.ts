@@ -124,7 +124,7 @@ export namespace Services {
         await that.agenda.start();
 
         //Create indexes after agenda start
-        const collectionName = _.get(agendaOpts, 'collection', 'agendaJobs');
+        const collectionName = String(_.get(agendaOpts, 'collection', 'agendaJobs'));
         await dbManager.collection(collectionName).createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 });
         await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1 });
 
@@ -206,7 +206,7 @@ export namespace Services {
      */
     public async moveCompletedJobsToHistory(_job: Job) {
       const dbManager = User.getDatastore().manager;
-      const collectionName = _.get(sails.config.agendaQueue, 'collection', 'agendaJobs');
+      const collectionName = String(_.get(sails.config.agendaQueue, 'collection', 'agendaJobs'));
       await dbManager.collection(collectionName).find({ nextRunAt: null }).forEach(async (doc: Record<string, unknown>) => {
         await dbManager.collection(`${collectionName}History`).insertOne(doc);
         await dbManager.collection(collectionName).deleteOne({ _id: (doc as { _id?: unknown })._id });
