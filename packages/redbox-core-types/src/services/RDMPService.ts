@@ -559,7 +559,11 @@ oid: string, record: RecordWithMeta, recordCreatorPermissions: unknown, editCont
         && (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit")
         && !(_.isEmpty(editContributorEmails) && _.isEmpty(viewContributorEmails));
       if (useDefaultViewList) {
-        auth.view = [createdBy] as string[];
+        if (createdBy) {
+          auth.view = [createdBy] as string[];
+        } else {
+          auth.view = [];
+        }
         auth.viewPending = viewContributorEmails;
       }
       // when both are empty, simpy return the record
@@ -583,7 +587,7 @@ oid: string, record: RecordWithMeta, recordCreatorPermissions: unknown, editCont
       if (editContributorObs.length == 0) {
         const newEditList: string[] = [];
         if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
-          if (hasContributors) {
+          if (hasContributors && createdBy) {
             newEditList.push(createdBy as string);
           }
         }
@@ -596,7 +600,9 @@ oid: string, record: RecordWithMeta, recordCreatorPermissions: unknown, editCont
             const newEditList: string[] = [];
             this.filterPending(editContributorUsers, editContributorEmails, newEditList);
             if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
-              newEditList.push(createdBy as string);
+              if (createdBy) {
+                newEditList.push(createdBy as string);
+              }
             }
             auth.edit = newEditList;
             auth.editPending = editContributorEmails;
@@ -615,7 +621,9 @@ oid: string, record: RecordWithMeta, recordCreatorPermissions: unknown, editCont
         const newViewList: string[] = [];
         this.filterPending(viewUsers, viewContributorEmails, newViewList);
         if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
-          newViewList.push(createdBy as string);
+          if (createdBy) {
+            newViewList.push(createdBy as string);
+          }
         }
         auth.view = newViewList;
         auth.viewPending = viewContributorEmails;
