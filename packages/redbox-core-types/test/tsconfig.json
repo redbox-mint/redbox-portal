@@ -1,0 +1,18 @@
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "noEmit": true,
+        "rootDir": "..",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "types": [
+            "node",
+            "mocha",
+            "chai"
+        ]
+    },
+    "include": [
+        "./**/*.ts",
+        "../src/**/*.ts"
+    ]
+}

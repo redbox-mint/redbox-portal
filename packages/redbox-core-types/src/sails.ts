@@ -1,35 +1,50 @@
 // Adapted from https://git.f3l.de/ttomasini/sails-types/raw/branch/master/sails.d.ts
 import { NextFunction } from "express";
 import express = require("express");
+import type { SailsConfig } from "./config";
 
 declare global {
 	namespace Sails {
-		
-	// Recursive type for nested config objects - using any for maximum flexibility
-	export interface ConfigObject {
-		[key: string]: any;
-	}
 
-	// Log interface based on https://github.com/balderdashy/captains-log
-	export interface Log {
-		crit: (message: string, ...args: any[]) => void;
-		error: (message: string, ...args: any[]) => void;
-		warn: (message: string, ...args: any[]) => void;
-		debug: (message: string, ...args: any[]) => void;
-		info: (message: string, ...args: any[]) => void;
-		verbose: (message: string, ...args: any[]) => void;
-		silly: (message: string, ...args: any[]) => void;
-		blank: (message: string, ...args: any[]) => void;
-	}
+		// Re-export SailsConfig for use in config typing
+		export { SailsConfig };
 
-	export interface Application {
-		config: ConfigObject;
-		log: Log;
-		services: {
-			[key: string]: any;
-		};
-		after(events: string | string[], cb: () => void): void;
-	}		export interface Hook {
+		// ConfigObject now extends SailsConfig for typed access
+		export interface ConfigObject extends SailsConfig { }
+
+		// Log interface based on https://github.com/balderdashy/captains-log
+		export interface Log {
+			crit: (...args: any[]) => void;
+			error: (...args: any[]) => void;
+			warn: (...args: any[]) => void;
+			debug: (...args: any[]) => void;
+			info: (...args: any[]) => void;
+			verbose: (...args: any[]) => void;
+			silly: (...args: any[]) => void;
+			blank: (...args: any[]) => void;
+		}
+
+		export interface Application {
+			config: ConfigObject;
+			log: Log;
+			services: {
+				[key: string]: any;
+			};
+			after(events: string | string[], cb: () => void): void;
+			// Socket.io sockets interface
+			sockets: {
+				join(req: any, room: string, cb?: (err?: Error) => void): void;
+				leave(req: any, room: string, cb?: (err?: Error) => void): void;
+				broadcast(room: string, event: string, data?: any, socketToOmit?: any): void;
+				blast(event: string, data?: any): void;
+				getId(req: any): string;
+				[key: string]: any;
+			};
+			// Action lookup method
+			getActions(): { [actionName: string]: any };
+            on(event: string, cb: (...args: any[]) => void): void;
+            emit(event: string, ...args: any[]): void;
+		}		export interface Hook {
 			initialize: (cb: () => void) => void;
 			routes: {
 				before: { [key: string]: any };
@@ -39,7 +54,7 @@ declare global {
 			defaults?: { [key: string]: any };
 		}
 
-		export interface Model {
+		export interface Model<T> {
 			attributes: Object;
 
 			create(params: Object): WaterlinePromise<QueryResult>;
@@ -51,8 +66,13 @@ declare global {
 			find(params: Object): QueryBuilder;
 			find(params: Object): WaterlinePromise<Array<QueryResult>>;
 
-			findOne(criteria: Object): WaterlinePromise<QueryResult>;
+			findOne(criteria: Object): WaterlinePromise<T>;
+			findOne(criteria: Object, cb: (err: Error, found: T) => void): void;
 
+			findOrCreate(criteria: Object, values: Object): WaterlinePromise<T>;
+			findOrCreate(criteria: Object, values: Object, cb: (err: Error, found: T) => void): void;
+
+			count(): WaterlinePromise<number>;
 			count(criteria: Object): WaterlinePromise<number>;
 			count(criteria: Array<Object>): WaterlinePromise<number>;
 			count(criteria: string): WaterlinePromise<number>;
@@ -73,6 +93,10 @@ declare global {
 			destroy(criteria: string, cb: (err: Error, deleted: Array<Record>) => void): void;
 			destroy(criteria: number, cb: (err: Error, deleted: Array<Record>) => void): void;
 
+			destroyOne(criteria: Object): WaterlinePromise<T>;
+			destroyOne(criteria: string): WaterlinePromise<T>;
+			destroyOne(criteria: number): WaterlinePromise<T>;
+
 			update(criteria: Object, changes: Object): WaterlinePromise<Array<QueryResult>>;
 			update(criteria: Array<Object>, changes: Object): WaterlinePromise<Array<QueryResult>>;
 			update(criteria: string, changes: Object): WaterlinePromise<Array<QueryResult>>;
@@ -88,8 +112,18 @@ declare global {
 			update(criteria: string, changes: Array<Object>, cb: (err: Error, updated: Array<QueryResult>) => void): void;
 			update(criteria: number, changes: Array<Object>, cb: (err: Error, updated: Array<QueryResult>) => void): void;
 
+			// Overload for update without changes (chainable with .set())
+			update(criteria: Object): WaterlinePromise<Array<QueryResult>>;
+
+			updateOne(criteria: Object, changes: Object): WaterlinePromise<T>;
+			updateOne(criteria: Object): WaterlinePromise<T>;
+			updateOne(criteria: string, changes: Object): WaterlinePromise<T>;
+			updateOne(criteria: string): WaterlinePromise<T>;
+			updateOne(criteria: number, changes: Object): WaterlinePromise<T>;
+			updateOne(criteria: number): WaterlinePromise<T>;
+
 			query(sqlQuery: string, cb: (err: Error, results: Array<Record>) => void);
-			native(cb: (err: Error, collection: Model) => void);
+			native(cb: (err: Error, collection: Model<T>) => void);
 
 			stream(criteria: Object, writeEnd: Object): NodeJS.WritableStream;
 			stream(criteria: Array<Object>, writeEnd: Object): NodeJS.WritableStream;
@@ -101,14 +135,22 @@ declare global {
 			stream(criteria: string, writeEnd: Object): Error;
 			stream(criteria: number, writeEnd: Object): Error;
 
+			addToCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
+			replaceCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
+			removeFromCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
+            getDatastore(): { manager: any };
 		}
 
-		export interface NextFunction extends express.NextFunction {}
-		
+		export interface WaterlineAttributes {
+			id: string;
+		}
+
+		export interface NextFunction extends express.NextFunction { }
+
 		export interface Req extends express.Request {
 			options?: any;
 			[key: string]: any;
-		 }
+		}
 
 		export interface Res extends express.Response {
 			attachement(filename: string);
@@ -121,7 +163,8 @@ declare global {
 			serverError(data: any);
 			serverError(data: any, pathToView: string);
 
-			view(route: string);
+			view(route: string, options?: any);
+			guessView(options: any, cb: () => void);
 		}
 
 		export type Policy = (req: Req, res: Res, next: NextFunction) => Promise<void> | void;
@@ -165,4 +208,9 @@ declare global {
 	}
 }
 
-export {}; // Ensure the file is treated as a module
+// Export type alias for use in TypeScript files
+// Use: import type { Sails } from '@researchdatabox/redbox-core-types';
+// Or:  declare var sails: Sails.Application;
+export type SailsApplication = Sails.Application;
+
+export { }; // Ensure the file is treated as a module

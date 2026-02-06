@@ -2,6 +2,7 @@ import {FormValidatorConfig, FormValidationGroups} from "../validation/form.mode
 import {AvailableFormComponentDefinitionFrames, AvailableFormComponentDefinitionOutlines} from "./dictionary.outline";
 import {CanVisit} from "./visitor/base.outline";
 import {KeyValueStringNested, KeyValueStringProperty} from "./shared.outline";
+import {FormExpressionsConfigOutline} from "./form-component.outline";
 
 
 /**
@@ -77,8 +78,13 @@ export interface FormConfigFrame {
      * Default false.
      */
     debugValue?: boolean;
+    /**
+     * A record with string keys and expression template values for defining expressions.
+     */
+    expressions?: FormExpressionsConfigOutline[];
 }
 
 export interface FormConfigOutline extends FormConfigFrame, CanVisit {
     componentDefinitions: AvailableFormComponentDefinitionOutlines[];
+    expressions?: FormExpressionsConfigOutline[];
 }

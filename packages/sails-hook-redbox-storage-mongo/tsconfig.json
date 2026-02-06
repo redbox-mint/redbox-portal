@@ -1,0 +1,31 @@
+{
+  "extends": "../../typescript/tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "jsx": "react",
+    "declaration": false,
+    "strict": false,
+    "outDir": "./",
+    "rootDir": "./typescript"
+  },
+  "exclude": [
+    "node_modules/**",
+    "typings/browser/**",
+    "typings/browser.d.ts",
+    "test/integration/**/*.ts"
+  ],
+  "include": [
+    "typescript/**/*.ts"
+  ],
+  "compileOnSave": true,
+  "buildOnSave": false,
+  "atom": {
+    "rewriteTsconfig": false
+  },
+  "typeAcquisition": {
+    "include": [
+      "lodash"
+    ]
+  }
+}

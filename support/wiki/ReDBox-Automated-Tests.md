@@ -12,6 +12,7 @@ This repository uses a mix of testing strategies including unit, integration, an
 | `npm run test:bruno:oidc` | API / Auth | Specialized Bruno tests for OIDC flows. |
 | `npm run test:angular` | Frontend Unit | Runs Angular unit tests using `testDevAngular.sh`. |
 | `npm run test:sails-ng-common` | Package Unit | Runs tests for the `sails-ng-common` package. |
+| `cd packages/redbox-core-types && npm test` | Package Unit | Runs core-types unit tests (services and controllers). |
 
 ## Running Tests
 
@@ -34,9 +35,12 @@ These tests run the Sails.js backend logic in a Docker container.
 - **Command**: `npm run test:mocha`
 - **Details**:
     - Spins up a `redboxportal` container defined in `support/integration-testing/docker-compose.mocha.yml`.
-    - Runs Mocha tests located in `test/unit` (and potentially others).
+    - Always includes the bootstrap test (`test/bootstrap.test.ts` when present, otherwise `test/bootstrap.test.js`).
+    - Runs Mocha tests directly from `test/integration` using `ts-node` (no separate test compilation step).
     - **Fast Mode**: Use `npm run test:mocha:mount` to mount your local source into the container for dev and avoid image rebuilds.
     - **CI Mode**: `npm run test:mocha` runs against the locally built image (the CircleCI path).
+    - **Custom Paths**: Provide additional test globs via CLI args or the `RBPORTAL_MOCHA_TEST_PATHS` env var (space-delimited). Both are combined.
+      - Example: `RBPORTAL_MOCHA_TEST_PATHS="test/integration/**/auth*.test.ts" npm run test:mocha`
 
 ### 3. API Integration Tests (`test:bruno`)
 
@@ -64,6 +68,13 @@ Runs standard Angular unit tests (Jasmine/Karma).
 ### 5. Package-Specific Tests
 
 Some packages have their own independent test suites.
+
+- **Redbox Core Types**:
+  ```bash
+  cd packages/redbox-core-types
+  npm test
+  ```
+  Runs unit tests for controllers and services in the core-types package.
 
 - **Sails-NG-Common**:
   ```bash

@@ -12,6 +12,15 @@ All project documentation is maintained in the `support/wiki/` submodule. Agents
 - **Architecture & High-Level Overview**: [support/wiki/Architecture-Overview.md](support/wiki/Architecture-Overview.md)
   - Consult for: Understanding modules, data flow, packages, and tech stack.
 
+- **Services Architecture**: [support/wiki/Services-Architecture.md](support/wiki/Services-Architecture.md)
+  - Consult for: Business logic services, service patterns, and how to extend/override services in hooks.
+
+- **Redbox Core Types**: [support/wiki/Redbox-Core-Types.md](support/wiki/Redbox-Core-Types.md)
+  - Consult for: Core package documentation, services list, models, policies, and config defaults.
+
+- **Redbox Loader**: [support/wiki/Redbox-Loader.md](support/wiki/Redbox-Loader.md)
+  - Consult for: Pre-lift shim generation, service/model/policy shims, hook discovery.
+
 - **Coding Standards**: [support/wiki/Coding-Standards-and-Conventions.md](support/wiki/Coding-Standards-and-Conventions.md)
   - Consult for: Linter rules, naming conventions, TypeScript configuration.
 

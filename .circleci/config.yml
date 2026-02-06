@@ -260,7 +260,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm run compile:core && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:sails
+            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
       - run:
           name: Setup test directories
           command: |
@@ -301,9 +301,9 @@ jobs:
       - run:
           name: Compile shared Angular packages
           command: >-
-            npm run compile:core:prod && npm run compile:sails-ng-common:prod
+            npm run compile:sails-ng-common:prod
             && source support/build/compileProductionAngular.sh portal-ng-common
-            && cd .. &&source support/build/compileProductionAngular.sh portal-ng-form-custom
+            && cd .. && source support/build/compileProductionAngular.sh portal-ng-form-custom
       - run:
           name: Install codecov
           command: |
@@ -354,14 +354,11 @@ jobs:
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
       - run:
-          name: Install required ReDBox dependencies
-          command: |
-            npm run compile:core:prod
-      - run:
           name: Install packages
           command: |
+            npm install --no-save --ignore-scripts
             cd ./packages/sails-ng-common
-            npm ci
+            npm ci --include=dev
       - run:
           name: Run Mocha tests
           no_output_timeout: 30m
@@ -380,6 +377,108 @@ jobs:
           when: always
       - store_test_results:
           path: packages/sails-ng-common/support/junit
+  test-redbox-core-types:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: large
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+      - run:
+          name: Install required ReDBox dependencies
+          command: |
+            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido
+      - run:
+          name: Install packages
+          command: |
+            cd ./packages/redbox-core-types
+            npm ci --include=dev
+      - run:
+          name: Run Mocha tests with coverage
+          no_output_timeout: 30m
+          command: |
+            cd ./packages/redbox-core-types
+            mkdir -p support/junit
+            nvm install && npx nyc --no-clean --report-dir ./coverage/redbox-core-types --reporter=lcov --exclude-after-remap=false \
+              npx mocha --config .mocharc.js --exit test/**/*.test.ts
+      - run:
+          name: Upload redbox-core-types code coverage
+          command: |
+            cd ./packages/redbox-core-types
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-redbox-core-types" --file "./coverage/redbox-core-types/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - store_test_results:
+          path: packages/redbox-core-types/support/junit
+  # test-sails-hook-redbox-storage-mongo:
+  #   machine:
+  #     image: ubuntu-2004:current
+  #   resource_class: medium
+  #   environment:
+  #     BUILDKIT_PROGRESS: 'plain'
+  #   steps:
+  #     - checkout
+  #     - attach_workspace:
+  #         at: /tmp
+  #     - run:
+  #         name: Install codecov
+  #         command: |
+  #           mkdir -p /tmp/.codecov-cli
+  #           cd /tmp/.codecov-cli
+  #           curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+  #           curl -Os https://cli.codecov.io/latest/linux/codecov
+  #           curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+  #           curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+  #           gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+  #           shasum -a 256 -c codecov.SHA256SUM
+  #           chmod +x codecov
+  #     - run:
+  #         name: Install required ReDBox dependencies
+  #         command: |
+  #           npm run compile:sails-ng-common && npm run compile:raido && npm run compile:core
+  #     - run:
+  #         name: Install packages
+  #         command: |
+  #           cd ./packages/sails-hook-redbox-storage-mongo
+  #           npm ci --strict-peer-deps --ignore-scripts
+  #           node_modules/.bin/tsc
+  #     - run:
+  #         # TODO: chmod 777 isn't great, but the permission errors were getting too complicated
+  #         name: Run Mocha tests
+  #         no_output_timeout: 30m
+  #         command: |
+  #           cd ./packages/sails-hook-redbox-storage-mongo
+  #           mkdir -p support/junit
+  #           sudo chmod -R 'u=rwx,g=rwx,o=rwx' .
+  #           npm run test:clean
+  #           npm test
+  #     - run:
+  #         name: Upload Mocha code coverage
+  #         command: |
+  #           cd ./packages/sails-hook-redbox-storage-mongo
+  #           /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+  #           --token "${CODECOV_TOKEN}" \
+  #           --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+  #           --flag "backend-sails-hook-redbox-storage-mongo" \
+  #           --file "./coverage/mocha/lcov.info" \
+  #           --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+  #         when: always
+  #     - store_test_results:
+  #         path: packages/sails-hook-redbox-storage-mongo/support/junit
   deploy:
     docker:
       - image: 'cimg/node:24.11.1'
@@ -642,6 +741,12 @@ workflows:
       - test-sails-ng-common:
           requires:
             - build
+      - test-redbox-core-types:
+          requires:
+            - build
+      # - test-sails-hook-redbox-storage-mongo:
+      #     requires:
+      #       - build
       - deploy-arm64:
           requires:
             - test-bruno-general
@@ -649,6 +754,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -659,6 +766,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -670,6 +779,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -681,6 +792,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -692,6 +805,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -710,6 +825,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
               only: 'master'
@@ -736,6 +853,12 @@ workflows:
       - test-sails-ng-common:
           requires:
             - build
+      - test-redbox-core-types:
+          requires:
+            - build
+      # - test-sails-hook-redbox-storage-mongo:
+      #     requires:
+      #       - build
       - deploy-arm64:
           requires:
             - test-bruno-general
@@ -743,6 +866,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -753,6 +878,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -770,6 +897,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
               only: 'master'
@@ -845,6 +974,22 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - test-redbox-core-types:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      # - test-sails-hook-redbox-storage-mongo:
+      #     requires:
+      #       - build
+      #     filters:
+      #       tags:
+      #         only: /^v.*/
+      #       branches:
+      #         ignore: /.*/
       - deploy-arm64:
           requires:
             - test-bruno-general
@@ -852,6 +997,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             tags:
               only: /^v.*/
@@ -864,6 +1011,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             tags:
               only: /^v.*/
@@ -877,6 +1026,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             tags:
               only: /^v.*/
@@ -890,6 +1041,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             tags:
               only: /^v.*/
@@ -903,6 +1056,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
+            - test-redbox-core-types
+            # - test-sails-hook-redbox-storage-mongo
           filters:
             tags:
               only: /^v.*/

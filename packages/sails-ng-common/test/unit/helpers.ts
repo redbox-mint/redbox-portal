@@ -1,4 +1,4 @@
-import {ILogger} from "@researchdatabox/redbox-core-types";
+import { ILogger } from "../../src/logger.interface";
 
 export const logger: ILogger = {
     blank(args: any): void {

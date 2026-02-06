@@ -1,5 +1,5 @@
-import {existsSync} from 'fs';
-import {ILogger} from './Logger';
+import { existsSync } from 'fs';
+import { ILogger } from './Logger';
 import {
   BuildResponseType,
   APIErrorResponse,
@@ -10,7 +10,7 @@ import {
 
 
 declare var _;
-declare var sails;
+declare var sails: Sails.Application;
 declare var TranslationService;
 
 
@@ -76,14 +76,38 @@ export module Controllers.Core {
     /**
      * Get a namespaced logger for this controller class.
      * Uses the class constructor name as the namespace.
-     * Falls back to this.logger if pino namespaced logging is not available.
+     * Falls back to sails.log if pino namespaced logging is not available.
      */
-    protected get logger() {
+    protected get logger(): ILogger {
       if (!this._logger && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
         const controllerName = this.constructor.name + 'Controller';
         this._logger = sails.config.log.createNamespaceLogger(controllerName, sails.config.log.customLogger);
       }
-      return this._logger || sails.log || console; // Fallback to this.logger or console if pino not available
+      // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
+      return this._logger || (sails?.log as unknown as ILogger);
+    }
+
+    /**
+     * Registers a Sails hook handler if Sails is available.
+     */
+    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: any[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean {
+      if (typeof sails === 'undefined') {
+        return false;
+      }
+      if (action === 'on') {
+        if (typeof sails.on !== 'function') {
+          return false;
+        }
+        sails.on(eventName as string, handler);
+        return true;
+      }
+      if (typeof sails.after !== 'function') {
+        return false;
+      }
+      sails.after(eventName, handler);
+      return true;
     }
 
     constructor() {
@@ -138,10 +162,10 @@ export module Controllers.Core {
               exportedMethods[methods[i]] = this[methods[i]];
             }
           } else {
-            this.logger.error('The method "' + methods[i] + '" is not public and cannot be exported. ' + this);
+            this.logger.error(`The controller method "${methods[i]}" is not public and cannot be exported from ${this.constructor?.name}`);
           }
         } else {
-          this.logger.error('The method "' + methods[i] + '" does not exist on the controller ' + this);
+          this.logger.error(`The controller method "${methods[i]}" does not exist on ${this.constructor?.name}`);
         }
       }
 
@@ -286,6 +310,9 @@ export module Controllers.Core {
       res.view(resolvedView, mergedLocal);
     }
 
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
     public respond(req, res, ajaxCb, normalCb, forceAjax = false) {
       if (this.isAjax(req) || forceAjax == true) {
         return ajaxCb(req, res);
@@ -298,63 +325,59 @@ export module Controllers.Core {
       return req.headers['x-source'] == 'jsclient';
     }
 
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
     protected ajaxOk(req, res, msg = '', data = null, forceAjax = false) {
-      if (!data) {
-        data = {status: true, message: msg};
-      }
-      this.ajaxRespond(req, res, data, forceAjax);
+      const payload = data ?? { status: true, message: msg };
+      return this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
     }
 
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
     protected ajaxFail(req, res, msg = '', data = null, forceAjax = false) {
-      if (!data) {
-        data = {status: false, message: msg};
-      }
-      this.ajaxRespond(req, res, data, forceAjax);
+      const payload = data ?? { status: false, message: msg };
+      return this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
     }
 
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
     protected apiFail(req, res, statusCode = 500, errorResponse?: APIErrorResponse) {
-      this.setNoCacheHeaders(req, res);
-      res.status(statusCode);
-      return res.json(errorResponse ?? new APIErrorResponse());
+      const displayErrors = [{
+        title: errorResponse?.message ?? 'An error has occurred',
+        detail: errorResponse?.details
+      }];
+      return this.sendResp(req, res, { status: statusCode, displayErrors, headers: this.getNoCacheHeaders() });
     }
 
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
+    protected apiSuccess(req, res, jsonObj = null, statusCode = 200) {
+      return this.sendResp(req, res, { data: jsonObj, status: statusCode, headers: this.getNoCacheHeaders() });
+    }
+
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
     protected apiRespond(req, res, jsonObj = null, statusCode = 200) {
-      const that = this;
-      const ajaxMsg = "Got ajax request, don't know what do...";
-      this.respond(req, res,
-        (req, res) => {
-          that.logger.verbose(ajaxMsg);
-          that.setNoCacheHeaders(req, res);
-          res.badRequest(ajaxMsg);
-        },
-        (req, res) => {
-          that.setNoCacheHeaders(req, res);
-          res.status(statusCode)
-          return res.json(jsonObj);
-        });
+      return this.sendResp(req, res, { data: jsonObj, status: statusCode, headers: this.getNoCacheHeaders() });
     }
 
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
     protected ajaxRespond(req, res, jsonObj = null, forceAjax) {
-      const that = this;
-      const notAjaxMsg = "Got non-ajax request, don't know what do...";
-      this.respond(req, res,
-        (req, res) => {
-          that.setNoCacheHeaders(req, res);
-          return res.json(jsonObj);
-        },
-        (req, res) => {
-          that.logger.verbose(notAjaxMsg);
-          that.setNoCacheHeaders(req, res);
-          res.badRequest(notAjaxMsg);
-        },
-        forceAjax);
+      return this.sendResp(req, res, { data: jsonObj, headers: this.getNoCacheHeaders() });
     }
 
     protected getNg2Apps(viewPath) {
       if (sails.config.ng2.use_bundled && sails.config.ng2.apps[viewPath]) {
-        return {ng2_apps: sails.config.ng2.apps[viewPath]};
+        return { ng2_apps: sails.config.ng2.apps[viewPath] };
       } else {
-        return {ng2_apps: []};
+        return { ng2_apps: [] };
       }
     }
 
@@ -426,10 +449,6 @@ export module Controllers.Core {
      */
     protected sendResp(req: any, res: any, buildResponse?: BuildResponseType): Response {
       const apiVersion = this.getApiVersion(req);
-      // TODO: The response will be in the format matching the request kind (e.g. API, ajax).
-      //       What difference is there between the response formats?
-      // const isJsonAjax = this.isAjax(req);
-
       // Destructure build response properties and set defaults.
       let {
         format = "json",
@@ -444,26 +463,65 @@ export module Controllers.Core {
       } = buildResponse ?? {};
 
       // Collect and process the errors recursively
+      const { collectedErrors, collectedDisplayErrors } = this.collectAndLogErrors(errors, displayErrors);
+      this.ensureDisplayErrors(collectedErrors, collectedDisplayErrors);
+      status = this.resolveResponseStatus(status, collectedDisplayErrors);
+
+      this.applyResponseHeaders(res, headers);
+      this.applyResponseStatus(res, status);
+
+      // Delegate full version-specific responses (success + errors) to wrapper handlers.
+      if (apiVersion === ApiVersion.VERSION_1_0) {
+        return this.handleV1Response(res, format, status, collectedErrors, collectedDisplayErrors, v1, data, meta);
+      }
+
+      if (apiVersion === ApiVersion.VERSION_2_0) {
+        return this.handleV2Response(res, format, status, collectedErrors, collectedDisplayErrors, data, meta);
+      }
+
+      const unknownSituation = {
+        apiVersion,
+        request: {
+          method: req?.method,
+          path: req?.path ?? req?.originalUrl,
+        },
+        response: {
+          format,
+          status,
+          headers,
+          meta,
+          v1,
+        },
+        errors: {
+          collectedErrors,
+          collectedDisplayErrors,
+        },
+      };
+      sails.log.error("Unknown API version in sendResp", unknownSituation);
+      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
+    }
+
+    private collectAndLogErrors(errors: any[], displayErrors: any[]) {
       const {
         errors: collectedErrors,
         displayErrors: collectedDisplayErrors
       } = RBValidationError.collectErrors(errors, displayErrors);
 
-      // Log each error.
       sails.log.verbose(`Collected ${collectedErrors.length} ${collectedErrors.length === 1 ? 'error' : 'errors'} in sendResp.`);
       for (const error of collectedErrors) {
         sails.log.error(`Collected error in sendResp:`, error);
       }
 
-      // If there are errors, but no display errors, add a generic display error.
-      if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
-        collectedDisplayErrors.push({code: 'server-error'});
-      }
+      return { collectedErrors, collectedDisplayErrors };
+    }
 
-      // If there are any displayErrors:
-      // - the top-level status will be 500 if any status starts with 5, or
-      // - the top-level status will be 400 if any status starts with 4 and no statuses start with a 5, or
-      // - the top-level status will be 500 if none of the display errors has a status, and the top-level status is not already 4xx or 5xx.
+    private ensureDisplayErrors(collectedErrors: any[], collectedDisplayErrors: any[]) {
+      if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
+        collectedDisplayErrors.push({ code: 'server-error' });
+      }
+    }
+
+    private resolveResponseStatus(status: number, collectedDisplayErrors: any[]): number {
       if (collectedDisplayErrors.length > 0) {
         const statusString = collectedDisplayErrors
           .map(i => i?.status?.toString() ?? "")
@@ -486,101 +544,211 @@ export module Controllers.Core {
         }
       }
       sails.log.verbose(`sendResp status ${status}`);
+      return status;
+    }
 
-      // Set the response headers
+    private applyResponseHeaders(res: any, headers: Record<string, string>) {
       if (headers) {
         res.set(headers);
       }
+    }
 
-      // Set the response status
+    private applyResponseStatus(res: any, status: number) {
       if (status !== null && status !== undefined && !isNaN(status)) {
         res.status(status);
       } else {
-        // Set response status to 500 if status was not calculated correctly.
-        res.status(500)
+        res.status(500);
+      }
+    }
+
+    private shouldSendSuccessJson(
+      format: string,
+      collectedErrors: any[],
+      collectedDisplayErrors: any[],
+      status: number,
+      data: any,
+      v1: any,
+      apiVersion: ApiVersionStrings
+    ): boolean {
+      if (format !== 'json') {
+        return false;
+      }
+      if (collectedErrors.length > 0 || collectedDisplayErrors.length > 0) {
+        return false;
+      }
+      if (status?.toString().startsWith('5') || status?.toString().startsWith('4')) {
+        return false;
       }
 
-      // if the response is a json format response with no errors, return the data in the expected API version.
-      // If 'v1' is provided, it will be used for version 1 responses.
-      if (
-        format === 'json'
-        && collectedErrors.length === 0
-        && collectedDisplayErrors.length === 0
-        && !status?.toString().startsWith('5')
-        && !status?.toString().startsWith('4')
-        && (
-          (data !== null && data !== undefined) ||
-          (
-            ((v1 !== null && v1 !== undefined) || (data !== null && data !== undefined)) &&
-            apiVersion === ApiVersion.VERSION_1_0
-          )
+      return (
+        (data !== null && data !== undefined) ||
+        (
+          ((v1 !== null && v1 !== undefined) || (data !== null && data !== undefined)) &&
+          apiVersion === ApiVersion.VERSION_1_0
         )
-      ) {
-        switch (apiVersion) {
-          case ApiVersion.VERSION_2_0:
-            sails.log.verbose(`Send response status ${status} api version 2 format json.`);
-            return res.json({data: data, meta: meta});
+      );
+    }
 
-          case ApiVersion.VERSION_1_0:
-          default:
-            sails.log.verbose(`Send response status ${status} api version 1 format json.`);
-            return res.json(v1 ?? data);
-        }
+    private sendSuccessJson(
+      res: any,
+      apiVersion: ApiVersionStrings,
+      status: number,
+      data: any,
+      meta: any,
+      v1: any
+    ) {
+      switch (apiVersion) {
+        case ApiVersion.VERSION_2_0:
+          sails.log.verbose(`Send response status ${status} api version 2 format json.`);
+          return res.json({ data: data, meta: meta });
+
+        case ApiVersion.VERSION_1_0:
+        default:
+          sails.log.verbose(`Send response status ${status} api version 1 format json.`);
+          return res.json(v1 ?? data);
       }
+    }
 
-      // If there are any display errors and API is version 1, send the conventional error response format.
-      if (collectedDisplayErrors.length > 0 && apiVersion === ApiVersion.VERSION_1_0) {
-        const errorResponse = new APIErrorResponse();
+    private buildV1ErrorResponse(collectedDisplayErrors: any[]): APIErrorResponse {
+      const errorResponse = new APIErrorResponse();
+      if (collectedDisplayErrors.length === 1) {
+        const displayError = collectedDisplayErrors[0] ?? {};
+        const title = displayError.title?.toString()?.trim() || displayError.code?.toString()?.trim() || "";
+        const detail = displayError.detail?.toString()?.trim() || "";
+        if (title || detail) {
+          errorResponse.message = title || detail || "An error occurred";
+          if (title && detail) {
+            errorResponse.details = detail;
+          }
+        } else {
+          errorResponse.message = RBValidationError.displayMessage({
+            t: TranslationService,
+            displayErrors: collectedDisplayErrors
+          });
+        }
+      } else {
         errorResponse.message = RBValidationError.displayMessage({
           t: TranslationService,
           displayErrors: collectedDisplayErrors
         });
+      }
+      return errorResponse;
+    }
+
+    private formatV2DisplayErrors(collectedDisplayErrors: any[]) {
+      const t = TranslationService.t;
+      return collectedDisplayErrors.map(displayError => {
+        const code = displayError.code?.toString()?.trim() || "";
+        let title = displayError.title?.toString()?.trim() || "";
+        let detail = displayError.detail?.toString()?.trim() || "";
+
+        if (code && !title && !detail) {
+          title = code;
+        }
+
+        if (title) {
+          displayError.title = t(title);
+        }
+        if (detail) {
+          displayError.detail = t(detail);
+        }
+        return displayError;
+      });
+    }
+
+    private handleV1Response(
+      res: any,
+      format: string,
+      status: number,
+      collectedErrors: any[],
+      collectedDisplayErrors: any[],
+      v1: any,
+      data: any,
+      meta: any
+    ) {
+      // Success path for v1
+      if (this.shouldSendSuccessJson(format, collectedErrors, collectedDisplayErrors, status, data, v1, ApiVersion.VERSION_1_0)) {
+        return this.sendSuccessJson(res, ApiVersion.VERSION_1_0, status, data, meta, v1);
+      }
+
+      // Error path for v1
+      if (collectedDisplayErrors.length > 0) {
+        const errorResponse = this.buildV1ErrorResponse(collectedDisplayErrors);
         sails.log.verbose(`Send response status ${status} api version 1 errors in format json.`);
         return res.json(errorResponse);
       }
 
-      // If 'v1' is provided and the response is in version 1 format, respond with v1.
-      if (v1 !== null && v1 !== undefined && apiVersion === ApiVersion.VERSION_1_0) {
+      // If v1 body is provided, return it
+      if (v1 !== null && v1 !== undefined) {
         sails.log.verbose(`Send response status ${status} api version 1 format json.`);
         return res.json(v1);
       }
 
-      // If version is 2 and there are any errors, respond with version 2 error format
-      if (collectedDisplayErrors.length > 0 && apiVersion === ApiVersion.VERSION_2_0) {
-        sails.log.verbose(`Send response status ${status} api version 2 format json.`);
-        const t = TranslationService.t;
-        const formattedErrors = collectedDisplayErrors.map(displayError => {
-          const code = displayError.code?.toString()?.trim() || "";
-          let title = displayError.title?.toString()?.trim() || "";
-          let detail = displayError.detail?.toString()?.trim() || "";
+      const unknownSituation = {
+        response: {
+          format,
+          status,
+          data,
+          meta,
+          v1,
+        },
+        errors: {
+          collectedErrors,
+          collectedDisplayErrors,
+        },
+      };
+      sails.log.error("Unknown v1 situation in sendResp", unknownSituation);
+      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: meta || {} });
+    }
 
-          if (code && !title && !detail) {
-            title = code;
-          }
-
-          if (title) {
-            displayError.title = t(title);
-          }
-          if (detail) {
-            displayError.detail = t(detail);
-          }
-          return displayError;
-        });
-        sails.log.verbose(`Send response status ${status} api version 2 errors in format json.`);
-        return res.json({errors: formattedErrors, meta: meta});
+    private handleV2Response(
+      res: any,
+      format: string,
+      status: number,
+      collectedErrors: any[],
+      collectedDisplayErrors: any[],
+      data: any,
+      meta: any
+    ) {
+      // Success path for v2
+      if (this.shouldSendSuccessJson(format, collectedErrors, collectedDisplayErrors, status, data, null, ApiVersion.VERSION_2_0)) {
+        return this.sendSuccessJson(res, ApiVersion.VERSION_2_0, status, data, meta, null);
       }
 
-      // TODO: log unknown situations so they can be considered.
-      sails.log.error(`Unknown situation in sendResp: ${JSON.stringify({
-        format, data, status, headers, collectedErrors, collectedDisplayErrors, meta, v1,
-      })}`);
-      return res.status(500).json({errors: [{detail: "Check server logs."}], meta: {}});
+      // Error path for v2
+      if (collectedDisplayErrors.length > 0) {
+        sails.log.verbose(`Send response status ${status} api version 2 format json.`);
+        const formattedErrors = this.formatV2DisplayErrors(collectedDisplayErrors);
+        sails.log.verbose(`Send response status ${status} api version 2 errors in format json.`);
+        return res.json({ errors: formattedErrors, meta: meta });
+      }
+
+      const unknownSituation = {
+        response: {
+          format,
+          status,
+          data,
+          meta
+        },
+        errors: {
+          collectedErrors,
+          collectedDisplayErrors,
+        },
+      };
+      sails.log.error(`Unknown v2 situation in sendResp`, unknownSituation);
+      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: meta || {} });
+    }
+
+    protected getNoCacheHeaders(): Record<string, string> {
+      return {
+        'Cache-control': 'no-cache, private',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      };
     }
 
     private setNoCacheHeaders(req, res) {
-      res.set('Cache-control', 'no-cache, private');
-      res.set('Pragma', 'no-cache');
-      res.set('Expires', 0);
+      res.set(this.getNoCacheHeaders());
     }
   }
 }
