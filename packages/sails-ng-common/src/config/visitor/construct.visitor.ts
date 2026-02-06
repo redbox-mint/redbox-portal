@@ -399,9 +399,17 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         }
         frame.elementTemplate = compDefs[0];
 
-        // Check the element template name is falsy
-        if (!!frame.elementTemplate?.name) {
-            throw new Error(`Repeatable element template must have a 'falsy' name, got '${frame.elementTemplate?.name}' at '${currentFormConfigPath}'.`);
+        // The element template name must be falsy.
+        // It is also allowed for a ReusableComponent to have a replaceName that is falsy.
+        const elementTemplateName = frame.elementTemplate?.name;
+        const elementTemplateClass  = frame.elementTemplate?.component?.class;
+        const elementTemplateReplaceName = frame.elementTemplate?.overrides?.replaceName;
+        const nameIsFalsy = !elementTemplateName;
+        const nameWillBeTransformedToFalsy = elementTemplateReplaceName === null || elementTemplateReplaceName === "";
+        if (!nameIsFalsy && !nameWillBeTransformedToFalsy) {
+            this.logger.error(`Repeatable element template must have a 'falsy' name: elementTemplateName '${JSON.stringify(elementTemplateName)}' ` +
+                `elementTemplateClass ${JSON.stringify(elementTemplateClass)} elementTemplateReplaceName ${JSON.stringify(elementTemplateReplaceName)}`);
+            throw new Error(`Repeatable element template must have a 'falsy' name, got ${JSON.stringify(frame.elementTemplate?.name)} at ${JSON.stringify(currentFormConfigPath)}.`);
         }
 
         // Track the most recent element template.

@@ -63,7 +63,7 @@ const RawDefaults = [
     DropdownInputDefaults,
     RadioInputDefaults,
     DateInputDefaults,
-    // ReusableDefaults,
+    ReusableDefaults,
 ]
 
 export type KindNameDefaultsMapType = Map<string, Map<string, Map<string, string>>>;

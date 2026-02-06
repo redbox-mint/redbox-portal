@@ -263,6 +263,9 @@ export class FormPathHelper {
      * @param more The lineage paths to add to the end of the current paths.
      */
     public acceptFormPath(item: CanVisit, more?: LineagePathsPartial): void {
+        if (!item) {
+            throw new Error(`${this.logName}: acceptFormPath requires an item: ${JSON.stringify(item)}`);
+        }
         // Copy the original lineage paths so they can be restored.
         const original = buildLineagePaths(this._formPath);
         try {
