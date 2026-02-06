@@ -341,7 +341,7 @@ export type HandlebarsHelperDefinitions = typeof handlebarsHelperDefinitions;
  * @param Handlebars The Handlebars instance to register helpers on
  */
 export function registerSharedHandlebarsHelpers(Handlebars: {
-    registerHelper: (name: string, fn: (...args: unknown[]) => unknown) => void;
+    registerHelper: (name: string, fn: (...args: any[]) => any) => void;
 }): void {
     for (const [name, fn] of Object.entries(handlebarsHelperDefinitions)) {
         Handlebars.registerHelper(name, fn);
