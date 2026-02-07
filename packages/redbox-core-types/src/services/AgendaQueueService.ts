@@ -169,7 +169,7 @@ export namespace Services {
      */
     public defineJobs(jobs: AgendaJob[], ref: AgendaQueue = this): void {
       _.each(jobs, (job: AgendaJob) => {
-        const serviceFn = _.get(sails.services, job.fnName) as AgendaJobHandler | undefined;
+        const serviceFn = _.get(sails.services, job.fnName) as unknown as AgendaJobHandler | undefined;
         if (_.isUndefined(serviceFn)) {
           sails.log.error(`AgendaQueue:: Job name: ${job.name}'s service function not found: ${job.fnName}`);
           sails.log.error(JSON.stringify(job));

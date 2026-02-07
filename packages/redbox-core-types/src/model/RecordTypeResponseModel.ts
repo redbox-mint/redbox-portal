@@ -1,11 +1,13 @@
+import { SearchFilter } from "./storage/RecordTypeModel";
+
 export class RecordTypeResponseModel{
 
     name:string;
     packageType:string;
-    searchFilters:SearchFilter;
+    searchFilters:SearchFilter[];
     searchable: boolean;
 
-    constructor(name:string | undefined,packageType:string | undefined,searchFilters:any, searchable:boolean = true) {
+    constructor(name:string | undefined,packageType:string | undefined,searchFilters:SearchFilter[], searchable:boolean = true) {
         this.name = name ?? '';
         this.packageType = packageType ?? '';
         this.searchFilters = searchFilters;
@@ -13,14 +15,4 @@ export class RecordTypeResponseModel{
     }
 }
 
-export class SearchFilter {
-    name: string = '';
-    title: string = '';
-    type: SearchFilterType = SearchFilterType.exact;
-    typeLabel: string = '';
-}
-
-export enum SearchFilterType {
-    exact = 'exact',
-    facet = 'facet'
-}
+export { SearchFilter } from "./storage/RecordTypeModel";

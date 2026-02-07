@@ -65,7 +65,7 @@ export namespace Services {
         // check if we have services to bootstrap...
         if (!_.isEmpty(sails.config.workspacetype_services) && _.isArray(sails.config.workspacetype_services)) {
           _.each(sails.config.workspacetype_services, (wservice: string) => {
-            obsArr.push(sails.services[wservice]['bootstrap']());
+            obsArr.push(sails.services[wservice]['bootstrap']() as Observable<unknown>);
           });
         }
         if (_.isEmpty(obsArr)) {

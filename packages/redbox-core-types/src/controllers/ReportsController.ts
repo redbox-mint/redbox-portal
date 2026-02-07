@@ -15,7 +15,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
         'render'
     ];
 
@@ -30,10 +30,10 @@ export namespace Controllers {
     }
 
     public render(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding as string);
 
       from(ReportsService.findAllReportsForBrand(brand)).subscribe(reports => {
-        req.options.locals["reports"] = reports;
+        (req.options!.locals as globalThis.Record<string, unknown>)["reports"] = reports;
         return this.sendView(req, res, 'admin/reports');
       });
     }

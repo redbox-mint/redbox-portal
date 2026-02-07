@@ -18,7 +18,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'downloadRecs'
     ];
 
@@ -27,18 +27,18 @@ export namespace Controllers {
      */
     public async downloadRecs(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const format: string = req.param('format');
         const recType: string = req.param('recType');
-        const before: string = _.isEmpty(req.query.before) ? null : req.query.before;
-        const after: string = _.isEmpty(req.query.after) ? null : req.query.after;
+        const before: string | null = _.isEmpty(req.query.before) ? null : req.query.before!;
+        const after: string | null = _.isEmpty(req.query.after) ? null : req.query.after!;
         const filename: string = `${TranslationService.t(`${recType}-title`)} - Exported Records.${format}`;
         if (format == 'csv' || format == 'json') {
           res.set('Content-Type', `text/${format}`);
           sails.log.verbose("filename " + filename);
           res.attachment(filename);
           await pipeline(
-            RecordsService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after, recType),
+            RecordsService.exportAllPlans(req.user!.username, req.user!.roles as globalThis.Record<string, unknown>[], brand, format, before, after, recType),
             res
           );
           return res;

@@ -1,5 +1,7 @@
-import { APIErrorResponse, APIObjectActionResponse, BrandingModel, Controllers as controllers, RecordTypeModel, RecordModel, RecordsService, SearchService } from '../../index';
+import { APIErrorResponse, APIObjectActionResponse, BrandingModel, Controllers as controllers, RecordTypeModel, RecordModel, RecordsService, RoleModel, SearchService, UserModel } from '../../index';
 import { firstValueFrom } from 'rxjs';
+
+type AnyRecord = globalThis.Record<string, unknown>;
 
 
 export namespace Controllers {
@@ -15,15 +17,15 @@ export namespace Controllers {
 
     public init(): void {
       this.registerSailsHook('after', 'ready', () => {
-        this.RecordsService = sails.services.recordsservice;
-        this.searchService = sails.services[sails.config.search.serviceName];
+        this.RecordsService = sails.services.recordsservice as unknown as RecordsService;
+        this.searchService = sails.services[sails.config.search.serviceName] as unknown as SearchService;
       });
     }
 
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'init',
       'search',
       'index',
@@ -50,7 +52,7 @@ export namespace Controllers {
     }
 
     public async indexAll(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       sails.log.verbose(`SearchController::indexAll() -> Indexing all records has been requested!`);
       const itemsPerPage = 100;
       let itemsRead = 0;
@@ -59,7 +61,7 @@ export namespace Controllers {
       let pageCount = 0;
       // keep going until we retrieve all records
       do {
-        const response = await this.RecordsService.getRecords(undefined, undefined, itemsRead, itemsPerPage, req.user.username, req.user.roles, brand, undefined, undefined, undefined, undefined, undefined);
+        const response = await this.RecordsService.getRecords(undefined, undefined, itemsRead, itemsPerPage, req.user!.username, req.user!.roles as AnyRecord[], brand, undefined, undefined, undefined, undefined, undefined);
         if (itemsRead == 0) {
           totalItems = response.totalItems;
           totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -79,7 +81,7 @@ export namespace Controllers {
     }
 
     public async removeAll(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       sails.log.verbose(`SearchController::removeAll() -> Removing all records has been requested!`);
 
       // delete all documents by specifying id as '*'
@@ -90,14 +92,14 @@ export namespace Controllers {
     }
 
     public async search(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const type = req.query.type;
       const workflow = req.query.workflow;
       const searchString = req.query.searchStr;
       let core = req.query.core;
-      const exactSearchNames = _.isEmpty(req.query.exactNames) ? [] : req.query.exactNames.split(',');
+      const exactSearchNames = _.isEmpty(req.query.exactNames) ? [] : (req.query.exactNames as string).split(',');
       const exactSearches: Array<{ name: string; value: unknown }> = [];
-      const facetSearchNames = _.isEmpty(req.query.facetNames) ? [] : req.query.facetNames.split(',');
+      const facetSearchNames = _.isEmpty(req.query.facetNames) ? [] : (req.query.facetNames as string).split(',');
       const facetSearches: Array<{ name: string; value: unknown }> = [];
 
       // If a record type is set, fetch from the configuration what core it's being sent from
@@ -120,7 +122,7 @@ export namespace Controllers {
       });
 
       try {
-        const searchRes = await this.searchService.searchFuzzy(core, type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields);
+        const searchRes = await this.searchService.searchFuzzy(core as string, type as string, workflow as string, searchString as string, exactSearches, facetSearches, brand, req.user! as unknown as UserModel, req.user!.roles as unknown as RoleModel[], sails.config.record.search.returnFields);
         this.apiRespond(req, res, searchRes);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);

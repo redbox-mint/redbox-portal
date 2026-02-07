@@ -73,7 +73,7 @@ export namespace Services {
       this.logHeader = "TriggerService::";
       const that = this;
       this.registerSailsHook('on', 'ready', function () {
-        that.queueService = sails.services[sails.config.queue.serviceName];
+        that.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
       });
     }
 

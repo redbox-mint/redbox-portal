@@ -20,7 +20,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'getAppConfigForm',
       'saveAppConfig',
       'editAppConfig'
@@ -30,18 +30,18 @@ export namespace Controllers {
      * Helpers for accessing services
      */
     private get appConfigService(): AppConfigServiceModule.AppConfigs {
-        return sails.services['appconfigservice'];
+        return sails.services['appconfigservice'] as unknown as AppConfigServiceModule.AppConfigs;
     }
 
     private get brandingService(): BrandingServiceModule.Branding {
-        return sails.services['brandingservice'];
+        return sails.services['brandingservice'] as unknown as BrandingServiceModule.Branding;
     }
 
     public bootstrap() { }
 
     public async editAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = this.brandingService.getBrand(req.session.branding);
+        const brand: BrandingModel = this.brandingService.getBrand(req.session.branding as string);
         const appConfigId: string = req.param('appConfigId');
 
         if (appConfigId === undefined) {
@@ -63,7 +63,7 @@ export namespace Controllers {
     }
     public async saveAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = this.brandingService.getBrand(req.session.branding);
+        const brand: BrandingModel = this.brandingService.getBrand(req.session.branding as string);
         const appConfigId: string = req.param('appConfigId');
         const appConfig = req.body;
         if (appConfigId === undefined) {
@@ -80,7 +80,7 @@ export namespace Controllers {
 
     public async getAppConfigForm(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = this.brandingService.getBrand(req.session.branding);
+        const brand: BrandingModel = this.brandingService.getBrand(req.session.branding as string);
         const appConfigId: string = req.param('appConfigId');
         if (appConfigId === undefined) {
           return res.badRequest('appConfigId is required');

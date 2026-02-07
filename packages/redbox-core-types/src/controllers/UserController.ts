@@ -24,6 +24,8 @@ import {
   RequestDetails,
 } from '../index';
 
+type AnyRecord = globalThis.Record<string, unknown>;
+type RequestLike = { params?: AnyRecord; body?: AnyRecord; session?: AnyRecord };
 
 export namespace Controllers {
   /**
@@ -36,7 +38,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'login',
       'logout',
       'info',
@@ -95,7 +97,7 @@ export namespace Controllers {
         req.session.redirUrl = url;
 
       }
-      return res.redirect(`${BrandingService.getBrandAndPortalPath(req)}/${sails.config.auth.loginPath}`);
+      return res.redirect(`${BrandingService.getBrandAndPortalPath(req as unknown as RequestLike)}/${sails.config.auth.loginPath}`);
     }
 
     public redirPostLogin(req: Sails.Req, res: Sails.Res) {
@@ -103,7 +105,7 @@ export namespace Controllers {
     }
 
     protected getPostLoginUrl(req: Sails.Req, res: Sails.Res) {
-      const branding = BrandingService.getBrandFromReq(req);
+      const branding = BrandingService.getBrandFromReq(req as unknown as RequestLike);
       let postLoginUrl = null;
       if (req.session.redirUrl) {
         postLoginUrl = req.session.redirUrl;
@@ -112,7 +114,7 @@ export namespace Controllers {
       } else {
         const authConfig = ConfigService.getBrand(branding, 'auth');
         const postLoginRedir = _.get(authConfig, 'local.postLoginRedir', 'home');
-        postLoginUrl = `${BrandingService.getBrandAndPortalPath(req)}/${postLoginRedir}`;
+        postLoginUrl = `${BrandingService.getBrandAndPortalPath(req as unknown as RequestLike)}/${postLoginRedir}`;
       }
       sails.log.debug(`post login url: ${postLoginUrl}`);
       return postLoginUrl;
@@ -122,12 +124,12 @@ export namespace Controllers {
       const requestDetails = new RequestDetails(req);
       let redirUrl = sails.config.auth.postLogoutRedir;
       if (req.session.user && req.session.user.type == 'oidc') {
-        redirUrl = req.session.logoutUrl;
+        redirUrl = req.session.logoutUrl as string;
       }
 
       // If the redirect URL is empty then revert back to the default
       if (_.isEmpty(redirUrl)) {
-        redirUrl = _.isEmpty(sails.config.auth.postLogoutRedir) ? `${BrandingService.getBrandAndPortalPath(req)}/home` : sails.config.auth.postLogoutRedir;
+        redirUrl = _.isEmpty(sails.config.auth.postLogoutRedir) ? `${BrandingService.getBrandAndPortalPath(req as unknown as RequestLike)}/home` : sails.config.auth.postLogoutRedir;
       }
 
       const user = req.session.user ? req.session.user : req.user;
@@ -146,7 +148,7 @@ export namespace Controllers {
     }
 
     public info(req: Sails.Req, res: Sails.Res) {
-      const user = req.user;
+      const user = req.user!;
       delete user.token;
       return res.json({
         user: user
@@ -156,7 +158,7 @@ export namespace Controllers {
     public update(req: Sails.Req, res: Sails.Res) {
       let userid;
       if (req.isAuthenticated()) {
-        userid = req.user.id;
+        userid = req.user!.id as string;
       } else {
         return this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
       }
@@ -165,22 +167,23 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
       }
 
-      const details = req.body.details;
+      const body = (req.body ?? {}) as AnyRecord;
+      const details = body.details as AnyRecord | undefined;
       if (!details) {
         return this.sendResp(req, res, { data: { status: false, message: "Error: user details not specified" }, headers: this.getNoCacheHeaders() });
       }
 
       let name;
       if (details.name) {
-        name = details.name
+        name = details.name as string
       };
       if (name) {
-        UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe(user => {
+        UsersService.updateUserDetails(userid, name, details.email as string, details.password as string).subscribe(user => {
           this.sendResp(req, res, { data: { status: true, message: "Profile updated successfully." }, headers: this.getNoCacheHeaders() });
         }, error => {
           sails.log.error("Failed to update user profile:");
           sails.log.error(error);
-          this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
+          this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
         });
       } else {
         return this.sendResp(req, res, { data: { status: false, message: "Error: name must not be null" }, headers: this.getNoCacheHeaders() });
@@ -191,7 +194,7 @@ export namespace Controllers {
     public generateUserKey(req: Sails.Req, res: Sails.Res) {
       let userid;
       if (req.isAuthenticated()) {
-        userid = req.user.id;
+        userid = req.user!.id as string;
       } else {
         this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
       }
@@ -203,7 +206,7 @@ export namespace Controllers {
         }, error => {
           sails.log.error("Failed to set UUID:");
           sails.log.error(error);
-          this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
+          this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
         });
       } else {
         return this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
@@ -214,7 +217,7 @@ export namespace Controllers {
     public revokeUserKey(req: Sails.Req, res: Sails.Res) {
       let userid;
       if (req.isAuthenticated()) {
-        userid = req.user.id;
+        userid = req.user!.id as string;
       } else {
         this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
       }
@@ -226,7 +229,7 @@ export namespace Controllers {
         }, error => {
           sails.log.error("Failed to revoke UUID:");
           sails.log.error(error);
-          this.sendResp(req, res, { data: { status: false, message: error.message }, headers: this.getNoCacheHeaders() });
+          this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
         });
       } else {
         return this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
@@ -236,7 +239,8 @@ export namespace Controllers {
 
     public localLogin(req: Sails.Req, res: Sails.Res) {
       const that = this;
-      sails.config.passport.authenticate('local', function (err: any, user: any, info: any) {
+      const passport = sails.config.passport as unknown as { authenticate: (strategy: string, callback: (err: Error | null, user: AnyRecord | false, info: AnyRecord) => void) => (req: Sails.Req, res: Sails.Res) => void };
+      passport.authenticate('local', function (err: Error | null, user: AnyRecord | false, info: AnyRecord) {
         if ((err) || (!user)) {
           return res.send({
             message: info.message,
@@ -245,7 +249,7 @@ export namespace Controllers {
         }
         const requestDetails = new RequestDetails(req);
         // We don't want to store the password!
-        delete requestDetails.body.password;
+        delete (requestDetails.body as Record<string, unknown>).password;
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
           sails.log.debug(`User login audit event created for local login: ${_.isEmpty(user) ? '' : user.id}`)
         }).catch(err => {
@@ -262,12 +266,12 @@ export namespace Controllers {
               data: {
                 user: user,
                 message: 'Login OK',
-                url: sails.getActions()['user/getpostloginurl'](req, res)
+                url: (sails.getActions()['user/getpostloginurl'] as (req: Sails.Req, res: Sails.Res) => string)(req, res)
               },
               headers: that.getNoCacheHeaders()
             });
           }
-          return sails.getActions()['user/redirpostlogin'](req, res);
+          return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
         });
       })(req, res);
     }
@@ -279,7 +283,8 @@ export namespace Controllers {
         passportIdentifier = `oidc-${req.param('id')}`
       }
       const that = this;
-      sails.config.passport.authenticate(passportIdentifier, function (err: any, user: any, info: any) {
+      const passport = sails.config.passport as unknown as { authenticate: (strategy: string, callback: (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) => void) => (req: Sails.Req, res: Sails.Res) => void };
+      passport.authenticate(passportIdentifier, function (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) {
         sails.log.verbose("At openIdConnectAuth Controller, verify...");
         sails.log.verbose("Error:");
         sails.log.verbose(err);
@@ -299,7 +304,7 @@ export namespace Controllers {
             }
           }
 
-          const branding = BrandingService.getBrandFromReq(req);
+          const branding = BrandingService.getBrandFromReq(req as unknown as RequestLike);
           const oidcConfig = _.get(ConfigService.getBrand(branding, 'auth'), 'oidc', {});
           const errorMessage = _.get(err, 'message', err?.toString() ?? '');
 
@@ -328,9 +333,7 @@ export namespace Controllers {
             return res.serverError();
           }
 
-          if (_.isEmpty(err)) {
-            err = '';
-          }
+          const errStr = _.isEmpty(err) ? '' : String(err);
 
           // from https://sailsjs.com/documentation/reference/response-res/res-server-error
           // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
@@ -338,16 +341,16 @@ export namespace Controllers {
           if (_.isEmpty(req.session.data)) {
             req.session['data'] = {
               "message": 'error-auth',
-              "detailedMessage": `${err}${info}`
+              "detailedMessage": `${errStr}${info}`
             };
           }
 
-          const url = `${BrandingService.getFullPath(req)}/home`;
+          const url = `${BrandingService.getFullPath(req as unknown as RequestLike)}/home`;
           return res.redirect(url);
         }
         const requestDetails = new RequestDetails(req);
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
-          sails.log.debug(`User login audit event created for OIDC login: ${_.isEmpty(user) ? '' : user.id}`)
+          sails.log.debug(`User login audit event created for OIDC login: ${_.isEmpty(user) ? '' : (user as AnyRecord).id}`)
         }).catch(err => {
           sails.log.error(`User login audit event created for OIDC login failed`)
           sails.log.error(err)
@@ -356,7 +359,7 @@ export namespace Controllers {
         req.logIn(user, function (err: unknown) {
           if (err) res.send(err);
           sails.log.debug("OpenId Connect Login OK, redirecting...");
-          return sails.getActions()['user/redirpostlogin'](req, res);
+          return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
         });
       })(req, res);
     }
@@ -370,11 +373,11 @@ export namespace Controllers {
       sails.config.passport.authenticate(passportIdentifier)(req, res);
     }
 
-    private decodeErrorMappings(options: any, errorMessage: string) {
+    private decodeErrorMappings(options: unknown, errorMessage: string) {
 
       sails.log.verbose('decodeErrorMappings - errorMessage: ' + errorMessage);
       sails.log.verbose('decodeErrorMappings - options: ' + JSON.stringify(options));
-      let errorMessageDecoded: any = 'oidc-default-unknown-error';
+      let errorMessageDecoded: unknown = 'oidc-default-unknown-error';
       const errorMappingList = _.get(options, 'errorMappings', []);
 
       let errorMessageDecodedAsObject = {};
@@ -483,7 +486,8 @@ export namespace Controllers {
     }
 
 	    public aafLogin(req: Sails.Req, res: Sails.Res) {
-	      sails.config.passport.authenticate('aaf-jwt', function (err: any, user: any, info: any) {
+	      const passport = sails.config.passport as unknown as { authenticate: (strategy: string, callback: (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) => void) => (req: Sails.Req, res: Sails.Res) => void };
+	      passport.authenticate('aaf-jwt', function (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) {
         sails.log.verbose("At AAF Controller, verify...");
         sails.log.verbose("Error:");
         sails.log.verbose(err);
@@ -518,7 +522,7 @@ export namespace Controllers {
 
         const requestDetails = new RequestDetails(req);
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
-          sails.log.debug(`User login audit event created for AAF login: ${_.isEmpty(user) ? '' : user.id}`)
+          sails.log.debug(`User login audit event created for AAF login: ${_.isEmpty(user) ? '' : (user as AnyRecord).id}`)
         }).catch(err => {
           sails.log.error(`User login audit event created for AAF login failed`)
           sails.log.error(err)
@@ -527,21 +531,22 @@ export namespace Controllers {
 	        req.logIn(user, function (err: unknown) {
           if (err) res.send(err);
           sails.log.debug("AAF Login OK, redirecting...");
-          return sails.getActions()['user/redirpostlogin'](req, res);
+          return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
         });
       })(req, res);
     }
 
     public find(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const searchSource = req.query.source;
-      const searchName = req.query.name;
+      const searchName = req.query.name as string;
       UsersService.findUsersWithName(searchName, brand.id, searchSource).subscribe(users => {
-        const userArr = _.map(users, (user: any) => {
+        const userArr = _.map(users, (user: unknown) => {
+          const u = user as AnyRecord;
           return {
-            name: user.name,
-            id: user.id,
-            username: user.username
+            name: u.name,
+            id: u.id,
+            username: u.username
           };
         });
         this.sendResp(req, res, { data: userArr, headers: this.getNoCacheHeaders() });

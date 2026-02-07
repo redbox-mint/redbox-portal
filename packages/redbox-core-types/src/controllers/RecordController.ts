@@ -32,11 +32,18 @@ import {
   ApiVersion,
   BrandingModel,
   RecordTypeModel, ErrorResponseItemV2,
+  FormModel,
+  RecordModel,
+  UserModel,
+  RoleModel,
 } from '../index';
 import { DateTime } from 'luxon';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+
+type AnyRecord = Record<string, unknown>;
 
 
 /**
@@ -56,24 +63,24 @@ export namespace Controllers {
     datastreamService!: DatastreamService;
 
     public init(): void {
-      this.recordsService = sails.services.recordsservice;
-      this.datastreamService = sails.services.recordsservice;
+      this.recordsService = sails.services.recordsservice as unknown as RecordsService;
+      this.datastreamService = sails.services.recordsservice as unknown as DatastreamService;
       
       const that = this;
       this.registerSailsHook('after', ['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
         const datastreamServiceName = sails.config.record.datastreamService;
         sails.log.verbose(`RecordController ready, using datastream service: ${datastreamServiceName}`);
         if (datastreamServiceName != undefined) {
-          that.datastreamService = sails.services[datastreamServiceName];
+          that.datastreamService = sails.services[datastreamServiceName] as unknown as DatastreamService;
         }
-        that.searchService = sails.services[sails.config.search.serviceName];
+        that.searchService = sails.services[sails.config.search.serviceName] as unknown as SearchService;
       });
     }
 
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'init',
       'edit',
       'getForm',
@@ -124,19 +131,23 @@ export namespace Controllers {
       return error instanceof Error ? error : new Error(String(error));
     }
 
+    private getReqBrand(req: Sails.Req): BrandingModel {
+      return BrandingService.getBrand(req.session.branding as string ?? '');
+    }
+
     public async getMeta(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      const oid = req.param('oid') ? req.param('oid') : '';
+      const brand:BrandingModel = this.getReqBrand(req);
+      const oid = req.param('oid') ?? '';
       if (oid == '') {
         return this.sendResp(req, res, {status: 400});
       }
 
       try {
-        const record: any = await this.recordsService.getMeta(oid);
+        const record = await this.recordsService.getMeta(oid);
         if(_.isEmpty(record)) {
           return this.sendResp(req, res, {status: 404});
         }
-  const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, record))
+  const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record))
         if (hasViewAccess) {
           return this.sendResp(req, res, {data: record.metadata, meta: {oid: record.redboxOid}, v1: record.metadata});
         } else {
@@ -157,23 +168,23 @@ export namespace Controllers {
     }
 
     public async getMetaDefault(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = this.getReqBrand(req);
       const recordType = req.param('name') ?? '';
       const editMode = req.query.edit == "true";
 
       // TODO: is there a permission check needed for the default form config values?
 
       // get the default data model for the form with 'name'
-      const form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
+      const form = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
       const formMode = editMode ? "edit" : "view";
       const reusableFormDefs = sails.config.reusableFormDefinitions;
-      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(form, formMode, reusableFormDefs);
+      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(form as unknown as FormConfigFrame, formMode, reusableFormDefs);
 
       // return the matching format, return the model data as json
       return this.sendResp(req, res, {
         data: modelDataDefault,
         meta: {
-          formName: form.name,
+          formName: form?.name,
           recordType: recordType,
           editMode: editMode
         },
@@ -182,13 +193,14 @@ export namespace Controllers {
     }
 
     public edit(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid') ? req.param('oid') : '';
       let recordType = req.param('recordType') ? req.param('recordType') : '';
       const rdmp = req.query.rdmp ? req.query.rdmp : '';
       let localFormName;
-      if (!_.isUndefined(req.options.locals) && !_.isNull(req.options.locals)) {
-        localFormName = req.options.locals.localFormName;
+      const locals = req.options?.['locals'] as AnyRecord | undefined;
+      if (!_.isUndefined(locals) && !_.isNull(locals)) {
+        localFormName = locals['localFormName'] as string;
       }
       const extFormName = localFormName ? localFormName : '';
       let appSelector = 'dmp-form';
@@ -283,28 +295,30 @@ export namespace Controllers {
       }
     }
 
-    protected hasEditAccess(brand: BrandingModel, user: any, currentRec: any): Observable<boolean> {
+    protected hasEditAccess(brand: BrandingModel, user: AnyRecord | undefined, currentRec: AnyRecord): Observable<boolean> {
       sails.log.verbose("Current Record: ");
       sails.log.verbose(currentRec);
-      return of(this.recordsService.hasEditAccess(brand, user, user.roles, currentRec));
+      const u = user ?? {};
+      return of(this.recordsService.hasEditAccess(brand, u, (u['roles'] ?? []) as AnyRecord[], currentRec));
     }
 
-    protected hasViewAccess(brand: BrandingModel, user: any, currentRec: any): Observable<boolean> {
+    protected hasViewAccess(brand: BrandingModel, user: AnyRecord | undefined, currentRec: AnyRecord): Observable<boolean> {
       sails.log.verbose("Current Record: ");
       sails.log.verbose(currentRec);
-      return of(this.recordsService.hasViewAccess(brand, user, user.roles, currentRec));
+      const u = user ?? {};
+      return of(this.recordsService.hasViewAccess(brand, u, (u['roles'] ?? []) as AnyRecord[], currentRec));
     }
 
     public async getForm(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       const recordType = req.param('name');
       const oid = req.param('oid')?.toString()?.trim() || null;
       const editMode = req.query.edit == "true";
       const formParam = req.param('formName');
 
       try {
-        let form: any = null;
-        let currentRec: any = null;
+        let form: FormModel | null = null;
+        let currentRec: RecordModel | null = null;
         if (!oid) {
           //find form to create a record
           form = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
@@ -349,7 +363,7 @@ export namespace Controllers {
           }
 
           // get the form config
-          form = await FormsService.getForm(brand, formParam, editMode, '', currentRec);
+          form = await FormsService.getForm(brand, formParam, editMode, '', currentRec as RecordModel) as FormModel | null;
           if (_.isEmpty(form)) {
             const msg = `Error, getting form ${formParam} for OID: ${oid}`;
             return this.sendResp(req, res, {
@@ -364,10 +378,10 @@ export namespace Controllers {
 
         // process the form config to provide only the fields accessible by the current user
         const formMode = editMode ? "edit" : "view";
-        const userRoles = (req.user?.roles ?? []).map((role: any) => role?.name).filter((name: string) => !!name);
+        const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[]).map((role: AnyRecord) => String(role['name'] ?? '')).filter((name: string) => !!name);
         const recordData = currentRec;
         const reusableFormDefs = sails.config.reusableFormDefinitions;
-        const mergedForm = FormsService.buildClientFormConfig(form, formMode, userRoles, recordData?.metadata, reusableFormDefs);
+        const mergedForm = FormsService.buildClientFormConfig(form as unknown as FormConfigFrame, formMode, userRoles, recordData?.metadata ?? null, reusableFormDefs);
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {
@@ -409,16 +423,16 @@ export namespace Controllers {
 
     private async createInternal(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+        const brand:BrandingModel = this.getReqBrand(req);
         const metadata = req.body;
-        const record: any = {
+        const record: AnyRecord = {
           metaMetadata: {}
         };
         const recType = req.param('recordType');
         const targetStep = req.param('targetStep');
         record.authorization = {
-          view: [req.user.username],
-          edit: [req.user.username]
+          view: [req.user!['username']],
+          edit: [req.user!['username']]
         };
         record.metadata = metadata;
 
@@ -451,7 +465,7 @@ export namespace Controllers {
     }
 
     public async delete(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const user = req.user;
       const message = null;
@@ -464,7 +478,7 @@ export namespace Controllers {
 
           const recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
 
-          const response = await this.recordsService.delete(oid, false, currentRec, recordType, user);
+          const response = await this.recordsService.delete(oid, false, currentRec, recordType, user ?? {});
 
           if (response && response.isSuccessful()) {
             const resp = {
@@ -495,7 +509,7 @@ export namespace Controllers {
     }
 
     public async restoreRecord(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const msgFailed = TranslationService.t('failed-restore');
       if (_.isEmpty(oid)) {
@@ -511,7 +525,7 @@ export namespace Controllers {
         });
       }
       const user = req.user;
-      const response = await this.recordsService.restoreRecord(oid, user);
+      const response = await this.recordsService.restoreRecord(oid, user ?? {});
       if (response && response.isSuccessful()) {
         const resp = {
           success: true,
@@ -539,7 +553,7 @@ export namespace Controllers {
     }
 
     public async destroyDeletedRecord(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
@@ -554,7 +568,7 @@ export namespace Controllers {
         });
       }
       const user = req.user;
-      const response = await this.recordsService.destroyDeletedRecord(oid, user);
+      const response = await this.recordsService.destroyDeletedRecord(oid, user ?? {});
       if (response && response.isSuccessful()) {
         const resp = {
           success: true,
@@ -581,7 +595,7 @@ export namespace Controllers {
     }
 
     private async updateInternal(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
       const shouldMerge = req.param('merge', 'false')?.toString() === 'true';
@@ -638,12 +652,12 @@ export namespace Controllers {
     }
 
     //TODO: check if this deprecated?
-    protected saveMetadata(brand: BrandingModel, oid: string, currentRec: any, metadata: any, user: any): Observable<any> {
+    protected saveMetadata(brand: BrandingModel, oid: string, currentRec: AnyRecord, metadata: AnyRecord, user: AnyRecord): Observable<unknown> {
       currentRec.metadata = metadata;
       return this.updateMetadata(brand, oid, currentRec, user);
     }
 
-    protected saveAuthorization(brand: BrandingModel, oid: string, currentRec: any, authorization: any, user: any): Observable<any> {
+    protected saveAuthorization(brand: BrandingModel, oid: string, currentRec: AnyRecord, authorization: unknown, user: AnyRecord): Observable<unknown> {
       const editAccessResp: Observable<boolean> = this.hasEditAccess(brand, user, currentRec);
       return editAccessResp
         .pipe(map(hasEditAccess => {
@@ -659,7 +673,7 @@ export namespace Controllers {
         }));
     }
 
-    protected getRecord(oid: string): Observable<any> {
+    protected getRecord(oid: string): Observable<RecordModel> {
       return from(this.recordsService.getMeta(oid)).pipe(flatMap(currentRec => {
         if (_.isEmpty(currentRec)) {
           return throwError(new Error(`Failed to update meta, cannot find existing record with oid: ${oid}`));
@@ -669,38 +683,40 @@ export namespace Controllers {
     }
 
     //TODO: check if this is deprecated?
-    protected updateMetadata(brand: BrandingModel, oid: string, currentRec: any, user: any): Observable<any> {
-      if (currentRec.metaMetadata.brandId != brand.id) {
-        return throwError(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
+    protected updateMetadata(brand: BrandingModel, oid: string, currentRec: AnyRecord, user: AnyRecord | undefined): Observable<unknown> {
+      const metaMetadata = currentRec['metaMetadata'] as AnyRecord;
+      if (metaMetadata['brandId'] != brand.id) {
+        return throwError(new Error(`Failed to update meta, brand's don't match: ${metaMetadata['brandId']} != ${brand.id}, with oid: ${oid}`));
       }
-      currentRec.metaMetadata.lastSavedBy = user.username;
-  currentRec.metaMetadata.lastSaveDate = DateTime.local().toISO();
+      metaMetadata['lastSavedBy'] = user?.['username'];
+  metaMetadata['lastSaveDate'] = DateTime.local().toISO();
       sails.log.verbose(`Calling record service...`);
       sails.log.verbose(currentRec);
-      return from(this.recordsService.updateMeta(brand, oid, currentRec, user));
+      return from(this.recordsService.updateMeta(brand, oid, currentRec, user ?? {}));
     }
 
-    protected updateAuthorization(brand: BrandingModel, oid: string, currentRec: any, user: any): Observable<any> {
-      if (currentRec.metaMetadata.brandId != brand.id) {
-        return throwError(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
+    protected updateAuthorization(brand: BrandingModel, oid: string, currentRec: AnyRecord, user: AnyRecord | undefined): Observable<unknown> {
+      const metaMetadata = currentRec['metaMetadata'] as AnyRecord;
+      if (metaMetadata['brandId'] != brand.id) {
+        return throwError(new Error(`Failed to update meta, brand's don't match: ${metaMetadata['brandId']} != ${brand.id}, with oid: ${oid}`));
       }
-      return from(this.recordsService.updateMeta(brand, oid, currentRec, user));
+      return from(this.recordsService.updateMeta(brand, oid, currentRec, user ?? {}));
     }
 
     public stepTo(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       const metadata = req.body;
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
-      let origRecord: any = null;
+      let origRecord: RecordModel | null = null;
       return this.getRecord(oid).pipe(flatMap(currentRec => {
         origRecord = _.cloneDeep(currentRec);
-        return this.hasEditAccess(brand, req.user, currentRec)
+        return this.hasEditAccess(brand, req.user, currentRec as AnyRecord)
           .pipe(flatMap(hasEditAccess => {
             if (!hasEditAccess) {
               return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
             }
-            return RecordTypesService.get(brand, origRecord.metaMetadata.type);
+            return RecordTypesService.get(brand, origRecord!.metaMetadata.type);
           })
           ,flatMap(recType => {
             return WorkflowStepsService.get(recType, targetStep)
@@ -711,22 +727,23 @@ export namespace Controllers {
                 sails.log.verbose("Next step:");
                 sails.log.verbose(nextStep);
                 this.recordsService.setWorkflowStepRelatedMetadata(currentRec, nextStep as globalThis.Record<string, unknown>);
-                return this.updateMetadata(brand, oid, currentRec, req.user);
+                return this.updateMetadata(brand, oid, currentRec as AnyRecord, req.user);
               }));
           }))
       }))
-        .subscribe((response: any) => {
-          const responseValue: any= response;
-          return responseValue.subscribe((response: any) => {
-            sails.log.error(response);
-            if (response && response.isSuccessful()) {
-              response.success = true;
-              this.sendResp(req, res, {data: response});
+        .subscribe((response: unknown) => {
+          const responseValue = response as Observable<unknown>;
+          return responseValue.subscribe((innerResp: unknown) => {
+            const r = innerResp as AnyRecord & { isSuccessful?: () => boolean; success?: boolean };
+            sails.log.error(r);
+            if (r && r.isSuccessful?.()) {
+              r.success = true;
+              this.sendResp(req, res, {data: r});
             } else {
               this.sendResp(req, res, {
                 status: 500,
-                meta: response,
-                v1: response
+                meta: r as AnyRecord,
+                v1: r
               });
             }
           }, (error: Error) => {
@@ -740,16 +757,16 @@ export namespace Controllers {
     }
 
     public async search(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       const type = req.param('type');
-      let rows = req.param('rows');
-      let page = req.param('page');
+      let rows: string | number = req.param('rows');
+      let page: string | number = req.param('page');
       let core = req.param('core');
 
       // If a record type is set, fetch from the configuration what core it's being sent from
       if(type != null) {
   const recordType:RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, type));
-        core = recordType.searchCore;
+        core = recordType.searchCore ?? '';
       }
       if (_.isEmpty(rows)) {
         rows = 10
@@ -758,14 +775,14 @@ export namespace Controllers {
         page = 1
       }
       let start = 0
-      if (/^\d+$/.test(page)) {
+      if (typeof page === 'string' && /^\d+$/.test(page)) {
         page = parseInt(page)
       }
-      if (/^\d+$/.test(rows)) {
+      if (typeof rows === 'string' && /^\d+$/.test(rows)) {
         rows = parseInt(rows)
       }
 
-      start = (page - 1) * rows;
+      start = ((page as number) - 1) * (rows as number);
 
       const workflow = req.query.workflow;
       const searchString = req.query.searchStr;
@@ -791,7 +808,8 @@ export namespace Controllers {
       });
 
       try {
-        const searchRes = await this.searchService.searchFuzzy(core, type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields, start, rows);
+        const user = req.user as UserModel;
+        const searchRes = await this.searchService.searchFuzzy(core, type, workflow ?? '', searchString ?? '', exactSearches, facetSearches, brand, user, (user?.roles ?? []) as RoleModel[], sails.config.record.search.returnFields, start, rows as number);
         searchRes['page'] = page
         this.sendResp(req, res, {data: searchRes});
       } catch (error) {
@@ -808,7 +826,7 @@ export namespace Controllers {
      */
     public getType(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param('recordType');
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
         const recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'), _.get(recordType, 'packageType'), _.get(recordType, 'searchFilters'), _.get(recordType, 'searchable'));
         this.sendResp(req, res, {data: recordTypeModel});
@@ -825,7 +843,7 @@ export namespace Controllers {
      * the object schema and information that is allowed to be sent back in this endpoint
      */
     public getAllTypes(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       RecordTypesService.getAll(brand).subscribe(recordTypes => {
         const recordTypeModels = [];
         for (const recType of recordTypes) {
@@ -840,10 +858,10 @@ export namespace Controllers {
 
     public getDashboardType(req: Sails.Req, res: Sails.Res) {
       const dashboardTypeParam = req.param('dashboardType') || '';
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       DashboardTypesService.get(brand, dashboardTypeParam).subscribe(dashboardType => {
         const name = String(_.get(dashboardType, 'name', ''));
-        const formatRules = _.get(dashboardType, 'formatRules');
+        const formatRules = (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>;
         const dashboardTypeModel = new DashboardTypeResponseModel(name, formatRules);
         this.sendResp(req, res, {data: dashboardTypeModel});
       }, error => {
@@ -852,7 +870,7 @@ export namespace Controllers {
     }
 
     public getAllDashboardTypes(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       DashboardTypesService.getAll(brand).subscribe(dashboardTypes => {
         const dashboardTypesModel = { dashboardTypes: [] };
         const dashboardTypesModelList = [];
@@ -867,7 +885,7 @@ export namespace Controllers {
       });
     }
 
-    protected tusServer: any;
+    protected tusServer: tus.Server | null = null;
 
     protected initTusServer() {
       if (!this.tusServer) {
@@ -905,19 +923,19 @@ export namespace Controllers {
     }
 
     public async doAttachment(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const attachId = req.param('attachId');
       sails.log.verbose(`Have attach Id: ${attachId}`);
       this.initTusServer();
       const method = _.toLower(req.method);
       if (method == 'post') {
-        req.baseUrl = `${BrandingService.getBrandAndPortalPath(req)}/record/${oid}`
+        req.baseUrl = `${BrandingService.getBrandAndPortalPath(req as unknown as { params?: AnyRecord; body?: AnyRecord; session?: AnyRecord })}/record/${oid}`
       } else {
         req.baseUrl = '';
       }
       if (oid == "pending-oid") {
-        this.tusServer.handle(req, res);
+        this.tusServer!.handle(req, res);
         return;
       }
       const that = this;
@@ -931,13 +949,13 @@ export namespace Controllers {
           return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
         }
         // check if this attachId exists in the record
-        let found: any = null;
+        let found: AnyRecord | null = null;
         _.each(currentRec.metaMetadata.attachmentFields, (attField: string) => {
           if (!found) {
             const attFieldVal = currentRec.metadata[attField];
-            found = _.find(attFieldVal, (attVal: any) => {
-              return attVal.fileId == attachId
-            });
+            found = _.find(attFieldVal as AnyRecord[], (attVal: AnyRecord) => {
+              return attVal['fileId'] == attachId
+            }) ?? null;
             if (found) {
               return false;
             }
@@ -948,21 +966,21 @@ export namespace Controllers {
           sails.log.verbose("Error: Attachment not found in do attachment.");
           return throwError(new Error(TranslationService.t('attachment-not-found')));
         }
-        let mimeType = found.mimeType;
+        let mimeType = found['mimeType'] as string;
         if (_.isEmpty(mimeType)) {
           // Set octet stream as a default
           mimeType = 'application/octet-stream'
         }
         res.set('Content-Type', mimeType);
 
-        const size = found.size;
+        const size = found['size'] as string;
         if (!_.isEmpty(size)) {
           res.set('Content-Length', size);
         }
 
-        sails.log.verbose("found.name " + found.name);
-        res.attachment(found.name);
-        sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
+        sails.log.verbose("found.name " + found['name']);
+        res.attachment(found['name'] as string);
+        sails.log.verbose(`Returning datastream observable of ${oid}: ${found['name']}, attachId: ${attachId}`);
         try {
           const response = await that.datastreamService.getDatastream(oid, attachId);
           if (response.readstream) {
@@ -986,7 +1004,7 @@ export namespace Controllers {
           }
         }
       } else {
-  const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
+  const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec as AnyRecord));
         if (!hasEditAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
           return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
@@ -1006,14 +1024,14 @@ export namespace Controllers {
           }
         }
         // process the upload...
-        this.tusServer.handle(req, res);
+        this.tusServer!.handle(req, res);
         return of(oid);
       }
     }
 
     public getWorkflowSteps(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param('recordType');
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       return RecordTypesService.get(brand, recordType).subscribe(recordType => {
         return WorkflowStepsService.getAllForRecordType(recordType).subscribe(wfSteps => {
           return this.sendResp(req, res, {data: wfSteps});
@@ -1029,7 +1047,7 @@ export namespace Controllers {
 
     public async getRelatedRecordsInternal(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose(`getRelatedRecordsInternal - starting...`);
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       //TODO may need to check user authorization like in getPermissionsInternal?
       //let record = await this.getRecord(oid).toPromise();
@@ -1045,7 +1063,7 @@ export namespace Controllers {
 
       const response = {};
 
-      const editUsers = _.get(record, 'authorization.edit', [])
+      const editUsers = _.get(record, 'authorization.edit', []) as string[]
       const editUserResponse = [];
       if (editUsers != null && editUsers != undefined) {
         for (let i = 0; i < editUsers.length; i++) {
@@ -1058,7 +1076,7 @@ export namespace Controllers {
           });
         }
       }
-      const viewUsers = _.get(record, 'authorization.view', [])
+      const viewUsers = _.get(record, 'authorization.view', []) as string[]
       const viewUserResponse = [];
       if (viewUsers != null && viewUsers != undefined) {
         for (let i = 0; i < viewUsers.length; i++) {
@@ -1098,18 +1116,18 @@ export namespace Controllers {
     public getAttachments(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
-      from(this.recordsService.getAttachments(oid)).subscribe((attachments: any[]) => {
+      from(this.recordsService.getAttachments(oid)).subscribe((attachments: unknown[]) => {
         return this.sendResp(req, res, {data: attachments});
       });
     }
 
     public async getDataStream(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
   const currentRec = await firstValueFrom(this.getRecord(oid));
 
-  const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec));
+  const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec as AnyRecord));
       if (!hasViewAccess) {
         return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
       } else {
@@ -1153,7 +1171,7 @@ export namespace Controllers {
     /** Dashboard Controller functions */
 
     public listWorkspaces(req: Sails.Req, res: Sails.Res) {
-      const url = `${BrandingService.getFullPath(req)}/dashboard/workspace?packageType=workspace&titleLabel=workspaces`;
+      const url = `${BrandingService.getFullPath(req as unknown as { params?: AnyRecord; body?: AnyRecord; session?: AnyRecord })}/dashboard/workspace?packageType=workspace&titleLabel=workspaces`;
       return res.redirect(url);
     }
 
@@ -1174,7 +1192,7 @@ export namespace Controllers {
       let showAdminSideBar = false;
       if (recordType) {
         try {
-          const brand = BrandingService.getBrand(req.session.branding);
+          const brand = this.getReqBrand(req);
           const dashboardConfig = await DashboardTypesService.getRecordTypeDashboardConfig(brand, recordType);
           if (dashboardConfig && dashboardConfig.showAdminSideBar === true) {
             showAdminSideBar = true;
@@ -1195,22 +1213,23 @@ export namespace Controllers {
 
     public async getRecordList(req: Sails.Req, res: Sails.Res) {
 
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
 
       const editAccessOnly = req.query.editOnly;
 
-      let roles = [];
+      let roles: AnyRecord[] = [];
       let username = "guest";
-      let user: any = {};
+      let user: AnyRecord = {};
       if (req.isAuthenticated()) {
-        roles = req.user.roles;
-        user = req.user;
-        username = req.user.username;
+        roles = (req.user!['roles'] ?? []) as AnyRecord[];
+        user = req.user!;
+        username = req.user!['username'] as string;
       } else {
         // assign default role if needed...
         user = { username: username };
         roles = [];
-        roles.push(RolesService.getDefUnathenticatedRole(brand));
+        const defRole = RolesService.getDefUnathenticatedRole(brand);
+        if (defRole) roles.push(defRole as unknown as AnyRecord);
       }
       const recordType = req.param('recordType');
       const workflowState = req.param('state');
@@ -1219,11 +1238,11 @@ export namespace Controllers {
       const packageType = req.param('packageType');
       const sort = req.param('sort');
       const filterFieldString = req.param('filterFields');
-      let filterString = req.param('filter');
-      let filterFields = undefined;
+      let filterString: string | undefined = req.param('filter');
+      let filterFields: string[] | undefined = undefined;
       const filterModeString = req.param('filterMode');
-      let secondarySort = req.param('secondarySort');
-      let filterMode = undefined;
+      let secondarySort: string | undefined = req.param('secondarySort');
+      let filterMode: string[] | undefined = undefined;
 
       if (!_.isEmpty(filterFieldString)) {
         filterFields = filterFieldString.split(',')
@@ -1265,21 +1284,22 @@ export namespace Controllers {
     }
 
     public async getDeletedRecordList(req: Sails.Req, res: Sails.Res){
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = this.getReqBrand(req);
       const editAccessOnly = req.query.editOnly;
 
-      let roles = [];
+      let roles: AnyRecord[] = [];
       let username = "guest";
-      let user: any = {};
+      let user: AnyRecord = {};
       if (req.isAuthenticated()) {
-        roles = req.user.roles;
-        user = req.user;
-        username = req.user.username;
+        roles = (req.user!['roles'] ?? []) as AnyRecord[];
+        user = req.user!;
+        username = req.user!['username'] as string;
       } else {
         // assign default role if needed...
         user = { username: username };
         roles = [];
-        roles.push(RolesService.getDefUnathenticatedRole(brand));
+        const defRole = RolesService.getDefUnathenticatedRole(brand);
+        if (defRole) roles.push(defRole as unknown as AnyRecord);
       }
       const recordType = req.param('recordType');
       const workflowState = req.param('state');
@@ -1288,10 +1308,10 @@ export namespace Controllers {
       const packageType = req.param('packageType');
       const sort = req.param('sort');
       const filterFieldString = req.param('filterFields');
-      let filterString = req.param('filter');
-      let filterFields = undefined;
+      let filterString: string | undefined = req.param('filter');
+      let filterFields: string[] | undefined = undefined;
       const filterModeString = req.param('filterMode');
-      let filterMode = undefined;
+      let filterMode: string[] | undefined = undefined;
 
       if (!_.isEmpty(filterFieldString)) {
         filterFields = filterFieldString.split(',')
@@ -1346,13 +1366,13 @@ export namespace Controllers {
       return metadata;
     }
 
-    protected async getRecords(workflowState: any, recordType: any, start: any, rows: any, user: any, roles: any, brand: BrandingModel, editAccessOnly: any = undefined, packageType: any = undefined, sort: any = undefined, filterFields: any = undefined, filterString: any = undefined, filterMode: any = undefined, secondarySort: any = undefined) {
-      const username = user.username;
+    protected async getRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, user: AnyRecord, roles: AnyRecord[], brand: BrandingModel, editAccessOnly: unknown = undefined, packageType: unknown = undefined, sort: unknown = undefined, filterFields: unknown = undefined, filterString: unknown = undefined, filterMode: unknown = undefined, secondarySort: unknown = undefined) {
+      const username = user['username'] as string;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
-        recordType = recordType.split(',');
+        recordType = (recordType as string).split(',');
       }
       if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
-        packageType = packageType.split(',');
+        packageType = (packageType as string).split(',');
       }
       const results = await this.recordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode, secondarySort);
       if (!results.isSuccessful()) {
@@ -1361,8 +1381,8 @@ export namespace Controllers {
       }
 
       const totalItems = results.totalItems;
-      const startIndex = start;
-      const noItems = rows;
+      const startIndex = start as number;
+      const noItems = rows as number;
       const pageNumber = (startIndex / noItems) + 1;
 
       const response: { [key: string]: unknown } = {};
@@ -1390,13 +1410,13 @@ export namespace Controllers {
       return response;
     }
 
-    protected async getDeletedRecords(workflowState: any, recordType: any, start: any, rows: any, user: any, roles: any, brand: BrandingModel, editAccessOnly: any = undefined, packageType: any = undefined, sort: any = undefined, filterFields: any = undefined, filterString: any = undefined, filterMode: any = undefined) {
-      const username = user.username;
+    protected async getDeletedRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, user: AnyRecord, roles: AnyRecord[], brand: BrandingModel, editAccessOnly: unknown = undefined, packageType: unknown = undefined, sort: unknown = undefined, filterFields: unknown = undefined, filterString: unknown = undefined, filterMode: unknown = undefined) {
+      const username = user['username'] as string;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
-        recordType = recordType.split(',');
+        recordType = (recordType as string).split(',');
       }
       if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
-        packageType = packageType.split(',');
+        packageType = (packageType as string).split(',');
       }
       const results = await this.recordsService.getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode);
       if (!results.isSuccessful()) {
@@ -1405,8 +1425,8 @@ export namespace Controllers {
       }
 
       const totalItems = results.totalItems;
-      const startIndex = start;
-      const noItems = rows;
+      const startIndex = start as number;
+      const noItems = rows as number;
       const pageNumber = (startIndex / noItems) + 1;
 
       const response: { [key: string]: unknown } = {};

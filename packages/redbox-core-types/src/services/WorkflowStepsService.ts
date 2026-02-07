@@ -44,7 +44,7 @@ export namespace Services {
     ];
 
     public async bootstrap(recordTypes: RecordTypeLike[]): Promise<unknown[]> {
-      let workflows = await WorkflowStep.find({});
+      let workflows = await WorkflowStep.find({}) as unknown as unknown[];
       if (sails.config.appmode.bootstrapAlways) {
         await WorkflowStep.destroy({});
         workflows = [];

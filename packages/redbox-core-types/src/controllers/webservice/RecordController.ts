@@ -51,7 +51,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'init',
       'create',
       'updateMeta',
@@ -82,13 +82,13 @@ export namespace Controllers {
     ];
 
     public init(): void {
-      this.RecordsService = sails.services.recordsservice;
+      this.RecordsService = sails.services.recordsservice as unknown as RecordsService;
       const that = this;
       this.registerSailsHook('after', ['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
         const datastreamServiceName = sails.config.record.datastreamService;
         sails.log.verbose(`RecordController Webservice ready, using datastream service: ${datastreamServiceName}`);
         if (datastreamServiceName != undefined) {
-          that.DatastreamService = sails.services[datastreamServiceName];
+          that.DatastreamService = sails.services[datastreamServiceName] as unknown as DatastreamService;
         }
       });
     }
@@ -108,7 +108,7 @@ export namespace Controllers {
     }
 
     public async getPermissions(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
 
       try {
@@ -123,7 +123,7 @@ export namespace Controllers {
     }
 
     public async addUserEdit(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const body = req.body;
       const users = body["users"];
@@ -146,7 +146,7 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         if (!result.isSuccessful()) {
           return this.sendResp(req, res, {
             status: 500,
@@ -164,7 +164,7 @@ export namespace Controllers {
     }
 
     public async addUserView(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const body = req.body;
       const users = body["users"];
@@ -187,7 +187,7 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         if (!result.isSuccessful()) {
           return this.sendResp(req, res, {
             status: 500,
@@ -205,7 +205,7 @@ export namespace Controllers {
     }
 
     public async removeUserEdit(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const body = req.body;
       const users = body["users"];
@@ -228,7 +228,7 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         if (!result.isSuccessful()) {
           return this.sendResp(req, res, {
             status: 500,
@@ -246,7 +246,7 @@ export namespace Controllers {
     }
 
     public async removeUserView(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const body = req.body;
       const users = body["users"];
@@ -269,7 +269,7 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         if (!result.isSuccessful()) {
           return this.sendResp(req, res, {
             status: 500,
@@ -287,7 +287,7 @@ export namespace Controllers {
     }
 
     public async getMeta(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
 
       try {
@@ -308,7 +308,7 @@ export namespace Controllers {
     }
 
     public async getRecordAudit(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const dateFrom = req.param('dateFrom');
       const dateTo = req.param('dateTo');
@@ -323,7 +323,7 @@ export namespace Controllers {
 
       try {
         const audit = await this.RecordsService.getRecordAudit(params);
-        const response: ListAPIResponse<any> = new ListAPIResponse<any>();
+        const response: ListAPIResponse<unknown> = new ListAPIResponse<unknown>();
         response.summary.numFound = _.size(audit);
         response.summary.page = 1;
         response.records = audit;
@@ -337,7 +337,7 @@ export namespace Controllers {
     }
 
     public async getObjectMeta(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       sails.log.debug('brand is...');
       sails.log.debug(brand);
       const oid = req.param('oid');
@@ -354,10 +354,10 @@ export namespace Controllers {
     }
 
     public async updateMeta(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
-      const shouldMerge = req.param('merge', false);
-      const shouldProcessDatastreams = req.param('datastreams', false);
+      const shouldMerge = req.param('merge') === 'true';
+      const shouldProcessDatastreams = req.param('datastreams') === 'true';
 
       let record;
       try {
@@ -386,7 +386,7 @@ export namespace Controllers {
         });
       }
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         // check if we need to process data streams
         if (shouldProcessDatastreams) {
           sails.log.verbose(`Processing datastreams of: ${oid}`);
@@ -409,7 +409,7 @@ export namespace Controllers {
     }
 
     public async updateObjectMeta(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
 
       let record;
@@ -421,7 +421,7 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         return this.sendResp(req, res, { data: result });
       } catch (err) {
         return this.sendResp(req, res, { errors: [this.asError(err)], displayErrors: [{ detail: "Updated" }] });
@@ -429,9 +429,9 @@ export namespace Controllers {
     }
 
     public create(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const recordType = req.param('recordType');
-      const user = req.user;
+      const user = req.user ?? {} as globalThis.Record<string, unknown>;
       const body = req.body;
       const that = this;
       if (body != null) {
@@ -446,8 +446,8 @@ export namespace Controllers {
           body["authorization"] = [];
           authorizationEdit = [];
           authorizationView = [];
-          authorizationEdit.push(req.user.username);
-          authorizationView.push(req.user.username);
+          authorizationEdit.push((req.user ?? {} as globalThis.Record<string, unknown>).username);
+          authorizationView.push((req.user ?? {} as globalThis.Record<string, unknown>).username);
         }
         const authorization = {
           edit: authorizationEdit,
@@ -458,11 +458,11 @@ export namespace Controllers {
 
         const recordTypeObservable = RecordTypesService.get(brand, recordType);
 
-        recordTypeObservable.subscribe((recordTypeModel: any) => {
+        recordTypeObservable.subscribe((recordTypeModel: unknown) => {
           if (recordTypeModel) {
             const metadata = body["metadata"];
             const workflowStage = body["workflowStage"];
-            const request: any = {};
+            const request: globalThis.Record<string, unknown> = {};
 
             //if no metadata field, no authorization
             if (metadata == null) {
@@ -475,7 +475,7 @@ export namespace Controllers {
             const createPromise = this.RecordsService.create(brand, request, recordTypeModel, user);
 
             const obs = from(createPromise);
-            obs.subscribe((response: any) => {
+            obs.subscribe((response) => {
               if (response.isSuccessful()) {
 
                 if (workflowStage) {
@@ -487,7 +487,7 @@ export namespace Controllers {
                   status: 201,
                   data: response,
                   headers: {
-                    'Location': sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + response.oid,
+                    'Location': sails.config.appUrl + BrandingService.getBrandAndPortalPath(req as unknown as globalThis.Record<string, unknown>) + "/api/records/metadata/" + response.oid,
                   }
                 });
               } else {
@@ -515,12 +515,12 @@ export namespace Controllers {
     }
 
     public async getDataStream(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
       sails.log.debug(`getDataStream ${oid} ${datastreamId}`);
       try {
-        let found: any = null;
+        let found: globalThis.Record<string, unknown> | null = null;
         const attachments = await this.RecordsService.getAttachments(oid);
         for (const attachment of attachments) {
           if (attachment.fileId == datastreamId) {
@@ -539,13 +539,13 @@ export namespace Controllers {
         const fileName = req.param('fileName') ? req.param('fileName') : found.name ? found.name : datastreamId;
         res.set('Content-Type', 'application/octet-stream');
 
-        const size = found.size;
+        const size = found.size as string | undefined;
         if (!_.isEmpty(size)) {
-          res.set('Content-Length', size);
+          res.set('Content-Length', size!);
         }
 
         sails.log.verbose("fileName " + fileName);
-        res.attachment(fileName);
+        res.attachment(fileName as string);
         sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
 
         try {
@@ -580,13 +580,13 @@ export namespace Controllers {
     }
 
     public async addDataStreams(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const self = this;
-      req.file('attachmentFields').upload({
+      (req as unknown as { file: (field: string) => { upload: (...args: unknown[]) => void } }).file('attachmentFields').upload({
         dirname: `${sails.config.record.attachments.stageDir}`,
         maxBytes: 104857600,
-        saveAs: function (__newFileStream: any, next: (err?: Error, value?: string) => void) {
+        saveAs: function (__newFileStream: unknown, next: (err?: Error, value?: string) => void) {
           sails.log.verbose('Generating files....');
           try {
             // const nextPath = path.join(UUIDGenerator(), path.basename(__newFileStream.filename));
@@ -597,7 +597,7 @@ export namespace Controllers {
             return next(new Error(`Could not determine an appropriate filename for uploaded filestream(s) for oid ${oid}.`));
           }
         }
-      }, async function (error: unknown, UploadedFileMetadata: any[]) {
+      }, async function (error: unknown, UploadedFileMetadata: unknown[]) {
         if (error) {
           return self.sendResp(req, res, {
             errors: [self.asError(error)],
@@ -606,8 +606,8 @@ export namespace Controllers {
         }
         sails.log.verbose(UploadedFileMetadata);
         sails.log.verbose('Succesfully uploaded all file metadata. Sending locations downstream....');
-        const fileIds = _.map(UploadedFileMetadata, function (nextDescriptor: any) {
-          return new Datastream({ fileId: path.relative(sails.config.record.attachments.stageDir, nextDescriptor.fd), name: nextDescriptor.filename, mimeType: nextDescriptor.type, size: nextDescriptor.size });
+        const fileIds: Datastream[] = (UploadedFileMetadata as globalThis.Record<string, unknown>[]).map(function (nextDescriptor) {
+          return new Datastream({ fileId: path.relative(sails.config.record.attachments.stageDir, nextDescriptor.fd as string), name: nextDescriptor.filename as string, mimeType: nextDescriptor.type as string, size: nextDescriptor.size as number });
         });
         sails.log.verbose('files to send upstream are:');
         sails.log.verbose(_.toString(fileIds));
@@ -663,13 +663,13 @@ export namespace Controllers {
       return metadata;
     }
 
-    protected async getRecords(workflowState: any, recordType: any, start: any, rows: any, user: any, roles: any, brand: any, editAccessOnly: any = undefined, packageType: any = undefined, sort: any = undefined, fieldNames: any = undefined, filterString: any = undefined) {
-      const username = user.username;
+    protected async getRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, user: globalThis.Record<string, unknown>, roles: globalThis.Record<string, unknown>[], brand: unknown, editAccessOnly: unknown = undefined, packageType: unknown = undefined, sort: unknown = undefined, fieldNames: unknown = undefined, filterString: unknown = undefined) {
+      const username = (user as globalThis.Record<string, unknown>).username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
-        recordType = recordType.split(',');
+        recordType = (recordType as string).split(',');
       }
       if (packageType != null && !_.isEmpty(packageType)) {
-        packageType = packageType.split(',');
+        packageType = (packageType as string).split(',');
       }
       if (start == null) {
         start = 0;
@@ -679,10 +679,10 @@ export namespace Controllers {
       }
       const results = await this.RecordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString);
       sails.log.debug(results);
-      const apiReponse: ListAPIResponse<any> = new ListAPIResponse();
+      const apiReponse: ListAPIResponse<unknown> = new ListAPIResponse();
       const totalItems = results.totalItems
-      const startIndex = start;
-      const noItems = rows;
+      const startIndex = start as number;
+      const noItems = rows as number;
       const pageNumber = Math.floor((startIndex / noItems) + 1);
 
       apiReponse.summary.numFound = totalItems;
@@ -710,13 +710,13 @@ export namespace Controllers {
 
     }
 
-    protected async getDeletedRecords(workflowState: any, recordType: any, start: any, rows: any, user: any, roles: any, brand: any, editAccessOnly: any = undefined, packageType: any = undefined, sort: any = undefined, fieldNames: any = undefined, filterString: any = undefined) {
-      const username = user.username;
+    protected async getDeletedRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, user: globalThis.Record<string, unknown>, roles: globalThis.Record<string, unknown>[], brand: unknown, editAccessOnly: unknown = undefined, packageType: unknown = undefined, sort: unknown = undefined, fieldNames: unknown = undefined, filterString: unknown = undefined) {
+      const username = (user as globalThis.Record<string, unknown>).username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
-        recordType = recordType.split(',');
+        recordType = (recordType as string).split(',');
       }
       if (packageType != null && !_.isEmpty(packageType)) {
-        packageType = packageType.split(',');
+        packageType = (packageType as string).split(',');
       }
       if (start == null) {
         start = 0;
@@ -726,10 +726,10 @@ export namespace Controllers {
       }
       const results = await this.RecordsService.getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString);
       sails.log.debug(results);
-      const apiReponse: ListAPIResponse<any> = new ListAPIResponse();
+      const apiReponse: ListAPIResponse<unknown> = new ListAPIResponse();
       const totalItems = results.totalItems
-      const startIndex = start;
-      const noItems = rows;
+      const startIndex = start as number;
+      const noItems = rows as number;
       const pageNumber = Math.floor((startIndex / noItems) + 1);
 
       apiReponse.summary.numFound = totalItems;
@@ -760,21 +760,21 @@ export namespace Controllers {
 
     public listRecords(req: Sails.Req, res: Sails.Res) {
       //sails.log.debug('api-list-records');
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const editAccessOnly = req.query.editOnly;
 
-      let roles = [];
+      let roles: globalThis.Record<string, unknown>[] = [];
       let username = "guest";
-      let user: any = {};
+      let user: globalThis.Record<string, unknown> = {};
       if (req.isAuthenticated()) {
-        roles = req.user.roles;
-        user = req.user;
-        username = req.user.username;
+        roles = req.user!.roles as globalThis.Record<string, unknown>[];
+        user = req.user ?? {};
+        username = req.user!.username as string;
       } else {
         // assign default role if needed...
         user = { username: username };
         roles = [];
-        roles.push(RolesService.getDefUnathenticatedRole(brand));
+        roles.push(RolesService.getDefUnathenticatedRole(brand) as unknown as globalThis.Record<string, unknown>);
       }
       const recordType = req.param('recordType');
       const workflowState = req.param('state');
@@ -783,16 +783,16 @@ export namespace Controllers {
       const packageType = req.param('packageType');
       const sort = req.param('sort');
       const filterFieldString = req.param('filterFields');
-      let filterString = req.param('filter');
-      let filterFields = undefined;
+      let filterString: string | undefined = req.param('filter');
+      let filterFields: string[] | undefined = undefined;
 
       if (!_.isEmpty(filterFieldString)) {
-        filterFields = filterString.split(',')
+        filterFields = filterString!.split(',')
       } else {
         filterString = undefined;
       }
 
-      if (rows > sails.config.api.max_requests) {
+      if (Number(rows) > Number((sails.config.api as unknown as globalThis.Record<string, unknown>).max_requests)) {
         return this.reachedMaxRequestRows(req, res);
       } else {
         // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
@@ -810,7 +810,7 @@ export namespace Controllers {
 
     public async restoreRecord(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
-      const user = req.user;
+      const user = req.user ?? {} as globalThis.Record<string, unknown>;
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
           status: 400,
@@ -834,7 +834,7 @@ export namespace Controllers {
     public async deleteRecord(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
       const permanentlyDelete = req.query.permanent === 'true';
-      const user = req.user;
+      const user = req.user ?? {} as globalThis.Record<string, unknown>;
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
           status: 400, displayErrors: [{ detail: "Missing ID of record." }]
@@ -847,7 +847,7 @@ export namespace Controllers {
           displayErrors: [{ detail: "Record not found!" }]
         });
       }
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       if (_.isEmpty(brand)) {
         return this.sendResp(req, res, {
           status: 400,
@@ -868,7 +868,7 @@ export namespace Controllers {
 
     public async destroyDeletedRecord(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
-      const user = req.user;
+      const user = req.user ?? {} as globalThis.Record<string, unknown>;
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
           status: 400,
@@ -895,21 +895,21 @@ export namespace Controllers {
             displayErrors: [{ detail: "Missing ID of record." }]
           });
         }
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
         const record = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
           return this.sendResp(req, res, {
             status: 500, displayErrors: [{ detail: `Missing OID: ${oid}` }]
           });
         }
-        if (!this.RecordsService.hasEditAccess(brand, req.user, req.user.roles, record)) {
+        if (!this.RecordsService.hasEditAccess(brand, req.user ?? {}, (req.user ?? {}).roles as globalThis.Record<string, unknown>[] ?? [], record)) {
           return this.sendResp(req, res, {
             status: 500, displayErrors: [{ detail: `User has no edit permissions for :${oid}` }]
           });
         }
         const recType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
         const nextStep = await firstValueFrom(WorkflowStepsService.get(recType, targetStepName));
-        const response = await this.RecordsService.updateMeta(brand, oid, record, req.user, true, true, nextStep);
+        const response = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, nextStep);
         return this.sendResp(req, res, { data: response });
       } catch (err) {
         return this.sendResp(req, res, {
@@ -929,7 +929,7 @@ export namespace Controllers {
       try {
         const attachments = await this.RecordsService.getAttachments(oid);
         sails.log.verbose(JSON.stringify(attachments));
-        const response: ListAPIResponse<any> = new ListAPIResponse<any>();
+        const response: ListAPIResponse<unknown> = new ListAPIResponse<unknown>();
         response.summary.numFound = _.size(attachments);
         response.summary.page = 1;
         response.records = attachments;
@@ -943,7 +943,7 @@ export namespace Controllers {
     }
 
     public async addRoleEdit(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const body = req.body;
       const roles = body["roles"];
@@ -962,7 +962,7 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         if (!result.isSuccessful()) {
           return this.sendResp(req, res, {
             status: 500, displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }]
@@ -979,7 +979,7 @@ export namespace Controllers {
     }
 
     public async addRoleView(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const body = req.body;
       const roles = body["roles"];
@@ -998,7 +998,7 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         if (!result.isSuccessful()) {
           return this.sendResp(req, res, {
             status: 500,
@@ -1016,7 +1016,7 @@ export namespace Controllers {
     }
 
     public async removeRoleEdit(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const body = req.body;
       const roles = body["roles"];
@@ -1035,7 +1035,7 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         if (!result.isSuccessful()) {
           return this.sendResp(req, res, {
             status: 500,
@@ -1053,7 +1053,7 @@ export namespace Controllers {
     }
 
     public async removeRoleView(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const body = req.body;
       const users = body['roles'];
@@ -1072,7 +1072,7 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         if (!result.isSuccessful()) {
           return this.sendResp(req, res, {
             status: 500,
@@ -1090,7 +1090,7 @@ export namespace Controllers {
     }
 
     public async harvest(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const updateModes = ["merge", "override", "create"];
 
       let updateMode = req.param('updateMode')
@@ -1104,7 +1104,7 @@ export namespace Controllers {
       if (recordTypeModel == null) {
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: "Record Type provided is not valid" }] });
       }
-      const user = req.user;
+      const user = (req.user ?? {}) as UserModel;
       const body = req.body;
       if (body != null) {
 
@@ -1120,16 +1120,16 @@ export namespace Controllers {
           } else {
             const existingRecord = await this.findExistingHarvestRecord(harvestId, recordType)
             if (existingRecord.length == 0 || updateMode == "create") {
-              recordResponses.push(await this.createHarvestRecord(brand, recordTypeModel, record['recordRequest'], harvestId, updateMode, user));
+              recordResponses.push(await this.createHarvestRecord(brand, recordTypeModel, record['recordRequest'] as globalThis.Record<string, unknown>, harvestId, updateMode, user));
             } else {
-              const oid = existingRecord[0].redboxOid;
+              const oid = existingRecord[0].redboxOid as string;
               if (updateMode != "ignore") {
-                const newMetadata = record['recordRequest']?.metadata ?? record['recordRequest'];
-                const existingMetadata = existingRecord[0]?.metadata ?? {};
+                const newMetadata = (record['recordRequest']?.metadata ?? record['recordRequest']) as globalThis.Record<string, unknown>;
+                const existingMetadata = (existingRecord[0]?.metadata ?? {}) as globalThis.Record<string, unknown>;
                 if (this.isMetadataEqual(newMetadata, existingMetadata)) {
                   recordResponses.push(new APIHarvestResponse(harvestId, oid, true, `Record ignored as the record already exists. oid: ${oid}`))
                 } else {
-                  recordResponses.push(await this.updateHarvestRecord(brand, recordTypeModel, updateMode, record['recordRequest']['metadata'], oid, harvestId, user));
+                  recordResponses.push(await this.updateHarvestRecord(brand, recordTypeModel, updateMode, record['recordRequest']['metadata'] as globalThis.Record<string, unknown>, oid, harvestId, user));
                 }
               } else {
                 recordResponses.push(new APIHarvestResponse(harvestId, oid, true, `Record ignored as the record already exists. oid: ${oid}`))
@@ -1143,7 +1143,7 @@ export namespace Controllers {
     }
 
     public async legacyHarvest(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
 
       const recordType = req.param('recordType');
       const recordTypeModel: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
@@ -1151,7 +1151,7 @@ export namespace Controllers {
       if (recordTypeModel == null) {
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record Type provided is not valid' }] });
       }
-      const user = req.user;
+      const user = (req.user ?? {}) as UserModel;
       const body = req.body;
       if (body != null) {
 
@@ -1168,16 +1168,16 @@ export namespace Controllers {
           } else {
             const existingRecord = await this.findExistingHarvestRecord(harvestId, recordType);
             if (existingRecord.length == 0) {
-              recordResponses.push(await this.createHarvestRecord(brand, recordTypeModel, record['metadata']['data'], harvestId, 'update', user));
+              recordResponses.push(await this.createHarvestRecord(brand, recordTypeModel, record['metadata']['data'] as globalThis.Record<string, unknown>, harvestId, 'update', user));
             } else {
               const merge = req.query['merge'];
               let updateMode = 'update';
               if (merge == 'true') {
                 updateMode = 'merge';
               }
-              const oid = existingRecord[0].redboxOid;
-              const oldMetadata = existingRecord[0].metadata;
-              const newMetadata = record['metadata']['data'];
+              const oid = existingRecord[0].redboxOid as string;
+              const oldMetadata = (existingRecord[0].metadata ?? {}) as globalThis.Record<string, unknown>;
+              const newMetadata = record['metadata']['data'] as globalThis.Record<string, unknown>;
 
               if (this.isMetadataEqual(newMetadata, oldMetadata)) {
                 const response = {
@@ -1189,7 +1189,7 @@ export namespace Controllers {
                 }
                 recordResponses.push(response);
               } else {
-                const response = await this.updateHarvestRecord(brand, recordTypeModel, updateMode, newMetadata, oid, harvestId, user);
+                const response = await this.updateHarvestRecord(brand, recordTypeModel, updateMode, newMetadata, oid as string, harvestId, user);
                 recordResponses.push(response);
               }
             }
@@ -1200,7 +1200,7 @@ export namespace Controllers {
       return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid request' }] });
     }
 
-    private async updateHarvestRecord(brand: BrandingModel, recordTypeModel: RecordTypeModel, updateMode: string, body: any, oid: string, harvestId: string, user: UserModel) {
+    private async updateHarvestRecord(brand: BrandingModel, recordTypeModel: RecordTypeModel, updateMode: string, body: globalThis.Record<string, unknown>, oid: string, harvestId: string, user: UserModel) {
 
       const shouldMerge = updateMode == "merge" ? true : false;
       try {
@@ -1223,7 +1223,7 @@ export namespace Controllers {
           const sourceMetadata = body["sourceMetadata"];
           if (!_.isEmpty(sourceMetadata)) {
             //Force this to be stored as a string
-            (record['metaMetadata'] as any)["sourceMetadata"] = "" + sourceMetadata
+            (record['metaMetadata'] as unknown as globalThis.Record<string, unknown>)["sourceMetadata"] = "" + sourceMetadata
           }
           const result = await this.RecordsService.updateMeta(brand, oid, record, user);
 
@@ -1246,7 +1246,7 @@ export namespace Controllers {
     }
 
     private async findExistingHarvestRecord(harvestId: string, recordType: string) {
-      const results = await (global as any).Record.find({
+      const results = await (global as unknown as globalThis.Record<string, unknown> & { Record: { find: (criteria: globalThis.Record<string, unknown>) => { meta: (opts: globalThis.Record<string, unknown>) => Promise<globalThis.Record<string, unknown>[]> } } }).Record.find({
         'harvestId': harvestId,
         'metaMetadata.type': recordType
       }).meta({
@@ -1255,13 +1255,14 @@ export namespace Controllers {
       return results;
     }
 
-    private async createHarvestRecord(brand: BrandingModel, recordTypeModel: RecordTypeModel, body: any, harvestId: string, updateMode: string, user: UserModel) {
+    private async createHarvestRecord(brand: BrandingModel, recordTypeModel: RecordTypeModel, body: globalThis.Record<string, unknown>, harvestId: string, updateMode: string, user: UserModel) {
       let authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
       if (body['authorization'] != null) {
-        authorizationEdit = body['authorization']['edit'];
-        authorizationView = body['authorization']['view'];
-        authorizationEditPending = body['authorization']['editPending'];
-        authorizationViewPending = body['authorization']['viewPending'];
+        const auth = body['authorization'] as globalThis.Record<string, unknown>;
+        authorizationEdit = auth['edit'];
+        authorizationView = auth['view'];
+        authorizationEditPending = auth['editPending'];
+        authorizationViewPending = auth['viewPending'];
       } else {
         // If no authorization block set to user
         body['authorization'] = [];
@@ -1273,7 +1274,7 @@ export namespace Controllers {
 
       const metadata = body['metadata'];
       const workflowStage = body['workflowStage'];
-      const request: any = {};
+      const request: globalThis.Record<string, unknown> = {};
       if (updateMode != 'create') {
         // Only set harvestId if not in create mode
         request['harvestId'] = harvestId;
@@ -1290,7 +1291,7 @@ export namespace Controllers {
         const response = await this.RecordsService.create(brand, request, recordTypeModel, user);
 
         if (workflowStage) {
-          const wfStep = await firstValueFrom(WorkflowStepsService.get(recordTypeModel, workflowStage));
+          const wfStep = await firstValueFrom(WorkflowStepsService.get(recordTypeModel, workflowStage as string));
           this.RecordsService.setWorkflowStepRelatedMetadata(request, wfStep as globalThis.Record<string, unknown>);
         }
 
@@ -1308,7 +1309,7 @@ export namespace Controllers {
       }
     }
 
-    private isMetadataEqual(meta1: any, meta2: any): boolean {
+    private isMetadataEqual(meta1: globalThis.Record<string, unknown>, meta2: globalThis.Record<string, unknown>): boolean {
 
       const keys = _.keys(meta1);
 
@@ -1322,19 +1323,19 @@ export namespace Controllers {
     }
 
     public listDeletedRecords(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const editAccessOnly = req.query.editOnly;
 
-      let roles = [];
-      let user: any = {};
+      let roles: globalThis.Record<string, unknown>[] = [];
+      let user: globalThis.Record<string, unknown> = {};
       if (req.isAuthenticated()) {
-        roles = req.user.roles;
-        user = req.user;
+        roles = req.user!.roles as globalThis.Record<string, unknown>[];
+        user = req.user ?? {};
       } else {
         // assign default role if needed...
         user = { username: "guest" };
         roles = [];
-        roles.push(RolesService.getDefUnathenticatedRole(brand));
+        roles.push(RolesService.getDefUnathenticatedRole(brand) as unknown as globalThis.Record<string, unknown>);
       }
       const recordType = req.param('recordType');
       const workflowState = req.param('state');
@@ -1343,16 +1344,16 @@ export namespace Controllers {
       const packageType = req.param('packageType');
       const sort = req.param('sort');
       const filterFieldString = req.param('filterFields');
-      let filterString = req.param('filter');
-      let filterFields = undefined;
+      let filterString: string | undefined = req.param('filter');
+      let filterFields: string[] | undefined = undefined;
 
       if (!_.isEmpty(filterFieldString)) {
-        filterFields = filterString.split(',')
+        filterFields = filterString!.split(',')
       } else {
         filterString = undefined;
       }
 
-      if (rows > sails.config.api.max_requests) {
+      if (Number(rows) > Number((sails.config.api as unknown as globalThis.Record<string, unknown>).max_requests)) {
         return this.reachedMaxRequestRows(req, res);
       } else {
         return this.getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString)

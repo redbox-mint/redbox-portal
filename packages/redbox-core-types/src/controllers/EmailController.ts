@@ -15,13 +15,13 @@ export namespace Controllers {
       /**
        * Exported methods, accessible from internet.
        */
-      protected override _exportedMethods: any = [
+      protected override _exportedMethods: string[] = [
           'init',
           'sendNotification'
       ];
 
       public init() {
-          this.emailService = sails.services.emailservice;
+          this.emailService = sails.services.emailservice as unknown as Services.Email;
       }
 
       /**
@@ -106,7 +106,7 @@ export namespace Controllers {
                 });
             }
 
-            return templateRendered.subscribe((buildResult: any) => {
+            return templateRendered.subscribe((buildResult: globalThis.Record<string, unknown>) => {
                 if (buildResult['status'] != 200) {
                     return this.sendResp(req, res, {
                         status: 500,
@@ -116,7 +116,7 @@ export namespace Controllers {
                 } else {
                     const sendResponse = this.emailService.sendMessage(
                         toRendered,
-                        buildResult['body'],
+                        buildResult['body'] as string,
                         subjectRendered,
                         fromRendered,
                         formatRendered,
@@ -124,7 +124,7 @@ export namespace Controllers {
                         bccRendered,
                     );
 
-                    return sendResponse.subscribe((sendResult: any) => {
+                    return sendResponse.subscribe((sendResult: globalThis.Record<string, unknown>) => {
                         if (!sendResult['success']) {
                             return this.sendResp(req, res, {
                                 status: 500,

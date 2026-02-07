@@ -1,5 +1,5 @@
 export interface CacheEntryModel {
     name: string;
-    data: any;
+    data: unknown;
     ts_added: number;
   }

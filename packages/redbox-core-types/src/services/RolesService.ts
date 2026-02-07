@@ -151,7 +151,7 @@ export namespace Services {
                            return super.getObservable<RoleModel>(Role.create(roleConfig))
                                        .pipe(flatMap((newRole: RoleModel) => {
                                          sails.log.verbose("Adding role to brand:" + newRole.id);
-                                         const brand:BrandingModel = sails.services.brandingservice.getDefault();
+                                         const brand:BrandingModel = sails.services.brandingservice.getDefault() as unknown as BrandingModel;
                                          // START Sails 1.0 upgrade
                                          // brand.roles.add(newRole.id);
                                          const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
@@ -162,7 +162,7 @@ export namespace Services {
                          }),
                          last(),
                          flatMap((brand: BrandingModel) => {
-                           return sails.services.brandingservice.loadAvailableBrands();
+                           return sails.services.brandingservice.loadAvailableBrands() as unknown as Observable<BrandingModel>;
                          }));
       } else {
         sails.log.verbose("Admin role exists.");

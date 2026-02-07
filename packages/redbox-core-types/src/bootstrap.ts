@@ -9,7 +9,7 @@
  * 2. Export registerRedboxBootstrap() returning an async function
  */
 
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, Observable } from 'rxjs';
 import type { BrandingAwareFunction } from './config';
 import type { LoDashStatic } from 'lodash';
 
@@ -34,13 +34,13 @@ export interface BootstrapProvider {
 export async function coreBootstrap(): Promise<void> {
     const schedule = require('node-schedule');
 
-    const defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap());
+    const defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap() as Observable<unknown>);
     sails.log.verbose("Branding service, bootstrapped.");
 
-    const _rolesBootstrapResult = await lastValueFrom(sails.services.rolesservice.bootstrap(defaultBrand));
+    const _rolesBootstrapResult = await lastValueFrom(sails.services.rolesservice.bootstrap(defaultBrand) as Observable<unknown>);
     sails.log.verbose("Roles service, bootstrapped.");
 
-    const _reportsBootstrapResult = await lastValueFrom(sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault()));
+    const _reportsBootstrapResult = await lastValueFrom(sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault()) as Observable<unknown>);
     sails.log.verbose("Reports service, bootstrapped.");
 
     const _namedQueriesBootstrapResult = await sails.services.namedqueryservice.bootstrap(sails.services.brandingservice.getDefault());
@@ -48,14 +48,14 @@ export async function coreBootstrap(): Promise<void> {
 
     // sails doesn't support 'populating' of nested associations
     // intentionally queried again because of nested 'users' population
-    const defRoles = await lastValueFrom(sails.services.rolesservice.getRolesWithBrand(sails.services.brandingservice.getDefault()));
+    const defRoles = await lastValueFrom(sails.services.rolesservice.getRolesWithBrand(sails.services.brandingservice.getDefault()) as Observable<unknown>);
     sails.log.verbose("Roles service, bootstrapped.");
     sails.log.verbose(defRoles);
 
-    const defUserAndDefRoles: { defUser: unknown; defRoles: unknown } = await lastValueFrom(sails.services.usersservice.bootstrap(defRoles));
+    const defUserAndDefRoles: { defUser: unknown; defRoles: unknown } = await lastValueFrom(sails.services.usersservice.bootstrap(defRoles) as Observable<{ defUser: unknown; defRoles: unknown }>);
     sails.log.verbose("Pathrules service, bootstrapped.");
 
-    const _pathRulesBootstrapResult = await lastValueFrom(sails.services.pathrulesservice.bootstrap(defUserAndDefRoles.defUser, defUserAndDefRoles.defRoles));
+    const _pathRulesBootstrapResult = await lastValueFrom(sails.services.pathrulesservice.bootstrap(defUserAndDefRoles.defUser, defUserAndDefRoles.defRoles) as Observable<unknown>);
     sails.log.verbose("Record types service, bootstrapped.");
 
     const recordsTypes = await sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault());
@@ -76,7 +76,7 @@ export async function coreBootstrap(): Promise<void> {
     }
 
     sails.log.verbose("Forms service, bootstrapped.");
-    await lastValueFrom(sails.services.vocabservice.bootstrap());
+    await lastValueFrom(sails.services.vocabservice.bootstrap() as Observable<unknown>);
     sails.log.verbose("Vocab service, bootstrapped.");
 
     // Schedule cronjobs
@@ -106,7 +106,7 @@ export async function coreBootstrap(): Promise<void> {
     sails.log.verbose("Agenda Queue service, bootstrapped.");
 
     // After last, because it was being triggered twice
-    await lastValueFrom(sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()));
+    await lastValueFrom(sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()) as Observable<unknown>);
     sails.log.verbose("WorkspaceTypes service, bootstrapped.");
 
     await sails.services.cacheservice.bootstrap();

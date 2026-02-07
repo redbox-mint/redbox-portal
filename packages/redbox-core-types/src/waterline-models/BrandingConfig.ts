@@ -2,14 +2,15 @@
 import { JsonMap } from './types';
 import { Entity, Attr, HasMany, BeforeCreate, BeforeUpdate, toWaterlineModelDef } from '../decorators';
 
-declare const sails: any;
+declare const sails: Sails.Application;
 
-const handleBeforeCreate = (values: Record<string, any>, proceed: (err?: Error) => void) => {
+const handleBeforeCreate = (values: Record<string, unknown>, proceed: (err?: Error) => void) => {
   if (values.variables && typeof values.variables === 'object' && !Array.isArray(values.variables)) {
+    const vars = values.variables as Record<string, unknown>;
     const normalized: Record<string, unknown> = {};
-    Object.keys(values.variables).forEach(key => {
+    Object.keys(vars).forEach(key => {
       const normalizedKey = key.startsWith('$') ? key.slice(1) : key;
-      normalized[normalizedKey] = values.variables[key];
+      normalized[normalizedKey] = vars[key];
     });
     values.variables = normalized;
   }
@@ -30,12 +31,13 @@ const handleBeforeCreate = (values: Record<string, any>, proceed: (err?: Error) 
   return proceed();
 };
 
-const handleBeforeUpdate = (values: Record<string, any>, proceed: (err?: Error) => void) => {
+const handleBeforeUpdate = (values: Record<string, unknown>, proceed: (err?: Error) => void) => {
   if (values.variables && typeof values.variables === 'object' && !Array.isArray(values.variables)) {
+    const vars = values.variables as Record<string, unknown>;
     const normalized: Record<string, unknown> = {};
-    Object.keys(values.variables).forEach(key => {
+    Object.keys(vars).forEach(key => {
       const normalizedKey = key.startsWith('$') ? key.slice(1) : key;
-      normalized[normalizedKey] = values.variables[key];
+      normalized[normalizedKey] = vars[key];
     });
     values.variables = normalized;
   }

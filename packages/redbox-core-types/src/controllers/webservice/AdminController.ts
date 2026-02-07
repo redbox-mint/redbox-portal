@@ -1,5 +1,7 @@
 import { APIActionResponse, APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
 
+type BrandReqLike = { params?: globalThis.Record<string, unknown>; body?: globalThis.Record<string, unknown>; session?: globalThis.Record<string, unknown> };
+
 
 export namespace Controllers {
   /**
@@ -15,7 +17,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'refreshCachedResources',
       'setAppConfig',
       'getAppConfig'
@@ -46,7 +48,7 @@ export namespace Controllers {
       try {
         const configKey = req.param('configKey')
 
-        const brandName: string = BrandingService.getBrandFromReq(req);
+        const brandName: string = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
         const brand: BrandingModel = BrandingService.getBrand(brandName);
 
         const config = await AppConfigService.createOrUpdateConfig(brand, configKey, req.body)
@@ -68,11 +70,11 @@ export namespace Controllers {
       try {
         const configKey = req.param('configKey')
 
-        const brandName: string = BrandingService.getBrandFromReq(req);
+        const brandName: string = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
 
         const brand: BrandingModel = BrandingService.getBrand(brandName);
 
-        let config = AppConfigService.getAppConfigurationForBrand(brand.name)
+        let config: unknown = AppConfigService.getAppConfigurationForBrand(brand.name)
         if (!_.isEmpty(configKey)) {
           config = _.get(config, configKey, null)
         }

@@ -3,6 +3,20 @@ import { NextFunction } from "express";
 import express = require("express");
 import type { SailsConfig } from "./config";
 
+// Augment express-session to include Sails-specific session properties
+declare module "express-session" {
+	interface SessionData {
+		branding: string;
+		portal: string;
+		user: globalThis.Record<string, unknown>;
+		redirUrl: string;
+		logoutUrl: string;
+		lang: string;
+		authenticated: boolean;
+		data: unknown;
+	}
+}
+
 declare global {
 	var sails: Sails.Application;
 
@@ -13,55 +27,62 @@ declare global {
 
 		// ConfigObject now extends SailsConfig for typed access
 		export interface ConfigObject extends SailsConfig {
-			// Passport is configured at runtime during bootstrap.
-			passport: any;
+			// Sails runtime config keys not covered by SailsConfig
+			keepResponseErrors?: boolean;
+			hooks: globalThis.Record<string, unknown>;
+			[key: string]: unknown;
 		}
 
 		// Log interface based on https://github.com/balderdashy/captains-log
 		export interface Log {
-			crit: (...args: any[]) => void;
-			error: (...args: any[]) => void;
-			warn: (...args: any[]) => void;
-			debug: (...args: any[]) => void;
-			info: (...args: any[]) => void;
-			verbose: (...args: any[]) => void;
-			silly: (...args: any[]) => void;
-			blank: (...args: any[]) => void;
-			trace: (...args: any[]) => void;
-			log: (...args: any[]) => void;
-			fatal: (...args: any[]) => void;
-			silent: (...args: any[]) => void;
-			[key: string]: (...args: any[]) => void;
+			crit: (...args: unknown[]) => void;
+			error: (...args: unknown[]) => void;
+			warn: (...args: unknown[]) => void;
+			debug: (...args: unknown[]) => void;
+			info: (...args: unknown[]) => void;
+			verbose: (...args: unknown[]) => void;
+			silly: (...args: unknown[]) => void;
+			blank: (...args: unknown[]) => void;
+			trace: (...args: unknown[]) => void;
+			log: (...args: unknown[]) => void;
+			fatal: (...args: unknown[]) => void;
+			silent: (...args: unknown[]) => void;
+			[key: string]: (...args: unknown[]) => void;
+		}
+
+		// Represents a dynamically-loaded Sails service with callable methods
+		export interface DynamicService {
+			[method: string]: (...args: unknown[]) => unknown;
 		}
 
 		export interface Application {
 			config: ConfigObject;
 			log: Log;
 			services: {
-				[key: string]: any;
+				[key: string]: DynamicService;
 			};
 			after(events: string | string[], cb: () => void): void;
 			// Socket.io sockets interface
 			sockets: {
-				join(req: any, room: string, cb?: (err?: Error) => void): void;
-				leave(req: any, room: string, cb?: (err?: Error) => void): void;
-				broadcast(room: string, event: string, data?: any, socketToOmit?: any): void;
-				blast(event: string, data?: any): void;
-				getId(req: any): string;
-				[key: string]: any;
+				join(req: unknown, room: string, cb?: (err?: Error) => void): void;
+				leave(req: unknown, room: string, cb?: (err?: Error) => void): void;
+				broadcast(room: string, event: string, data?: unknown, socketToOmit?: unknown): void;
+				blast(event: string, data?: unknown): void;
+				getId(req: Sails.Req): string;
+				[key: string]: unknown;
 			};
 			// Action lookup method
-			getActions(): { [actionName: string]: any };
-            on(event: string, cb: (...args: any[]) => void): void;
-            emit(event: string, ...args: any[]): void;
+			getActions(): { [actionName: string]: unknown };
+            on(event: string, cb: (...args: unknown[]) => void): void;
+            emit(event: string, ...args: unknown[]): void;
 		}		export interface Hook {
 			initialize: (cb: () => void) => void;
 			routes: {
-				before: { [key: string]: any };
-				after: { [key: string]: any };
+				before: { [key: string]: unknown };
+				after: { [key: string]: unknown };
 			};
 			configure?: () => void;
-			defaults?: { [key: string]: any };
+			defaults?: { [key: string]: unknown };
 		}
 
 		export interface Model<T> {
@@ -145,9 +166,9 @@ declare global {
 			stream(criteria: string, writeEnd: object): Error;
 			stream(criteria: number, writeEnd: object): Error;
 
-			addToCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
-			replaceCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
-			removeFromCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<any> };
+			addToCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
+			replaceCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
+			removeFromCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
             getDatastore(): { manager: { collection: (name: string) => {
               createIndex: (spec: object) => Promise<unknown>;
               find: (filter: object) => { forEach: (cb: (doc: globalThis.Record<string, unknown>) => void | Promise<void>) => Promise<void> | void };
@@ -163,13 +184,12 @@ declare global {
 		export interface NextFunction extends express.NextFunction { }
 
 		export interface Req extends express.Request {
-			options?: any;
-			session: any;
-			user?: any;
-			query: { [key: string]: any };
-			param(name: string, defaultValue?: any): any;
+			options?: globalThis.Record<string, unknown>;
+			user?: globalThis.Record<string, unknown>;
+			query: { [key: string]: string | undefined };
+			param(name: string, defaultValue?: string): string;
 			isAuthenticated(): this is Express.AuthenticatedRequest;
-			[key: string]: any;
+			[key: string]: unknown;
 		}
 
 		// Sails.js Response interface - uses intersection type to add Sails-specific methods
@@ -210,8 +230,8 @@ declare global {
 			toJSON(): object;
 		}
 
-		export class QueryBuilder extends Promise<any> {
-			exec(cb: (error: any, results: Array<QueryResult>) => void): void;
+		export class QueryBuilder extends Promise<unknown> {
+			exec(cb: (error: Error | null, results: Array<QueryResult>) => void): void;
 			set(values: object): QueryBuilder;
 			meta(options: object): QueryBuilder;
 

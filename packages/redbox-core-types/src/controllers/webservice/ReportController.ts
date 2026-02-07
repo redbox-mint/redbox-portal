@@ -12,7 +12,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'executeNamedQuery'
     ];
 
@@ -29,7 +29,7 @@ export namespace Controllers {
 
     public async executeNamedQuery(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const queryName = req.param('queryName');
         const namedQuery = await NamedQueryService.getNamedQueryConfig(brand, queryName);
         if (_.isEmpty(namedQuery)) {

@@ -20,7 +20,7 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
 
-let flat: any;
+let flat: { unflatten: (target: globalThis.Record<string, unknown>) => globalThis.Record<string, unknown>; [key: string]: unknown };
 
 export namespace Controllers {
   /**
@@ -34,7 +34,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
         'get',
         'getCollection',
         'loadCollection',
@@ -102,18 +102,18 @@ export namespace Controllers {
 
     public async getMint(req: Sails.Req, res: Sails.Res) {
       const mintSourceType = req.param('mintSourceType');
-      const searchString = req.query.search;
+      const searchString = req.query.search ?? '';
       const unflatten = req.param('unflatten');
       const flattened_prefix = "flattened_";
       try {
         const mintResponse = await VocabService.findInMint(mintSourceType, searchString);
         const response_docs = _.get(mintResponse, 'response.docs', []) as Array<Record<string, unknown>>;
         if (unflatten == "true") {
-          _.forEach(response_docs, (doc: any) => {
-            _.forOwn(doc, (val: any, key: any) => {
+          _.forEach(response_docs, (doc: globalThis.Record<string, unknown>) => {
+            _.forOwn(doc, (val: unknown, key: string) => {
               if (_.startsWith(key, flattened_prefix)) {
                 const targetKey = key.substring(flattened_prefix.length);
-                const objVal = JSON.parse(val);
+                const objVal = JSON.parse(val as string);
                 doc[targetKey] = flat.unflatten(objVal)[key];
               }
             });
@@ -131,9 +131,9 @@ export namespace Controllers {
     public async getRecords(req: Sails.Req, res: Sails.Res) {
       const mintSourceType = req.param('queryId');
       const searchString = req.param('search');
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding as string);
       try {
-        const response = await VocabService.findRecords(mintSourceType, brand, searchString, req.param('start'), req.param('rows'), req.user);
+        const response = await VocabService.findRecords(mintSourceType, brand, searchString, Number(req.param('start')), Number(req.param('rows')), req.user! as Parameters<typeof VocabService.findRecords>[5]);
         this.sendResp(req, res, { data: response, headers: this.getNoCacheHeaders() });
       } catch (error: unknown) {
         sails.log.verbose("Error getting internal records:");

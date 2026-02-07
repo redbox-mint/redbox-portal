@@ -4,11 +4,11 @@ import { Entity, Attr, BelongsTo, BeforeCreate, BeforeUpdate, toWaterlineModelDe
 import { BrandingConfigAttributes } from './BrandingConfig';
 import { I18nBundleAttributes } from './I18nBundle';
 
-const beforeCreate = (translation: Record<string, any>, cb: (err?: Error) => void) => {
+const beforeCreate = (translation: Record<string, unknown>, cb: (err?: Error) => void) => {
   // Manual validation for 'value' because required:true disallows empty strings
   if (translation.value === undefined || translation.value === null) {
     const err = new Error('Value is required');
-    (err as any).code = 'E_INVALID_NEW_RECORD';
+    (err as unknown as Record<string, unknown>).code = 'E_INVALID_NEW_RECORD';
     return cb(err);
   }
   try {
@@ -25,11 +25,11 @@ const beforeCreate = (translation: Record<string, any>, cb: (err?: Error) => voi
   }
 };
 
-const beforeUpdate = (values: Record<string, any>, cb: (err?: Error) => void) => {
+const beforeUpdate = (values: Record<string, unknown>, cb: (err?: Error) => void) => {
   // Manual validation for 'value'
   if (Object.hasOwn(values, 'value') && values.value === null) {
     const err = new Error('Value cannot be null');
-    (err as any).code = 'E_INVALID_NEW_RECORD';
+    (err as unknown as Record<string, unknown>).code = 'E_INVALID_NEW_RECORD';
     return cb(err);
   }
   try {

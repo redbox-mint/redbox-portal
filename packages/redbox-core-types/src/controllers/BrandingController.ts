@@ -5,8 +5,7 @@ import * as crypto from 'crypto';
 import * as fs from 'graceful-fs';
 import * as path from 'path';
 
-declare const sails: any;
-declare const BrandingConfig: any;
+// sails is declared globally via sails.ts; BrandingConfig is declared globally via waterline-models/BrandingConfig.ts
 declare const BrandingService: BrandingServiceModule.Services.Branding;
 declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLogo;
 
@@ -147,8 +146,8 @@ export namespace Controllers {
         const portal = req.param('portal');
         const result = await BrandingService.preview(branding, portal);
         return res.json(result);
-      } catch (e: any) {
-        return res.status(500).json({ error: 'preview-error', message: e.message });
+      } catch (e: unknown) {
+        return res.status(500).json({ error: 'preview-error', message: (e as Error).message });
       }
     }
 
@@ -161,7 +160,7 @@ export namespace Controllers {
      */
     public renderApiB(req: Sails.Req, res: Sails.Res) {
       res.contentType('text/plain');
-      req.options.locals["baseUrl"] = sails.config.appUrl;
+      (req.options!.locals as globalThis.Record<string, unknown>)["baseUrl"] = sails.config.appUrl;
       return this.sendView(req, res, "apidocsapib", { layout: false });
     }
 
@@ -175,7 +174,7 @@ export namespace Controllers {
      */
     public renderSwaggerJSON(req: Sails.Req, res: Sails.Res) {
       res.contentType('application/json');
-      req.options.locals["baseUrl"] = sails.config.appUrl;
+      (req.options!.locals as globalThis.Record<string, unknown>)["baseUrl"] = sails.config.appUrl;
       return this.sendView(req, res, "apidocsswaggerjson", { layout: false });
     }
 
@@ -188,7 +187,7 @@ export namespace Controllers {
      */
     public renderSwaggerYAML(req: Sails.Req, res: Sails.Res) {
       res.contentType('application/x-yaml');
-      req.options.locals["baseUrl"] = sails.config.appUrl;
+      (req.options!.locals as globalThis.Record<string, unknown>)["baseUrl"] = sails.config.appUrl;
       return this.sendView(req, res, "apidocsswaggeryaml", { layout: false });
     }
 
@@ -208,7 +207,7 @@ export namespace Controllers {
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(`${sails.config.appPath}/assets/images/${sails.config.static_assets.logoName}`);
         }
-        const id = brand.logo.gridFsId;
+        const id = brand.logo.gridFsId as string;
         // Try persistent storage first (GridFS), then in-memory cache
         let buf: Buffer | null = null;
         buf = await BrandingLogoService.getBinaryAsync(id);
@@ -217,8 +216,8 @@ export namespace Controllers {
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
         }
-        res.contentType(brand.logo.contentType || sails.config.static_assets.imageType);
-        const etag = this.generateETag(brand.logo.sha256, 'logo-');
+        res.contentType((brand.logo.contentType as string) || sails.config.static_assets.imageType);
+        const etag = this.generateETag(brand.logo.sha256 as string, 'logo-');
         res.set('ETag', etag);
         if (req.headers['if-none-match'] === etag) return res.status(304).end();
         res.set('Cache-Control', 'public, max-age=3600');

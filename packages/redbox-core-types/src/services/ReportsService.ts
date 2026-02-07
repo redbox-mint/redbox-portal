@@ -297,7 +297,7 @@ export namespace Services {
     }
 
     private getSearchService(): SearchService{
-      return sails.services[sails.config.search.serviceName];
+      return sails.services[sails.config.search.serviceName] as unknown as SearchService;
     }
 
     private convertLegacyReport(report: ReportModel): ReportModel {
@@ -553,7 +553,7 @@ export namespace Services {
     }
 
     public getReportDto(reportModel: ReportModel): ReportDto {
-      return this.convertToType<ReportDto>(reportModel, new ReportDto(), {
+      return this.convertToType<ReportDto>(reportModel as unknown as Record<string, unknown>, new ReportDto() as unknown as Record<string, unknown>, {
         "solr_query": "solrQuery"
       }, true);
     }

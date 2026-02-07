@@ -3,7 +3,7 @@ import { JsonMap } from './types';
 import { Entity, Attr, BelongsTo, BeforeCreate, toWaterlineModelDef } from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
 
-const assignKey = (report: Record<string, any>, cb: (err?: Error) => void) => {
+const assignKey = (report: Record<string, unknown>, cb: (err?: Error) => void) => {
   report.key = `${report.branding}_${report.name}`;
   cb();
 };

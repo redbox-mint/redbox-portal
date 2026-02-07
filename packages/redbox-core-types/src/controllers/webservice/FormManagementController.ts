@@ -16,7 +16,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'getForm',
       'listForms'
     ];
@@ -34,10 +34,8 @@ export namespace Controllers {
     public async getForm(req: Sails.Req, res: Sails.Res) {
       try {
         const name: string = req.param('name');
-        let editable: boolean = req.param('editable');
-        if (editable == null) {
-          editable = true;
-        }
+        const editableParam = req.param('editable');
+        let editable: boolean = editableParam !== 'false';
         const form = await firstValueFrom(FormsService.getFormByName(name, editable));
         if (!form) {
           return this.sendResp(req, res, {
@@ -60,7 +58,7 @@ export namespace Controllers {
     public async listForms(req: Sails.Req, res: Sails.Res) {
       try {
         const forms: FormModel[] = await firstValueFrom(FormsService.listForms());
-        const response: ListAPIResponse<any> = new ListAPIResponse();
+        const response: ListAPIResponse<FormModel> = new ListAPIResponse();
         const summary: ListAPISummary = new ListAPISummary();
         summary.numFound = forms.length;
         response.summary = summary;

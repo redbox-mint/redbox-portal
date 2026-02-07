@@ -21,7 +21,7 @@
 
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Controllers as controllers } from '../CoreController';
-import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
+import { TemplateCompileInput, FormConfigFrame } from "@researchdatabox/sails-ng-common";
 import { firstValueFrom } from "rxjs";
 
 
@@ -42,7 +42,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'get',
       'getFormCompiledItems',
       'getFormStructureValidations',
@@ -66,15 +66,15 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public get(req: any, res: any) {
+    public get(req: Sails.Req, res: Sails.Res) {
       let assetId = req.param("asset");
       if (!assetId) assetId = 'apiClientConfig.json'
       sails.log.verbose(`Geting asset: ${assetId}`);
       this.sendAssetView(res, assetId, { layout: false });
     }
 
-    public async getFormCompiledItems(req: any, res: any) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+    public async getFormCompiledItems(req: Sails.Req, res: Sails.Res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const editMode = req.query.edit == "true";
       const formMode = editMode ? "edit" : "view";
       const recordType = req.param("recordType") || this._recordTypeAuto;
@@ -83,21 +83,21 @@ export namespace Controllers {
 
       try {
         // TODO: this block is very similar to RecordController.getForm - refactor to service?
-        const userRoles = (req.user?.roles ?? []).map((role: any) => role?.name).filter((name: string) => !!name);
+        const userRoles = ((req.user?.roles ?? []) as globalThis.Record<string, unknown>[]).map((role) => role?.name as string).filter((name) => !!name);
         let form, recordMetadata;
         if (!oid) {
           recordMetadata = null;
-          form = await firstValueFrom<any>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
+          form = await firstValueFrom<unknown>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
         } else {
           const record = await RecordsService.getMeta(oid);
           const recordAny = record as unknown as Record<string, unknown>;
           let hasAccess: boolean = false;
           if (editMode) {
             //find form to edit a record
-            hasAccess = await RecordsService.hasEditAccess(brand, req.user, req.user.roles, recordAny);
+            hasAccess = await RecordsService.hasEditAccess(brand, req.user!, (req.user!.roles ?? []) as globalThis.Record<string, unknown>[], recordAny);
           } else {
             //find form to view a record
-            hasAccess = await RecordsService.hasViewAccess(brand, req.user, req.user.roles, recordAny);
+            hasAccess = await RecordsService.hasViewAccess(brand, req.user!, (req.user!.roles ?? []) as globalThis.Record<string, unknown>[], recordAny);
           }
           if (!hasAccess) {
             return this.sendResp(req, res, {
@@ -109,7 +109,7 @@ export namespace Controllers {
           recordMetadata = record?.metadata ?? {};
           form = await FormsService.getForm(brand, "", editMode, "", record);
         }
-        const entries: TemplateCompileInput[] = FormRecordConsistencyService.extractRawTemplates(form, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
+        const entries: TemplateCompileInput[] = FormRecordConsistencyService.extractRawTemplates(form as FormConfigFrame, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
         return this.sendResp(req, res, {
@@ -125,7 +125,7 @@ export namespace Controllers {
     * @param req
     * @param res
     */
-    public getFormStructureValidations(req: any, res: any) {
+    public getFormStructureValidations(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
       const isNewRecord = this.isNewRecord(recordType, oid);
@@ -142,7 +142,7 @@ export namespace Controllers {
     * @param req
     * @param res
     */
-    public getFormDataValidations(req: any, res: any) {
+    public getFormDataValidations(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
       const isNewRecord = this.isNewRecord(recordType, oid);
@@ -157,7 +157,7 @@ export namespace Controllers {
     * @param req
     * @param res
     */
-    public getFormExpressions(req: any, res: any) {
+    public getFormExpressions(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param("recordType") || this._recordTypeAuto;
       const oid = req.param("oid") || "";
       const isNewRecord = this.isNewRecord(recordType, oid);
@@ -172,8 +172,8 @@ export namespace Controllers {
     * @param req
     * @param res
     */
-    public async getAdminReportTemplates(req: any, res: any) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+    public async getAdminReportTemplates(req: Sails.Req, res: Sails.Res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const reportName = req.param("reportName") || "";
 
       try {
@@ -190,8 +190,8 @@ export namespace Controllers {
     * @param req
     * @param res
     */
-    public async getRecordDashboardTemplates(req: any, res: any) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+    public async getRecordDashboardTemplates(req: Sails.Req, res: Sails.Res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const recordType = req.param("recordType") || "";
       const workflowStage = req.param("workflowStage") || "";
       const dashboardType = req.param("dashboardType") || "standard";
@@ -218,7 +218,7 @@ export namespace Controllers {
       return !!oid && (recordType === this._recordTypeAuto || !!recordType);
     }
 
-    private sendClientMappingJavascript(res: any, inputs: TemplateCompileInput[]) {
+    private sendClientMappingJavascript(res: Sails.Res, inputs: TemplateCompileInput[]) {
       inputs = inputs || [];
       const entries = TemplateService.buildClientMapping(inputs);
       const entryKeys = inputs.map(i => TemplateService.buildKeyString(i.key)).sort();
@@ -232,7 +232,7 @@ export namespace Controllers {
       });
     }
 
-    private sendAssetView(res: any, assetId: string, viewContext: Record<string, unknown>) {
+    private sendAssetView(res: Sails.Res, assetId: string, viewContext: Record<string, unknown>) {
       const dynamicAssetInfo = sails.config.dynamicasset[assetId];
       if (!dynamicAssetInfo || !dynamicAssetInfo.type || !dynamicAssetInfo.view) {
         return res.notFound();

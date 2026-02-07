@@ -43,7 +43,7 @@ export namespace Services {
     protected recordTypes!:RecordTypeModel[];
 
     public async bootstrap (defBrand:BrandingModel):Promise<RecordTypeModel[]> {
-      let recordTypes:RecordTypeModel[] = await RecordType.find({branding:defBrand.id});
+      let recordTypes:RecordTypeModel[] = await RecordType.find({branding:defBrand.id}) as unknown as RecordTypeModel[];
       if (sails.config.appmode.bootstrapAlways) {
         await RecordType.destroy({branding:defBrand.id});
         recordTypes  = [];

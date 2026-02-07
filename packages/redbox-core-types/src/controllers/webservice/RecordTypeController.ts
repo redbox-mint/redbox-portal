@@ -1,4 +1,4 @@
-import { APIErrorResponse, BrandingModel, Controllers as controllers, ListAPIResponse, ListAPISummary } from '../../index';
+import { APIErrorResponse, BrandingModel, Controllers as controllers, ListAPIResponse, ListAPISummary, RecordTypeModel } from '../../index';
 import { firstValueFrom } from 'rxjs';
 
 
@@ -16,7 +16,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'getRecordType',
       'listRecordTypes'
     ];
@@ -35,7 +35,7 @@ export namespace Controllers {
 
       try {
         const name = req.param('name');
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const recordType = await firstValueFrom(RecordTypesService.get(brand, name));
 
         return this.apiRespond(req, res, recordType, 200)
@@ -51,9 +51,9 @@ export namespace Controllers {
 
     public async listRecordTypes(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-        const recordTypes: any[] = await firstValueFrom(RecordTypesService.getAll(brand));
-        const response: ListAPIResponse<any> = new ListAPIResponse();
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const recordTypes: RecordTypeModel[] = await firstValueFrom(RecordTypesService.getAll(brand));
+        const response: ListAPIResponse<RecordTypeModel> = new ListAPIResponse();
         const summary: ListAPISummary = new ListAPISummary();
         summary.numFound = recordTypes.length;
         response.summary = summary;

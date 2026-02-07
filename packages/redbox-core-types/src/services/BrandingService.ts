@@ -21,6 +21,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import { BrandingConfigHistoryAttributes } from '../waterline-models/BrandingConfigHistory';
 import * as crypto from 'crypto';
 
 
@@ -272,19 +273,19 @@ export namespace Services {
 
     /** Rollback to a previous published version via history id */
     public async rollback(historyId: string, actor: unknown): Promise<{ version: number; hash: string; branding: BrandingModel | null; }> {
-      const historyEntry = await BrandingConfigHistory.findOne({ id: historyId }).populate('branding');
+      const historyEntry = await BrandingConfigHistory.findOne({ id: historyId }).populate('branding') as unknown as BrandingConfigHistoryAttributes | null;
       if (!historyEntry) throw new Error('history-not-found');
-      const branding = historyEntry.branding;
+      const branding = historyEntry.branding as unknown as BrandingModel | null;
       if (!branding) throw new Error('branding-not-found');
 
       // Restore variables, CSS, hash from history
-      await BrandingConfig.update({ id: branding.id }, {
+      await BrandingConfig.update({ id: (branding as BrandingModel).id }, {
         variables: historyEntry.variables,
         css: historyEntry.css,
         hash: historyEntry.hash,
         version: historyEntry.version
       });
-      const refreshed = await this.refreshBrandingCache(branding.id);
+      const refreshed = await this.refreshBrandingCache((branding as BrandingModel).id);
       return {
         version: historyEntry.version,
         hash: historyEntry.hash,
@@ -293,8 +294,8 @@ export namespace Services {
     }
 
     /** Refresh a single branding record in the in-memory cache (this.brandings & availableBrandings) */
-    public async refreshBrandingCache(id: string) {
-      const updated = await BrandingConfig.findOne({ id }).populate('roles');
+    public async refreshBrandingCache(id: string): Promise<BrandingModel | null> {
+      const updated = await BrandingConfig.findOne({ id }).populate('roles') as unknown as BrandingModel | null;
       if (updated) {
         const idx = this.brandings.findIndex((b: BrandingModel) => b.id === id);
         if (idx >= 0) {

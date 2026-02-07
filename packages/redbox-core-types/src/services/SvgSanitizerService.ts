@@ -214,7 +214,7 @@ export namespace Services {
     }
 
     getMaxBytes(): number {
-      return _.get(sails.config, 'record.form.svgMaxBytes', 1048576); // 1MB default
+      return _.get(sails.config, 'record.form.svgMaxBytes', 1048576) as number; // 1MB default
     }
 
     /**

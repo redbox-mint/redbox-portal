@@ -273,10 +273,13 @@ export namespace Controllers.Core {
 
     public sendView(req: Sails.Req, res: Sails.Res, view: string, locals: Record<string, unknown> = {}): void {
 
+      if (!req.options) {
+        req.options = {};
+      }
       if (req.options.locals == null) {
         req.options.locals = {};
       }
-      const mergedLocal: Record<string, unknown> = Object.assign({}, req.options.locals, locals);
+      const mergedLocal: Record<string, unknown> = Object.assign({}, req.options.locals as Record<string, unknown>, locals);
 
       const branding = mergedLocal['branding'] as string;
       const portal = mergedLocal['portal'] as string;

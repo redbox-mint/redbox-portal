@@ -1,5 +1,5 @@
 import { Controllers as controllers } from '../CoreController';
-import { BrandingModel } from '../model';
+import { BrandingModel, ReportModel } from '../model';
 import { from } from 'rxjs';
 
 
@@ -15,7 +15,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'render',
       'get',
       'getResults',
@@ -37,17 +37,18 @@ export namespace Controllers {
     }
 
     public async get(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      const report: any = await ReportsService.get(brand, req.param('name'));
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const report = await ReportsService.get(brand, req.param('name')) as unknown as ReportModel;
       return this.sendResp(req, res, { data: ReportsService.getReportDto(report), headers: this.getNoCacheHeaders() });
     }
 
     public getResults(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      const response = from(ReportsService.getResults(brand, req.param('name'), req, req.param('start'), req.param('rows')));
-      return response.subscribe((responseObject: any) => {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const reqLike = { param: (name: string) => req.param(name) as string | undefined | null };
+      const response = from(ReportsService.getResults(brand, req.param('name'), reqLike, Number(req.param('start')), Number(req.param('rows'))));
+      return response.subscribe((responseObject: unknown) => {
         if (responseObject) {
-          const response: any = responseObject;
+          const response = responseObject as globalThis.Record<string, unknown>;
           response.success = true;
           this.sendResp(req, res, { data: response, headers: this.getNoCacheHeaders() });
         } else {
@@ -64,9 +65,9 @@ export namespace Controllers {
 
     public async downloadCSV(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
 
-        const results = await ReportsService.getCSVResult(brand, req.param('name'), req);
+        const results = await ReportsService.getCSVResult(brand, req.param('name'), { param: (name: string) => req.param(name) as string | undefined | null });
         const fileName = req.param('name') + '.csv';
         sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);

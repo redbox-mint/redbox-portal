@@ -85,7 +85,7 @@ export namespace Services {
       let formName: string | null = null;
       this.logger.verbose("Found : ");
       this.logger.verbose(form);
-      if (!form || form.length == 0) {
+      if (!form || (Array.isArray(form) && form.length == 0)) {
         this.logger.verbose("Bootstrapping form definitions..");
         // only bootstrap the form for this workflow step
         _.forOwn(sails.config.form.forms, (_formDef: unknown, formName: string) => {
@@ -104,7 +104,7 @@ export namespace Services {
       // check now if the form already exists, if it does, ignore...
       const existingFormDef = await Form.find({
         name: formName
-      })
+      }) as unknown as FormModel[];
       const existCheck: { formName: string | null; existingFormDef: FormModel[] } = {
         formName: formName,
         existingFormDef: existingFormDef

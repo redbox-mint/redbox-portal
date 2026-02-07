@@ -303,7 +303,7 @@ export namespace Services {
 
         // Add languages from DB bundles
         try {
-          const bundles = await I18nBundle.find({ branding: brandingId }).sort('locale');
+          const bundles = await I18nBundle.find({ branding: brandingId }).sort('locale') as unknown as Array<{ locale?: string }>;
           this.logger.debug(`Found ${bundles.length} bundles for branding ${brandingId}`);
           bundles.forEach((b: { locale?: string }) => {
             if (b?.locale) {

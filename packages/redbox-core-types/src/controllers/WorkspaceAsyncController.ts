@@ -12,7 +12,7 @@ export namespace Controllers {
     /**
      * Methods required for workspace dashboard.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'start',
       'loop',
       'status'
@@ -21,7 +21,7 @@ export namespace Controllers {
     public start(req: Sails.Req, res: Sails.Res) {
       const name = req.param('name');
       const recordType = req.param('recordType');
-      const username = req.username;
+      const username = req.username as string;
       const method = req.param('method');
       const service = req.param('service');
       const args = req.param('args');

@@ -75,7 +75,7 @@ export namespace Services {
 			if (!serviceName) {
 				return;
 			}
-			this.datastreamService = sails.services[serviceName];
+			this.datastreamService = sails.services[serviceName] as unknown as DatastreamService;
 		}
 
 		/**

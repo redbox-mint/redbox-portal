@@ -87,7 +87,7 @@ export function defineWebpackHook(sailsInstance: Sails.Application, _webpack = w
                 triggerDoneOnce(...args);
             };
 
-            compiler.run(compileCallback as any);
+            compiler.run(compileCallback as Parameters<typeof compiler.run>[0]);
         }
     };
 }

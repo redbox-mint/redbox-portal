@@ -157,9 +157,9 @@ export namespace Services {
       let results: Array<RecordLike | UserLike> = [];
       if (totalItems > 0) {
         if(collectionName == 'user') {
-          results = await User.find(criteria).meta(criteriaMeta);
+          results = await User.find(criteria).meta(criteriaMeta) as unknown as Array<RecordLike | UserLike>;
         } else {
-          results = await Record.find(criteria).meta(criteriaMeta);
+          results = await Record.find(criteria).meta(criteriaMeta) as unknown as Array<RecordLike | UserLike>;
         }
       }
       

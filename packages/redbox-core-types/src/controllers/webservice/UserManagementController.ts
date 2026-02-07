@@ -14,7 +14,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'listUsers',
       'getUser',
       'createUser',
@@ -35,28 +35,23 @@ export namespace Controllers {
 
     }
 
-    public listUsers(req: any, res: any) {
+    public listUsers(req: Sails.Req, res: Sails.Res) {
       const that = this;
-      let page = req.param('page');
-      let pageSize = req.param('pageSize');
+      const pageParam = req.param('page');
+      const pageSizeParam = req.param('pageSize');
       const searchField = req.param('searchBy');
       const query = req.param('query');
       const queryObject: Record<string, unknown> = {};
       if (searchField != null && query != null) {
         queryObject[searchField] = query;
       }
-      if (page == null) {
-        page = 1;
-      }
-
-      if (pageSize == null) {
-        pageSize = 10;
-      }
+      const page: number = pageParam != null ? parseInt(pageParam, 10) : 1;
+      const pageSize: number = pageSizeParam != null ? parseInt(pageSizeParam, 10) : 10;
       const skip = (page - 1) * pageSize;
 
       User.count({
         where: queryObject
-      }).exec(function (err: any, count: number) {
+      }).exec(function (err: unknown, count: number) {
         const response: ListAPIResponse<UserAttributes> = new ListAPIResponse<UserAttributes>();
         response.summary.numFound = count;
         response.summary.page = page;
@@ -69,7 +64,7 @@ export namespace Controllers {
             where: queryObject,
             limit: pageSize,
             skip: skip
-          }).exec(function (err: any, users: Sails.QueryResult[]) {
+          }).exec(function (err: unknown, users: Sails.QueryResult[]) {
 
             const userRecords = users as unknown as UserAttributes[];
             _.each(userRecords, (user: UserAttributes) => {
@@ -84,18 +79,18 @@ export namespace Controllers {
       });
     }
 
-    public getUser(req: any, res: any) {
+    public getUser(req: Sails.Req, res: Sails.Res) {
       const that = this;
       const searchField = req.param('searchBy');
       const query = req.param('query');
       const queryObject: Record<string, unknown> = {};
       queryObject[searchField] = query;
-      User.findOne(queryObject).exec(function (err: any, user: UserAttributes | null) {
+      User.findOne(queryObject).exec(function (err: unknown, user: UserAttributes | null) {
         if (err != null) {
           sails.log.error(err)
           return that.sendResp(req, res, {
             status: 500,
-            displayErrors: [{ detail: err?.message ?? 'An error has occurred' }],
+            displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
             headers: that.getNoCacheHeaders()
           });
         }
@@ -114,7 +109,7 @@ export namespace Controllers {
       });
     }
 
-    public createUser(req: any, res: any) {
+    public createUser(req: Sails.Req, res: Sails.Res) {
       const userReq: UserModel = req.body;
 
       const respondWithUser = (response: UserModel) => {
@@ -130,8 +125,8 @@ export namespace Controllers {
 
       const applyRolesIfRequested = (response: UserModel) => {
         if (userReq.roles) {
-          const roles: string[] = (userReq.roles as any[]).map((role: any) => _.isString(role) ? role : role?.name).filter((roleName: any) => !_.isEmpty(roleName));
-          const brand: BrandingModel = BrandingService.getBrand(req.session.branding) ?? BrandingService.getDefault();
+          const roles: string[] = (userReq.roles as unknown[]).map((role: unknown) => _.isString(role) ? role : (role as globalThis.Record<string, unknown>)?.name as string).filter((roleName: unknown) => !_.isEmpty(roleName));
+          const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
           const roleIds = brand?.roles ? RolesService.getRoleIds(brand.roles, roles) : [];
           if (_.isEmpty(roleIds)) {
             sails.log.warn('UserManagementController.createUser - No role ids resolved, skipping role assignment.');
@@ -141,7 +136,7 @@ export namespace Controllers {
             const user: UserModel = roleUser;
             sails.log.verbose(user);
             return respondWithUser(response);
-          }, (error: any) => {
+          }, (error: unknown) => {
             sails.log.error("Failed to update user roles:");
             sails.log.error(error);
             return respondWithUser(response);
@@ -155,8 +150,8 @@ export namespace Controllers {
       UsersService.addLocalUser(userReq.username || '', userReq.name || '', userReq.email || '', userReq.password || '').subscribe((userResponse: UserModel) => {
         const response: UserModel = userResponse;
         return applyRolesIfRequested(response);
-      }, (error: any) => {
-        if (error?.message?.includes('Username already exists')) {
+      }, (error: unknown) => {
+        if ((error as Error)?.message?.includes('Username already exists')) {
           UsersService.getUserWithUsername(userReq.username || '').subscribe((existingUser: UserModel | null) => {
             if (existingUser) {
               return applyRolesIfRequested(existingUser);
@@ -164,14 +159,14 @@ export namespace Controllers {
             sails.log.error(error);
             return this.sendResp(req, res, {
               status: 500,
-              displayErrors: [{ detail: error?.message ?? 'An error has occurred' }],
+              displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
               headers: this.getNoCacheHeaders()
             });
-          }, (lookupError: any) => {
+          }, (lookupError: unknown) => {
             sails.log.error(lookupError);
             return this.sendResp(req, res, {
               status: 500,
-              displayErrors: [{ detail: error?.message ?? 'An error has occurred' }],
+              displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
               headers: this.getNoCacheHeaders()
             });
           });
@@ -181,7 +176,7 @@ export namespace Controllers {
         sails.log.error(error);
         return this.sendResp(req, res, {
           status: 500,
-          displayErrors: [{ detail: error?.message ?? 'An error has occurred' }],
+          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
           headers: this.getNoCacheHeaders()
         });
       });
@@ -190,12 +185,12 @@ export namespace Controllers {
     }
 
 
-    public updateUser(req: any, res: any) {
+    public updateUser(req: Sails.Req, res: Sails.Res) {
       const userReq: UserModel = req.body;
 
-      UsersService.updateUserDetails(userReq.id || '', userReq.name || '', userReq.email || '', userReq.password || '').subscribe((userResponse: any[]) => {
-        const response: any[] = userResponse;
-        let user: any = null;
+      UsersService.updateUserDetails(userReq.id || '', userReq.name || '', userReq.email || '', userReq.password || '').subscribe((userResponse: unknown[]) => {
+        const response: unknown[] = userResponse;
+        let user: unknown = null;
         sails.log.verbose(user)
 
         if (!_.isEmpty(response) && _.isArray(response)) {
@@ -208,24 +203,25 @@ export namespace Controllers {
         }
 
         if (userReq.roles) {
-          const roles: string[] = (userReq.roles as any[]).map((role: any) => _.isString(role) ? role : role?.name).filter((roleName: any) => !_.isEmpty(roleName));
-          const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+          const roles: string[] = (userReq.roles as unknown[]).map((role: unknown) => _.isString(role) ? role : (role as globalThis.Record<string, unknown>)?.name as string).filter((roleName: unknown) => !_.isEmpty(roleName));
+          const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
           const roleIds = RolesService.getRoleIds(brand.roles, roles);
-          UsersService.updateUserRoles(user.id, roleIds).subscribe((user: any) => {
+          UsersService.updateUserRoles((user as globalThis.Record<string, unknown>).id as string, roleIds).subscribe((user: unknown) => {
             //TODO: Add roles to the response            
+            const u = user as globalThis.Record<string, unknown>;
             const userResponse = new CreateUserAPIResponse();
-            userResponse.id = user.id;
-            userResponse.username = user.username;
-            userResponse.name = user.name;
-            userResponse.email = user.email;
-            userResponse.type = user.type;
-            userResponse.lastLogin = user.lastLogin;
+            userResponse.id = u.id as string;
+            userResponse.username = u.username as string;
+            userResponse.name = u.name as string;
+            userResponse.email = u.email as string;
+            userResponse.type = u.type as string;
+            userResponse.lastLogin = u.lastLogin as Date | null;
             return this.apiRespond(req, res, userResponse, 201);
-          }, (error: any) => {
+          }, (error: unknown) => {
             sails.log.error("Failed to update user roles:");
             sails.log.error(error);
             //TODO: Find more appropriate status code
-            const errorResponse = new APIErrorResponse(error.message);
+            const errorResponse = new APIErrorResponse((error as Error).message);
             this.sendResp(req, res, {
               status: 500,
               displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
@@ -234,20 +230,21 @@ export namespace Controllers {
           });
           return;
         } else {
+          const u = user as globalThis.Record<string, unknown>;
           const userResponse: CreateUserAPIResponse = new CreateUserAPIResponse();
-          userResponse.id = user.id;
-          userResponse.username = user.username;
-          userResponse.name = user.name;
-          userResponse.email = user.email;
-          userResponse.type = user.type;
-          userResponse.lastLogin = user.lastLogin;
+          userResponse.id = u.id as string;
+          userResponse.username = u.username as string;
+          userResponse.name = u.name as string;
+          userResponse.email = u.email as string;
+          userResponse.type = u.type as string;
+          userResponse.lastLogin = u.lastLogin as Date | null;
 
           return this.apiRespond(req, res, userResponse, 201)
         }
-      }, (error: any) => {
+      }, (error: unknown) => {
         sails.log.error(error);
-        if (error.message.indexOf('No such user with id:') != -1) {
-          const errorResponse = new APIErrorResponse(error.message);
+        if ((error as Error).message.indexOf('No such user with id:') != -1) {
+          const errorResponse = new APIErrorResponse((error as Error).message);
           return this.sendResp(req, res, {
             status: 404,
             displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
@@ -256,7 +253,7 @@ export namespace Controllers {
         } else {
           return this.sendResp(req, res, {
             status: 500,
-            displayErrors: [{ detail: error?.message ?? 'An error has occurred' }],
+            displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
             headers: this.getNoCacheHeaders()
           });
         }
@@ -265,7 +262,7 @@ export namespace Controllers {
       return;
     }
 
-    public generateAPIToken(req: any, res: any) {
+    public generateAPIToken(req: Sails.Req, res: Sails.Res) {
       const userid: string = req.param('id');
 
       if (userid) {
@@ -274,13 +271,13 @@ export namespace Controllers {
           const user: UserModel = userResponse;
           const response = new UserAPITokenAPIResponse();
           response.id = userid
-          response.username = user.username
+          response.username = (user as globalThis.Record<string, unknown>).username as string
           response.token = uuid
           this.apiRespond(req, res, response)
-        }, (error: any) => {
+        }, (error: unknown) => {
           sails.log.error("Failed to set UUID:");
           sails.log.error(error);
-          const errorResponse = new APIErrorResponse(error.message);
+          const errorResponse = new APIErrorResponse((error as Error).message);
           this.sendResp(req, res, {
             status: 500,
             displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
@@ -299,7 +296,7 @@ export namespace Controllers {
     }
 
 
-    public revokeAPIToken(req: any, res: any) {
+    public revokeAPIToken(req: Sails.Req, res: Sails.Res) {
 
       const userid = req.param('id');
 
@@ -309,13 +306,13 @@ export namespace Controllers {
           const user: UserModel = userResponse;
           const response = new UserAPITokenAPIResponse();
           response.id = userid
-          response.username = user.username
+          response.username = (user as globalThis.Record<string, unknown>).username as string
           response.token = uuid
           this.apiRespond(req, res, response)
-        }, (error: any) => {
+        }, (error: unknown) => {
           sails.log.error("Failed to set UUID:");
           sails.log.error(error);
-          const errorResponse = new APIErrorResponse(error.message);
+          const errorResponse = new APIErrorResponse((error as Error).message);
           this.sendResp(req, res, {
             status: 500,
             displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
@@ -333,16 +330,16 @@ export namespace Controllers {
       return;
     }
 
-    public listSystemRoles(req: any, res: any) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      const response: ListAPIResponse<any> = new ListAPIResponse<any>();
+    public listSystemRoles(req: Sails.Req, res: Sails.Res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const response: ListAPIResponse<unknown> = new ListAPIResponse<unknown>();
       response.summary.numFound = brand.roles.length;
       response.records = brand.roles;
 
       return this.apiRespond(req, res, response);
     }
 
-    public createSystemRole(req: any, res: any) {
+    public createSystemRole(req: Sails.Req, res: Sails.Res) {
       let roleName;
       if (_.isUndefined(req.body.roleName)) {
         roleName = req.param('roleName');
@@ -351,7 +348,7 @@ export namespace Controllers {
       }
       sails.log.verbose('createSystemRole - roleName ' + roleName);
       if (!_.isUndefined(roleName)) {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         RolesService.createRoleWithBrand(brand, roleName);
         const response: APIActionResponse = new APIActionResponse(roleName + ' create call success', roleName + ' create call success');
         return this.apiRespond(req, res, response);

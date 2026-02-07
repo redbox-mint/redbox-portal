@@ -38,7 +38,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
         'index',
         'downloadRecs'
     ];
@@ -53,7 +53,7 @@ export namespace Controllers {
     }
 
     public async downloadRecs(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const format = req.param('format');
       const recType = req.param('recType');
       const before = _.isEmpty(req.query.before) ? null : req.query.before;
@@ -64,7 +64,7 @@ export namespace Controllers {
         sails.log.verbose("filename "+filename);
         res.attachment(filename);
         await pipeline(
-          RecordsService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after, recType),
+          RecordsService.exportAllPlans(req.user!.username, req.user!.roles as globalThis.Record<string, unknown>[], brand, format, before, after, recType),
           res
         );
         return res;

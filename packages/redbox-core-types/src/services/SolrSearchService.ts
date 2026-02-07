@@ -144,7 +144,7 @@ export namespace Services {
     public override init() {
       const that = this;
       this.registerSailsHook('on', 'ready', async function () {
-        that.queueService = sails.services[sails.config.queue.serviceName];
+        that.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
         that.initClient();
         await that.buildSchema(that);
       });
@@ -329,7 +329,7 @@ export namespace Services {
             customDoc[retField] = fieldValue;
           }
         });
-        customDoc["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, solrdoc);
+        customDoc["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles as unknown as Array<Record<string, unknown>>, solrdoc);
         customResp.records.push(customDoc);
       });
       // check if have facets turned on...

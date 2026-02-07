@@ -3,7 +3,7 @@ import { JsonMap } from './types';
 import { Entity, Attr, BelongsTo, HasMany, BeforeCreate, BeforeUpdate, toWaterlineModelDef } from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
 
-const beforeCreate = (bundle: Record<string, any>, cb: (err?: Error) => void) => {
+const beforeCreate = (bundle: Record<string, unknown>, cb: (err?: Error) => void) => {
   try {
     const brandingPart = bundle.branding ? String(bundle.branding) : 'global';
     const locale = bundle.locale;
@@ -15,7 +15,7 @@ const beforeCreate = (bundle: Record<string, any>, cb: (err?: Error) => void) =>
   }
 };
 
-const beforeUpdate = (values: Record<string, any>, cb: (err?: Error) => void) => {
+const beforeUpdate = (values: Record<string, unknown>, cb: (err?: Error) => void) => {
   try {
     if (values.locale || values.namespace || values.branding) {
       const brandingPart = values.branding ? String(values.branding) : 'global';

@@ -1,10 +1,10 @@
 export class RecordAuditModel {
     redboxOid: string;
     action:RecordAuditActionType;
-    user: any;
-    record: any;
+    user: Record<string, unknown> | null;
+    record: Record<string, unknown>;
 
-    constructor(oid: string, record: any, user: any, action: RecordAuditActionType = RecordAuditActionType.updated) {
+    constructor(oid: string, record: Record<string, unknown>, user: Record<string, unknown> | null, action: RecordAuditActionType = RecordAuditActionType.updated) {
         if (user!= null && !_.isEmpty(user.password)) {
             delete user.password;
         }

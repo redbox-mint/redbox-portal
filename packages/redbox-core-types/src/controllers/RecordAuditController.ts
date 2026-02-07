@@ -35,7 +35,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'render',
       'init'
     ];
@@ -47,7 +47,7 @@ export namespace Controllers {
      */
 
     public init() {
-      this.recordsService = sails.services.recordsservice;
+      this.recordsService = sails.services.recordsservice as unknown as RecordsService;
     }
 
     public bootstrap() {
@@ -75,8 +75,8 @@ export namespace Controllers {
       
       this.recordsService.getRecordAudit(params).then(records => {
         const orderedRecords = orderBy(records, ['updatedAt'], ['desc']);
-        req.options.locals["records"] = orderedRecords;
-        req.options.locals["moment"] = moment;
+        (req.options!.locals as globalThis.Record<string, unknown>)["records"] = orderedRecords;
+        (req.options!.locals as globalThis.Record<string, unknown>)["moment"] = moment;
         return this.sendView(req, res, 'record/viewAudit');
       });
     }

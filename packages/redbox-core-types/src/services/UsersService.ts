@@ -46,6 +46,13 @@ export namespace Services {
     hashSync: (password: string, salt: string) => string;
   };
 
+  type PassportLike = {
+    serializeUser: (fn: (user: AnyRecord, done: DoneCallback) => void) => void;
+    deserializeUser: (fn: (id: string, done: DoneCallback) => void) => void;
+    use: (name: string, strategy: unknown) => void;
+    authenticate: (strategy: string, options?: unknown) => unknown;
+  };
+
   interface AuthBrandConfig {
     active?: string[];
     local?: {
@@ -130,10 +137,11 @@ export namespace Services {
       } catch (err) {
         bcrypt = require('bcryptjs') as BcryptLike;
       }
-      sails.config.passport.serializeUser(function (user: AnyRecord, done: DoneCallback) {
+      const passport = sails.config.passport as PassportLike;
+      passport.serializeUser(function (user: AnyRecord, done: DoneCallback) {
         done(null, user.id);
       });
-      sails.config.passport.deserializeUser(function (id: string, done: DoneCallback) {
+      passport.deserializeUser(function (id: string, done: DoneCallback) {
         User.findOne({
           id: id
         }).populate('roles').exec(function (err: unknown, user: unknown) {
@@ -146,7 +154,7 @@ export namespace Services {
       //
       //  Local Strategy
       //
-      sails.config.passport.use(new LocalStrategy({
+      passport.use('local', new LocalStrategy({
           usernameField: usernameField,
           passwordField: passwordField
         },
@@ -449,7 +457,7 @@ export namespace Services {
           ExtractJwt = require('passport-jwt').ExtractJwt;
         const aafOpts = (defAuthConfig.aaf?.opts ?? {}) as Record<string, unknown>;
         aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
-        sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req: AnyRecord, jwt_payload: AnyRecord, done: DoneCallback) {
+        (sails.config.passport as PassportLike).use('aaf-jwt', new JwtStrategy(aafOpts, function (req: AnyRecord, jwt_payload: AnyRecord, done: DoneCallback) {
           const brandName:string = BrandingService.getBrandFromReq(req);
 
           const brand:BrandingModel = BrandingService.getBrand(brandName);
@@ -713,7 +721,7 @@ export namespace Services {
                   passportIdentifier = `oidc-${oidcConfig.identifier}`
                 }
 
-                sails.config.passport.use(passportIdentifier, new Strategy({
+                (sails.config.passport as PassportLike).use(passportIdentifier, new Strategy({
                   client: oidcClient,
                   passReqToCallback: true,
                   params: oidcOpts.params
@@ -1008,7 +1016,7 @@ export namespace Services {
 
     protected bearerTokenAuthInit = () => {
       const BearerStrategy = require('passport-http-bearer').Strategy;
-      sails.config.passport.use('bearer', new BearerStrategy(
+      (sails.config.passport as PassportLike).use('bearer', new BearerStrategy(
         function (token: string, done: DoneCallback) {
           if (!_.isEmpty(token) && !_.isUndefined(token)) {
             const tokenHash = crypto.createHash('sha256').update(token).digest('base64');
@@ -1387,14 +1395,14 @@ export namespace Services {
         }]
       }).meta({
         enableExperimentalDeepTargets:true
-      }).then((records: unknown[]) => {
-      
-        if (_.isEmpty(records)) {
+      }).then((records) => {
+        const recordsArr = records as unknown[];
+        if (_.isEmpty(recordsArr)) {
           sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> No pending records: ${pendingValue}`);
           return;
         }
-        sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> Found ${records.length} records to assign permissions`);
-        for (const record of records) {
+        sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> Found ${recordsArr.length} records to assign permissions`);
+        for (const record of recordsArr) {
           const recordObj = record as AnyRecord;
           RecordsService.provideUserAccessAndRemovePendingAccess(recordObj.redboxOid as string, userid, pendingValue);
         }

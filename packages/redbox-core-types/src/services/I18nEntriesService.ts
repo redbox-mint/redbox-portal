@@ -287,7 +287,7 @@ private resolveBrandingId(branding: BrandingModel | string | { id?: string | num
         // Mongo-specific regex for prefix match
         where.key = { startsWith: keyPrefix };
       }
-      return await I18nTranslation.find({ where }).sort('key ASC');
+      return await I18nTranslation.find({ where }).sort('key ASC') as unknown as I18nTranslationAttributes[];
     }
 
 public async getBundle(branding: BrandingModel, locale: string, namespace: string): Promise<I18nBundleAttributes | null> {
@@ -298,7 +298,7 @@ public async getBundle(branding: BrandingModel, locale: string, namespace: strin
 
 public async listBundles(branding: BrandingModel): Promise<I18nBundleAttributes[]> {
       const brandingId = this.resolveBrandingId(branding);
-      return await I18nBundle.find({ branding: brandingId });
+      return await I18nBundle.find({ branding: brandingId }) as unknown as I18nBundleAttributes[];
     }
 
   public async setBundle(
@@ -412,7 +412,7 @@ public async syncEntriesFromBundle(bundleOrId: I18nBundleAttributes | string | n
         || ({ id: brandingId } as BrandingModel));
 
       // Track existing keys to detect removals
-      const existingEntries = await I18nTranslation.find({ branding: brandingId, locale: safeLocale, namespace: safeNamespace });
+      const existingEntries = await I18nTranslation.find({ branding: brandingId, locale: safeLocale, namespace: safeNamespace }) as unknown as I18nTranslationAttributes[];
       const existingKeysSet = new Set(existingEntries.map((e: I18nTranslationAttributes) => e.key as string));
 
       for (const key of keys) {

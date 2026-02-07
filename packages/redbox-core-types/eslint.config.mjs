@@ -15,7 +15,7 @@ export default tseslint.config(
     rules: {
       // Baseline rules - conservative and non-blocking initially
       // These will be tightened in later phases
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': ['warn', { 
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
@@ -37,39 +37,27 @@ export default tseslint.config(
       'no-var': 'warn',
     },
   },
-  {
-    files: [
-      'src/Logger.ts',
-      'src/bootstrap.ts',
-      'src/config/**/*.ts',
-      'src/configmodels/**/*.ts',
-    ],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        caughtErrorsIgnorePattern: '^_'
-      }],
-    },
-  },
-  {
-    files: ['src/services/**/*.ts'],
-    rules: {
-      '@typescript-eslint/no-explicit-any': ['warn', { fixToUnknown: true }],
-      '@typescript-eslint/no-unused-vars': ['warn', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        caughtErrorsIgnorePattern: '^_'
-      }],
-      '@typescript-eslint/no-namespace': 'off',
-      '@typescript-eslint/no-this-alias': 'off',
-    },
-  },
+  // {
+  //   files: [
+  //     'src/Logger.ts',
+  //     'src/bootstrap.ts',
+  //     'src/config/**/*.ts',
+  //     'src/configmodels/**/*.ts',
+  //   ],
+  //   rules: {
+  //     '@typescript-eslint/no-explicit-any': 'error',
+  //     '@typescript-eslint/no-unused-vars': ['error', {
+  //       argsIgnorePattern: '^_',
+  //       varsIgnorePattern: '^_',
+  //       caughtErrorsIgnorePattern: '^_'
+  //     }],
+  //   },
+  // },
   {
     files: ['test/**/*.ts'],
     rules: {
       '@typescript-eslint/no-unused-expressions': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
   {

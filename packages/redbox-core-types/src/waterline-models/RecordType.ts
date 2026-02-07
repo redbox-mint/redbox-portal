@@ -3,7 +3,7 @@ import { JsonMap } from './types';
 import { Entity, Attr, BelongsTo, HasMany, BeforeCreate, toWaterlineModelDef } from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
 
-const assignKey = (recordType: Record<string, any>, cb: (err?: Error) => void) => {
+const assignKey = (recordType: Record<string, unknown>, cb: (err?: Error) => void) => {
   recordType.key = `${recordType.branding}_${recordType.name}`;
   cb();
 };

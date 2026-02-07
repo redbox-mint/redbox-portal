@@ -25,7 +25,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'getAppConfig',
       'saveAppConfig'
     ];
@@ -41,7 +41,7 @@ export namespace Controllers {
 
     public async saveAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const appConfigId: string = req.param('appConfigId');
         const appConfig = req.body;
         if (appConfigId === undefined) {
@@ -63,7 +63,7 @@ export namespace Controllers {
 
     public async getAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const appConfigId: string = req.param('appConfigId');
         if (appConfigId === undefined) {
           return res.badRequest('appConfigId is required');

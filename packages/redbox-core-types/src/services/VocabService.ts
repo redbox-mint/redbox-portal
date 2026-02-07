@@ -250,7 +250,7 @@ export namespace Services {
     }
 
     private getSearchService(): SearchService{
-      return sails.services[sails.config.search.serviceName];
+      return sails.services[sails.config.search.serviceName] as unknown as SearchService;
     }
 
     private runTemplate(templateOrPath: string, variables: Record<string, unknown>) {

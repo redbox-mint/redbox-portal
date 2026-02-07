@@ -1,4 +1,4 @@
 declare module 'async' {
-  const asyncLib: any;
+  const asyncLib: unknown;
   export = asyncLib;
 }

@@ -131,11 +131,11 @@ export namespace Services {
         const queueServiceName = sails.config.queue.serviceName;
         sails.log.verbose(`FigshareTrigger ready, using datastream service: ${datastreamServiceName}`);
         if (datastreamServiceName != undefined) {
-          that.datastreamService = sails.services[datastreamServiceName];
+          that.datastreamService = sails.services[datastreamServiceName] as unknown as DatastreamService;
         }
         sails.log.verbose(`FigshareTrigger ready, using queue service: ${queueServiceName}`);
         if (queueServiceName != undefined) {
-          that.queueService = sails.services[queueServiceName];
+          that.queueService = sails.services[queueServiceName] as unknown as QueueService;
         }
       });
       this.registerSailsHook('on', 'lifted', function () {
