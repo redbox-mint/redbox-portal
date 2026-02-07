@@ -19,12 +19,20 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
 nvm i < .nvmrc 
+OS=$(uname -s)
 ARCH=$(uname -m)
 if [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
   echo "Detected ARM64 architecture"
-  npm install --save-dev @esbuild/linux-arm64
+  if [[ "$OS" == "Linux" ]]; then
+    npm install --no-save @esbuild/linux-arm64 && npm install
+  elif [[ "$OS" == "Darwin" ]]; then
+    npm install --no-save @esbuild/darwin-arm64 && npm install
+  else
+    echo "Unsupported ARM64 OS '$OS' for explicit esbuild package, using default npm install"
+    npm install
+  fi
 else
-  echo "Detected $ARCH architecture"
+  echo "Detected $ARCH architecture on $OS"
   npm install
 fi
 
@@ -100,7 +108,7 @@ else
     echo "Building form-custom placeholder..."
     buildAngularApp "portal-ng-form-custom" "ignore-ouput"
   fi
-  ng2apps=( `find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
+  ng2apps=( $(find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -exec basename {} \;) )
   for ng2app in "${ng2apps[@]}"
   do
     if [ "$ng2app" != "portal-ng-common" ] && [ "$ng2app" != "portal-ng-form-custom" ]; then
@@ -108,6 +116,5 @@ else
     fi
   done
 fi
-
 
 

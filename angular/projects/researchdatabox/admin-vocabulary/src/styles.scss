@@ -1,0 +1,29 @@
+:root {
+  --vocab-border: #d9dee6;
+  --vocab-bg: #f6f8fb;
+  --vocab-accent: #0f4c81;
+  --vocab-danger: #8d1f2d;
+}
+
+.vocab-card {
+  border: 1px solid var(--vocab-border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.vocab-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vocab-tree {
+  list-style: none;
+  padding-left: 1rem;
+}
+
+.vocab-tree li {
+  margin: 0.25rem 0;
+}

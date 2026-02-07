@@ -39,10 +39,12 @@ import * as TriggerServiceModule from './TriggerService';
 import * as UsersServiceModule from './UsersService';
 import * as ViewUtilsServiceModule from './ViewUtilsService';
 import * as VocabServiceModule from './VocabService';
+import * as VocabularyServiceModule from './VocabularyService';
 import * as WorkflowStepsServiceModule from './WorkflowStepsService';
 import * as WorkspaceAsyncServiceModule from './WorkspaceAsyncService';
 import * as WorkspaceServiceModule from './WorkspaceService';
 import * as WorkspaceTypesServiceModule from './WorkspaceTypesService';
+import * as RvaImportServiceModule from './RvaImportService';
 
 // Re-export all service namespaces
 export { AgendaQueueServiceModule as AgendaQueueService };
@@ -80,10 +82,12 @@ export { TriggerServiceModule as TriggerService };
 export { UsersServiceModule as UsersService };
 export { ViewUtilsServiceModule as ViewUtilsService };
 export { VocabServiceModule as VocabService };
+export { VocabularyServiceModule as VocabularyService };
 export { WorkflowStepsServiceModule as WorkflowStepsService };
 export { WorkspaceAsyncServiceModule as WorkspaceAsyncService };
 export { WorkspaceServiceModule as WorkspaceService };
 export { WorkspaceTypesServiceModule as WorkspaceTypesService };
+export { RvaImportServiceModule as RvaImportService };
 
 /**
  * ServiceExports - Object containing lazy-instantiated service exports for use by redbox-loader.js
@@ -140,6 +144,8 @@ export const ServiceExports = {
   get UsersService() { return getOrCreateService('UsersService', () => new UsersServiceModule.Services.Users().exports()); },
   get ViewUtilsService() { return getOrCreateService('ViewUtilsService', () => new ViewUtilsServiceModule.Services.ViewUtils().exports()); },
   get VocabService() { return getOrCreateService('VocabService', () => new VocabServiceModule.Services.Vocab().exports()); },
+  get VocabularyService() { return getOrCreateService('VocabularyService', () => new VocabularyServiceModule.Services.Vocabulary().exports()); },
+  get RvaImportService() { return getOrCreateService('RvaImportService', () => new RvaImportServiceModule.Services.RvaImport().exports()); },
   get WorkflowStepsService() { return getOrCreateService('WorkflowStepsService', () => new WorkflowStepsServiceModule.Services.WorkflowSteps().exports()); },
   get WorkspaceAsyncService() { return getOrCreateService('WorkspaceAsyncService', () => new WorkspaceAsyncServiceModule.Services.WorkspaceAsyncService().exports()); },
   get WorkspaceService() { return getOrCreateService('WorkspaceService', () => new WorkspaceServiceModule.Services.WorkspaceService().exports()); },

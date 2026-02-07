@@ -1,0 +1,26 @@
+<div class="vocab-card p-3">
+  <h4 class="m-0 mb-2">Vocabularies</h4>
+
+  <table class="table table-sm mb-0">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Source</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let vocabulary of vocabularies" [class.table-active]="selectedId === vocabulary.id">
+        <td>
+          <a href="#" (click)="$event.preventDefault(); open(vocabulary.id)">{{ vocabulary.name }}</a>
+        </td>
+        <td>{{ vocabulary.type }}</td>
+        <td>{{ vocabulary.source }}</td>
+        <td>
+          <button class="btn btn-link text-danger p-0" (click)="remove(vocabulary.id)" type="button">Delete</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

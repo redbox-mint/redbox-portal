@@ -1,0 +1,46 @@
+<div class="container-fluid" *ngIf="isReady">
+  <div class="vocab-toolbar mb-3">
+    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+      <h2 class="m-0">Vocabulary Management</h2>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary" type="button" (click)="newVocabulary()">New</button>
+        <button class="btn btn-success" type="button" (click)="save()" [disabled]="mode !== 'edit'">Save</button>
+        <button
+          class="btn btn-warning"
+          type="button"
+          (click)="syncSelected()"
+          [disabled]="mode !== 'edit' || !selectedVocabulary?.id || draft.source !== 'rva'"
+        >
+          Sync RVA
+        </button>
+        <button class="btn btn-outline-primary" type="button" (click)="showImport()">Import RVA</button>
+        <button class="btn btn-outline-secondary" type="button" (click)="showList()" [disabled]="mode === 'list'">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="message" class="alert alert-success">{{ message }}</div>
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+  <div class="mb-3">
+    <vocab-list
+      [vocabularies]="vocabularies"
+      [selectedId]="selectedVocabulary?.id || null"
+      (selected)="openVocabulary($event)"
+      (deleted)="deleteVocabulary($event)"
+    ></vocab-list>
+  </div>
+
+  <div class="row g-3" *ngIf="mode !== 'list'">
+    <div class="col-12" *ngIf="mode === 'import'">
+      <rva-import (importRequested)="importRva($event)"></rva-import>
+    </div>
+
+    <div class="col-12" *ngIf="mode === 'edit'">
+      <vocab-detail
+        [draft]="draft"
+        [selectedVocabularyId]="selectedVocabulary?.id || null"
+      ></vocab-detail>
+    </div>
+  </div>
+</div>

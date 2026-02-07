@@ -20,6 +20,7 @@ import * as ReportsControllerModule from './ReportsController';
 import * as TranslationControllerModule from './TranslationController';
 import * as UserControllerModule from './UserController';
 import * as VocabControllerModule from './VocabController';
+import * as VocabularyControllerModule from './VocabularyController';
 import * as WorkspaceAsyncControllerModule from './WorkspaceAsyncController';
 import * as WorkspaceTypesControllerModule from './WorkspaceTypesController';
 
@@ -35,6 +36,7 @@ import * as WSReportControllerModule from './webservice/ReportController';
 import * as WSSearchControllerModule from './webservice/SearchController';
 import * as WSTranslationControllerModule from './webservice/TranslationController';
 import * as WSUserManagementControllerModule from './webservice/UserManagementController';
+import * as WSVocabularyControllerModule from './webservice/VocabularyController';
 
 // Lazy instantiation cache
 const controllerCache: Record<string, unknown> = {};
@@ -62,6 +64,7 @@ export const ControllerExports: Record<string, unknown> = {
     get TranslationController() { return getOrCreate('TranslationController', () => new TranslationControllerModule.Controllers.Translation().exports()); },
     get UserController() { return getOrCreate('UserController', () => new UserControllerModule.Controllers.User().exports()); },
     get VocabController() { return getOrCreate('VocabController', () => new VocabControllerModule.Controllers.Vocab().exports()); },
+    get VocabularyController() { return getOrCreate('VocabularyController', () => new VocabularyControllerModule.Controllers.Vocabulary().exports()); },
     get WorkspaceAsyncController() { return getOrCreate('WorkspaceAsyncController', () => new WorkspaceAsyncControllerModule.Controllers.WorkspaceAsync().exports()); },
     get WorkspaceTypesController() { return getOrCreate('WorkspaceTypesController', () => new WorkspaceTypesControllerModule.Controllers.WorkspaceTypes().exports()); },
 };
@@ -79,6 +82,7 @@ export const WebserviceControllerExports: Record<string, unknown> = {
     get SearchController() { return getOrCreate('WS_SearchController', () => new WSSearchControllerModule.Controllers.Search().exports()); },
     get TranslationController() { return getOrCreate('WS_TranslationController', () => new WSTranslationControllerModule.Controllers.Translation().exports()); },
     get UserManagementController() { return getOrCreate('WS_UserManagementController', () => new WSUserManagementControllerModule.Controllers.UserManagement().exports()); },
+    get VocabularyController() { return getOrCreate('WS_VocabularyController', () => new WSVocabularyControllerModule.Controllers.Vocabulary().exports()); },
 };
 
 // Export controller names without instantiating (used by redbox-loader shim generation)
@@ -100,6 +104,7 @@ export const ControllerNames = [
     'TranslationController',
     'UserController',
     'VocabController',
+    'VocabularyController',
     'WorkspaceAsyncController',
     'WorkspaceTypesController',
 ];
@@ -116,4 +121,5 @@ export const WebserviceControllerNames = [
     'SearchController',
     'TranslationController',
     'UserManagementController',
+    'VocabularyController',
 ];

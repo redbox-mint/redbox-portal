@@ -1,0 +1,25 @@
+meta {
+  name: Sync Vocabulary
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/default/rdmp/api/vocabulary/{{vocabularyId}}/sync
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("Status code is 200 or 400", function () {
+    expect([200, 400]).to.include(res.getStatus());
+  });
+}

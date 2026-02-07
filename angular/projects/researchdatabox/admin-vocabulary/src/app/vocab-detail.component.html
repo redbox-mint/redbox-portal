@@ -1,0 +1,66 @@
+<div class="vocab-card p-3">
+  <h4 class="m-0 mb-2">{{ selectedVocabularyId ? 'Edit Vocabulary' : 'Create Vocabulary' }}</h4>
+
+  <div class="row g-2 mb-3">
+    <div class="col-md-6">
+      <label class="form-label">Name</label>
+      <input class="form-control" [(ngModel)]="draft.name" />
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Slug</label>
+      <input class="form-control" [(ngModel)]="draft.slug" />
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Type</label>
+      <select class="form-select" [(ngModel)]="draft.type">
+        <option value="flat">flat</option>
+        <option value="tree">tree</option>
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Source</label>
+      <select class="form-select" [(ngModel)]="draft.source">
+        <option value="local">local</option>
+        <option value="rva">rva</option>
+      </select>
+    </div>
+    <div class="col-12">
+      <label class="form-label">Description</label>
+      <textarea class="form-control" rows="2" [(ngModel)]="draft.description"></textarea>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="m-0">Entries</h5>
+    <button class="btn btn-outline-primary btn-sm" type="button" (click)="addEntry()">Add Entry</button>
+  </div>
+
+  <table class="table table-bordered table-sm" *ngIf="draft.entries && draft.entries.length > 0">
+    <thead>
+      <tr>
+        <th>Label</th>
+        <th>Value</th>
+        <th>Parent</th>
+        <th>Order</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let entry of draft.entries; let idx = index">
+        <td><input class="form-control form-control-sm" [(ngModel)]="entry.label" /></td>
+        <td><input class="form-control form-control-sm" [(ngModel)]="entry.value" /></td>
+        <td>
+          <input class="form-control form-control-sm" [(ngModel)]="entry.parent" [disabled]="draft.type === 'flat'" />
+        </td>
+        <td>{{ entry.order }}</td>
+        <td>
+          <button class="btn btn-link p-0 me-2" (click)="moveEntryUp(idx)" type="button">Up</button>
+          <button class="btn btn-link p-0 me-2" (click)="moveEntryDown(idx)" type="button">Down</button>
+          <button class="btn btn-link text-danger p-0" (click)="removeEntry(idx)" type="button">Remove</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="text-muted" *ngIf="!draft.entries || draft.entries.length === 0">No entries yet.</p>
+</div>
