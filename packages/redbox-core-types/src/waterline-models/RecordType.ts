@@ -72,5 +72,5 @@ export interface RecordTypeWaterlineModel extends Sails.Model<RecordTypeAttribut
 }
 
 declare global {
-  var RecordType: RecordTypeWaterlineModel;
+  const RecordType: RecordTypeWaterlineModel;
 }

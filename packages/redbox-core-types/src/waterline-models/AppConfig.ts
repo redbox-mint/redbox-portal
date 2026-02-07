@@ -30,5 +30,5 @@ export interface AppConfigWaterlineModel extends Sails.Model<AppConfigAttributes
 }
 
 declare global {
-  var AppConfig: AppConfigWaterlineModel;
+  const AppConfig: AppConfigWaterlineModel;
 }

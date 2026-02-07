@@ -29,5 +29,5 @@ export interface CacheEntryWaterlineModel extends Sails.Model<CacheEntryAttribut
 }
 
 declare global {
-  var CacheEntry: CacheEntryWaterlineModel;
+  const CacheEntry: CacheEntryWaterlineModel;
 }

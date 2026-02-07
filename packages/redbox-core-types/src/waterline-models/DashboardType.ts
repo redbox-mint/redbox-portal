@@ -44,5 +44,5 @@ export interface DashboardTypeWaterlineModel extends Sails.Model<DashboardTypeAt
 }
 
 declare global {
-  var DashboardType: DashboardTypeWaterlineModel;
+  const DashboardType: DashboardTypeWaterlineModel;
 }

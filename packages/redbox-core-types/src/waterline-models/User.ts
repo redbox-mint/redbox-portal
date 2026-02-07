@@ -133,5 +133,5 @@ export interface UserWaterlineModel extends Sails.Model<UserAttributes> {
 }
 
 declare global {
-  var User: UserWaterlineModel;
+  const User: UserWaterlineModel;
 }

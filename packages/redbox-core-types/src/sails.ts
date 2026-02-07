@@ -18,7 +18,7 @@ declare module "express-session" {
 }
 
 declare global {
-	var sails: Sails.Application;
+	let sails: Sails.Application;
 
 	namespace Sails {
 

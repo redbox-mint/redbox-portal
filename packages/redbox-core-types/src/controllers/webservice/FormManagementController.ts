@@ -35,7 +35,7 @@ export namespace Controllers {
       try {
         const name: string = req.param('name');
         const editableParam = req.param('editable');
-        let editable: boolean = editableParam !== 'false';
+        const editable: boolean = editableParam !== 'false';
         const form = await firstValueFrom(FormsService.getFormByName(name, editable));
         if (!form) {
           return this.sendResp(req, res, {

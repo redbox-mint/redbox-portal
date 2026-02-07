@@ -29,5 +29,5 @@ export interface UserAuditWaterlineModel extends Sails.Model<UserAuditAttributes
 }
 
 declare global {
-  var UserAudit: UserAuditWaterlineModel;
+  const UserAudit: UserAuditWaterlineModel;
 }

@@ -56,5 +56,5 @@ export interface NamedQueryWaterlineModel extends Sails.Model<NamedQueryAttribut
 }
 
 declare global {
-  var NamedQuery: NamedQueryWaterlineModel;
+  const NamedQuery: NamedQueryWaterlineModel;
 }

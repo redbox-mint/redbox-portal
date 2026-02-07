@@ -42,5 +42,5 @@ export interface WorkspaceTypeWaterlineModel extends Sails.Model<WorkspaceTypeAt
 }
 
 declare global {
-  var WorkspaceType: WorkspaceTypeWaterlineModel;
+  const WorkspaceType: WorkspaceTypeWaterlineModel;
 }

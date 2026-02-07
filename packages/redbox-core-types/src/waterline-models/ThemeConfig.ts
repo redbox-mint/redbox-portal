@@ -25,5 +25,5 @@ export interface ThemeConfigWaterlineModel extends Sails.Model<ThemeConfigAttrib
 }
 
 declare global {
-  var ThemeConfig: ThemeConfigWaterlineModel;
+  const ThemeConfig: ThemeConfigWaterlineModel;
 }

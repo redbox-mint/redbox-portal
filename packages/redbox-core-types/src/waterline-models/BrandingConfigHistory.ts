@@ -55,5 +55,5 @@ export interface BrandingConfigHistoryWaterlineModel extends Sails.Model<Brandin
 }
 
 declare global {
-  var BrandingConfigHistory: BrandingConfigHistoryWaterlineModel;
+  const BrandingConfigHistory: BrandingConfigHistoryWaterlineModel;
 }

@@ -43,5 +43,5 @@ export interface PathRuleWaterlineModel extends Sails.Model<PathRuleAttributes> 
 }
 
 declare global {
-  var PathRule: PathRuleWaterlineModel;
+  const PathRule: PathRuleWaterlineModel;
 }

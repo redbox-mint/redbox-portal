@@ -122,5 +122,5 @@ export interface BrandingConfigWaterlineModel extends Sails.Model<BrandingConfig
 }
 
 declare global {
-  var BrandingConfig: BrandingConfigWaterlineModel;
+  const BrandingConfig: BrandingConfigWaterlineModel;
 }

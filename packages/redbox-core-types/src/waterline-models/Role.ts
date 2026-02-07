@@ -30,5 +30,5 @@ export interface RoleWaterlineModel extends Sails.Model<RoleAttributes> {
 }
 
 declare global {
-  var Role: RoleWaterlineModel;
+  const Role: RoleWaterlineModel;
 }

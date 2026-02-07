@@ -66,5 +66,5 @@ export interface AsynchProgressWaterlineModel extends Sails.Model<AsynchProgress
 }
 
 declare global {
-  var AsynchProgress: AsynchProgressWaterlineModel;
+  const AsynchProgress: AsynchProgressWaterlineModel;
 }

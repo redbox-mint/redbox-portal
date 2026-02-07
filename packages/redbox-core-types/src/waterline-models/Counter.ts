@@ -30,5 +30,5 @@ export interface CounterWaterlineModel extends Sails.Model<CounterAttributes> {
 }
 
 declare global {
-  var Counter: CounterWaterlineModel;
+  const Counter: CounterWaterlineModel;
 }

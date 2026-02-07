@@ -99,5 +99,5 @@ export interface I18nTranslationWaterlineModel extends Sails.Model<I18nTranslati
 }
 
 declare global {
-  var I18nTranslation: I18nTranslationWaterlineModel;
+  const I18nTranslation: I18nTranslationWaterlineModel;
 }

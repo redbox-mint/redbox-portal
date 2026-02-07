@@ -42,5 +42,5 @@ export interface WorkflowStepWaterlineModel extends Sails.Model<WorkflowStepAttr
 }
 
 declare global {
-  var WorkflowStep: WorkflowStepWaterlineModel;
+  const WorkflowStep: WorkflowStepWaterlineModel;
 }

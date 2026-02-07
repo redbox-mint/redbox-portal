@@ -57,5 +57,5 @@ export interface WorkspaceAsyncWaterlineModel extends Sails.Model<WorkspaceAsync
 }
 
 declare global {
-  var WorkspaceAsync: WorkspaceAsyncWaterlineModel;
+  const WorkspaceAsync: WorkspaceAsyncWaterlineModel;
 }

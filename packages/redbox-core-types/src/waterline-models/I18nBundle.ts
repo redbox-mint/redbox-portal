@@ -77,5 +77,5 @@ export interface I18nBundleWaterlineModel extends Sails.Model<I18nBundleAttribut
 }
 
 declare global {
-  var I18nBundle: I18nBundleWaterlineModel;
+  const I18nBundle: I18nBundleWaterlineModel;
 }

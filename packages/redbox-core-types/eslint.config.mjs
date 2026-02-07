@@ -34,25 +34,9 @@ export default tseslint.config(
       'no-empty': 'warn',
       'no-control-regex': 'warn',
       'prefer-const': 'warn',
-      'no-var': 'warn',
+      'no-var': 'error',
     },
   },
-  // {
-  //   files: [
-  //     'src/Logger.ts',
-  //     'src/bootstrap.ts',
-  //     'src/config/**/*.ts',
-  //     'src/configmodels/**/*.ts',
-  //   ],
-  //   rules: {
-  //     '@typescript-eslint/no-explicit-any': 'error',
-  //     '@typescript-eslint/no-unused-vars': ['error', {
-  //       argsIgnorePattern: '^_',
-  //       varsIgnorePattern: '^_',
-  //       caughtErrorsIgnorePattern: '^_'
-  //     }],
-  //   },
-  // },
   {
     files: ['test/**/*.ts'],
     rules: {

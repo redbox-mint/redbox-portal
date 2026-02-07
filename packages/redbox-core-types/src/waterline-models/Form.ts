@@ -61,5 +61,5 @@ export interface FormWaterlineModel extends Sails.Model<FormAttributes> {
 }
 
 declare global {
-  var Form: FormWaterlineModel;
+  const Form: FormWaterlineModel;
 }
