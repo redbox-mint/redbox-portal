@@ -101,7 +101,7 @@ export namespace Services {
      * @param  user
      * @return
      */
-    public async processRecordCounters(oid: string, record: RecordWithMeta, options: unknown, user: unknown) {
+    public async processRecordCounters(oid: string, record: RecordWithMeta, options: unknown, _user: unknown) {
       const recordData = record as RecordWithMeta;
       const optionsData = options as { counters?: unknown[] };
 
@@ -631,7 +631,7 @@ oid: string, record: RecordWithMeta, recordCreatorPermissions: unknown, editCont
       }));
     }
 
-    public stripUserBasedPermissions(oid: string, record: RecordWithMeta, options: unknown, user: unknown) {
+    public stripUserBasedPermissions(oid: string, record: RecordWithMeta, options: unknown, _user: unknown) {
       const optionsObj = options as AnyRecord;
       const auth = (record.authorization ?? {}) as AnyRecord;
       record.authorization = auth;
@@ -678,7 +678,7 @@ oid: string, record: RecordWithMeta, recordCreatorPermissions: unknown, editCont
       return of(record);
     }
 
-    public restoreUserBasedPermissions(oid: string, record: RecordWithMeta, options: unknown, user: unknown) {
+    public restoreUserBasedPermissions(oid: string, record: RecordWithMeta, options: unknown, _user: unknown) {
       const auth = (record.authorization ?? {}) as AnyRecord;
       record.authorization = auth;
       if (this.metTriggerCondition(oid, record, options as AnyRecord) === "true") {
@@ -703,7 +703,7 @@ oid: string, record: RecordWithMeta, recordCreatorPermissions: unknown, editCont
       return of(record);
     }
 
-    public runTemplates(oid: string, record: RecordWithMeta, options: unknown, user: unknown, response: StorageServiceResponse | null = null) {
+    public runTemplates(oid: string, record: RecordWithMeta, options: unknown, user: unknown, _response: StorageServiceResponse | null = null) {
 
       sails.log.verbose(`runTemplates config:`);
       sails.log.verbose(JSON.stringify((options as AnyRecord).templates));
@@ -766,7 +766,7 @@ oid: string, record: RecordWithMeta, recordCreatorPermissions: unknown, editCont
         sails.log.error(`No RDMP OID found in workspace data: ${JSON.stringify(workspaceData)}`);
         return workspaceData;
       }
-      const workspaceResponse = await WorkspaceService.addWorkspaceToRecord(workspaceMetadata.rdmpOid as string, oid);
+      await WorkspaceService.addWorkspaceToRecord(workspaceMetadata.rdmpOid as string, oid);
       _.set(response as AnyRecord, 'workspaceOid', oid);
       _.set(response as AnyRecord, 'workspaceData', workspaceData);
       return workspaceData;
@@ -783,7 +783,7 @@ oid: string, record: RecordWithMeta, recordCreatorPermissions: unknown, editCont
         sails.log.error(`No RDMP OID found in workspace data: ${JSON.stringify(workspaceData)}`);
         return workspaceData;
       }
-      const workspaceResponse = await WorkspaceService.removeWorkspaceFromRecord(rdmpOid as string, oid);
+      await WorkspaceService.removeWorkspaceFromRecord(rdmpOid as string, oid);
       _.set(response as AnyRecord, 'workspaceOid', oid);
       _.set(response as AnyRecord, 'workspaceData', workspaceData);
       return workspaceData;

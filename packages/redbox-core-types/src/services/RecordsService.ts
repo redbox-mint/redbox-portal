@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable, of, from, mergeMap as flatMap, firstValueFrom, throwError
+  of, from, mergeMap as flatMap, firstValueFrom, throwError
 } from 'rxjs';
 import { concatMap, last, catchError } from 'rxjs/operators';
 
@@ -34,7 +34,6 @@ import { StorageService } from '../StorageService';
 import { StorageServiceResponse } from '../StorageServiceResponse';
 import { RecordAuditParams } from '../RecordAuditParams';
 import { RBValidationError } from '../model/RBValidationError';
-import { ErrorResponseItemV2 } from '../model/api/APIResponseVersion2';
 import { RecordModel } from '../model/storage/RecordModel';
 import { RecordTypeModel } from '../model/storage/RecordTypeModel';
 import { BrandingModel } from '../model/storage/BrandingModel';
@@ -45,7 +44,6 @@ const luceneEscapeQuery: (value: string) => string =
   typeof luceneEscapeQueryModule === 'function'
     ? luceneEscapeQueryModule
     : ((luceneEscapeQueryModule as Record<string, unknown>).escape || (luceneEscapeQueryModule as Record<string, unknown>).default) as (value: string) => string;
-import * as fs from 'fs';
 import { DateTime } from 'luxon';
 
 import {
@@ -58,7 +56,6 @@ import {
 
 
 
-const util = require('util');
 
 
 export namespace Services {
@@ -304,7 +301,7 @@ export namespace Services {
             });
             // update the datastreams in RB, this is a terminal call
             sails.log.verbose(`RecordsService - create - before handleUpdateDataStream`);
-            const resposeDatastream = await firstValueFrom(this.handleUpdateDataStream(oid, emptyDatastreamRecord, recordMetadata));
+            await firstValueFrom(this.handleUpdateDataStream(oid, emptyDatastreamRecord, recordMetadata));
           } catch (error) {
             sails.log.error(`RecordsService - create - Failed to save record: ${error}`)
             throw new RBValidationError({
@@ -726,7 +723,7 @@ export namespace Services {
           if (response['applicationVersion']) {
             return true;
           }
-        } catch (err) {
+        } catch (_err) {
           sails.log.info("ReDBox Storage hasn't started yet. Retrying...")
         }
         await this.sleep(1000);
@@ -1048,7 +1045,7 @@ export namespace Services {
      *  Pre-save trigger to clear and re-assign permissions based on security config
      *
      */
-    public assignPermissions(oid: string, record: AnyRecord, options: AnyRecord, user: AnyRecord) {
+    public assignPermissions(_oid: string, _record: AnyRecord, _options: AnyRecord, _user: AnyRecord) {
 
       // sails.log.verbose(`Assign Permissions executing on oid: ${oid}, using options:`);
       // sails.log.verbose(JSON.stringify(options));
@@ -1122,7 +1119,7 @@ export namespace Services {
       return await (storageServiceAny.createRecordAudit as (...args: unknown[]) => Promise<unknown>)(record);
     }
 
-    public async transitionWorkflowStep(currentRec: unknown, recordType: unknown, nextStep: unknown, user: AnyRecord, triggerPreSaveTriggers: boolean = true, triggerPostSaveTriggers: boolean = true) {
+    public async transitionWorkflowStep(_currentRec: unknown, _recordType: unknown, _nextStep: unknown, _user: AnyRecord, _triggerPreSaveTriggers: boolean = true, _triggerPostSaveTriggers: boolean = true) {
       throw new Error("Use separate calls to 'transitionWorkflowStepMetadata', 'triggerPreSaveTransitionWorkflowTriggers', and 'triggerPostSaveTransitionWorkflowTriggers' instead.")
     }
 
@@ -1298,7 +1295,7 @@ export namespace Services {
               //.then().catch() and propagates to the front end and this has to be prevented
               try {
                 const hookResponse = postSaveCreateHookFunction(oid, record, options, user);
-                this.resolveHookResponse(hookResponse).then((result: unknown) => {
+                this.resolveHookResponse(hookResponse).then((_result: unknown) => {
                   sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`);
                 }).catch((error: unknown) => {
                   sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`);

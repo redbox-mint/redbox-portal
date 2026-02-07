@@ -44,7 +44,7 @@ export function ok(this: { req: Sails.Req, res: Sails.Res }, data?: unknown, opt
         try {
             viewData = require('util').inspect(data, { depth: null });
         }
-        catch (e) {
+        catch (_e) {
             viewData = undefined;
         }
     }

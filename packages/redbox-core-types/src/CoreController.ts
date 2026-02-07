@@ -212,7 +212,7 @@ export namespace Controllers.Core {
      * @param callback  Function to execute.
      * @param options   Object that contains options.
      */
-    public index(req: Sails.Req, res: Sails.Res, callback: unknown, options: Record<string, unknown> = {}): void {
+    public index(req: Sails.Req, res: Sails.Res, callback: unknown, _options: Record<string, unknown> = {}): void {
       res.notFound();
     }
 

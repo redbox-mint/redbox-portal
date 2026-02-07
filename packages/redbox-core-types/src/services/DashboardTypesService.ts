@@ -1,5 +1,4 @@
-import { Observable, zip, of, firstValueFrom } from 'rxjs';
-import { mergeMap as flatMap } from 'rxjs/operators';
+import { Observable, firstValueFrom } from 'rxjs';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { DashboardTypeModel } from '../model/storage/DashboardTypeModel';

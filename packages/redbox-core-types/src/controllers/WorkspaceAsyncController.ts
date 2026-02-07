@@ -26,7 +26,7 @@ export namespace Controllers {
       const service = req.param('service');
       const args = req.param('args');
       return WorkspaceAsyncService.start({ name, recordType, username, service, method, args })
-        .subscribe((response: unknown) => {
+        .subscribe((_response: unknown) => {
           this.sendResp(req, res, { data: {}, headers: this.getNoCacheHeaders() });
         }, (error: unknown) => {
           sails.log.error(error);

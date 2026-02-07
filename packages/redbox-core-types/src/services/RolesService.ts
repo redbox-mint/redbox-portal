@@ -161,7 +161,7 @@ export namespace Services {
                                        }));
                          }),
                          last(),
-                         flatMap((brand: BrandingModel) => {
+                         flatMap((_brand: BrandingModel) => {
                            return sails.services.brandingservice.loadAvailableBrands() as unknown as Observable<BrandingModel>;
                          }));
       } else {

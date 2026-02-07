@@ -27,7 +27,6 @@ import { RecordModel } from '../model/storage/RecordModel';
 import { FigshareArticleCreate } from '../model/api/FigshareArticleCreate';
 import { FigshareArticleUpdate } from '../model/api/FigshareArticleUpdate';
 import { FigshareArticleEmbargo } from '../model/api/FigshareArticleEmbargo';
-import { ListAPIResponse } from '../model/ListAPIResponse';
 import { momentShim as moment } from '../shims/momentShim';
 const axios = require('axios');
 const _ = require('lodash');
@@ -1857,7 +1856,7 @@ export namespace Services {
                         if (!_.isUndefined(sails.config.figshareAPI.mapping.recordAllFilesUploaded) && !_.isEmpty(sails.config.figshareAPI.mapping.recordAllFilesUploaded)) {
                           _.set(record, sails.config.figshareAPI.mapping.recordAllFilesUploaded, 'yes');
                         }
-                        const result = await RecordsService.updateMeta(brand, oid, record, user, false, false);
+                        await RecordsService.updateMeta(brand, oid, record, user, false, false);
                       }
                     }
 
@@ -2182,7 +2181,7 @@ export namespace Services {
               this.logWithLevel(config.logLevel, newUrl);
               //remove existing entry to the file attachment
               const locationList = (_.get(record, config.dataLocationsPathInRecord) as AnyRecord[]) || [];
-              const locationListRemoved = _.remove(locationList, ['name', fileName]);
+              _.remove(locationList, ['name', fileName]);
               //add new entry as URL to the same file already uploaded to Figshare
               locationList.push(newUrl);
               _.set(record, config.dataLocationsPathInRecord, locationList);
@@ -2450,7 +2449,7 @@ export namespace Services {
       }
     }
 
-    public async transitionRecordWorkflowFromFigshareArticlePropertiesJob(job: AnyRecord): Promise<void> {
+    public async transitionRecordWorkflowFromFigshareArticlePropertiesJob(_job: AnyRecord): Promise<void> {
       const prefix = "FigService -";
       const config = this.getRuntimeConfig();
 

@@ -97,7 +97,7 @@ export namespace Services {
       ,flatMap(dbData => {
         return of(dbData);
       }))
-      .subscribe(data => {
+      .subscribe(_data => {
         sails.log.verbose(`Saved local and remote cache for entry:${name}`);
       }, error => {
         sails.log.error(`Error updating cache for entry ${name}:`);
@@ -116,7 +116,7 @@ export namespace Services {
           try {
             await access(`${ngPath}/browser`);
             ngPath = `${ngPath}/browser`;
-          } catch (error) {
+          } catch (_error) {
             sails.log.verbose(`Detected legacy angular app: ${ngPath}`);
             continue;
           }

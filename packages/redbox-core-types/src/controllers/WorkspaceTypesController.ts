@@ -71,7 +71,7 @@ export namespace Controllers {
       const fileUploader = req.file as (name: string) => { upload: (opts: unknown, cb: (err: unknown, files: unknown[]) => void) => void };
       fileUploader('logo').upload({
         adapter: this.blobAdapter
-      }, function (err: unknown, filesUploaded: unknown[]) {
+      }, function (err: unknown, _filesUploaded: unknown[]) {
         if (err) {
           const payload = err ?? { status: false, message: err };
           return that.sendResp(req, res, { data: payload, headers: that.getNoCacheHeaders() });

@@ -1,5 +1,4 @@
 // Adapted from https://git.f3l.de/ttomasini/sails-types/raw/branch/master/sails.d.ts
-import { NextFunction } from "express";
 import express = require("express");
 import type { SailsConfig } from "./config";
 

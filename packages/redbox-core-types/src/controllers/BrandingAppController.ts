@@ -9,7 +9,6 @@ import * as BrandingLogoServiceModule from '../services/BrandingLogoService';
 // sails is available globally via sails.ts
 declare const BrandingService: BrandingServiceModule.Services.Branding;
 declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLogo;
-declare const BrandingConfig: unknown;
 
 function mapError(e: Error): { status: number; body: unknown } {
   const msg = e.message || '';
@@ -111,7 +110,7 @@ export namespace Controllers {
           return res.badRequest({ error: 'no-file' });
         }
         const files = await new Promise<globalThis.Record<string, unknown>[]>((resolve, reject) => {
-          try { ((req as globalThis.Record<string, unknown>).file as (name: string) => { upload: (cb: (err: unknown, uploaded: globalThis.Record<string, unknown>[]) => void) => void })('logo').upload((err: unknown, uploaded: globalThis.Record<string, unknown>[]) => err ? reject(err) : resolve(uploaded)); } catch (e) { resolve([]); }
+          try { ((req as globalThis.Record<string, unknown>).file as (name: string) => { upload: (cb: (err: unknown, uploaded: globalThis.Record<string, unknown>[]) => void) => void })('logo').upload((err: unknown, uploaded: globalThis.Record<string, unknown>[]) => err ? reject(err) : resolve(uploaded)); } catch (_e) { resolve([]); }
         });
         if (!files || !files.length) return res.badRequest({ error: 'no-file' });
         const f = files[0];

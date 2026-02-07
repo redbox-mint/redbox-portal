@@ -253,7 +253,7 @@ export namespace Services {
     }
 
     /** Publish current draft (variables) -> CSS, bump version, persist hash, history */
-    public async publish(branding: string, portal: string, actor: unknown, opts?: { expectedVersion?: number; }): Promise<{ version: number; hash: string; idempotent?: boolean; }> {
+    public async publish(branding: string, portal: string, _actor: unknown, opts?: { expectedVersion?: number; }): Promise<{ version: number; hash: string; idempotent?: boolean; }> {
       const brand = await BrandingConfig.findOne({ name: branding });
       if (!brand) throw new Error('branding-not-found');
       if (opts?.expectedVersion != null && brand.version != null && opts.expectedVersion !== brand.version) {
@@ -272,7 +272,7 @@ export namespace Services {
     }
 
     /** Rollback to a previous published version via history id */
-    public async rollback(historyId: string, actor: unknown): Promise<{ version: number; hash: string; branding: BrandingModel | null; }> {
+    public async rollback(historyId: string, _actor: unknown): Promise<{ version: number; hash: string; branding: BrandingModel | null; }> {
       const historyEntry = await BrandingConfigHistory.findOne({ id: historyId }).populate('branding') as unknown as BrandingConfigHistoryAttributes | null;
       if (!historyEntry) throw new Error('history-not-found');
       const branding = historyEntry.branding as unknown as BrandingModel | null;

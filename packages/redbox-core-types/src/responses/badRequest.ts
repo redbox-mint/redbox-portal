@@ -51,7 +51,7 @@ export function badRequest(this: { req: Sails.Req, res: Sails.Res }, data?: unkn
         try {
             viewData = require('util').inspect(data, { depth: null });
         }
-        catch (e) {
+        catch (_e) {
             viewData = undefined;
         }
     }

@@ -307,7 +307,7 @@ public async listBundles(branding: BrandingModel): Promise<I18nBundleAttributes[
     namespace: string,
     data: I18nData,
     displayName?: string,
-    options?: { splitToEntries?: boolean; overwriteEntries?: boolean }
+    _options?: { splitToEntries?: boolean; overwriteEntries?: boolean }
   ): Promise<I18nBundleAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
       

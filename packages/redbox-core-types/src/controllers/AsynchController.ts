@@ -1,4 +1,3 @@
-import { Observable } from 'rxjs';
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model/storage/BrandingModel';
 
@@ -64,7 +63,6 @@ export namespace Controllers {
       const name = req.param('name');
       const recordOid = req.param('relatedRecordId');
       const metadata = req.param('metadata') ? req.param('metadata') : null;
-      const method = req.method;
       const status = req.param('status');
       const progressObj: globalThis.Record<string, unknown> = {
          name: name,

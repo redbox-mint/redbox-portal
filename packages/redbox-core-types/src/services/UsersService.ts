@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, of, from, throwError, lastValueFrom, firstValueFrom } from 'rxjs';
+import { Observable, of, from, throwError, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, map, last } from 'rxjs/operators';
 
 import {
@@ -134,7 +134,7 @@ export namespace Services {
       let bcrypt: BcryptLike;
       try {
         bcrypt = require('bcrypt') as BcryptLike;
-      } catch (err) {
+      } catch (_err) {
         bcrypt = require('bcryptjs') as BcryptLike;
       }
       const passport = sails.config.passport as PassportLike;
@@ -352,7 +352,7 @@ export namespace Services {
               sails.log.debug(`${preSaveUpdateHookFunctionString} response now is:`);
               try {
                 sails.log.verbose(JSON.stringify(user));
-              } catch(error){
+              } catch(_error){
                 sails.log.verbose(user);
               }
               sails.log.debug(`pre-save sync trigger ${preSaveUpdateHookFunctionString} completed for user: ${_.get(user,'username')}`);
@@ -420,7 +420,7 @@ export namespace Services {
             const options = _.get(postSaveCreateHook, "options", {});
             if (_.isFunction(postSaveCreateHookFunction)) {
               const hookResponse = postSaveCreateHookFunction(user, options);
-              this.resolveHookResponse(hookResponse).then(result => {
+              this.resolveHookResponse(hookResponse).then(_result => {
                 sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for user: ${_.get(user,'username')}`)
               }).catch(error => {
                 sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`)
@@ -687,8 +687,7 @@ export namespace Services {
             const oidcOpts = oidcConfig.opts;
             const {
               Issuer,
-              Strategy,
-              custom
+              Strategy
             } = require('openid-client');
             let configured = false;
             let discoverAttemptsCtr = 0;
@@ -1073,7 +1072,7 @@ export namespace Services {
             let q = User.addToCollection(defUserId, 'roles').members(defRoleIds);
             // END Sails 1.0 upgrade
             return super.getObservable<Record<string, unknown>>(q, 'exec', 'simplecb')
-              .pipe(flatMap(dUser => {
+              .pipe(flatMap(_dUser => {
                 return from(defRoles)
                   .pipe(map(roleObserved => {
                     const role: AnyRecord = roleObserved as AnyRecord;
@@ -1086,7 +1085,7 @@ export namespace Services {
                   }));
               })
               ,last()
-              ,flatMap(lastRole => {
+              ,flatMap(_lastRole => {
                 return of({
                   defUser: defUser,
                   defRoles: defRoles
@@ -1188,12 +1187,7 @@ export namespace Services {
         }
     */
     public bootstrap = (defRoles: unknown) => {
-      const that = this;
-      const defAuthConfig = this.getAuthConfig(BrandingService.getDefault().name);
       sails.log.verbose("Bootstrapping users....");
-
-      const usernameField = defAuthConfig.local?.usernameField ?? 'username';
-      const passwordField = defAuthConfig.local?.passwordField ?? 'password';
       const defAdminRole = RolesService.getAdminFromRoles(defRoles as RoleModel[]);
       return of(defAdminRole)
         .pipe(flatMap(defAdminRole => {
@@ -1277,7 +1271,7 @@ export namespace Services {
             let bcrypt: BcryptLike;
             try {
               bcrypt = require('bcrypt') as BcryptLike;
-            } catch (err) {
+            } catch (_err) {
               bcrypt = require('bcryptjs') as BcryptLike;
             }
             const salt = bcrypt.genSaltSync(10);

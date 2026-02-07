@@ -126,10 +126,6 @@ export namespace Controllers {
     * @param res
     */
     public getFormStructureValidations(req: Sails.Req, res: Sails.Res) {
-      const recordType = req.param("recordType") || this._recordTypeAuto;
-      const oid = req.param("oid") || "";
-      const isNewRecord = this.isNewRecord(recordType, oid);
-      const isExistingRecord = this.isExistingRecord(recordType, oid);
       // TODO:
       //  Similar to FormRecordConsistency.validateRecordSchema.
       const entries: TemplateCompileInput[] = [];
@@ -143,10 +139,6 @@ export namespace Controllers {
     * @param res
     */
     public getFormDataValidations(req: Sails.Req, res: Sails.Res) {
-      const recordType = req.param("recordType") || this._recordTypeAuto;
-      const oid = req.param("oid") || "";
-      const isNewRecord = this.isNewRecord(recordType, oid);
-      const isExistingRecord = this.isExistingRecord(recordType, oid);
       // TODO:
       const entries: TemplateCompileInput[] = [];
       return this.sendClientMappingJavascript(res, entries);
@@ -158,10 +150,6 @@ export namespace Controllers {
     * @param res
     */
     public getFormExpressions(req: Sails.Req, res: Sails.Res) {
-      const recordType = req.param("recordType") || this._recordTypeAuto;
-      const oid = req.param("oid") || "";
-      const isNewRecord = this.isNewRecord(recordType, oid);
-      const isExistingRecord = this.isExistingRecord(recordType, oid);
       // TODO:
       const entries: TemplateCompileInput[] = [];
       return this.sendClientMappingJavascript(res, entries);

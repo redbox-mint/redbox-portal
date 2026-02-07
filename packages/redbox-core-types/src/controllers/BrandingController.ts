@@ -79,7 +79,7 @@ export namespace Controllers {
             }
             res.set('Cache-Control', 'public, max-age=300'); // Cache default CSS longer
             return res.send(css);
-          } catch (fsError) {
+          } catch (_fsError) {
             // Fallback to minimal CSS if default file cannot be read
             const css = ':root{}';
             const etag = this.generateETag(css);
@@ -134,7 +134,7 @@ export namespace Controllers {
         res.set('ETag', etag);
         if (req.headers['if-none-match'] === etag) return res.status(304).end();
         return res.send(data.css);
-      } catch (e) {
+      } catch (_e) {
         return res.status(404).send('/* preview not found */');
       }
     }
@@ -222,7 +222,7 @@ export namespace Controllers {
         if (req.headers['if-none-match'] === etag) return res.status(304).end();
         res.set('Cache-Control', 'public, max-age=3600');
         return res.send(buf);
-      } catch (e) {
+      } catch (_e) {
         res.contentType(sails.config.static_assets.imageType);
         return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
       }

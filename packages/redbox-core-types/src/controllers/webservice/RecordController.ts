@@ -108,7 +108,6 @@ export namespace Controllers {
     }
 
     public async getPermissions(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
 
       try {
@@ -287,7 +286,6 @@ export namespace Controllers {
     }
 
     public async getMeta(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
 
       try {
@@ -308,7 +306,6 @@ export namespace Controllers {
     }
 
     public async getRecordAudit(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const dateFrom = req.param('dateFrom');
       const dateTo = req.param('dateTo');
@@ -393,7 +390,7 @@ export namespace Controllers {
           for (const attField of record.metaMetadata.attachmentFields) {
             // TODO: add support for removing datastreams
             const datastreams = _.get(record['metadata'], attField, []) as Datastream[];
-            const result: DatastreamServiceResponse = await this.DatastreamService.addDatastreams(oid, datastreams);
+            await this.DatastreamService.addDatastreams(oid, datastreams);
           }
           return this.sendResp(req, res, { data: result });
         } else {
@@ -515,7 +512,6 @@ export namespace Controllers {
     }
 
     public async getDataStream(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
       sails.log.debug(`getDataStream ${oid} ${datastreamId}`);
@@ -580,7 +576,6 @@ export namespace Controllers {
     }
 
     public async addDataStreams(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const oid = req.param('oid');
       const self = this;
       (req as unknown as { file: (field: string) => { upload: (...args: unknown[]) => void } }).file('attachmentFields').upload({
@@ -1091,7 +1086,6 @@ export namespace Controllers {
 
     public async harvest(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const updateModes = ["merge", "override", "create"];
 
       let updateMode = req.param('updateMode')
       if (_.isEmpty(updateMode)) {
@@ -1225,7 +1219,7 @@ export namespace Controllers {
             //Force this to be stored as a string
             (record['metaMetadata'] as unknown as globalThis.Record<string, unknown>)["sourceMetadata"] = "" + sourceMetadata
           }
-          const result = await this.RecordsService.updateMeta(brand, oid, record, user);
+          await this.RecordsService.updateMeta(brand, oid, record, user);
 
           let updateMessage = "Record updated successfully";
           if (shouldMerge) {
@@ -1256,13 +1250,11 @@ export namespace Controllers {
     }
 
     private async createHarvestRecord(brand: BrandingModel, recordTypeModel: RecordTypeModel, body: globalThis.Record<string, unknown>, harvestId: string, updateMode: string, user: UserModel) {
-      let authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
+      let authorizationEdit, authorizationView;
       if (body['authorization'] != null) {
         const auth = body['authorization'] as globalThis.Record<string, unknown>;
         authorizationEdit = auth['edit'];
         authorizationView = auth['view'];
-        authorizationEditPending = auth['editPending'];
-        authorizationViewPending = auth['viewPending'];
       } else {
         // If no authorization block set to user
         body['authorization'] = [];

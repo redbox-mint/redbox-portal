@@ -135,7 +135,7 @@ export namespace Controllers {
       const userid = req.body.userid;
       if (userid) {
         const uuid = uuidv4();
-        UsersService.setUserKey(userid, uuid).subscribe((user: unknown) => {
+        UsersService.setUserKey(userid, uuid).subscribe((_user: unknown) => {
           this.sendResp(req, res, { data: { status: true, message: uuid }, headers: this.getNoCacheHeaders() });
         }, (error: unknown) => {
           sails.log.error("Failed to set UUID:");
@@ -153,7 +153,7 @@ export namespace Controllers {
       const userid = req.body.userid;
       if (userid) {
         const uuid = '';
-        UsersService.setUserKey(userid, uuid).subscribe((user: unknown) => {
+        UsersService.setUserKey(userid, uuid).subscribe((_user: unknown) => {
           this.sendResp(req, res, { data: { status: true, message: "UUID revoked successfully" }, headers: this.getNoCacheHeaders() });
         }, (error: unknown) => {
           sails.log.error("Failed to revoke UUID:");
@@ -180,7 +180,7 @@ export namespace Controllers {
             const roles = details.roles;
             const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
             const roleIds = RolesService.getRoleIds(brand.roles, roles);
-            UsersService.updateUserRoles(user.id as string, roleIds).subscribe((user: unknown) => {
+            UsersService.updateUserRoles(user.id as string, roleIds).subscribe((_user: unknown) => {
               this.sendResp(req, res, { data: { status: true, message: "User created successfully" }, headers: this.getNoCacheHeaders() });
             }, (error: unknown) => {
               sails.log.error("Failed to update user roles:");
@@ -207,12 +207,12 @@ export namespace Controllers {
       let name: string | undefined;
       if (details.name) { name = details.name };
       if (userid && name) {
-        UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe((user: unknown) => {
+        UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe((_user: unknown) => {
           if (details.roles) {
             const roles = details.roles;
             const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
             const roleIds = RolesService.getRoleIds(brand.roles, roles);
-            UsersService.updateUserRoles(userid, roleIds).subscribe((user: unknown) => {
+            UsersService.updateUserRoles(userid, roleIds).subscribe((_user: unknown) => {
               this.sendResp(req, res, { data: { status: true, message: "User updated successfully" }, headers: this.getNoCacheHeaders() });
             }, (error: unknown) => {
               sails.log.error("Failed to update user roles:");
@@ -243,7 +243,7 @@ export namespace Controllers {
         // get the ids of the role names...
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const roleIds = RolesService.getRoleIds(brand.roles, newRoleNames)
-        UsersService.updateUserRoles(userid, roleIds).subscribe((user: unknown) => {
+        UsersService.updateUserRoles(userid, roleIds).subscribe((_user: unknown) => {
           this.sendResp(req, res, { data: { status: true, message: "Save OK." }, headers: this.getNoCacheHeaders() });
         }, (error: unknown) => {
           sails.log.error("Failed to update user roles:");

@@ -97,7 +97,7 @@ export namespace Controllers {
         }
         const fileFn = reqObj.file as (name: string) => { upload: (cb: (err: unknown, uploaded: Array<{ fd: string; type: string }>) => void) => void };
         const files = await new Promise<Array<{ fd: string; type: string }>>((resolve, reject) => {
-          try { fileFn('logo').upload((err: unknown, uploaded) => err ? reject(err) : resolve(uploaded)); } catch(e) { resolve([]); }
+          try { fileFn('logo').upload((err: unknown, uploaded) => err ? reject(err) : resolve(uploaded)); } catch(_e) { resolve([]); }
         });
         if (!files || !files.length) return res.badRequest({ error: 'no-file' });
         const f = files[0];

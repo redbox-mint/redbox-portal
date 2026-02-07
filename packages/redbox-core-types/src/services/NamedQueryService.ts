@@ -22,7 +22,7 @@ import type { NamedQueryDefinition } from '../config/namedQuery.config';
 import { DateTime } from 'luxon';
 
 import { ListAPIResponse } from '../model/ListAPIResponse';
-import { Observable, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordModel } from '../model/storage/RecordModel';
 import { UserAttributes } from '../waterline-models/User';
@@ -117,7 +117,7 @@ export namespace Services {
       brand: BrandingModel,
       start: number,
       rows: number,
-      user: unknown = undefined,
+      _user: unknown = undefined,
       sort: NamedQuerySortConfig | undefined = undefined
     ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
       const criteriaMeta = {enableExperimentalDeepTargets: true};

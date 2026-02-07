@@ -101,7 +101,7 @@ export namespace Services {
       let reportModel: ReportWaterlineModel;
       try {
         reportModel = this.getReportModel();
-      } catch (error) {
+      } catch (_error) {
         sails.log.warn(`${this.logHeader} bootstrap() -> Report model unavailable, skipping report bootstrap.`);
         return of({} as ReportModel);
       }
@@ -221,7 +221,7 @@ export namespace Services {
       }
     }
 
-    getTranslateDatabaseResultToReportResult(dbResult: ListAPIResponse<Record<string, unknown>>, report: ReportConfig) {
+    getTranslateDatabaseResultToReportResult(dbResult: ListAPIResponse<Record<string, unknown>>, _report: ReportConfig) {
       const totalItems = dbResult.summary.numFound;
       const startIndex = dbResult.summary.start;
       const pageNumber = dbResult.summary.page;
@@ -455,7 +455,7 @@ export namespace Services {
      * @param additionalImports Additional data to merge into context (deprecated, for backward compat)
      * @param field Optional field data (deprecated, for backward compat)
      */
-    runTemplate(data: Record<string, unknown>, config: TemplateConfig, additionalImports: Record<string, unknown> = {}, field: unknown = undefined) {
+    runTemplate(data: Record<string, unknown>, config: TemplateConfig, additionalImports: Record<string, unknown> = {}, _field: unknown = undefined) {
       try {
         const template = this.getCompiledTemplate(config.template);
         // Build context compatible with the new Handlebars templates

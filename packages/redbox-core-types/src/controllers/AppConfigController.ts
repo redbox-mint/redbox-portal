@@ -41,7 +41,6 @@ export namespace Controllers {
 
     public async editAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = this.brandingService.getBrand(req.session.branding as string);
         const appConfigId: string = req.param('appConfigId');
 
         if (appConfigId === undefined) {

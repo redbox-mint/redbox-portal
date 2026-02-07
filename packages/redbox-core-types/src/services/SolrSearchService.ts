@@ -33,8 +33,6 @@ type SolrCore = SolrCoreConfig;
 type SolrConfig = SolrSearchConfig;
 
 const axios = require('axios');
-const util = require('util');
-const querystring = require('querystring');
 type FlatModule = { flatten: (obj: Record<string, unknown>, options?: Record<string, unknown>) => Record<string, unknown> };
 type LuceneEscapeQueryModule = ((value: string) => string) | { escape?: (value: string) => string; default?: (value: string) => string };
 let flat: FlatModule | null = null;
@@ -500,7 +498,7 @@ export namespace Services {
       return url;
     }
 
-    public async solrDelete(job: QueueJob<RecordModel>, done: unknown) {
+    public async solrDelete(job: QueueJob<RecordModel>, _done: unknown) {
       try {
         const data = job.attrs.data;
         const coreId = String(_.get(data, 'searchCore', 'default'));

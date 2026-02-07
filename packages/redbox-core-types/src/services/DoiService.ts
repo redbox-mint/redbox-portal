@@ -34,8 +34,6 @@ interface DataciteForCode {
   notation: string;
 }
 
-type DataciteRequest = Record<string, unknown>;
-
 interface DatacitePostBody {
   data: {
     type: 'dois';
@@ -517,7 +515,7 @@ export namespace Services {
 
         if (doi != null) {
           record = this.addDoiDataToRecord(oid, record, doi)
-          RecordsService.updateMeta(brand, oid, record).then(response => { });
+          RecordsService.updateMeta(brand, oid, record).then(() => { });
         }
       }
 
@@ -539,9 +537,8 @@ export namespace Services {
 
     public async updateDoiTriggerSync(oid: string, record: RecordWithMetadata, options: Record<string, unknown>): Promise<RecordWithMetadata> {
 
-      let doi: string | null = null
       if (this.metTriggerCondition(oid, record, options) === "true") {
-        doi = await this.publishDoi(oid, record, options["event"] as string, 'update');
+        await this.publishDoi(oid, record, options["event"] as string, 'update');
       }
       return record
     }

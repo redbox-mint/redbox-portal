@@ -17,8 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, zip, from, of, firstValueFrom } from 'rxjs';
-import { mergeMap as flatMap } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
 import { Services as services } from '../CoreService';
 import type { WorkflowStageDefinition } from '../config/workflow.config';
 import type { RecordTypeModel } from '../model/storage/RecordTypeModel';

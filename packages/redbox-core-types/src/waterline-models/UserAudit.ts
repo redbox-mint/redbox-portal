@@ -1,5 +1,4 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, toWaterlineModelDef } from '../decorators';
 
 @Entity('useraudit')

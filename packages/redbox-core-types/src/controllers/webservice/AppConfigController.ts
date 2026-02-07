@@ -1,8 +1,6 @@
 import {
   APIErrorResponse,
   BrandingModel,
-  AppConfigService as AppConfigServiceModule,
-  BrandingService as BrandingServiceModule,
   Controllers as controllers
 } from '../../index';
 

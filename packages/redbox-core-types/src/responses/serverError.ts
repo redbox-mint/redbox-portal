@@ -51,7 +51,7 @@ export function serverError(this: { req: Sails.Req, res: Sails.Res }, data?: unk
         try {
             viewData = require('util').inspect(data, { depth: null });
         }
-        catch (e) {
+        catch (_e) {
             viewData = undefined;
         }
     }

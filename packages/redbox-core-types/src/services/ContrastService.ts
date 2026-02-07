@@ -18,11 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Services as services } from '../CoreService';
-import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
-
-
-const textSizes = ['normal', 'large'] as const;
-type TextSize = typeof textSizes[number];
+type TextSize = 'normal' | 'large';
 
 /**
  * Represents a contrast ratio violation for a color pair

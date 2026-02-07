@@ -1,4 +1,4 @@
-import { EntityMeta, LifecycleHook, AttributeOptions } from './types';
+import { EntityMeta, AttributeOptions } from './types';
 
 export const REGISTRY = new Map<Function, EntityMeta>();
 

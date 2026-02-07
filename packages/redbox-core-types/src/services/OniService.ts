@@ -30,12 +30,10 @@ const finished = promisify(stream.finished);
 import * as mime from 'mime-types';
 const { Collector, generateArcpId } = require('oni-ocfl');
 const { languageProfileURI } = require('language-data-commons-vocabs');
-const { ROCrate } = require('ro-crate');
 
 let wktParserHelper: unknown = null;
 
 const URL_PLACEHOLDER = '{ID_WILL_BE_HERE}'; // config
-const DEFAULT_IDENTIFIER_NAMESPACE = 'redbox';
 type AnyRecord = Record<string, unknown>;
 
 export namespace Services {
@@ -236,7 +234,6 @@ export namespace Services {
         throw new Error('Datastream service is not initialized');
       }
 					const metadata = (record['metadata'] ?? {}) as AnyRecord;
-				const metaMetadata = (record['metaMetadata'] ?? {}) as AnyRecord;
 				const mdOnly = !!metadata['accessRightsToggle'];
 					const dataLocations = (metadata['dataLocations'] ?? []) as AnyRecord[];
 					const attachments = dataLocations.filter((a: AnyRecord) => (
@@ -318,7 +315,7 @@ export namespace Services {
       rootCollection: AnyRecord
     ) {
 				const metadata = (record['metadata'] ?? {}) as AnyRecord;
-				const metaMetadata = (record['metaMetadata'] ?? {}) as AnyRecord;
+				const metaMetadata = record.metaMetadata as AnyRecord;
 				// Create Dataset/Repository Object
 				const targetRepoObj = (targetCollector.newObject as () => AnyRecord)();
 				const targetCrate = (targetRepoObj.crate ?? {}) as AnyRecord;
@@ -436,7 +433,7 @@ export namespace Services {
 				});
 			}
 
-			private addSubjects(targetRepoObj: AnyRecord, metadata: AnyRecord, extraContext: AnyRecord) {
+			private addSubjects(targetRepoObj: AnyRecord, metadata: AnyRecord, _extraContext: AnyRecord) {
 			sails.log.verbose(`${this.logHeader} addSubjects() -> adding subjects to the dataset`);
 			const rootDataset = (targetRepoObj.rootDataset ?? {}) as AnyRecord;
 			targetRepoObj.rootDataset = rootDataset;
@@ -464,7 +461,7 @@ export namespace Services {
 			rootDataset['about'] = subjects;
 		}
 
-			private addFunders(targetRepoObj: AnyRecord, metadata: AnyRecord, extraContext: AnyRecord) {
+			private addFunders(targetRepoObj: AnyRecord, metadata: AnyRecord, _extraContext: AnyRecord) {
 			sails.log.verbose(`${this.logHeader} addFunders() -> adding funders to the dataset`);
 			const rootDataset = (targetRepoObj.rootDataset ?? {}) as AnyRecord;
 			targetRepoObj.rootDataset = rootDataset;
@@ -491,7 +488,7 @@ export namespace Services {
 			rootDataset['funder'] = funders;
 		}
 
-			private addTemporalCoverage(targetRepoObj: AnyRecord, metadata: AnyRecord, extraContext: AnyRecord) {
+			private addTemporalCoverage(targetRepoObj: AnyRecord, metadata: AnyRecord, _extraContext: AnyRecord) {
 			sails.log.verbose(`${this.logHeader} addTemporalCoverage() -> adding temporal coverage to the dataset`);
 			const rootDataset = (targetRepoObj.rootDataset ?? {}) as AnyRecord;
 			targetRepoObj.rootDataset = rootDataset;

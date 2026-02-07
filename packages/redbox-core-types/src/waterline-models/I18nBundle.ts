@@ -1,5 +1,4 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, BelongsTo, HasMany, BeforeCreate, BeforeUpdate, toWaterlineModelDef } from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
 
@@ -17,11 +16,6 @@ const beforeCreate = (bundle: Record<string, unknown>, cb: (err?: Error) => void
 
 const beforeUpdate = (values: Record<string, unknown>, cb: (err?: Error) => void) => {
   try {
-    if (values.locale || values.namespace || values.branding) {
-      const brandingPart = values.branding ? String(values.branding) : 'global';
-      const locale = values.locale;
-      const ns = values.namespace || 'translation';
-    }
     cb();
   } catch (error) {
     cb(error as Error);

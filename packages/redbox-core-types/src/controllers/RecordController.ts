@@ -24,12 +24,10 @@ import { mergeMap as flatMap, map } from 'rxjs/operators';
 import {
   RecordTypeResponseModel,
   DashboardTypeResponseModel,
-  DataResponseV2,
   Controllers as controllers,
   DatastreamService,
   RecordsService,
   SearchService,
-  ApiVersion,
   BrandingModel,
   RecordTypeModel, ErrorResponseItemV2,
   FormModel,
@@ -281,7 +279,7 @@ export namespace Controllers {
             appSelector: appSelector,
             appName: appName
           });
-        }, error => {
+        }, _error => {
           return this.sendView(req, res, 'record/edit', {
             oid: oid,
             rdmp: rdmp,
@@ -468,7 +466,6 @@ export namespace Controllers {
       const brand:BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const user = req.user;
-      const message = null;
   const currentRec = await firstValueFrom(this.getRecord(oid));
       if(!_.isEmpty(brand)) {
 
@@ -509,7 +506,6 @@ export namespace Controllers {
     }
 
     public async restoreRecord(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const msgFailed = TranslationService.t('failed-restore');
       if (_.isEmpty(oid)) {
@@ -553,7 +549,6 @@ export namespace Controllers {
     }
 
     public async destroyDeletedRecord(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
@@ -591,7 +586,7 @@ export namespace Controllers {
     }
 
     public update(req: Sails.Req, res: Sails.Res) {
-      this.updateInternal(req, res).then(result => { });
+      this.updateInternal(req, res).then(() => { });
     }
 
     private async updateInternal(req: Sails.Req, res: Sails.Res) {
@@ -1045,7 +1040,7 @@ export namespace Controllers {
       });
     }
 
-    public async getRelatedRecordsInternal(req: Sails.Req, res: Sails.Res) {
+    public async getRelatedRecordsInternal(req: Sails.Req, _res: Sails.Res) {
       sails.log.verbose(`getRelatedRecordsInternal - starting...`);
       const brand:BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
@@ -1057,11 +1052,9 @@ export namespace Controllers {
       return relatedRecords;
     }
 
-    public async getPermissionsInternal(req: Sails.Req, res: Sails.Res) {
+    public async getPermissionsInternal(req: Sails.Req, _res: Sails.Res) {
       const oid = req.param('oid');
   const record = await firstValueFrom(this.getRecord(oid));
-
-      const response = {};
 
       const editUsers = _.get(record, 'authorization.edit', []) as string[]
       const editUserResponse = [];

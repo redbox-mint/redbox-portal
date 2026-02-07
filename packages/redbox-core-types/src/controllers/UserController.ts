@@ -104,7 +104,7 @@ export namespace Controllers {
       res.redirect(this.getPostLoginUrl(req, res));
     }
 
-    protected getPostLoginUrl(req: Sails.Req, res: Sails.Res) {
+    protected getPostLoginUrl(req: Sails.Req, _res: Sails.Res) {
       const branding = BrandingService.getBrandFromReq(req as unknown as RequestLike);
       let postLoginUrl = null;
       if (req.session.redirUrl) {
@@ -135,7 +135,7 @@ export namespace Controllers {
       const user = req.session.user ? req.session.user : req.user;
       req.logout(function (err: unknown) {
         if (err) { return res.status(500).send('Logout failed'); }
-        UsersService.addUserAuditEvent(user, "logout", requestDetails).then(response => {
+        UsersService.addUserAuditEvent(user, "logout", requestDetails).then(_response => {
           sails.log.debug(`User logout audit event created: ${_.isEmpty(user) ? '' : user.id}`);
         }).catch(err => {
           sails.log.error(`User logout audit event failed`)
@@ -178,7 +178,7 @@ export namespace Controllers {
         name = details.name as string
       };
       if (name) {
-        UsersService.updateUserDetails(userid, name, details.email as string, details.password as string).subscribe(user => {
+        UsersService.updateUserDetails(userid, name, details.email as string, details.password as string).subscribe(_user => {
           this.sendResp(req, res, { data: { status: true, message: "Profile updated successfully." }, headers: this.getNoCacheHeaders() });
         }, error => {
           sails.log.error("Failed to update user profile:");
@@ -201,7 +201,7 @@ export namespace Controllers {
 
       if (userid) {
         const uuid = uuidv4();
-        UsersService.setUserKey(userid, uuid).subscribe(user => {
+        UsersService.setUserKey(userid, uuid).subscribe(_user => {
           this.sendResp(req, res, { data: { status: true, message: uuid }, headers: this.getNoCacheHeaders() });
         }, error => {
           sails.log.error("Failed to set UUID:");
@@ -224,7 +224,7 @@ export namespace Controllers {
 
       if (userid) {
         const uuid = null;
-        UsersService.setUserKey(userid, uuid).subscribe(user => {
+        UsersService.setUserKey(userid, uuid).subscribe(_user => {
           this.sendResp(req, res, { data: { status: true, message: "UUID revoked successfully" }, headers: this.getNoCacheHeaders() });
         }, error => {
           sails.log.error("Failed to revoke UUID:");
@@ -250,7 +250,7 @@ export namespace Controllers {
         const requestDetails = new RequestDetails(req);
         // We don't want to store the password!
         delete (requestDetails.body as Record<string, unknown>).password;
-        UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
+        UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
           sails.log.debug(`User login audit event created for local login: ${_.isEmpty(user) ? '' : user.id}`)
         }).catch(err => {
           sails.log.error(`User login audit event created for local login failed`)
@@ -349,7 +349,7 @@ export namespace Controllers {
           return res.redirect(url);
         }
         const requestDetails = new RequestDetails(req);
-        UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
+        UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
           sails.log.debug(`User login audit event created for OIDC login: ${_.isEmpty(user) ? '' : (user as AnyRecord).id}`)
         }).catch(err => {
           sails.log.error(`User login audit event created for OIDC login failed`)
@@ -521,7 +521,7 @@ export namespace Controllers {
         }
 
         const requestDetails = new RequestDetails(req);
-        UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
+        UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
           sails.log.debug(`User login audit event created for AAF login: ${_.isEmpty(user) ? '' : (user as AnyRecord).id}`)
         }).catch(err => {
           sails.log.error(`User login audit event created for AAF login failed`)

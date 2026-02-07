@@ -101,7 +101,7 @@ export namespace Services {
      * @param record
      * @param options
      */
-    public async mintPostCreateRetryHandler(oid: string, record: RecordLike, options: RaidOptions) {
+    public async mintPostCreateRetryHandler(oid: string, record: RecordLike, _options: RaidOptions) {
       const attemptCount = Number(_.get(record, 'metaMetadata.raid.attemptCount', 0));
       if (!_.isEmpty(oid) && attemptCount > 0) {
         sails.log.verbose(`${this.logHeader} mintPostCreateRetryHandler() -> Scheduled for ${oid} `);

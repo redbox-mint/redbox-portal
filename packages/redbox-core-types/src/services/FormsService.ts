@@ -493,7 +493,7 @@ export namespace Services {
       return form;
     }
 
-    protected setFormEditMode(fields: FormFieldLike[], editMode: boolean): void{
+    protected setFormEditMode(_fields: FormFieldLike[], _editMode: boolean): void{
       // TODO: Form is processed differently now, see buildClientFormConfig
       // _.remove(fields, field => {
       //   if (editMode) {

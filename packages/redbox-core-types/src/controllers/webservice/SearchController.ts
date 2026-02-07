@@ -81,7 +81,6 @@ export namespace Controllers {
     }
 
     public async removeAll(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       sails.log.verbose(`SearchController::removeAll() -> Removing all records has been requested!`);
 
       // delete all documents by specifying id as '*'

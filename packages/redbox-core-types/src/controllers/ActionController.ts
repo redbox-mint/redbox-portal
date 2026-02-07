@@ -23,7 +23,6 @@ export namespace Controllers {
      */
     public callService(req: Sails.Req, res: Sails.Res) {
       const actionName = req.param('action')
-      const oid = req.param('oid');
       const config = sails.config.action[actionName];
       const options = {config: config};
       const serviceFunction = _.get(config.service, config.method);

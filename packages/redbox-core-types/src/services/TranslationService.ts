@@ -17,7 +17,6 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { Services as services } from '../CoreService';
@@ -341,7 +340,6 @@ export namespace Services {
       // Get branding and ensure i18next instance exists
       const brandingName = BrandingService.getBrandFromReq(req);
       const branding = BrandingService.getBrand(brandingName);
-      const brandingId = branding?.id || 'default';
       
       // Ensure i18next instance exists for this branding
       const i18nextInstance = await this.getI18nextForBranding(branding);

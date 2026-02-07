@@ -17,7 +17,6 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { AppConfigAttributes } from '../waterline-models/AppConfig';
 import { Services as services } from '../CoreService';
@@ -61,7 +60,7 @@ export namespace Services {
     private async bootstrapAsync() {
       // Caching the form schemas is for performance 
       // and we shouldn't wait for them to lift the app
-      this.initAllConfigFormSchemas().then(result => {
+      this.initAllConfigFormSchemas().then(() => {
         sails.log.info("Config Form Schemas Loaded");
       })
       const availableBrandings = BrandingService.getAvailable();

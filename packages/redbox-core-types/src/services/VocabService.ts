@@ -17,8 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, of, from, zip, throwError } from 'rxjs';
-import { mergeMap as flatMap, last, map, concatAll, concatMap, delay } from 'rxjs/operators';
+import { Observable, of, from } from 'rxjs';
+import { mergeMap as flatMap, last, concatMap, delay } from 'rxjs/operators';
 import { SearchService } from '../SearchService';
 import { VocabQueryConfig } from '../model/config/VocabQueryConfig';
 import { BrandingModel } from '../model/storage/BrandingModel';
@@ -239,7 +239,7 @@ export namespace Services {
             defaultMetadata = resultMetadata as Record<string, unknown>;
             response.push(defaultMetadata);
           }
-        } catch (error) {
+        } catch (_error) {
             //This is required because the records retrieved from the solr index can have different structure and runTemplate method 
             //cannot handle this .i.e if there are records type rdmp thar normal rdmp records and there are mock mint records that 
             //are also rdmp type when the mock mint records are set to a different record type this should not happen 
@@ -382,7 +382,7 @@ export namespace Services {
               const updateObj = { currentIdx: 0, targetIdx: (collectionData || []).length };
               return AsynchsService.update({ id: progressKey }, updateObj);
             }),
-            flatMap(updateResp => {
+            flatMap(_updateResp => {
               sails.log.verbose(`Updated asynch progress...`);
               return from(collectionData || []);
             }),
@@ -391,7 +391,7 @@ export namespace Services {
               return of(buffer).pipe(
                   delay(i * processWindow),
                   flatMap(() => this.saveCollectionChunk(methodName, buffer, i).pipe(
-                    flatMap(saveResp => {
+                    flatMap(_saveResp => {
                       sails.log.verbose(`Updating chunk progress...${i}`);
                       if (i === (collectionData || []).length - 1) {
                         sails.log.verbose(`Asynch completed.`);
@@ -411,7 +411,7 @@ export namespace Services {
       }));
     }
 
-    protected saveCollectionChunk(methodName: string, buffer: unknown, i: number) {
+    protected saveCollectionChunk(methodName: string, buffer: unknown, _i: number) {
       return (this as unknown as Record<string, (buf: unknown) => Observable<unknown>>)[methodName](buffer);
     }
 

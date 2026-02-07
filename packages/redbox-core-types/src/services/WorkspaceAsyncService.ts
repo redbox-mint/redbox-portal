@@ -2,7 +2,6 @@ import { Observable } from 'rxjs';
 import { Services as services } from '../CoreService';
 import type { WorkspaceAsyncAttributes } from '../waterline-models/WorkspaceAsync';
 
-const util = require('util');
 import { DateTime } from 'luxon';
 
 
