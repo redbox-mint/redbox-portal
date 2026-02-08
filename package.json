@@ -10,7 +10,7 @@
     "@researchdatabox/redbox-core-types": "./packages/redbox-core-types",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "file:packages/sails-hook-redbox-storage-mongo",
     "@researchdatabox/sails-ng-common": "./packages/sails-ng-common",
-    "@tsconfig/node18": "^18.2.6",
+    "@tsconfig/node24": "^24.0.1",
     "bootstrap": "^5.3.8",
     "connect-mongo": "^6.0.0",
     "ejs": "3.1.10",

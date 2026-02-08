@@ -9,16 +9,21 @@ import { GridFSBucket, Db } from 'mongodb';
  * - putLogo({branding, portal, fileBuf, contentType}) -> GridFS path `${branding}/${portal}/images/logo.(ext)`
  */
 
-declare const sails: any;
-declare const _: any;
-declare const BrandingConfig: any;
-declare const SvgSanitizerService: any;
+declare const SvgSanitizerService: {
+  sanitize: (svg: string) => {
+    safe: boolean;
+    sanitized: string;
+    errors: string[];
+    warnings: string[];
+    info: { originalBytes: number; sanitizedBytes: number };
+  };
+};
 // Using skipper-gridfs adapter pattern like BrandingController
 // We'll lazily require to avoid circular load issues.
 
 
 
-export module Services {
+export namespace Services {
   @PopulateExportedMethods
   export class BrandingLogo extends coreServices.Core.Service {
 
@@ -70,7 +75,8 @@ export module Services {
       }
 
       try {
-        const ds = (sails as any).getDatastore ? (sails as any).getDatastore('mongodb') : null;
+        const ds = (sails as unknown as { getDatastore?: (name: string) => { manager?: Db } | null })
+          .getDatastore?.('mongodb') ?? null;
         const db: Db | undefined = ds?.manager; // sails-mongo exposes native Db as manager
         if (!db) return null;
         
@@ -132,9 +138,9 @@ export module Services {
         const svg = fileBuf.toString('utf8');
         const result = await SvgSanitizerService.sanitize(svg);
         if (!result.safe) {
-          errors.push(...result.errors.map(e => 'svg-' + e));
+          errors.push(...result.errors.map((e: string) => 'svg-' + e));
         }
-        warnings.push(...result.warnings.map(w => 'svg-' + w));
+        warnings.push(...result.warnings.map((w: string) => 'svg-' + w));
         outBuffer = Buffer.from(result.sanitized, 'utf8');
         finalCt = 'image/svg+xml';
       }
@@ -155,9 +161,11 @@ export module Services {
       const brand = await BrandingConfig.findOne({ name: opts.branding });
       if (!brand) throw new Error('branding-not-found');
       const { ok, sha256, sanitizedBuffer, errors, finalContentType } = await this.sanitizeAndValidate(opts.fileBuffer, opts.contentType);
-      if (!ok) throw new Error('logo-invalid: ' + errors.join(','));
+      const errorList = errors ?? [];
+      if (!ok) throw new Error('logo-invalid: ' + errorList.join(','));
+      const resolvedContentType = finalContentType ?? opts.contentType;
       // Generate a deterministic filename-like id for traceability across storage layers
-      const ext = finalContentType === 'image/png' ? 'png' : finalContentType === 'image/jpeg' ? 'jpg' : 'svg';
+      const ext = resolvedContentType === 'image/png' ? 'png' : resolvedContentType === 'image/jpeg' ? 'jpg' : 'svg';
       const gridFsId = `${opts.branding}/${opts.portal}/images/logo.${ext}`;
 
       // Persist to GridFS (if available). Keep in-memory cache for immediate serving.
@@ -173,7 +181,7 @@ export module Services {
             const up = bucket.openUploadStream(gridFsId, { metadata: { contentType: finalContentType } });
             up.on('error', reject);
             up.on('finish', () => resolve());
-            up.end(sanitizedBuffer);
+            up.end(sanitizedBuffer!);
           });
         }
       } catch (e) {
@@ -182,9 +190,9 @@ export module Services {
 
       // Update in-memory cache and config metadata
       this.setCache(gridFsId, sanitizedBuffer!);
-      const meta = { gridFsId, sha256, contentType: finalContentType, updatedAt: new Date().toISOString() };
+      const meta = { gridFsId, sha256, contentType: resolvedContentType, updatedAt: new Date().toISOString() };
       await BrandingConfig.update({ id: brand.id }, { logo: meta });
-      return { hash: sha256!, gridFsId, contentType: finalContentType, updatedAt: meta.updatedAt };
+      return { hash: sha256!, gridFsId, contentType: resolvedContentType, updatedAt: meta.updatedAt };
     }
 
     /** Retrieve stored binary (interim). */
@@ -219,3 +227,6 @@ export module Services {
   }
 }
 
+declare global {
+  let BrandingLogoService: Services.BrandingLogo;
+}

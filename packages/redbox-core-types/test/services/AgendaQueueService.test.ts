@@ -27,8 +27,8 @@ describe('AgendaQueueService', function() {
       let service: Services.AgendaQueue;
       try {
         service = new Services.AgendaQueue();
-      } catch (e) {
-        throw new Error(`Constructor threw error: ${e.message}`);
+      } catch (e: unknown) {
+        throw new Error(`Constructor threw error: ${e instanceof Error ? e.message : String(e)}`);
       }
       
       expect(service).to.be.an.instanceOf(Services.AgendaQueue);

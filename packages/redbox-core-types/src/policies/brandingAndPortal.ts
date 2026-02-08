@@ -1,6 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
-
-declare const _: any;
+declare const _: import('lodash').LoDashStatic;
 
 /**
  * BrandingAndPortal Policy
@@ -8,28 +6,28 @@ declare const _: any;
  * Extracts branding and portal from request parameters and stores them
  * in request locals and session for use throughout the request lifecycle.
  */
-export function brandingAndPortal(req: Request, res: Response, next: NextFunction): void {
-    const branding = (req as any).param('branding');
-    const portal = (req as any).param('portal');
+export function brandingAndPortal(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
+    const branding = req.param('branding');
+    const portal = req.param('portal');
 
-    if ((req as any).options.locals == null) {
-        (req as any).options.locals = {};
-    }
+    if (!req.options) req.options = {};
+    const locals = (req.options.locals ?? {}) as Record<string, unknown>;
+    req.options.locals = locals;
 
-    if (branding != null && (req as any).options.locals.branding == null) {
-        (req as any).options.locals.branding = branding;
+    if (branding != null && locals.branding == null) {
+        locals.branding = branding;
         // store in session too, in the case of AAF postback..
         // START Sails 1.0 upgrade
-        if (_.isUndefined((req as any).session)) {
-            (req as any).session = {};
+        if (_.isUndefined(req.session)) {
+            (req as unknown as Record<string, unknown>).session = {};
         }
         // END Sails 1.0 upgrade
-        (req as any).session.branding = branding;
+        req.session.branding = branding;
     }
 
-    if (portal != null && (req as any).options.locals.portal == null) {
-        (req as any).options.locals.portal = portal;
-        (req as any).session.portal = portal;
+    if (portal != null && locals.portal == null) {
+        locals.portal = portal;
+        req.session.portal = portal;
     }
 
     return next();

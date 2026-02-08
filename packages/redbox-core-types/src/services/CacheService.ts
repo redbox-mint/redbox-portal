@@ -20,15 +20,11 @@
 import { Observable, of } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
-import {Sails, Model} from "sails";
 import { default as NodeCache } from "node-cache";
 import { DateTime } from 'luxon';
 import { readdir, access } from 'node:fs/promises';
-declare var sails: Sails;
-declare var _;
-declare var CacheEntry: Model;
 
-export module Services {
+export namespace Services {
   /**
    * Cache related functions...
    *
@@ -37,15 +33,15 @@ export module Services {
    */
   export class Cache extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'get',
       'set',
       'getNgAppFileHash'
     ];
 
-    protected cache;
-    protected ngFileAppHash;
+    protected cache!: NodeCache;
+    protected ngFileAppHash: Record<string, string> = {};
 
     public async bootstrap() {
       const cacheOpts = {stdTTL: sails.config.custom_cache.cacheExpiry, checkperiod: sails.config.custom_cache.checkPeriod ? sails.config.custom_cache.checkPeriod : 600};
@@ -55,23 +51,24 @@ export module Services {
       await this.buildNgAppFileHash();
     }
 
-    public get(name): Observable<any> {
+    public get(name: string): Observable<unknown | null> {
       const cacheGet = of(this.cache.get(name));
       return cacheGet.pipe(flatMap(data => {
         if (data) {
           return of(data);
         } else {
           sails.log.verbose(`Getting DB cache entry for name: ${name}`);
-          return super.getObservable(CacheEntry.findOne({name: name})).pipe(flatMap(dbData => {
+          return super.getObservable<Record<string, unknown> | null>(CacheEntry.findOne({name: name})).pipe(flatMap(dbData => {
             if (!_.isEmpty(dbData)) {
               sails.log.verbose(`Got DB cache entry`);
               // check if entry is expired...
-              if (Math.floor(DateTime.local().toSeconds()) - dbData.ts_added > sails.config.custom_cache.cacheExpiry) {
+              const dbDataObj = dbData as { ts_added?: number; data?: unknown };
+              if (Math.floor(DateTime.local().toSeconds()) - (dbDataObj.ts_added ?? 0) > sails.config.custom_cache.cacheExpiry) {
                 sails.log.verbose(`Cache entry for ${name} has expired while on the DB, returning null...`);
                 return of(null);
               } else {
-                this.cache.set(name, dbData.data);
-                return of(dbData.data);
+                this.cache.set(name, dbDataObj.data);
+                return of(dbDataObj.data ?? null);
               }
             }
             sails.log.verbose(`No DB cache entry for: ${name}`);
@@ -83,7 +80,7 @@ export module Services {
       
     }
 
-    public set(name, data, expiry=sails.config.custom_cache.cacheExpiry) {
+    public set(name: string, data: unknown, expiry = sails.config.custom_cache.cacheExpiry): void {
       // update local cache then persist to DB...
       sails.log.verbose(`Setting cache for entry: ${name}...`);
       this.cache.set(name, data, expiry);
@@ -100,7 +97,7 @@ export module Services {
       ,flatMap(dbData => {
         return of(dbData);
       }))
-      .subscribe(data => {
+      .subscribe(_data => {
         sails.log.verbose(`Saved local and remote cache for entry:${name}`);
       }, error => {
         sails.log.error(`Error updating cache for entry ${name}:`);
@@ -119,13 +116,13 @@ export module Services {
           try {
             await access(`${ngPath}/browser`);
             ngPath = `${ngPath}/browser`;
-          } catch (error) {
+          } catch (_error) {
             sails.log.verbose(`Detected legacy angular app: ${ngPath}`);
             continue;
           }
           const ngFiles = await readdir(ngPath);
           for (const fileNamePrefix of targetFilesPrefix) {
-            const fileName = _.find(ngFiles, (file) => { return _.startsWith(file, fileNamePrefix) });
+            const fileName = _.find(ngFiles, (file: string) => { return _.startsWith(file, fileNamePrefix) });
             const nameParts = _.split(fileName, '.');
             let appHash = '';
             //legacy angular app cache path
@@ -154,4 +151,8 @@ export module Services {
     }
 
   }
+}
+
+declare global {
+  let CacheService: Services.Cache;
 }

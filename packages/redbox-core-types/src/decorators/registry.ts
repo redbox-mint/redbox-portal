@@ -1,6 +1,6 @@
-import { EntityMeta, LifecycleHook, AttributeOptions } from './types';
+import { EntityMeta, AttributeOptions, Constructor } from './types';
 
-export const REGISTRY = new Map<Function, EntityMeta>();
+export const REGISTRY = new Map<Constructor, EntityMeta>();
 
 const DEFAULT_PRIMARY_KEY = 'id';
 
@@ -13,7 +13,7 @@ export function toIdentity(value: string): string {
     : '';
 }
 
-export function ensureMeta(target: Function): EntityMeta {
+export function ensureMeta(target: Constructor): EntityMeta {
   let existing = REGISTRY.get(target);
   if (!existing) {
     existing = {

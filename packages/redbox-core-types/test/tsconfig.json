@@ -3,6 +3,8 @@
     "compilerOptions": {
         "noEmit": true,
         "rootDir": "..",
+        "module": "commonjs",
+        "moduleResolution": "node",
         "types": [
             "node",
             "mocha",
@@ -11,6 +13,7 @@
     },
     "include": [
         "./**/*.ts",
-        "../src/**/*.ts"
+        "../src/**/*.ts",
+        "../src/**/*.d.ts"
     ]
 }

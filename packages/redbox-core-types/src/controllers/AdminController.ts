@@ -4,12 +4,8 @@ import { of } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { v4 as uuidv4 } from 'uuid';
 
-declare var module: any;
-declare var sails: any;
-declare var _: any;
-declare var BrandingService: any, RolesService: any, UsersService: any;
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Admin Controller
    *
@@ -20,7 +16,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
         'rolesIndex',
         'usersIndex',
         'getBrandRoles',
@@ -46,34 +42,34 @@ export module Controllers {
      * **************************************************************************************************
      */
 
-    public rolesIndex(req, res) {
+    public rolesIndex(req: Sails.Req, res: Sails.Res) {
       return this.sendView(req, res, 'admin/roles');
     }
 
-    public usersIndex(req, res) {
+    public usersIndex(req: Sails.Req, res: Sails.Res) {
       return this.sendView(req, res, 'admin/users');
     }
 
-    public supportAgreementIndex(req, res) {
-      var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      var currentYear = new Date().getFullYear();
-      var selectedYear = parseInt(req.query.year) || currentYear;
+    public supportAgreementIndex(req: Sails.Req, res: Sails.Res) {
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const currentYear = new Date().getFullYear();
+      const selectedYear = parseInt(req.query.year as string) || currentYear;
       
       // Get support agreement information from the new structure
       // TODO: Remove the any cast once this is merged to develop and it's using the right core package version
-      var supportInfo = (brand as any).supportAgreementInformation || {};
-      var yearData = supportInfo[selectedYear] || { agreedSupportDays: 0, usedSupportDays: 0 };
+      const supportInfo = ((brand as unknown as globalThis.Record<string, unknown>).supportAgreementInformation || {}) as globalThis.Record<string, unknown>;
+      let yearData: globalThis.Record<string, unknown> = (supportInfo[selectedYear] || { agreedSupportDays: 0, usedSupportDays: 0 }) as globalThis.Record<string, unknown>;
       
       // If no data exists for the selected year but legacy data exists, use legacy for current year
       if (!supportInfo[selectedYear] && selectedYear === currentYear) {
         yearData = {
-          agreedSupportDays: (brand as any).agreedSupportDays || 0,
-          usedSupportDays: (brand as any).usedSupportDays || 0
+          agreedSupportDays: (brand as unknown as globalThis.Record<string, unknown>).agreedSupportDays || 0,
+          usedSupportDays: (brand as unknown as globalThis.Record<string, unknown>).usedSupportDays || 0
         };
       }
       
       // Get all available years from support agreement information
-      var availableYears = Object.keys(supportInfo).map(y => parseInt(y)).filter(y => !isNaN(y));
+      const availableYears = Object.keys(supportInfo).map(y => parseInt(y)).filter(y => !isNaN(y));
       if (availableYears.length === 0 || availableYears.indexOf(currentYear) === -1) {
         availableYears.push(currentYear);
       }
@@ -88,168 +84,176 @@ export module Controllers {
       });
     }
 
-    public getUsers(req, res) {
-      var pageData: any = {};
-      const brand = BrandingService.getBrand(req.session.branding);
+    public getUsers(req: Sails.Req, res: Sails.Res) {
+      const pageData: globalThis.Record<string, unknown> = {};
+      const brand = BrandingService.getBrand(req.session.branding as string);
       const brandId = _.get(brand, 'id') || brand || req.session.branding;
-      var users = UsersService.getUsersForBrand(brand).pipe(flatMap(users => {
-        _.map(users, (user) => {
-          if (_.isEmpty(_.find(sails.config.auth.hiddenUsers, (hideUser) => { return hideUser == user.name }))) {
+      UsersService.getUsersForBrand(brand).pipe(flatMap((users: globalThis.Record<string, unknown>[]) => {
+        _.map(users, (user: globalThis.Record<string, unknown>) => {
+          if (_.isEmpty(_.find(sails.config.auth.hiddenUsers, (hideUser: string) => { return hideUser == user.name }))) {
             // not hidden, adding to view data...
             if (_.isEmpty(pageData.users)) {
               pageData.users = [];
             }
             // need to set a dummy token string, to indicate if this user has a token set, but actual token won't be returned
             user.token = _.isEmpty(user.token) ? null : "user-has-token-but-is-suppressed";
-            user.roles = brandId ? _.filter(user.roles, (role) => role.branding === brandId) : user.roles;
+            user.roles = brandId ? _.filter(user.roles as globalThis.Record<string, unknown>[], (role: globalThis.Record<string, unknown>) => role.branding === brandId || (role.branding as globalThis.Record<string, unknown>)?.id === brandId) : user.roles;
             //TODO: Look for config around what other secrets should be hidden from being returned to the client
             delete user.password;
-            pageData.users.push(user);
+            (pageData.users as unknown[]).push(user);
           }
         });
         return of(pageData);
       }))
-        .subscribe(pageData => {
-          this.ajaxOk(req, res, null, pageData.users);
+        .subscribe((pageData: globalThis.Record<string, unknown>) => {
+          this.sendResp(req, res, { data: pageData.users, headers: this.getNoCacheHeaders() });
         });
     }
 
-    public getBrandRoles(req, res) {
+    public getBrandRoles(req: Sails.Req, res: Sails.Res) {
       // basic roles page: view all users and their roles
-      var pageData: any = {};
-      var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      var roles = RolesService.getRolesWithBrand(brand).pipe(flatMap(roles => {
+      const pageData: globalThis.Record<string, unknown> = {};
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      RolesService.getRolesWithBrand(brand).pipe(flatMap((roles) => {
         _.map(roles, (role) => {
-          if (_.isEmpty(_.find(sails.config.auth.hiddenRoles, (hideRole) => { return hideRole == role.name }))) {
+          if (_.isEmpty(_.find(sails.config.auth.hiddenRoles, (hideRole: string) => { return hideRole == role.name }))) {
             // not hidden, adding to view data...
             if (_.isEmpty(pageData.roles)) {
               pageData.roles = [];
             }
-            pageData.roles.push(role);
+            (pageData.roles as unknown[]).push(role);
           }
         });
         return of(pageData);
       }))
         .subscribe(pageData => {
-          this.ajaxOk(req, res, null, pageData.roles);
+          this.sendResp(req, res, { data: pageData.roles, headers: this.getNoCacheHeaders() });
         });
     }
 
-    public generateUserKey(req, res) {
-      var userid = req.body.userid;
+    public generateUserKey(req: Sails.Req, res: Sails.Res) {
+      const userid = req.body.userid;
       if (userid) {
-        var uuid = uuidv4();
-        UsersService.setUserKey(userid, uuid).subscribe(user => {
-          this.ajaxOk(req, res, uuid)
-        }, error => {
+        const uuid = uuidv4();
+        UsersService.setUserKey(userid, uuid).subscribe((_user: unknown) => {
+          this.sendResp(req, res, { data: { status: true, message: uuid }, headers: this.getNoCacheHeaders() });
+        }, (error: unknown) => {
           sails.log.error("Failed to set UUID:");
           sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
         });
       }
       else {
-        return this.ajaxFail(req, res, "Please provide userid");
+        return this.sendResp(req, res, { data: { status: false, message: "Please provide userid" }, headers: this.getNoCacheHeaders() });
       }
+      return;
     }
 
-    public revokeUserKey(req, res) {
-      var userid = req.body.userid;
+    public revokeUserKey(req: Sails.Req, res: Sails.Res) {
+      const userid = req.body.userid;
       if (userid) {
-        var uuid = '';
-        UsersService.setUserKey(userid, uuid).subscribe(user => {
-          this.ajaxOk(req, res, "UUID revoked successfully")
-        }, error => {
+        const uuid = '';
+        UsersService.setUserKey(userid, uuid).subscribe((_user: unknown) => {
+          this.sendResp(req, res, { data: { status: true, message: "UUID revoked successfully" }, headers: this.getNoCacheHeaders() });
+        }, (error: unknown) => {
           sails.log.error("Failed to revoke UUID:");
           sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
         });
       }
       else {
-        return this.ajaxFail(req, res, "Please provide userid");
+        return this.sendResp(req, res, { data: { status: false, message: "Please provide userid" }, headers: this.getNoCacheHeaders() });
       }
+      return;
     }
 
-    public addLocalUser(req, res) {
-      var username = req.body.username;
-      var details = req.body.details;
-      if (details.name) { var name = details.name };
-      if (details.password) { var password = details.password };
+    public addLocalUser(req: Sails.Req, res: Sails.Res) {
+      const username = req.body.username;
+      const details = req.body.details;
+      let name: string | undefined;
+      let password: string | undefined;
+      if (details.name) { name = details.name };
+      if (details.password) { password = details.password };
       if (username && name && password) {
-        UsersService.addLocalUser(username, name, details.email, password).subscribe(user => {
+        UsersService.addLocalUser(username, name, details.email, password).subscribe((user: globalThis.Record<string, unknown>) => {
           if (details.roles) {
-            var roles = details.roles;
-            var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-            var roleIds = RolesService.getRoleIds(brand.roles, roles);
-            UsersService.updateUserRoles(user.id, roleIds).subscribe(user => {
-              this.ajaxOk(req, res, "User created successfully");
-            }, error => {
+            const roles = details.roles;
+            const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+            const roleIds = RolesService.getRoleIds(brand.roles, roles);
+            UsersService.updateUserRoles(user.id as string, roleIds).subscribe((_user: unknown) => {
+              this.sendResp(req, res, { data: { status: true, message: "User created successfully" }, headers: this.getNoCacheHeaders() });
+            }, (error: unknown) => {
               sails.log.error("Failed to update user roles:");
               sails.log.error(error);
-              this.ajaxFail(req, res, error.message);
+              this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
             });
           } else {
-            this.ajaxOk(req, res, "User created successfully");
+            this.sendResp(req, res, { data: { status: true, message: "User created successfully" }, headers: this.getNoCacheHeaders() });
           }
-        }, error => {
+        }, (error: unknown) => {
           sails.log.error("Failed to create user:");
           sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
         });
       } else {
-        this.ajaxFail(req, res, "Please provide minimum of username, name and password");
+        this.sendResp(req, res, { data: { status: false, message: "Please provide minimum of username, name and password" }, headers: this.getNoCacheHeaders() });
       }
+      return;
     }
 
-    public updateUserDetails(req, res) {
-      var userid = req.body.userid;
-      var details = req.body.details;
-      if (details.name) { var name = details.name };
+    public updateUserDetails(req: Sails.Req, res: Sails.Res) {
+      const userid = req.body.userid;
+      const details = req.body.details;
+      let name: string | undefined;
+      if (details.name) { name = details.name };
       if (userid && name) {
-        UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe(user => {
+        UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe((_user: unknown) => {
           if (details.roles) {
-            var roles = details.roles;
-            var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-            var roleIds = RolesService.getRoleIds(brand.roles, roles);
-            UsersService.updateUserRoles(userid, roleIds).subscribe(user => {
-              this.ajaxOk(req, res, "User updated successfully");
-            }, error => {
+            const roles = details.roles;
+            const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+            const roleIds = RolesService.getRoleIds(brand.roles, roles);
+            UsersService.updateUserRoles(userid, roleIds).subscribe((_user: unknown) => {
+              this.sendResp(req, res, { data: { status: true, message: "User updated successfully" }, headers: this.getNoCacheHeaders() });
+            }, (error: unknown) => {
               sails.log.error("Failed to update user roles:");
               sails.log.error(error);
-              this.ajaxFail(req, res, error.message);
+              this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
             });
           } else {
-            this.ajaxOk(req, res, "Save OK.");
+            this.sendResp(req, res, { data: { status: true, message: "Save OK." }, headers: this.getNoCacheHeaders() });
           }
-        }, error => {
+        }, (error: unknown) => {
           sails.log.error("Failed to update user details:");
           sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
         });
       } else {
-        this.ajaxFail(req, res, "Please provide minimum of userid and name");
+        this.sendResp(req, res, { data: { status: false, message: "Please provide minimum of userid and name" }, headers: this.getNoCacheHeaders() });
       }
+      return;
     }
 
     /**
     * Updates a user's roles. Will be accepting the userid and the array of role names. Used role names instead of ids to prevent cross-brand poisoning.
     */
-    public updateUserRoles(req, res) {
-      var newRoleNames = req.body.roles;
-      var userid = req.body.userid;
+    public updateUserRoles(req: Sails.Req, res: Sails.Res) {
+      const newRoleNames = req.body.roles;
+      const userid = req.body.userid;
       if (userid && newRoleNames) {
         // get the ids of the role names...
-        var brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-        var roleIds = RolesService.getRoleIds(brand.roles, newRoleNames)
-        UsersService.updateUserRoles(userid, roleIds).subscribe(user => {
-          this.ajaxOk(req, res, "Save OK.");
-        }, error => {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const roleIds = RolesService.getRoleIds(brand.roles, newRoleNames)
+        UsersService.updateUserRoles(userid, roleIds).subscribe((_user: unknown) => {
+          this.sendResp(req, res, { data: { status: true, message: "Save OK." }, headers: this.getNoCacheHeaders() });
+        }, (error: unknown) => {
           sails.log.error("Failed to update user roles:");
           sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
         });
       } else {
-        this.ajaxFail(req, res, "Please provide userid and/or roles names.");
+        this.sendResp(req, res, { data: { status: false, message: "Please provide userid and/or roles names." }, headers: this.getNoCacheHeaders() });
       }
+      return;
     }
 
     /**

@@ -1,13 +1,18 @@
 import DatastreamServiceResponse from './DatastreamServiceResponse';
 import Datastream from './Datastream';
+import { Observable } from 'rxjs';
 
-export interface DatastreamService{
+type DatastreamContent = {
+  readstream?: NodeJS.ReadableStream;
+  body?: Buffer | string;
+} & Record<string, unknown>;
 
+export interface DatastreamService {
   addDatastreams(oid: string, datastreams: Datastream[]): Promise<DatastreamServiceResponse>;
-  updateDatastream(oid: string, record, newMetadata, fileRoot, fileIdsAdded): any;
-  removeDatastream(oid, datastream: Datastream): any;
-  addDatastream(oid, datastream: Datastream): any;
-  addAndRemoveDatastreams(oid, addDatastreams: Datastream[], removeDatastreams: Datastream[]): any;
-  getDatastream(oid, fileId): any;
-  listDatastreams(oid, fileId): any;
+  updateDatastream(oid: string, record: unknown, newMetadata: unknown, fileRoot: string, fileIdsAdded: string[]): Observable<Record<string, unknown>>;
+  removeDatastream(oid: string, datastream: Datastream): Promise<unknown>;
+  addDatastream(oid: string, datastream: Datastream): Promise<unknown>;
+  addAndRemoveDatastreams(oid: string, addDatastreams: Datastream[], removeDatastreams: Datastream[]): Promise<unknown>;
+  getDatastream(oid: string, fileId: string): Promise<DatastreamContent>;
+  listDatastreams(oid: string, fileId: string): Promise<Record<string, unknown>[]>;
 }

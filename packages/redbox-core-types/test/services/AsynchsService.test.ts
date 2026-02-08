@@ -81,7 +81,7 @@ describe('AsynchsService', function() {
 
   describe('finish', function() {
     it('should mark progress as finished with current date', async function() {
-      const progressId = 1;
+      const progressId = '1';
       const expectedResult = [{ id: 1, status: 'finished' }];
       
       const execStub = sinon.stub().yields(null, expectedResult);
@@ -98,7 +98,7 @@ describe('AsynchsService', function() {
     });
 
     it('should merge with provided progress object', async function() {
-      const progressId = 1;
+      const progressId = '1';
       const progressObj = { other: 'field' };
       const expectedResult = [{ id: 1, status: 'finished', other: 'field' }];
       
@@ -142,4 +142,3 @@ describe('AsynchsService', function() {
     });
   });
 });
-

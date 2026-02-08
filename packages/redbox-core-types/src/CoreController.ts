@@ -1,4 +1,6 @@
 import { existsSync } from 'fs';
+import type { Response } from 'express';
+import * as _ from 'lodash';
 import { ILogger } from './Logger';
 import {
   BuildResponseType,
@@ -6,15 +8,14 @@ import {
   ApiVersion,
   ApiVersionStrings,
   RBValidationError,
+  ErrorResponseItemV2,
 } from "./model";
 
 
-declare var _;
-declare var sails: Sails.Application;
-declare var TranslationService;
 
 
-export module Controllers.Core {
+
+export namespace Controllers.Core {
 
   /**
    * Core controller which defines common logic between controllers.
@@ -38,7 +39,7 @@ export module Controllers.Core {
      * (specific to the controller where it's defined)
      * Specific to sails. Don't rename.
      */
-    protected _config: any = {};
+    protected _config: Record<string, unknown> = {};
 
     /**
      * Exported methods. Must be overridden by the child to add custom methods.
@@ -71,7 +72,7 @@ export module Controllers.Core {
     ];
 
     // Namespaced logger for controllers
-    private _logger: ILogger;
+    private _logger: ILogger | null = null;
 
     /**
      * Get a namespaced logger for this controller class.
@@ -79,20 +80,20 @@ export module Controllers.Core {
      * Falls back to sails.log if pino namespaced logging is not available.
      */
     protected get logger(): ILogger {
-      if (!this._logger && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
+      if (this._logger === null && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
         const controllerName = this.constructor.name + 'Controller';
         this._logger = sails.config.log.createNamespaceLogger(controllerName, sails.config.log.customLogger);
       }
       // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
-      return this._logger || (sails?.log as unknown as ILogger);
+      return this._logger ?? (sails?.log as unknown as ILogger);
     }
 
     /**
      * Registers a Sails hook handler if Sails is available.
      */
-    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: any[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean {
+    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: unknown[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean {
       if (typeof sails === 'undefined') {
         return false;
       }
@@ -111,10 +112,10 @@ export module Controllers.Core {
     }
 
     constructor() {
-      this.processDynamicImports().then(result => {
+      this.processDynamicImports().then(() => {
         this.logger.verbose("Dynamic imports imported");
         this.onDynamicImportsCompleted();
-      })
+      });
     }
 
     /**
@@ -145,27 +146,29 @@ export module Controllers.Core {
      *
      * @returns {*}
      */
-    public exports(): any {
+    public exports(): Record<string, unknown> {
       // Merge default array and custom array from child.
-      var methods: any = this._defaultExportedMethods.concat(this._exportedMethods);
-      var exportedMethods: any = {};
+      const methods = this._defaultExportedMethods.concat(this._exportedMethods);
+      const exportedMethods: Record<string, unknown> = {};
+      const controller = this as Record<string, unknown>;
 
-      for (var i = 0; i < methods.length; i++) {
+      for (let i = 0; i < methods.length; i++) {
+        const methodName = methods[i];
+        const member = controller[methodName];
         // Check if the method exists.
-        if (typeof this[methods[i]] !== 'undefined') {
+        if (typeof member !== 'undefined') {
           // Check that the method shouldn't be private. (Exception for _config, which is a sails config)
-          if (methods[i][0] !== '_' || methods[i] === '_config') {
-
-            if (_.isFunction(this[methods[i]])) {
-              exportedMethods[methods[i]] = this[methods[i]].bind(this);
+          if (methodName[0] !== '_' || methodName === '_config') {
+            if (_.isFunction(member)) {
+              exportedMethods[methodName] = (member as (...args: unknown[]) => unknown).bind(this);
             } else {
-              exportedMethods[methods[i]] = this[methods[i]];
+              exportedMethods[methodName] = member;
             }
           } else {
-            this.logger.error(`The controller method "${methods[i]}" is not public and cannot be exported from ${this.constructor?.name}`);
+            this.logger.error(`The controller method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`);
           }
         } else {
-          this.logger.error(`The controller method "${methods[i]}" does not exist on ${this.constructor?.name}`);
+          this.logger.error(`The controller method "${methodName}" does not exist on ${this.constructor?.name}`);
         }
       }
 
@@ -190,7 +193,7 @@ export module Controllers.Core {
      *          controller  Controller      Child controller class. (static)
      *
      */
-    protected _handleRequest(req, res, callback, options: any = {}): void {
+    protected _handleRequest(req: Sails.Req, res: Sails.Res, callback: (req: Sails.Req, res: Sails.Res, options: Record<string, unknown>) => void, options: Record<string, unknown> = {}): void {
       callback(req, res, options);
     }
 
@@ -209,31 +212,31 @@ export module Controllers.Core {
      * @param callback  Function to execute.
      * @param options   Object that contains options.
      */
-    public index(req, res, callback: any, options: any = {}) {
+    public index(req: Sails.Req, res: Sails.Res, callback: unknown, _options: Record<string, unknown> = {}): void {
       res.notFound();
     }
 
 
-    public _getResolvedView(branding: string, portal: string, view: string): string {
-      var resolvedView: string = null;
+    public _getResolvedView(branding: string, portal: string, view: string): string | null {
+      let resolvedView: string | null = null;
 
       //Check if view exists for branding and portal
-      var viewToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/" + view + ".ejs";
+      const viewToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/" + view + ".ejs";
       if (existsSync(viewToTest)) {
         resolvedView = branding + "/" + portal + "/" + view;
       }
       // If view doesn't exist, next try for portal with default branding
-      if (resolvedView == null) {
-        viewToTest = sails.config.appPath + "/views/default/" + portal + "/" + view + ".ejs";
-        if (existsSync(viewToTest)) {
+      if (resolvedView === null) {
+        const viewToTest2 = sails.config.appPath + "/views/default/" + portal + "/" + view + ".ejs";
+        if (existsSync(viewToTest2)) {
           resolvedView = "default/" + portal + "/" + view;
         }
       }
 
       // If view still doesn't exist, next try for default portal with default branding
-      if (resolvedView == null) {
-        viewToTest = sails.config.appPath + "/views/default/default/" + view + ".ejs";
-        if (existsSync(viewToTest)) {
+      if (resolvedView === null) {
+        const viewToTest3 = sails.config.appPath + "/views/default/default/" + view + ".ejs";
+        if (existsSync(viewToTest3)) {
           resolvedView = "default/default/" + view;
         }
       }
@@ -241,16 +244,16 @@ export module Controllers.Core {
       return resolvedView;
     }
 
-    public _getResolvedLayout(branding: string, portal: string): string {
-      var resolvedLayout: string = null;
+    public _getResolvedLayout(branding: string, portal: string): string | null {
+      let resolvedLayout: string | null = null;
 
       //Check if view exists for branding and portal
-      var layoutToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/layout/layout.ejs";
+      let layoutToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/layout/layout.ejs";
       if (existsSync(layoutToTest)) {
         resolvedLayout = branding + "/" + portal + "/layout";
       }
       // If view doesn't exist, next try for portal with default branding
-      if (resolvedLayout == null) {
+      if (resolvedLayout === null) {
         layoutToTest = sails.config.appPath + "/views/default/" + portal + "/layout.ejs";
         if (existsSync(layoutToTest)) {
           resolvedLayout = "/default/" + portal + "/layout";
@@ -258,7 +261,7 @@ export module Controllers.Core {
       }
 
       // If view still doesn't exist, next try for default portal with default branding
-      if (resolvedLayout == null) {
+      if (resolvedLayout === null) {
         layoutToTest = sails.config.appPath + "/views/default/default/" + "layout.ejs";
         if (existsSync(layoutToTest)) {
           resolvedLayout = "default/default/layout";
@@ -268,37 +271,41 @@ export module Controllers.Core {
       return resolvedLayout;
     }
 
-    public sendView(req, res, view: string, locals: any = {}) {
+    public sendView(req: Sails.Req, res: Sails.Res, view: string, locals: Record<string, unknown> = {}): void {
 
+      if (!req.options) {
+        req.options = {};
+      }
       if (req.options.locals == null) {
         req.options.locals = {};
       }
-      var mergedLocal = (<any>Object).assign({}, req.options.locals, locals);
+      const mergedLocal: Record<string, unknown> = Object.assign({}, req.options.locals as Record<string, unknown>, locals);
 
-      var branding = mergedLocal['branding'];
-      var portal = mergedLocal['portal'];
+      const branding = mergedLocal['branding'] as string;
+      const portal = mergedLocal['portal'] as string;
 
-      var resolvedView: string = this._getResolvedView(branding, portal, view);
-      var resolvedLayout: string = this._getResolvedLayout(branding, portal);
+      const resolvedView: string | null = this._getResolvedView(branding, portal, view);
+      const resolvedLayout: string | null = this._getResolvedLayout(branding, portal);
 
       // If we can resolve a layout set it.
-      if (resolvedLayout != null && mergedLocal["layout"] != false) {
+      if (resolvedLayout !== null && mergedLocal["layout"] !== false) {
         res.locals.layout = resolvedLayout;
       }
 
       // View still doesn't exist so return a 404
-      if (resolvedView == null) {
+      if (resolvedView === null) {
         res.notFound(mergedLocal, "404");
+        return;
       }
 
       // Add some properties blueprints usually adds
       // TODO: Doesn't seem to be binding properly. Investigate
       mergedLocal.view = {};
-      mergedLocal.view.pathFromApp = resolvedView;
-      mergedLocal.view.ext = 'ejs';
+      (mergedLocal.view as Record<string, string>).pathFromApp = resolvedView;
+      (mergedLocal.view as Record<string, string>).ext = 'ejs';
       // merge with ng2 app...
       _.merge(mergedLocal, this.getNg2Apps(view));
-      let fullViewPath = sails.config.appPath + "/views/" + resolvedView;
+      const fullViewPath = sails.config.appPath + "/views/" + resolvedView;
       mergedLocal['templateDirectoryLocation'] = fullViewPath.substring(0, fullViewPath.lastIndexOf('/') + 1);
 
       this.logger.debug("resolvedView");
@@ -310,73 +317,73 @@ export module Controllers.Core {
       res.view(resolvedView, mergedLocal);
     }
 
-    public respond(req, res, ajaxCb, normalCb, forceAjax = false) {
-      if (this.isAjax(req) || forceAjax == true) {
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
+    public respond(req: Sails.Req, res: Sails.Res, ajaxCb: (req: Sails.Req, res: Sails.Res) => unknown, normalCb: (req: Sails.Req, res: Sails.Res) => unknown, _forceAjax = false): unknown {
+      if (this.isAjax(req) || _forceAjax === true) {
         return ajaxCb(req, res);
       } else {
         return normalCb(req, res);
       }
     }
 
-    protected isAjax(req) {
-      return req.headers['x-source'] == 'jsclient';
+    protected isAjax(req: Sails.Req): boolean {
+      return req.headers['x-source'] === 'jsclient';
     }
 
-    protected ajaxOk(req, res, msg = '', data = null, forceAjax = false) {
-      if (!data) {
-        data = { status: true, message: msg };
-      }
-      this.ajaxRespond(req, res, data, forceAjax);
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
+    protected ajaxOk(req: Sails.Req, res: Sails.Res, msg = '', data: unknown = null, _forceAjax = false): Response {
+      const payload = data ?? { status: true, message: msg };
+      return this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
     }
 
-    protected ajaxFail(req, res, msg = '', data = null, forceAjax = false) {
-      if (!data) {
-        data = { status: false, message: msg };
-      }
-      this.ajaxRespond(req, res, data, forceAjax);
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
+    protected ajaxFail(req: Sails.Req, res: Sails.Res, msg = '', data: unknown = null, _forceAjax = false): Response {
+      const payload = data ?? { status: false, message: msg };
+      return this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
     }
 
-    protected apiFail(req, res, statusCode = 500, errorResponse?: APIErrorResponse) {
-      this.setNoCacheHeaders(req, res);
-      res.status(statusCode);
-      return res.json(errorResponse ?? new APIErrorResponse());
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
+    protected apiFail(req: Sails.Req, res: Sails.Res, statusCode = 500, errorResponse?: APIErrorResponse): Response {
+      const displayErrors = [{
+        title: errorResponse?.message ?? 'An error has occurred',
+        detail: errorResponse?.details
+      }];
+      return this.sendResp(req, res, { status: statusCode, displayErrors, headers: this.getNoCacheHeaders() });
     }
 
-    protected apiRespond(req, res, jsonObj = null, statusCode = 200) {
-      const that = this;
-      const ajaxMsg = "Got ajax request, don't know what do...";
-      this.respond(req, res,
-        (req, res) => {
-          that.logger.verbose(ajaxMsg);
-          that.setNoCacheHeaders(req, res);
-          res.badRequest(ajaxMsg);
-        },
-        (req, res) => {
-          that.setNoCacheHeaders(req, res);
-          res.status(statusCode)
-          return res.json(jsonObj);
-        });
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
+    protected apiSuccess(req: Sails.Req, res: Sails.Res, jsonObj: unknown = null, statusCode = 200): Response {
+      return this.sendResp(req, res, { data: jsonObj, status: statusCode, headers: this.getNoCacheHeaders() });
     }
 
-    protected ajaxRespond(req, res, jsonObj = null, forceAjax) {
-      const that = this;
-      const notAjaxMsg = "Got non-ajax request, don't know what do...";
-      this.respond(req, res,
-        (req, res) => {
-          that.setNoCacheHeaders(req, res);
-          return res.json(jsonObj);
-        },
-        (req, res) => {
-          that.logger.verbose(notAjaxMsg);
-          that.setNoCacheHeaders(req, res);
-          res.badRequest(notAjaxMsg);
-        },
-        forceAjax);
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
+    protected apiRespond(req: Sails.Req, res: Sails.Res, jsonObj: unknown = null, statusCode = 200): Response {
+      return this.sendResp(req, res, { data: jsonObj, status: statusCode, headers: this.getNoCacheHeaders() });
     }
 
-    protected getNg2Apps(viewPath) {
+    /**
+     * @deprecated Use `sendResp` instead.
+     */
+    protected ajaxRespond(req: Sails.Req, res: Sails.Res, jsonObj: unknown = null, _forceAjax?: boolean): Response {
+      return this.sendResp(req, res, { data: jsonObj, headers: this.getNoCacheHeaders() });
+    }
+
+    protected getNg2Apps(viewPath: string): { ng2_apps: unknown[] } {
       if (sails.config.ng2.use_bundled && sails.config.ng2.apps[viewPath]) {
-        return { ng2_apps: sails.config.ng2.apps[viewPath] };
+        const ng2Apps = sails.config.ng2.apps[viewPath];
+        return { ng2_apps: Array.isArray(ng2Apps) ? ng2Apps : [] };
       } else {
         return { ng2_apps: [] };
       }
@@ -389,7 +396,7 @@ export module Controllers.Core {
      * @return The API version string.
      * @private
      */
-    private getApiVersion(req): ApiVersionStrings {
+    private getApiVersion(req: Sails.Req): ApiVersionStrings {
       const defaultVersion = ApiVersion.VERSION_1_0;
 
       const qs = req.query;
@@ -412,7 +419,7 @@ export module Controllers.Core {
       // Use the HTTP header value first, then the query string value, then the default.
       const version = headerValue ?? qsValue ?? defaultVersion;
 
-      const available = Array.from(Object.values(ApiVersion));
+      const available: string[] = Object.values(ApiVersion);
       if (!available.includes(version)) {
         sails.log.error(`The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}. ` +
           `Using default API version (${defaultVersion}).`);
@@ -420,7 +427,7 @@ export module Controllers.Core {
       }
 
       sails.log.verbose(`Using API version '${version}' for url '${req.url}'.`);
-      return version;
+      return version as ApiVersionStrings;
     }
 
     /**
@@ -448,12 +455,8 @@ export module Controllers.Core {
      * @param buildResponse Build the response from these properties.
      * @protected
      */
-    protected sendResp(req: any, res: any, buildResponse?: BuildResponseType): Response {
+    protected sendResp(req: Sails.Req, res: Sails.Res, buildResponse?: BuildResponseType): Response {
       const apiVersion = this.getApiVersion(req);
-      // TODO: The response will be in the format matching the request kind (e.g. API, ajax).
-      //       What difference is there between the response formats?
-      // const isJsonAjax = this.isAjax(req);
-
       // Destructure build response properties and set defaults.
       let {
         format = "json",
@@ -468,26 +471,65 @@ export module Controllers.Core {
       } = buildResponse ?? {};
 
       // Collect and process the errors recursively
+      const { collectedErrors, collectedDisplayErrors } = this.collectAndLogErrors(errors, displayErrors);
+      this.ensureDisplayErrors(collectedErrors, collectedDisplayErrors);
+      status = this.resolveResponseStatus(status, collectedDisplayErrors);
+
+      this.applyResponseHeaders(res, headers);
+      this.applyResponseStatus(res, status);
+
+      // Delegate full version-specific responses (success + errors) to wrapper handlers.
+      if (apiVersion === ApiVersion.VERSION_1_0) {
+        return this.handleV1Response(res, format, status, collectedErrors, collectedDisplayErrors, v1, data, meta);
+      }
+
+      if (apiVersion === ApiVersion.VERSION_2_0) {
+        return this.handleV2Response(res, format, status, collectedErrors, collectedDisplayErrors, data, meta);
+      }
+
+      const unknownSituation = {
+        apiVersion,
+        request: {
+          method: req?.method,
+          path: req?.path ?? req?.originalUrl,
+        },
+        response: {
+          format,
+          status,
+          headers,
+          meta,
+          v1,
+        },
+        errors: {
+          collectedErrors,
+          collectedDisplayErrors,
+        },
+      };
+      sails.log.error("Unknown API version in sendResp", unknownSituation);
+      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
+    }
+
+    private collectAndLogErrors(errors: Error[], displayErrors: ErrorResponseItemV2[]) {
       const {
         errors: collectedErrors,
         displayErrors: collectedDisplayErrors
       } = RBValidationError.collectErrors(errors, displayErrors);
 
-      // Log each error.
       sails.log.verbose(`Collected ${collectedErrors.length} ${collectedErrors.length === 1 ? 'error' : 'errors'} in sendResp.`);
       for (const error of collectedErrors) {
         sails.log.error(`Collected error in sendResp:`, error);
       }
 
-      // If there are errors, but no display errors, add a generic display error.
+      return { collectedErrors, collectedDisplayErrors };
+    }
+
+    private ensureDisplayErrors(collectedErrors: Error[], collectedDisplayErrors: ErrorResponseItemV2[]) {
       if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
         collectedDisplayErrors.push({ code: 'server-error' });
       }
+    }
 
-      // If there are any displayErrors:
-      // - the top-level status will be 500 if any status starts with 5, or
-      // - the top-level status will be 400 if any status starts with 4 and no statuses start with a 5, or
-      // - the top-level status will be 500 if none of the display errors has a status, and the top-level status is not already 4xx or 5xx.
+    private resolveResponseStatus(status: number, collectedDisplayErrors: ErrorResponseItemV2[]): number {
       if (collectedDisplayErrors.length > 0) {
         const statusString = collectedDisplayErrors
           .map(i => i?.status?.toString() ?? "")
@@ -510,101 +552,211 @@ export module Controllers.Core {
         }
       }
       sails.log.verbose(`sendResp status ${status}`);
+      return status;
+    }
 
-      // Set the response headers
+    private applyResponseHeaders(res: Response, headers: Record<string, string>) {
       if (headers) {
         res.set(headers);
       }
+    }
 
-      // Set the response status
+    private applyResponseStatus(res: Response, status: number) {
       if (status !== null && status !== undefined && !isNaN(status)) {
         res.status(status);
       } else {
-        // Set response status to 500 if status was not calculated correctly.
-        res.status(500)
+        res.status(500);
+      }
+    }
+
+    private shouldSendSuccessJson(
+      format: string,
+      collectedErrors: Error[],
+      collectedDisplayErrors: ErrorResponseItemV2[],
+      status: number,
+      data: unknown,
+      v1: unknown,
+      apiVersion: ApiVersionStrings
+    ): boolean {
+      if (format !== 'json') {
+        return false;
+      }
+      if (collectedErrors.length > 0 || collectedDisplayErrors.length > 0) {
+        return false;
+      }
+      if (status?.toString().startsWith('5') || status?.toString().startsWith('4')) {
+        return false;
       }
 
-      // if the response is a json format response with no errors, return the data in the expected API version.
-      // If 'v1' is provided, it will be used for version 1 responses.
-      if (
-        format === 'json'
-        && collectedErrors.length === 0
-        && collectedDisplayErrors.length === 0
-        && !status?.toString().startsWith('5')
-        && !status?.toString().startsWith('4')
-        && (
-          (data !== null && data !== undefined) ||
-          (
-            ((v1 !== null && v1 !== undefined) || (data !== null && data !== undefined)) &&
-            apiVersion === ApiVersion.VERSION_1_0
-          )
+      return (
+        (data !== null && data !== undefined) ||
+        (
+          ((v1 !== null && v1 !== undefined) || (data !== null && data !== undefined)) &&
+          apiVersion === ApiVersion.VERSION_1_0
         )
-      ) {
-        switch (apiVersion) {
-          case ApiVersion.VERSION_2_0:
-            sails.log.verbose(`Send response status ${status} api version 2 format json.`);
-            return res.json({ data: data, meta: meta });
+      );
+    }
 
-          case ApiVersion.VERSION_1_0:
-          default:
-            sails.log.verbose(`Send response status ${status} api version 1 format json.`);
-            return res.json(v1 ?? data);
-        }
+    private sendSuccessJson(
+      res: Response,
+      apiVersion: ApiVersionStrings,
+      status: number,
+      data: unknown,
+      meta: Record<string, unknown>,
+      v1: unknown
+    ) {
+      switch (apiVersion) {
+        case ApiVersion.VERSION_2_0:
+          sails.log.verbose(`Send response status ${status} api version 2 format json.`);
+          return res.json({ data: data, meta: meta });
+
+        case ApiVersion.VERSION_1_0:
+        default:
+          sails.log.verbose(`Send response status ${status} api version 1 format json.`);
+          return res.json(v1 ?? data);
       }
+    }
 
-      // If there are any display errors and API is version 1, send the conventional error response format.
-      if (collectedDisplayErrors.length > 0 && apiVersion === ApiVersion.VERSION_1_0) {
-        const errorResponse = new APIErrorResponse();
+    private buildV1ErrorResponse(collectedDisplayErrors: ErrorResponseItemV2[]): APIErrorResponse {
+      const errorResponse = new APIErrorResponse();
+      if (collectedDisplayErrors.length === 1) {
+        const displayError = collectedDisplayErrors[0] ?? {};
+        const title = displayError.title?.toString()?.trim() || displayError.code?.toString()?.trim() || "";
+        const detail = displayError.detail?.toString()?.trim() || "";
+        if (title || detail) {
+          errorResponse.message = title || detail || "An error occurred";
+          if (title && detail) {
+            errorResponse.details = detail;
+          }
+        } else {
+          errorResponse.message = RBValidationError.displayMessage({
+            t: TranslationService,
+            displayErrors: collectedDisplayErrors
+          });
+        }
+      } else {
         errorResponse.message = RBValidationError.displayMessage({
           t: TranslationService,
           displayErrors: collectedDisplayErrors
         });
+      }
+      return errorResponse;
+    }
+
+    private formatV2DisplayErrors(collectedDisplayErrors: ErrorResponseItemV2[]): ErrorResponseItemV2[] {
+      const t = TranslationService.t;
+      return collectedDisplayErrors.map(displayError => {
+        const code = displayError.code?.toString()?.trim() || "";
+        let title = displayError.title?.toString()?.trim() || "";
+        const detail = displayError.detail?.toString()?.trim() || "";
+
+        if (code && !title && !detail) {
+          title = code;
+        }
+
+        if (title) {
+          displayError.title = t(title);
+        }
+        if (detail) {
+          displayError.detail = t(detail);
+        }
+        return displayError;
+      });
+    }
+
+    private handleV1Response(
+      res: Response,
+      format: string,
+      status: number,
+      collectedErrors: Error[],
+      collectedDisplayErrors: ErrorResponseItemV2[],
+      v1: unknown,
+      data: unknown,
+      meta: Record<string, unknown>
+    ) {
+      // Success path for v1
+      if (this.shouldSendSuccessJson(format, collectedErrors, collectedDisplayErrors, status, data, v1, ApiVersion.VERSION_1_0)) {
+        return this.sendSuccessJson(res, ApiVersion.VERSION_1_0, status, data, meta, v1);
+      }
+
+      // Error path for v1
+      if (collectedDisplayErrors.length > 0) {
+        const errorResponse = this.buildV1ErrorResponse(collectedDisplayErrors);
         sails.log.verbose(`Send response status ${status} api version 1 errors in format json.`);
         return res.json(errorResponse);
       }
 
-      // If 'v1' is provided and the response is in version 1 format, respond with v1.
-      if (v1 !== null && v1 !== undefined && apiVersion === ApiVersion.VERSION_1_0) {
+      // If v1 body is provided, return it
+      if (v1 !== null && v1 !== undefined) {
         sails.log.verbose(`Send response status ${status} api version 1 format json.`);
         return res.json(v1);
       }
 
-      // If version is 2 and there are any errors, respond with version 2 error format
-      if (collectedDisplayErrors.length > 0 && apiVersion === ApiVersion.VERSION_2_0) {
+      const unknownSituation = {
+        response: {
+          format,
+          status,
+          data,
+          meta,
+          v1,
+        },
+        errors: {
+          collectedErrors,
+          collectedDisplayErrors,
+        },
+      };
+      sails.log.error("Unknown v1 situation in sendResp", unknownSituation);
+      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: meta || {} });
+    }
+
+    private handleV2Response(
+      res: Response,
+      format: string,
+      status: number,
+      collectedErrors: Error[],
+      collectedDisplayErrors: ErrorResponseItemV2[],
+      data: unknown,
+      meta: Record<string, unknown>
+    ) {
+      // Success path for v2
+      if (this.shouldSendSuccessJson(format, collectedErrors, collectedDisplayErrors, status, data, null, ApiVersion.VERSION_2_0)) {
+        return this.sendSuccessJson(res, ApiVersion.VERSION_2_0, status, data, meta, null);
+      }
+
+      // Error path for v2
+      if (collectedDisplayErrors.length > 0) {
         sails.log.verbose(`Send response status ${status} api version 2 format json.`);
-        const t = TranslationService.t;
-        const formattedErrors = collectedDisplayErrors.map(displayError => {
-          const code = displayError.code?.toString()?.trim() || "";
-          let title = displayError.title?.toString()?.trim() || "";
-          let detail = displayError.detail?.toString()?.trim() || "";
-
-          if (code && !title && !detail) {
-            title = code;
-          }
-
-          if (title) {
-            displayError.title = t(title);
-          }
-          if (detail) {
-            displayError.detail = t(detail);
-          }
-          return displayError;
-        });
+        const formattedErrors = this.formatV2DisplayErrors(collectedDisplayErrors);
         sails.log.verbose(`Send response status ${status} api version 2 errors in format json.`);
         return res.json({ errors: formattedErrors, meta: meta });
       }
 
-      // TODO: log unknown situations so they can be considered.
-      sails.log.error(`Unknown situation in sendResp: ${JSON.stringify({
-        format, data, status, headers, collectedErrors, collectedDisplayErrors, meta, v1,
-      })}`);
-      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
+      const unknownSituation = {
+        response: {
+          format,
+          status,
+          data,
+          meta
+        },
+        errors: {
+          collectedErrors,
+          collectedDisplayErrors,
+        },
+      };
+      sails.log.error(`Unknown v2 situation in sendResp`, unknownSituation);
+      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: meta || {} });
     }
 
-    private setNoCacheHeaders(req, res) {
-      res.set('Cache-control', 'no-cache, private');
-      res.set('Pragma', 'no-cache');
-      res.set('Expires', 0);
+    protected getNoCacheHeaders(): Record<string, string> {
+      return {
+        'Cache-control': 'no-cache, private',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      };
+    }
+
+    private setNoCacheHeaders(_req: Sails.Req, res: Sails.Res): void {
+      res.set(this.getNoCacheHeaders());
     }
   }
 }

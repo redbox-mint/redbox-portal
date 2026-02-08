@@ -27,10 +27,12 @@ export interface DataPubsSiteConfig {
     useCleanUrl: boolean;
     dir: string;
     tempDir?: string;
+    tempPath?: string;
+    repoScratch?: string;
     url: string;
 }
 
-export interface DataPubsSites {
+export interface DataPubsSites extends Record<string, DataPubsSiteConfig> {
     staging: DataPubsSiteConfig;
     public: DataPubsSiteConfig;
 }

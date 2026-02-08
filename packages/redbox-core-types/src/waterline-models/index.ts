@@ -11,11 +11,13 @@ export * from './I18nTranslation';
 export * from './NamedQuery';
 export * from './PathRule';
 export * from './RecordType';
-export * from './Report';
+export * from './RBReport';
 export * from './Role';
 export * from './ThemeConfig';
 export * from './User';
 export * from './UserAudit';
+export * from './Vocabulary';
+export * from './VocabularyEntry';
 export * from './WorkflowStep';
 export * from './WorkspaceApp';
 export * from './WorkspaceAsync';
@@ -35,11 +37,13 @@ import { I18nTranslationWLDef } from './I18nTranslation';
 import { NamedQueryWLDef } from './NamedQuery';
 import { PathRuleWLDef } from './PathRule';
 import { RecordTypeWLDef } from './RecordType';
-import { ReportWLDef } from './Report';
+import { ReportWLDef } from './RBReport';
 import { RoleWLDef } from './Role';
 import { ThemeConfigWLDef } from './ThemeConfig';
 import { UserWLDef } from './User';
 import { UserAuditWLDef } from './UserAudit';
+import { VocabularyWLDef } from './Vocabulary';
+import { VocabularyEntryWLDef } from './VocabularyEntry';
 import { WorkflowStepWLDef } from './WorkflowStep';
 import { WorkspaceAppWLDef } from './WorkspaceApp';
 import { WorkspaceAsyncWLDef } from './WorkspaceAsync';
@@ -62,11 +66,13 @@ export const WaterlineModels = {
   NamedQuery: NamedQueryWLDef,
   PathRule: PathRuleWLDef,
   RecordType: RecordTypeWLDef,
-  Report: ReportWLDef,
+  RBReport: ReportWLDef,
   Role: RoleWLDef,
   ThemeConfig: ThemeConfigWLDef,
   User: UserWLDef,
   UserAudit: UserAuditWLDef,
+  Vocabulary: VocabularyWLDef,
+  VocabularyEntry: VocabularyEntryWLDef,
   WorkflowStep: WorkflowStepWLDef,
   WorkspaceApp: WorkspaceAppWLDef,
   WorkspaceAsync: WorkspaceAsyncWLDef,

@@ -1,22 +1,22 @@
-import { APIErrorResponse, FormModel, ListAPIResponse, ListAPISummary, FormsService as FormsServiceModule, Controllers as controllers } from '../../index';
+import { APIErrorResponse, FormModel, ListAPIResponse, ListAPISummary, Controllers as controllers } from '../../index';
 import { firstValueFrom } from 'rxjs';
 
-declare var sails: any;
-declare var FormsService: FormsServiceModule.Services.Forms;
-declare var _: any;
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
   export class FormManagement extends controllers.Core.Controller {
+    private getErrorMessage(error: unknown): string {
+      return error instanceof Error ? error.message : String(error);
+    }
 
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'getForm',
       'listForms'
     ];
@@ -31,32 +31,46 @@ export module Controllers {
 
     }
 
-    public async getForm(req, res) {
+    public async getForm(req: Sails.Req, res: Sails.Res) {
       try {
-        let name: string = req.param('name');
-        let editable: boolean = req.param('editable');
-        if (editable == null) {
-          editable = true;
+        const name: string = req.param('name');
+        const editableParam = req.param('editable');
+        const editable: boolean = editableParam !== 'false';
+        const form = await firstValueFrom(FormsService.getFormByName(name, editable));
+        if (!form) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ title: 'Form not found' }],
+            headers: this.getNoCacheHeaders()
+          });
         }
-        let form: FormModel = await firstValueFrom(FormsService.getFormByName(name, editable));
-
         return this.apiRespond(req, res, form, 200)
-      } catch (error) {
-        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
-    public async listForms(req, res) {
+    public async listForms(req: Sails.Req, res: Sails.Res) {
       try {
-        let forms: FormModel[] = await firstValueFrom(FormsService.listForms());
-        let response: ListAPIResponse<any> = new ListAPIResponse();
-        let summary: ListAPISummary = new ListAPISummary();
+        const forms: FormModel[] = await firstValueFrom(FormsService.listForms());
+        const response: ListAPIResponse<FormModel> = new ListAPIResponse();
+        const summary: ListAPISummary = new ListAPISummary();
         summary.numFound = forms.length;
         response.summary = summary;
         response.records = forms;
-        this.apiRespond(req, res, response);
-      } catch (error) {
-        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        return this.apiRespond(req, res, response);
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 

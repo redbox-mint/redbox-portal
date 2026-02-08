@@ -131,7 +131,7 @@ describe('OniService', function() {
         datastreamservice: {
           getDatastream: sinon.stub().resolves({
             readstream: {
-              pipe: sinon.stub().callsFake(function(writeStream) { return this; })
+              pipe: sinon.stub().callsFake(function(this: any, writeStream: unknown) { return this; })
             }
           })
         }

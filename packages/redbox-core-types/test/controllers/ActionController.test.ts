@@ -33,15 +33,16 @@ describe('ActionController', () => {
 
     describe('callService', () => {
         it('should call the configured service method', () => {
+            const paramStub = sinon.stub();
             const req = {
-                param: sinon.stub()
-            };
-            req.param.withArgs('action').returns('testAction');
-            req.param.withArgs('oid').returns('123');
+                param: paramStub
+            } as unknown as Sails.Req;
+            paramStub.withArgs('action').returns('testAction');
+            paramStub.withArgs('oid').returns('123');
             
             const res = {
                 writableEnded: true
-            };
+            } as unknown as Sails.Res;
 
             controller.callService(req, res);
 
@@ -50,15 +51,16 @@ describe('ActionController', () => {
         });
 
         it('should subscribe to response if not writableEnded', () => {
+            const paramStub = sinon.stub();
             const req = {
-                param: sinon.stub()
-            };
-            req.param.withArgs('action').returns('testAction');
-            req.param.withArgs('oid').returns('123');
+                param: paramStub
+            } as unknown as Sails.Req;
+            paramStub.withArgs('action').returns('testAction');
+            paramStub.withArgs('oid').returns('123');
             
             const res = {
                 writableEnded: false
-            };
+            } as unknown as Sails.Res;
 
             const mockResult = { data: 'test' };
             const mockObservable = {
@@ -66,12 +68,12 @@ describe('ActionController', () => {
             };
             mockSails.config.action.testAction.service.testMethod.returns(mockObservable);
 
-            const ajaxOkStub = sinon.stub(controller as any, 'ajaxOk');
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
             controller.callService(req, res);
 
             expect(mockObservable.subscribe.calledOnce).to.be.true;
-            expect(ajaxOkStub.calledWith(req, res, null, mockResult)).to.be.true;
+            expect(sendRespStub.calledWith(req, res, sinon.match({ data: mockResult }))).to.be.true;
         });
     });
 });

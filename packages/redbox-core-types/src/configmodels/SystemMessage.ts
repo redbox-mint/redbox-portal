@@ -9,7 +9,7 @@ export class SystemMessage extends AppConfig {
     /**
      * @title Message Title
      */
-    title: string;
+    title: string = '';
 
     /**
      * The system message to display
@@ -17,7 +17,7 @@ export class SystemMessage extends AppConfig {
      * @title Message Body
      * @type textarea
      */
-    message: string;
+    message: string = '';
 
     public static getFieldOrder(): string[] {
         return ["enabled", "title", "message"]

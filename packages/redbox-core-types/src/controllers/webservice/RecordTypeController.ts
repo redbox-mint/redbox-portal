@@ -1,21 +1,22 @@
-import { APIErrorResponse, BrandingModel, Controllers as controllers, ListAPIResponse, ListAPISummary } from '../../index';
+import { APIErrorResponse, BrandingModel, Controllers as controllers, ListAPIResponse, ListAPISummary, RecordTypeModel } from '../../index';
 import { firstValueFrom } from 'rxjs';
 
-declare var BrandingService: any;
-declare var RecordTypesService: any;
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
   export class RecordType extends controllers.Core.Controller {
+    private getErrorMessage(error: unknown): string {
+      return error instanceof Error ? error.message : String(error);
+    }
 
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'getRecordType',
       'listRecordTypes'
     ];
@@ -30,31 +31,41 @@ export module Controllers {
 
     }
 
-    public async getRecordType(req, res) {
+    public async getRecordType(req: Sails.Req, res: Sails.Res) {
 
       try {
-        let name = req.param('name');
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-        let recordType = await firstValueFrom(RecordTypesService.get(brand, name));
+        const name = req.param('name');
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const recordType = await firstValueFrom(RecordTypesService.get(brand, name));
 
         return this.apiRespond(req, res, recordType, 200)
-      } catch (error) {
-        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
-    public async listRecordTypes(req, res) {
+    public async listRecordTypes(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-        let recordTypes: any[] = await firstValueFrom(RecordTypesService.getAll(brand));
-        let response: ListAPIResponse<any> = new ListAPIResponse();
-        let summary: ListAPISummary = new ListAPISummary();
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const recordTypes: RecordTypeModel[] = await firstValueFrom(RecordTypesService.getAll(brand));
+        const response: ListAPIResponse<RecordTypeModel> = new ListAPIResponse();
+        const summary: ListAPISummary = new ListAPISummary();
         summary.numFound = recordTypes.length;
         response.summary = summary;
         response.records = recordTypes;
-        this.apiRespond(req, res, response);
-      } catch (error) {
-        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        return this.apiRespond(req, res, response);
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 

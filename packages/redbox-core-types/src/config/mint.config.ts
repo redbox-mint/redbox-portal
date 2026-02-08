@@ -18,12 +18,16 @@ export interface MintConfig {
     /** Mint root URI path */
     mintRootUri: string;
 
+    /** API key for external Mint calls */
+    apiKey: string;
+
     /** Mint API endpoints */
     api: MintApiConfig;
 }
 
 export const mint: MintConfig = {
     mintRootUri: 'mint',
+        apiKey: '',
     api: {
         search: {
             method: 'get',

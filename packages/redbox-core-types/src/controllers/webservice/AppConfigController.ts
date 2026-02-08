@@ -1,23 +1,20 @@
 import {
   APIErrorResponse,
   BrandingModel,
-  AppConfigService as AppConfigServiceModule,
-  BrandingService as BrandingServiceModule,
   Controllers as controllers
 } from '../../index';
 
-declare var sails: any;
-declare var _: any;
-declare var AppConfigService: AppConfigServiceModule.Services.AppConfigs;
-declare var BrandingService: BrandingServiceModule.Services.Branding;
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to application configuration
    *
    * @class AppConfig
    */
   export class AppConfig extends controllers.Core.Controller {
+    private getErrorMessage(error: unknown): string {
+      return error instanceof Error ? error.message : String(error);
+    }
 
     constructor() {
       super();
@@ -26,7 +23,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'getAppConfig',
       'saveAppConfig'
     ];
@@ -40,31 +37,36 @@ export module Controllers {
     public bootstrap() { }
 
 
-    public async saveAppConfig(req, res) {
+    public async saveAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-        let appConfigId: string = req.param('appConfigId');
-        let appConfig = req.body;
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const appConfigId: string = req.param('appConfigId');
+        const appConfig = req.body;
         if (appConfigId === undefined) {
           return res.badRequest('appConfigId is required');
         }
         //TODO: validate post body against key?
         await AppConfigService.createOrUpdateConfig(brand, appConfigId, appConfig)
         return this.apiRespond(req, res, appConfig, 200);
-      } catch (error) {
+      } catch (error: unknown) {
         sails.log.error(error);
-        return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
-    public async getAppConfig(req, res) {
+    public async getAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-        let appConfigId: string = req.param('appConfigId');
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const appConfigId: string = req.param('appConfigId');
         if (appConfigId === undefined) {
           return res.badRequest('appConfigId is required');
         }
-        let appConfig = await AppConfigService.getAppConfigByBrandAndKey(brand.id, appConfigId);
+        const appConfig = await AppConfigService.getAppConfigByBrandAndKey(brand.id, appConfigId);
 
         return res.json(appConfig);
       } catch (error) {

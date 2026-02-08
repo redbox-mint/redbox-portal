@@ -40,7 +40,7 @@ describe('TranslationService', function() {
     mockI18nextInstance = {
       init: sinon.stub().resolves(),
       changeLanguage: sinon.stub().resolves(),
-      getFixedT: sinon.stub().returns((key) => key),
+      getFixedT: sinon.stub().returns((key: string) => key),
       languages: ['en'],
       options: {
         supportedLngs: ['en'],

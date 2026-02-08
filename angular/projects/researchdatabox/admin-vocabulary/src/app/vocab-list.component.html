@@ -1,0 +1,59 @@
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+    <strong>Vocabularies</strong>
+    <small class="text-muted">{{ filteredVocabularies.length }} shown</small>
+  </div>
+  <div class="card-body">
+    <div class="form-row align-items-end mb-3">
+      <div class="col-md-5 mb-2 mb-md-0">
+        <label for="vocab-search" class="small text-uppercase text-muted mb-1">Search</label>
+        <input id="vocab-search" class="form-control" type="search" placeholder="Find by name or slug" [(ngModel)]="searchTerm" />
+      </div>
+      <div class="col-md-4 mb-2 mb-md-0">
+        <label class="small text-uppercase text-muted mb-1 d-block">Source</label>
+        <div class="btn-group btn-group-sm" role="group">
+          <button type="button" class="btn" [ngClass]="sourceFilter === 'all' ? 'btn-info' : 'btn-outline-secondary'" (click)="setSourceFilter('all')">All</button>
+          <button type="button" class="btn" [ngClass]="sourceFilter === 'local' ? 'btn-info' : 'btn-outline-secondary'" (click)="setSourceFilter('local')">Local</button>
+          <button type="button" class="btn" [ngClass]="sourceFilter === 'rva' ? 'btn-info' : 'btn-outline-secondary'" (click)="setSourceFilter('rva')">RVA</button>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="small text-uppercase text-muted mb-1 d-block">Type</label>
+        <div class="btn-group btn-group-sm" role="group">
+          <button type="button" class="btn" [ngClass]="typeFilter === 'all' ? 'btn-info' : 'btn-outline-secondary'" (click)="setTypeFilter('all')">All</button>
+          <button type="button" class="btn" [ngClass]="typeFilter === 'flat' ? 'btn-info' : 'btn-outline-secondary'" (click)="setTypeFilter('flat')">Flat</button>
+          <button type="button" class="btn" [ngClass]="typeFilter === 'tree' ? 'btn-info' : 'btn-outline-secondary'" (click)="setTypeFilter('tree')">Tree</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="vocab-table-wrap">
+      <table class="vocab-data-table" aria-label="Vocabulary list">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Slug</th>
+            <th>Type</th>
+            <th>Source</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let vocabulary of filteredVocabularies; trackBy: trackByVocabularyId" [class.vocab-selected]="selectedId === vocabulary.id">
+            <td><a href="#" (click)="$event.preventDefault(); open(vocabulary.id)">{{ vocabulary.name }}</a></td>
+            <td><code>{{ vocabulary.slug || '-' }}</code></td>
+            <td><span class="badge badge-secondary text-uppercase">{{ vocabulary.type }}</span></td>
+            <td><span class="badge" [ngClass]="vocabulary.source === 'rva' ? 'badge-warning' : 'badge-info'">{{ vocabulary.source }}</span></td>
+            <td class="text-right text-nowrap">
+              <button class="btn btn-sm btn-outline-primary mr-2" type="button" (click)="open(vocabulary.id)">Edit</button>
+              <button class="btn btn-sm btn-outline-danger" type="button" (click)="remove(vocabulary.id)">Delete</button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredVocabularies.length === 0">
+            <td colspan="5" class="text-muted">No vocabularies match the current filters.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

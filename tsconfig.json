@@ -1,13 +1,9 @@
 {
-    "extends": "@tsconfig/node24/tsconfig.json",   
+    "extends": "./typescript/tsconfig.base.json",
     "compilerOptions": {
       "outDir": "./",
       "rootDir": "./typescript",
       "strict": false,
-      "inlineSourceMap": true,
-      "experimentalDecorators": true,
-      "esModuleInterop": true,
-      "skipLibCheck": true,
       "types": ["node", "mocha", "chai"]
     },
     "exclude": [
@@ -27,6 +23,5 @@
     "buildOnSave": false,
     "atom": {
         "rewriteTsconfig": false
-    },
-    
+    }
 }

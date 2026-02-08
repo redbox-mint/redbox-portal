@@ -1,12 +1,9 @@
 import { Controllers as controllers } from '../CoreController';
-import { BrandingModel } from '../model';
+import { BrandingModel, ReportModel } from '../model';
 import { from } from 'rxjs';
 
-declare var sails: any;
-declare var BrandingService: any;
-declare var ReportsService: any;
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
@@ -18,7 +15,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'render',
       'get',
       'getResults',
@@ -35,48 +32,52 @@ export module Controllers {
 
     }
 
-    public render(req, res) {
+    public render(req: Sails.Req, res: Sails.Res) {
       return this.sendView(req, res, 'admin/report');
     }
 
-    public async get(req, res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      const report: any = await ReportsService.get(brand, req.param('name'));
-      return this.ajaxOk(req, res, null, ReportsService.getReportDto(report));
+    public async get(req: Sails.Req, res: Sails.Res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const report = await ReportsService.get(brand, req.param('name')) as unknown as ReportModel;
+      return this.sendResp(req, res, { data: ReportsService.getReportDto(report), headers: this.getNoCacheHeaders() });
     }
 
-    public getResults(req, res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      var response = from(ReportsService.getResults(brand, req.param('name'), req, req.param('start'), req.param('rows')));
-      return response.subscribe(responseObject => {
+    public getResults(req: Sails.Req, res: Sails.Res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const reqLike = { param: (name: string) => req.param(name) as string | undefined | null };
+      const response = from(ReportsService.getResults(brand, req.param('name'), reqLike, Number(req.param('start')), Number(req.param('rows'))));
+      return response.subscribe((responseObject: unknown) => {
         if (responseObject) {
-          let response: any = responseObject;
+          const response = responseObject as globalThis.Record<string, unknown>;
           response.success = true;
-          this.ajaxOk(req, res, null, response);
+          this.sendResp(req, res, { data: response, headers: this.getNoCacheHeaders() });
         } else {
-          this.ajaxFail(req, res, null, responseObject);
+          const payload = responseObject ?? { status: false, message: null };
+          this.sendResp(req, res, { data: payload, headers: this.getNoCacheHeaders() });
         }
-      }, error => {
+      }, (error: unknown) => {
         sails.log.error("Error updating meta:");
         sails.log.error(error);
-        this.ajaxFail(req, res, error.message);
+        const message = error instanceof Error ? error.message : String(error);
+        this.sendResp(req, res, { data: { status: false, message }, headers: this.getNoCacheHeaders() });
       });;
     }
 
-    public async downloadCSV(req, res) {
+    public async downloadCSV(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
 
-        var results = await ReportsService.getCSVResult(brand, req.param('name'), req);
-        let fileName = req.param('name') + '.csv';
+        const results = await ReportsService.getCSVResult(brand, req.param('name'), { param: (name: string) => req.param(name) as string | undefined | null });
+        const fileName = req.param('name') + '.csv';
         sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);
         res.set('Content-Type', 'text/csv');
         res.status(200).send(results);
         return res
-      } catch (error) {
+      } catch (error: unknown) {
         sails.log.error(error);
-        this.ajaxFail(req, res, error.message);
+        const message = error instanceof Error ? error.message : String(error);
+        return this.sendResp(req, res, { data: { status: false, message }, headers: this.getNoCacheHeaders() });
       }
     }
 

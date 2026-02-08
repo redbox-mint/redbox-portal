@@ -22,10 +22,7 @@ export interface RaidContributorRoles {
 
 export interface RaidContributorConfig {
     position: Record<string, RaidContributorPosition>;
-    flags: {
-        leader: string[];
-        contact: string[];
-    };
+    flags: Record<string, string[]>;
     hiearchy: {
         position: string[];
     };
@@ -42,6 +39,12 @@ export interface RaidMappingField {
 export interface RaidConfig {
     basePath: string;
     token: string;
+    oauth: {
+        url: string;
+        client_id: string;
+        username: string;
+        password: string;
+    };
     saveBodyInMeta: boolean;
     retryJobName: string;
     retryJobSchedule: string;
@@ -57,10 +60,7 @@ export interface RaidConfig {
         organisation: {
             role: Record<string, RaidTypeMapping>;
         };
-        subject: {
-            for: RaidTypeMapping;
-            seo: RaidTypeMapping;
-        };
+        subject: Record<string, RaidTypeMapping>;
     };
     mapping: {
         [recordType: string]: {
@@ -73,6 +73,12 @@ export interface RaidConfig {
 export const raid: RaidConfig = {
     basePath: 'https://api.stage.raid.org.au',
     token: '',
+    oauth: {
+        url: '',
+        client_id: '',
+        username: '',
+        password: ''
+    },
     saveBodyInMeta: true,
     retryJobName: 'RaidMintRetryJob',
     retryJobSchedule: 'in 5 minutes', // https://github.com/matthewmueller/date#examples

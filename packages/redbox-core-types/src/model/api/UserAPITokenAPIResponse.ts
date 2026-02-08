@@ -1,5 +1,5 @@
 export class UserAPITokenAPIResponse {
-    id: string
-    username: string
-    token:string
+    id: string = '';
+    username: string = '';
+    token: string = '';
 }

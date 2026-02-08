@@ -1,9 +1,10 @@
 export interface RecordModel {
+    [key: string]: unknown;
     redboxOid: string;
     harvestId: string;
     metaMetadata: RecordMetaMetadata;
     metadata: {
-        [key: string]: any;
+        [key: string]: unknown;
     };
     workflow: RecordWorkflow;
     authorization: RecordAuthorization;

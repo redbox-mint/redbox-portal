@@ -1,0 +1,70 @@
+<div class="container-fluid px-0">
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label for="vocab-name">Name</label>
+      <input id="vocab-name" class="form-control" [(ngModel)]="draft.name" placeholder="Human readable title" />
+    </div>
+    <div class="form-group col-md-6">
+      <label for="vocab-slug">Slug</label>
+      <input id="vocab-slug" class="form-control" [(ngModel)]="draft.slug" placeholder="machine-slug" />
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label for="vocab-type">Type</label>
+      <select id="vocab-type" class="form-control" [(ngModel)]="draft.type">
+        <option value="flat">Flat list</option>
+        <option value="tree">Tree</option>
+      </select>
+    </div>
+    <div class="form-group col-md-6">
+      <label for="vocab-source">Source</label>
+      <select id="vocab-source" class="form-control" [(ngModel)]="draft.source">
+        <option value="local">Local</option>
+        <option value="rva">RVA</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="vocab-description">Description</label>
+    <textarea id="vocab-description" class="form-control" rows="3" [(ngModel)]="draft.description" placeholder="Purpose and usage notes"></textarea>
+  </div>
+
+  <hr />
+
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0">Entries</h6>
+    <button class="btn btn-sm btn-outline-primary" type="button" (click)="addEntry()">Add Entry</button>
+  </div>
+
+  <div class="table-responsive" *ngIf="hasEntries">
+    <table class="table table-sm table-bordered mb-0">
+      <thead class="thead-light">
+        <tr>
+          <th style="width: 50px;">#</th>
+          <th>Label</th>
+          <th>Value</th>
+          <th>Parent</th>
+          <th style="width: 220px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let entry of draft.entries; let idx = index; trackBy: trackByEntryIndex">
+          <td class="align-middle">{{ idx + 1 }}</td>
+          <td><input class="form-control form-control-sm" [(ngModel)]="entry.label" placeholder="Display label" /></td>
+          <td><input class="form-control form-control-sm" [(ngModel)]="entry.value" placeholder="Stored value" /></td>
+          <td><input class="form-control form-control-sm" [(ngModel)]="entry.parent" [disabled]="draft.type === 'flat'" placeholder="Parent value" /></td>
+          <td>
+            <button class="btn btn-sm btn-outline-secondary mr-1" type="button" (click)="moveEntryUp(idx)" [disabled]="idx === 0">Up</button>
+            <button class="btn btn-sm btn-outline-secondary mr-1" type="button" (click)="moveEntryDown(idx)" [disabled]="idx === (draft.entries?.length || 1) - 1">Down</button>
+            <button class="btn btn-sm btn-outline-danger" type="button" (click)="removeEntry(idx)">Remove</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="text-muted mb-0" *ngIf="!hasEntries">No entries yet. Add your first entry to begin.</p>
+</div>

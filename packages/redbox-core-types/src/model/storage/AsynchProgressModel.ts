@@ -11,7 +11,7 @@ export interface AsynchProgressModel {
     status?: string; // Assuming 'status' is a string
     message?: string; // Assuming 'message' is a string
     metadata?: {
-        [key: string]: any;
+        [key: string]: unknown;
     }; // Assuming 'metadata' is an object with any structure
     relatedRecordId?: string; // Assuming 'relatedRecordId' is a string identifier
     taskType?: string; // Assuming 'taskType' is a string

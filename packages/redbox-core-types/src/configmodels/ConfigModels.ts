@@ -5,8 +5,16 @@ import { HomePanelConfig, HOME_PANEL_CONFIG_SCHEMA } from './HomePanelConfig';
 import { AdminSidebarConfig, ADMIN_SIDEBAR_CONFIG_SCHEMA } from './AdminSidebarConfig';
 import * as path from 'path';
 
+export interface ConfigModelInfo {
+    modelName: string;
+    title?: string;
+    class: new (...args: never[]) => object;
+    schema?: unknown;
+    tsGlob?: string | string[];
+}
+
 export class ConfigModels {
-    private static modelsMap: Map<string, any> = new Map([
+    private static modelsMap: Map<string, ConfigModelInfo> = new Map([
         ['systemMessage', {
             modelName: 'SystemMessage',
             title: 'System Messages',
@@ -42,7 +50,7 @@ export class ConfigModels {
         }],
     ]);
 
-    public static getModelInfo(key: string): any {
+    public static getModelInfo(key: string): ConfigModelInfo | undefined {
         return this.modelsMap.get(key);
     }
 
@@ -56,7 +64,7 @@ export class ConfigModels {
      */
     public static register(
         key: string,
-        modelInfo: { modelName: string; title?: string; class: any; schema?: any; tsGlob?: string | string[] },
+        modelInfo: ConfigModelInfo,
         options?: { preventOverride?: boolean }
     ): void {
         const preventOverride = options?.preventOverride === true;

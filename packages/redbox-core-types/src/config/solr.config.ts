@@ -6,6 +6,7 @@
  */
 
 export interface SolrCoreOptions {
+    https?: boolean;
     host: string;
     port: string | number;
     core: string;
@@ -58,9 +59,9 @@ export interface SolrPreIndexConfig {
 }
 
 export interface SolrCoreSchema {
-    'add-field'?: SolrFieldDefinition[];
-    'add-dynamic-field'?: SolrFieldDefinition[];
-    'add-copy-field'?: SolrCopyFieldDefinition[];
+    'add-field': SolrFieldDefinition[];
+    'add-dynamic-field': SolrFieldDefinition[];
+    'add-copy-field': SolrCopyFieldDefinition[];
 }
 
 export interface SolrCoreConfig {
@@ -75,6 +76,7 @@ export interface SolrSearchConfig {
     deleteJobName: string;
     maxWaitTries: number;
     waitTime: number;
+    clientSleepTimeMillis?: number;
     cores: {
         [coreName: string]: SolrCoreConfig;
     };

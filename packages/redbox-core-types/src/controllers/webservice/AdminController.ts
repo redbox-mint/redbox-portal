@@ -1,23 +1,23 @@
 import { APIActionResponse, APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
 
-declare var sails: any;
-declare var BrandingService: any;
-declare var AppConfigService: any;
-declare var TranslationService: any;
-declare var _: any;
+type BrandReqLike = { params?: globalThis.Record<string, unknown>; body?: globalThis.Record<string, unknown>; session?: globalThis.Record<string, unknown> };
 
-export module Controllers {
+
+export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
   export class Admin extends controllers.Core.Controller {
+    private getErrorMessage(error: unknown): string {
+      return error instanceof Error ? error.message : String(error);
+    }
 
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'refreshCachedResources',
       'setAppConfig',
       'getAppConfig'
@@ -27,51 +27,66 @@ export module Controllers {
 
     }
 
-    public async refreshCachedResources(req, res) {
+    public async refreshCachedResources(req: Sails.Req, res: Sails.Res) {
       try {
-        let response = new APIActionResponse();
+        const response = new APIActionResponse();
         TranslationService.reloadResources();
         sails.config.startupMinute = Math.floor(Date.now() / 60000);
 
         return this.apiRespond(req, res, response, 200)
-      } catch (error) {
-        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
-    public async setAppConfig(req, res) {
+    public async setAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        let configKey = req.param('configKey')
+        const configKey = req.param('configKey')
 
-        let brandName: string = BrandingService.getBrandFromReq(req);
-        let brand: BrandingModel = BrandingService.getBrand(brandName);
+        const brandName: string = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
+        const brand: BrandingModel = BrandingService.getBrand(brandName);
 
-        let config = await AppConfigService.createOrUpdateConfig(brand, configKey, req.body)
+        await AppConfigService.createOrUpdateConfig(brand, configKey, req.body)
 
-        let response = new APIActionResponse('App configuration updated successfully');
+        const response = new APIActionResponse('App configuration updated successfully');
 
         return this.apiRespond(req, res, response, 200)
-      } catch (error) {
-        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
 
-    public async getAppConfig(req, res) {
+    public async getAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        let configKey = req.param('configKey')
+        const configKey = req.param('configKey')
 
-        let brandName: string = BrandingService.getBrandFromReq(req);
+        const brandName: string = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
 
-        let brand: BrandingModel = BrandingService.getBrand(brandName);
+        const brand: BrandingModel = BrandingService.getBrand(brandName);
 
-        let config = AppConfigService.getAppConfigurationForBrand(brand.name)
+        let config: unknown = AppConfigService.getAppConfigurationForBrand(brand.name)
         if (!_.isEmpty(configKey)) {
           config = _.get(config, configKey, null)
         }
 
         return this.apiRespond(req, res, config, 200)
-      } catch (error) {
-        this.apiFail(req, res, 500, new APIErrorResponse(error.message));
+      } catch (error: unknown) {
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders()
+        });
       }
     }
   }

@@ -1,23 +1,13 @@
 {
+  "extends": "../../typescript/tsconfig.base.json",
   "compilerOptions": {
-    "target": "es2022",
     "module": "nodenext",
-    "isolatedModules": false,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "moduleResolution": "nodenext",
     "declaration": true,
-    "noImplicitAny": true,
-    "noImplicitUseStrict": false,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    "removeComments": true,
-    "noLib": false,
-    "preserveConstEnums": true,
+    "strict": true,
     "outDir": "./dist",
     "rootDir": "./",
     "composite": true,
-    "allowSyntheticDefaultImports": true,
-    "strictNullChecks": true,
     "types": [
       "node",
       "mocha",
@@ -26,14 +16,9 @@
       "chai"
     ],
     "lib": [
-      "es2023",
-      "dom"
-    ],
-    "inlineSourceMap": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "skipLibCheck": true
+      "ES2024",
+      "DOM"
+    ]
   },
   "exclude": [
     "node_modules/**"

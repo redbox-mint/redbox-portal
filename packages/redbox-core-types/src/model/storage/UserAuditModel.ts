@@ -4,7 +4,7 @@ export interface UserAuditModel {
     user: UserModel;
     action: string;
     additionalContext?: {
-        [key: string]: any;
+        [key: string]: unknown;
     };
 
 }

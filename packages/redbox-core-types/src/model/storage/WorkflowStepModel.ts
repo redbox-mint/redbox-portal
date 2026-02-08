@@ -3,7 +3,7 @@ import {FormModel} from './FormModel';
 export interface WorkflowStepModel {
     name: string;
     form: FormModel;
-    config: any;
+    config: unknown;
     starting: boolean;
     recordType: RecordTypeModel;
     hidden: boolean;

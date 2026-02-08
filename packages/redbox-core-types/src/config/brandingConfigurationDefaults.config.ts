@@ -399,7 +399,8 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
             defaultExpanded: true,
             requiredRoles: ['Admin'],
             items: [
-                { id: 'party', labelKey: 'system-lookup-record-item1', href: '/dashboard/party' }
+                { id: 'party', labelKey: 'system-lookup-record-item1', href: '/dashboard/party' },
+                { id: 'vocabulary', labelKey: 'menu-vocabulary-management', href: '/admin/vocabulary/manager' }
             ]
         }
     ],
@@ -419,4 +420,3 @@ export const brandingConfigurationDefaults: Partial<BrandingConfigurationDefault
     homePanels: defaultHomePanelsConfig,
     adminSidebar: defaultAdminSidebarConfig
 };
-
