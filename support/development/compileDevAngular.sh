@@ -15,26 +15,41 @@ function buildAngularApp() {
   (node_modules/.bin/ng build --configuration=development $NG_BUILD_WATCH $NG_BUILD_PREFIX @researchdatabox/${1} )
 }
 
+function installAngularDependencies() {
+  # esbuild provides platform binaries via optional dependencies. Force-include them
+  # to avoid failures when user/global npm config omits optional packages.
+  npm install --include=optional
+
+  if ! node -e "require.resolve('esbuild')" >/dev/null 2>&1; then
+    echo "esbuild package missing after npm install; retrying..."
+    npm install --include=optional esbuild
+  fi
+
+  PLATFORM_ESBUILD_PACKAGE=""
+  if [[ "$OS" == "Darwin" && "$ARCH" == "arm64" ]]; then
+    PLATFORM_ESBUILD_PACKAGE="@esbuild/darwin-arm64"
+  elif [[ "$OS" == "Darwin" && "$ARCH" == "x86_64" ]]; then
+    PLATFORM_ESBUILD_PACKAGE="@esbuild/darwin-x64"
+  elif [[ "$OS" == "Linux" && ("$ARCH" == "arm64" || "$ARCH" == "aarch64") ]]; then
+    PLATFORM_ESBUILD_PACKAGE="@esbuild/linux-arm64"
+  elif [[ "$OS" == "Linux" && "$ARCH" == "x86_64" ]]; then
+    PLATFORM_ESBUILD_PACKAGE="@esbuild/linux-x64"
+  fi
+
+  if [[ -n "$PLATFORM_ESBUILD_PACKAGE" ]] && ! node -e "require.resolve('${PLATFORM_ESBUILD_PACKAGE}')" >/dev/null 2>&1; then
+    echo "Installing missing platform esbuild package ${PLATFORM_ESBUILD_PACKAGE}"
+    npm install --no-save "${PLATFORM_ESBUILD_PACKAGE}"
+  fi
+}
+
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
 nvm i < .nvmrc 
 OS=$(uname -s)
 ARCH=$(uname -m)
-if [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
-  echo "Detected ARM64 architecture"
-  if [[ "$OS" == "Linux" ]]; then
-    npm install --no-save @esbuild/linux-arm64 && npm install
-  elif [[ "$OS" == "Darwin" ]]; then
-    npm install --no-save @esbuild/darwin-arm64 && npm install
-  else
-    echo "Unsupported ARM64 OS '$OS' for explicit esbuild package, using default npm install"
-    npm install
-  fi
-else
-  echo "Detected $ARCH architecture on $OS"
-  npm install
-fi
+echo "Detected $ARCH architecture on $OS"
+installAngularDependencies
 
 if [ "$2" == "--watch" ]; then
   WATCH_MODE="true"
@@ -116,5 +131,3 @@ else
     fi
   done
 fi
-
-

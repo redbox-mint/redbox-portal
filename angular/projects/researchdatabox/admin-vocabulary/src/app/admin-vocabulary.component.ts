@@ -5,15 +5,17 @@ import { VocabularyApiService, VocabularyDetail, VocabularyEntry, VocabularySumm
 @Component({
   selector: 'admin-vocabulary',
   templateUrl: './admin-vocabulary.component.html',
+  styleUrls: ['./admin-vocabulary.component.scss'],
   standalone: false
 })
 export class AdminVocabularyComponent extends BaseComponent {
-  mode: 'list' | 'edit' | 'import' = 'list';
   vocabularies: VocabularySummary[] = [];
   selectedVocabulary: VocabularyDetail | null = null;
   selectedEntries: VocabularyEntry[] = [];
   message = '';
   error = '';
+  isEditModalOpen = false;
+  isImportModalOpen = false;
 
   draft: VocabularyDetail = {
     name: '',
@@ -29,6 +31,26 @@ export class AdminVocabularyComponent extends BaseComponent {
   ) {
     super();
     this.initDependencies = [this.translationService, this.vocabularyApi];
+  }
+
+  get totalVocabularies(): number {
+    return this.vocabularies.length;
+  }
+
+  get localVocabularies(): number {
+    return this.vocabularies.filter((vocabulary: VocabularySummary) => vocabulary.source === 'local').length;
+  }
+
+  get rvaVocabularies(): number {
+    return this.vocabularies.filter((vocabulary: VocabularySummary) => vocabulary.source === 'rva').length;
+  }
+
+  get canSave(): boolean {
+    return this.isEditModalOpen && !!this.draft.name?.trim();
+  }
+
+  get canSyncSelected(): boolean {
+    return this.isEditModalOpen && !!this.selectedVocabulary?.id && this.draft.source === 'rva';
   }
 
   protected override async initComponent(): Promise<void> {
@@ -47,10 +69,13 @@ export class AdminVocabularyComponent extends BaseComponent {
       ...result.vocabulary,
       entries: result.entries
     };
-    this.mode = 'edit';
+    this.isEditModalOpen = true;
+    this.isImportModalOpen = false;
   }
 
   newVocabulary(): void {
+    this.message = '';
+    this.error = '';
     this.selectedVocabulary = null;
     this.selectedEntries = [];
     this.draft = {
@@ -60,18 +85,31 @@ export class AdminVocabularyComponent extends BaseComponent {
       source: 'local',
       entries: []
     };
-    this.mode = 'edit';
+    this.isEditModalOpen = true;
+    this.isImportModalOpen = false;
   }
 
   showImport(): void {
-    this.mode = 'import';
+    this.message = '';
+    this.error = '';
+    this.isImportModalOpen = true;
+    this.isEditModalOpen = false;
   }
 
-  showList(): void {
-    this.mode = 'list';
+  closeEditModal(): void {
+    this.isEditModalOpen = false;
+  }
+
+  closeImportModal(): void {
+    this.isImportModalOpen = false;
   }
 
   async save(): Promise<void> {
+    if (!this.canSave) {
+      this.error = 'Vocabulary name is required';
+      return;
+    }
+
     this.message = '';
     this.error = '';
     try {
@@ -83,7 +121,7 @@ export class AdminVocabularyComponent extends BaseComponent {
         this.message = 'Vocabulary created';
       }
       await this.refresh();
-      this.mode = 'list';
+      this.isEditModalOpen = false;
     } catch (err) {
       this.error = `Failed to save vocabulary: ${this.asErrorMessage(err)}`;
       this.logger.error(this.error);
@@ -91,13 +129,19 @@ export class AdminVocabularyComponent extends BaseComponent {
   }
 
   async deleteVocabulary(id: string): Promise<void> {
+    if (typeof globalThis.confirm === 'function' && !globalThis.confirm('Delete this vocabulary? This action cannot be undone.')) {
+      return;
+    }
+
     this.message = '';
     this.error = '';
     try {
       await this.vocabularyApi.delete(id);
       this.message = 'Vocabulary deleted';
       if (this.selectedVocabulary?.id === id) {
-        this.newVocabulary();
+        this.selectedVocabulary = null;
+        this.selectedEntries = [];
+        this.isEditModalOpen = false;
       }
       await this.refresh();
     } catch (err) {
@@ -118,7 +162,7 @@ export class AdminVocabularyComponent extends BaseComponent {
       await this.vocabularyApi.importRva(trimmedId);
       this.message = 'RVA vocabulary imported';
       await this.refresh();
-      this.mode = 'list';
+      this.isImportModalOpen = false;
     } catch (err) {
       this.error = `Failed to import RVA vocabulary: ${this.asErrorMessage(err)}`;
       this.logger.error(this.error);

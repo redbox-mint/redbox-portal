@@ -4,6 +4,7 @@ import { VocabularyDetail, VocabularyEntry } from './vocabulary-api.service';
 @Component({
   selector: 'vocab-detail',
   templateUrl: './vocab-detail.component.html',
+  styleUrls: ['./vocab-detail.component.scss'],
   standalone: false
 })
 export class VocabDetailComponent {
@@ -15,6 +16,10 @@ export class VocabDetailComponent {
   };
 
   @Input() selectedVocabularyId: string | null = null;
+
+  get hasEntries(): boolean {
+    return !!this.draft.entries && this.draft.entries.length > 0;
+  }
 
   addEntry(): void {
     if (!this.draft.entries) {
@@ -51,6 +56,10 @@ export class VocabDetailComponent {
     const list = this.draft.entries;
     [list[index], list[index + 1]] = [list[index + 1], list[index]];
     this.reindexEntries();
+  }
+
+  trackByEntryIndex(index: number): number {
+    return index;
   }
 
   private reindexEntries(): void {

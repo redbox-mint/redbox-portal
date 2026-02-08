@@ -1,33 +1,15 @@
 import { Controllers as controllers } from '../../CoreController';
 import { Services as VocabularyServiceModule } from '../../services/VocabularyService';
-import { Services as RvaImportServiceModule } from '../../services/RvaImportService';
-
-type VocabularyServiceApi = {
-  list: VocabularyServiceModule.Vocabulary['list'];
-  getById: VocabularyServiceModule.Vocabulary['getById'];
-  create: VocabularyServiceModule.Vocabulary['create'];
-  update: VocabularyServiceModule.Vocabulary['update'];
-  delete: VocabularyServiceModule.Vocabulary['delete'];
-  getTree: VocabularyServiceModule.Vocabulary['getTree'];
-};
-
-type RvaImportServiceApi = {
-  importRvaVocabulary: RvaImportServiceModule.RvaImport['importRvaVocabulary'];
-  syncRvaVocabulary: RvaImportServiceModule.RvaImport['syncRvaVocabulary'];
-};
 
 export namespace Controllers {
   export class Vocabulary extends controllers.Core.Controller {
-    private get brandingService() {
-      return sails.services['brandingservice'] as Sails.DynamicService & {
-        getBrandFromReq: (req: Sails.Req) => string;
-        getBrand: (nameOrId: string) => { id?: string | number } | null;
-      };
-    }
-
     private resolveBrandingId(req: Sails.Req): string {
-      const brandingNameOrId = this.brandingService.getBrandFromReq(req);
-      const branding = this.brandingService.getBrand(brandingNameOrId);
+      const brandingNameOrId = BrandingService.getBrandFromReq(req as unknown as {
+        params?: Record<string, unknown>;
+        body?: Record<string, unknown>;
+        session?: Record<string, unknown>;
+      });
+      const branding = BrandingService.getBrand(brandingNameOrId);
       return String(branding?.id ?? brandingNameOrId);
     }
 
@@ -45,17 +27,9 @@ export namespace Controllers {
       'sync'
     ];
 
-    private get vocabularyService(): VocabularyServiceApi {
-      return sails.services['vocabularyservice'] as Sails.DynamicService & VocabularyServiceApi;
-    }
-
-    private get rvaImportService(): RvaImportServiceApi {
-      return sails.services['rvaimportservice'] as Sails.DynamicService & RvaImportServiceApi;
-    }
-
     public async list(req: Sails.Req, res: Sails.Res) {
       try {
-        const response = await this.vocabularyService.list({
+        const response = await VocabularyService.list({
           q: req.param('q'),
           type: req.param('type'),
           source: req.param('source'),
@@ -73,11 +47,11 @@ export namespace Controllers {
     public async get(req: Sails.Req, res: Sails.Res) {
       try {
         const id = String(req.param('id') || '');
-        const vocabulary = await this.vocabularyService.getById(id);
+        const vocabulary = await VocabularyService.getById(id);
         if (!vocabulary) {
           return this.sendResp(req, res, { status: 404, displayErrors: [{ title: 'Vocabulary not found' }], headers: this.getNoCacheHeaders() });
         }
-        const entries = await this.vocabularyService.getTree(id);
+        const entries = await VocabularyService.getTree(id);
         return this.sendResp(req, res, { data: { vocabulary, entries }, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
@@ -90,7 +64,7 @@ export namespace Controllers {
           ...req.body,
           branding: this.resolveBrandingId(req)
         } as VocabularyServiceModule.VocabularyInput;
-        const created = await this.vocabularyService.create(payload);
+        const created = await VocabularyService.create(payload);
         return this.sendResp(req, res, { status: 201, data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
@@ -100,7 +74,7 @@ export namespace Controllers {
     public async update(req: Sails.Req, res: Sails.Res) {
       try {
         const id = String(req.param('id') || '');
-        const updated = await this.vocabularyService.update(id, req.body as Partial<VocabularyServiceModule.VocabularyInput>);
+        const updated = await VocabularyService.update(id, req.body as Partial<VocabularyServiceModule.VocabularyInput>);
         return this.sendResp(req, res, { data: updated, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
@@ -110,7 +84,7 @@ export namespace Controllers {
     public async delete(req: Sails.Req, res: Sails.Res) {
       try {
         const id = String(req.param('id') || '');
-        await this.vocabularyService.delete(id);
+        await VocabularyService.delete(id);
         return this.sendResp(req, res, { status: 204, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
@@ -121,7 +95,7 @@ export namespace Controllers {
       try {
         const rvaId = String(req.body?.rvaId || '');
         const versionId = req.body?.versionId ? String(req.body.versionId) : undefined;
-        const created = await this.rvaImportService.importRvaVocabulary(rvaId, versionId, this.resolveBrandingId(req));
+        const created = await RvaImportService.importRvaVocabulary(rvaId, versionId, this.resolveBrandingId(req));
         return this.sendResp(req, res, { data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
@@ -132,7 +106,7 @@ export namespace Controllers {
       try {
         const id = String(req.param('id') || '');
         const versionId = req.body?.versionId ? String(req.body.versionId) : undefined;
-        const result = await this.rvaImportService.syncRvaVocabulary(id, versionId);
+        const result = await RvaImportService.syncRvaVocabulary(id, versionId);
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
