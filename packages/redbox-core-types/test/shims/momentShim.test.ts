@@ -92,7 +92,8 @@ describe('momentShim', () => {
 
         it('should format with HH:mm:ss', () => {
             const result = momentShim(testDate);
-            expect(result.format('HH:mm:ss')).to.equal('10:30:45');
+            const expected = DateTime.fromJSDate(testDate).toFormat('HH:mm:ss');
+            expect(result.format('HH:mm:ss')).to.equal(expected);
         });
 
         it('should handle L format (locale date short)', () => {

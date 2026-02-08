@@ -1,12 +1,14 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import axios from 'axios';
+import * as lodash from 'lodash';
+import { Services as RvaImportServiceModule } from '../../src/services/RvaImportService';
 
 describe('RvaImportService', () => {
   let service: any;
 
   beforeEach(() => {
-    (global as any)._ = require('lodash');
+    (global as any)._ = lodash;
     (global as any).sails = {
       config: { vocab: { rva: { baseUrl: 'https://example.org/rva' } }, auth: { defaultBrand: 'default' } },
       services: {
@@ -35,8 +37,7 @@ describe('RvaImportService', () => {
 
     sinon.stub(axios, 'create').returns(mockClient as any);
 
-    const mod = require('../../src/services/RvaImportService');
-    service = new mod.Services.RvaImport();
+    service = new RvaImportServiceModule.RvaImport();
   });
 
   afterEach(() => {

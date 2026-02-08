@@ -1,11 +1,13 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
+import * as lodash from 'lodash';
+import { Services as VocabularyServiceModule } from '../../src/services/VocabularyService';
 
 describe('VocabularyService', () => {
   let service: any;
 
   beforeEach(() => {
-    (global as any)._ = require('lodash');
+    (global as any)._ = lodash;
     (global as any).sails = {
       log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() },
       config: { auth: { defaultBrand: 'default' } },
@@ -39,8 +41,7 @@ describe('VocabularyService', () => {
       }))
     });
 
-    const mod = require('../../src/services/VocabularyService');
-    service = new mod.Services.Vocabulary();
+    service = new VocabularyServiceModule.Vocabulary();
   });
 
   afterEach(() => {

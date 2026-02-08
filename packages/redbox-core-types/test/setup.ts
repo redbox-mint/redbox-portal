@@ -1,4 +1,5 @@
 import '../src/sails';
+import * as lodash from 'lodash';
 
 /**
  * Test setup file that runs before all tests.
@@ -45,7 +46,7 @@ const mockLogger = {
 };
 
 // Set up lodash as global
-(global as any)._ = require('lodash');
+(global as any)._ = lodash;
 
 // Set up minimal model mocks that might be accessed during module loading
 (global as any).CacheEntry = { findOne: () => ({ exec: () => {} }) };
