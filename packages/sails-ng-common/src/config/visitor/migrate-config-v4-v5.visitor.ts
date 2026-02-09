@@ -1207,42 +1207,21 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
 
     /**
-     * Check whether the current form config path matches the
-     * most recent repeatable element template path.
-     * @protected
-     */
-    protected isMostRecentRepeatableElementTemplate(): boolean {
-        const array1 = this.mostRecentRepeatableElementTemplatePath ?? [];
-        const array2 = this.formPathHelper.formPath.formConfig;
-        if (!array1 || array1.length === 0 || !array2 || array2.length === 0) {
-            return false;
-        }
-        // Either array can have 'component', 'model', 'layout' at the end and
-        // still match if the other array is one item shorter.
-        const allowedExtras: LineagePath = ["component", "model", "layout"];
-        if (array1.length === array2.length) {
-            return array1.every((value, index) => value === array2[index]);
-        } else if (array1.length === array2.length - 1) {
-            return allowedExtras.includes(array2[array2.length - 1]) &&
-                array1.every((value, index) => value === array2[index]);
-        } else if (array1.length - 1 === array2.length) {
-            return allowedExtras.includes(array1[array1.length - 1]) &&
-                array2.every((value, index) => value === array1[index]);
-        }
-        return false;
-    }
-
-    /**
      * Check whether the current form config path is a descendant (and not a match)
      * of the most recent repeatable element template path.
      * @protected
      */
     protected isRepeatableElementTemplateDescendant(): boolean {
-        const array1 = this.mostRecentRepeatableElementTemplatePath ?? [];
-        const array2 = this.formPathHelper.formPath.formConfig;
-        if (!array1 || array1.length === 0 || !array2 || array2.length === 0 || array2.length + 2 <= array1.length) {
+        const mostRecentPath = this.mostRecentRepeatableElementTemplatePath ?? [];
+        const formConfigPath = this.formPathHelper.formPath.formConfig;
+        if (!mostRecentPath || mostRecentPath.length === 0 || !formConfigPath || formConfigPath.length === 0) {
             return false;
         }
-        return array1.every((value, index) => value === array2[index]);
+        // The formConfig path might have ["[component|model|layout]", "config"] at the end (2 additional items),
+        // but only the path up to ["config", "elementTemplate"] is relevant for this check.
+        if ((formConfigPath.length + 2) <= mostRecentPath.length) {
+            return false;
+        }
+        return mostRecentPath.every((value, index) => value === formConfigPath[index]);
     }
 }
