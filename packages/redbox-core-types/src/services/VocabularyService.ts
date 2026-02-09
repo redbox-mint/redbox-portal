@@ -5,29 +5,20 @@ export namespace Services {
   type VocabType = 'flat' | 'tree';
   type VocabSource = 'local' | 'rva';
 
-  export interface VocabularyEntryInput {
-    id?: string;
-    label: string;
-    value: string;
-    parent?: string | null;
-    identifier?: string;
-    order?: number;
-    children?: VocabularyEntryInput[];
-  }
+  export type VocabularyEntryInput =
+    Pick<VocabularyEntryAttributes, 'id' | 'label' | 'value' | 'identifier' | 'order'> & {
+      parent?: string | null;
+      children?: VocabularyEntryInput[];
+    };
 
-  export interface VocabularyInput {
-    name: string;
-    description?: string;
-    type?: VocabType;
-    source?: VocabSource;
-    sourceId?: string;
-    sourceVersionId?: string;
-    lastSyncedAt?: string;
-    slug?: string;
-    owner?: string;
-    branding: string;
-    entries?: VocabularyEntryInput[];
-  }
+  export type VocabularyInput =
+    Omit<Partial<VocabularyAttributes>, 'entries' | 'branding' | 'type' | 'source'> & {
+      name: string;
+      branding: string;
+      type?: VocabType;
+      source?: VocabSource;
+      entries?: VocabularyEntryInput[];
+    };
 
   export interface VocabularyListOptions {
     q?: string;
