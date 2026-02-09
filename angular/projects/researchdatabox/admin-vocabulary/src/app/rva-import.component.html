@@ -1,7 +1,8 @@
 <div>
-  <p class="text-muted">Paste an RVA vocabulary identifier to import and create a synchronized vocabulary record.</p>
+  <p class="text-muted">Paste an RVA vocabulary ID or URL to import and create a synchronized vocabulary record.</p>
   <div class="form-group mb-0">
     <label for="rva-id">RVA vocabulary ID</label>
-    <input id="rva-id" class="form-control" [(ngModel)]="rvaId" placeholder="Example: http://vocabs.ardc.edu.au/repository/api/lda/anzsrc-for/2020" />
+    <input id="rva-id" class="form-control" [(ngModel)]="rvaId" placeholder="Example ID: 365 or URL ending in /365" />
+    <small class="form-text text-muted">If a URL is provided, the numeric ID is extracted automatically.</small>
   </div>
 </div>

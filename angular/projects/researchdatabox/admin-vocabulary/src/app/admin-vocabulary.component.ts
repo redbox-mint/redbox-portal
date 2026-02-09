@@ -14,6 +14,9 @@ export class AdminVocabularyComponent extends BaseComponent {
   selectedEntries: VocabularyEntry[] = [];
   message = '';
   error = '';
+  importStatusMessage = '';
+  importStatusVariant: '' | 'info' | 'success' | 'danger' = '';
+  isImportInProgress = false;
   isEditModalOpen = false;
   isImportModalOpen = false;
   private editModalTrigger: HTMLElement | null = null;
@@ -108,6 +111,9 @@ export class AdminVocabularyComponent extends BaseComponent {
   showImport(): void {
     this.message = '';
     this.error = '';
+    this.importStatusMessage = '';
+    this.importStatusVariant = '';
+    this.isImportInProgress = false;
     this.isImportModalOpen = true;
     this.isEditModalOpen = false;
   }
@@ -170,19 +176,33 @@ export class AdminVocabularyComponent extends BaseComponent {
   async importRva(rvaId: string): Promise<void> {
     this.message = '';
     this.error = '';
+    this.importStatusMessage = '';
+    this.importStatusVariant = '';
     try {
-      const trimmedId = rvaId.trim();
+      const trimmedId = this.normalizeRvaId(rvaId);
       if (!trimmedId) {
         this.error = 'RVA ID is required';
+        this.importStatusMessage = this.error;
+        this.importStatusVariant = 'danger';
         return;
       }
+
+      this.isImportInProgress = true;
+      this.importStatusMessage = 'Import in progress...';
+      this.importStatusVariant = 'info';
       await this.vocabularyApi.importRva(trimmedId);
       this.message = 'RVA vocabulary imported';
+      this.importStatusMessage = 'RVA vocabulary imported successfully.';
+      this.importStatusVariant = 'success';
       await this.refresh();
       this.isImportModalOpen = false;
     } catch (err) {
       this.error = `Failed to import RVA vocabulary: ${this.asErrorMessage(err)}`;
+      this.importStatusMessage = this.error;
+      this.importStatusVariant = 'danger';
       this.logger.error(this.error);
+    } finally {
+      this.isImportInProgress = false;
     }
   }
 
@@ -271,5 +291,46 @@ export class AdminVocabularyComponent extends BaseComponent {
     const target = this.editModalTrigger;
     this.editModalTrigger = null;
     setTimeout(() => target.focus(), 0);
+  }
+
+  private normalizeRvaId(value: string): string {
+    const input = String(value ?? '').trim();
+    if (!input) {
+      return '';
+    }
+
+    const extracted = this.extractRvaIdFromUrl(input);
+    return extracted || input;
+  }
+
+  private extractRvaIdFromUrl(value: string): string {
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(value);
+    } catch (_err) {
+      return '';
+    }
+
+    const paramKeys = ['rvaId', 'vocabularyId', 'vocabId', 'id'];
+    for (const key of paramKeys) {
+      const queryValue = parsedUrl.searchParams.get(key)?.trim() ?? '';
+      if (/^\d+$/.test(queryValue)) {
+        return queryValue;
+      }
+    }
+
+    const pathSegments = parsedUrl.pathname
+      .split('/')
+      .map((segment: string) => segment.trim())
+      .filter((segment: string) => segment.length > 0);
+
+    for (let index = pathSegments.length - 1; index >= 0; index--) {
+      const segment = pathSegments[index];
+      if (/^\d+$/.test(segment)) {
+        return segment;
+      }
+    }
+
+    return '';
   }
 }

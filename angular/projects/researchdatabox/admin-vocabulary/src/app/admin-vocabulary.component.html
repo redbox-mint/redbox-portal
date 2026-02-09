@@ -82,10 +82,25 @@
       </div>
       <div class="modal-body">
         <rva-import #importForm (importRequested)="importRva($event)"></rva-import>
+        <div
+          *ngIf="importStatusMessage"
+          class="alert mt-3 mb-0"
+          [ngClass]="{
+            'alert-info': importStatusVariant === 'info',
+            'alert-success': importStatusVariant === 'success',
+            'alert-danger': importStatusVariant === 'danger'
+          }"
+          [attr.role]="importStatusVariant === 'danger' ? 'alert' : 'status'"
+          aria-live="polite"
+        >
+          {{ importStatusMessage }}
+        </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" (click)="closeImportModal()">Cancel</button>
-        <button type="button" class="btn btn-primary" (click)="importForm.runImport()" [disabled]="!importForm.canImport">Import</button>
+        <button type="button" class="btn btn-outline-secondary" (click)="closeImportModal()" [disabled]="isImportInProgress">Cancel</button>
+        <button type="button" class="btn btn-primary" (click)="importForm.runImport()" [disabled]="!importForm.canImport || isImportInProgress">
+          {{ isImportInProgress ? 'Importing...' : 'Import' }}
+        </button>
       </div>
     </div>
   </div>

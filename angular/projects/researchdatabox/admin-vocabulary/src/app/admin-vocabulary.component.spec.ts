@@ -66,6 +66,51 @@ describe('AdminVocabularyComponent', () => {
     expect(component.vocabularies[0].name).toBe('Imported');
   });
 
+  it('extracts numeric rva id from url before importing', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(VocabularyApiService);
+
+    const importSpy = spyOn(api, 'importRva').and.resolveTo({ name: 'Imported', type: 'flat', source: 'rva' });
+    spyOn(api, 'list').and.resolveTo([]);
+
+    await component.importRva('https://vocabs.ardc.edu.au/viewById/365');
+
+    expect(importSpy).toHaveBeenCalledWith('365');
+    expect(component.error).toBe('');
+  });
+
+  it('sets import status for progress and success', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(VocabularyApiService);
+
+    let resolveImport: ((value: { name: string; type: 'flat'; source: 'rva' }) => void) | undefined;
+    const pendingImport = new Promise<{ name: string; type: 'flat'; source: 'rva' }>((resolve) => {
+      resolveImport = resolve;
+    });
+
+    spyOn(api, 'importRva').and.returnValue(pendingImport);
+    spyOn(api, 'list').and.resolveTo([]);
+
+    const importPromise = component.importRva('123');
+
+    expect(component.isImportInProgress).toBeTrue();
+    expect(component.importStatusVariant).toBe('info');
+    expect(component.importStatusMessage).toBe('Import in progress...');
+
+    if (!resolveImport) {
+      fail('resolveImport callback not set');
+      return;
+    }
+    resolveImport({ name: 'Imported', type: 'flat', source: 'rva' });
+    await importPromise;
+
+    expect(component.isImportInProgress).toBeFalse();
+    expect(component.importStatusVariant).toBe('success');
+    expect(component.importStatusMessage).toBe('RVA vocabulary imported successfully.');
+  });
+
   it('flattens nested tree entries when opening a vocabulary', async () => {
     const fixture = TestBed.createComponent(AdminVocabularyComponent);
     const component = fixture.componentInstance;
