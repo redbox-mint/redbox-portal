@@ -1,5 +1,5 @@
 meta {
-  name: Sync Vocabulary
+  name: Sync Vocabulary (Invalid - Non-RVA)
   type: http
   seq: 4
 }
@@ -19,7 +19,7 @@ body:json {
 }
 
 tests {
-  test("Status code is 200", function () {
-    expect(res.getStatus()).to.equal(200);
+  test("Status code is 400 for non-RVA vocabulary", function () {
+    expect(res.getStatus()).to.equal(400);
   });
 }
