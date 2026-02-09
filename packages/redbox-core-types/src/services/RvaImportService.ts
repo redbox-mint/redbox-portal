@@ -9,6 +9,7 @@ import {
 import { Services as services } from '../CoreService';
 import { VocabularyAttributes } from '../waterline-models';
 import { Services as VocabularyServiceModule } from './VocabularyService';
+import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
 
 
 
@@ -138,7 +139,9 @@ export namespace Services {
 
       const lastSyncedAt = new Date().toISOString();
 
-      const counters = await this.runInTransaction(async (connection) => {
+      const counters = await runWithOptionalTransaction(
+        Vocabulary.getDatastore(),
+        async (connection) => {
         const results = await VocabularyService.upsertEntries(String(vocabulary.id), entries, connection);
         const updater = Vocabulary.updateOne({ id: vocabulary.id }).set({
           sourceVersionId: selectedVersionId,
@@ -162,30 +165,17 @@ export namespace Services {
           throw error;
         }
         return results;
-      });
+        },
+        {
+          logger: sails.log,
+          unsupportedAdapterWarning: 'Transactions are not supported by this datastore adapter. Falling back to non-transactional execution.'
+        }
+      );
 
       return {
         ...counters,
         lastSyncedAt
       };
-    }
-
-
-    private async runInTransaction<T>(work: (connection?: unknown) => Promise<T>): Promise<T> {
-      const datastore = Vocabulary.getDatastore();
-      if (datastore?.transaction) {
-        try {
-          return await datastore.transaction(async (db: unknown) => work(db));
-        } catch (error) {
-          const message = String((error as Error)?.message ?? error);
-          if (message.includes('transactional') && message.includes('adapter')) {
-            sails.log?.warn?.('Transactions are not supported by this datastore adapter. Falling back to non-transactional execution.');
-            return work(undefined);
-          }
-          throw error;
-        }
-      }
-      return work(undefined);
     }
 
     private getBaseUrl(): string {

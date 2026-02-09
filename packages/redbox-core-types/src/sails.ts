@@ -54,6 +54,22 @@ declare global {
 			[method: string]: (...args: unknown[]) => unknown;
 		}
 
+		export interface DatastoreCollection {
+			createIndex: (spec: object) => Promise<unknown>;
+			find: (filter: object) => { forEach: (cb: (doc: globalThis.Record<string, unknown>) => void | Promise<void>) => Promise<void> | void };
+			insertOne: (doc: globalThis.Record<string, unknown>) => Promise<unknown>;
+			deleteOne: (filter: object) => Promise<unknown>;
+		}
+
+		export interface DatastoreManager {
+			collection: (name: string) => DatastoreCollection;
+		}
+
+		export interface Datastore {
+			transaction?: <TResult>(cb: (db: unknown) => Promise<TResult>) => Promise<TResult>;
+			manager: DatastoreManager;
+		}
+
 		export interface Application {
 			config: ConfigObject;
 			log: Log;
@@ -72,6 +88,7 @@ declare global {
 			};
 			// Action lookup method
 			getActions(): { [actionName: string]: unknown };
+			getDatastore?(name?: string): Datastore | null;
             on(event: string, cb: (...args: unknown[]) => void): void;
             emit(event: string, ...args: unknown[]): void;
 		}		export interface Hook {
@@ -167,12 +184,7 @@ declare global {
 			addToCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
 			replaceCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
 			removeFromCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
-            getDatastore(): { transaction?: <TResult>(cb: (db: unknown) => Promise<TResult>) => Promise<TResult>; manager: { collection: (name: string) => {
-              createIndex: (spec: object) => Promise<unknown>;
-              find: (filter: object) => { forEach: (cb: (doc: globalThis.Record<string, unknown>) => void | Promise<void>) => Promise<void> | void };
-              insertOne: (doc: globalThis.Record<string, unknown>) => Promise<unknown>;
-              deleteOne: (filter: object) => Promise<unknown>;
-            } } };
+			getDatastore(): Datastore;
 		}
 
 		export interface WaterlineAttributes {

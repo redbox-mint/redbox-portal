@@ -1,5 +1,6 @@
 import { Services as services } from '../CoreService';
 import { VocabularyAttributes, VocabularyEntryAttributes } from '../waterline-models';
+import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
 
 export namespace Services {
   type VocabType = 'flat' | 'tree';
@@ -153,60 +154,44 @@ export namespace Services {
         createPayload.slug = payload.slug;
       }
 
-      const datastore = this.getDatastore();
-      if (datastore?.transaction) {
-        try {
-          return await datastore.transaction(async (connection: unknown) => {
-            const created = await this.createAndFetch<VocabularyAttributes>(
+      return runWithOptionalTransaction(
+        this.getDatastore(),
+        async (connection) => {
+          let created: VocabularyAttributes | null = null;
+          try {
+            created = await this.createAndFetch<VocabularyAttributes>(
               Vocabulary.create(createPayload),
               connection
             );
+            if (!created) {
+              throw new Error('Vocabulary create failed');
+            }
             if (entries.length > 0) {
               await this.replaceEntries(created.id, created.type === 'flat', entries, connection);
             }
             const findQuery = Vocabulary.findOne({ id: created.id }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
-            const found = await this.executeQuery(findQuery, connection);
-            if (!found) {
+            const saved = await this.executeQuery(findQuery, connection);
+            if (!saved) {
               throw new Error('Vocabulary create failed');
             }
-            return found;
-          });
-        } catch (error) {
-          const message = String((error as Error)?.message ?? error);
-          if (!(message.includes('transactional') && message.includes('adapter'))) {
-            throw error;
+            return saved;
+          } catch (err) {
+            if (!connection && created?.id) {
+              try {
+                await VocabularyEntry.destroy({ vocabulary: created.id });
+                await Vocabulary.destroyOne({ id: created.id });
+              } catch (_cleanupErr) {
+                // Swallow cleanup errors to preserve the original failure.
+              }
+            }
+            throw err;
           }
-          sails.log?.warn?.('Transactions are not supported by this datastore adapter. Falling back to non-transactional create.');
+        },
+        {
+          logger: sails.log,
+          unsupportedAdapterWarning: 'Transactions are not supported by this datastore adapter. Falling back to non-transactional create.'
         }
-      }
-
-      let created: VocabularyAttributes | null = null;
-      try {
-        created = await this.createAndFetch<VocabularyAttributes>(
-          Vocabulary.create(createPayload)
-        );
-        if (!created) {
-          throw new Error('Vocabulary create failed');
-        }
-        if (entries.length > 0) {
-          await this.replaceEntries(created.id, created.type === 'flat', entries);
-        }
-        const saved = await Vocabulary.findOne({ id: created.id });
-        if (!saved) {
-          throw new Error('Vocabulary create failed');
-        }
-        return saved;
-      } catch (err) {
-        if (created?.id) {
-          try {
-            await VocabularyEntry.destroy({ vocabulary: created.id });
-            await Vocabulary.destroyOne({ id: created.id });
-          } catch (_cleanupErr) {
-            // Swallow cleanup errors to preserve the original failure.
-          }
-        }
-        throw err;
-      }
+      );
     }
 
     public async update(id: string, input: Partial<VocabularyInput>): Promise<VocabularyAttributes> {
@@ -416,9 +401,9 @@ export namespace Services {
       }
     }
 
-    private getDatastore(): { transaction?: <T>(cb: (db: unknown) => Promise<T>) => Promise<T> } | null {
-      return (Vocabulary.getDatastore?.() as { transaction?: <T>(cb: (db: unknown) => Promise<T>) => Promise<T> } | null)
-        ?? (sails as { getDatastore?: () => { transaction?: <T>(cb: (db: unknown) => Promise<T>) => Promise<T> } | null }).getDatastore?.()
+    private getDatastore(): Sails.Datastore | null {
+      return Vocabulary.getDatastore?.()
+        ?? sails.getDatastore?.()
         ?? null;
     }
 
