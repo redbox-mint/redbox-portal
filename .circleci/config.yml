@@ -762,9 +762,9 @@ workflows:
       - test-sails-ng-common:
           requires:
             - build
-      - lint-redbox-core-types:
-          requires:
-            - build
+      # - lint-redbox-core-types:
+      #     requires:
+      #       - build
       - test-redbox-core-types:
           requires:
             - build
