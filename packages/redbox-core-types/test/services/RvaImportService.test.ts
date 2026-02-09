@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import axios from 'axios';
 import * as lodash from 'lodash';
+import { ResourcesApi } from '@researchdatabox/rva-registry-openapi-generated-node';
 import { Services as RvaImportServiceModule } from '../../src/services/RvaImportService';
 
 describe('RvaImportService', () => {
@@ -21,21 +21,27 @@ describe('RvaImportService', () => {
     };
 
     (global as any).Vocabulary = {
-      findOne: sinon.stub().resolves({ id: 'v1', source: 'rva', sourceId: 'rva-1', name: 'Existing' }),
+      findOne: sinon.stub().resolves({ id: 'v1', source: 'rva', sourceId: '1', name: 'Existing' }),
       updateOne: sinon.stub().returns({ set: sinon.stub().resolves() })
     };
 
-    const mockClient = {
-      get: sinon.stub()
-    };
+    const getVocabularyByIdStub = sinon.stub(ResourcesApi.prototype, 'getVocabularyById');
+    getVocabularyByIdStub.onCall(0).resolves({
+      data: { id: 1, title: 'RVA Vocab', version: [{ id: 101, status: 'current' }] }
+    } as unknown as Awaited<ReturnType<ResourcesApi['getVocabularyById']>>);
+    getVocabularyByIdStub.onCall(1).resolves({
+      data: { id: 1, title: 'RVA Vocab', version: [{ id: 101, status: 'current' }] }
+    } as unknown as Awaited<ReturnType<ResourcesApi['getVocabularyById']>>);
 
-    mockClient.get.onCall(0).resolves({ data: [{ id: 'v-1', title: 'Vocabulary' }] });
-    mockClient.get.onCall(1).resolves({ data: { id: 'rva-1', title: 'RVA Vocab', version: [{ id: 'ver-1', status: 'current' }] } });
-    mockClient.get.onCall(2).resolves({ data: { items: [{ id: 'c1', label: 'A', notation: 'a' }] } });
-    mockClient.get.onCall(3).resolves({ data: { id: 'rva-1', title: 'RVA Vocab', version: [{ id: 'ver-1', status: 'current' }] } });
-    mockClient.get.onCall(4).resolves({ data: { items: [{ id: 'c1', label: 'A', notation: 'a' }] } });
-
-    sinon.stub(axios, 'create').returns(mockClient as any);
+    sinon.stub(ResourcesApi.prototype, 'getVersionArtefactConceptTree')
+      .onCall(0)
+      .resolves({
+        data: JSON.stringify([{ id: 'c1', label: 'A', notation: 'a' }])
+      } as unknown as Awaited<ReturnType<ResourcesApi['getVersionArtefactConceptTree']>>)
+      .onCall(1)
+      .resolves({
+        data: JSON.stringify([{ id: 'c1', label: 'A', notation: 'a' }])
+      } as unknown as Awaited<ReturnType<ResourcesApi['getVersionArtefactConceptTree']>>);
 
     service = new RvaImportServiceModule.RvaImport();
   });
@@ -47,7 +53,7 @@ describe('RvaImportService', () => {
   });
 
   it('imports an RVA vocabulary', async () => {
-    const created = await service.importRvaVocabulary('rva-1');
+    const created = await service.importRvaVocabulary('1');
     expect(created.id).to.equal('v1');
   });
 

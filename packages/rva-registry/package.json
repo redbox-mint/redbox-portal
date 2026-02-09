@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "test": "npm run test:integration",
+    "pretest:integration": "npm run build",
     "test:integration": "mocha -r ts-node/register test/integration/**/*.spec.ts",
     "pregenerate": "npm install @openapitools/openapi-generator-cli -g",
     "generate": "openapi-generator-cli generate -i ../../rva-swagger.json -g typescript-axios -o ./src",

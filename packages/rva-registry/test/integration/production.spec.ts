@@ -1,5 +1,5 @@
 
-import { UtilitiesApi, ServicesApi } from '../../src';
+import { UtilitiesApi, ServicesApi, ResourcesApi } from '../../dist/index.js';
 import assert from 'assert';
 
 describe('Integration Tests - Production API', () => {
@@ -71,6 +71,27 @@ describe('Integration Tests - Production API', () => {
             
             // We requested pp=5, so docs should be <= 5
             assert.ok(data.response.docs.length <= 5);
+        });
+    });
+
+    describe('ResourcesApi', () => {
+        it('should fetch vocabulary 316 from production', async function() {
+            this.timeout(TIMEOUT);
+            const api = new ResourcesApi();
+            const response = await api.getVocabularyById(
+                316,
+                true,
+                true,
+                true,
+                true,
+                { headers: { 'Accept': 'application/json' } }
+            );
+
+            assert.strictEqual(response.status, 200);
+            assert.ok(response.data);
+            assert.strictEqual(response.data.id, 316);
+            assert.ok(typeof response.data.title === 'string' && response.data.title.length > 0);
+            assert.ok(Array.isArray(response.data.version));
         });
     });
 });

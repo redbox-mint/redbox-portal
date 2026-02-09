@@ -1,4 +1,11 @@
 import axios, { AxiosInstance } from 'axios';
+import {
+  Configuration as RvaConfiguration,
+  ResourcesApi,
+  ServicesApi,
+  Version as RvaVersion,
+  Vocabulary as RvaVocabulary
+} from '@researchdatabox/rva-registry-openapi-generated-node';
 import { Services as services } from '../CoreService';
 import { Services as VocabularyServiceModule } from './VocabularyService';
 import { VocabularyAttributes } from '../waterline-models';
@@ -18,12 +25,12 @@ export namespace Services {
   }
 
   interface RvaVocabularyResponse {
-    id: string;
+    id?: number;
     slug?: string;
     title?: string;
     description?: string;
     owner?: string;
-    version?: Array<Record<string, unknown>>;
+    version?: RvaVersion[];
   }
 
   interface RvaConceptNode {
@@ -45,13 +52,36 @@ export namespace Services {
     ];
 
     private client: AxiosInstance | null = null;
+    private configuration: RvaConfiguration | null = null;
+    private resourcesClient: ResourcesApi | null = null;
+    private servicesClient: ServicesApi | null = null;
 
-    private get api(): AxiosInstance {
+    private get httpClient(): AxiosInstance {
       if (!this.client) {
-        const baseUrl = this.getBaseUrl();
-        this.client = axios.create({ baseURL: baseUrl, timeout: 15000 });
+        this.client = axios.create({ timeout: 15000 });
       }
       return this.client;
+    }
+
+    private get apiConfiguration(): RvaConfiguration {
+      if (!this.configuration) {
+        this.configuration = new RvaConfiguration({ basePath: this.getBaseUrl() });
+      }
+      return this.configuration;
+    }
+
+    private get resourcesApi(): ResourcesApi {
+      if (!this.resourcesClient) {
+        this.resourcesClient = new ResourcesApi(this.apiConfiguration, this.getBaseUrl(), this.httpClient);
+      }
+      return this.resourcesClient;
+    }
+
+    private get servicesApi(): ServicesApi {
+      if (!this.servicesClient) {
+        this.servicesClient = new ServicesApi(this.apiConfiguration, this.getBaseUrl(), this.httpClient);
+      }
+      return this.servicesClient;
     }
 
     public async searchRva(query: string): Promise<RvaSearchResult[]> {
@@ -60,15 +90,9 @@ export namespace Services {
         return [];
       }
 
-      const response = await this.api.get('/search', { params: { q: search } });
-      const records = this.asArray(response.data);
-      return records.map((record) => ({
-        id: String(record.id ?? ''),
-        title: String(record.title ?? record.name ?? ''),
-        slug: record.slug ? String(record.slug) : undefined,
-        description: record.description ? String(record.description) : undefined,
-        owner: record.owner ? String(record.owner) : undefined
-      })).filter(record => !!record.id);
+      const filters = JSON.stringify({ q: search, pp: 20 });
+      const response = await this.servicesApi.search(filters, { headers: { Accept: 'application/json' } });
+      return this.extractSearchResults(response.data);
     }
 
     public async importRvaVocabulary(rvaId: string, versionId?: string, branding?: string): Promise<VocabularyAttributes> {
@@ -131,59 +155,148 @@ export namespace Services {
     }
 
     private getBaseUrl(): string {
-      const configValue = _.get(sails.config, 'vocab.rva.baseUrl', 'https://vocabs.ardc.edu.au/repository/api/rva');
-      return String(configValue).replace(/\/$/, '');
+      const configValue = _.get(sails.config, 'vocab.rva.baseUrl', 'https://vocabs.ardc.edu.au/registry');
+      const normalized = String(configValue).replace(/\/$/, '');
+      if (normalized.endsWith('/repository/api/rva')) {
+        return normalized.replace(/\/repository\/api\/rva$/, '/registry');
+      }
+      return normalized;
     }
 
-    private asArray(data: unknown): Record<string, unknown>[] {
-      if (Array.isArray(data)) {
-        return data as Record<string, unknown>[];
+    private extractSearchResults(data: unknown): RvaSearchResult[] {
+      const body = this.asRecord(data);
+      const response = this.asRecord(body?.response);
+      const docs = Array.isArray(response?.docs) ? response.docs : [];
+
+      return docs.map((doc) => {
+        const record = this.asRecord(doc);
+        const id = this.asString(record?.id) ?? '';
+        const title = this.asString(record?.title) ?? this.asString(record?.name) ?? '';
+        return {
+          id,
+          title,
+          slug: this.asString(record?.slug),
+          description: this.asString(record?.description),
+          owner: this.asString(record?.owner)
+        };
+      }).filter((record) => record.id.length > 0);
+    }
+
+    private asString(value: unknown): string | undefined {
+      if (typeof value === 'string') {
+        return value;
       }
-      if (data && typeof data === 'object') {
-        const obj = data as Record<string, unknown>;
-        if (Array.isArray(obj.items)) {
-          return obj.items as Record<string, unknown>[];
-        }
-        if (Array.isArray(obj.results)) {
-          return obj.results as Record<string, unknown>[];
-        }
+      if (typeof value === 'number') {
+        return String(value);
       }
-      return [];
+      if (Array.isArray(value)) {
+        return this.asString(value[0]);
+      }
+      return undefined;
+    }
+
+    private asRecord(value: unknown): Record<string, unknown> | null {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        return value as Record<string, unknown>;
+      }
+      return null;
     }
 
     private async getVocabularyById(rvaId: string): Promise<RvaVocabularyResponse> {
-      const response = await this.api.get(`/vocabulary/${encodeURIComponent(rvaId)}`, {
-        params: {
-          includeVersions: true,
-          includeAccessPoints: true,
-          includeRelatedEntitiesAndVocabularies: true,
-          includeLanguageList: true
-        }
-      });
-      return response.data as RvaVocabularyResponse;
+      const id = this.parseIdAsNumber(rvaId, 'vocabulary');
+      const response = await this.resourcesApi.getVocabularyById(
+        id,
+        true,
+        true,
+        true,
+        true,
+        { headers: { Accept: 'application/json' } }
+      );
+      return response.data as RvaVocabulary;
     }
 
     private async getConceptTree(versionId: string): Promise<RvaConceptNode[]> {
-      const response = await this.api.get(`/version/${encodeURIComponent(versionId)}/concept-tree`);
-      const body = response.data as Record<string, unknown>;
+      const id = this.parseIdAsNumber(versionId, 'version');
+      try {
+        const response = await this.resourcesApi.getVersionArtefactConceptTree(id, {
+          headers: { Accept: 'text/plain' }
+        });
+        return this.parseConceptTreeResponse(response.data);
+      } catch (error) {
+        if (!axios.isAxiosError(error) || error.response?.status !== 406) {
+          throw error;
+        }
+
+        const fallbackResponse = await this.httpClient.get(
+          `${this.getLegacyBaseUrl()}/version/${encodeURIComponent(String(id))}/concept-tree`
+        );
+        return this.parseConceptTreeResponse(fallbackResponse.data);
+      }
+    }
+
+    private getLegacyBaseUrl(): string {
+      const configured = String(_.get(sails.config, 'vocab.rva.baseUrl', 'https://vocabs.ardc.edu.au/registry')).replace(/\/$/, '');
+      if (configured.endsWith('/repository/api/rva')) {
+        return configured;
+      }
+      if (configured.endsWith('/registry')) {
+        return configured.replace(/\/registry$/, '/repository/api/rva');
+      }
+      return `${configured}/repository/api/rva`;
+    }
+
+    private parseConceptTreeResponse(data: unknown): RvaConceptNode[] {
+      if (Array.isArray(data)) {
+        return data as RvaConceptNode[];
+      }
+
+      let body = data;
+      if (typeof data === 'string') {
+        try {
+          body = JSON.parse(data);
+        } catch (_error) {
+          return [];
+        }
+      }
+
       if (Array.isArray(body)) {
         return body as RvaConceptNode[];
       }
-      if (Array.isArray(body.concepts)) {
-        return body.concepts as RvaConceptNode[];
+
+      const record = this.asRecord(body);
+      if (!record) {
+        return [];
       }
-      if (Array.isArray(body.items)) {
-        return body.items as RvaConceptNode[];
+
+      if (Array.isArray(record.concepts)) {
+        return record.concepts as RvaConceptNode[];
+      }
+      if (Array.isArray(record.forest)) {
+        return record.forest as RvaConceptNode[];
+      }
+      if (Array.isArray(record.items)) {
+        return record.items as RvaConceptNode[];
+      }
+      if (Array.isArray(record.children)) {
+        return record.children as RvaConceptNode[];
       }
       return [];
     }
 
-    private selectVersionId(versions: Array<Record<string, unknown>> | undefined): string {
+    private parseIdAsNumber(value: string, label: string): number {
+      const parsed = Number.parseInt(String(value), 10);
+      if (!Number.isFinite(parsed)) {
+        throw new Error(`Invalid RVA ${label} id: ${value}`);
+      }
+      return parsed;
+    }
+
+    private selectVersionId(versions: RvaVersion[] | undefined): string {
       const list = versions ?? [];
       if (list.length === 0) {
         return '';
       }
-      const current = list.find(item => String(item.status ?? '').toLowerCase() === 'current');
+      const current = list.find((item) => String(item.status ?? '').toLowerCase() === 'current');
       if (current?.id) {
         return String(current.id);
       }

@@ -15,10 +15,10 @@
     "moduleResolution": "node",
     "outDir": "./dist",
     "declaration": true,
-    "types": ["node", "mocha"]
+    "types": ["node", "mocha"],
+    "rootDir": "./src"
   },
   "include": [
-    "src/**/*",
-    "test/**/*"
+    "src/**/*"
   ]
 }
