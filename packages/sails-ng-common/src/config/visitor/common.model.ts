@@ -332,6 +332,14 @@ export class FormPathHelper {
         };
     }
 
+    public lineagePathsForReusableFieldComponentDefinition(item: FormComponentDefinitionOutline, index: number): LineagePathsPartial {
+        return {
+            formConfig: ["config", "componentDefinitions", index.toString()],
+            dataModel: this.getFormPathDataModel(item),
+            angularComponents: this.getFormPathAngularComponents(item),
+        };
+    }
+
     private getFormPathDataModel(item: FormComponentDefinitionOutline): string[] {
         const itemName = item?.name ?? "";
 

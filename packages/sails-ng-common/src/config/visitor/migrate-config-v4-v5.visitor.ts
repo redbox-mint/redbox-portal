@@ -271,6 +271,12 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
             componentClassName: SaveButtonComponentName
         },
     },
+    // TODO: Should tab nav be a different component?
+    "TabNavButton": {
+        "": {
+            componentClassName: SaveButtonComponentName
+        },
+    },
     // TODO: Should anchor or button be a different component?
     "AnchorOrButton": {
         "": {
@@ -389,6 +395,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     start(options: { data: any }): FormConfigOutline {
         this.v4FormConfig = _cloneDeep(this.normaliseV4FormConfig(options.data));
         this.v5FormConfig = new FormConfig();
+        this.v5FormConfig.debugValue = true;
         this.v4FormPath = [];
 
         this.mostRecentRepeatableElementTemplatePath = null;
@@ -693,6 +700,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const config = new GroupFieldComponentConfig();
         item.config = config;
         this.sharedPopulateFieldComponentConfig(item.config, field);
+        this.logger.info(`${this.logName}: visitGroupFieldComponentDefinition field ${JSON.stringify(field)} item ${JSON.stringify(item)}`);
 
         const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
         // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
@@ -945,6 +953,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         if (v4ClassName === "ContributorField") {
             const fieldDefinition = (field?.definition ?? {}) as Record<string, unknown>;
 
+            // TODO: use more of the contributor field properties on the new component?
             const showHeader = field.showHeader ?? true;
             const required = fieldDefinition.required ?? false;
             const label = fieldDefinition.label?.toString() ?? "";
@@ -970,14 +979,23 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             const validation_required_email = fieldDefinition?.validation_required_email ?? "";
             const validation_invalid_email = fieldDefinition?.validation_invalid_email ?? "";
 
-            item.config.componentDefinitions = [
-                this.sharedProps.sharedConstructFormComponent({
-                    name: "standard_contributor_fields_group",
-                    overrides: {replaceName: ""},
-                    layout: {class: "DefaultLayout", config: {label: label}},
-                    component: {class: "GroupComponent", config: {}},
-                })
-            ]
+            // Use the same field, so don't change the lineage path.
+            const reusableComponentItemData = {
+                name: "standard_contributor_fields_group",
+                overrides: {replaceName: ""},
+                layout: {class: "DefaultLayout", config: {}},
+                component: {class: "GroupComponent", config: {}},
+            };
+            const reusableComponentItem = this.sharedProps.sharedConstructFormComponent(reusableComponentItemData);
+
+            // Visit children
+            this.acceptV4FormConfigPath(
+                reusableComponentItem,
+                this.formPathHelper.lineagePathsForReusableFieldComponentDefinition(reusableComponentItem, 0),
+            );
+
+            // Store the instance on the item
+            item.config.componentDefinitions.push(reusableComponentItem);
         }
     }
 
@@ -1098,7 +1116,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     protected sharedPopulateFieldComponentConfig(item: FieldComponentConfigFrame, field?: any) {
         const config = {
-            label: field?.definition?.label,
+            label: field?.definition?.label || field?.definition?.name,
         };
         this.sharedProps.sharedPopulateFieldComponentConfig(item, config);
     }
