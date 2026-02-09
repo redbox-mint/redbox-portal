@@ -22,8 +22,10 @@ describe('RvaImportService', () => {
 
     (global as any).Vocabulary = {
       findOne: sinon.stub().resolves({ id: 'v1', source: 'rva', sourceId: '1', name: 'Existing' }),
-      updateOne: sinon.stub().returns({ set: sinon.stub().resolves() })
+      updateOne: sinon.stub().returns({ set: sinon.stub().resolves() }),
+      getDatastore: sinon.stub().returns(null)
     };
+    (global as any).VocabularyService = (global as any).sails.services.vocabularyservice;
 
     const getVocabularyByIdStub = sinon.stub(ResourcesApi.prototype, 'getVocabularyById');
     getVocabularyByIdStub.onCall(0).resolves({
@@ -49,6 +51,7 @@ describe('RvaImportService', () => {
   afterEach(() => {
     sinon.restore();
     delete (global as any).Vocabulary;
+    delete (global as any).VocabularyService;
     delete (global as any).sails;
     delete (global as any)._;
   });

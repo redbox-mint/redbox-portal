@@ -102,7 +102,13 @@ describe('VocabularyService', () => {
   });
 
   it('normalizes entries', () => {
-    const normalized = service.normalizeEntry({ label: '  Science ', value: ' SCI ' });
+    const normalized = service.normalizeEntry({
+      id: 'e-normalize',
+      label: '  Science ',
+      value: ' SCI ',
+      identifier: 'science',
+      order: 0
+    });
     expect(normalized.label).to.equal('Science');
     expect(normalized.value).to.equal('SCI');
   });
