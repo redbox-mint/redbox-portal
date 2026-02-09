@@ -81,14 +81,6 @@ export namespace Services {
       return this.servicesClient;
     }
 
-    private getVocabularyService(): Pick<VocabularyServiceModule.VocabularyService, 'create' | 'upsertEntries'> {
-      const servicesRegistry = (sails as { services?: Record<string, unknown> }).services;
-      const vocabularyService = servicesRegistry?.vocabularyservice as Pick<VocabularyServiceModule.VocabularyService, 'create' | 'upsertEntries'> | undefined;
-      if (!vocabularyService) {
-        throw new Error('VocabularyService is unavailable');
-      }
-      return vocabularyService;
-    }
 
     public async searchRva(query: string): Promise<RvaSearchResult[]> {
       const search = String(query ?? '').trim();
@@ -110,8 +102,7 @@ export namespace Services {
       const concepts = await this.getConceptTree(selectedVersionId);
 
      
-      const vocabularyService = this.getVocabularyService();
-      const vocabulary = await vocabularyService.create({
+      const vocabulary = await VocabularyService.create({
         name: String(metadata.title ?? metadata.slug ?? rvaId),
         slug: metadata.slug,
         description: metadata.description,
@@ -146,10 +137,9 @@ export namespace Services {
       const entries = this.toVocabularyEntries(concepts);
 
       const lastSyncedAt = new Date().toISOString();
-      const vocabularyService = this.getVocabularyService();
 
       const counters = await this.runInTransaction(async (connection) => {
-        const results = await vocabularyService.upsertEntries(String(vocabulary.id), entries, connection);
+        const results = await VocabularyService.upsertEntries(String(vocabulary.id), entries, connection);
         const updater = Vocabulary.updateOne({ id: vocabulary.id }).set({
           sourceVersionId: selectedVersionId,
           lastSyncedAt,
@@ -182,9 +172,7 @@ export namespace Services {
 
 
     private async runInTransaction<T>(work: (connection?: unknown) => Promise<T>): Promise<T> {
-      const datastore = (Vocabulary as unknown as { getDatastore?: () => { transaction?: (cb: (db: unknown) => Promise<T>) => Promise<T> } | null })
-        .getDatastore?.() ?? (sails as unknown as { getDatastore?: () => { transaction?: (cb: (db: unknown) => Promise<T>) => Promise<T> } | null })
-        .getDatastore?.();
+      const datastore = Vocabulary.getDatastore();
       if (datastore?.transaction) {
         try {
           return await datastore.transaction(async (db: unknown) => work(db));

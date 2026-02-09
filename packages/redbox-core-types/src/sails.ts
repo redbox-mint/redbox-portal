@@ -167,7 +167,7 @@ declare global {
 			addToCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
 			replaceCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
 			removeFromCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
-            getDatastore(): { manager: { collection: (name: string) => {
+            getDatastore(): { transaction?: <TResult>(cb: (db: unknown) => Promise<TResult>) => Promise<TResult>; manager: { collection: (name: string) => {
               createIndex: (spec: object) => Promise<unknown>;
               find: (filter: object) => { forEach: (cb: (doc: globalThis.Record<string, unknown>) => void | Promise<void>) => Promise<void> | void };
               insertOne: (doc: globalThis.Record<string, unknown>) => Promise<unknown>;

@@ -97,8 +97,8 @@ export namespace Services {
         return brandingString;
       }
 
-      const servicesRegistry = globalThis as Record<string, unknown>;
-      const brandingService = servicesRegistry.BrandingService as { getBrand?: (nameOrId: string) => { id?: string | number } | null } | undefined;
+
+      const brandingService = BrandingService as { getBrand?: (nameOrId: string) => { id?: string | number } | null } | undefined;
       const brand = brandingService?.getBrand?.(brandingString);
       if (brand?.id) {
         return String(brand.id);
