@@ -54,4 +54,37 @@ describe('AdminVocabularyComponent', () => {
     await component.importRva('rva:test');
     expect(component.error).toBe('');
   });
+
+  it('flattens nested tree entries when opening a vocabulary', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(VocabularyApiService);
+
+    spyOn(api, 'get').and.resolveTo({
+      vocabulary: { id: 'v1', name: 'Tree', type: 'tree', source: 'rva' },
+      entries: [
+        {
+          id: 'parent',
+          label: 'Parent',
+          value: '30',
+          children: [
+            {
+              id: 'child',
+              label: 'Child',
+              value: '3001',
+              parent: 'parent',
+              children: []
+            }
+          ]
+        }
+      ]
+    });
+
+    await component.openVocabulary('v1');
+
+    expect(component.draft.entries?.length).toBe(2);
+    expect(component.draft.entries?.[0].id).toBe('parent');
+    expect(component.draft.entries?.[1].id).toBe('child');
+    expect(component.draft.entries?.[1].parent).toBe('parent');
+  });
 });

@@ -32,6 +32,27 @@
     <textarea id="vocab-description" class="form-control" rows="3" [(ngModel)]="draft.description" placeholder="Purpose and usage notes"></textarea>
   </div>
 
+  <div class="mb-3" *ngIf="draft.type === 'tree' && hasEntries">
+    <button class="btn btn-sm btn-outline-info" type="button" (click)="toggleTreePreview()">
+      {{ isTreePreviewVisible ? 'Hide Tree Preview' : 'Show Tree Preview' }}
+    </button>
+
+    <div class="card card-body mt-2 tree-preview-panel" *ngIf="isTreePreviewVisible">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0">Hierarchy Preview</h6>
+        <button class="btn btn-sm btn-outline-secondary" type="button" (click)="refreshTreePreview()">Refresh</button>
+      </div>
+
+      <ul class="tree-preview-list mb-0" *ngIf="previewTree.length > 0; else emptyPreview">
+        <ng-container *ngTemplateOutlet="previewNodesTemplate; context: { $implicit: previewTree }"></ng-container>
+      </ul>
+
+      <ng-template #emptyPreview>
+        <p class="text-muted mb-0">No tree structure available yet.</p>
+      </ng-template>
+    </div>
+  </div>
+
   <hr />
 
   <div class="d-flex justify-content-between align-items-center mb-2">
@@ -53,9 +74,34 @@
       <tbody>
         <tr *ngFor="let entry of draft.entries; let idx = index; trackBy: trackByEntryIndex">
           <td class="align-middle">{{ idx + 1 }}</td>
-          <td><input class="form-control form-control-sm" [(ngModel)]="entry.label" placeholder="Display label" /></td>
-          <td><input class="form-control form-control-sm" [(ngModel)]="entry.value" placeholder="Stored value" /></td>
-          <td><input class="form-control form-control-sm" [(ngModel)]="entry.parent" [disabled]="draft.type === 'flat'" placeholder="Parent value" /></td>
+          <td><input class="form-control form-control-sm" [(ngModel)]="entry.label" (ngModelChange)="onEntryEdited()" placeholder="Display label" /></td>
+          <td><input class="form-control form-control-sm" [(ngModel)]="entry.value" (ngModelChange)="onEntryEdited()" placeholder="Stored value" /></td>
+          <td>
+            <ng-container *ngIf="draft.type === 'tree'; else flatParentField">
+              <ng-container *ngIf="isParentEditorOpen(entry); else parentReadOnly">
+                <div class="d-flex">
+                  <select
+                    class="form-control form-control-sm mr-2"
+                    [ngModel]="entry.parent || ''"
+                    (ngModelChange)="onParentChanged(entry, $event)"
+                  >
+                    <option value="">No parent (root)</option>
+                    <option *ngFor="let option of getParentOptions(entry)" [value]="option.id">{{ option.label }}</option>
+                  </select>
+                  <button class="btn btn-sm btn-outline-secondary" type="button" (click)="closeParentEditor()">Done</button>
+                </div>
+              </ng-container>
+              <ng-template #parentReadOnly>
+                <div class="d-flex">
+                  <input class="form-control form-control-sm mr-2" [value]="parentDisplayValue(entry) || 'No parent (root)'" disabled />
+                  <button class="btn btn-sm btn-outline-primary" type="button" (click)="openParentEditor(entry)">Change</button>
+                </div>
+              </ng-template>
+            </ng-container>
+            <ng-template #flatParentField>
+              <input class="form-control form-control-sm" [value]="parentDisplayValue(entry)" disabled placeholder="N/A for flat vocabularies" />
+            </ng-template>
+          </td>
           <td>
             <button class="btn btn-sm btn-outline-secondary mr-1" type="button" (click)="moveEntryUp(idx)" [disabled]="idx === 0">Up</button>
             <button class="btn btn-sm btn-outline-secondary mr-1" type="button" (click)="moveEntryDown(idx)" [disabled]="idx === (draft.entries?.length || 1) - 1">Down</button>
@@ -68,3 +114,23 @@
 
   <p class="text-muted mb-0" *ngIf="!hasEntries">No entries yet. Add your first entry to begin.</p>
 </div>
+
+<ng-template #previewNodesTemplate let-nodes>
+  <li *ngFor="let node of nodes; trackBy: trackByPreviewNode">
+    <div class="tree-preview-node">
+      <button
+        *ngIf="hasPreviewChildren(node)"
+        class="btn btn-sm btn-link tree-preview-toggle"
+        type="button"
+        (click)="togglePreviewNode(node)"
+      >
+        {{ isPreviewNodeCollapsed(node) ? '+' : '−' }}
+      </button>
+      <span class="tree-preview-leaf-spacer" *ngIf="!hasPreviewChildren(node)"></span>
+      <span>{{ node.display }}</span>
+    </div>
+    <ul class="tree-preview-list" *ngIf="hasPreviewChildren(node) && !isPreviewNodeCollapsed(node)">
+      <ng-container *ngTemplateOutlet="previewNodesTemplate; context: { $implicit: node.children }"></ng-container>
+    </ul>
+  </li>
+</ng-template>

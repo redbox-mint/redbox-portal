@@ -63,11 +63,12 @@ export class AdminVocabularyComponent extends BaseComponent {
 
   async openVocabulary(id: string): Promise<void> {
     const result = await this.vocabularyApi.get(id);
+    const flattenedEntries = this.flattenEntries(result.entries);
     this.selectedVocabulary = result.vocabulary;
-    this.selectedEntries = result.entries;
+    this.selectedEntries = flattenedEntries;
     this.draft = {
       ...result.vocabulary,
-      entries: result.entries
+      entries: flattenedEntries
     };
     this.isEditModalOpen = true;
     this.isImportModalOpen = false;
@@ -213,5 +214,32 @@ export class AdminVocabularyComponent extends BaseComponent {
       }
     }
     return String(err);
+  }
+
+  private flattenEntries(entries: VocabularyEntry[]): VocabularyEntry[] {
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return [];
+    }
+
+    const flattened: VocabularyEntry[] = [];
+    const visit = (entry: VocabularyEntry, parentId?: string): void => {
+      const normalized: VocabularyEntry = {
+        ...entry,
+        parent: entry.parent ?? parentId,
+        children: []
+      };
+      flattened.push(normalized);
+
+      if (Array.isArray(entry.children) && entry.children.length > 0) {
+        entry.children.forEach((child: VocabularyEntry) => visit(child, entry.id));
+      }
+    };
+
+    entries.forEach((entry: VocabularyEntry) => visit(entry));
+
+    return flattened.map((entry: VocabularyEntry, index: number) => ({
+      ...entry,
+      order: index
+    }));
   }
 }
