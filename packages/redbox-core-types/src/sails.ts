@@ -87,17 +87,16 @@ declare global {
 		export interface Model<T> {
 			attributes: object;
 
-			create(params: object): WaterlinePromise<QueryResult>;
-			create(params: Array<object>): WaterlinePromise<QueryResult>;
-			create(params: object, cb: (err: Error, created: QueryResult) => void): void;
-			create(params: Array<object>, cb: (err: Error, created: Array<QueryResult>) => void): void;
+			create(params: object): WaterlinePromise<T>;
+			create(params: Array<object>): WaterlinePromise<T[]>;
+			create(params: object, cb: (err: Error, created: T) => void): void;
+			create(params: Array<object>, cb: (err: Error, created: T[]) => void): void;
 
 			find(): QueryBuilder;
 			find(params: object): QueryBuilder;
-			find(params: object): WaterlinePromise<Array<QueryResult>>;
 
-			findOne(criteria: object): WaterlinePromise<T>;
-			findOne(criteria: object, cb: (err: Error, found: T) => void): void;
+			findOne(criteria: object): WaterlinePromise<T | null>;
+			findOne(criteria: object, cb: (err: Error, found: T | null) => void): void;
 
 			findOrCreate(criteria: object, values: object): WaterlinePromise<T>;
 			findOrCreate(criteria: object, values: object, cb: (err: Error, found: T) => void): void;

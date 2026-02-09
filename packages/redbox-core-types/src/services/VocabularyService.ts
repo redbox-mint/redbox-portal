@@ -43,6 +43,15 @@ export namespace Services {
     children: VocabularyTreeNode[];
   }
 
+  type VocabularyListWhere = {
+    type?: VocabularyAttributes['type'];
+    source?: VocabularyAttributes['source'];
+    or?: Array<
+      { name: { contains: string } } |
+      { slug: { contains: string } }
+    >;
+  };
+
   export class VocabularyService extends services.Core.Service {
     protected override _exportedMethods: string[] = [
       'list',
@@ -103,7 +112,7 @@ export namespace Services {
       const offset = Math.max(0, Number(options.offset ?? 0));
       const sort = options.sort || 'name ASC';
 
-      const where: Record<string, unknown> = {};
+      const where: VocabularyListWhere = {};
       if (options.type) {
         where.type = options.type;
       }
@@ -120,12 +129,12 @@ export namespace Services {
       }
 
       const total = await Vocabulary.count(where);
-      const data = await Vocabulary.find(where).sort(sort).skip(offset).limit(limit) as unknown as VocabularyAttributes[];
+      const data = await Vocabulary.find(where).sort(sort).skip(offset).limit(limit) as VocabularyAttributes[];
       return { data, meta: { total, limit, offset } };
     }
 
     public async getById(id: string): Promise<VocabularyAttributes | null> {
-      return await Vocabulary.findOne({ id }) as unknown as VocabularyAttributes | null;
+      return await Vocabulary.findOne({ id });
     }
 
     public async create(input: VocabularyInput): Promise<VocabularyAttributes> {
@@ -158,13 +167,13 @@ export namespace Services {
         try {
           return await datastore.transaction(async (connection: unknown) => {
             const created = await this.createAndFetch<VocabularyAttributes>(
-              Vocabulary.create(createPayload) as unknown as Sails.WaterlinePromise<VocabularyAttributes>,
+              Vocabulary.create(createPayload),
               connection
             );
             if (entries.length > 0) {
               await this.replaceEntries(created.id, created.type === 'flat', entries, connection);
             }
-            const findQuery = Vocabulary.findOne({ id: created.id }) as unknown as Sails.WaterlinePromise<VocabularyAttributes | null>;
+            const findQuery = Vocabulary.findOne({ id: created.id }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
             const found = await this.executeQuery(findQuery, connection);
             if (!found) {
               throw new Error('Vocabulary create failed');
@@ -183,7 +192,7 @@ export namespace Services {
       let created: VocabularyAttributes | null = null;
       try {
         created = await this.createAndFetch<VocabularyAttributes>(
-          Vocabulary.create(createPayload) as unknown as Sails.WaterlinePromise<VocabularyAttributes>
+          Vocabulary.create(createPayload)
         );
         if (!created) {
           throw new Error('Vocabulary create failed');
@@ -191,7 +200,7 @@ export namespace Services {
         if (entries.length > 0) {
           await this.replaceEntries(created.id, created.type === 'flat', entries);
         }
-        const saved = await Vocabulary.findOne({ id: created.id }) as unknown as VocabularyAttributes | null;
+        const saved = await Vocabulary.findOne({ id: created.id });
         if (!saved) {
           throw new Error('Vocabulary create failed');
         }
@@ -210,7 +219,7 @@ export namespace Services {
     }
 
     public async update(id: string, input: Partial<VocabularyInput>): Promise<VocabularyAttributes> {
-      const existing = await Vocabulary.findOne({ id }) as unknown as VocabularyAttributes | null;
+      const existing = await Vocabulary.findOne({ id });
       if (!existing) {
         throw new Error('Vocabulary not found');
       }
@@ -236,7 +245,7 @@ export namespace Services {
         modelUpdate.slug = updatePayload.slug;
       }
       await Vocabulary.updateOne({ id }).set(modelUpdate);
-      const updated = await Vocabulary.findOne({ id }) as unknown as VocabularyAttributes | null;
+      const updated = await Vocabulary.findOne({ id });
       if (!updated) {
         throw new Error('Vocabulary not found');
       }
@@ -245,7 +254,7 @@ export namespace Services {
         await this.replaceEntries(id, updated.type === 'flat', entries);
       }
 
-      const refreshed = await Vocabulary.findOne({ id }) as unknown as VocabularyAttributes | null;
+      const refreshed = await Vocabulary.findOne({ id });
       if (!refreshed) {
         throw new Error('Vocabulary not found');
       }
@@ -273,7 +282,7 @@ export namespace Services {
         throw new Error('VocabularyEntry cannot parent itself');
       }
 
-      const parentQuery = VocabularyEntry.findOne({ id: parentId }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+      const parentQuery = VocabularyEntry.findOne({ id: parentId }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
       const parent = await this.executeQuery<VocabularyEntryAttributes | null>(parentQuery, connection);
       if (!parent) {
         throw new Error('VocabularyEntry.parent not found');
@@ -291,13 +300,13 @@ export namespace Services {
         if (String(cursor.parent) === entryId) {
           throw new Error('VocabularyEntry cycle detected');
         }
-        const cursorQuery = VocabularyEntry.findOne({ id: String(cursor.parent) }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+        const cursorQuery = VocabularyEntry.findOne({ id: String(cursor.parent) }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
         cursor = await this.executeQuery(cursorQuery, connection);
       }
     }
 
     public async getTree(vocabularyId: string): Promise<VocabularyTreeNode[]> {
-      const entries = await VocabularyEntry.find({ vocabulary: vocabularyId }).sort('order ASC').sort('label ASC') as unknown as VocabularyEntryAttributes[];
+      const entries = await VocabularyEntry.find({ vocabulary: vocabularyId }).sort('order ASC').sort('label ASC') as VocabularyEntryAttributes[];
       const nodes: Record<string, VocabularyTreeNode> = {};
       const roots: VocabularyTreeNode[] = [];
 
@@ -335,11 +344,11 @@ export namespace Services {
 
         let existing: VocabularyEntryAttributes | null = null;
         if (entry.identifier) {
-          const byIdentifier = VocabularyEntry.findOne({ vocabulary: vocabularyId, identifier: entry.identifier }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+          const byIdentifier = VocabularyEntry.findOne({ vocabulary: vocabularyId, identifier: entry.identifier }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
           existing = await this.executeQuery(byIdentifier, connection);
         }
         if (!existing) {
-          const byValue = VocabularyEntry.findOne({ vocabulary: vocabularyId, valueLower: entry.value.toLowerCase() }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+          const byValue = VocabularyEntry.findOne({ vocabulary: vocabularyId, valueLower: entry.value.toLowerCase() }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
           existing = await this.executeQuery(byValue, connection);
         }
 
@@ -352,7 +361,7 @@ export namespace Services {
             identifier: entry.identifier,
             parent: entry.parent ?? undefined,
             order: entry.order ?? 0
-          }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes>;
+          });
           await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
           created++;
           continue;
@@ -365,7 +374,7 @@ export namespace Services {
           identifier: entry.identifier,
           parent: entry.parent ?? undefined,
           order: entry.order ?? existing.order ?? 0
-        }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+        }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
         await this.executeQuery(updateQuery, connection);
         updated++;
       }
@@ -379,7 +388,7 @@ export namespace Services {
         throw new Error('Vocabulary.type = flat does not support parent entries');
       }
 
-      const destroyQuery = VocabularyEntry.destroy({ vocabulary: vocabularyId }) as unknown as Sails.WaterlinePromise<unknown[]>;
+      const destroyQuery = VocabularyEntry.destroy({ vocabulary: vocabularyId }) as Sails.WaterlinePromise<unknown[]>;
       await this.executeQuery(destroyQuery, connection);
 
       const oldToNewIds: Record<string, string> = {};
@@ -395,7 +404,7 @@ export namespace Services {
           value: normalized.value,
           identifier: normalized.identifier,
           order: normalized.order ?? 0
-        }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes>;
+        });
         const created = await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
 
         oldToNewIds[String(normalized.id)] = String(created.id);
@@ -411,14 +420,14 @@ export namespace Services {
           continue;
         }
         await this.validateParent(vocabularyId, entryId, mappedParentId, connection);
-        const updateQuery = VocabularyEntry.updateOne({ id: entryId }).set({ parent: mappedParentId }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+        const updateQuery = VocabularyEntry.updateOne({ id: entryId }).set({ parent: mappedParentId }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
         await this.executeQuery(updateQuery, connection);
       }
     }
 
     private getDatastore(): { transaction?: <T>(cb: (db: unknown) => Promise<T>) => Promise<T> } | null {
-      return (Vocabulary.getDatastore?.() as unknown as { transaction?: <T>(cb: (db: unknown) => Promise<T>) => Promise<T> } | null)
-        ?? (sails as unknown as { getDatastore?: () => { transaction?: <T>(cb: (db: unknown) => Promise<T>) => Promise<T> } | null }).getDatastore?.()
+      return (Vocabulary.getDatastore?.() as { transaction?: <T>(cb: (db: unknown) => Promise<T>) => Promise<T> } | null)
+        ?? (sails as { getDatastore?: () => { transaction?: <T>(cb: (db: unknown) => Promise<T>) => Promise<T> } | null }).getDatastore?.()
         ?? null;
     }
 
