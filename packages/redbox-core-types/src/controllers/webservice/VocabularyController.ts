@@ -1,8 +1,39 @@
 import { Controllers as controllers } from '../../CoreController';
 import { Services as VocabularyServiceModule } from '../../services/VocabularyService';
 
+type BrandingServiceApi = {
+  getBrandFromReq: (req: { params?: Record<string, unknown>; body?: Record<string, unknown>; session?: Record<string, unknown> }) => string;
+  getBrand: (nameOrId: string) => { id?: string | number } | null;
+};
+
+type VocabularyServiceApi = {
+  list: (options: VocabularyServiceModule.VocabularyListOptions) => Promise<{ data: unknown[]; meta: { total: number; limit: number; offset: number } }>;
+  getById: (id: string) => Promise<unknown>;
+  getTree: (id: string) => Promise<unknown[]>;
+  create: (input: VocabularyServiceModule.VocabularyInput) => Promise<unknown>;
+  update: (id: string, input: Partial<VocabularyServiceModule.VocabularyInput>) => Promise<unknown>;
+  delete: (id: string) => Promise<void>;
+};
+
+type RvaImportServiceApi = {
+  importRvaVocabulary: (rvaId: string, versionId?: string, branding?: string) => Promise<unknown>;
+  syncRvaVocabulary: (vocabularyId: string, versionId?: string) => Promise<{ updated: number; created: number; skipped: number; lastSyncedAt: string }>;
+};
+
+declare const BrandingService: BrandingServiceApi;
+declare const VocabularyService: VocabularyServiceApi;
+declare const RvaImportService: RvaImportServiceApi;
+
 export namespace Controllers {
   export class Vocabulary extends controllers.Core.Controller {
+    private parseNumberParam(value: unknown, fallback: number): number {
+      if (value === '' || typeof value === 'undefined' || value === null) {
+        return fallback;
+      }
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
     private resolveBrandingId(req: Sails.Req): string {
       const brandingNameOrId = BrandingService.getBrandFromReq(req as unknown as {
         params?: Record<string, unknown>;
@@ -29,12 +60,14 @@ export namespace Controllers {
 
     public async list(req: Sails.Req, res: Sails.Res) {
       try {
+        const limit = this.parseNumberParam(req.param('limit'), 25);
+        const offset = this.parseNumberParam(req.param('offset'), 0);
         const response = await VocabularyService.list({
           q: req.param('q'),
           type: req.param('type'),
           source: req.param('source'),
-          limit: Number(req.param('limit') || 25),
-          offset: Number(req.param('offset') || 0),
+          limit,
+          offset,
           sort: req.param('sort'),
           branding: this.resolveBrandingId(req)
         });
@@ -94,6 +127,9 @@ export namespace Controllers {
     public async import(req: Sails.Req, res: Sails.Res) {
       try {
         const rvaId = String(req.body?.rvaId || '');
+        if (!rvaId.trim()) {
+          return this.sendResp(req, res, { status: 400, errors: [new Error('rvaId is required')], headers: this.getNoCacheHeaders() });
+        }
         const versionId = req.body?.versionId ? String(req.body.versionId) : undefined;
         const created = await RvaImportService.importRvaVocabulary(rvaId, versionId, this.resolveBrandingId(req));
         return this.sendResp(req, res, { data: created, headers: this.getNoCacheHeaders() });

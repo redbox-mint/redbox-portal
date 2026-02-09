@@ -7,9 +7,8 @@ declare const VocabularyEntry: any;
 
 describe('Vocabulary Models', () => {
   it('creates local vocab with auto-generated slug', async () => {
-    const suffix = Date.now();
     const created = await Vocabulary.create({
-      name: `My Test Vocabulary ${suffix}`,
+      name: 'My Test Vocabulary',
       branding: 'default'
     }).fetch();
 

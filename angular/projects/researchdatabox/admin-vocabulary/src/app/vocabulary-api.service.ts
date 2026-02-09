@@ -17,7 +17,7 @@ export interface VocabularyEntry {
   id?: string;
   label: string;
   value: string;
-  parent?: string;
+  parent?: string | null;
   identifier?: string;
   order?: number;
   children?: VocabularyEntry[];
@@ -71,6 +71,14 @@ export class VocabularyApiService extends HttpClientService {
     return response as T;
   }
 
+  private describeUnexpectedResponse(response: unknown): string {
+    try {
+      return JSON.stringify(response);
+    } catch (_err) {
+      return String(response);
+    }
+  }
+
   public async list(): Promise<VocabularySummary[]> {
     const url = `${this.brandingAndPortalUrl}/api/vocabulary`;
     const response = await firstValueFrom(
@@ -86,7 +94,7 @@ export class VocabularyApiService extends HttpClientService {
       return maybeV1.data;
     }
 
-    return [];
+    throw new Error(`Unexpected response from ${url}: ${this.describeUnexpectedResponse(response)}`);
   }
 
   public async get(id: string): Promise<{ vocabulary: VocabularyDetail; entries: VocabularyEntry[] }> {

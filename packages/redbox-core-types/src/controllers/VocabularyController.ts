@@ -102,6 +102,9 @@ export namespace Controllers {
     public async import(req: Sails.Req, res: Sails.Res) {
       try {
         const rvaId = String(req.body?.rvaId || '');
+        if (!rvaId.trim()) {
+          return this.sendResp(req, res, { status: 400, errors: [new Error('rvaId is required')], headers: this.getNoCacheHeaders() });
+        }
         const versionId = req.body?.versionId ? String(req.body.versionId) : undefined;
         const created = await RvaImportService.importRvaVocabulary(rvaId, versionId, this.resolveBrandingId(req));
         return this.sendResp(req, res, { data: created, headers: this.getNoCacheHeaders() });

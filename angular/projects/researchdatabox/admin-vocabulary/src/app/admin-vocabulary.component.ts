@@ -16,6 +16,7 @@ export class AdminVocabularyComponent extends BaseComponent {
   error = '';
   isEditModalOpen = false;
   isImportModalOpen = false;
+  private editModalTrigger: HTMLElement | null = null;
 
   draft: VocabularyDetail = {
     name: '',
@@ -58,25 +59,39 @@ export class AdminVocabularyComponent extends BaseComponent {
   }
 
   async refresh(): Promise<void> {
-    this.vocabularies = await this.vocabularyApi.list();
+    try {
+      this.vocabularies = await this.vocabularyApi.list();
+    } catch (err) {
+      this.error = `Failed to load vocabularies: ${this.asErrorMessage(err)}`;
+      this.logger.error(this.error);
+    }
   }
 
   async openVocabulary(id: string): Promise<void> {
-    const result = await this.vocabularyApi.get(id);
-    const flattenedEntries = this.flattenEntries(result.entries);
-    this.selectedVocabulary = result.vocabulary;
-    this.selectedEntries = flattenedEntries;
-    this.draft = {
-      ...result.vocabulary,
-      entries: flattenedEntries
-    };
-    this.isEditModalOpen = true;
-    this.isImportModalOpen = false;
+    this.message = '';
+    this.error = '';
+    this.rememberEditModalTrigger();
+    try {
+      const result = await this.vocabularyApi.get(id);
+      const flattenedEntries = this.flattenEntries(result.entries);
+      this.selectedVocabulary = result.vocabulary;
+      this.selectedEntries = flattenedEntries;
+      this.draft = {
+        ...result.vocabulary,
+        entries: flattenedEntries
+      };
+      this.isEditModalOpen = true;
+      this.isImportModalOpen = false;
+    } catch (err) {
+      this.error = `Failed to load vocabulary: ${this.asErrorMessage(err)}`;
+      this.logger.error(this.error);
+    }
   }
 
   newVocabulary(): void {
     this.message = '';
     this.error = '';
+    this.rememberEditModalTrigger();
     this.selectedVocabulary = null;
     this.selectedEntries = [];
     this.draft = {
@@ -99,6 +114,7 @@ export class AdminVocabularyComponent extends BaseComponent {
 
   closeEditModal(): void {
     this.isEditModalOpen = false;
+    this.restoreEditModalTrigger();
   }
 
   closeImportModal(): void {
@@ -122,7 +138,7 @@ export class AdminVocabularyComponent extends BaseComponent {
         this.message = 'Vocabulary created';
       }
       await this.refresh();
-      this.isEditModalOpen = false;
+      this.closeEditModal();
     } catch (err) {
       this.error = `Failed to save vocabulary: ${this.asErrorMessage(err)}`;
       this.logger.error(this.error);
@@ -142,7 +158,7 @@ export class AdminVocabularyComponent extends BaseComponent {
       if (this.selectedVocabulary?.id === id) {
         this.selectedVocabulary = null;
         this.selectedEntries = [];
-        this.isEditModalOpen = false;
+        this.closeEditModal();
       }
       await this.refresh();
     } catch (err) {
@@ -241,5 +257,19 @@ export class AdminVocabularyComponent extends BaseComponent {
       ...entry,
       order: index
     }));
+  }
+
+  private rememberEditModalTrigger(): void {
+    const activeElement = document.activeElement;
+    this.editModalTrigger = activeElement instanceof HTMLElement ? activeElement : null;
+  }
+
+  private restoreEditModalTrigger(): void {
+    if (!this.editModalTrigger) {
+      return;
+    }
+    const target = this.editModalTrigger;
+    this.editModalTrigger = null;
+    setTimeout(() => target.focus(), 0);
   }
 }

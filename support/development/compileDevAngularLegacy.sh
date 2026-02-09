@@ -5,7 +5,7 @@ function buildAngularApp() {
   echo "Building angular legacy app ${1}"
   echo "-------------------------------------------"
   NG_BUILD_PREFIX=""
-  if [ -n "${NG_BUILD_TEMP_OUTPUT:-}" ]  && [ "$2" == "" ]; then
+  if [ -n "${NG_BUILD_TEMP_OUTPUT:-}" ]  && [ -z "${2:-}" ]; then
     NG_BUILD_PREFIX="--output-path=${NG_BUILD_TEMP_OUTPUT}/${1}"
   fi
   (node_modules/.bin/ng build $NG_BUILD_PREFIX --app=${1}) 

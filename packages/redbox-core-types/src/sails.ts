@@ -212,6 +212,8 @@ declare global {
 			exec(cb: (err: Error, results: T) => void): void;
 			set(values: object): WaterlinePromise<T>;
 			meta(options: object): WaterlinePromise<T>;
+			fetch(): WaterlinePromise<T>;
+			usingConnection(connection: unknown): WaterlinePromise<T>;
 
 			populate(association: string): QueryBuilder;
 			populate(association: string, filter: object): QueryBuilder;
@@ -233,6 +235,7 @@ declare global {
 			exec(cb: (error: Error | null, results: Array<QueryResult>) => void): void;
 			set(values: object): QueryBuilder;
 			meta(options: object): QueryBuilder;
+			usingConnection(connection: unknown): QueryBuilder;
 
 			where(condition: object): QueryBuilder;
 

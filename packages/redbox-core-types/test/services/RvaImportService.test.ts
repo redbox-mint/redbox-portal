@@ -50,6 +50,7 @@ describe('RvaImportService', () => {
     sinon.restore();
     delete (global as any).Vocabulary;
     delete (global as any).sails;
+    delete (global as any)._;
   });
 
   it('imports an RVA vocabulary', async () => {

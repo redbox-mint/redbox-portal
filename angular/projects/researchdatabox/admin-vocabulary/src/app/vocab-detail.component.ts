@@ -60,6 +60,13 @@ export class VocabDetailComponent implements OnChanges {
     if (removedEntryId && removedEntryId === this.parentEditorEntryId) {
       this.parentEditorEntryId = null;
     }
+    if (removedEntryId) {
+      this.draft.entries.forEach((entry: VocabularyEntry) => {
+        if (entry.parent === removedEntryId) {
+          entry.parent = null;
+        }
+      });
+    }
     this.draft.entries.splice(index, 1);
     this.reindexEntries();
     this.refreshTreePreviewIfVisible();

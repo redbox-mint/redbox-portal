@@ -7,13 +7,10 @@ import {
   Vocabulary as RvaVocabulary
 } from '@researchdatabox/rva-registry-openapi-generated-node';
 import { Services as services } from '../CoreService';
-import { Services as VocabularyServiceModule } from './VocabularyService';
 import { VocabularyAttributes } from '../waterline-models';
+import { Services as VocabularyServiceModule } from './VocabularyService';
 
-type VocabularyServiceApi = {
-  create: VocabularyServiceModule.Vocabulary['create'];
-  upsertEntries: VocabularyServiceModule.Vocabulary['upsertEntries'];
-};
+
 
 export namespace Services {
   interface RvaSearchResult {
@@ -84,6 +81,15 @@ export namespace Services {
       return this.servicesClient;
     }
 
+    private getVocabularyService(): Pick<VocabularyServiceModule.VocabularyService, 'create' | 'upsertEntries'> {
+      const servicesRegistry = (sails as { services?: Record<string, unknown> }).services;
+      const vocabularyService = servicesRegistry?.vocabularyservice as Pick<VocabularyServiceModule.VocabularyService, 'create' | 'upsertEntries'> | undefined;
+      if (!vocabularyService) {
+        throw new Error('VocabularyService is unavailable');
+      }
+      return vocabularyService;
+    }
+
     public async searchRva(query: string): Promise<RvaSearchResult[]> {
       const search = String(query ?? '').trim();
       if (!search) {
@@ -98,8 +104,12 @@ export namespace Services {
     public async importRvaVocabulary(rvaId: string, versionId?: string, branding?: string): Promise<VocabularyAttributes> {
       const metadata = await this.getVocabularyById(rvaId);
       const selectedVersionId = versionId || this.selectVersionId(metadata.version);
+      if (!selectedVersionId) {
+        throw new Error(`Missing RVA version id for rvaId: ${rvaId}`);
+      }
       const concepts = await this.getConceptTree(selectedVersionId);
 
+     
       const vocabularyService = this.getVocabularyService();
       const vocabulary = await vocabularyService.create({
         name: String(metadata.title ?? metadata.slug ?? rvaId),
@@ -129,19 +139,39 @@ export namespace Services {
 
       const metadata = await this.getVocabularyById(String(vocabulary.sourceId));
       const selectedVersionId = versionId || this.selectVersionId(metadata.version);
+      if (!selectedVersionId) {
+        throw new Error(`Missing RVA version id for rvaId: ${vocabulary.sourceId}`);
+      }
       const concepts = await this.getConceptTree(selectedVersionId);
       const entries = this.toVocabularyEntries(concepts);
 
-      const vocabularyService = this.getVocabularyService();
-      const counters = await vocabularyService.upsertEntries(String(vocabulary.id), entries);
       const lastSyncedAt = new Date().toISOString();
+      const vocabularyService = this.getVocabularyService();
 
-      await Vocabulary.updateOne({ id: vocabulary.id }).set({
-        sourceVersionId: selectedVersionId,
-        lastSyncedAt,
-        name: String(metadata.title ?? vocabulary.name),
-        description: metadata.description ?? vocabulary.description,
-        owner: metadata.owner ?? vocabulary.owner
+      const counters = await this.runInTransaction(async (connection) => {
+        const results = await vocabularyService.upsertEntries(String(vocabulary.id), entries, connection);
+        const updater = Vocabulary.updateOne({ id: vocabulary.id }).set({
+          sourceVersionId: selectedVersionId,
+          lastSyncedAt,
+          name: String(metadata.title ?? vocabulary.name),
+          description: metadata.description ?? vocabulary.description,
+          owner: metadata.owner ?? vocabulary.owner
+        });
+        try {
+          const updaterWithConnection = updater as unknown as { usingConnection?: (db: unknown) => Promise<void> };
+          if (connection && typeof updaterWithConnection.usingConnection === 'function') {
+            await updaterWithConnection.usingConnection(connection);
+          } else {
+            await updater;
+          }
+        } catch (error) {
+          if (!connection) {
+            sails.log?.error?.('RVA sync failed after entry upsert; retry may be required.', error);
+            throw new Error(`Sync failed after updating entries: ${String(error)}`);
+          }
+          throw error;
+        }
+        return results;
       });
 
       return {
@@ -150,8 +180,24 @@ export namespace Services {
       };
     }
 
-    private getVocabularyService(): VocabularyServiceApi {
-      return sails.services['vocabularyservice'] as Sails.DynamicService & VocabularyServiceApi;
+
+    private async runInTransaction<T>(work: (connection?: unknown) => Promise<T>): Promise<T> {
+      const datastore = (Vocabulary as unknown as { getDatastore?: () => { transaction?: (cb: (db: unknown) => Promise<T>) => Promise<T> } | null })
+        .getDatastore?.() ?? (sails as unknown as { getDatastore?: () => { transaction?: (cb: (db: unknown) => Promise<T>) => Promise<T> } | null })
+        .getDatastore?.();
+      if (datastore?.transaction) {
+        try {
+          return await datastore.transaction(async (db: unknown) => work(db));
+        } catch (error) {
+          const message = String((error as Error)?.message ?? error);
+          if (message.includes('transactional') && message.includes('adapter')) {
+            sails.log?.warn?.('Transactions are not supported by this datastore adapter. Falling back to non-transactional execution.');
+            return work(undefined);
+          }
+          throw error;
+        }
+      }
+      return work(undefined);
     }
 
     private getBaseUrl(): string {

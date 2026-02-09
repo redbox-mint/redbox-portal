@@ -1,7 +1,8 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
-import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
+import { APP_BASE_HREF, PlatformLocation, CommonModule } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 
 import { AdminVocabularyComponent } from './admin-vocabulary.component';
@@ -19,8 +20,10 @@ import { RvaImportComponent } from './rva-import.component';
   ],
   imports: [
     BrowserModule,
+    A11yModule,
     FormsModule,
-    RedboxPortalCoreModule
+    RedboxPortalCoreModule,
+    CommonModule
   ],
   providers: [
     VocabularyApiService,

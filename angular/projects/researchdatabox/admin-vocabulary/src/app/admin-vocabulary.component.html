@@ -35,12 +35,19 @@
   ></vocab-list>
 </div>
 
-<div class="modal fade show d-block" tabindex="-1" role="dialog" *ngIf="isEditModalOpen">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+<div
+  class="modal fade show d-block"
+  tabindex="-1"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="vocabModalTitle"
+  *ngIf="isEditModalOpen"
+>
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">{{ selectedVocabulary?.id ? 'Edit Vocabulary' : 'Create Vocabulary' }}</h5>
-        <button type="button" class="close" aria-label="Close" (click)="closeEditModal()">
+        <h5 class="modal-title" id="vocabModalTitle">{{ selectedVocabulary?.id ? 'Edit Vocabulary' : 'Create Vocabulary' }}</h5>
+        <button type="button" class="close" aria-label="Close" (click)="closeEditModal()" cdkFocusInitial>
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -55,13 +62,20 @@
     </div>
   </div>
 </div>
-<div class="modal-backdrop fade show" *ngIf="isEditModalOpen"></div>
+<div class="modal-backdrop fade show" *ngIf="isEditModalOpen" aria-hidden="true"></div>
 
-<div class="modal fade show d-block" tabindex="-1" role="dialog" *ngIf="isImportModalOpen">
+<div
+  class="modal fade show d-block"
+  tabindex="-1"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="importModalTitle"
+  *ngIf="isImportModalOpen"
+>
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Import RVA Vocabulary</h5>
+        <h5 class="modal-title" id="importModalTitle">Import RVA Vocabulary</h5>
         <button type="button" class="close" aria-label="Close" (click)="closeImportModal()">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -76,4 +90,4 @@
     </div>
   </div>
 </div>
-<div class="modal-backdrop fade show" *ngIf="isImportModalOpen"></div>
+<div class="modal-backdrop fade show" *ngIf="isImportModalOpen" aria-hidden="true"></div>

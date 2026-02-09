@@ -51,8 +51,19 @@ describe('AdminVocabularyComponent', () => {
   it('imports vocabulary by rva id', async () => {
     const fixture = TestBed.createComponent(AdminVocabularyComponent);
     const component = fixture.componentInstance;
+    const api = TestBed.inject(VocabularyApiService);
+
+    spyOn(api, 'list').and.returnValues(
+      Promise.resolve([]),
+      Promise.resolve([{ id: 'v1', name: 'Imported', slug: 'imported', type: 'flat', source: 'rva' }])
+    );
+
+    fixture.detectChanges();
+    await component.waitForInit();
     await component.importRva('rva:test');
     expect(component.error).toBe('');
+    expect(component.vocabularies.length).toBe(1);
+    expect(component.vocabularies[0].name).toBe('Imported');
   });
 
   it('flattens nested tree entries when opening a vocabulary', async () => {

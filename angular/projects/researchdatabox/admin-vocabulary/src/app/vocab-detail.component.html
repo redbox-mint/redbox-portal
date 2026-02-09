@@ -43,8 +43,8 @@
         <button class="btn btn-sm btn-outline-secondary" type="button" (click)="refreshTreePreview()">Refresh</button>
       </div>
 
-      <ul class="tree-preview-list mb-0" *ngIf="previewTree.length > 0; else emptyPreview">
-        <ng-container *ngTemplateOutlet="previewNodesTemplate; context: { $implicit: previewTree }"></ng-container>
+      <ul class="tree-preview-list mb-0" *ngIf="(previewTree || []).length > 0; else emptyPreview">
+        <ng-container *ngTemplateOutlet="previewNodesTemplate; context: { $implicit: previewTree || [] }"></ng-container>
       </ul>
 
       <ng-template #emptyPreview>

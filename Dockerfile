@@ -37,7 +37,7 @@ RUN npm ci \
  && (cd packages/sails-hook-redbox-storage-mongo && npm ci)
 
 RUN cd packages/raido && npm run build
-RUN cd packages/rva-registry && npx run build
+RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
 RUN cd packages/redbox-core-types && npx tsc -p tsconfig.json
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile

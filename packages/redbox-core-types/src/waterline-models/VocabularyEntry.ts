@@ -40,7 +40,18 @@ const validateParent = async (record: Record<string, unknown>): Promise<void> =>
     throw new Error('VocabularyEntry.parent not found');
   }
 
-  if (record.vocabulary && String(parent.vocabulary) !== String(record.vocabulary)) {
+  let recordVocabulary = record.vocabulary ? String(record.vocabulary) : '';
+  if (!recordVocabulary && record.id) {
+    const existing = await VocabularyEntry.findOne({ id: String(record.id) });
+    if (!existing) {
+      throw new Error('VocabularyEntry not found for parent validation');
+    }
+    if (existing.vocabulary) {
+      recordVocabulary = String(existing.vocabulary);
+    }
+  }
+
+  if (recordVocabulary && String(parent.vocabulary) !== recordVocabulary) {
     throw new Error('VocabularyEntry.parent must belong to the same vocabulary');
   }
 };

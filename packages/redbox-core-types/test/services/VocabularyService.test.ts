@@ -3,18 +3,61 @@ import * as sinon from 'sinon';
 import * as lodash from 'lodash';
 import { Services as VocabularyServiceModule } from '../../src/services/VocabularyService';
 
+type StubbedLogger = {
+  error: (...args: unknown[]) => void;
+  verbose: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+};
+
+type StubbedSails = {
+  log: StubbedLogger;
+  config: { auth: { defaultBrand: string } };
+  services: Record<string, unknown>;
+};
+
+type VocabularyFindChain = {
+  sort: (...args: unknown[]) => VocabularyFindChain;
+  skip: (...args: unknown[]) => VocabularyFindChain;
+  limit: (...args: unknown[]) => Promise<Array<{ id: string; name: string }>>;
+};
+
+type VocabularyModelStub = {
+  count: (...args: unknown[]) => Promise<number>;
+  find: (...args: unknown[]) => VocabularyFindChain;
+  findOne: (...args: unknown[]) => Promise<{ id: string; name: string; type: 'flat' } | null>;
+  create: (...args: unknown[]) => { fetch: (...args: unknown[]) => Promise<{ id: string }> };
+  updateOne: (...args: unknown[]) => { set: (...args: unknown[]) => Promise<{ id: string }> };
+  destroyOne: (...args: unknown[]) => Promise<void>;
+};
+
+type VocabularyEntryModelStub = {
+  find: (...args: unknown[]) => { sort: (...args: unknown[]) => { sort: (...args: unknown[]) => Promise<Array<Record<string, unknown>>> } };
+  destroy: (...args: unknown[]) => Promise<void>;
+  findOne: (...args: unknown[]) => Promise<null>;
+  create: (...args: unknown[]) => { fetch: (...args: unknown[]) => Promise<{ id: string }> };
+  updateOne: (...args: unknown[]) => { set: (...args: unknown[]) => Promise<{ id: string }> };
+};
+
+type TestGlobals = typeof globalThis & {
+  sails: StubbedSails;
+  Vocabulary: VocabularyModelStub;
+  VocabularyEntry: VocabularyEntryModelStub;
+};
+
 describe('VocabularyService', () => {
-  let service: any;
+  let service: VocabularyServiceModule.VocabularyService;
+  let g: TestGlobals;
 
   beforeEach(() => {
-    (global as any)._ = lodash;
-    (global as any).sails = {
+    g = globalThis as TestGlobals;
+    Reflect.set(globalThis, '_', lodash);
+    g.sails = {
       log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() },
       config: { auth: { defaultBrand: 'default' } },
       services: {}
     };
 
-    (global as any).Vocabulary = {
+    g.Vocabulary = {
       count: sinon.stub().resolves(1),
       find: sinon.stub().returns({ sort: sinon.stub().returnsThis(), skip: sinon.stub().returnsThis(), limit: sinon.stub().resolves([{ id: 'v1', name: 'V1' }]) }),
       findOne: sinon.stub().resolves({ id: 'v1', name: 'V1', type: 'flat' }),
@@ -23,7 +66,7 @@ describe('VocabularyService', () => {
       destroyOne: sinon.stub().resolves()
     };
 
-    (global as any).VocabularyEntry = {
+    g.VocabularyEntry = {
       find: sinon.stub().returns({ sort: sinon.stub().returnsThis(), limit: sinon.stub().returnsThis(), skip: sinon.stub().returnsThis(), then: undefined, }),
       destroy: sinon.stub().resolves(),
       findOne: sinon.stub().resolves(null),
@@ -35,20 +78,21 @@ describe('VocabularyService', () => {
       { id: 'e1', vocabulary: 'v1', label: 'Parent', value: 'parent', order: 0 },
       { id: 'e2', vocabulary: 'v1', label: 'Child', value: 'child', parent: 'e1', order: 1 }
     ];
-    (global as any).VocabularyEntry.find = sinon.stub().returns({
+    g.VocabularyEntry.find = sinon.stub().returns({
       sort: sinon.stub().callsFake(() => ({
         sort: sinon.stub().resolves(entries)
       }))
     });
 
-    service = new VocabularyServiceModule.Vocabulary();
+    service = new VocabularyServiceModule.VocabularyService();
   });
 
   afterEach(() => {
     sinon.restore();
-    delete (global as any).Vocabulary;
-    delete (global as any).VocabularyEntry;
-    delete (global as any).sails;
+    Reflect.deleteProperty(globalThis, 'Vocabulary');
+    Reflect.deleteProperty(globalThis, 'VocabularyEntry');
+    Reflect.deleteProperty(globalThis, 'sails');
+    Reflect.deleteProperty(globalThis, '_');
   });
 
   it('lists vocabularies with pagination metadata', async () => {

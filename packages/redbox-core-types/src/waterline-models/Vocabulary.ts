@@ -12,6 +12,7 @@ const slugify = (value: string): string => value
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/^-+|-+$/g, '')
   .replace(/-\d{6,}$/g, '')
+  .replace(/^-+|-+$/g, '')
   .replace(/--+/g, '-');
 
 const normalize = (record: Record<string, unknown>, isCreate: boolean): void => {

@@ -1,19 +1,6 @@
 # Vocabulary Management Design
 
-## 1. rva-registry Package
-- **Purpose**: Provide a TypeScript client library for Research Vocabularies Australia (RVA) APIs used by the `RvaImportService`.
-- **Shape**: A standalone package (like `raido`) generating a typed client from RVA's OpenAPI JSON. Place under `packages/rva-registry` with generated code in `src/generated` and a small wrapper in `src/index.ts`.
-- **Generation & CI**:
-  - Use `openapi-generator` or `swagger-typescript-api` to generate a TypeScript client from RVA's OpenAPI JSON.
-  - Add npm scripts: `generate`, `build`, `test` and CI steps to regenerate when the OpenAPI spec updates.
-- **Public surface (examples)**:
-  - `searchVocabularies(query: string): Promise<RvaVocabularySummary[]>`
-  - `getVocabularyById(id: string): Promise<RvaVocabularyDetail>`
-  - `getVersionArtefactConceptTree(versionId: string): Promise<RvaConceptTree>`
-- **Integration**: Import/use the wrapper in `RvaImportService`; prefer dependency injection where possible.
-- **File locations**: `packages/rva-registry/`
-
-## 2. Data Model (Waterline Models)
+## 1. Data Model (Waterline Models)
 - **Purpose and scope**: Store vocabularies and their entries to support both local management and RVA imports.
 - **New/changed models and attributes**:
     - **`Vocabulary`** (`packages/redbox-core-types/src/waterline-models/Vocabulary.ts`):
@@ -26,7 +13,7 @@
         - `lastSyncedAt`: datetime (optional)
         - `slug`: string (auto-generated from name, unique per branding)
         - `owner`: string (optional, for RVA owner)
-        - `branding`: string (link to branding)
+        - `branding`: string (optional, link to branding)
     - **`VocabularyEntry`** (`packages/redbox-core-types/src/waterline-models/VocabularyEntry.ts`):
         - `vocabulary`: association to `Vocabulary` (required)
         - `label`: string (required)
@@ -58,68 +45,32 @@
 - **Branding scope**: Admin is not multi-brand; vocabularies are managed within a single branding context.
 - **File locations**: `packages/redbox-core-types/src/waterline-models/`
 
-```mermaid
-erDiagram
-    VOCABULARY {
-        string id PK "primary key"
-        string name "required"
-        string description
-        string type "enum: flat|tree"
-        string source "enum: local|rva"
-        string sourceId "RVA external id"
-        string sourceVersionId "RVA external version"
-        datetime lastSyncedAt
-        string slug "unique per branding"
-        string owner "RVA owner"
-        string branding
-    }
-
-    VOCABULARY_ENTRY {
-        string id PK
-        string vocabulary_id FK
-        string label "required"
-        string label_lower "case-insensitive index"
-        string value "required"
-        string value_lower "case-insensitive index"
-        string parent_id FK
-        string identifier "external id/URI"
-        int order
-    }
-
-    VOCABULARY ||--o{ VOCABULARY_ENTRY : contains
-    VOCABULARY_ENTRY }o--|| VOCABULARY_ENTRY : parent_of
-
-```
-
-Notes:
-- Unique constraints (enforced at application/db level): `(branding, slug)`, `(vocabulary, label_lower)`, `(vocabulary, value_lower)`.
-- RVA uniqueness: `(source, sourceId)` when `source = rva`.
-
-## 3. Services Layer (Business Logic)
+## 2. Services Layer (Business Logic)
 - **Service responsibilities**:
-    - **`VocabularyManagementService`**: CRUD for vocabularies and entries. Handling hierarchy (tree retrieval), normalization, validation (same-vocab parent, cycle detection), and delete cascade for entries.
+    - **`VocabularyService`**: CRUD for vocabularies and entries. Handling hierarchy (tree retrieval), normalization, validation (same-vocab parent, cycle detection), and delete cascade for entries.
     - **`RvaImportService`**: Fetch vocabularies from RVA, map to local models, create/update (idempotent sync).
 - **Public methods**:
-    - `VocabularyManagementService.create(data)`, `update(id, data)`, `delete(id)`, `getTree(vocabId)`.
-    - `VocabularyManagementService.normalizeEntry(entry)` (lowercases `label/value` for uniqueness checks).
-    - `VocabularyManagementService.validateParent(entry)` (same vocab, no cycles).
+    - `VocabularyService.create(data)`, `update(id, data)`, `delete(id)`, `getTree(vocabId)`.
+    - `VocabularyService.normalizeEntry(entry)` (lowercases `label/value` for uniqueness checks).
+    - `VocabularyService.validateParent(vocabularyId: string, entryId: string | null, parentId: string | null, connection?: unknown)`
+      (vocabularyId: target vocabulary, entryId: entry being validated or null for new entries, parentId: proposed parent or null, connection: optional DB/transaction context).
     - `RvaImportService.searchRva(query)`, `importRvaVocabulary(rvaId, versionId)`, `syncRvaVocabulary(rvaId, versionId)`.
 - **Dependencies**: 
-    - `RvaImportService` depends on `rva-registry` client and `VocabularyManagementService`.
+    - `RvaImportService` depends on `rva-registry` client and `VocabularyService`.
 - **File locations**: 
-    - `packages/redbox-core-types/src/services/VocabularyManagementService.ts`
+    - `packages/redbox-core-types/src/services/VocabularyService.ts`
     - `packages/redbox-core-types/src/services/RvaImportService.ts`
 - **Service conventions**: Extend `Services.Core.Service`, use `_exportedMethods`, `init()`, RxJS, model globals.
 
-## 4. Webservice Controllers (REST API)
+## 3. Webservice Controllers (REST API)
 - **Endpoint list**:
     - `GET /api/vocabulary` (list, with pagination/filtering)
     - `GET /api/vocabulary/:id` (get details + tree)
     - `POST /api/vocabulary` (create)
     - `PUT /api/vocabulary/:id` (update)
     - `DELETE /api/vocabulary/:id` (delete, cascades entries)
-    - `POST /api/vocabulary/import/rva` (trigger RVA import)
-    - `POST /api/vocabulary/:id/sync` (trigger update/sync for an imported vocab)
+    - `POST /api/vocabulary/import` (trigger RVA import)
+    - `POST /api/vocabulary/:id/sync` (trigger RVA update/sync for an imported vocab)
 - **Autonomy**: Admin only (`Auth.isAuthenticated`, `Auth.isAdmin`).
 - **List behavior**:
     - Query params: `q` (search by name/slug), `type`, `source`, `limit`, `offset`, `sort`.
@@ -198,10 +149,10 @@ Notes:
         "message": "Duplicate label/value within vocabulary (case-insensitive)."
       }
       ```
-- **File locations**: `packages/redbox-core-types/src/controllers/webservice/VocabularyManagementController.ts`
+- **File locations**: `packages/redbox-core-types/src/controllers/webservice/VocabularyController.ts`
 - **Controller conventions**: Extend `Controllers.Core.Controller`.
 
-## 5. Ajax Controllers (Controllers)
+## 4. Ajax Controllers (Controllers)
 - **Endpoint list**:
     - `GET /admin/vocabulary/manager` (Renders the admin UI view)
     - Mirror endpoints for Angular app CRUD and import/sync (admin-only):
@@ -213,10 +164,10 @@ Notes:
         - `POST /admin/vocabulary/import` (trigger RVA import)
         - `POST /admin/vocabulary/:id/sync` (trigger RVA update/sync for an imported vocab)
 - **File locations**: 
-    - `packages/redbox-core-types/src/controllers/VocabularyManagementController.ts`
+    - `packages/redbox-core-types/src/controllers/VocabularyController.ts`
 - **Conventions**: Render the container view for the Angular app.
 
-## 6. Angular App(s)
+## 5. Angular App(s)
 - **Apps/modules**: `admin-vocabulary` module in `packages/redbox-portal/src/app/admin-vocabulary`.
 - **Routes**: No Angular routing. Single view with internal state for List/Detail/Import.
 - **Components**:
@@ -228,18 +179,16 @@ Notes:
 - **Data flow**: Uses `HttpClientService` (or new `VocabularyApiService`) to talk to `/api/vocabulary`.
 - **File locations**: `packages/redbox-portal/src/app/admin-vocabulary/`
 
-[View mockup of the app](https://htmlpreview.github.io/?https://github.com/redbox-mint/redbox-portal/blob/feature/vocabulary-management/support/specs/vocabulary-management/wireframe.html)
-
-## 7. Additional Views
+## 6. Additional Views
 - **View templates**: `packages/redbox-portal/views/admin/vocabulary.ejs`
-- **Wiring**: `VocabularyAjaxController` returns this view.
+- **Wiring**: `VocabularyController` returns this view.
 
-## 8. Navigation Configuration
+## 7. Navigation Configuration
 - **Menu**: Add "Vocabularies" under Admin menu.
 - **File locations**: `packages/redbox-core-types/src/config/brandingConfigurationDefaults.config.ts`.
 
 # Consistency Analysis
-- **Flow**: User clicks Admin > Vocabularies -> `VocabularyManagementController` (Ajax) -> renders `admin/vocabulary.ejs` -> loads `admin-vocabulary` Angular app -> App fetches list from `VocabularyManagementController` (REST) -> Service loads from DB.
+- **Flow**: User clicks Admin > Vocabularies -> `VocabularyController` (Ajax) -> renders `admin/vocabulary.ejs` -> loads `admin-vocabulary` Angular app -> App fetches list from `VocabularyController` (REST) -> Service loads from DB.
 - **Checks**: 
     - RVA Client is ready (`rva-registry` package).
     - Models need to support arbitrary hierarchy -> `parent` field is sufficient, plus cycle checks in service.

@@ -28,7 +28,7 @@ module.exports = function (config) {
     junitReporter: {
       outputDir: require('path').join(__dirname, '../../../../.tmp/junit/frontend-admin-vocabulary')
     },
-    reporters: ['progress', 'kjhtml', 'junit'],
+    reporters: ['progress', 'kjhtml', 'junit', 'coverage'],
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,

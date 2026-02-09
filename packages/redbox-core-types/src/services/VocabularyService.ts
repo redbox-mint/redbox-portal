@@ -9,7 +9,7 @@ export namespace Services {
     id?: string;
     label: string;
     value: string;
-    parent?: string;
+    parent?: string | null;
     identifier?: string;
     order?: number;
     children?: VocabularyEntryInput[];
@@ -43,7 +43,7 @@ export namespace Services {
     children: VocabularyTreeNode[];
   }
 
-  export class Vocabulary extends services.Core.Service {
+  export class VocabularyService extends services.Core.Service {
     protected override _exportedMethods: string[] = [
       'list',
       'getById',
@@ -56,23 +56,31 @@ export namespace Services {
       'upsertEntries'
     ];
 
-    private get vocabularyModel() {
-      return (globalThis as Record<string, unknown>).Vocabulary as any;
+    private async executeQuery<T>(query: Sails.WaterlinePromise<T>, connection?: unknown): Promise<T> {
+      if (connection) {
+        return query.usingConnection(connection);
+      }
+      return query;
     }
 
-    private get vocabularyEntryModel() {
-      return (globalThis as Record<string, unknown>).VocabularyEntry as any;
+    private async createAndFetch<T>(createQuery: Sails.WaterlinePromise<T>, connection?: unknown): Promise<T> {
+      const fetchedQuery = createQuery.fetch();
+      return this.executeQuery(fetchedQuery, connection);
     }
 
     private resolveBrandingId(branding: unknown): string {
       if (branding && typeof branding === 'object') {
-        const brandingObject = branding as { id?: string | number; _id?: string | number };
+        const brandingObject = branding as { id?: string | number; _id?: string | number; name?: string };
         if (brandingObject.id) {
           return String(brandingObject.id);
         }
         if (brandingObject._id) {
           return String(brandingObject._id);
         }
+        if (typeof brandingObject.name === 'string' && brandingObject.name.trim()) {
+          return brandingObject.name.trim();
+        }
+        return '';
       }
 
       const brandingString = String(branding ?? '').trim();
@@ -111,13 +119,13 @@ export namespace Services {
         ];
       }
 
-      const total = await this.vocabularyModel.count(where);
-      const data = await this.vocabularyModel.find(where).sort(sort).skip(offset).limit(limit);
+      const total = await Vocabulary.count(where);
+      const data = await Vocabulary.find(where).sort(sort).skip(offset).limit(limit) as unknown as VocabularyAttributes[];
       return { data, meta: { total, limit, offset } };
     }
 
     public async getById(id: string): Promise<VocabularyAttributes | null> {
-      return await this.vocabularyModel.findOne({ id });
+      return await Vocabulary.findOne({ id }) as unknown as VocabularyAttributes | null;
     }
 
     public async create(input: VocabularyInput): Promise<VocabularyAttributes> {
@@ -145,15 +153,64 @@ export namespace Services {
         createPayload.slug = payload.slug;
       }
 
-      const created = await this.vocabularyModel.create(createPayload).fetch();
-      if (entries.length > 0) {
-        await this.replaceEntries(created.id, created.type === 'flat', entries);
+      const datastore = this.getDatastore();
+      if (datastore?.transaction) {
+        try {
+          return await datastore.transaction(async (connection: unknown) => {
+            const created = await this.createAndFetch<VocabularyAttributes>(
+              Vocabulary.create(createPayload) as unknown as Sails.WaterlinePromise<VocabularyAttributes>,
+              connection
+            );
+            if (entries.length > 0) {
+              await this.replaceEntries(created.id, created.type === 'flat', entries, connection);
+            }
+            const findQuery = Vocabulary.findOne({ id: created.id }) as unknown as Sails.WaterlinePromise<VocabularyAttributes | null>;
+            const found = await this.executeQuery(findQuery, connection);
+            if (!found) {
+              throw new Error('Vocabulary create failed');
+            }
+            return found;
+          });
+        } catch (error) {
+          const message = String((error as Error)?.message ?? error);
+          if (!(message.includes('transactional') && message.includes('adapter'))) {
+            throw error;
+          }
+          sails.log?.warn?.('Transactions are not supported by this datastore adapter. Falling back to non-transactional create.');
+        }
       }
-      return (await this.vocabularyModel.findOne({ id: created.id })) as VocabularyAttributes;
+
+      let created: VocabularyAttributes | null = null;
+      try {
+        created = await this.createAndFetch<VocabularyAttributes>(
+          Vocabulary.create(createPayload) as unknown as Sails.WaterlinePromise<VocabularyAttributes>
+        );
+        if (!created) {
+          throw new Error('Vocabulary create failed');
+        }
+        if (entries.length > 0) {
+          await this.replaceEntries(created.id, created.type === 'flat', entries);
+        }
+        const saved = await Vocabulary.findOne({ id: created.id }) as unknown as VocabularyAttributes | null;
+        if (!saved) {
+          throw new Error('Vocabulary create failed');
+        }
+        return saved;
+      } catch (err) {
+        if (created?.id) {
+          try {
+            await VocabularyEntry.destroy({ vocabulary: created.id });
+            await Vocabulary.destroyOne({ id: created.id });
+          } catch (_cleanupErr) {
+            // Swallow cleanup errors to preserve the original failure.
+          }
+        }
+        throw err;
+      }
     }
 
     public async update(id: string, input: Partial<VocabularyInput>): Promise<VocabularyAttributes> {
-      const existing = await this.vocabularyModel.findOne({ id });
+      const existing = await Vocabulary.findOne({ id }) as unknown as VocabularyAttributes | null;
       if (!existing) {
         throw new Error('Vocabulary not found');
       }
@@ -178,19 +235,26 @@ export namespace Services {
       if (typeof updatePayload.slug !== 'undefined') {
         modelUpdate.slug = updatePayload.slug;
       }
-      await this.vocabularyModel.updateOne({ id }).set(modelUpdate);
-      const updated = (await this.vocabularyModel.findOne({ id })) as VocabularyAttributes;
+      await Vocabulary.updateOne({ id }).set(modelUpdate);
+      const updated = await Vocabulary.findOne({ id }) as unknown as VocabularyAttributes | null;
+      if (!updated) {
+        throw new Error('Vocabulary not found');
+      }
 
       if (entries) {
         await this.replaceEntries(id, updated.type === 'flat', entries);
       }
 
-      return (await this.vocabularyModel.findOne({ id })) as VocabularyAttributes;
+      const refreshed = await Vocabulary.findOne({ id }) as unknown as VocabularyAttributes | null;
+      if (!refreshed) {
+        throw new Error('Vocabulary not found');
+      }
+      return refreshed;
     }
 
     public async delete(id: string): Promise<void> {
-      await this.vocabularyEntryModel.destroy({ vocabulary: id });
-      await this.vocabularyModel.destroyOne({ id });
+      await VocabularyEntry.destroy({ vocabulary: id });
+      await Vocabulary.destroyOne({ id });
     }
 
     public normalizeEntry(entry: VocabularyEntryInput): VocabularyEntryInput {
@@ -201,7 +265,7 @@ export namespace Services {
       };
     }
 
-    public async validateParent(vocabularyId: string, entryId: string | null, parentId: string | null): Promise<void> {
+    public async validateParent(vocabularyId: string, entryId: string | null, parentId: string | null, connection?: unknown): Promise<void> {
       if (!parentId) {
         return;
       }
@@ -209,7 +273,8 @@ export namespace Services {
         throw new Error('VocabularyEntry cannot parent itself');
       }
 
-      const parent = await this.vocabularyEntryModel.findOne({ id: parentId });
+      const parentQuery = VocabularyEntry.findOne({ id: parentId }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+      const parent = await this.executeQuery<VocabularyEntryAttributes | null>(parentQuery, connection);
       if (!parent) {
         throw new Error('VocabularyEntry.parent not found');
       }
@@ -221,17 +286,18 @@ export namespace Services {
         return;
       }
 
-      let cursor: VocabularyEntryAttributes | null = parent as VocabularyEntryAttributes;
+      let cursor: VocabularyEntryAttributes | null = parent;
       while (cursor?.parent) {
         if (String(cursor.parent) === entryId) {
           throw new Error('VocabularyEntry cycle detected');
         }
-        cursor = (await this.vocabularyEntryModel.findOne({ id: String(cursor.parent) })) as VocabularyEntryAttributes | null;
+        const cursorQuery = VocabularyEntry.findOne({ id: String(cursor.parent) }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+        cursor = await this.executeQuery(cursorQuery, connection);
       }
     }
 
     public async getTree(vocabularyId: string): Promise<VocabularyTreeNode[]> {
-      const entries = (await this.vocabularyEntryModel.find({ vocabulary: vocabularyId }).sort('order ASC').sort('label ASC')) as VocabularyEntryAttributes[];
+      const entries = await VocabularyEntry.find({ vocabulary: vocabularyId }).sort('order ASC').sort('label ASC') as unknown as VocabularyEntryAttributes[];
       const nodes: Record<string, VocabularyTreeNode> = {};
       const roots: VocabularyTreeNode[] = [];
 
@@ -255,7 +321,7 @@ export namespace Services {
       return roots;
     }
 
-    public async upsertEntries(vocabularyId: string, entries: VocabularyEntryInput[]): Promise<{ created: number; updated: number; skipped: number }> {
+    public async upsertEntries(vocabularyId: string, entries: VocabularyEntryInput[], connection?: unknown): Promise<{ created: number; updated: number; skipped: number }> {
       let created = 0;
       let updated = 0;
       let skipped = 0;
@@ -269,45 +335,52 @@ export namespace Services {
 
         let existing: VocabularyEntryAttributes | null = null;
         if (entry.identifier) {
-          existing = (await this.vocabularyEntryModel.findOne({ vocabulary: vocabularyId, identifier: entry.identifier })) as VocabularyEntryAttributes | null;
+          const byIdentifier = VocabularyEntry.findOne({ vocabulary: vocabularyId, identifier: entry.identifier }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+          existing = await this.executeQuery(byIdentifier, connection);
         }
         if (!existing) {
-          existing = (await this.vocabularyEntryModel.findOne({ vocabulary: vocabularyId, valueLower: entry.value.toLowerCase() })) as VocabularyEntryAttributes | null;
+          const byValue = VocabularyEntry.findOne({ vocabulary: vocabularyId, valueLower: entry.value.toLowerCase() }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+          existing = await this.executeQuery(byValue, connection);
         }
 
         if (!existing) {
-          await this.vocabularyEntryModel.create({
+          await this.validateParent(vocabularyId, null, entry.parent ?? null, connection);
+          const createQuery = VocabularyEntry.create({
             vocabulary: vocabularyId,
             label: entry.label,
             value: entry.value,
             identifier: entry.identifier,
+            parent: entry.parent ?? undefined,
             order: entry.order ?? 0
-          }).fetch();
+          }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes>;
+          await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
           created++;
           continue;
         }
 
-        await this.validateParent(vocabularyId, String(existing.id), entry.parent ?? null);
-        await this.vocabularyEntryModel.updateOne({ id: existing.id }).set({
+        await this.validateParent(vocabularyId, String(existing.id), entry.parent ?? null, connection);
+        const updateQuery = VocabularyEntry.updateOne({ id: existing.id }).set({
           label: entry.label,
           value: entry.value,
           identifier: entry.identifier,
-          parent: entry.parent,
+          parent: entry.parent ?? undefined,
           order: entry.order ?? existing.order ?? 0
-        });
+        }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+        await this.executeQuery(updateQuery, connection);
         updated++;
       }
 
       return { created, updated, skipped };
     }
 
-    private async replaceEntries(vocabularyId: string, isFlat: boolean, entries: VocabularyEntryInput[]): Promise<void> {
+    private async replaceEntries(vocabularyId: string, isFlat: boolean, entries: VocabularyEntryInput[], connection?: unknown): Promise<void> {
       const flatEntries = this.flattenEntries(entries);
       if (isFlat && flatEntries.some(entry => entry.parent)) {
         throw new Error('Vocabulary.type = flat does not support parent entries');
       }
 
-      await this.vocabularyEntryModel.destroy({ vocabulary: vocabularyId });
+      const destroyQuery = VocabularyEntry.destroy({ vocabulary: vocabularyId }) as unknown as Sails.WaterlinePromise<unknown[]>;
+      await this.executeQuery(destroyQuery, connection);
 
       const oldToNewIds: Record<string, string> = {};
       for (const entry of flatEntries) {
@@ -316,13 +389,14 @@ export namespace Services {
           throw new Error('VocabularyEntry.label and VocabularyEntry.value are required');
         }
 
-        const created = await this.vocabularyEntryModel.create({
+        const createQuery = VocabularyEntry.create({
           vocabulary: vocabularyId,
           label: normalized.label,
           value: normalized.value,
           identifier: normalized.identifier,
           order: normalized.order ?? 0
-        }).fetch();
+        }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes>;
+        const created = await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
 
         oldToNewIds[String(normalized.id)] = String(created.id);
       }
@@ -336,9 +410,16 @@ export namespace Services {
         if (!entryId) {
           continue;
         }
-        await this.validateParent(vocabularyId, entryId, mappedParentId);
-        await this.vocabularyEntryModel.updateOne({ id: entryId }).set({ parent: mappedParentId });
+        await this.validateParent(vocabularyId, entryId, mappedParentId, connection);
+        const updateQuery = VocabularyEntry.updateOne({ id: entryId }).set({ parent: mappedParentId }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+        await this.executeQuery(updateQuery, connection);
       }
+    }
+
+    private getDatastore(): { transaction?: <T>(cb: (db: unknown) => Promise<T>) => Promise<T> } | null {
+      return (Vocabulary.getDatastore?.() as unknown as { transaction?: <T>(cb: (db: unknown) => Promise<T>) => Promise<T> } | null)
+        ?? (sails as unknown as { getDatastore?: () => { transaction?: <T>(cb: (db: unknown) => Promise<T>) => Promise<T> } | null }).getDatastore?.()
+        ?? null;
     }
 
     private flattenEntries(entries: VocabularyEntryInput[], parentId: string | null = null, branch: string = 'n'): VocabularyEntryInput[] {
@@ -359,8 +440,9 @@ export namespace Services {
       return flat;
     }
   }
+
 }
 
 declare global {
-  let VocabularyService: Services.Vocabulary;
+  let VocabularyService: Services.VocabularyService;
 }

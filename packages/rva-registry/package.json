@@ -14,7 +14,7 @@
     "generate": "openapi-generator-cli generate -i ../../rva-swagger.json -g typescript-axios -o ./src",
     "build": "tsc"
   },
-  "author": "Google DeepMind",
+  "author": "QCIF Engineering",
   "license": "GPL-3.0",
   "devDependencies": {
     "@types/mocha": "^10.0.10",
