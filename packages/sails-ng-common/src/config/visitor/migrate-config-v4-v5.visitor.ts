@@ -115,7 +115,7 @@ import {FormPathHelper, PropertiesHelper} from "./common.model";
 import {AllFormComponentDefinitionOutlines} from "../dictionary.outline";
 import {CanVisit} from "./base.outline";
 import {LineagePath, LineagePathsPartial} from "../names/naming-helpers";
-import {FormComponentClassDefMapType, FormComponentDefinitionMap} from "../dictionary.model";
+import {VisitorFormComponentClassDefMapType, FormComponentDefinitionMap} from "../dictionary.model";
 import {isTypeFormComponentDefinitionName} from "../form-types.outline";
 import {ILogger} from "../../logger.interface";
 import {
@@ -349,7 +349,7 @@ function postProcessingFormConfigV4ToV5Mapping(
 export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     protected override logName = "MigrationV4ToV5FormConfigVisitor";
 
-    private formComponentMap: FormComponentClassDefMapType;
+    private formComponentMap: VisitorFormComponentClassDefMapType;
 
     private v4FormConfig: Record<string, unknown>;
     private v5FormConfig: FormConfigOutline;

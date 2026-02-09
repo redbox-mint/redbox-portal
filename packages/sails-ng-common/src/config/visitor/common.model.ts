@@ -6,14 +6,14 @@ import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../f
 import {CanVisit, FormConfigVisitorOutline} from "./base.outline";
 import {FormConstraintAuthorizationConfig, FormConstraintConfig} from "../form-component.model";
 import {
-    ComponentClassDefMapType,
+    VisitorComponentClassDefMapType,
     FieldComponentDefinitionMap,
     FieldLayoutDefinitionMap,
     FieldModelDefinitionMap,
-    FormComponentClassDefMapType,
+    VisitorFormComponentClassDefMapType,
     FormComponentDefinitionMap, KindNameDefaultsMap, KindNameDefaultsMapType,
-    LayoutClassDefMapType,
-    ModelClassDefMapType,
+    VisitorLayoutClassDefMapType,
+    VisitorModelClassDefMapType,
 } from "../dictionary.model";
 import {
     buildLineagePaths,
@@ -25,10 +25,10 @@ import {AllFormComponentDefinitionOutlines} from "../dictionary.outline";
 import {FieldLayoutDefinitionKind, FieldModelDefinitionKind, FormComponentDefinitionKind} from "../shared.outline";
 
 export class PropertiesHelper {
-    private fieldComponentMap: ComponentClassDefMapType;
-    private fieldModelMap: ModelClassDefMapType;
-    private fieldLayoutMap: LayoutClassDefMapType;
-    private formComponentMap: FormComponentClassDefMapType;
+    private fieldComponentMap: VisitorComponentClassDefMapType;
+    private fieldModelMap: VisitorModelClassDefMapType;
+    private fieldLayoutMap: VisitorLayoutClassDefMapType;
+    private formComponentMap: VisitorFormComponentClassDefMapType;
     private kindNameDefaultsMap: KindNameDefaultsMapType;
 
     constructor() {
