@@ -35,7 +35,7 @@ export async function updateModelIndex(params: {
     const importPath = `./${params.modelName}`;
 
     // 1. Add export * from './ModelName' if not exists
-    const hasExportAll = sourceFile.getExportDeclarations().some(d => 
+    const hasExportAll = sourceFile.getExportDeclarations().some(d =>
         d.getModuleSpecifierValue() === importPath && d.isNamespaceExport()
     );
     if (!hasExportAll) {
@@ -43,7 +43,6 @@ export async function updateModelIndex(params: {
         const exportAllDeclarations = sourceFile.getExportDeclarations().filter(d => d.isNamespaceExport());
         if (exportAllDeclarations.length > 0) {
             const lastExportAll = exportAllDeclarations[exportAllDeclarations.length - 1];
-            lastExportAll.getParent().asKind(SyntaxKind.SourceFile);
             sourceFile.insertExportDeclaration(lastExportAll.getChildIndex() + 1, {
                 moduleSpecifier: importPath
             });
@@ -62,7 +61,7 @@ export async function updateModelIndex(params: {
             const namedImports = d.getNamedImports();
             return namedImports.some(n => n.getName().endsWith('WLDef'));
         });
-        
+
         if (wlDefImports.length > 0) {
             const lastWlDefImport = wlDefImports[wlDefImports.length - 1];
             sourceFile.insertImportDeclaration(lastWlDefImport.getChildIndex() + 1, {
@@ -308,7 +307,14 @@ export async function updateAuth(params: {
         }
     }
 
-    const routePath = params.route.split(' ').pop()!;
+    const trimmedRoute = params.route.trim();
+    if (!trimmedRoute) {
+        throw new Error('Route cannot be empty or whitespace.');
+    }
+    const routePath = trimmedRoute.split(' ').pop();
+    if (!routePath) {
+        throw new Error(`Route is missing a path segment: '${trimmedRoute}'.`);
+    }
 
     for (const role of params.auth) {
         if (existingRoles.length > 0 && !existingRoles.includes(role)) {
@@ -342,7 +348,7 @@ export async function updateAuth(params: {
                 if (!covered) return false;
 
                 // Check permissions
-                const verb = params.route.includes(' ') ? params.route.split(' ')[0].toLowerCase() : 'get';
+                const verb = trimmedRoute.includes(' ') ? trimmedRoute.split(' ')[0].toLowerCase() : 'get';
                 const requestedAccess = verb === 'get' ? 'read' : 'update';
 
                 const canUpdate = obj.getProperty('can_update')?.asKind(SyntaxKind.PropertyAssignment)?.getInitializer()?.getText() === 'true';
@@ -358,7 +364,7 @@ export async function updateAuth(params: {
         });
 
         if (!isCovered) {
-            const verb = params.route.includes(' ') ? params.route.split(' ')[0].toLowerCase() : 'get';
+            const verb = trimmedRoute.includes(' ') ? trimmedRoute.split(' ')[0].toLowerCase() : 'get';
             const permission = verb === 'get' ? 'can_read: true' : 'can_update: true';
             console.log(`  [AUTH] Adding rule for ${role} -> ${routePath} (${permission})`);
             rulesArray.addElement(`{ path: '${routePath}', role: '${role}', ${permission} }`);

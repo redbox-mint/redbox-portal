@@ -170,6 +170,10 @@ export class ${this.toClassName(this.name)}Component {
     }
     const projectName = `@researchdatabox/${this.name}`;
 
+    if (typeof angularJson.projects !== 'object' || angularJson.projects === null) {
+      angularJson.projects = {};
+    }
+
     if (angularJson.projects[projectName]) {
       console.log(`  [SKIP] angular.json project ${projectName} already exists`);
       return;
@@ -239,7 +243,12 @@ export class ${this.toClassName(this.name)}Component {
   }
 
   private generateEjsView(): void {
-    const viewPath = path.join(this.root, 'views', 'default', 'default', 'admin', `${this.ejsView}.ejs`);
+    const safeViewName = this.getSafeEjsViewName();
+    const baseDir = path.join(this.root, 'views', 'default', 'default', 'admin');
+    const viewPath = path.resolve(baseDir, `${safeViewName}.ejs`);
+    if (!viewPath.startsWith(path.resolve(baseDir) + path.sep)) {
+      throw new Error(`EJS view name resolves outside the admin views directory: ${safeViewName}`);
+    }
     
     const content = `<% let appName = '${this.name}'; %>
 <div class="row admin-layout">
@@ -267,6 +276,7 @@ export class ${this.toClassName(this.name)}Component {
 
   private async updateRouteConfig(): Promise<void> {
     const route = `/:branding/:portal/admin/${this.name}`; // Defaulting to admin path
+    const safeViewName = this.getSafeEjsViewName();
     
     // We can't use updateRoutes directly because it assumes a controller.action string
     // But here we want a RouteTargetObject with locals.view
@@ -287,7 +297,7 @@ export class ${this.toClassName(this.name)}Component {
             initializer: `{
                 controller: 'RenderViewController',
                 action: 'render',
-                locals: { 'view': 'admin/${this.ejsView}' }
+                locals: { 'view': 'admin/${safeViewName}' }
             }`
         });
     }
@@ -313,5 +323,16 @@ export class ${this.toClassName(this.name)}Component {
 
   private toClassName(name: string): string {
     return name.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('');
+  }
+
+  private getSafeEjsViewName(): string {
+    const trimmed = this.ejsView.trim();
+    if (!trimmed) {
+      throw new Error('EJS view name cannot be empty.');
+    }
+    if (!/^[A-Za-z0-9_-]+$/.test(trimmed)) {
+      throw new Error(`EJS view name contains invalid characters: '${this.ejsView}'`);
+    }
+    return trimmed;
   }
 }

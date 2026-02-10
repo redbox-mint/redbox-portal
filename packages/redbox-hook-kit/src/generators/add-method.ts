@@ -104,6 +104,11 @@ export class AddMethodGenerator extends Generator {
 
     // 3. Update routes and auth if it's a controller and route is provided
     if (isController && this.route) {
+      const trimmedRoute = this.route.trim();
+      if (!trimmedRoute) {
+        throw new Error('Route cannot be empty or whitespace.');
+      }
+
       const controllerName = fileName;
       const webservice = this.filePath.includes(path.join('controllers', 'webservice'));
 
@@ -111,7 +116,7 @@ export class AddMethodGenerator extends Generator {
         project: this.project,
         paths: this.paths,
         root: this.root,
-        route: this.route,
+        route: trimmedRoute,
         controllerName: controllerName,
         action: this.method,
         webservice: webservice,
@@ -123,14 +128,17 @@ export class AddMethodGenerator extends Generator {
           project: this.project,
           paths: this.paths,
           root: this.root,
-          route: this.route,
+          route: trimmedRoute,
           auth: this.auth,
           dryRun: this.dryRun
         });
       }
 
       if (this.navigation.length > 0) {
-        const routePath = this.route.split(' ').pop()!;
+        const routePath = trimmedRoute.split(' ').pop();
+        if (!routePath) {
+          throw new Error(`Route is missing a path segment: '${trimmedRoute}'.`);
+        }
         for (const nav of this.navigation) {
           const actionName = nav.action || this.method;
           if (actionName !== this.method) {
@@ -203,12 +211,14 @@ export class AddMethodGenerator extends Generator {
       }
     } else {
       // Create _exportedMethods if missing
+      const hasInit = !!klass.getMethod('init');
+      const methods = hasInit ? ['init', this.method] : [this.method];
       klass.addProperty({
         name: '_exportedMethods',
         scope: Scope.Protected,
         hasOverrideKeyword: true,
         type: 'string[]',
-        initializer: `['init', '${this.method}']`
+        initializer: `[${methods.map(m => `'${m}'`).join(', ')}]`
       });
     }
   }

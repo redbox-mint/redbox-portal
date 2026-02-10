@@ -134,11 +134,27 @@ npx @researchdatabox/redbox-hook-kit init
 
 ### `install-skills`
 
-Install the bundled agent skills using the `vercel-labs/skills` CLI.
+Install the bundled agent skills using the `vercel-labs/skills` CLI. Bundled agent skills are curated prompt packs that teach supported agents how to work with ReDBox conventions, file layouts, and workflows. Install them to enable consistent, repo-aware assistance from your agent.
+
+Prerequisites
+- Install the external Skills CLI: `npx @vercel/skills --help` (or follow the install instructions in the Skills docs).
+- Authenticate if required by your agent runtime (some agents prompt for login on first run).
+
+Usage
+- `-a <agent>`: Target agent runtime (for example `claude-code`).
+- `--skill <pattern>`: Skill name or glob pattern (for example `redbox-*` or `*`).
+- Skills are optional but recommended for consistent guidance and guardrails.
+
+This will:
+- Copy the bundled skill definitions from this package into the Skills CLI workspace.
+- Register the skills for the specified agent runtime.
+- Make the skills available for subsequent agent sessions.
 
 ```bash
-npx @researchdatabox/redbox-hook-kit install-skills -a claude-code --skill '*'
+npx @researchdatabox/redbox-hook-kit install-skills -a claude-code --skill 'redbox-*'
 ```
+
+For advanced options, see the `vercel-labs/skills` documentation: https://github.com/vercel-labs/skills
 
 ### `help`
 

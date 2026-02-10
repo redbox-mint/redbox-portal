@@ -43,12 +43,16 @@ export class AngularServiceGenerator extends Generator {
     
     let methodsContent = '';
     if (this.methods.length > 0) {
-      methodsContent = this.methods.map(method => `
+      const methodInfos = this.methods.map(method => ({
+        raw: method,
+        identifier: this.toSafeMethodName(method)
+      }));
+      methodsContent = methodInfos.map(method => `
   /**
-   * ${this.capitalize(method)}
+   * ${this.capitalize(method.identifier)}
    */
-  public async ${method}(): Promise<any> {
-    const url = \`\${this.brandingAndPortalUrl}/app/${this.app}/${method}\`;
+  public async ${method.identifier}(): Promise<any> {
+    const url = \`\${this.brandingAndPortalUrl}/app/${this.app}/${method.raw}\`;
     const result$ = this.http.get(url, { ...this.reqOptsJsonBodyOnly, context: this.httpContext });
     return await firstValueFrom(result$);
   }
@@ -96,5 +100,38 @@ ${methodsContent}
 
   private capitalize(s: string): string {
     return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  private isValidTsIdentifier(name: string): boolean {
+    return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name);
+  }
+
+  private toSafeMethodName(method: string): string {
+    const trimmed = method.trim();
+    if (!trimmed) {
+      throw new Error('Method name cannot be empty.');
+    }
+    if (this.isValidTsIdentifier(trimmed)) {
+      return trimmed;
+    }
+
+    const parts = trimmed.split(/[^A-Za-z0-9_$]+/).filter(Boolean);
+    const camel = parts.map((part, index) => {
+      const lower = part.toLowerCase();
+      if (index === 0) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    }).join('');
+    let candidate = camel || trimmed.replace(/[^A-Za-z0-9_$]/g, '');
+    if (!candidate) {
+      throw new Error(`Method name '${method}' cannot be converted to a valid identifier.`);
+    }
+    if (!/^[A-Za-z_$]/.test(candidate)) {
+      candidate = `_${candidate}`;
+    }
+    if (!this.isValidTsIdentifier(candidate)) {
+      throw new Error(`Method name '${method}' cannot be converted to a valid identifier.`);
+    }
+    console.warn(`  [WARN] Sanitized method name '${method}' to '${candidate}'.`);
+    return candidate;
   }
 }

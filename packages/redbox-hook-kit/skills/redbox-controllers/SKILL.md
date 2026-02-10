@@ -20,10 +20,10 @@ ReDBox controllers live in `@researchdatabox/redbox-core-types` and are surfaced
 - **Response Handling:** Use `this.sendResp(data, req, res)` instead of direct `res.json()` or `res.send()`. This ensures consistent response formatting.
 
 ## Type Safety Guidance
-- Do not use `(object as any)`, `as any`, or other deliberate `any` casts to bypass TypeScript compilation errors. Fix the types, declare appropriate interfaces, or request
+- Do not use `(object as any)`, `as any`, or other deliberate `any` casts to bypass TypeScript compilation errors. Fix the types, declare appropriate interfaces, or request assistance from the team.
 
 ## Generating Controllers
-Use the `redbox-hook-kit` CLI generator `generate_controller`:
+Use the `redbox-hook-kit` CLI generator `generate controller`:
 - `name`: Controller name (e.g., `MyRecord`) as an argument.
 - `--actions <list>`: Comma-separated actions (e.g., `index,get,save`).
 - `--webservice`: If it's a webservice controller.

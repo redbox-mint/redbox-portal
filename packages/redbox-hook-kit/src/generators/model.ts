@@ -10,7 +10,7 @@ export interface ModelAttribute {
   required?: boolean;
   unique?: boolean;
   columnType?: string;
-  defaultsTo?: string;
+  defaultsTo?: string | number | boolean | Record<string, unknown> | unknown[] | null;
 }
 
 export interface ModelAssociation {
@@ -136,6 +136,9 @@ declare global {
         lines.push(`  @BelongsTo('${assoc.model}')`);
         lines.push(`  public ${assoc.name}?: string | number;`);
       } else if (assoc.type === 'hasMany') {
+        if (!assoc.via) {
+          throw new Error(`Missing 'via' for hasMany association '${assoc.name}'.`);
+        }
         const opts = assoc.dominant ? `, { dominant: ${assoc.dominant} }` : '';
         lines.push(`  @HasMany('${assoc.model}', '${assoc.via}'${opts})`);
         lines.push(`  public ${assoc.name}?: unknown[];`);
@@ -160,11 +163,24 @@ declare global {
     if (attr.unique) opts.push('unique: true');
     if (attr.columnType) opts.push(`columnType: '${attr.columnType}'`);
     if (attr.defaultsTo !== undefined) {
-      const val = typeof attr.defaultsTo === 'string' ? `'${attr.defaultsTo}'` : attr.defaultsTo;
+      const val = this.formatDefaultValue(attr.defaultsTo);
       opts.push(`defaultsTo: ${val}`);
     }
 
     return `{ ${opts.join(', ')} }`;
+  }
+
+  private formatDefaultValue(value: ModelAttribute['defaultsTo']): string {
+    if (value === null) {
+      return 'null';
+    }
+    if (typeof value === 'string') {
+      return `'${value}'`;
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    return JSON.stringify(value);
   }
 
   private tsType(waterlineType: string): string {

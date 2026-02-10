@@ -24,8 +24,10 @@ Use this skill after a feature implementation lands (services, controllers, mode
 1. Search the implementation for usages of `as any`, `(object as any)`, `as unknown as`, or other patterns that cast to `any` to bypass TypeScript types.
    - Rationale: model and service code must adhere to declared Waterline model interfaces; casting to `any` hides mismatches and leads to runtime failures.
    - Expected behavior: replace casts with proper interfaces, refine types, or add clear TODOs referencing a follow-up task (do not permanently use `as any`).
-   - Severity: treat `as any` casts in model/service code as `major` (blocker for model accuracy); in controllers or angular code treat as `major` or `minor` depending on context but always report.
-   - Evidence: include the exact file, line range, and code snippet where the cast occurs.
+   - Area mapping: set `area` to match the location of the cast (use `services` for service code, `models` for Waterline models, `controllers` for backend controllers, and `angular` for Angular/front-end code).
+     Example: `packages/redbox-core-types/src/services/FooService.ts` -> `area: services`.
+   - Severity: treat `as any` casts in model/service code as `blocker`; in controllers or angular code treat as `major` or `minor` depending on context but always report.
+   - Evidence: include the exact file, line range, and code snippet where the cast occurs, and ensure the reported `area` matches the file type where the cast appears.
 
 
 ### Services

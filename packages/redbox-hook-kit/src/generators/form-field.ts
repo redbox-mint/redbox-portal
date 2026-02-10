@@ -17,11 +17,16 @@ export class FormFieldGenerator extends Generator {
   }
 
   public async generate(): Promise<void> {
-    const fileName = this.name.endsWith('.js') ? this.name : `${this.name}.js`;
-    const filePath = path.join(this.root, 'form-config', fileName);
-    
+    const safeName = this.getSafeFileName(this.name);
+    const fileName = safeName.endsWith('.js') ? safeName : `${safeName}.js`;
+    const formConfigDir = path.join(this.root, 'form-config');
+    const filePath = path.resolve(formConfigDir, fileName);
+    if (!filePath.startsWith(path.resolve(formConfigDir) + path.sep)) {
+      throw new Error(`Form field path resolves outside form-config: ${fileName}`);
+    }
+
     const content = this.generateFormContent();
-    this.writeFile(filePath, content);
+    await this.writeFile(filePath, content);
   }
 
   private escapeJsString(value: string): string {
@@ -35,12 +40,19 @@ export class FormFieldGenerator extends Generator {
       .replace(/\u2029/g, '\\u2029');
   }
 
+  private escapeForComment(value: string): string {
+    return value
+      .replace(/\*\//g, '*\\/')
+      .replace(/\/\*/g, '/\\*');
+  }
+
   private generateFormContent(): string {
-    const escapedName = this.escapeJsString(this.name);
+     const escapedName = this.escapeJsString(this.name);
+     const commentName = this.escapeForComment(escapedName);
     const escapedType = this.escapeJsString(this.type);
 
     return `/**
- * ${escapedName} form configuration
+   * ${commentName} form configuration
  */
 module.exports = {
   name: '${escapedName}',
@@ -106,5 +118,20 @@ module.exports = {
   ]
 };
 `;
+  }
+
+  private getSafeFileName(name: string): string {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new Error('Form field name cannot be empty.');
+    }
+    const baseName = path.basename(trimmed);
+    if (baseName !== trimmed) {
+      throw new Error(`Form field name contains path separators: ${name}`);
+    }
+    if (!/^[A-Za-z0-9._-]+$/.test(baseName)) {
+      throw new Error(`Form field name contains invalid characters: ${name}`);
+    }
+    return baseName;
   }
 }

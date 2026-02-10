@@ -55,6 +55,8 @@ export class ControllerGenerator extends Generator {
       },
     });
 
+    this.validateActions();
+
     // Handle backwards compatibility: convert single route to routes array
     if (options.routes && options.routes.length > 0) {
       this.routes = options.routes;
@@ -186,5 +188,16 @@ ${actionsCode}
   }
 }
 `;
+  }
+
+  private validateActions(): void {
+    const invalidActions = this.actions.filter(action => !this.isValidIdentifier(action));
+    if (invalidActions.length > 0) {
+      throw new Error(`Invalid action name(s): ${invalidActions.join(', ')}`);
+    }
+  }
+
+  private isValidIdentifier(name: string): boolean {
+    return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name);
   }
 }

@@ -12,9 +12,9 @@ describe('ServiceGenerator', () => {
   beforeEach(() => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-test-'));
     coreTypesRoot = path.join(tempRoot, 'packages', 'redbox-core-types');
-    
+
     fs.mkdirSync(path.join(coreTypesRoot, 'src', 'services'), { recursive: true });
-    
+
     // Create mock index.ts
     fs.writeFileSync(path.join(coreTypesRoot, 'src', 'services', 'index.ts'), `
 import * as ConfigServiceModule from './ConfigService';
@@ -53,9 +53,9 @@ export const ServiceExports = {
 
     const servicePath = path.join(coreTypesRoot, 'src', 'services', 'TestService.ts');
     expect(fs.existsSync(servicePath)).to.be.true;
-    
+
     const content = fs.readFileSync(servicePath, 'utf-8');
-    expect(content).to.contain('class Test extends services.Core.Service');
+    expect(content).to.contain('class TestService extends services.Core.Service');
     expect(content).to.contain('public async doSomething');
     expect(content).to.contain('public async processData');
     expect(content).to.contain("'doSomething'");

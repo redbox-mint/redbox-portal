@@ -12,10 +12,10 @@ describe('ControllerGenerator', () => {
   beforeEach(() => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-test-'));
     coreTypesRoot = path.join(tempRoot, 'packages', 'redbox-core-types');
-    
+
     fs.mkdirSync(path.join(coreTypesRoot, 'src', 'controllers'), { recursive: true });
     fs.mkdirSync(path.join(coreTypesRoot, 'src', 'config'), { recursive: true });
-    
+
     // Create mock index.ts
     fs.writeFileSync(path.join(coreTypesRoot, 'src', 'controllers', 'index.ts'), `
 import * as ActionControllerModule from './ActionController';
@@ -72,7 +72,7 @@ export const auth: any = {
 
     const controllerPath = path.join(coreTypesRoot, 'src', 'controllers', 'TestController.ts');
     expect(fs.existsSync(controllerPath)).to.be.true;
-    
+
     const content = fs.readFileSync(controllerPath, 'utf-8');
     expect(content).to.contain('class Test extends controllers.Core.Controller');
     expect(content).to.contain('public async index');
@@ -139,7 +139,7 @@ export const WebserviceControllerNames: string[] = [];
     expect(indexContent).to.contain("getOrCreate('WS_TestController'");
 
     const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'routes.config.ts'), 'utf-8');
-    expect(routesContent).to.contain("'post /api/test': 'webservice/TestController.index'");
+    expect(routesContent).to.contain("'post /api/test': { controller: 'webservice/TestController', action: 'index', csrf: false }");
 
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');
     expect(authContent).to.contain("{ path: '/api/test', role: 'Admin', can_update: true }");
@@ -172,7 +172,7 @@ export const WebserviceControllerNames: string[] = [];
 
     const controllerPath = path.join(coreTypesRoot, 'src', 'controllers', 'webservice', 'DashboardController.ts');
     expect(fs.existsSync(controllerPath)).to.be.true;
-    
+
     const content = fs.readFileSync(controllerPath, 'utf-8');
     expect(content).to.contain('public async listDashboards');
     expect(content).to.contain('public async getDashboard');
@@ -181,11 +181,11 @@ export const WebserviceControllerNames: string[] = [];
     expect(content).to.contain('public async deleteDashboard');
 
     const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'routes.config.ts'), 'utf-8');
-    expect(routesContent).to.contain("'get /:branding/:portal/api/dashboards': 'webservice/DashboardController.listDashboards'");
-    expect(routesContent).to.contain("'get /:branding/:portal/api/dashboards/:id': 'webservice/DashboardController.getDashboard'");
-    expect(routesContent).to.contain("'post /:branding/:portal/api/dashboards': 'webservice/DashboardController.createDashboard'");
-    expect(routesContent).to.contain("'put /:branding/:portal/api/dashboards/:id': 'webservice/DashboardController.updateDashboard'");
-    expect(routesContent).to.contain("'delete /:branding/:portal/api/dashboards/:id': 'webservice/DashboardController.deleteDashboard'");
+    expect(routesContent).to.contain("'get /:branding/:portal/api/dashboards': { controller: 'webservice/DashboardController', action: 'listDashboards', csrf: false }");
+    expect(routesContent).to.contain("'get /:branding/:portal/api/dashboards/:id': { controller: 'webservice/DashboardController', action: 'getDashboard', csrf: false }");
+    expect(routesContent).to.contain("'post /:branding/:portal/api/dashboards': { controller: 'webservice/DashboardController', action: 'createDashboard', csrf: false }");
+    expect(routesContent).to.contain("'put /:branding/:portal/api/dashboards/:id': { controller: 'webservice/DashboardController', action: 'updateDashboard', csrf: false }");
+    expect(routesContent).to.contain("'delete /:branding/:portal/api/dashboards/:id': { controller: 'webservice/DashboardController', action: 'deleteDashboard', csrf: false }");
 
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');
     // GET routes should have can_read for both Admin and Researcher
