@@ -23,13 +23,13 @@
  * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
  */
 export class Attachment {
-  dateUpdated: any;
-  label: string;
-  contentType: string;
-  dateCreated: any;
-  body: any; // bad idea to load everything in-memory
-  readstream: any; // strongly suggest services stream rather than load everything in-mem
-  size: number; // the number of bytes the attachment is
+  dateUpdated: Date | string | null = null;
+  label: string = '';
+  contentType: string = '';
+  dateCreated: Date | string | null = null;
+  body: unknown = null; // bad idea to load everything in-memory
+  readstream: NodeJS.ReadableStream | null = null; // strongly suggest services stream rather than load everything in-mem
+  size: number = 0; // the number of bytes the attachment is
   constructor() {
   }
 }

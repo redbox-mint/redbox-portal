@@ -54,8 +54,8 @@ describe('UserController', () => {
 
     describe('login', () => {
         it('should send the login view', () => {
-            const req = {};
-            const res = {};
+            const req = {} as unknown as Sails.Req;
+            const res = {} as unknown as Sails.Res;
             const sendViewStub = sinon.stub(controller, 'sendView');
 
             controller.login(req, res);
@@ -66,16 +66,17 @@ describe('UserController', () => {
 
     describe('info', () => {
         it('should return user info without token', () => {
+            const jsonStub = sinon.stub();
             const req = {
                 user: { id: '123', name: 'Test User', token: 'secret' }
-            };
+            } as unknown as Sails.Req;
             const res = {
-                json: sinon.stub()
-            };
+                json: jsonStub
+            } as unknown as Sails.Res;
 
             controller.info(req, res);
 
-            expect(res.json.calledWith({
+            expect(jsonStub.calledWith({
                 user: { id: '123', name: 'Test User' }
             })).to.be.true;
         });
@@ -86,8 +87,8 @@ describe('UserController', () => {
             const req = {
                 session: { branding: 'default' },
                 query: { name: 'test', source: 'local' }
-            };
-            const res = {};
+            } as unknown as Sails.Req;
+            const res = {} as unknown as Sails.Res;
             const mockUsers = [
                 { id: '1', name: 'User 1', username: 'user1', email: 'u1@test.com' }
             ];

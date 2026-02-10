@@ -22,8 +22,8 @@
  *
  */
 export class DatastreamServiceResponse {
-  success: boolean;
-  message: string;
+  success: boolean = false;
+  message: string = '';
 
   constructor() {
 

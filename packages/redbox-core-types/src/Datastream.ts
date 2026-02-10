@@ -22,12 +22,12 @@
  *
  */
 export class Datastream {
-  fileId: string;
-  metadata: any;
+  fileId: string = '';
+  metadata: Record<string, unknown> = {};
 
-  constructor(data:any = undefined) {
+  constructor(data: Record<string, unknown> | undefined = undefined) {
     if (data) {
-      this.fileId = data['fileId'];
+      this.fileId = (data['fileId'] as string) ?? '';
       this.metadata = data;
     }
   }

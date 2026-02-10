@@ -27,7 +27,11 @@ let webpackConfig = [];
 try {
   // prefer repo config file
   const repoWebpack = require('../../config/webpack');
-  webpackConfig = repoWebpack && repoWebpack.config ? repoWebpack.config : repoWebpack;
+  if (repoWebpack && repoWebpack.webpack) {
+    webpackConfig = repoWebpack.webpack.config ? repoWebpack.webpack.config : repoWebpack.webpack;
+  } else {
+    webpackConfig = repoWebpack && repoWebpack.config ? repoWebpack.config : repoWebpack;
+  }
 } catch (e) {
   // ignore
 }

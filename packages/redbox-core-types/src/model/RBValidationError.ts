@@ -1,3 +1,4 @@
+import { Services } from "../services/TranslationService";
 import { ErrorResponseItemV2 } from "./api";
 
 // Define ErrorOptions locally for ES6 target compatibility
@@ -20,7 +21,7 @@ export class RBValidationError extends Error {
    * @param build.displayErrors The display errors. These are sent to the end user.
    */
   constructor(build: { message?: string, options?: RBErrorOptions, displayErrors?: ErrorResponseItemV2[] } = {}) {
-    super(build.message ?? "", build.options as any ?? {});
+    super(build.message ?? "", build.options ?? {});
     this.name = RBValidationError.errorName;
     this._displayErrors = build.displayErrors ?? [];
   }
@@ -63,8 +64,9 @@ export class RBValidationError extends Error {
       collectedErrors.push(error);
 
       // Extract and store displayErrors from any RBValidationErrors
-      if (RBValidationError.isRBValidationError(error) || Array.isArray(error['displayErrors'])) {
-        collectedDisplayErrors.push(...error['displayErrors']);
+      const maybeDisplayErrors = (error as RBValidationError)?.displayErrors;
+      if (RBValidationError.isRBValidationError(error) || Array.isArray(maybeDisplayErrors)) {
+        collectedDisplayErrors.push(...(maybeDisplayErrors ?? []));
       }
 
       // Add any cause error to the array of errors to process.
@@ -84,7 +86,7 @@ export class RBValidationError extends Error {
    *       This approach is reasonable for API v1 in controllers.
    */
   public static displayMessage(options: {
-    t?: { t: any },
+    t?: Services.Translation,
     errors?: Error[],
     displayErrors?: ErrorResponseItemV2[],
     defaultMessage?: string

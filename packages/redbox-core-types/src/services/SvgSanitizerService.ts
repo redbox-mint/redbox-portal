@@ -1,67 +1,116 @@
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { Services as coreServices } from '../CoreService';
+import type { DomPurifyConfig } from '../config/dompurify.config';
 
 import domPurify = require('dompurify');
 import { Buffer } from 'buffer';
 import { JSDOM } from 'jsdom';
 
-declare var sails: any;
-declare var _: any;
 
 //TODO: Move to a shared place when we want to reuse dompurify 
 type DomPurifyInstance = {
-  sanitize: (input: string, config?: Record<string, any>) => string;
-  addHook: (hook: string, cb: (...args: any[]) => void) => void;
+  sanitize: (input: string, config?: Record<string, unknown>) => string;
+  addHook: (hook: string, cb: (...args: unknown[]) => void) => void;
   removeHook: (hook: string) => void;
 };
 
-const isDomPurifyInstance = (candidate: any): candidate is DomPurifyInstance => (
-  candidate && typeof candidate.sanitize === 'function' && typeof candidate.addHook === 'function' && typeof candidate.removeHook === 'function'
-);
+type WindowLike = {
+  document?: unknown;
+};
+
+type SanitizerAttribute = {
+  name: string;
+};
+
+type SanitizerNode = {
+  tagName?: string;
+  attributes?: ArrayLike<SanitizerAttribute>;
+  remove: () => void;
+  removeAttribute: (name: string) => void;
+  getAttribute: (name: string) => string | null;
+};
+
+const isDomPurifyInstance = (candidate: unknown): candidate is DomPurifyInstance => {
+  if (!candidate || (typeof candidate !== 'object' && typeof candidate !== 'function')) {
+    return false;
+  }
+  const record = candidate as Record<string, unknown>;
+  return typeof record.sanitize === 'function'
+    && typeof record.addHook === 'function'
+    && typeof record.removeHook === 'function';
+};
+
+const isSanitizerNode = (candidate: unknown): candidate is SanitizerNode => {
+  if (!candidate || typeof candidate !== 'object') {
+    return false;
+  }
+  const record = candidate as Record<string, unknown>;
+  return typeof record.remove === 'function'
+    && typeof record.removeAttribute === 'function'
+    && typeof record.getAttribute === 'function';
+};
+
+const isDomPurifyConfig = (candidate: unknown): candidate is DomPurifyConfig => {
+  if (!candidate || typeof candidate !== 'object') {
+    return false;
+  }
+  const record = candidate as Record<string, unknown>;
+  return typeof record.profiles === 'object' && record.profiles !== null;
+};
 
 const getWindow = () => {
-  const globalWindow = (globalThis as any).window;
+  const globalCache = globalThis as typeof globalThis & {
+    window?: WindowLike;
+    DOMPurify?: DomPurifyInstance;
+    __svgSanitizerWindow?: WindowLike;
+  } & Record<string, unknown>;
+  const globalWindow = globalCache.window;
   if (globalWindow && typeof globalWindow.document !== 'undefined') {
     return globalWindow;
   }
 
   const cacheKey = '__svgSanitizerWindow';
-  if (!(globalThis as any)[cacheKey]) {
+  if (!globalCache[cacheKey]) {
     const { window } = new JSDOM('', { pretendToBeVisual: true });
-    (globalThis as any)[cacheKey] = window;
+    globalCache[cacheKey] = window;
   }
 
-  return (globalThis as any)[cacheKey];
+  return globalCache[cacheKey] as WindowLike;
 };
 
-const instantiateDomPurify = (factoryModule: any): DomPurifyInstance | null => {
+const instantiateDomPurify = (factoryModule: unknown): DomPurifyInstance | null => {
   if (!factoryModule) {
     return null;
   }
 
   const windowRef = getWindow();
 
-  const tryGet = (candidate: any) => (isDomPurifyInstance(candidate) ? candidate : null);
+  const tryGet = (candidate: unknown) => (isDomPurifyInstance(candidate) ? candidate : null);
+  const moduleRecord = (typeof factoryModule === 'object' || typeof factoryModule === 'function')
+    ? (factoryModule as Record<string, unknown>)
+    : null;
 
   const candidates = [
     () => tryGet(factoryModule),
-    () => tryGet(factoryModule?.default),
-    () => tryGet(factoryModule?.DOMPurify),
+    () => tryGet(moduleRecord?.default),
+    () => tryGet(moduleRecord?.DOMPurify),
     () => {
-      if (typeof factoryModule?.createDOMPurify === 'function') {
-        return tryGet(factoryModule.createDOMPurify(windowRef));
+      const createDOMPurify = moduleRecord?.createDOMPurify;
+      if (typeof createDOMPurify === 'function') {
+        return tryGet((createDOMPurify as (window: WindowLike) => unknown)(windowRef));
       }
       return null;
     },
     () => {
       if (typeof factoryModule === 'function') {
-        return tryGet(factoryModule(windowRef));
+        return tryGet((factoryModule as (window: WindowLike) => unknown)(windowRef));
       }
       return null;
     },
     () => {
-      if (typeof factoryModule?.default === 'function') {
-        return tryGet(factoryModule.default(windowRef));
+      const defaultExport = moduleRecord?.default;
+      if (typeof defaultExport === 'function') {
+        return tryGet((defaultExport as (window: WindowLike) => unknown)(windowRef));
       }
       return null;
     }
@@ -92,9 +141,9 @@ const initialiseDOMPurify = (): DomPurifyInstance => {
 
 const DOMPurify = initialiseDOMPurify();
 
-(globalThis as any).DOMPurify = DOMPurify;
+(globalThis as typeof globalThis & { DOMPurify?: DomPurifyInstance }).DOMPurify = DOMPurify;
 
-export module Services {
+export namespace Services {
   /**
    * SVG and DOM sanitization service using DOMPurify.
    * 
@@ -165,7 +214,7 @@ export module Services {
     }
 
     getMaxBytes(): number {
-      return _.get(sails.config, 'record.form.svgMaxBytes', 1048576); // 1MB default
+      return _.get(sails.config, 'record.form.svgMaxBytes', 1048576) as number; // 1MB default
     }
 
     /**
@@ -194,7 +243,10 @@ export module Services {
      * @param profileName - The configuration profile to use (defaults to 'svg')
      */
     private getDOMPurifyConfig(profileName: string = 'svg') {
-      const dompurifyConfig = _.get(sails.config, 'dompurify', {});
+      const rawConfig = _.get(sails.config, 'dompurify', {});
+      const dompurifyConfig = isDomPurifyConfig(rawConfig)
+        ? rawConfig
+        : ({ profiles: {}, defaultProfile: 'svg', hooks: {}, globalSettings: {} } as DomPurifyConfig);
       const profiles = dompurifyConfig.profiles || {};
       const globalSettings = dompurifyConfig.globalSettings || {};
 
@@ -346,16 +398,22 @@ export module Services {
         // Use DOMPurify to sanitize the SVG
         const config = this.getDOMPurifyConfig();
 
-        const beforeSanitizeElementsHook = (node: any) => {
+        const beforeSanitizeElementsHook = (node: unknown) => {
+          if (!isSanitizerNode(node)) {
+            return;
+          }
           if (node.tagName && /^(script|iframe|embed|object|applet)$/i.test(node.tagName)) {
             node.remove();
           }
         };
 
-        const beforeSanitizeAttributesHook = (node: any) => {
+        const beforeSanitizeAttributesHook = (node: unknown) => {
+          if (!isSanitizerNode(node)) {
+            return;
+          }
           if (node.attributes) {
             const attrs = Array.from(node.attributes);
-            attrs.forEach((attr: any) => {
+            attrs.forEach((attr) => {
               if (attr.name.toLowerCase().startsWith('on')) {
                 node.removeAttribute(attr.name);
                 warnings.push('event-handlers-removed');
@@ -404,7 +462,7 @@ export module Services {
         DOMPurify.addHook('beforeSanitizeElements', beforeSanitizeElementsHook);
         DOMPurify.addHook('beforeSanitizeAttributes', beforeSanitizeAttributesHook);
 
-        let sanitized: any;
+        let sanitized: unknown;
         try {
           sanitized = DOMPurify.sanitize(svg, config);
         } finally {
@@ -469,9 +527,10 @@ export module Services {
   }
 }
 
-declare var module: any;
-declare var exports: any;
 
 export default Services;
 PopulateExportedMethods(Services.SvgSanitizer);
 
+declare global {
+  let SvgSanitizerService: Services.SvgSanitizer;
+}

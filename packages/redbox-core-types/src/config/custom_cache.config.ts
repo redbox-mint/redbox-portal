@@ -8,6 +8,9 @@
 export interface CustomCacheConfig {
     /** Cache expiry time in seconds */
     cacheExpiry: number;
+
+    /** Cache check period in seconds */
+    checkPeriod?: number;
 }
 
 export const custom_cache: CustomCacheConfig = {

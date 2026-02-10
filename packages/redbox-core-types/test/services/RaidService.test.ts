@@ -102,7 +102,7 @@ describe('RaidService', function() {
   describe('getContributorId (private, test via buildContribVal)', function() {
     it('should validate ORCID format', function() {
       // Test via buildContribVal
-      const contributors = {};
+      const contributors: Record<string, any> = {};
       const contribVal = {
         text_full_name: 'Test User',
         orcid: 'https://orcid.org/0000-0002-1234-5678'
@@ -119,7 +119,7 @@ describe('RaidService', function() {
     });
 
     it('should reject invalid ORCID', function() {
-      const contributors = {};
+      const contributors: Record<string, any> = {};
       const contribVal = {
         text_full_name: 'Test User',
         orcid: 'invalid-orcid'
@@ -139,7 +139,7 @@ describe('RaidService', function() {
 
   describe('buildContribVal', function() {
     it('should ignore blank records', function() {
-      const contributors = {};
+      const contributors: Record<string, any> = {};
       const contribVal = { text_full_name: '' };
       const contribConfig = {
         position: 'chief-investigator',
@@ -153,7 +153,7 @@ describe('RaidService', function() {
     });
 
     it('should create contributor with valid ORCID', function() {
-      const contributors = {};
+      const contributors: Record<string, any> = {};
       const orcidId = '0000-0002-1234-5678';
       const contribVal = {
         text_full_name: 'Test User',
@@ -200,7 +200,7 @@ describe('RaidService', function() {
     });
 
     it('should not require ORCID when requireOrcid is false', function() {
-      const contributors = {};
+      const contributors: Record<string, any> = {};
       const contribVal = {
         text_full_name: 'Test User',
         orcid: ''
@@ -342,7 +342,7 @@ describe('RaidService', function() {
 
   describe('setContributorFlags (private, test via buildContribVal)', function() {
     it('should set leader flag for chief-investigator', function() {
-      const contributors = {};
+      const contributors: Record<string, any> = {};
       const contribVal = {
         text_full_name: 'Test User',
         orcid: 'https://orcid.org/0000-0002-1234-5678'
@@ -361,7 +361,7 @@ describe('RaidService', function() {
     });
 
     it('should not set leader flag for investigator', function() {
-      const contributors = {};
+      const contributors: Record<string, any> = {};
       const contribVal = {
         text_full_name: 'Test User',
         orcid: 'https://orcid.org/0000-0002-1234-5678'

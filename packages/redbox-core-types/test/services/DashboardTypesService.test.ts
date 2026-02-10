@@ -17,7 +17,7 @@ describe('DashboardTypesService', function() {
     
     setupServiceTestGlobals(mockSails);
     
-    const mockDeferred = (result) => {
+    const mockDeferred = (result: unknown) => {
       const p: any = Promise.resolve(result);
       p.exec = sinon.stub().yields(null, result);
       return p;
@@ -60,7 +60,7 @@ describe('DashboardTypesService', function() {
           return p;
       });
       
-      const result = await service.bootstrap(brand);
+      const result = await service.bootstrap(brand as any);
       expect(result).to.deep.equal(existing);
     });
 
@@ -68,14 +68,14 @@ describe('DashboardTypesService', function() {
       const brand = { id: 'brand1' };
       // find returns [] by default from beforeEach
       
-      const createDeferred = (data) => {
+      const createDeferred = (data: any) => {
           const p: any = Promise.resolve(data);
           p.exec = sinon.stub().yields(null, data);
           return p;
       };
-      (global as any).DashboardType.create.callsFake((data) => createDeferred(data));
+      (global as any).DashboardType.create.callsFake((data: any) => createDeferred(data));
       
-      const result = await service.bootstrap(brand);
+      const result = await service.bootstrap(brand as any);
       expect(result).to.have.length(1);
       expect(result[0].name).to.equal('standard');
     });

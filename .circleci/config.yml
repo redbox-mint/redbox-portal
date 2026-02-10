@@ -424,6 +424,27 @@ jobs:
           when: always
       - store_test_results:
           path: packages/redbox-core-types/support/junit
+  lint-redbox-core-types:
+    docker:
+      - image: 'cimg/node:24.11.1'
+    resource_class: medium
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install redbox-core-types dependencies
+          command: |
+            cd ./packages/redbox-core-types
+            npm ci --include=dev
+      - run:
+          name: Run lint for redbox-core-types
+          command: |
+            cd ./packages/redbox-core-types
+            npm run lint
   # test-sails-hook-redbox-storage-mongo:
   #   machine:
   #     image: ubuntu-2004:current
@@ -741,6 +762,9 @@ workflows:
       - test-sails-ng-common:
           requires:
             - build
+      # - lint-redbox-core-types:
+      #     requires:
+      #       - build
       - test-redbox-core-types:
           requires:
             - build

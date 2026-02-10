@@ -7,9 +7,9 @@
  */
 
 import { RequestHandler, Request, Response, NextFunction } from 'express';
+import type { PassportStatic } from 'passport';
 import * as _ from 'lodash';
 import * as fs from 'fs';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const skipper = require('skipper');
 
 import { redboxSession as redboxSessionMiddleware } from '../middleware/redboxSession';
@@ -19,7 +19,7 @@ import { redboxSession as redboxSessionConfigValue } from './redboxSession.confi
 declare const sails: {
     config: {
         appPath: string;
-        passport: any; // The passport instance configured by UsersService
+        passport: PassportStatic; // The passport instance configured by UsersService
         session: {
             cookie?: {
                 maxAge?: number;
@@ -39,10 +39,10 @@ interface ExtendedRequest extends Request {
         locals?: {
             branding?: string;
             portal?: string;
-            [key: string]: any;
+            [key: string]: unknown;
         };
     };
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 /**
@@ -224,13 +224,20 @@ export const http: HttpConfig = {
             const originalRedirect = res.redirect;
 
             // Patch the redirect function so that it sets the no-cache headers
-            res.redirect = function (...args: any[]) {
+            res.redirect = function (this: Response, urlOrStatus: string | number, statusOrUrl?: number | string) {
                 res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
                 res.set('Pragma', 'no-cache');
                 res.set('Expires', '0');
 
-                return originalRedirect.apply(this, args);
-            } as any;
+                const redirect = originalRedirect as unknown as (...args: unknown[]) => Response;
+                if (typeof urlOrStatus === 'number') {
+                    return redirect.call(this, urlOrStatus, statusOrUrl as string | undefined);
+                }
+                if (typeof statusOrUrl === 'number') {
+                    return redirect.call(this, statusOrUrl, urlOrStatus);
+                }
+                return redirect.call(this, urlOrStatus);
+            } as Response['redirect'];
 
             return next();
         },

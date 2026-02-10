@@ -1,6 +1,4 @@
 declare var sails: any;
-declare var BrandingService: any;
-declare var TranslationService: any;
 declare var _: any;
 
 describe('NavigationService', function () {

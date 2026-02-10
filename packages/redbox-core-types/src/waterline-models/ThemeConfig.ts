@@ -1,5 +1,4 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, toWaterlineModelDef } from '../decorators';
 
 @Entity('themeconfig')
@@ -25,5 +24,5 @@ export interface ThemeConfigWaterlineModel extends Sails.Model<ThemeConfigAttrib
 }
 
 declare global {
-  var ThemeConfig: ThemeConfigWaterlineModel;
+  const ThemeConfig: ThemeConfigWaterlineModel;
 }

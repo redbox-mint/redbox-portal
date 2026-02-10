@@ -1,5 +1,4 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, BelongsTo, toWaterlineModelDef } from '../decorators';
 import { FormAttributes } from './Form';
 
@@ -42,5 +41,5 @@ export interface WorkflowStepWaterlineModel extends Sails.Model<WorkflowStepAttr
 }
 
 declare global {
-  var WorkflowStep: WorkflowStepWaterlineModel;
+  const WorkflowStep: WorkflowStepWaterlineModel;
 }

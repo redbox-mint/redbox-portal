@@ -870,13 +870,51 @@ export module Services {
       return this.gridFsBucket.find(query, {}).toArray();
     }
 
+    private toJsonSafe(value: any) {
+      if (_.isUndefined(value)) {
+        return undefined;
+      }
+      if (_.isObject(value) && !_.isPlainObject(value) && !_.isArray(value)) {
+        return undefined;
+      }
+      try {
+        const json = JSON.stringify(value);
+        if (_.isUndefined(json)) {
+          return undefined;
+        }
+        return JSON.parse(json);
+      } catch (err) {
+        return undefined;
+      }
+    }
+
+    private sanitizeRecordAudit(recordAudit: RecordAuditModel): RecordAuditModel {
+      const payload: RecordAuditModel = {
+        redboxOid: recordAudit.redboxOid,
+        action: recordAudit.action,
+        user: this.toJsonSafe(recordAudit.user),
+        record: this.toJsonSafe(recordAudit.record)
+      } as RecordAuditModel;
+
+      if (_.isUndefined(payload.user)) {
+        delete (payload as any).user;
+      }
+
+      if (_.isUndefined(payload.record)) {
+        delete (payload as any).record;
+      }
+
+      return payload;
+    }
+
     public async createRecordAudit(recordAudit: RecordAuditModel): Promise<any> {
       let response = new StorageServiceResponse();
+      const payload = this.sanitizeRecordAudit(recordAudit);
       try {
         sails.log.verbose(`${this.logHeader} Saving to DB...`);
-        await RecordAudit.create(recordAudit);
+        await RecordAudit.create(payload);
         //TODO: fix type model to have the _id attribute
-        let savedRecordAudit: any = recordAudit;
+        let savedRecordAudit: any = payload;
         response.oid = savedRecordAudit._id;
         response.success = true;
         sails.log.verbose(`${this.logHeader} Record Audit created...`);

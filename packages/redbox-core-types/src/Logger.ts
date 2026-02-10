@@ -1,15 +1,16 @@
 // Logger interface based on the custom logger in config/log.js
 export interface ILogger {
-  silly: (...args: any[]) => void;
-  verbose: (...args: any[]) => void;
-  trace: (...args: any[]) => void;
-  debug: (...args: any[]) => void;
-  log: (...args: any[]) => void;
-  info: (...args: any[]) => void;
-  warn: (...args: any[]) => void;
-  error: (...args: any[]) => void;
-  crit: (...args: any[]) => void;
-  fatal: (...args: any[]) => void;
-  silent: (...args: any[]) => void;
-  blank: (...args: any[]) => void;
+  level?: string;
+  silly: (...args: unknown[]) => void;
+  verbose: (...args: unknown[]) => void;
+  trace: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+  log: (...args: unknown[]) => void;
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  crit: (...args: unknown[]) => void;
+  fatal: (...args: unknown[]) => void;
+  silent: (...args: unknown[]) => void;
+  blank: (...args: unknown[]) => void;
 }

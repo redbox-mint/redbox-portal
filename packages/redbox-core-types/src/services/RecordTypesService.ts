@@ -21,14 +21,9 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordTypeModel } from '../model/storage/RecordTypeModel';
-import {Sails, Model} from "sails";
 
-declare var sails: Sails;
-declare var RecordType: Model;
-declare var _this;
-declare var _;
 
-export module Services {
+export namespace Services {
   /**
    * WorkflowSteps related functions...
    *
@@ -37,7 +32,7 @@ export module Services {
    */
   export class RecordTypes extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'create',
       'get',
@@ -45,13 +40,13 @@ export module Services {
       'getAllCache'
     ];
 
-    protected recordTypes:RecordTypeModel[];
+    protected recordTypes!:RecordTypeModel[];
 
     public async bootstrap (defBrand:BrandingModel):Promise<RecordTypeModel[]> {
-      let recordTypes:RecordTypeModel[] = await RecordType.find({branding:defBrand.id});
+      let recordTypes:RecordTypeModel[] = await RecordType.find({branding:defBrand.id}) as unknown as RecordTypeModel[];
       if (sails.config.appmode.bootstrapAlways) {
         await RecordType.destroy({branding:defBrand.id});
-        recordTypes  = null;
+        recordTypes  = [];
       }
         if (_.isUndefined(recordTypes)) {
           recordTypes = [];
@@ -67,9 +62,9 @@ export module Services {
           // });
 
           this.recordTypes= recordTypes;
-          let rTypes = [];
-          for(let recordType in sails.config.recordtype) {
-            let config:RecordTypeModel = sails.config.recordtype[recordType];
+          const rTypes = [];
+          for(const recordType in sails.config.recordtype) {
+            const config:RecordTypeModel = sails.config.recordtype[recordType] as unknown as RecordTypeModel;
             rTypes.push(await firstValueFrom(this.create(defBrand, recordType, config)))
           }    
           return rTypes;
@@ -80,7 +75,7 @@ export module Services {
           return recordTypes;
     }
 
-    public create(brand:BrandingModel, name:string, config:RecordTypeModel):Observable<RecordTypeModel> {
+    public create(brand:BrandingModel, name:string, config: RecordTypeModel & { dashboard?: unknown }):Observable<RecordTypeModel> {
     
       return super.getObservable(RecordType.create({
         name: name,
@@ -92,20 +87,20 @@ export module Services {
         transferResponsibility: config.transferResponsibility,
         relatedTo: config.relatedTo,
         searchable: config.searchable,
-        dashboard: (config as any).dashboard
+        dashboard: config.dashboard
       }));
     }
 
-    public get(brand:BrandingModel, name:string, fields:string[]=null): Observable<RecordTypeModel> {
-      const criteria:any = {where: {branding: brand.id, name: name}};
+    public get(brand:BrandingModel, name:string, fields: string[] | null = null): Observable<RecordTypeModel> {
+      const criteria: { where: { branding: string; name: string }; select?: string[] } = {where: {branding: brand.id, name: name}};
       if (fields) {
         criteria.select = fields;
       }
       return super.getObservable(RecordType.findOne(criteria));
     }
 
-    public getAll(brand:BrandingModel, fields:string[] = null): Observable<RecordTypeModel[]> {
-      const criteria:any = {where: {branding: brand.id}};
+    public getAll(brand:BrandingModel, fields: string[] | null = null): Observable<RecordTypeModel[]> {
+      const criteria: { where: { branding: string }; select?: string[] } = {where: {branding: brand.id}};
       if (fields) {
         criteria.select = fields;
       }
@@ -116,4 +111,8 @@ export module Services {
       return this.recordTypes;
         }
   }
+}
+
+declare global {
+  let RecordTypesService: Services.RecordTypes;
 }

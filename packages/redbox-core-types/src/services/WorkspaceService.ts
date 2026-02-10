@@ -1,23 +1,16 @@
 import { Observable, from } from 'rxjs';
 import { Services as services } from '../CoreService';
-import { Sails, Model } from "sails";
 import axios, { AxiosResponse } from 'axios';
 
-declare var RecordsService, BrandingService;
-declare var sails: Sails;
-declare var _this;
-declare var _;
-declare var Institution, User: Model, WorkspaceApp: Model, Form: Model;
 
-export module Services {
+export namespace Services {
 
   export class WorkspaceService extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'createWorkspaceRecord',
       'getRecordMeta',
       'updateRecordMeta',
-      'registerUserApp',
       'userInfo',
       'provisionerUser',
       'infoFormUserId',
@@ -35,9 +28,9 @@ export module Services {
       super();
     }
 
-    mapToRecord(obj: any, recordMap: any) {
-      let newObj = {};
-      _.each(recordMap, (value) => {
+    mapToRecord(obj: Record<string, unknown>, recordMap: Array<{ record: string; ele: string }>) {
+      const newObj: Record<string, unknown> = {};
+      _.each(recordMap, (value: { record: string; ele: string }) => {
         newObj[value.record] = _.get(obj, value.ele);
       });
       return newObj;
@@ -53,7 +46,7 @@ export module Services {
      * @param  targetRecord - the target record to update, leaving it empty will retrieve the record
      * @return
      */
-    public async addWorkspaceToRecord(targetRecordOid: string, workspaceOid: string, workspaceData:any = {}, targetRecord: any = undefined) {
+    public async addWorkspaceToRecord(targetRecordOid: string, workspaceOid: string, workspaceData: Record<string, unknown> = {}, targetRecord: Record<string, unknown> | undefined = undefined) {
       workspaceData.id = workspaceOid;
       return await RecordsService.appendToRecord(targetRecordOid, workspaceData, 'metadata.workspaces', 'array', targetRecord);
     }
@@ -68,7 +61,7 @@ export module Services {
      * @param  targetRecord - the target record to update, leaving it empty will retrieve the record
      * @return
      */
-    public async removeWorkspaceFromRecord(targetRecordOid: string, workspaceOid: string, workspaceData:any = {}, targetRecord: any = undefined) {
+    public async removeWorkspaceFromRecord(targetRecordOid: string, workspaceOid: string, workspaceData: Record<string, unknown> = {}, targetRecord: Record<string, unknown> | undefined = undefined) {
       workspaceData.id = workspaceOid;
       return await RecordsService.removeFromRecord(targetRecordOid, workspaceData, 'metadata.workspaces', targetRecord);
     }    
@@ -81,18 +74,18 @@ export module Services {
      * @param  targetRecord
      * @return list of workspaces
      */
-    public async getWorkspaces(targetRecordOid: string, targetRecord:any = undefined) {
+    public async getWorkspaces(targetRecordOid: string, targetRecord: unknown = undefined) {
       if (_.isUndefined(targetRecord)) {
         targetRecord = await RecordsService.getMeta(targetRecordOid);
       }
-      const workspaces = [];
-      _.each(_.get(targetRecord, 'metadata.workspaces'), async (workspaceInfo:any) => {
+      const workspaces: unknown[] = [];
+      for (const workspaceInfo of (_.get(targetRecord, 'metadata.workspaces', []) as Array<{ id: string }>)) {
         workspaces.push(await RecordsService.getMeta(workspaceInfo.id));
-      });
+      }
       return workspaces;
     }
 
-    createWorkspaceRecord(config: any, username: string, project: any, recordType: string, workflowStage: string): Observable<AxiosResponse<any>> {
+    createWorkspaceRecord(config: { brandingAndPortalUrl: string; redboxHeaders: Record<string, string> }, username: string, project: Record<string, unknown>, recordType: string, workflowStage: string): Observable<AxiosResponse<unknown>> {
       // TODO: how to get the workflowStage??
       // TODO: Get the project metadata from the form, move this logic to the controller
       sails.log.debug(config);
@@ -114,7 +107,7 @@ export module Services {
   return from(axios(post));
     }
 
-    getRecordMeta(config: any, rdmp: string): Observable<AxiosResponse<any>> {
+    getRecordMeta(config: { brandingAndPortalUrl: string; redboxHeaders: Record<string, string> }, rdmp: string): Observable<AxiosResponse<unknown>> {
       const get = {
         method: 'get',
         url: config.brandingAndPortalUrl + '/api/records/metadata/' + rdmp,
@@ -123,7 +116,7 @@ export module Services {
   return from(axios(get));
     }
 
-    updateRecordMeta(config: any, record: any, id: string): Observable<AxiosResponse<any>> {
+    updateRecordMeta(config: { brandingAndPortalUrl: string; redboxHeaders: Record<string, string> }, record: Record<string, unknown>, id: string): Observable<AxiosResponse<unknown>> {
       const post = {
         method: 'put',
         url: config.brandingAndPortalUrl + '/api/records/metadata/' + id,
@@ -145,13 +138,13 @@ export module Services {
       )
     }
 
-    infoFormUserId(userId) {
+    infoFormUserId(userId: string) {
       return this.getObservable(
         User.findOne({ id: userId }).populate('workspaceApps')
       );
     }
 
-    createWorkspaceInfo(userId, appName, info) {
+    createWorkspaceInfo(userId: string, appName: string, info: unknown) {
       return this.getObservable(
         WorkspaceApp.findOrCreate(
           {app: appName, user: userId},
@@ -160,7 +153,7 @@ export module Services {
       );
     }
 
-    updateWorkspaceInfo(id, info) {
+    updateWorkspaceInfo(id: string, info: unknown) {
       return this.getObservable(
         WorkspaceApp.update(
           {id: id})
@@ -170,13 +163,13 @@ export module Services {
       );
     }
 
-    workspaceAppFromUserId(userId, appName){
+    workspaceAppFromUserId(userId: string, appName: string){
       return this.getObservable(
         WorkspaceApp.findOne({app: appName, user: userId})
       );
     }
 
-    removeAppFromUserId(userId, id){
+    removeAppFromUserId(userId: string, id: string){
       return this.getObservable(
         WorkspaceApp.destroy({id: id, user: userId})
       );
@@ -184,4 +177,8 @@ export module Services {
 
   }
 
+}
+
+declare global {
+  let WorkspaceService: Services.WorkspaceService;
 }

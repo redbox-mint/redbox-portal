@@ -1,9 +1,8 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, BelongsTo, BeforeCreate, toWaterlineModelDef } from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
 
-const setKey = (namedQuery: Record<string, any>, cb: (err?: Error) => void) => {
+const setKey = (namedQuery: Record<string, unknown>, cb: (err?: Error) => void) => {
   namedQuery.key = `${namedQuery.branding}_${namedQuery.name}`;
   cb();
 };
@@ -56,5 +55,5 @@ export interface NamedQueryWaterlineModel extends Sails.Model<NamedQueryAttribut
 }
 
 declare global {
-  var NamedQuery: NamedQueryWaterlineModel;
+  const NamedQuery: NamedQueryWaterlineModel;
 }

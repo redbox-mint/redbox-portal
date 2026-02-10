@@ -23,12 +23,27 @@ export interface VocabQueryField {
     type: string;
 }
 
+export interface VocabUserQueryField {
+    property: string;
+    userValueProperty: string;
+}
+
 export interface VocabQuery {
     querySource: 'solr' | 'database';
     searchQuery?: VocabSearchQuery;
     databaseQuery?: VocabDatabaseQuery;
     queryField: VocabQueryField;
+    userQueryFields?: VocabUserQueryField[];
     resultObjectMapping?: Record<string, string>;
+}
+
+export interface VocabCollectionConfig {
+    url: string;
+    getMethod: string;
+    saveMethod: string;
+    searchMethod: string;
+    processingBuffer: number;
+    processingTime: number;
 }
 
 export interface VocabConfig {
@@ -42,6 +57,8 @@ export interface VocabConfig {
     cacheExpiry: number;
     external: Record<string, VocabExternalEndpoint>;
     queries: Record<string, VocabQuery>;
+    nonAnds: Record<string, { url: string }>;
+    collection: Record<string, VocabCollectionConfig>;
 }
 
 const baseUrl = "https://geonames.redboxresearchdata.com.au/select";
@@ -98,5 +115,7 @@ export const vocab: VocabConfig = {
                 type: 'text'
             }
         }
-    }
+    },
+    nonAnds: {},
+    collection: {}
 };

@@ -65,8 +65,8 @@ describe('BrandingLogoService', function() {
       try {
         await service.putLogo({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('data'), contentType: 'image/png' });
         expect.fail('Should have thrown');
-      } catch (e) {
-        expect(e.message).to.equal('branding-not-found');
+      } catch (e: unknown) {
+        expect(e instanceof Error ? e.message : String(e)).to.equal('branding-not-found');
       }
     });
 
