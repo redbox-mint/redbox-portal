@@ -1,15 +1,18 @@
 import { expect } from 'chai';
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 import { Command } from 'commander';
 import { registerMigrateFormConfigCommand } from '../../src/commands/migrate-form-config';
 
 describe('migrate-form-config command', () => {
   let tempRoot: string;
+  let inputPath: string;
 
   beforeEach(() => {
-    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-migrate-test-'));
+    tempRoot = path.resolve(__dirname, '..', '.tmp', 'migrate-form-config');
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+    fs.mkdirSync(tempRoot, { recursive: true });
+    inputPath = path.resolve(__dirname, '..', 'resources', 'migrate-form-config', 'legacy-form.js');
   });
 
   afterEach(() => {
@@ -30,8 +33,7 @@ describe('migrate-form-config command', () => {
 
   it('should migrate a legacy form config and write TS output', async () => {
     const program = buildProgram();
-    const inputPath = path.resolve(__dirname, '../../../../form-config/default-1.0-draft.js');
-    const outputPath = path.join(tempRoot, 'default-1.0-draft.ts');
+    const outputPath = path.join(tempRoot, 'fixture-1.0-draft.ts');
 
     await program.parseAsync(
       ['node', 'redbox-hook-kit', 'migrate-form-config', '--input', inputPath, '--output', outputPath],
@@ -47,8 +49,7 @@ describe('migrate-form-config command', () => {
 
   it('should respect global --dry-run and not write output file', async () => {
     const program = buildProgram();
-    const inputPath = path.resolve(__dirname, '../../../../form-config/default-1.0-draft.js');
-    const outputPath = path.join(tempRoot, 'dry-run-default-1.0-draft.ts');
+    const outputPath = path.join(tempRoot, 'dry-run-fixture-1.0-draft.ts');
 
     await program.parseAsync(
       ['node', 'redbox-hook-kit', '--dry-run', 'migrate-form-config', '--input', inputPath, '--output', outputPath],
