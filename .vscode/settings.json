@@ -1,6 +1,5 @@
 {
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "always"
   },
@@ -11,9 +10,12 @@
     "javascriptreact"
   ],
   "eslint.workingDirectories": [
-    { "directory": "packages/redbox-core-types", "changeProcessCWD": true }
+    { "mode": "auto" }
   ],
   "[typescript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[typescriptreact]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[json]": {
