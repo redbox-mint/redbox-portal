@@ -21,7 +21,7 @@ import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.de
 import { Services as services } from '../CoreService';
 import jsonata, { Expression } from "jsonata";
 import Handlebars, { TemplateDelegate as HandlebarsTemplateDelegate } from "handlebars";
-import { TemplateCompileItem, TemplateCompileInput, templateCompileKind, registerSharedHandlebarsHelpers, buildKeyString } from "@researchdatabox/sails-ng-common";
+import { TemplateCompileItem, TemplateCompileInput, TemplateCompileKey, templateCompileKind, registerSharedHandlebarsHelpers, buildKeyString } from "@researchdatabox/sails-ng-common";
 
 
 
@@ -169,7 +169,7 @@ export namespace Services {
             }
         }
 
-        public buildKeyString(key: string[]): string {
+        public buildKeyString(key: TemplateCompileKey): string {
             return buildKeyString(key);
         }
 
