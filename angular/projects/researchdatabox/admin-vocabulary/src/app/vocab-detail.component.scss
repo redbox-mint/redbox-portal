@@ -26,6 +26,14 @@
   text-decoration: none;
 }
 
+.tree-preview-toggle:focus,
+.tree-preview-toggle:focus-visible {
+  border-radius: 2px;
+  box-shadow: 0 0 0 2px #0b5ed7;
+  outline: 2px solid #0b5ed7;
+  outline-offset: 2px;
+}
+
 .tree-preview-leaf-spacer {
   display: inline-block;
   margin-right: 0.35rem;

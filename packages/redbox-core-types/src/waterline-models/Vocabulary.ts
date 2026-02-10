@@ -46,15 +46,14 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
     record.source = source;
   }
 
-  const rawSlug = typeof record.slug === 'undefined' ? '' : String(record.slug).trim();
-  if (!rawSlug || rawSlug === '__AUTO__') {
-    record.slug = slugify(name);
-  } else {
-    record.slug = slugify(rawSlug);
-  }
-
-  if (!String(record.slug ?? '').trim()) {
-    throw new Error('Vocabulary.slug is required');
+  const hasSlug = typeof record.slug !== 'undefined';
+  if (hasSlug || hasName || isCreate) {
+    const rawSlug = hasSlug ? String(record.slug).trim() : '';
+    const slugSource = rawSlug && rawSlug !== '__AUTO__' ? rawSlug : name;
+    record.slug = slugify(slugSource);
+    if ((isCreate || hasSlug || hasName) && !String(record.slug ?? '').trim()) {
+      throw new Error('Vocabulary.slug is required');
+    }
   }
 
   const effectiveSource = source || String(record.source ?? '');

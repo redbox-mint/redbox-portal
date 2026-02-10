@@ -46,7 +46,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let vocabulary of filteredVocabularies; trackBy: trackByVocabularyId" [class.vocab-selected]="selectedId === vocabulary.id">
+          <tr *ngFor="let vocabulary of filteredVocabularies; trackBy: trackByVocabularyId" [class.vocab-selected]="selectedId === vocabulary.id"
+            tabindex="0" (keydown.enter)="open(vocabulary.id)">
             <td><a href="#" (click)="$event.preventDefault(); open(vocabulary.id)">{{ vocabulary.name }}</a></td>
             <td><code>{{ vocabulary.slug || '-' }}</code></td>
             <td><span class="badge badge-secondary text-uppercase">{{ ('admin-vocabulary-type-' + vocabulary.type) | i18next }}</span></td>

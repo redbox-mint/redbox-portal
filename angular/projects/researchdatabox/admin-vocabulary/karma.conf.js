@@ -1,4 +1,6 @@
 module.exports = function (config) {
+  const isCI = process.env.CI === 'true';
+
   config.set({
     basePath: './',
     frameworks: ['jasmine', '@angular-devkit/build-angular'],
@@ -43,8 +45,8 @@ module.exports = function (config) {
         flags: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
       }
     },
-    browsers: ['Chrome'],
-    singleRun: false,
-    restartOnFileChange: true
+    browsers: isCI ? ['ChromeHeadlessNoSandbox'] : ['Chrome'],
+    singleRun: isCI,
+    restartOnFileChange: !isCI
   });
 };

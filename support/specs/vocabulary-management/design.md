@@ -20,7 +20,7 @@
         - `labelLower`: string (normalized lowercase for case-insensitive uniqueness)
         - `value`: string (required, the actual value/URI)
         - `valueLower`: string (normalized lowercase for case-insensitive uniqueness)
-        - `parent`: association to `VocabularyEntry` (optional, for hierarchy)
+        - `parent`: association to `VocabularyEntry` (optional, for hierarchy; deleting an entry orphans direct children by setting `parent = null` as the default service behavior)
         - `identifier`: string (optional, external URI/ID)
         - `order`: number (for sorting)
 - **Relationships and indexes**: 
@@ -32,11 +32,14 @@
     - Case-insensitive uniqueness enforced per vocabulary:
         - Unique `(vocabulary, labelLower)`
         - Unique `(vocabulary, valueLower)`
+    - Unique `(vocabulary, identifier)` to support deterministic RVA sync matching.
 - **Validation**:
     - `name` required for Vocabulary.
     - `label`, `value` required for Entry.
     - `type` required; allowed values: `flat`, `tree`. If `type = flat`, entries must not have `parent`.
+    - When updating `type` from `tree` to `flat`, reject the change if any `entries.parent` is non-null; user-facing message: "Flatten the hierarchy manually before changing to flat."
     - `label` and `value` must be unique per vocabulary (case-insensitive).
+    - `identifier` must be unique within the same vocabulary.
     - `sourceId` required when `source = rva`.
     - `parent` (if provided) must belong to the same vocabulary.
     - Prevent cycles and self-parenting in `VocabularyEntry` hierarchy.
@@ -44,6 +47,7 @@
 - **Access control**: Admin only for all endpoints in MVP. Read access for non-admin users will be designed later with record-form integration (no public read API yet).
 - **Branding scope**: Admin is not multi-brand; vocabularies are managed within a single branding context.
 - **File locations**: `packages/redbox-core-types/src/waterline-models/`
+- **Migration note**: Add a DB migration/index creation step for `VocabularyEntry(vocabulary, identifier)` unique index and keep matching model-level validation to reject duplicates before persistence.
 
 ## 2. Services Layer (Business Logic)
 - **Service responsibilities**:
@@ -69,6 +73,7 @@
     - `POST /api/vocabulary` (create)
     - `PUT /api/vocabulary/:id` (update)
     - `DELETE /api/vocabulary/:id` (delete, cascades entries)
+    - `PUT /api/vocabulary/:id/reorder` (bulk reorder entries atomically)
     - `POST /api/vocabulary/import` (trigger RVA import)
     - `POST /api/vocabulary/:id/sync` (trigger RVA update/sync for an imported vocab)
 - **Autonomy**: Admin only (`Auth.isAuthenticated`, `Auth.isAdmin`).
@@ -80,6 +85,14 @@
 - **Sync behavior**:
     - `POST /api/vocabulary/:id/sync` accepts optional `versionId`; defaults to latest if omitted.
     - Returns `{ updated, created, skipped }` counts and updates `lastSyncedAt`.
+- **Bulk reorder behavior**:
+    - `PUT /api/vocabulary/:id/reorder` request body: `{ "entryOrders": [{ "id": "entry-1", "order": 0 }] }`.
+    - Validates that all entry IDs belong to `:id` vocabulary and applies updates in one transaction.
+    - Response shape: `{ updated: number }`.
+- **Import contract**:
+    - `POST /api/vocabulary/import` request body requires `rvaId: string`.
+    - Optional request fields: `versionId?: string`, `branding?: string`.
+    - Success response shape: `{ vocabularyId: string, created: string, lastSyncedAt: string }` (or equivalent fields on created vocabulary containing ID/timestamps).
 - **Response examples**:
     - `GET /api/vocabulary?limit=2&offset=0&type=tree`
       ```json
@@ -163,6 +176,9 @@
         - `DELETE /admin/vocabulary/:id` (delete, cascades entries)
         - `POST /admin/vocabulary/import` (trigger RVA import)
         - `POST /admin/vocabulary/:id/sync` (trigger RVA update/sync for an imported vocab)
+- **Delegation rule**:
+    - Ajax controller methods must delegate to the same business behavior as REST endpoints by calling `VocabularyService`/`RvaImportService` (or forwarding to webservice controller methods), not duplicating validation or transformation logic independently.
+    - Applies to: list/get/create/update/delete/import/sync routes above, including pagination/filter validation and shared error formatting.
 - **File locations**: 
     - `packages/redbox-core-types/src/controllers/VocabularyController.ts`
 - **Conventions**: Render the container view for the Angular app.
@@ -193,12 +209,33 @@
     - RVA Client is ready (`rva-registry` package).
     - Models need to support arbitrary hierarchy -> `parent` field is sufficient, plus cycle checks in service.
     - `type = flat` should block parents and render flat controls only.
-    - Import/sync should be idempotent and avoid duplicates via case-insensitive matching and RVA identifiers.
-    - Sync strategy: match entries by `identifier` (preferred) or `valueLower` fallback; update label/value, add missing entries, and do not delete local-only entries in MVP.
+    - Import/sync should be idempotent and avoid duplicates via scoped identifiers and value matching.
+    - Sync strategy:
+        - Match order: `identifier` -> `valueLower` -> `previousIdentifier` (when provided by RVA for renames).
+        - For local records not matched by the incoming RVA payload, mark `orphaned = true` instead of silently leaving ambiguous state.
+        - On each matched/updated record set `lastSeenSync` timestamp.
+        - Provide an admin cleanup action (or bulk API) to archive/remove entries not seen since a configurable `lastSeenSync` cutoff.
     - RVA mapping:
         - Metadata comes from `ResourcesApi.getVocabularyById(...)` with include flags.
         - Concepts come from `ResourcesApi.getVersionArtefactConceptTree(versionId)`.
         - Prefer `version.status = current`, else latest by `release-date`.
         - Kebab-case fields map to local: `title` → `name`, `creation-date` ignored in MVP, `primary-language` ignored in MVP.
         - Concept identifiers map to `VocabularyEntry.identifier`; labels/notations map to `label`/`value`.
-    - Import might be slow -> `RvaImportService` should likely use `QueueService` or returning a job ID if it takes too long. For now, we assume synchronous or basic promise-based for MVP.
+    - Async import strategy:
+        - MVP keeps synchronous `RvaImportService` import/sync execution.
+        - Enforce explicit timeouts: 30s for metadata calls, 60s for full concept-tree calls.
+        - If timeout is exceeded, return a timeout error and do not leave partial updates; `QueueService` remains the future path for queued async processing.
+
+## RVA Error Handling
+- `ResourcesApi.getVocabularyById(...)` failures:
+    - On network/5xx/unavailable errors, return a user-friendly "RVA is temporarily unavailable" error and preserve current local vocabulary data.
+    - On 404, return a clear not-found error indicating vocabulary/version does not exist in RVA.
+- `ResourcesApi.getVersionArtefactConceptTree(versionId)` failures:
+    - On network/5xx/unavailable errors, abort sync and preserve current local entries.
+    - On malformed/partial payload, rollback transaction (or mark vocabulary with a sync error flag if rollback is not available).
+- Timeouts and logging:
+    - Require 30s timeout for metadata and 60s timeout for full vocabulary content retrieval.
+    - Log all RVA API errors (request context + status + message) for debugging.
+- Mapping consistency guardrails:
+    - If version is not current and no suitable fallback is resolved, abort sync with explicit error.
+    - Continue enforcing identifier mapping rules (`VocabularyEntry.identifier`) before write operations.

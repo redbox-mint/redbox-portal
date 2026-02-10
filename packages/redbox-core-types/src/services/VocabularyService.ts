@@ -5,6 +5,8 @@ import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
 export namespace Services {
   type VocabType = 'flat' | 'tree';
   type VocabSource = 'local' | 'rva';
+  const VALID_TYPES = new Set<VocabType>(['flat', 'tree']);
+  const VALID_SOURCES = new Set<VocabSource>(['local', 'rva']);
 
   export type VocabularyEntryInput =
     Pick<VocabularyEntryAttributes, 'id' | 'label' | 'value' | 'identifier' | 'order'> & {
@@ -50,6 +52,7 @@ export namespace Services {
       'getById',
       'create',
       'update',
+      'reorderEntries',
       'delete',
       'getTree',
       'normalizeEntry',
@@ -100,16 +103,18 @@ export namespace Services {
     }
 
     public async list(options: VocabularyListOptions): Promise<{ data: VocabularyAttributes[]; meta: { total: number; limit: number; offset: number } }> {
-      const limit = Math.max(1, Math.min(200, Number(options.limit ?? 25)));
-      const offset = Math.max(0, Number(options.offset ?? 0));
+      const parsedLimit = Number.parseInt(String(options.limit ?? 25), 10);
+      const parsedOffset = Number.parseInt(String(options.offset ?? 0), 10);
+      const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(200, parsedLimit) : 25;
+      const offset = Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
       const sort = options.sort || 'name ASC';
 
       const where: VocabularyListWhere = {};
-      if (options.type) {
-        where.type = options.type;
+      if (options.type && VALID_TYPES.has(options.type as VocabType)) {
+        where.type = options.type as VocabularyAttributes['type'];
       }
-      if (options.source) {
-        where.source = options.source;
+      if (options.source && VALID_SOURCES.has(options.source as VocabSource)) {
+        where.source = options.source as VocabularyAttributes['source'];
       }
       // Branding is single-tenant for this admin feature; avoid ObjectId/string mismatch
       // filtering at query time which can hide records in Mongo-backed environments.
@@ -220,21 +225,88 @@ export namespace Services {
       if (typeof updatePayload.slug !== 'undefined') {
         modelUpdate.slug = updatePayload.slug;
       }
-      await Vocabulary.updateOne({ id }).set(modelUpdate);
-      const updated = await Vocabulary.findOne({ id });
-      if (!updated) {
-        throw new Error('Vocabulary not found');
+
+      return runWithOptionalTransaction(
+        this.getDatastore(),
+        async (connection) => {
+          const updateQuery = Vocabulary.updateOne({ id }).set(modelUpdate) as Sails.WaterlinePromise<VocabularyAttributes | null>;
+          await this.executeQuery(updateQuery, connection);
+          const updatedQuery = Vocabulary.findOne({ id }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
+          const updated = await this.executeQuery(updatedQuery, connection);
+          if (!updated) {
+            throw new Error('Vocabulary not found');
+          }
+
+          if (entries) {
+            await this.replaceEntries(id, updated.type === 'flat', entries, connection);
+          }
+
+          const refreshedQuery = Vocabulary.findOne({ id }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
+          const refreshed = await this.executeQuery(refreshedQuery, connection);
+          if (!refreshed) {
+            throw new Error('Vocabulary not found');
+          }
+          return refreshed;
+        },
+        {
+          logger: sails.log,
+          unsupportedAdapterWarning: 'Transactions are not supported by this datastore adapter. Falling back to non-transactional update.'
+        }
+      );
+    }
+
+    public async reorderEntries(vocabularyId: string, entryOrders: Array<{ id: string; order: number }>): Promise<number> {
+      if (!Array.isArray(entryOrders) || entryOrders.length === 0) {
+        return 0;
       }
 
-      if (entries) {
-        await this.replaceEntries(id, updated.type === 'flat', entries);
-      }
+      return runWithOptionalTransaction(
+        this.getDatastore(),
+        async (connection) => {
+          const vocabularyQuery = Vocabulary.findOne({ id: vocabularyId }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
+          const vocabulary = await this.executeQuery(vocabularyQuery, connection);
+          if (!vocabulary) {
+            throw new Error('Vocabulary not found');
+          }
 
-      const refreshed = await Vocabulary.findOne({ id });
-      if (!refreshed) {
-        throw new Error('Vocabulary not found');
-      }
-      return refreshed;
+          const requestedIds = entryOrders.map((entry) => String(entry.id));
+          const dedupedIds = new Set(requestedIds);
+          if (requestedIds.length !== dedupedIds.size) {
+            throw new Error('entryOrders contains duplicate ids');
+          }
+
+          const existingQuery = VocabularyEntry.find({ id: Array.from(dedupedIds) }) as unknown as {
+            usingConnection?: (db: unknown) => Promise<VocabularyEntryAttributes[]>;
+          };
+          const existingEntries = connection && typeof existingQuery.usingConnection === 'function'
+            ? await existingQuery.usingConnection(connection)
+            : await VocabularyEntry.find({ id: Array.from(dedupedIds) }) as VocabularyEntryAttributes[];
+          if (existingEntries.length !== dedupedIds.size) {
+            throw new Error('One or more entry ids were not found');
+          }
+
+          for (const entry of existingEntries) {
+            if (String(entry.vocabulary) !== String(vocabularyId)) {
+              throw new Error('All entries must belong to the target vocabulary');
+            }
+          }
+
+          let updated = 0;
+          for (const entryOrder of entryOrders) {
+            const updateQuery = VocabularyEntry.updateOne({ id: entryOrder.id }).set({ order: entryOrder.order }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+            const updatedEntry = await this.executeQuery(updateQuery, connection);
+            if (updatedEntry) {
+              updated++;
+            }
+          }
+
+          return updated;
+        },
+        {
+          logger: sails.log,
+          unsupportedAdapterWarning: 'Transactions are not supported by this datastore adapter. Falling back to non-transactional reorder.'
+        }
+      );
     }
 
     public async delete(id: string): Promise<void> {

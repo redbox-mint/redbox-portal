@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, OnDestroy } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { VocabularyApiService, VocabularyDetail, VocabularyEntry, VocabularySummary } from './vocabulary-api.service';
 
@@ -8,7 +8,7 @@ import { VocabularyApiService, VocabularyDetail, VocabularyEntry, VocabularySumm
   styleUrls: ['./admin-vocabulary.component.scss'],
   standalone: false
 })
-export class AdminVocabularyComponent extends BaseComponent {
+export class AdminVocabularyComponent extends BaseComponent implements OnDestroy {
   vocabularies: VocabularySummary[] = [];
   selectedVocabulary: VocabularyDetail | null = null;
   selectedEntries: VocabularyEntry[] = [];
@@ -64,6 +64,11 @@ export class AdminVocabularyComponent extends BaseComponent {
 
   protected override async initComponent(): Promise<void> {
     await this.refresh();
+  }
+
+  ngOnDestroy(): void {
+    this.clearSyncStatusTimer();
+    this.syncStatusTimer = null;
   }
 
   async refresh(): Promise<void> {

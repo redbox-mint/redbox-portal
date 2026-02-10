@@ -61,6 +61,7 @@ RUN npm prune --omit=dev \
     packages/redbox-core-types/node_modules \
     packages/sails-ng-common/node_modules \
     packages/raido/node_modules \
+    packages/rva-registry/node_modules \
     angular/node_modules \
     angular-legacy/node_modules \
     support/build/api-descriptors/node_modules

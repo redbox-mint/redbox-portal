@@ -360,6 +360,7 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/api/vocabulary/:id': { controller: 'webservice/VocabularyController', action: 'get', csrf: false },
     'post /:branding/:portal/api/vocabulary': { controller: 'webservice/VocabularyController', action: 'create', csrf: false },
     'put /:branding/:portal/api/vocabulary/:id': { controller: 'webservice/VocabularyController', action: 'update', csrf: false },
+    'put /:branding/:portal/api/vocabulary/:id/reorder': { controller: 'webservice/VocabularyController', action: 'reorder', csrf: false },
     'delete /:branding/:portal/api/vocabulary/:id': { controller: 'webservice/VocabularyController', action: 'delete', csrf: false },
     'post /:branding/:portal/api/vocabulary/:id/sync': { controller: 'webservice/VocabularyController', action: 'sync', csrf: false },
 

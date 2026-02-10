@@ -95,12 +95,14 @@ export class Configuration {
         this.awsv4 = param.awsv4;
         this.basePath = param.basePath;
         this.serverIndex = param.serverIndex;
-        this.baseOptions = {
-            ...param.baseOptions,
-            headers: {
-                ...param.baseOptions?.headers,
-            },
-        };
+        this.baseOptions = param.baseOptions
+            ? {
+                ...param.baseOptions,
+                headers: {
+                    ...param.baseOptions.headers,
+                },
+            }
+            : undefined;
         this.formDataCtor = param.formDataCtor;
     }
 
@@ -114,8 +116,8 @@ export class Configuration {
      * @param mime - MIME (Multipurpose Internet Mail Extensions)
      * @return True if the given MIME is JSON, false otherwise.
      */
-    public isJsonMime(mime: string): boolean {
+    public isJsonMime(mime: string | null): boolean {
         const jsonMime: RegExp = new RegExp('^(application\/json|[^;/ \t]+\/[^;/ \t]+[+]json)[ \t]*(;.*)?$', 'i');
-        return mime !== null && (jsonMime.test(mime) || mime.toLowerCase() === 'application/json-patch+json');
+        return mime !== null && jsonMime.test(mime);
     }
 }

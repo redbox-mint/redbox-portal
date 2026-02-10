@@ -75,7 +75,9 @@ declare global {
             on(event: string, cb: (...args: unknown[]) => void): void;
             emit(event: string, ...args: unknown[]): void;
 			getDatastore(name?: string): Datastore;
-		}		export interface Hook {
+		}
+
+		export interface Hook {
 			initialize: (cb: () => void) => void;
 			routes: {
 				before: { [key: string]: unknown };
@@ -109,7 +111,6 @@ declare global {
 
 			find(): QueryBuilder;
 			find(params: object): QueryBuilder;
-			find(params: object): WaterlinePromise<T[]>;
 
 			findOne(criteria: object): WaterlinePromise<T>;
 			findOne(criteria: object, cb: (err: Error, found: T) => void): void;

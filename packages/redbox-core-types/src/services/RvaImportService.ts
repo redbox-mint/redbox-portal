@@ -114,7 +114,7 @@ export namespace Services {
         sourceVersionId: selectedVersionId,
         lastSyncedAt: new Date().toISOString(),
         type: this.hasChildren(concepts) ? 'tree' : 'flat',
-        branding: branding || String(sails.config.auth.defaultBrand || 'default'),
+        branding: branding || String(sails.config?.auth?.defaultBrand || 'default'),
         entries: this.toVocabularyEntries(concepts)
       });
 
@@ -407,8 +407,8 @@ export namespace Services {
     }
 
     private parseIdAsNumber(value: string, label: string): number {
-      const parsed = Number.parseInt(String(value), 10);
-      if (!Number.isFinite(parsed)) {
+      const parsed = this.parseStrictInt(String(value));
+      if (parsed === null) {
         throw new Error(`Invalid RVA ${label} id: ${value}`);
       }
       return parsed;

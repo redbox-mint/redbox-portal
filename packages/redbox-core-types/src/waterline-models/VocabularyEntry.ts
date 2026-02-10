@@ -54,17 +54,54 @@ const validateParent = async (record: Record<string, unknown>): Promise<void> =>
   if (recordVocabulary && String(parent.vocabulary) !== recordVocabulary) {
     throw new Error('VocabularyEntry.parent must belong to the same vocabulary');
   }
+
+  const recordId = record.id ? String(record.id) : '';
+  const visited = new Set<string>();
+  let cursor: VocabularyEntryAttributes | null = parent as VocabularyEntryAttributes;
+  while (cursor?.id) {
+    const currentId = String(cursor.id);
+    if (visited.has(currentId)) {
+      break;
+    }
+    visited.add(currentId);
+    if (recordId && currentId === recordId) {
+      throw new Error('VocabularyEntry cycle detected');
+    }
+    if (!cursor.parent) {
+      break;
+    }
+    cursor = await VocabularyEntry.findOne({ id: String(cursor.parent) }) as VocabularyEntryAttributes | null;
+  }
+
+  const identifier = String(record.identifier ?? '').trim();
+  if (!identifier || !recordVocabulary) {
+    return;
+  }
+  const duplicate = await VocabularyEntry.findOne({ vocabulary: recordVocabulary, identifier }) as VocabularyEntryAttributes | null;
+  if (duplicate && (!recordId || String(duplicate.id) !== recordId)) {
+    throw new Error('VocabularyEntry.identifier must be unique within a vocabulary');
+  }
 };
 
 const beforeCreate = (record: Record<string, unknown>, cb: (err?: Error) => void): void => {
-  normalize(record, true);
+  try {
+    normalize(record, true);
+  } catch (err) {
+    cb(err as Error);
+    return;
+  }
   validateParent(record)
     .then(() => cb())
     .catch((err: Error) => cb(err));
 };
 
 const beforeUpdate = (record: Record<string, unknown>, cb: (err?: Error) => void): void => {
-  normalize(record, false);
+  try {
+    normalize(record, false);
+  } catch (err) {
+    cb(err as Error);
+    return;
+  }
   validateParent(record)
     .then(() => cb())
     .catch((err: Error) => cb(err));
@@ -76,7 +113,7 @@ const beforeUpdate = (record: Record<string, unknown>, cb: (err?: Error) => void
   indexes: [
     { attributes: { vocabulary: 1, labelLower: 1 }, unique: true },
     { attributes: { vocabulary: 1, valueLower: 1 }, unique: true },
-    { attributes: { vocabulary: 1, identifier: 1 }, unique: false }
+    { attributes: { vocabulary: 1, identifier: 1 }, unique: true }
   ]
 })
 export class VocabularyEntryClass {

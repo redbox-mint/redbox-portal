@@ -12,6 +12,7 @@ type VocabularyServiceApi = {
   getTree: (id: string) => Promise<unknown[]>;
   create: (input: VocabularyServiceModule.VocabularyInput) => Promise<unknown>;
   update: (id: string, input: Partial<VocabularyServiceModule.VocabularyInput>) => Promise<unknown>;
+  reorderEntries: (id: string, entryOrders: Array<{ id: string; order: number }>) => Promise<number>;
   delete: (id: string) => Promise<void>;
 };
 
@@ -53,6 +54,7 @@ export namespace Controllers {
       'get',
       'create',
       'update',
+      'reorder',
       'delete',
       'import',
       'sync'
@@ -71,7 +73,7 @@ export namespace Controllers {
           sort: req.param('sort'),
           branding: this.resolveBrandingId(req)
         });
-        return this.sendResp(req, res, { data: response, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { data: response.data, meta: response.meta, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
       }
@@ -109,6 +111,35 @@ export namespace Controllers {
         const id = String(req.param('id') || '');
         const updated = await VocabularyService.update(id, req.body as Partial<VocabularyServiceModule.VocabularyInput>);
         return this.sendResp(req, res, { data: updated, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      }
+    }
+
+    public async reorder(req: Sails.Req, res: Sails.Res) {
+      try {
+        const id = String(req.param('id') || '').trim();
+        const entryOrders = Array.isArray(req.body?.entryOrders) ? req.body.entryOrders : null;
+        if (!id) {
+          return this.sendResp(req, res, { status: 400, errors: [new Error('Missing required id')], headers: this.getNoCacheHeaders() });
+        }
+        if (!entryOrders) {
+          return this.sendResp(req, res, { status: 400, errors: [new Error('entryOrders must be an array')], headers: this.getNoCacheHeaders() });
+        }
+
+        const normalized: Array<{ id: string; order: number }> = [];
+        for (const item of entryOrders) {
+          const itemRecord = item as { id?: unknown; order?: unknown };
+          const entryId = String(itemRecord?.id ?? '').trim();
+          const order = Number.parseInt(String(itemRecord?.order ?? ''), 10);
+          if (!entryId || !Number.isInteger(order) || order < 0) {
+            return this.sendResp(req, res, { status: 400, errors: [new Error('entryOrders must contain { id, order } with non-negative integer order')], headers: this.getNoCacheHeaders() });
+          }
+          normalized.push({ id: entryId, order });
+        }
+
+        const updated = await VocabularyService.reorderEntries(id, normalized);
+        return this.sendResp(req, res, { data: { updated }, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
       }

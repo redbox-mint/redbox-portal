@@ -41,19 +41,19 @@
 }
 
 .vocab-data-table .vocab-col-name {
-  width: 42%;
+  width: calc((100% - 170px) * 0.472);
 }
 
 .vocab-data-table .vocab-col-slug {
-  width: 29%;
+  width: calc((100% - 170px) * 0.326);
 }
 
 .vocab-data-table .vocab-col-type {
-  width: 10%;
+  width: calc((100% - 170px) * 0.112);
 }
 
 .vocab-data-table .vocab-col-source {
-  width: 8%;
+  width: calc((100% - 170px) * 0.09);
 }
 
 .vocab-data-table .vocab-col-actions {
@@ -85,6 +85,20 @@
 
 .vocab-data-table tbody tr.vocab-selected {
   background: #eef6ff;
+}
+
+.vocab-data-table tbody tr:focus,
+.vocab-data-table tbody tr:focus-visible {
+  background: #e5f1ff;
+  outline: 2px solid #0b5ed7;
+  outline-offset: -2px;
+}
+
+.vocab-data-table tbody tr.vocab-selected:focus,
+.vocab-data-table tbody tr.vocab-selected:focus-visible {
+  background: #dcecff;
+  outline: 2px solid #084298;
+  outline-offset: -2px;
 }
 
 .vocab-data-table code {

@@ -403,7 +403,7 @@ export interface UserInfo {
     'authenticationServiceId'?: UserInfoAuthenticationServiceIdEnum;
     'fullName'?: string;
     'isSuperUser'?: boolean;
-    'parentRole'?: Set<Role>;
+    'parentRole'?: Array<Role>;
 }
 
 export const UserInfoAuthenticationServiceIdEnum = {
@@ -897,7 +897,7 @@ export const AdminApiAxiosParamCreator = function (configuration?: Configuration
         runTaskSet: async (taskId: Array<number>, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'taskId' is not null or undefined
             assertParamExists('runTaskSet', 'taskId', taskId)
-            const localVarPath = `/adminApi/workflow/taskSet/{taskId}`;
+            const localVarPath = `/adminApi/workflow/taskSet`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -1385,8 +1385,11 @@ export const ResourcesApiAxiosParamCreator = function (configuration?: Configura
             if (file !== undefined) { 
                 localVarFormParams.append('file', file as any);
             }
-            localVarHeaderParameter['Content-Type'] = 'multipart/form-data';
             localVarHeaderParameter['Accept'] = 'application/xml,application/json';
+            const formHeaders = (localVarFormParams as { getHeaders?: () => Record<string, string> }).getHeaders?.();
+            if (formHeaders) {
+                Object.assign(localVarHeaderParameter, formHeaders);
+            }
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -4741,6 +4744,5 @@ export class UtilitiesApi extends BaseAPI {
         return UtilitiesApiFp(this.configuration).parseLanguageTags(tags, options).then((request) => request(this.axios, this.basePath));
     }
 }
-
 
 
