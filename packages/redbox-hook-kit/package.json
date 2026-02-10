@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "TS_NODE_PROJECT=test/tsconfig.json mocha"
+    "test": "./node_modules/.bin/mocha --require ts-node/register --extension ts --exit test/**/*.test.ts"
   },
   "repository": {
     "type": "git",

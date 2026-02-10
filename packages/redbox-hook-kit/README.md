@@ -174,6 +174,35 @@ Show CLI help and usage information.
 npx @researchdatabox/redbox-hook-kit help
 ```
 
+### `completion`
+
+Output shell completion scripts for `bash`, `zsh`, `fish`, and `powershell`.
+
+```bash
+npx @researchdatabox/redbox-hook-kit completion <shell>
+```
+
+Install examples:
+
+```bash
+# bash
+npx @researchdatabox/redbox-hook-kit completion bash > ~/.local/share/bash-completion/completions/redbox-hook-kit
+
+# zsh
+mkdir -p ~/.zsh/completions
+npx @researchdatabox/redbox-hook-kit completion zsh > ~/.zsh/completions/_redbox-hook-kit
+# then ensure your ~/.zshrc includes:
+# fpath=(~/.zsh/completions $fpath)
+# autoload -U compinit && compinit
+
+# fish
+npx @researchdatabox/redbox-hook-kit completion fish > ~/.config/fish/completions/redbox-hook-kit.fish
+
+# powershell
+npx @researchdatabox/redbox-hook-kit completion powershell > ~/.config/powershell/redbox-hook-kit-completion.ps1
+# then source it from your PowerShell profile
+```
+
 ## Contributing
 
 See the main [ReDBox Portal repository](https://github.com/redbox-mint/redbox-portal) for contribution guidelines.
