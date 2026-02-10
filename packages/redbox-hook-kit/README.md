@@ -132,6 +132,14 @@ Initialize a new ReDBox hook project with TypeScript setup.
 npx @researchdatabox/redbox-hook-kit init
 ```
 
+### `install-skills`
+
+Install the bundled agent skills using the `vercel-labs/skills` CLI.
+
+```bash
+npx @researchdatabox/redbox-hook-kit install-skills -a claude-code --skill '*'
+```
+
 ### `help`
 
 Show CLI help and usage information.
