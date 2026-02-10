@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "@researchdatabox/redbox-core-types": "^1.5.0",
+    "@researchdatabox/sails-ng-common": "file:../sails-ng-common",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.10.0",
     "commander": "^14.0.0",
