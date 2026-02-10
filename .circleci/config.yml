@@ -447,6 +447,10 @@ jobs:
           command: |
             npm install --no-save --ignore-scripts
       - run:
+          name: Compile sails-ng-common
+          command: |
+            npm run compile:sails-ng-common
+      - run:
           name: Install redbox-hook-kit dependencies
           command: |
             cd ./packages/redbox-hook-kit
