@@ -5,6 +5,30 @@
  * Figshare integration configuration.
  */
 
+interface FigshareFieldValidation {
+  template?: string;
+  message?: string;
+  maxLength?: number;
+  addSuffix?: boolean;
+  [key: string]: unknown;
+}
+
+interface FigshareFieldMapping {
+  figName: string;
+  rbName: string;
+  template?: string;
+  defaultValue?: unknown;
+  runByNameOnly?: boolean;
+  unset?: boolean;
+  validations?: FigshareFieldValidation[];
+  [key: string]: unknown;
+}
+
+interface FigshareRuntimeArtifactTemplate {
+  template: string;
+  [key: string]: unknown;
+}
+
 export interface FigshareApiConfig {
     frontEndURL: string;
     baseURL: string;
@@ -40,7 +64,7 @@ export interface FigshareApiConfig {
             userType: string;
         };
         recordFigArticleId: string;
-        recordFigArticleURL: string[];
+        recordFigArticleURL: string | string[];
         recordDataLocations: string;
         recordAuthorExternalName: string;
         recordAuthorUniqueBy: string;
@@ -48,6 +72,45 @@ export interface FigshareApiConfig {
             entityId: string;
             location: string;
             article: unknown[];
+        };
+        artifacts: Record<string, unknown>;
+        runtimeArtifacts: {
+          getContributorsFromRecord: FigshareRuntimeArtifactTemplate;
+          getCategoryIDs: FigshareRuntimeArtifactTemplate;
+          isRecordEmbargoed: FigshareRuntimeArtifactTemplate;
+          isRecordEmbargoCleared: FigshareRuntimeArtifactTemplate;
+          [key: string]: FigshareRuntimeArtifactTemplate | unknown;
+        };
+        templates: {
+          impersonate: Record<string, unknown>;
+          customFields: {
+            create: Record<string, unknown>;
+            update: Record<string, unknown>;
+          };
+          getAuthor: Array<Record<string, unknown>>;
+          [key: string]: unknown;
+        };
+        customFields: {
+          path: string;
+          create: FigshareFieldMapping[];
+          update: FigshareFieldMapping[];
+        };
+        standardFields: {
+          create: FigshareFieldMapping[];
+          update: FigshareFieldMapping[];
+          embargo: FigshareFieldMapping[];
+        };
+        targetState: {
+          publish?: FigshareFieldMapping[];
+          draft?: FigshareFieldMapping[];
+          [key: string]: FigshareFieldMapping[] | undefined;
+        };
+        upload: {
+          attachments: FigshareFieldMapping[];
+          override: {
+            template?: string;
+            [key: string]: unknown;
+          };
         };
         [key: string]: unknown;
     };
@@ -766,12 +829,13 @@ export const figshareAPI: FigshareApiConfig = {
                             message: '@dataPublication-relatedResources-title-empty'
                         },
                         {
-                            regexValidation: '^10.\\d{4,9}\/[-._;()\/:A-Z0-9]+$',
+                            regexValidation: '^10.\\d{4,9}/[-._;()/:A-Z0-9]+$',
                             caseSensitive: false,
                             message: '@dataPublication-relatedResources-validationMessage',
                             addPrefix: true
                         }
-                    ]
+                    ],
+                    embargo: []
                 },
                 {
                     figName: 'license',
@@ -895,7 +959,8 @@ export const figshareAPI: FigshareApiConfig = {
                         return [embargoOptions];
                       %>`
                 }
-            ]
+            ],
+            embargo: []
         }
     }
 };

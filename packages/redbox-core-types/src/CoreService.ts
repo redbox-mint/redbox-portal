@@ -1,17 +1,15 @@
-import { from, bindNodeCallback, bindCallback, Observable } from 'rxjs';
+import { bindNodeCallback, bindCallback, Observable } from 'rxjs';
 
 
-declare var sails: Sails.Application;
 // changed to a manual lodash load instead of relying on Sails global object
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
 import * as _ from 'lodash';
 import { ILogger } from './Logger';
 
 // Type alias for query objects used with RxJS bindings
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type QueryObject = { [key: string]: any };
+type QueryObject = object;
 
-export module Services.Core {
+export namespace Services.Core {
   export class Service {
     /**
      * Exported methods. Must be overridden by the child to add custom methods.
@@ -71,9 +69,9 @@ export module Services.Core {
     /**
      * Registers a Sails hook handler if Sails is available.
      */
-    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: any[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean {
+    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: unknown[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean {
       if (typeof sails === 'undefined') {
         return false;
       }
@@ -96,12 +94,12 @@ export module Services.Core {
     * @param method The method to call on q (default: 'exec')
     * @param type The binding type: 'node' for node-style callbacks, otherwise regular callbacks
     */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    protected getObservable<T = any>(q: QueryObject, method: string = 'exec', type: string = 'node'): Observable<T> {
-      if (type == 'node')
-        return bindNodeCallback(q[method].bind(q))() as Observable<T>;
-      else
-        return bindCallback(q[method].bind(q))() as Observable<T>;
+    protected getObservable<T = unknown>(q: QueryObject, method: string = 'exec', type: string = 'node'): Observable<T> {
+      const fn = (q as Record<string, (...args: unknown[]) => unknown>)[method];
+      if (type == 'node') {
+        return bindNodeCallback(fn.bind(q))() as Observable<T>;
+      }
+      return bindCallback(fn.bind(q))() as Observable<T>;
     }
 
     /**
@@ -149,7 +147,7 @@ export module Services.Core {
      *
      * @returns {*}
      */
-    public exports(): any {
+    public exports(): Record<string, unknown> {
       const exportedMethods: Record<string, unknown> = {};
       if (process.env["sails_redbox__mochaTesting"] === "true") {
         const allProperties = [
@@ -192,7 +190,10 @@ export module Services.Core {
               this.logger.error(`The service method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`);
             }
           } else {
-            this.logger.error(`The service method "${methodName}" does not exist on ${this.constructor?.name}`);
+            // _config is optional for Sails services, so we don't log an error if it's missing.
+            if (methodName !== '_config') {
+              this.logger.error(`The service method "${methodName}" does not exist on ${this.constructor?.name}`);
+            }
           }
         }
       }
@@ -213,6 +214,9 @@ export module Services.Core {
       const triggerCondition = _.get(options, "triggerCondition", "") as string;
       const forceRun = _.get(options, "forceRun", false) as boolean;
       const variables = {
+        record: record,
+        oid: oid,
+        user: user || null,
         imports: {
           record: record,
           oid: oid,
@@ -252,7 +256,7 @@ export module Services.Core {
      * @param appendMappingToSource
      * @returns
      */
-    public convertToType<Type>(source: any, dest: any, mapping: { [key: string]: string } | undefined, appendMappingToSource: boolean = false): Type {
+    public convertToType<Type>(source: Record<string, unknown>, dest: Record<string, unknown>, mapping: { [key: string]: string } | undefined, appendMappingToSource: boolean = false): Type {
       let fields = _.mapValues(dest, (val, key) => {
         return key;
       });

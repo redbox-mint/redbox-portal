@@ -21,15 +21,11 @@ import { of, from } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 // import * as request from "request-promise";
-import axios from 'axios';
-
-declare var sails: any;
-declare var Report: any;
-declare var _this: any;
-declare var _: any;
+import axios, { type AxiosResponse } from 'axios';
 
 
-export module Services {
+
+export namespace Services {
   /**
    * WorkflowSteps related functions...
    *
@@ -38,11 +34,11 @@ export module Services {
    */
   export class Orcids extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'searchOrcid'
     ];
 
-    public bootstrap = (defBrand: any) => {
+    public bootstrap = (_defBrand: unknown) => {
 
     }
 
@@ -53,73 +49,77 @@ export module Services {
       const options = this.getOptions(url, sails.config.record.api.search.method);
       const orcidRes = from(axios(options));
 
-      return orcidRes.pipe(flatMap((response: any) => {
-        const orcidResult: any = response.data;
-        const results: Record<string, any> = {};
-        results["numFound"] = orcidResult["orcid-search-results"]["num-found"];
-        results["items"] = [];
+      return orcidRes.pipe(flatMap((response: AxiosResponse<Record<string, unknown>>) => {
+        const orcidResult = response.data as Record<string, unknown>;
+        const searchResults = _.get(orcidResult, "orcid-search-results", {}) as Record<string, unknown>;
+        const searchResultList = (_.get(searchResults, "orcid-search-result", []) as Record<string, unknown>[]) || [];
+        const results: { numFound: number; items: Record<string, unknown>[] } = {
+          numFound: _.toNumber(_.get(searchResults, "num-found", 0)),
+          items: []
+        };
 
-        for (let i = 0; i < orcidResult["orcid-search-results"]["orcid-search-result"].length; i++) {
-          const orcidSearchResult = orcidResult["orcid-search-results"]["orcid-search-result"][i];
+        for (let i = 0; i < searchResultList.length; i++) {
+          const orcidSearchResult = searchResultList[i];
           const item = this.mapToPeopleSearchResult(orcidSearchResult);
-          results["items"].push(item);
+          results.items.push(item);
         }
         return of(results);
       }));
     }
 
-    protected mapToPeopleSearchResult(orcidSearchResult: any) {
-      const item: Record<string, any> = {};
+    protected mapToPeopleSearchResult(orcidSearchResult: Record<string, unknown>) {
+      const item: Record<string, unknown> = {};
 
-      const profile = orcidSearchResult["orcid-profile"];
-      item["givenNames"] = profile["orcid-bio"]["personal-details"]["given-names"]["value"];
-      item["familyName"] = profile["orcid-bio"]["personal-details"]["family-name"]["value"];
-      item["identifier"] = profile["orcid-identifier"]["uri"];
-      item["extendedAttributes"] = [];
+      const profile = ((orcidSearchResult as Record<string, unknown>)["orcid-profile"] ?? {}) as Record<string, unknown>;
+      item["givenNames"] = _.get(profile, "orcid-bio.personal-details.given-names.value");
+      item["familyName"] = _.get(profile, "orcid-bio.personal-details.family-name.value");
+      item["identifier"] = _.get(profile, "orcid-identifier.uri");
+      const extendedAttributes: Record<string, unknown>[] = [];
+      item["extendedAttributes"] = extendedAttributes;
 
       // Process extended attributes
-      let otherNames: Record<string, unknown> | null = profile["orcid-bio"]["personal-details"]["other-names"] == null ? null : {};
+      let otherNames: Record<string, unknown> | null = _.get(profile, "orcid-bio.personal-details.other-names") == null ? null : {};
       if (otherNames != null) {
 
-        const otherNamesArray = profile["orcid-bio"]["personal-details"]["other-names"]["other-name"];
+        const otherNamesArray = _.get(profile, "orcid-bio.personal-details.other-names.other-name");
 
         otherNames = this.getExtendedAttributeObject('orcid-other-names', otherNamesArray);
-        item["extendedAttributes"].push(otherNames);
+        extendedAttributes.push(otherNames);
       }
 
-      let biography: Record<string, unknown> | null = profile["orcid-bio"]["biography"] == null ? null : {};
+      let biography: Record<string, unknown> | null = _.get(profile, "orcid-bio.biography") == null ? null : {};
       if (biography != null) {
 
-        const biographyValue = profile["orcid-bio"]["biography"];
+        const biographyValue = _.get(profile, "orcid-bio.biography");
 
         biography = this.getExtendedAttributeObject('orcid-biography', biographyValue);
-        item["extendedAttributes"].push(biography);
+        extendedAttributes.push(biography);
       }
 
 
-      let researcherUrls: Record<string, any> | null = profile["orcid-bio"]["researcher-urls"] == null ? null : {};
+      let researcherUrls: Record<string, unknown> | null = _.get(profile, "orcid-bio.researcher-urls") == null ? null : {};
       if (researcherUrls != null) {
-        const researcherUrlsValueArray: any[] = [];
-        const researcherUrlsArray = profile["orcid-bio"]["researcher-urls"]["researcher-url"];
+        const researcherUrlsValueArray: Record<string, unknown>[] = [];
+        const researcherUrlsArray = _.get(profile, "orcid-bio.researcher-urls.researcher-url") as Record<string, unknown>[];
 
-        _.forEach(researcherUrlsArray, function (researcherUrl: any) {
-            const researcherUrlItem: Record<string, unknown> = {};
-            researcherUrlItem["value"] = researcherUrl["url-name"]["value"];
-            researcherUrlItem["url"] = researcherUrl["url"]["value"];
-            researcherUrlsValueArray.push(researcherUrlItem);
+        _.forEach(researcherUrlsArray, function (researcherUrl: Record<string, unknown>) {
+          const researcherUrlItem: Record<string, unknown> = {};
+          researcherUrlItem["value"] = _.get(researcherUrl, "url-name.value");
+          researcherUrlItem["url"] = _.get(researcherUrl, "url.value");
+          researcherUrlsValueArray.push(researcherUrlItem);
         });
 
         researcherUrls = this.getExtendedAttributeObject('orcid-researcher-urls', researcherUrlsValueArray);
         researcherUrls["displayAsLinks"] = true;
-        item["extendedAttributes"].push(researcherUrls);
+        extendedAttributes.push(researcherUrls);
       }
 
-      let keywords: Record<string, unknown> | null = profile["orcid-bio"]["keywords"] == null ? null : {};
+      let keywords: Record<string, unknown> | null = _.get(profile, "orcid-bio.keywords") == null ? null : {};
       if (keywords != null) {
-        const keywordsArray = profile["orcid-bio"]["keywords"]["keyword"];
+        const keywordsArray = _.get(profile, "orcid-bio.keywords.keyword");
 
         keywords = this.getExtendedAttributeObject('orcid-keywords', keywordsArray);
-        item["extendedAttributes"].push(keywords);
+        extendedAttributes.push(keywords);
       }
 
 
@@ -127,7 +127,7 @@ export module Services {
       return item;
     }
 
-    private getExtendedAttributeObject(label: string, value: any) {
+    private getExtendedAttributeObject(label: string, value: unknown) {
       const extendedAttributes: Record<string, unknown> = {};
       extendedAttributes["label"] = label;
       extendedAttributes["value"] = value;

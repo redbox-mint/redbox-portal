@@ -1,10 +1,8 @@
-import { APIErrorResponse, FormModel, ListAPIResponse, ListAPISummary, FormsService as FormsServiceModule, Controllers as controllers } from '../../index';
+import { APIErrorResponse, FormModel, ListAPIResponse, ListAPISummary, Controllers as controllers } from '../../index';
 import { firstValueFrom } from 'rxjs';
 
-declare var sails: any;
-declare var _: any;
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
@@ -18,7 +16,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'getForm',
       'listForms'
     ];
@@ -35,13 +33,17 @@ export module Controllers {
 
     public async getForm(req: Sails.Req, res: Sails.Res) {
       try {
-        let name: string = req.param('name');
-        let editable: boolean = req.param('editable');
-        if (editable == null) {
-          editable = true;
+        const name: string = req.param('name');
+        const editableParam = req.param('editable');
+        const editable: boolean = editableParam !== 'false';
+        const form = await firstValueFrom(FormsService.getFormByName(name, editable));
+        if (!form) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ title: 'Form not found' }],
+            headers: this.getNoCacheHeaders()
+          });
         }
-        let form: FormModel = await firstValueFrom(FormsService.getFormByName(name, editable));
-
         return this.apiRespond(req, res, form, 200)
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
@@ -55,9 +57,9 @@ export module Controllers {
 
     public async listForms(req: Sails.Req, res: Sails.Res) {
       try {
-        let forms: FormModel[] = await firstValueFrom(FormsService.listForms());
-        let response: ListAPIResponse<any> = new ListAPIResponse();
-        let summary: ListAPISummary = new ListAPISummary();
+        const forms: FormModel[] = await firstValueFrom(FormsService.listForms());
+        const response: ListAPIResponse<FormModel> = new ListAPIResponse();
+        const summary: ListAPISummary = new ListAPISummary();
         summary.numFound = forms.length;
         response.summary = summary;
         response.records = forms;

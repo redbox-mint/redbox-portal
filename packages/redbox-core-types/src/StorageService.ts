@@ -1,44 +1,30 @@
 import { Readable } from 'stream';
+import { RecordModel } from './model';
+import { StorageServiceResponse } from './StorageServiceResponse';
 
 /**
  * Service interface for Storage operations.
- * Note: This interface uses `any` types extensively for backward compatibility.
+ * Note: This interface uses `unknown` types extensively for backward compatibility.
  * Type safety will be improved incrementally in future phases.
  */
 export interface StorageService {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  create(brand: any, record: any, recordType: any, user?: any): Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  updateMeta(brand: any, oid: any, record: any, user?: any): Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getMeta(oid: any): Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createBatch(type: any, data: any, harvestIdFldName: any): Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  provideUserAccessAndRemovePendingAccess(oid: any, userid: any, pendingValue: any): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getRelatedRecords(oid: any, brand: any): Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete(oid: any, permanentlyDelete: any): Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  updateNotificationLog(oid: any, record: any, options: any): Promise<any>;
+  create(brand: unknown, record: unknown, recordType: unknown, user?: unknown): Promise<StorageServiceResponse>;
+  updateMeta(brand: unknown, oid: unknown, record: unknown, user?: unknown): Promise<StorageServiceResponse>;
+  getMeta(oid: unknown): Promise<RecordModel>;
+  createBatch(type: unknown, data: unknown, harvestIdFldName: unknown): Promise<unknown>;
+  provideUserAccessAndRemovePendingAccess(oid: unknown, userid: unknown, pendingValue: unknown): void;
+  getRelatedRecords(oid: unknown, brand: unknown): Promise<unknown>;
+  delete(oid: unknown, permanentlyDelete: unknown): Promise<StorageServiceResponse>;
+  updateNotificationLog(oid: unknown, record: unknown, options: unknown): Promise<unknown>;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  restoreRecord(oid: any): Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  destroyDeletedRecord(oid: any): Promise<any>;
+  restoreRecord(oid: unknown): Promise<StorageServiceResponse>;
+  destroyDeletedRecord(oid: unknown): Promise<StorageServiceResponse>;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getRecords(workflowState: any, recordType: any, start: any, rows: any, username: any, roles: any, brand: any, editAccessOnly: any, packageType: any, sort: any, fieldNames?: any, filterString?: any, filterMode?: any, secondarySort?: any): Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getDeletedRecords(workflowState: any, recordType: any, start: any, rows: any, username: any, roles: any, brand: any, editAccessOnly: any, packageType: any, sort: any, fieldNames?: any, filterString?: any, filterMode?: any): Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  exportAllPlans(username: any, roles: any, brand: any, format: any, modBefore: any, modAfter: any, recType: any): Readable;
+  getRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: unknown, brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown, secondarySort?: unknown): Promise<StorageServiceResponse>;
+  getDeletedRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: unknown, brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown): Promise<StorageServiceResponse>;
+  exportAllPlans(username: unknown, roles: unknown, brand: unknown, format: unknown, modBefore: unknown, modAfter: unknown, recType: unknown): Readable;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createRecordAudit?(record: any): Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  exists(oid: any): Promise<boolean>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getRecordAudit(params: any): Promise<any>;
+  createRecordAudit?(record: unknown): Promise<StorageServiceResponse>;
+  exists(oid: unknown): Promise<boolean>;
+  getRecordAudit(params: unknown): Promise<unknown>;
 }

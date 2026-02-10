@@ -1,7 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
 import * as crypto from 'node:crypto';
-
-declare const sails: any;
 
 interface CspConfig {
     enabled?: boolean;
@@ -31,11 +28,11 @@ interface CspConfig {
  * See: https://angular.dev/best-practices/security#content-security-policy
  * See: https://centralcsp.com/docs
  */
-export function contentSecurityPolicy(req: Request, res: Response, next: NextFunction): any {
+export function contentSecurityPolicy(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
     sails.log.verbose(`Setting Content Security Policy nonce headers and view local for ${req.path}`);
 
     // Config can be provided at sails.config.csp or sails.config.security.csp
-    const cfg: CspConfig = (sails.config && (sails.config.csp || (sails.config.security && sails.config.security.csp))) || {};
+    const cfg: CspConfig = (sails.config && (sails.config.csp as CspConfig || (sails.config.security && (sails.config.security as unknown as Record<string, unknown>).csp as CspConfig | undefined))) || {};
 
     // Fallback defaults mirror previous hard-coded behavior
     const defaults: Required<CspConfig> = {
@@ -110,10 +107,10 @@ export function contentSecurityPolicy(req: Request, res: Response, next: NextFun
     res.set(headerName, `${headerValue};`);
 
     // provide the nonce to the view, so it can be set in the angular app and scripts
-    if ((req as any).options.locals == null) {
-        (req as any).options.locals = {};
-    }
-    (req as any).options.locals.contentSecurityPolicyNonce = generatedNonce;
+    if (!req.options) req.options = {};
+    const locals = (req.options.locals ?? {}) as Record<string, unknown>;
+    req.options.locals = locals;
+    locals.contentSecurityPolicyNonce = generatedNonce;
 
     // proceed to the next policy
     return next();

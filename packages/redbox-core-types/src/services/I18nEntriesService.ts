@@ -20,33 +20,20 @@
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
+import { I18nBundleAttributes } from '../waterline-models/I18nBundle';
+import { I18nTranslationAttributes } from '../waterline-models/I18nTranslation';
 
-declare var sails: any;
-declare var _: any;
 
-// Waterline globals
-declare var I18nTranslation: any;
-declare var I18nBundle: any;
-declare let BrandingService: any;
+export namespace Services {
 
-export module Services {
+export type Bundle = I18nBundleAttributes;
+type I18nData = Record<string, unknown>;
+type MetaEntry = { category?: string; description?: string };
+type MetaMap = Record<string, MetaEntry>;
 
-  export interface Bundle {
-    id?: string | number;
-    branding?: any;
-    locale: string;
-    namespace?: string;
-    data: any;
-  }
-
-  export function isBundle(obj: any): obj is Bundle {
-    return (
-      obj &&
-      typeof obj === 'object' &&
-      'data' in obj &&
-      'locale' in obj
-    );
-  }
+export function isBundle(obj: unknown): obj is Bundle {
+  return !!obj && typeof obj === 'object' && 'data' in obj && 'locale' in obj;
+}
 
   /**
    * I18nEntriesService: Manage i18next translations stored in DB.
@@ -138,12 +125,13 @@ export module Services {
     }
 
     // Basic flatten utility for dot-notation keys that fits the pattern required for i18next entries
-    private flatten(obj: any, prefix = '', out: any = {}): any {
-      for (const key of Object.keys(obj || {})) {
-        const value = obj[key];
+    private flatten(obj: I18nData | null | undefined, prefix = '', out: I18nData = {}): I18nData {
+      const safeObj: I18nData = obj ?? {};
+      for (const key of Object.keys(safeObj)) {
+        const value = safeObj[key];
         const newKey = prefix ? `${prefix}.${key}` : key;
         if (value && typeof value === 'object' && !Array.isArray(value)) {
-          this.flatten(value, newKey, out);
+          this.flatten(value as I18nData, newKey, out);
         } else {
           out[newKey] = value;
         }
@@ -152,18 +140,18 @@ export module Services {
     }
 
     // Minimal unflatten utility for dot-notation keys that i18next uses
-    private unflatten(flatObj: any): any {
-      const result: any = {};
+    private unflatten(flatObj: I18nData): I18nData {
+      const result: I18nData = {};
       for (const flatKey of Object.keys(flatObj || {})) {
         const parts = flatKey.split('.');
-        let cursor = result;
+        let cursor: I18nData = result;
         for (let i = 0; i < parts.length; i++) {
           const p = parts[i];
           if (i === parts.length - 1) {
             cursor[p] = flatObj[flatKey];
           } else {
             if (cursor[p] == null || typeof cursor[p] !== 'object') cursor[p] = {};
-            cursor = cursor[p];
+            cursor = cursor[p] as I18nData;
           }
         }
       }
@@ -171,10 +159,10 @@ export module Services {
     }
 
     // Minimal setter for dot-notation keys inside an object
-    private setNested(obj: any, dottedKey: string, value: any): void {
+    private setNested(obj: I18nData, dottedKey: string, value: unknown): void {
       if (!obj) return;
       const parts = String(dottedKey).split('.');
-      let cursor = obj;
+      let cursor: I18nData = obj;
       for (let i = 0; i < parts.length; i++) {
         const p = parts[i];
         const isLast = i === parts.length - 1;
@@ -182,31 +170,33 @@ export module Services {
           cursor[p] = value;
         } else {
           if (cursor[p] == null || typeof cursor[p] !== 'object') cursor[p] = {};
-          cursor = cursor[p];
+          cursor = cursor[p] as I18nData;
         }
       }
     }
 
     // Remove a dot-notation key from an object (best-effort, leaves empty parent objects in place)
-    private removeNested(obj: any, dottedKey: string): void {
+    private removeNested(obj: I18nData, dottedKey: string): void {
       if (!obj) return;
       const parts = String(dottedKey).split('.');
-      let cursor = obj;
+      let cursor: I18nData = obj;
       for (let i = 0; i < parts.length - 1; i++) {
         const p = parts[i];
         if (cursor[p] == null || typeof cursor[p] !== 'object') return; // nothing to remove
-        cursor = cursor[p];
+        cursor = cursor[p] as I18nData;
       }
       delete cursor[parts[parts.length - 1]];
     }
 
-    private resolveBrandingId(branding: BrandingModel | string | any): string {
-      if (!branding) return 'global';
-      if (typeof branding === 'string') return branding;
-      if (branding.id) return String(branding.id);
-      if (branding._id) return String(branding._id);
-      return String(branding);
-    }
+private resolveBrandingId(branding: BrandingModel | string | { id?: string | number; _id?: string | number } | null | undefined): string {
+  if (!branding) return 'global';
+  if (typeof branding === 'string') return branding;
+  if (typeof branding === 'object' && branding !== null) {
+    if ('id' in branding && branding.id != null) return String(branding.id);
+    if ('_id' in branding && branding._id != null) return String(branding._id);
+  }
+  return String(branding);
+}
 
     private buildUid(branding: BrandingModel, locale: string, namespace: string, key: string): string {
       const brandingPart = this.resolveBrandingId(branding);
@@ -214,7 +204,7 @@ export module Services {
       return `${brandingPart}:${locale}:${ns}:${key}`;
     }
 
-    public async getEntry(branding: BrandingModel, locale: string, namespace: string, key: string): Promise<any | null> {
+    public async getEntry(branding: BrandingModel, locale: string, namespace: string, key: string): Promise<I18nTranslationAttributes | null> {
       const uid = this.buildUid(branding, locale, namespace, key);
       return await I18nTranslation.findOne({ uid });
     }
@@ -224,12 +214,12 @@ export module Services {
       locale: string,
       namespace: string,
       key: string,
-      value: any,
+      value: unknown,
       options?: { bundleId?: string; category?: string; description?: string; noReload?: boolean }
-    ): Promise<any> {
+    ): Promise<I18nTranslationAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
       const existing = await this.getEntry(branding, locale, namespace, key);
-      const updates: any = {
+      const updates: Partial<I18nTranslationAttributes> = {
         value,
         branding: brandingId,
         locale,
@@ -240,9 +230,9 @@ export module Services {
       if (options?.category !== undefined) updates.category = options.category;
       if (options?.description !== undefined) updates.description = options.description;
 
-      const saved = existing
+      const saved = (existing
         ? await I18nTranslation.updateOne({ id: existing.id }).set(updates)
-        : await I18nTranslation.create(updates);
+        : await I18nTranslation.create(updates)) as I18nTranslationAttributes | null;
 
       // Keep I18nBundle.data in sync for this branding/locale/namespace
       try {
@@ -250,7 +240,7 @@ export module Services {
         if (!bundle) {
           // Create a minimal bundle containing this key
           const data = this.unflatten({ [key]: value });
-          bundle = await I18nBundle.create({ data, branding: brandingId, locale, namespace });
+          bundle = await I18nBundle.create({ data, branding: brandingId, locale, namespace }) as unknown as I18nBundleAttributes;
           // Backfill the entry's bundle relation if not set via options
           if (!options?.bundleId && saved?.id) {
             await I18nTranslation.updateOne({ id: saved.id }).set({ bundle: bundle.id });
@@ -266,9 +256,9 @@ export module Services {
 
       // Trigger i18next cache refresh (best-effort) unless suppressed (e.g., batch operations)
       if (!options?.noReload) {
-        try { (global as any).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
+        try { (global as { TranslationService?: { reloadResources?: (id: string) => void } }).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
       }
-      return saved;
+      return saved ?? null;
     }
 
     public async deleteEntry(branding: BrandingModel, locale: string, namespace: string, key: string): Promise<boolean> {
@@ -290,42 +280,42 @@ export module Services {
       return !!deleted;
     }
 
-    public async listEntries(branding: BrandingModel, locale: string, namespace: string, keyPrefix?: string): Promise<any[]> {
+    public async listEntries(branding: BrandingModel, locale: string, namespace: string, keyPrefix?: string): Promise<I18nTranslationAttributes[]> {
       const brandingId = this.resolveBrandingId(branding);
-      const where: any = { branding: brandingId, locale, namespace };
+      const where: Record<string, unknown> = { branding: brandingId, locale, namespace };
       if (keyPrefix) {
         // Mongo-specific regex for prefix match
-        where.key = { startsWith: keyPrefix } as any;
+        where.key = { startsWith: keyPrefix };
       }
-      return await I18nTranslation.find({ where }).sort('key ASC');
+      return await I18nTranslation.find({ where }).sort('key ASC') as unknown as I18nTranslationAttributes[];
     }
 
-    public async getBundle(branding: BrandingModel, locale: string, namespace: string): Promise<any | null> {
+public async getBundle(branding: BrandingModel, locale: string, namespace: string): Promise<I18nBundleAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
       const uid = `${brandingId}:${locale}:${namespace || 'translation'}`;
       return await I18nBundle.findOne({ uid });
     }
 
-    public async listBundles(branding: BrandingModel): Promise<any[]> {
+public async listBundles(branding: BrandingModel): Promise<I18nBundleAttributes[]> {
       const brandingId = this.resolveBrandingId(branding);
-      return await I18nBundle.find({ branding: brandingId });
+      return await I18nBundle.find({ branding: brandingId }) as unknown as I18nBundleAttributes[];
     }
 
   public async setBundle(
-      branding: BrandingModel,
-      locale: string,
-      namespace: string,
-      data: any,
-      displayName?: string,
-      options?: { splitToEntries?: boolean; overwriteEntries?: boolean }
-    ): Promise<any> {
+    branding: BrandingModel,
+    locale: string,
+    namespace: string,
+    data: I18nData,
+    displayName?: string,
+    _options?: { splitToEntries?: boolean; overwriteEntries?: boolean }
+  ): Promise<I18nBundleAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
       
       // Use provided display name or get default for the language
       const finalDisplayName = displayName || await this.getLanguageDisplayName(locale);
       
       const existing = await this.getBundle(branding, locale, namespace);
-      let bundle;
+      let bundle: I18nBundleAttributes | null;
       if (existing) {
         bundle = await I18nBundle.updateOne({ id: existing.id }).set({ 
           data, 
@@ -333,7 +323,7 @@ export module Services {
           locale, 
           namespace,
           displayName: finalDisplayName 
-        });
+        }) as I18nBundleAttributes | null;
       } else {
         bundle = await I18nBundle.create({ 
           data, 
@@ -341,32 +331,34 @@ export module Services {
           locale, 
           namespace,
           displayName: finalDisplayName 
-        });
+        }) as unknown as I18nBundleAttributes;
       }
       // Always synchronise entries with the saved bundle (force overwrite & prune) to avoid desync.
       try {
-        await this.syncEntriesFromBundle(bundle, true /* overwrite */);
+        if (bundle) {
+          await this.syncEntriesFromBundle(bundle, true /* overwrite */);
+        }
       } catch (e) {
         this.logger.warn('Entry sync failed for', brandingId, locale, namespace, (e as Error)?.message || e);
       }
       // After full bundle update & sync, refresh translations
-      try { (global as any).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
-      return bundle;
+      try { (global as { TranslationService?: { reloadResources?: (id: string) => void } }).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
+      return bundle ?? null;
     }
 
-    public async updateBundleEnabled(
-      branding: BrandingModel,
-      locale: string,
-      namespace: string,
-      enabled: boolean
-    ): Promise<any> {
+public async updateBundleEnabled(
+  branding: BrandingModel,
+  locale: string,
+  namespace: string,
+  enabled: boolean
+): Promise<I18nBundleAttributes> {
       const brandingId = this.resolveBrandingId(branding);
       
       const bundle = await I18nBundle.updateOne({ 
         branding: brandingId, 
         locale, 
         namespace 
-      }).set({ enabled });
+      }).set({ enabled }) as I18nBundleAttributes | null;
       
       if (!bundle) {
         throw new Error(`Bundle not found for branding: ${brandingId}, locale: ${locale}, namespace: ${namespace}`);
@@ -375,37 +367,39 @@ export module Services {
       return bundle;
     }
 
-    public composeNamespace(entries: Array<{ key: string; value: any }>): any {
-      const flat: any = {};
+    public composeNamespace(entries: Array<{ key: string; value?: unknown }>): I18nData {
+      const flat: I18nData = {};
       for (const e of entries) {
         flat[e.key] = e.value;
       }
       return this.unflatten(flat);
     }
 
-  public async syncEntriesFromBundle(bundleOrId: any, overwrite = false): Promise<void> {
+public async syncEntriesFromBundle(bundleOrId: I18nBundleAttributes | string | number, overwrite = false): Promise<void> {
       const bundle = isBundle(bundleOrId)
         ? bundleOrId
         : await I18nBundle.findOne({ id: bundleOrId });
       if (!bundle) throw new Error('Bundle not found');
 
       const { branding, locale, namespace, id: bundleId } = bundle;
-      const brandingId = this.resolveBrandingId(branding as any);
-      const data = bundle.data || {};
+      const safeLocale = locale ?? 'en';
+      const safeNamespace = namespace ?? 'translation';
+      const brandingId = this.resolveBrandingId(branding as BrandingModel | string | { id?: string | number; _id?: string | number });
+      const data: I18nData = bundle.data || {};
       
       // Load centralized metadata
       const centralizedMeta = await this.loadCentralizedMeta();
       
       // Extract optional metadata map at root level: { [keyPath]: { category?, description? } }
       // File-specific _meta overrides centralized meta
-      const fileMeta: Record<string, { category?: string; description?: string }> = (data && typeof data._meta === 'object') ? data._meta : {};
+      const fileMeta: MetaMap = (data && typeof data._meta === 'object') ? (data._meta as MetaMap) : {};
       
       // Merge centralized meta with file-specific meta (file-specific takes precedence)
       const meta = { ...centralizedMeta, ...fileMeta };
 
       // Flatten the data then strip any _meta entries
       const flatAll = this.flatten(data || {});
-      const flat: Record<string, any> = {};
+      const flat: I18nData = {};
       Object.keys(flatAll).forEach(k => {
         if (k === '_meta' || k.startsWith('_meta.')) return; // skip meta keys
         flat[k] = flatAll[k];
@@ -418,13 +412,13 @@ export module Services {
         || ({ id: brandingId } as BrandingModel));
 
       // Track existing keys to detect removals
-      const existingEntries = await I18nTranslation.find({ branding: brandingId, locale, namespace });
-      const existingKeysSet = new Set(existingEntries.map((e: any) => e.key));
+      const existingEntries = await I18nTranslation.find({ branding: brandingId, locale: safeLocale, namespace: safeNamespace }) as unknown as I18nTranslationAttributes[];
+      const existingKeysSet = new Set(existingEntries.map((e: I18nTranslationAttributes) => e.key as string));
 
       for (const key of keys) {
-        let val = flat[key];
+        let val: unknown = flat[key];
         existingKeysSet.delete(key); // still present
-        const existing = await this.getEntry(brandingModel, locale, namespace, key);
+        const existing = await this.getEntry(brandingModel, safeLocale, safeNamespace, key);
 
         if (existing && !overwrite) continue;
 
@@ -432,20 +426,20 @@ export module Services {
           if(val === '' || val === null || val === undefined) {
             val = key; // default empty values to the key itself
           }
-          await this.setEntry(brandingModel, locale, namespace, key, val, { bundleId, category: meta?.[key]?.category, description: meta?.[key]?.description, noReload: true });
+          await this.setEntry(brandingModel, safeLocale, safeNamespace, key, val, { bundleId: bundleId != null ? String(bundleId) : undefined, category: meta?.[key]?.category, description: meta?.[key]?.description, noReload: true });
         } catch (e) {
           throw e;
         }
       }
   for (const obsoleteKey of existingKeysSet) {
         try {
-  await this.deleteEntry(brandingModel, locale, namespace, String(obsoleteKey));
+  await this.deleteEntry(brandingModel, safeLocale, safeNamespace, String(obsoleteKey));
         } catch (e) {
           this.logger.warn('Failed to prune obsolete key', obsoleteKey, (e as Error)?.message || e);
         }
       }
   // Bulk operation complete; reload once
-  try { (global as any).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
+  try { (global as { TranslationService?: { reloadResources?: (id: string) => void } }).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
     }
 
 
@@ -461,7 +455,7 @@ export module Services {
     *
     * See README for more details on how this file is used.
     */
-    public async loadCentralizedMeta(): Promise<Record<string, any>> {
+    public async loadCentralizedMeta(): Promise<MetaMap> {
       try {
         const fs = await import('node:fs');
         const path = await import('node:path');
@@ -469,7 +463,7 @@ export module Services {
         const metaPath = path.join(sails.config.appPath, 'language-defaults', 'meta.json');
         if (fs.existsSync(metaPath)) {
           const metaContent = fs.readFileSync(metaPath, 'utf8');
-          return JSON.parse(metaContent);
+          return JSON.parse(metaContent) as MetaMap;
         }
         return {};
       } catch (e) {
@@ -489,7 +483,7 @@ export module Services {
         const namesPath = path.join(sails.config.appPath, 'language-defaults', 'language-names.json');
         if (fs.existsSync(namesPath)) {
           const namesContent = fs.readFileSync(namesPath, 'utf8');
-          return JSON.parse(namesContent);
+          return JSON.parse(namesContent) as Record<string, string>;
         }
         return {};
       } catch (e) {

@@ -7,13 +7,13 @@
  */
 
 import * as _ from 'lodash';
-const async: any = require('async');
+const async: unknown = require('async');
 
 export interface GlobalsConfig {
     /** Lodash library */
     _: typeof _;
     /** Async library */
-    async: any;
+    async: unknown;
     /** Enable global models */
     models: boolean;
     /** Enable global sails object */

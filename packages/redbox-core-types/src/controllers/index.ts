@@ -37,14 +37,14 @@ import * as WSTranslationControllerModule from './webservice/TranslationControll
 import * as WSUserManagementControllerModule from './webservice/UserManagementController';
 
 // Lazy instantiation cache
-const controllerCache: Record<string, any> = {};
-function getOrCreate(name: string, factory: () => any): any {
+const controllerCache: Record<string, unknown> = {};
+function getOrCreate(name: string, factory: () => unknown): unknown {
     if (!controllerCache[name]) controllerCache[name] = factory();
     return controllerCache[name];
 }
 
 // API Controllers export
-export const ControllerExports: Record<string, any> = {
+export const ControllerExports: Record<string, unknown> = {
     get ActionController() { return getOrCreate('ActionController', () => new ActionControllerModule.Controllers.Action().exports()); },
     get AdminController() { return getOrCreate('AdminController', () => new AdminControllerModule.Controllers.Admin().exports()); },
     get AppConfigController() { return getOrCreate('AppConfigController', () => new AppConfigControllerModule.Controllers.AppConfig().exports()); },
@@ -67,7 +67,7 @@ export const ControllerExports: Record<string, any> = {
 };
 
 // Webservice Controllers export (separate object, not prefixed)
-export const WebserviceControllerExports: Record<string, any> = {
+export const WebserviceControllerExports: Record<string, unknown> = {
     get AdminController() { return getOrCreate('WS_AdminController', () => new WSAdminControllerModule.Controllers.Admin().exports()); },
     get AppConfigController() { return getOrCreate('WS_AppConfigController', () => new WSAppConfigControllerModule.Controllers.AppConfig().exports()); },
     get BrandingController() { return getOrCreate('WS_BrandingController', () => new WSBrandingControllerModule.Controllers.Branding().exports()); },

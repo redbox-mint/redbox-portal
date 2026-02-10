@@ -18,13 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Services as services } from '../CoreService';
-import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
-
-declare var sails: any;
-declare var _: any;
-
-const textSizes = ['normal', 'large'] as const;
-type TextSize = typeof textSizes[number];
+type TextSize = 'normal' | 'large';
 
 /**
  * Represents a contrast ratio violation for a color pair
@@ -54,10 +48,10 @@ export interface ContrastViolation {
  * Usage: await ContrastService.suggestCompliant(colorA, colorB)
  * Returns: { suggested: string, originalRatio: number, newRatio: number }
  */
-export module Services {
+export namespace Services {
     export class Contrast extends services.Core.Service {
 
-        protected override _exportedMethods: any = [
+        protected override _exportedMethods: string[] = [
             'validate',
             'suggestCompliant',
             'calculateRatio',
@@ -271,4 +265,3 @@ export module Services {
 declare global {
     let ContrastService: Services.Contrast;
 }
-

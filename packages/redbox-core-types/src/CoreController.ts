@@ -1,4 +1,5 @@
 import { existsSync } from 'fs';
+import type { Response } from 'express';
 import * as _ from 'lodash';
 import { ILogger } from './Logger';
 import {
@@ -7,14 +8,14 @@ import {
   ApiVersion,
   ApiVersionStrings,
   RBValidationError,
+  ErrorResponseItemV2,
 } from "./model";
 
 
-declare var sails: Sails.Application;
 
 
 
-export module Controllers.Core {
+export namespace Controllers.Core {
 
   /**
    * Core controller which defines common logic between controllers.
@@ -38,7 +39,7 @@ export module Controllers.Core {
      * (specific to the controller where it's defined)
      * Specific to sails. Don't rename.
      */
-    protected _config: any = {};
+    protected _config: Record<string, unknown> = {};
 
     /**
      * Exported methods. Must be overridden by the child to add custom methods.
@@ -90,9 +91,9 @@ export module Controllers.Core {
     /**
      * Registers a Sails hook handler if Sails is available.
      */
-    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: any[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean {
+    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: unknown[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean {
       if (typeof sails === 'undefined') {
         return false;
       }
@@ -145,7 +146,7 @@ export module Controllers.Core {
      *
      * @returns {*}
      */
-    public exports(): any {
+    public exports(): Record<string, unknown> {
       // Merge default array and custom array from child.
       const methods = this._defaultExportedMethods.concat(this._exportedMethods);
       const exportedMethods: Record<string, unknown> = {};
@@ -211,7 +212,7 @@ export module Controllers.Core {
      * @param callback  Function to execute.
      * @param options   Object that contains options.
      */
-    public index(req: Sails.Req, res: Sails.Res, callback: unknown, options: Record<string, unknown> = {}): void {
+    public index(req: Sails.Req, res: Sails.Res, callback: unknown, _options: Record<string, unknown> = {}): void {
       res.notFound();
     }
 
@@ -272,10 +273,13 @@ export module Controllers.Core {
 
     public sendView(req: Sails.Req, res: Sails.Res, view: string, locals: Record<string, unknown> = {}): void {
 
+      if (!req.options) {
+        req.options = {};
+      }
       if (req.options.locals == null) {
         req.options.locals = {};
       }
-      const mergedLocal: Record<string, unknown> = Object.assign({}, req.options.locals, locals);
+      const mergedLocal: Record<string, unknown> = Object.assign({}, req.options.locals as Record<string, unknown>, locals);
 
       const branding = mergedLocal['branding'] as string;
       const portal = mergedLocal['portal'] as string;
@@ -376,10 +380,10 @@ export module Controllers.Core {
       return this.sendResp(req, res, { data: jsonObj, headers: this.getNoCacheHeaders() });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    protected getNg2Apps(viewPath: string): { ng2_apps: any } {
+    protected getNg2Apps(viewPath: string): { ng2_apps: unknown[] } {
       if (sails.config.ng2.use_bundled && sails.config.ng2.apps[viewPath]) {
-        return { ng2_apps: sails.config.ng2.apps[viewPath] };
+        const ng2Apps = sails.config.ng2.apps[viewPath];
+        return { ng2_apps: Array.isArray(ng2Apps) ? ng2Apps : [] };
       } else {
         return { ng2_apps: [] };
       }
@@ -451,7 +455,7 @@ export module Controllers.Core {
      * @param buildResponse Build the response from these properties.
      * @protected
      */
-    protected sendResp(req: any, res: any, buildResponse?: BuildResponseType): Response {
+    protected sendResp(req: Sails.Req, res: Sails.Res, buildResponse?: BuildResponseType): Response {
       const apiVersion = this.getApiVersion(req);
       // Destructure build response properties and set defaults.
       let {
@@ -505,7 +509,7 @@ export module Controllers.Core {
       return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
     }
 
-    private collectAndLogErrors(errors: any[], displayErrors: any[]) {
+    private collectAndLogErrors(errors: Error[], displayErrors: ErrorResponseItemV2[]) {
       const {
         errors: collectedErrors,
         displayErrors: collectedDisplayErrors
@@ -519,13 +523,13 @@ export module Controllers.Core {
       return { collectedErrors, collectedDisplayErrors };
     }
 
-    private ensureDisplayErrors(collectedErrors: any[], collectedDisplayErrors: any[]) {
+    private ensureDisplayErrors(collectedErrors: Error[], collectedDisplayErrors: ErrorResponseItemV2[]) {
       if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
         collectedDisplayErrors.push({ code: 'server-error' });
       }
     }
 
-    private resolveResponseStatus(status: number, collectedDisplayErrors: any[]): number {
+    private resolveResponseStatus(status: number, collectedDisplayErrors: ErrorResponseItemV2[]): number {
       if (collectedDisplayErrors.length > 0) {
         const statusString = collectedDisplayErrors
           .map(i => i?.status?.toString() ?? "")
@@ -551,13 +555,13 @@ export module Controllers.Core {
       return status;
     }
 
-    private applyResponseHeaders(res: any, headers: Record<string, string>) {
+    private applyResponseHeaders(res: Response, headers: Record<string, string>) {
       if (headers) {
         res.set(headers);
       }
     }
 
-    private applyResponseStatus(res: any, status: number) {
+    private applyResponseStatus(res: Response, status: number) {
       if (status !== null && status !== undefined && !isNaN(status)) {
         res.status(status);
       } else {
@@ -567,11 +571,11 @@ export module Controllers.Core {
 
     private shouldSendSuccessJson(
       format: string,
-      collectedErrors: any[],
-      collectedDisplayErrors: any[],
+      collectedErrors: Error[],
+      collectedDisplayErrors: ErrorResponseItemV2[],
       status: number,
-      data: any,
-      v1: any,
+      data: unknown,
+      v1: unknown,
       apiVersion: ApiVersionStrings
     ): boolean {
       if (format !== 'json') {
@@ -594,12 +598,12 @@ export module Controllers.Core {
     }
 
     private sendSuccessJson(
-      res: any,
+      res: Response,
       apiVersion: ApiVersionStrings,
       status: number,
-      data: any,
-      meta: any,
-      v1: any
+      data: unknown,
+      meta: Record<string, unknown>,
+      v1: unknown
     ) {
       switch (apiVersion) {
         case ApiVersion.VERSION_2_0:
@@ -613,7 +617,7 @@ export module Controllers.Core {
       }
     }
 
-    private buildV1ErrorResponse(collectedDisplayErrors: any[]): APIErrorResponse {
+    private buildV1ErrorResponse(collectedDisplayErrors: ErrorResponseItemV2[]): APIErrorResponse {
       const errorResponse = new APIErrorResponse();
       if (collectedDisplayErrors.length === 1) {
         const displayError = collectedDisplayErrors[0] ?? {};
@@ -639,12 +643,12 @@ export module Controllers.Core {
       return errorResponse;
     }
 
-    private formatV2DisplayErrors(collectedDisplayErrors: any[]) {
+    private formatV2DisplayErrors(collectedDisplayErrors: ErrorResponseItemV2[]): ErrorResponseItemV2[] {
       const t = TranslationService.t;
       return collectedDisplayErrors.map(displayError => {
         const code = displayError.code?.toString()?.trim() || "";
         let title = displayError.title?.toString()?.trim() || "";
-        let detail = displayError.detail?.toString()?.trim() || "";
+        const detail = displayError.detail?.toString()?.trim() || "";
 
         if (code && !title && !detail) {
           title = code;
@@ -661,14 +665,14 @@ export module Controllers.Core {
     }
 
     private handleV1Response(
-      res: any,
+      res: Response,
       format: string,
       status: number,
-      collectedErrors: any[],
-      collectedDisplayErrors: any[],
-      v1: any,
-      data: any,
-      meta: any
+      collectedErrors: Error[],
+      collectedDisplayErrors: ErrorResponseItemV2[],
+      v1: unknown,
+      data: unknown,
+      meta: Record<string, unknown>
     ) {
       // Success path for v1
       if (this.shouldSendSuccessJson(format, collectedErrors, collectedDisplayErrors, status, data, v1, ApiVersion.VERSION_1_0)) {
@@ -706,13 +710,13 @@ export module Controllers.Core {
     }
 
     private handleV2Response(
-      res: any,
+      res: Response,
       format: string,
       status: number,
-      collectedErrors: any[],
-      collectedDisplayErrors: any[],
-      data: any,
-      meta: any
+      collectedErrors: Error[],
+      collectedDisplayErrors: ErrorResponseItemV2[],
+      data: unknown,
+      meta: Record<string, unknown>
     ) {
       // Success path for v2
       if (this.shouldSendSuccessJson(format, collectedErrors, collectedDisplayErrors, status, data, null, ApiVersion.VERSION_2_0)) {

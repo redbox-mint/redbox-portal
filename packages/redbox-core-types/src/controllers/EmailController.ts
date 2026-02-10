@@ -1,10 +1,8 @@
 import { Controllers as controllers } from '../CoreController';
 import { Services } from '../services/EmailService';
 
-declare var sails: any;
-declare var _: any;
 
-export module Controllers {
+export namespace Controllers {
   /**
    *  Redbox email message queue stuff
    *
@@ -17,13 +15,13 @@ export module Controllers {
       /**
        * Exported methods, accessible from internet.
        */
-      protected override _exportedMethods: any = [
+      protected override _exportedMethods: string[] = [
           'init',
           'sendNotification'
       ];
 
       public init() {
-          this.emailService = sails.services.emailservice;
+          this.emailService = sails.services.emailservice as unknown as Services.Email;
       }
 
       /**
@@ -100,8 +98,15 @@ export module Controllers {
             const subjectRendered = emailProperties.subjectRendered;
             // const template = emailProperties.template;
             const templateRendered = emailProperties.templateRendered;
+            if (!templateRendered) {
+                return this.sendResp(req, res, {
+                    status: 500,
+                    displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
+                    headers: this.getNoCacheHeaders()
+                });
+            }
 
-            return templateRendered.subscribe((buildResult: any) => {
+            return templateRendered.subscribe((buildResult: globalThis.Record<string, unknown>) => {
                 if (buildResult['status'] != 200) {
                     return this.sendResp(req, res, {
                         status: 500,
@@ -111,7 +116,7 @@ export module Controllers {
                 } else {
                     const sendResponse = this.emailService.sendMessage(
                         toRendered,
-                        buildResult['body'],
+                        buildResult['body'] as string,
                         subjectRendered,
                         fromRendered,
                         formatRendered,
@@ -119,7 +124,7 @@ export module Controllers {
                         bccRendered,
                     );
 
-                    return sendResponse.subscribe((sendResult: any) => {
+                    return sendResponse.subscribe((sendResult: globalThis.Record<string, unknown>) => {
                         if (!sendResult['success']) {
                             return this.sendResp(req, res, {
                                 status: 500,

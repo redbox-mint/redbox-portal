@@ -1,15 +1,11 @@
 import {
   APIErrorResponse,
   BrandingModel,
-  AppConfigService as AppConfigServiceModule,
-  BrandingService as BrandingServiceModule,
   Controllers as controllers
 } from '../../index';
 
-declare var sails: any;
-declare var _: any;
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to application configuration
    *
@@ -27,7 +23,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'getAppConfig',
       'saveAppConfig'
     ];
@@ -43,9 +39,9 @@ export module Controllers {
 
     public async saveAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-        let appConfigId: string = req.param('appConfigId');
-        let appConfig = req.body;
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const appConfigId: string = req.param('appConfigId');
+        const appConfig = req.body;
         if (appConfigId === undefined) {
           return res.badRequest('appConfigId is required');
         }
@@ -65,12 +61,12 @@ export module Controllers {
 
     public async getAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-        let appConfigId: string = req.param('appConfigId');
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const appConfigId: string = req.param('appConfigId');
         if (appConfigId === undefined) {
           return res.badRequest('appConfigId is required');
         }
-        let appConfig = await AppConfigService.getAppConfigByBrandAndKey(brand.id, appConfigId);
+        const appConfig = await AppConfigService.getAppConfigByBrandAndKey(brand.id, appConfigId);
 
         return res.json(appConfig);
       } catch (error) {

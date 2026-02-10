@@ -20,12 +20,9 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
 
-declare var module: any;
-declare var sails: any;
-declare var _: any;
-let flat: any;
+let flat: { unflatten: (target: globalThis.Record<string, unknown>) => globalThis.Record<string, unknown>; [key: string]: unknown };
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Vocabulary related features....
    *
@@ -37,7 +34,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
         'get',
         'getCollection',
         'loadCollection',
@@ -66,7 +63,7 @@ export module Controllers {
 
     public get(req: Sails.Req, res: Sails.Res) {
       const vocabId = req.param("vocabId");
-      let that = this;
+      const that = this;
       VocabService.getVocab(vocabId).subscribe((data: unknown) => {
         that.sendResp(req, res, { data, headers: that.getNoCacheHeaders() });
       }, (error: unknown) => {
@@ -79,7 +76,7 @@ export module Controllers {
     public getCollection(req: Sails.Req, res: Sails.Res) {
       const collectionId = req.param('collectionId');
       const searchString = req.query.search ? req.query.search.toLowerCase() : '';
-      let that = this;
+      const that = this;
       VocabService.findCollection(collectionId, searchString).subscribe((collections: unknown) => {
         that.sendResp(req, res, { data: collections, headers: that.getNoCacheHeaders() });
       }, (error: unknown) => {
@@ -92,7 +89,7 @@ export module Controllers {
 
     public loadCollection(req: Sails.Req, res: Sails.Res) {
       const collectionId = req.param('collectionId');
-      let that = this;
+      const that = this;
       VocabService.loadCollection(collectionId).subscribe((receipt: unknown) => {
         that.sendResp(req, res, { data: { status: 'queued', message: 'All good.', receipt: receipt }, headers: that.getNoCacheHeaders() });
       }, (error: unknown) => {
@@ -105,18 +102,18 @@ export module Controllers {
 
     public async getMint(req: Sails.Req, res: Sails.Res) {
       const mintSourceType = req.param('mintSourceType');
-      const searchString = req.query.search;
+      const searchString = req.query.search ?? '';
       const unflatten = req.param('unflatten');
       const flattened_prefix = "flattened_";
       try {
-        let mintResponse = await VocabService.findInMint(mintSourceType, searchString);
-        let response_docs = mintResponse.response.docs;
+        const mintResponse = await VocabService.findInMint(mintSourceType, searchString);
+        const response_docs = _.get(mintResponse, 'response.docs', []) as Array<Record<string, unknown>>;
         if (unflatten == "true") {
-          _.forEach(response_docs, (doc: any) => {
-            _.forOwn(doc, (val: any, key: any) => {
+          _.forEach(response_docs, (doc: globalThis.Record<string, unknown>) => {
+            _.forOwn(doc, (val: unknown, key: string) => {
               if (_.startsWith(key, flattened_prefix)) {
                 const targetKey = key.substring(flattened_prefix.length);
-                const objVal = JSON.parse(val);
+                const objVal = JSON.parse(val as string);
                 doc[targetKey] = flat.unflatten(objVal)[key];
               }
             });
@@ -134,9 +131,9 @@ export module Controllers {
     public async getRecords(req: Sails.Req, res: Sails.Res) {
       const mintSourceType = req.param('queryId');
       const searchString = req.param('search');
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding as string);
       try {
-        let response = await VocabService.findRecords(mintSourceType, brand, searchString, req.param('start'), req.param('rows'), req.user);
+        const response = await VocabService.findRecords(mintSourceType, brand, searchString, Number(req.param('start')), Number(req.param('rows')), req.user! as Parameters<typeof VocabService.findRecords>[5]);
         this.sendResp(req, res, { data: response, headers: this.getNoCacheHeaders() });
       } catch (error: unknown) {
         sails.log.verbose("Error getting internal records:");
@@ -148,9 +145,9 @@ export module Controllers {
     public async searchExternalService(req: Sails.Req, res: Sails.Res) {
       const providerName = req.param('provider');
       const params = req.body;
-      let that = this;
+      const that = this;
       try {
-        let response = await VocabService.findInExternalService(providerName, params);
+        const response = await VocabService.findInExternalService(providerName, params);
         // only return the response...
         that.sendResp(req, res, { data: response, headers: that.getNoCacheHeaders() });
       } catch (error) {
@@ -165,8 +162,10 @@ export module Controllers {
       const page = req.param('page');
       const givenNames = req.param('givenNames');
       const surname = req.param('surname');
-      let that = this;
-      sails.config.peopleSearch[source](givenNames, surname, page).subscribe((response: unknown) => {
+      const that = this;
+      const searchConfig = sails.config.peopleSearch[source];
+      const searchFn = (typeof searchConfig === 'function') ? searchConfig : eval(searchConfig);
+      searchFn(givenNames, surname, page).subscribe((response: unknown) => {
         // only return the response...
         that.sendResp(req, res, { data: response, headers: that.getNoCacheHeaders() });
       }, (error: unknown) => {
@@ -180,7 +179,7 @@ export module Controllers {
     public rvaGetResourceDetails(req: Sails.Req, res: Sails.Res) {
       const uri = req.param('uri');
       const vocab = req.param('vocab');
-      let that = this;
+      const that = this;
       VocabService.rvaGetResourceDetails(uri, vocab).subscribe((response: unknown) => {
         // only return the response...
         that.sendResp(req, res, { data: response, headers: that.getNoCacheHeaders() });

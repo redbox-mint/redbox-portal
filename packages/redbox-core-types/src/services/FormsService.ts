@@ -22,7 +22,7 @@ import { mergeMap as flatMap, last, filter } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { FormModel } from '../model/storage/FormModel';
-import {createSchema} from 'genson-js';
+import { createSchema } from 'genson-js';
 import {
   ClientFormConfigVisitor,
   ConstructFormConfigVisitor,
@@ -30,13 +30,25 @@ import {
   FormModesConfig, ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
 
-declare var sails: any;
-declare var Form: any;
-declare var RecordType: any;
-declare var WorkflowStep: any;
-declare var _: any;
+type WorkflowStepLike = {
+  id: string;
+  config: { form: string };
+  starting?: boolean;
+};
 
-export module Services {
+type RecordLike = {
+  metaMetadata?: { form?: string; type?: string };
+  metadata?: Record<string, unknown>;
+};
+
+type FormFieldLike = {
+  definition?: { fields?: FormFieldLike[] };
+  fields?: FormFieldLike[];
+  needsEditAccess?: boolean;
+  [key: string]: unknown;
+};
+
+export namespace Services {
   /**
    * Forms related functions...
    *
@@ -45,7 +57,7 @@ export module Services {
    */
   export class Forms extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'getForm',
       'flattenFields',
@@ -58,7 +70,7 @@ export module Services {
       'buildClientFormConfig',
     ];
 
-    public async bootstrap(workflowStep: any): Promise<any> {
+    public async bootstrap(workflowStep: WorkflowStepLike): Promise<unknown> {
       let form = await Form.find({
         workflowStep: workflowStep.id
       })
@@ -73,10 +85,10 @@ export module Services {
       let formName: string | null = null;
       this.logger.verbose("Found : ");
       this.logger.verbose(form);
-      if (!form || form.length == 0) {
+      if (!form || (Array.isArray(form) && form.length == 0)) {
         this.logger.verbose("Bootstrapping form definitions..");
         // only bootstrap the form for this workflow step
-        _.forOwn(sails.config.form.forms, (_formDef: any, formName: string) => {
+        _.forOwn(sails.config.form.forms, (_formDef: unknown, formName: string) => {
           if (formName == workflowStep.config.form) {
             formDefs.push(formName);
           }
@@ -92,8 +104,8 @@ export module Services {
       // check now if the form already exists, if it does, ignore...
       const existingFormDef = await Form.find({
         name: formName
-      })
-      let existCheck: { formName: string | null; existingFormDef: any } = {
+      }) as unknown as FormModel[];
+      const existCheck: { formName: string | null; existingFormDef: FormModel[] } = {
         formName: formName,
         existingFormDef: existingFormDef
       };
@@ -104,7 +116,7 @@ export module Services {
       if (_.isUndefined(existCheck.existingFormDef) || _.isEmpty(existCheck.existingFormDef)) {
         formName = existCheck.formName
       } else {
-        this.logger.verbose(`Existing form definition for form name: ${existCheck.existingFormDef.name}, ignoring bootstrap.`);
+        this.logger.verbose(`Existing form definition for form name: ${existCheck.existingFormDef[0]?.name}, ignoring bootstrap.`);
       }
 
 
@@ -114,33 +126,35 @@ export module Services {
       if (formName) {
         sails.log.verbose(`Preparing to create form...`);
         // TODO: assess the form config to see what should change
-        const formConfig = sails.config.form.forms[formName];
-        const formObj: FormModel & FormConfigFrame = {
+        const formConfig = sails.config.form.forms[formName] as Record<string, unknown>;
+
+        // TODO: Make the typing stronger here by removing the Record type here 
+        // once we remove the legacy forms config
+        const formObj: FormConfigFrame & Record<string, unknown> = {
           name: formName,
           fields: formConfig.fields,
           workflowStep: workflowStep.id,
-          type: formConfig.type,
-          messages: formConfig.messages,
-          viewCssClasses: formConfig.viewCssClasses,
           requiredFieldIndicator: formConfig.requiredFieldIndicator,
-          editCssClasses: formConfig.editCssClasses,
+          type: typeof formConfig.type === 'string' ? formConfig.type : '',
+          viewCssClasses: formConfig.viewCssClasses as FormConfigFrame['viewCssClasses'],
+          editCssClasses: formConfig.editCssClasses as FormConfigFrame['editCssClasses'],
           skipValidationOnSave: formConfig.skipValidationOnSave,
           attachmentFields: formConfig.attachmentFields,
           customAngularApp: formConfig.customAngularApp || null,
 
           // new fields
-          domElementType: formConfig.domElementType,
-          domId: formConfig.domId,
-          defaultComponentConfig: formConfig.defaultComponentConfig,
-          enabledValidationGroups: formConfig.enabledValidationGroups,
-          validators: formConfig.validators,
-          validationGroups: formConfig.validationGroups,
-          defaultLayoutComponent: formConfig.defaultLayoutComponent,
-          componentDefinitions: formConfig.componentDefinitions,
-          debugValue: formConfig.debugValue,
+          domElementType: formConfig.domElementType as FormConfigFrame['domElementType'],
+          domId: formConfig.domId as FormConfigFrame['domId'],
+          defaultComponentConfig: formConfig.defaultComponentConfig as FormConfigFrame['defaultComponentConfig'],
+          enabledValidationGroups: formConfig.enabledValidationGroups as FormConfigFrame['enabledValidationGroups'],
+          validators: formConfig.validators as FormConfigFrame['validators'],
+          validationGroups: formConfig.validationGroups as FormConfigFrame['validationGroups'],
+          defaultLayoutComponent: formConfig.defaultLayoutComponent as FormConfigFrame['defaultLayoutComponent'],
+          componentDefinitions: formConfig.componentDefinitions as FormConfigFrame['componentDefinitions'],
+          debugValue: formConfig.debugValue as FormConfigFrame['debugValue']
         };
 
-        result = await Form.create(formObj);
+        result = await Form.create(formObj) as unknown as FormModel;
         this.logger.verbose("Created form record: ");
         this.logger.verbose(result);
       }
@@ -159,12 +173,12 @@ export module Services {
     }
 
     public listForms = (): Observable<FormModel[]> => {
-      return super.getObservable(Form.find({}));
+      return super.getObservable<FormModel[]>(Form.find({}));
     }
 
 
-    public getFormByName = (formName: string, editMode: boolean): Observable<FormModel> => {
-      return super.getObservable(Form.findOne({
+    public getFormByName = (formName: string, editMode: boolean): Observable<FormModel | null> => {
+      return super.getObservable<FormModel | null>(Form.findOne({
         name: formName
       })).pipe(flatMap(form => {
         if (form) {
@@ -175,35 +189,39 @@ export module Services {
       }));
     }
 
-    public async getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: any) {
+    public async getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: RecordLike) {
 
       // allow client to set the form name to use
-      const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
+      const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata?.form : formParam;
 
-      if(formName == 'generated-view-only') {
+      if (formName == 'generated-view-only') {
         return await this.generateFormFromSchema(branding, recordType, currentRec);
       } else {
 
-  return await firstValueFrom(this.getFormByName(formName, editMode));
+        if (!formName) {
+          return null;
+        }
+        return await firstValueFrom(this.getFormByName(formName, editMode));
       }
     }
 
     public getFormByStartingWorkflowStep(branding: BrandingModel, recordType: string, editMode: boolean): Observable<FormModel> {
 
-      let starting = true;
+      const starting = true;
 
-      return super.getObservable(RecordType.findOne({
+      return super.getObservable<Record<string, unknown> | null>(RecordType.findOne({
         key: branding.id + "_" + recordType
       })).pipe(
         flatMap(recordType => {
-          return super.getObservable(WorkflowStep.findOne({
-            recordType: recordType.id,
+          const recordTypeId = String((recordType as Record<string, unknown>)?.id ?? '');
+          return super.getObservable<WorkflowStepLike | null>(WorkflowStep.findOne({
+            recordType: recordTypeId,
             starting: starting
           }));
         }),
         flatMap(workflowStep => {
-          if (workflowStep.starting == true) {
-            return super.getObservable(Form.findOne({
+          if (workflowStep?.starting == true) {
+            return super.getObservable<FormModel | null>(Form.findOne({
               name: workflowStep.config.form
             }));
           }
@@ -221,27 +239,27 @@ export module Services {
       );
     }
 
-    public inferSchemaFromMetadata(record: any): any {
-      const schema = createSchema(record.metadata);
+    public inferSchemaFromMetadata(record: RecordLike): Record<string, unknown> {
+      const schema = createSchema(record.metadata ?? {});
       return schema;
     }
 
-    public async generateFormFromSchema(branding: BrandingModel, recordType: string, record: any) {
+    public async generateFormFromSchema(branding: BrandingModel, recordType: string, record: RecordLike): Promise<FormConfigFrame | Record<string, unknown>> {
 
-      if(recordType == '') {
-        recordType = _.get(record,'metaMetadata.type','');
-        if(recordType == '') {
+      if (recordType == '') {
+        recordType = _.get(record, 'metaMetadata.type', '');
+        if (recordType == '') {
           return {};
         }
       }
 
-      let form: FormModel;
+      let form: FormConfigFrame;
 
-      let schema = this.inferSchemaFromMetadata(record);
+      const schema = this.inferSchemaFromMetadata(record) as { properties?: Record<string, unknown> };
 
-      let fieldKeys = _.keys(schema.properties);
+      const fieldKeys = _.keys(schema.properties ?? {});
 
-      let buttonsList = [
+      const buttonsList = [
         {
           class: 'AnchorOrButton',
           roles: ['Admin', 'Librarians'],
@@ -262,7 +280,7 @@ export module Services {
             name: 'confirmDelete',
             label: 'Delete this record',
             closeOnSave: true,
-            redirectLocation: '/@branding/@portal/dashboard/'+recordType,
+            redirectLocation: '/@branding/@portal/dashboard/' + recordType,
             cssClasses: 'btn-danger',
             confirmationMessage: '@dataPublication-confirmDelete',
             confirmationTitle: '@dataPublication-confirmDeleteTitle',
@@ -275,7 +293,7 @@ export module Services {
         }
       ];
 
-      let textFieldTemplate = {
+      const textFieldTemplate = {
         class: 'TextField',
         viewOnly: true,
         definition: {
@@ -286,16 +304,16 @@ export module Services {
           subscribe: {
             'form': {
               onFormLoaded: [{
-              action: 'utilityService.runTemplate',
-              template: '',
-              includeFieldInFnCall: true
-            }]
+                action: 'utilityService.runTemplate',
+                template: '',
+                includeFieldInFnCall: true
+              }]
+            }
           }
-        }
         }
       };
 
-      let groupComponentTemplate = {
+      const groupComponentTemplate = {
         class: 'Container',
         compClass: 'GenericGroupComponent',
         definition: {
@@ -305,7 +323,7 @@ export module Services {
         }
       };
 
-      let groupTextFieldTemplate = {
+      const groupTextFieldTemplate = {
         class: 'TextField',
         definition: {
           name: '',
@@ -313,11 +331,11 @@ export module Services {
           type: 'text',
           groupName: '',
           groupClasses: 'width-30',
-          cssClasses : "width-80 form-control"
+          cssClasses: "width-80 form-control"
         }
       };
 
-      let repeatableGroupComponentTemplate = {
+      const repeatableGroupComponentTemplate = {
         class: 'RepeatableContainer',
         compClass: 'RepeatableGroupComponent',
         definition: {
@@ -329,7 +347,7 @@ export module Services {
         }
       };
 
-      let objectFieldHeadingTemplate = {
+      const objectFieldHeadingTemplate = {
         class: 'Container',
         compClass: 'TextBlockComponent',
         definition: {
@@ -338,93 +356,99 @@ export module Services {
         }
       };
 
-      let mainTitleFieldName = 'title';
+      const mainTitleFieldName = 'title';
 
-      let fieldList = [
+      const fieldList = [
       ];
 
-      for(let fieldKey of fieldKeys) {
+      for (const fieldKey of fieldKeys) {
 
-        let schemaProperty = schema.properties[fieldKey];
+        const schemaProperty = (schema.properties?.[fieldKey] as {
+          type?: string;
+          items?: { type?: string; properties?: Record<string, { type?: string }> };
+          properties?: Record<string, { type?: string }>;
+        }) ?? {};
 
-        if(_.get(schemaProperty,'type','') == 'string') {
+        const schemaType = schemaProperty.type;
+        if (schemaType === 'string') {
 
-          let textField = _.cloneDeep(textFieldTemplate);
-          _.set(textField.definition,'name',fieldKey);
-          _.set(textField.definition,'label',fieldKey);
-          _.set(textField.definition,'subscribe.form.onFormLoaded[0].template','<%= _.trim(field.fieldMap["'+fieldKey+'"].field.value) == "" ? field.translationService.t("@lookup-record-field-empty") : field.fieldMap["'+fieldKey+'"].field.value %>');
+          const textField = _.cloneDeep(textFieldTemplate);
+          _.set(textField.definition, 'name', fieldKey);
+          _.set(textField.definition, 'label', fieldKey);
+          _.set(textField.definition, 'subscribe.form.onFormLoaded[0].template', '<%= _.trim(field.fieldMap["' + fieldKey + '"].field.value) == "" ? field.translationService.t("@lookup-record-field-empty") : field.fieldMap["' + fieldKey + '"].field.value %>');
           fieldList.push(textField);
 
-        } if(_.get(schemaProperty,'type','') == 'array') {
+        } if (schemaType === 'array') {
+          const itemType = schemaProperty.items?.type;
+          if (itemType === 'string') {
 
-          if(_.get(schemaProperty,'items.type','') == 'string') {
-
-            let textField = _.cloneDeep(textFieldTemplate);
-            _.set(textField.definition,'name',fieldKey);
-            _.set(textField.definition,'label',fieldKey);
-            _.set(textField.definition,'subscribe.form.onFormLoaded[0].template','<%= _.isEmpty(_.trim(field.fieldMap["'+fieldKey+'"].field.value)) ? [field.translationService.t("@lookup-record-field-empty")] : field.fieldMap["'+fieldKey+'"].field.value %>');
+            const textField = _.cloneDeep(textFieldTemplate);
+            _.set(textField.definition, 'name', fieldKey);
+            _.set(textField.definition, 'label', fieldKey);
+            _.set(textField.definition, 'subscribe.form.onFormLoaded[0].template', '<%= _.isEmpty(_.trim(field.fieldMap["' + fieldKey + '"].field.value)) ? [field.translationService.t("@lookup-record-field-empty")] : field.fieldMap["' + fieldKey + '"].field.value %>');
             fieldList.push(textField);
 
-          } else if(_.get(schemaProperty,'items.type','') == 'object') {
+          } else if (itemType === 'object') {
 
-            let objectFieldKeys = _.keys(schemaProperty.items.properties);
-            let repeatableGroupField = _.cloneDeep(repeatableGroupComponentTemplate);
-            let groupField = _.cloneDeep(groupComponentTemplate);
-            let groupFieldList = [];
+            const objectFieldKeys = _.keys(schemaProperty.items?.properties ?? {});
+            const repeatableGroupField = _.cloneDeep(repeatableGroupComponentTemplate);
+            const groupField = _.cloneDeep(groupComponentTemplate);
+            const groupFieldList = [];
 
-            for(let objectFieldKey of objectFieldKeys) {
-              let innerProperty = schemaProperty.items.properties[objectFieldKey];
-              if(_.get(innerProperty,'type','') == 'string') {
-                let textField = _.cloneDeep(groupTextFieldTemplate);
-                _.set(textField.definition,'name',objectFieldKey);
-                _.set(textField.definition,'label',objectFieldKey);
-                _.set(textField.definition,'groupName','item');
+            for (const objectFieldKey of objectFieldKeys) {
+              const innerProperty = schemaProperty.items?.properties?.[objectFieldKey];
+              if (innerProperty?.type === 'string') {
+                const textField = _.cloneDeep(groupTextFieldTemplate);
+                _.set(textField.definition, 'name', objectFieldKey);
+                _.set(textField.definition, 'label', objectFieldKey);
+                _.set(textField.definition, 'groupName', 'item');
                 groupFieldList.push(textField);
               }
             }
 
-            _.set(groupField.definition,'name','item');
-            _.set(groupField.definition,'fields',groupFieldList);
-            _.set(repeatableGroupField.definition,'name',fieldKey);
-            _.set(repeatableGroupField.definition,'label',fieldKey);
-            _.set(repeatableGroupField.definition,'fields',[groupField]);
+            _.set(groupField.definition, 'name', 'item');
+            _.set(groupField.definition, 'fields', groupFieldList);
+            _.set(repeatableGroupField.definition, 'name', fieldKey);
+            _.set(repeatableGroupField.definition, 'label', fieldKey);
+            _.set(repeatableGroupField.definition, 'fields', [groupField]);
             fieldList.push(repeatableGroupField);
           }
 
-        } else if(_.get(schemaProperty,'type','') == 'object') {
+        } else if (schemaType === 'object') {
 
-          let objectFieldKeys = _.keys(schemaProperty.properties);
-          let groupField = _.cloneDeep(groupComponentTemplate);
-          let groupFieldList = [];
+          const objectFieldKeys = _.keys(schemaProperty.properties ?? {});
+          const groupField = _.cloneDeep(groupComponentTemplate);
+          const groupFieldList = [];
 
-          for(let objectFieldKey of objectFieldKeys) {
-            let innerProperty = schemaProperty.properties[objectFieldKey];
-            if(_.get(innerProperty,'type','') == 'string') {
-              let textField = _.cloneDeep(groupTextFieldTemplate);
-              _.set(textField.definition,'name',objectFieldKey);
-              _.set(textField.definition,'label',objectFieldKey);
-              _.set(textField.definition,'groupName',fieldKey);
+          for (const objectFieldKey of objectFieldKeys) {
+            const innerProperty = schemaProperty.properties?.[objectFieldKey];
+            if (innerProperty?.type === 'string') {
+              const textField = _.cloneDeep(groupTextFieldTemplate);
+              _.set(textField.definition, 'name', objectFieldKey);
+              _.set(textField.definition, 'label', objectFieldKey);
+              _.set(textField.definition, 'groupName', fieldKey);
               groupFieldList.push(textField);
             }
           }
 
-          let objectFieldHeading =  _.cloneDeep(objectFieldHeadingTemplate);
+          const objectFieldHeading = _.cloneDeep(objectFieldHeadingTemplate);
           _.set(objectFieldHeading.definition, 'value', fieldKey);
           fieldList.push(objectFieldHeading);
 
-          _.set(groupField.definition,'name',fieldKey);
-          _.set(groupField.definition,'fields',groupFieldList);
+          _.set(groupField.definition, 'name', fieldKey);
+          _.set(groupField.definition, 'fields', groupFieldList);
           fieldList.push(groupField);
         }
       }
 
-      let formObject = {
+      const formObject = {
         name: 'generated-view-only',
         type: recordType,
         editCssClasses: 'row col-md-12',
         viewCssClasses: 'row col-md-offset-1 col-md-10',
         messages: {},
         attachmentFields: [],
+        componentDefinitions: [],
         fields: [
           {
             class: 'Container',
@@ -444,34 +468,34 @@ export module Services {
             }
           },
           {
-          class: 'TabOrAccordionContainer',
-          compClass: 'TabOrAccordionContainerComponent',
-          definition: {
-            id: 'mainTab',
-            accContainerClass: 'view-accordion',
-            expandAccordionsOnOpen: true,
-            fields: [
-              {
-                class: 'Container',
-                editOnly: true,
-                definition: {
-                  id: 'main',
-                  label: '@lookup-record-details-'+recordType,
-                  active: true,
-                  fields: fieldList
+            class: 'TabOrAccordionContainer',
+            compClass: 'TabOrAccordionContainerComponent',
+            definition: {
+              id: 'mainTab',
+              accContainerClass: 'view-accordion',
+              expandAccordionsOnOpen: true,
+              fields: [
+                {
+                  class: 'Container',
+                  editOnly: true,
+                  definition: {
+                    id: 'main',
+                    label: '@lookup-record-details-' + recordType,
+                    active: true,
+                    fields: fieldList
+                  }
                 }
-              }
-            ]
-          }
-        }]
+              ]
+            }
+          }]
       };
 
-      form = formObject as any;
+      form = formObject as FormConfigFrame;
 
       return form;
     }
 
-    protected setFormEditMode(fields: any[], editMode: boolean): void{
+    protected setFormEditMode(_fields: FormFieldLike[], _editMode: boolean): void {
       // TODO: Form is processed differently now, see buildClientFormConfig
       // _.remove(fields, field => {
       //   if (editMode) {
@@ -488,19 +512,20 @@ export module Services {
       // });
     }
 
-    public filterFieldsHasEditAccess(fields: any[], hasEditAccess: boolean): void {
-      _.remove(fields, (field: any) => {
+    public filterFieldsHasEditAccess(fields: FormFieldLike[], hasEditAccess: boolean): void {
+      _.remove(fields, (field: FormFieldLike) => {
         return field.needsEditAccess && hasEditAccess != true;
       });
-      _.forEach(fields, (field: any) => {
-        if (!_.isEmpty(field.definition.fields)) {
-          this.filterFieldsHasEditAccess(field.definition.fields, hasEditAccess);
+      _.forEach(fields, (field: FormFieldLike) => {
+        const nestedFields = field.definition?.fields;
+        if (!_.isEmpty(nestedFields)) {
+          this.filterFieldsHasEditAccess(nestedFields as FormFieldLike[], hasEditAccess);
         }
       });
     }
 
-    public flattenFields(fields: any[], fieldArr: any[]): void {
-      _.map(fields, (f: any) => {
+    public flattenFields(fields: FormFieldLike[], fieldArr: FormFieldLike[]): void {
+      _.map(fields, (f: FormFieldLike) => {
         fieldArr.push(f);
         if (f.fields) {
           this.flattenFields(f.fields, fieldArr);
@@ -525,10 +550,10 @@ export module Services {
       reusableFormDefs?: ReusableFormDefinitions
     ): FormConfigOutline {
       const constructor = new ConstructFormConfigVisitor(this.logger);
-      const constructed = constructor.start({data: item, reusableFormDefs, formMode, record: recordMetadata});
+      const constructed = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
-      const result = visitor.start({form: constructed, formMode, userRoles});
+      const result = visitor.start({ form: constructed, formMode, userRoles });
       if (!result) {
         throw new Error(`The form config is invalid because all form fields were removed, ` +
           `the form config must have at least one field the current user can view: ${JSON.stringify({

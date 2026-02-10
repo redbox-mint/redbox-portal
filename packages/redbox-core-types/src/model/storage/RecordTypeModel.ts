@@ -1,13 +1,12 @@
 
 export class RecordTypeModel {
     packageType: string = '';
-    searchCore: string = '';
-    hooks: RecordTypeHooks = new RecordTypeHooks();
+    searchCore?: string = '';
+    hooks?: RecordTypeHooks = new RecordTypeHooks();
     relatedTo: RelatedTo[] = [];
     searchFilters: SearchFilter[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    transferResponsibility: any = null; //Legacy to be removed in a future version
-    searchable: false = false;
+    transferResponsibility: unknown = null; //Legacy to be removed in a future version
+    searchable = false as const;
 }
 
 export class SearchFilter {
@@ -37,7 +36,6 @@ export class RecordTypeHookOnEvent {
 export class RecordTypeHookDeclaration {
     function: string = '';
     options: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        [key: string]: any;
+        [key: string]: unknown;
     } = {};
 }

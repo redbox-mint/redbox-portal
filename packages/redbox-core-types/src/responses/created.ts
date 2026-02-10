@@ -1,8 +1,6 @@
-import { Response } from 'express';
-
 declare module 'express-serve-static-core' {
     interface Response {
-        created(data?: any, options?: string | { view?: string }): Response;
+        created(data?: unknown, options?: string | { view?: string }): Response;
     }
 }
 
@@ -14,12 +12,12 @@ declare module 'express-serve-static-core' {
  * return res.created(data);
  * return res.created(data, 'auth/login');
  */
-export function created(this: { req: any, res: Response }, data?: any, options?: string | { view?: string }) {
+export function created(this: { req: Sails.Req, res: Sails.Res }, data?: unknown, options?: string | { view?: string }) {
 
     // Get access to `req`, `res`, & `sails`
     const req = this.req;
     const res = this.res;
-    const sails = req._sails;
+    const sails = req._sails as Sails.Application;
 
     sails.log.silly('res.created() :: Sending 201 ("CREATED") response');
 
@@ -42,7 +40,7 @@ export function created(this: { req: any, res: Response }, data?: any, options?:
         try {
             viewData = require('util').inspect(data, { depth: null });
         }
-        catch (e) {
+        catch (_e) {
             viewData = undefined;
         }
     }
@@ -54,12 +52,12 @@ export function created(this: { req: any, res: Response }, data?: any, options?:
     // Otherwise try to guess an appropriate view, or if that doesn't
     // work, just send JSON.
     if (options.view) {
-        return (res as any).view(options.view, { data: viewData, title: 'Created' });
+        return res.view(options.view, { data: viewData, title: 'Created' });
     }
 
     // If no second argument provided, try to serve the implied view,
     // but fall back to sending JSON(P) if no view can be inferred.
-    else return (res as any).guessView({ data: viewData, title: 'Created' }, function couldNotGuessView() {
+    else return res.guessView({ data: viewData, title: 'Created' }, function couldNotGuessView() {
         return res.json(data);
     });
 

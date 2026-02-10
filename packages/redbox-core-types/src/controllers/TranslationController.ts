@@ -21,10 +21,8 @@ import { Controllers as controllers } from '../CoreController';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 
-declare var sails: any;
-declare var I18nEntriesService: any;
 
-export module Controllers {
+export namespace Controllers {
   /**
    * TranslationController - serves i18next namespace JSON for http-backend.
    */
@@ -33,7 +31,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'getNamespace',
       'getLanguages',
       'listEntriesApp',
@@ -58,7 +56,7 @@ export module Controllers {
         if (!bundle) {
           const entries = await I18nEntriesService.listEntries(branding, lng, ns);
           if (entries && entries.length > 0) {
-            bundle = { data: I18nEntriesService.composeNamespace(entries) } as any;
+            bundle = { data: I18nEntriesService.composeNamespace(entries) } as NonNullable<typeof bundle>;
           }
         }
 
@@ -106,8 +104,8 @@ export module Controllers {
         if (Array.isArray(configured)) configured.forEach((l: string) => l && langCodes.add(l));
 
         // From DB bundles using I18nEntriesService
-        const bundles: any[] = await I18nEntriesService.listBundles(branding);
-        bundles.forEach((b: any) => b?.locale && langCodes.add(b.locale));
+        const bundles = await I18nEntriesService.listBundles(branding);
+        bundles.forEach((b) => b?.locale && langCodes.add(b.locale));
 
         const codes = Array.from(langCodes);
         const bundleMap = new Map(bundles.map(b => [b.locale, b]));

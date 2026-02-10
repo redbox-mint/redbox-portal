@@ -42,7 +42,7 @@ export interface SessionConfig {
     name?: string;
 
     /** Allow certain requests to skip session */
-    isSessionDisabled?: (req: any) => boolean;
+    isSessionDisabled?: (req: Sails.Req) => boolean;
 }
 
 // Session can be disabled entirely by setting to false

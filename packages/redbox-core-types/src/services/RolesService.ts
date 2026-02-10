@@ -21,14 +21,23 @@ import { Observable, of, from, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, last, first } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import { RoleModel } from '../model/storage/RoleModel';
  
-declare var sails: any;
-declare var Role: any;
-declare var BrandingConfig: any;
-declare var _: any;
 
 
-export module Services {
+export namespace Services {
+  interface AuthRoleConfig {
+    name: string;
+    [key: string]: unknown;
+  }
+
+  interface AuthBrandConfig {
+    aaf?: { defaultRole?: string };
+    defaultRole?: string;
+  }
+
+  type ConfigRoleResult = AuthRoleConfig | Record<string, AuthRoleConfig | Record<string, unknown>>;
+
   /**
    * Roles services
    *
@@ -38,7 +47,7 @@ export module Services {
    */
   export class Roles extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'getRole',
       'getAdmin',
@@ -53,32 +62,34 @@ export module Services {
       'createRoleWithBrand'
     ];
 
-    public getRoleWithName = (roles: any[], roleName: string): any => {
-      return _.find(roles, (o: any) => { return o.name == roleName });
+    public getRoleWithName = (roles: RoleModel[], roleName: string): RoleModel | undefined => {
+      return _.find(roles, (o: RoleModel) => { return o.name == roleName });
     }
 
-    public getRole = (brand: any, roleName: string): any => {
+    public getRole = (brand: BrandingModel, roleName: string): RoleModel | undefined => {
       return this.getRoleWithName(brand.roles, roleName);
     }
 
-    public getRoleByName = (brand: any, roleName: string): any => {
+    public getRoleByName = (brand: BrandingModel, roleName: string): RoleModel | undefined => {
       return this.getRoleWithName(brand.roles, this.getConfigRole(roleName).name);
     }
 
-    public getAdmin = (brand: any): any => {
+    public getAdmin = (brand: BrandingModel): RoleModel | undefined => {
       return this.getRole(brand, this.getConfigRole('Admin').name);
     }
 
-    public getAdminFromRoles = (roles: any[]): any => {
+    public getAdminFromRoles = (roles: RoleModel[]): RoleModel | undefined => {
       return this.getRoleWithName(roles, this.getConfigRole('Admin').name);
     }
 
-    public getDefAuthenticatedRole = (brand: any): any => {
-      sails.log.verbose(this.getRoleWithName(brand.roles, this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole).name));
-      return this.getRoleWithName(brand.roles, this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole).name);
+    public getDefAuthenticatedRole = (brand: BrandingModel): RoleModel | undefined => {
+      const authConfig = (ConfigService.getBrand(brand.name, 'auth') as AuthBrandConfig) ?? {};
+      const defaultRole = authConfig.aaf?.defaultRole ?? 'Researcher';
+      sails.log.verbose(this.getRoleWithName(brand.roles, this.getConfigRole(defaultRole).name));
+      return this.getRoleWithName(brand.roles, this.getConfigRole(defaultRole).name);
     }
 
-    public getNestedRoles = (role: string, brandRoles: any[]) => {
+    public getNestedRoles = (role: string, brandRoles: RoleModel[]): Array<RoleModel | undefined> => {
       const hierarchy = ["Admin", "Maintainer", "Researcher", "Guest"];
       const roleIndex = hierarchy.indexOf(role);
       if (roleIndex === -1) {
@@ -87,69 +98,71 @@ export module Services {
       return hierarchy.slice(roleIndex).map((roleName: string) => this.getRoleWithName(brandRoles, roleName));
     }
 
-    public getDefUnathenticatedRole = (brand: any): any => {
-      return this.getRoleWithName(brand.roles, this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').defaultRole).name);
+    public getDefUnathenticatedRole = (brand: BrandingModel): RoleModel | undefined => {
+      const authConfig = (ConfigService.getBrand(brand.name, 'auth') as AuthBrandConfig) ?? {};
+      const defaultRole = authConfig.defaultRole ?? 'Guest';
+      return this.getRoleWithName(brand.roles, this.getConfigRole(defaultRole).name);
     }
 
-    public getRolesWithBrand = (brand: any): Observable<any> => {
-      return super.getObservable(Role.find({ branding: brand.id }).populate('users'));
+    public getRolesWithBrand = (brand: BrandingModel): Observable<RoleModel[]> => {
+      return super.getObservable<RoleModel[]>(Role.find({ branding: brand.id }).populate('users'));
     }
 
-    public getRoleIds = (fromRoles: any[], roleNames: string[]) => {
+    public getRoleIds = (fromRoles: RoleModel[], roleNames: string[]) => {
       sails.log.verbose("Getting id of role names...");
-      return _.map(_.filter(fromRoles, (role: any) => { return _.includes(roleNames, role.name) }), 'id');
+      return _.map(_.filter(fromRoles, (role: RoleModel) => { return _.includes(roleNames, role.name) }), 'id');
     }
 
-    public async createRoleWithBrand(brand: any, roleName: string) {
-      let roleConfig =
+    public async createRoleWithBrand(brand: BrandingModel, roleName: string) {
+      const roleConfig =
       {
         name: roleName,
         branding: brand.id
       };
       sails.log.verbose('createRoleWithBrand - brand.id ' + brand.id);
-      const rolesResp: { roles: any[] } = { roles: [] };
-      let rolesRespPromise = await firstValueFrom(this.getRolesWithBrand(brand).pipe(flatMap(roles => {
-        _.map(roles, (role: any) => {
+      const rolesResp: { roles: RoleModel[] } = { roles: [] };
+      const rolesRespPromise = await firstValueFrom(this.getRolesWithBrand(brand).pipe(flatMap((roles: RoleModel[]) => {
+        _.map(roles, (role: RoleModel) => {
           rolesResp.roles.push(role);
         });
         return of(rolesResp);
       }), first()));
 
       sails.log.verbose(rolesRespPromise);
-      let roleToCreate = _.find(rolesRespPromise.roles, ['name', roleName]);
+      const roleToCreate = _.find(rolesRespPromise.roles, ['name', roleName]);
       if (_.isUndefined(roleToCreate)) {
         sails.log.verbose('createRoleWithBrand - roleConfig ' + JSON.stringify(roleConfig));
-        let newRole = await Role.create(roleConfig);
+        const newRole = await Role.create(roleConfig);
         sails.log.verbose("createRoleWithBrand - adding role to brand " + newRole.id);
         const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
-  return await firstValueFrom(super.getObservable(q, 'exec', 'simplecb'));
+  return await firstValueFrom(super.getObservable<BrandingModel>(q, 'exec', 'simplecb'));
       } else {
         sails.log.verbose('createRoleWithBrand - role ' + roleName + ' exists');
         return of(brand);
       }
     }
 
-    public bootstrap = (defBrand: any) => {
+    public bootstrap = (defBrand: BrandingModel) => {
       const adminRole = this.getAdmin(defBrand);
       if (adminRole == null) {
         sails.log.verbose("Creating default admin, and other roles...");
         return from(this.getConfigRoles())
-                         .pipe(flatMap((roleConfig: any) => {
-                           return super.getObservable(Role.create(roleConfig))
-                                       .pipe(flatMap((newRole: any) => {
+                         .pipe(flatMap((roleConfig: AuthRoleConfig) => {
+                           return super.getObservable<RoleModel>(Role.create(roleConfig))
+                                       .pipe(flatMap((newRole: RoleModel) => {
                                          sails.log.verbose("Adding role to brand:" + newRole.id);
-                                         let brand:BrandingModel = sails.services.brandingservice.getDefault();
+                                         const brand:BrandingModel = sails.services.brandingservice.getDefault() as unknown as BrandingModel;
                                          // START Sails 1.0 upgrade
                                          // brand.roles.add(newRole.id);
                                          const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
                                          // return super.getObservable(brand, 'save', 'simplecb');
-                                         return super.getObservable(q, 'exec', 'simplecb');
+                                         return super.getObservable<BrandingModel>(q, 'exec', 'simplecb');
                                          // END Sails 1.0 upgrade
                                        }));
                          }),
                          last(),
-                         flatMap((brand: any) => {
-                           return sails.services.brandingservice.loadAvailableBrands();
+                         flatMap((_brand: BrandingModel) => {
+                           return sails.services.brandingservice.loadAvailableBrands() as unknown as Observable<BrandingModel>;
                          }));
       } else {
         sails.log.verbose("Admin role exists.");
@@ -157,16 +170,20 @@ export module Services {
       }
     }
 
-    protected getConfigRole = (roleName: string) => {
-      return _.find(sails.config.auth.roles, (o: any) => { return o.name == roleName });
+    protected getConfigRole = (roleName: string): AuthRoleConfig => {
+      const rolesConfig = sails.config.auth.roles as AuthRoleConfig[];
+      return (_.find(rolesConfig, (o: AuthRoleConfig) => { return o.name == roleName }) ?? { name: roleName }) as AuthRoleConfig;
     }
 
-    protected getConfigRoles = (roleProp: string | null = null, customObj: any = null) => {
-      let retVal: any[] = sails.config.auth.roles;
+    protected getConfigRoles(): AuthRoleConfig[];
+    protected getConfigRoles(roleProp: string, customObj?: Record<string, unknown> | null): Array<Record<string, AuthRoleConfig | Record<string, unknown>>>;
+    protected getConfigRoles(roleProp: string | null = null, customObj: Record<string, unknown> | null = null): ConfigRoleResult[] {
+      const rolesConfig = sails.config.auth.roles as AuthRoleConfig[];
+      let retVal: ConfigRoleResult[] = rolesConfig;
       if (roleProp) {
         retVal = []
-        _.map(sails.config.auth.roles, (o: any) => {
-          const newObj: Record<string, unknown> = {};
+        _.map(rolesConfig, (o: AuthRoleConfig) => {
+          const newObj: Record<string, AuthRoleConfig | Record<string, unknown>> = {};
           newObj[roleProp] = o;
           if (customObj) {
             newObj['custom'] = customObj;

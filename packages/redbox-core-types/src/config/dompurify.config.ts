@@ -50,13 +50,13 @@ interface SanitizeNode {
 
 export interface DomPurifyHooks {
     /** Hook called after attributes are sanitized */
-    afterSanitizeAttributes?: (node: any) => void;
+    afterSanitizeAttributes?: (node: unknown) => void;
 
     /** Hook called before sanitization */
-    beforeSanitizeElements?: (node: any) => void;
+    beforeSanitizeElements?: (node: unknown) => void;
 
     /** Hook called after sanitization */
-    afterSanitizeElements?: (node: any) => void;
+    afterSanitizeElements?: (node: unknown) => void;
 }
 
 export interface DomPurifyGlobalSettings {
@@ -182,7 +182,7 @@ export const dompurify: DomPurifyConfig = {
             ],
             ALLOW_DATA_ATTR: false,
             ALLOW_UNKNOWN_PROTOCOLS: false,
-            ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+            ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
             SANITIZE_DOM: true,
             KEEP_CONTENT: true,
             IN_PLACE: false
@@ -205,7 +205,7 @@ export const dompurify: DomPurifyConfig = {
             ],
             ALLOW_DATA_ATTR: true,
             ALLOW_UNKNOWN_PROTOCOLS: false,
-            ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+            ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
             SANITIZE_DOM: true,
             KEEP_CONTENT: true,
             IN_PLACE: false
@@ -226,7 +226,7 @@ export const dompurify: DomPurifyConfig = {
          * afterSanitizeAttributes hook: Automatically add rel="noopener noreferrer" 
          * to any anchor tag with target="_blank" to prevent tabnapping attacks.
          */
-        afterSanitizeAttributes: function (node: any) {
+        afterSanitizeAttributes: function (node: unknown) {
             // Check if node is an anchor tag with target="_blank"
             const el = node as SanitizeNode;
 

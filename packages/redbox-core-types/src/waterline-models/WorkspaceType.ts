@@ -1,5 +1,4 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, BelongsTo, toWaterlineModelDef } from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
 
@@ -42,5 +41,5 @@ export interface WorkspaceTypeWaterlineModel extends Sails.Model<WorkspaceTypeAt
 }
 
 declare global {
-  var WorkspaceType: WorkspaceTypeWaterlineModel;
+  const WorkspaceType: WorkspaceTypeWaterlineModel;
 }

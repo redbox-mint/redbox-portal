@@ -1,5 +1,3 @@
-import { Request, Response, NextFunction } from 'express';
-
 /**
  * SessionAuth Policy
  *
@@ -8,16 +6,16 @@ import { Request, Response, NextFunction } from 'express';
  *
  * @docs http://sailsjs.org/#!/documentation/concepts/Policies
  */
-export function sessionAuth(req: Request, res: Response, next: NextFunction): any {
+export function sessionAuth(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
     // User is allowed, proceed to the next policy,
     // or if this is the last policy, the controller
-    if ((req as any).session.authenticated) {
+    if (req.session.authenticated) {
         return next();
     }
 
     // User is not allowed
     // (default res.forbidden() behavior can be overridden in `config/403.js`)
-    return res.status(403).send('You are not permitted to perform this action.');
+    res.status(403).send('You are not permitted to perform this action.');
 }
 
 export default sessionAuth;

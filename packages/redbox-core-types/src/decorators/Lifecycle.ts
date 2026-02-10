@@ -1,13 +1,13 @@
-import { LifecycleHook } from './types';
+import { Constructor, LifecycleHook, LifecycleHandler } from './types';
 import { ensureMeta } from './registry';
 
 function createLifecycleDecorator(hook: LifecycleHook) {
-  return (handler: Function): ClassDecorator => {
+  return (handler: LifecycleHandler): ClassDecorator => {
     return target => {
       if (typeof handler !== 'function') {
         throw new Error(`${hook} decorator expects a function, received ${typeof handler}`);
       }
-      const meta = ensureMeta(target);
+      const meta = ensureMeta(target as unknown as Constructor);
       const current = meta.lifecycle[hook] ?? [];
       current.push(handler);
       meta.lifecycle[hook] = current;

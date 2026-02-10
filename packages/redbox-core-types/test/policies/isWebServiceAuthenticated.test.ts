@@ -2,7 +2,6 @@ import { expect } from 'chai';
 import { isWebServiceAuthenticated } from '../../src/policies/isWebServiceAuthenticated';
 
 // Mock sails
-declare var sails: any;
 (global as any).sails = {
     config: {
         passport: {

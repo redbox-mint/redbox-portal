@@ -1,19 +1,20 @@
 export interface FormModel {
+    id?: string;
     name: string;
     customAngularApp: FormCustomAngularApp;
     fields: {
-        [key: string]: any;
+        [key: string]: unknown;
     }[];
     workflowStep: string;
     type: string;
     messages: {
-        [key: string]: any;
+        [key: string]: unknown;
     };
     requiredFieldIndicator: string;
     viewCssClasses: string;
     editCssClasses: string;
     skipValidationOnSave: boolean;
-    attachmentFields: any;
+    attachmentFields: unknown;
 }
 
 export interface FormCustomAngularApp {

@@ -43,17 +43,24 @@ import {
   ResolvedAdminSidebarItem,
   DEFAULT_ADMIN_SIDEBAR_CONFIG
 } from '../configmodels/AdminSidebarConfig';
+import { BrandingModel } from '../model/storage/BrandingModel';
 
-declare var sails: any;
-declare var _: any;
+interface RequestLike {
+  isAuthenticated?: () => boolean;
+  user?: unknown;
+  path?: string;
+  params?: Record<string, unknown>;
+  body?: Record<string, unknown>;
+  session?: Record<string, unknown>;
+}
 
 /**
  * Context object containing request state for visibility checks
  */
 interface ResolutionContext {
   isAuthenticated: boolean;
-  user: any;
-  brand: any;
+  user: unknown;
+  brand: BrandingModel | null;
   brandPortalPath: string;
   currentPath: string;
 }
@@ -72,7 +79,7 @@ interface FilterableItem {
   external?: boolean;
 }
 
-export module Services {
+export namespace Services {
   /**
    * Navigation service that provides brand-aware menu and home panel configuration
    * 
@@ -83,7 +90,7 @@ export module Services {
    * Author: Generated based on design.md
    */
   export class Navigation extends services.Core.Service {
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'resolveMenu',
       'resolveHomePanels',
       'resolveAdminSidebar',
@@ -123,7 +130,7 @@ export module Services {
      * @param req - The Express/Sails request object
      * @returns ResolvedMenu ready for rendering in templates
      */
-    public async resolveMenu(req: any): Promise<ResolvedMenu> {
+    public async resolveMenu(req: RequestLike): Promise<ResolvedMenu> {
       try {
         const context = this.buildResolutionContext(req);
 
@@ -160,7 +167,7 @@ export module Services {
      * @param req - The Express/Sails request object
      * @returns ResolvedHomePanels ready for rendering in templates
      */
-    public async resolveHomePanels(req: any): Promise<ResolvedHomePanels> {
+    public async resolveHomePanels(req: RequestLike): Promise<ResolvedHomePanels> {
       try {
         const context = this.buildResolutionContext(req);
 
@@ -202,7 +209,7 @@ export module Services {
      * @param req - The Express/Sails request object
      * @returns ResolvedAdminSidebar ready for rendering in templates
      */
-    public async resolveAdminSidebar(req: any): Promise<ResolvedAdminSidebar> {
+    public async resolveAdminSidebar(req: RequestLike): Promise<ResolvedAdminSidebar> {
       try {
         const context = this.buildResolutionContext(req);
 
@@ -267,9 +274,9 @@ export module Services {
     /**
      * Builds the resolution context from a request
      */
-    private buildResolutionContext(req: any): ResolutionContext {
+    private buildResolutionContext(req: RequestLike): ResolutionContext {
       const brandName = BrandingService.getBrandFromReq(req);
-      const brand = BrandingService.getBrand(brandName);
+      const brand = BrandingService.getBrand(brandName) || null;
       const brandPortalPath = BrandingService.getBrandAndPortalPath(req);
       const isAuthenticated = req.isAuthenticated ? req.isAuthenticated() : false;
       const user = req.user;
@@ -332,7 +339,7 @@ export module Services {
 
       // Get the resolved href and external flag
       let href = visibilityResult.resolvedHref || item.href;
-      let external = visibilityResult.resolvedExternal ?? (item.external === true);
+      const external = visibilityResult.resolvedExternal ?? (item.external === true);
 
       // URL building
       href = this.resolveUrl(href, context.brandPortalPath, external);
@@ -455,7 +462,7 @@ export module Services {
 
       // Get the resolved href and external flag
       let href = visibilityResult.resolvedHref || item.href;
-      let external = visibilityResult.resolvedExternal ?? (item.external === true);
+      const external = visibilityResult.resolvedExternal ?? (item.external === true);
 
       // URL building
       href = this.resolveUrl(href, context.brandPortalPath, external);
@@ -564,7 +571,7 @@ export module Services {
 
       // Get the resolved href and external flag
       let href = visibilityResult.resolvedHref || item.href;
-      let external = visibilityResult.resolvedExternal ?? (item.external === true);
+      const external = visibilityResult.resolvedExternal ?? (item.external === true);
 
       // URL building
       href = this.resolveUrl(href, context.brandPortalPath, external);
@@ -654,7 +661,7 @@ export module Services {
     /**
      * Checks if user has any of the specified roles for the brand
      */
-    private userHasAnyRole(user: any, brand: any, roleNames: string[]): boolean {
+    private userHasAnyRole(user: unknown, brand: BrandingModel | null, roleNames: string[]): boolean {
       if (!user || !brand) {
         return false;
       }

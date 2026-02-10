@@ -20,9 +20,8 @@
 import { existsSync } from 'fs';
 import { Services as services } from '../CoreService';
 
-declare var sails: any;
 
-export module Services {
+export namespace Services {
   /**
    * View utility functions for template resolution and display value extraction.
    *
@@ -43,11 +42,15 @@ export module Services {
      * @param defaultValue - Value to return if path is not found
      * @returns The value at the specified path, or the default value
      */
-    public displayValue(value: string, req: any, defaultValue: string = ""): any {
+    public displayValue(value: string, req: Sails.Req, defaultValue: string = ""): unknown {
       const keyArray = value.split('.');
-      let returnValue: any = defaultValue;
+      let returnValue: unknown = defaultValue;
+      const locals = req.options?.locals as Record<string, unknown> | undefined;
+      if (!locals) {
+        return defaultValue;
+      }
       for (let i = 0; i < keyArray.length; i++) {
-        returnValue = req.options.locals[keyArray[i]];
+        returnValue = locals[keyArray[i]];
         if (returnValue == null) {
           return defaultValue;
         }

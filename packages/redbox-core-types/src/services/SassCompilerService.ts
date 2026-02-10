@@ -3,16 +3,13 @@ import { Services as services } from '../CoreService';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import sass from 'sass';
-import os from 'os';
 import fse from 'fs-extra';
+import type { Stats, Configuration, Compiler } from 'webpack';
 // Use require to avoid type dependencies for webpack internals
 const webpack = require('webpack');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 
-declare var sails: any; // Sails global
-declare var _: any;
 
 /**
  * SassCompilerService
@@ -22,7 +19,7 @@ declare var _: any;
  * Usage: await SassCompilerService.compile({ 'site-branding-area-background': '#ffffff' })
  * Returns: { css, hash }
  */
-export module Services {
+export namespace Services {
 
     @PopulateExportedMethods
     export class SassCompiler extends services.Core.Service {
@@ -160,14 +157,15 @@ export module Services {
                 stats: 'errors-warnings'
             };
 
-            const compiler = webpack(wpConfig);
-            const stats = await new Promise<any>((resolve, reject) => {
-                compiler.run((err: any, stats: any) => {
+            const compiler = webpack(wpConfig as Configuration) as Compiler;
+            await new Promise<Stats>((resolve, reject) => {
+                compiler.run((err: Error | null, stats: Stats | undefined) => {
                     if (err) return reject(err);
+                    if (!stats) return reject(new Error('Webpack did not return stats'));
                     const info = stats.toJson({ all: false, errors: true, warnings: true });
                     if (stats.hasErrors()) {
                         const errorMsg = info.errors
-                            ?.map((e: any) => e.message || JSON.stringify(e))
+                            ?.map((e) => (typeof e === 'string' ? e : e.message || JSON.stringify(e)))
                             .join('; ') || 'unknown error';
                         return reject(new Error('Webpack SCSS compile failed: ' + errorMsg));
                     }

@@ -1,9 +1,7 @@
 import { Controllers as controllers } from '../CoreController';
 
-declare var sails: any;
-declare var _: any;
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to exporting anything
    *
@@ -14,7 +12,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
         'callService'
     ];
 
@@ -25,10 +23,9 @@ export module Controllers {
      */
     public callService(req: Sails.Req, res: Sails.Res) {
       const actionName = req.param('action')
-      const oid = req.param('oid');
       const config = sails.config.action[actionName];
       const options = {config: config};
-      let serviceFunction = _.get(config.service, config.method);
+      const serviceFunction = _.get(config.service, config.method);
       // Can optionally return an observable to subscribe on if this is a lengthy and complicated call
       // For simpler operations, service functions can write directly to the response object
       const response = serviceFunction(req, res, options);

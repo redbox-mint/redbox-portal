@@ -17,19 +17,14 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import { JsonMap } from '../waterline-models/types';
 import * as fs from 'fs-extra';
 import { resolve, basename } from 'path';
-import { Services as appConfigServices } from "./AppConfigService"
-import { Services as brandingService } from "./BrandingService"
-import { glob } from 'fs';
-declare var sails: any;
-declare var _: any;
-declare var CacheEntry: any;
+import * as _ from 'lodash';
 
-export module Services {
+export namespace Services {
   /**
    * Dynamic Configuration related functions...
    *
@@ -38,13 +33,13 @@ export module Services {
    */
   export class Config extends services.Core.Service {
 
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'getBrand',
       'mergeHookConfig'
     ];
 
-    public getBrand(brandName: string, configBlock: string) {
-      const defaultBrand = _.get(sails, 'config.auth.defaultBrand', 'default');
+    public getBrand(brandName: string, configBlock: string): JsonMap | undefined {
+      const defaultBrand = _.get(sails, 'config.auth.defaultBrand', 'default') as string;
       const resolveFromBrandingAware = (name: string) => {
         if (_.isFunction(_.get(sails, 'config.brandingAware')) && !_.isEmpty(name)) {
           const brandingConfig = sails.config.brandingAware(name);
@@ -70,22 +65,33 @@ export module Services {
           configVal = _.get(legacyConfig, defaultBrand);
         }
       }
-      return configVal;
+      if (_.isUndefined(configVal)) {
+        return undefined;
+      }
+      return configVal as JsonMap;
     }
 
-    public mergeHookConfig(hookName: string, configMap: any = sails.config, config_dirs: string[] = ["form-config", "config"], branded_app_config_dirs: string[] = ["branded-config"], dontMergeFields: any[] = ["fields"]) {
+    public mergeHookConfig(
+      hookName: string,
+      configMap: Record<string, unknown> = sails.config as unknown as Record<string, unknown>,
+      config_dirs: string[] = ["form-config", "config"],
+      branded_app_config_dirs: string[] = ["branded-config"],
+      dontMergeFields: Array<string | Record<string, unknown>> = ["fields"]
+    ) {
       const that = this;
-      var hook_root_dir = `${sails.config.appPath}/node_modules/${hookName}`;
-      var appPath = sails.config.appPath;
+      let hook_root_dir = `${sails.config.appPath}/node_modules/${hookName}`;
+      let appPath = sails.config.appPath;
       // check if the app path was launched from the hook directory, e.g. when launching tests.
       if (!fs.pathExistsSync(hook_root_dir) && _.endsWith(sails.config.appPath, hookName)) {
         hook_root_dir = sails.config.appPath;
         appPath = appPath.substring(0, appPath.lastIndexOf(`/node_modules/${hookName}`));
       }
       const hook_log_header = hookName;
-      let origDontMerge = _.clone(dontMergeFields);
-      const concatArrsFn = function (objValue: any, srcValue: any, key: string, object: any, source: any, stack: any) {
-        const dontMergeIndex = _.findIndex(dontMergeFields, (o: any) => { return _.isString(o) ? _.isEqual(o, key) : !_.isEmpty(o[key]) });
+      const origDontMerge = _.clone(dontMergeFields);
+      const concatArrsFn = function (objValue: unknown, srcValue: unknown, key: string): unknown {
+        const dontMergeIndex = _.findIndex(dontMergeFields, (o: string | Record<string, unknown>) => {
+          return _.isString(o) ? _.isEqual(o, key) : !_.isEmpty(o[key]);
+        });
         if (dontMergeIndex != -1) {
           if (!_.isString(dontMergeFields[dontMergeIndex])) {
             const dontMergeFieldMap = dontMergeFields as unknown as Record<string, unknown>;
@@ -97,17 +103,18 @@ export module Services {
           }
           return srcValue;
         }
+        return undefined;
       }
       sails.log.verbose(`${hookName}::Merging branded app configuration...`);
       _.each(branded_app_config_dirs, (branded_app_config_dir: string) => {
         branded_app_config_dir = `${hook_root_dir}/${branded_app_config_dir}`;
         sails.log.verbose(`${hook_log_header}::Looking at: ${branded_app_config_dir}`);
         if (fs.pathExistsSync(branded_app_config_dir)) {
-          var dirs = fs.readdirSync(branded_app_config_dir);
+          const dirs = fs.readdirSync(branded_app_config_dir);
           _.each(dirs, (dir: string) => {
             const fullPath = resolve(branded_app_config_dir, dir);
             if (fs.statSync(fullPath).isDirectory()) {
-              let brandName = basename(fullPath)
+              const brandName = basename(fullPath)
 
               // init-only directory will only create config entries. Intended for initialising config in a new environment that's managed either via API or screens once live.
               const initFiles = this.walkDirSync(`${fullPath}/init-only`, []);
@@ -115,9 +122,9 @@ export module Services {
               sails.log.verbose(initFiles);
               _.each(initFiles, (file_path: string) => {
                 const config_file = require(file_path);
-                let configKey = basename(file_path)
-                AppConfigService.createConfig(brandName, configKey, config_file).then((config: any) => { sails.log.verbose(hook_log_header + "::Configuration created:"); sails.log.verbose(config) })
-                  .catch((error: any) => { sails.log.verbose(hook_log_header + "::Skipping creation of config as it already exists:"); sails.log.verbose(error) });
+                const configKey = basename(file_path)
+                AppConfigService.createConfig(brandName, configKey, config_file).then((config: unknown) => { sails.log.verbose(hook_log_header + "::Configuration created:"); sails.log.verbose(config) })
+                  .catch((error: unknown) => { sails.log.verbose(hook_log_header + "::Skipping creation of config as it already exists:"); sails.log.verbose(error) });
               });
 
 
@@ -128,9 +135,9 @@ export module Services {
               sails.log.verbose(overrideFiles);
               _.each(overrideFiles, (file_path: string) => {
                 const config_file = require(file_path);
-                let configKey = basename(file_path)
+                const configKey = basename(file_path)
                 const brand: BrandingModel = BrandingService.getBrand(brandName);
-                AppConfigService.createOrUpdateConfig(brand, configKey, config_file).then((config: any) => {
+                AppConfigService.createOrUpdateConfig(brand, configKey, config_file).then((config: unknown) => {
                   sails.log.verbose(hook_log_header + "::Configuration created or updated:");
                   sails.log.verbose(config);
                 });
@@ -181,7 +188,8 @@ export module Services {
       });
       sails.log.verbose(`${hook_log_header}::Merging configuration...complete.`);
       sails.log.verbose(`${hook_log_header}::Merging Translation files...`);
-      this.mergeTranslationFiles(hook_root_dir, hook_log_header, sails.config.dontBackupCoreLanguageFilesWhenMerging);
+      const configWithOptions = sails.config as Sails.ConfigObject & { dontBackupCoreLanguageFilesWhenMerging?: boolean };
+      this.mergeTranslationFiles(hook_root_dir, hook_log_header, configWithOptions.dontBackupCoreLanguageFilesWhenMerging);
       //If assets directory exists, there must be some assets to copy over
       if (fs.pathExistsSync(`${hook_root_dir}/assets/`)) {
         sails.log.verbose(`${hook_log_header}::Copying assets...`);
@@ -201,11 +209,12 @@ export module Services {
       }
       sails.log.verbose(`${hook_log_header}::Adding custom API elements...`);
 
-      let apiDirs = ["services"];
+      const apiDirs = ["services"];
+      const sailsDynamic = sails as Sails.Application & Record<string, unknown>;
       _.each(apiDirs, (apiType: string) => {
         const files = this.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
-        if (!sails[apiType]) {
-          sails[apiType] = {};
+        if (!sailsDynamic[apiType]) {
+          sailsDynamic[apiType] = {};
         }
         sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
         sails.log.verbose(JSON.stringify(files));
@@ -213,15 +222,15 @@ export module Services {
           _.each(files, (file: string) => {
             const apiDef = require(file);
             const globalName = basename(file, '.js')
-            const apiElemName = _.toLower(globalName)
+            const apiElemName = globalName.toLowerCase();
             // TODO: deal with controllers or services in nested directories
-            sails[apiType][apiElemName] = apiDef;
-            (globalThis as any)[globalName] = apiDef;
+            (sailsDynamic[apiType] as Record<string, unknown>)[apiElemName] = apiDef;
+            (globalThis as Record<string, unknown>)[globalName] = apiDef;
           });
         }
       });
 
-      let controllerDirs = ["controllers"];
+      const controllerDirs = ["controllers"];
       _.each(controllerDirs, (apiType: string) => {
         const files = that.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
         sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
@@ -232,16 +241,20 @@ export module Services {
             const baseName = basename(file, '.js');
             const controllerName = basename(baseName, 'Controller')
             // sails[apiType][apiElemName] = apiDef;
-            if (_.isEmpty(sails.config.controllers)) {
-              sails.config.controllers = {};
+            const sailsConfigWithControllers = sails.config as Sails.ConfigObject & {
+              controllers?: { moduleDefinitions?: Record<string, unknown> };
+            };
+            if (_.isEmpty(sailsConfigWithControllers.controllers)) {
+              sailsConfigWithControllers.controllers = {};
             }
-            if (_.isEmpty(sails.config.controllers.moduleDefinitions)) {
-              sails.config.controllers.moduleDefinitions = {};
+            if (_.isEmpty(sailsConfigWithControllers.controllers.moduleDefinitions)) {
+              sailsConfigWithControllers.controllers.moduleDefinitions = {};
             }
-            _.forOwn(apiDef, (methodFn: any, methodName: string) => {
+            const moduleDefinitions = sailsConfigWithControllers.controllers.moduleDefinitions;
+            _.forOwn(apiDef, (methodFn: unknown, methodName: string) => {
               if (!_.startsWith(methodName, '_') && _.isFunction(methodFn)) {
                 sails.log.verbose(`Setting: ${controllerName}/${methodName}`);
-                sails.config.controllers.moduleDefinitions[`${controllerName}/${methodName}`] = methodFn;
+                moduleDefinitions![`${controllerName}/${methodName}`] = methodFn;
               }
             });
           });
@@ -250,10 +263,10 @@ export module Services {
       // for simple copying of API elements...
       // Note: 'policies' removed - now loaded via api/hooks/redbox-core-loader
       const apiCopyDirs = ['responses'];
-      for (let apiCopyDir of apiCopyDirs) {
+      for (const apiCopyDir of apiCopyDirs) {
         const apiCopyFiles = this.walkDirSync(`${hook_root_dir}/api/${apiCopyDir}`, []);
         if (!_.isEmpty(apiCopyFiles)) {
-          for (let apiCopyFile of apiCopyFiles) {
+          for (const apiCopyFile of apiCopyFiles) {
             const dest = `${appPath}/api/${apiCopyDir}/${basename(apiCopyFile)}`;
             sails.log.verbose(`Copying ${apiCopyFile} to ${dest}`)
             fs.copySync(apiCopyFile, dest);
@@ -265,12 +278,12 @@ export module Services {
     }
 
 
-    private walkDirSync(dir: string, filelist: any[] = []) {
+    private walkDirSync(dir: string, filelist: string[] = []): string[] {
       if (!fs.pathExistsSync(dir)) {
         return filelist;
       }
       try {
-        var files = fs.readdirSync(dir).sort();
+        const files = fs.readdirSync(dir).sort();
         _.each(files, (file: string) => {
           const resolved = resolve(dir, file);
           if (fs.statSync(resolved).isDirectory()) {
@@ -279,7 +292,7 @@ export module Services {
             filelist.push(resolved);
           }
         });
-      } catch (e) {
+      } catch (e: unknown) {
         sails.log.error(`Error walking directory: ${dir}`);
         sails.log.error(e)
       }
@@ -298,7 +311,7 @@ export module Services {
     private mergeTranslationFiles(hook_root_dir: string, hook_log_header: string, overwriteOrig: boolean = false) {
       const langCodes = this.getDirsSync(`${hook_root_dir}/locales`);
       sails.log.verbose(`${hook_log_header}::Language codes to process: ${JSON.stringify(langCodes)}`);
-      for (let langCode of langCodes) {
+      for (const langCode of langCodes) {
         const langBasePath = `locales/${langCode}/translation`;
         const langJsonPath = `${langBasePath}.json`;
         const langCsvPath = `${langBasePath}.csv`;
@@ -332,13 +345,13 @@ export module Services {
       }
     }
 
-    private csvToi18Next(csvPath: string, jsonPath: string, cb: any) {
+    private csvToi18Next(csvPath: string, jsonPath: string, cb: () => void) {
       const csv = require('csv-parser');
 
-      let languageJson: Record<string, string> = {};
+      const languageJson: Record<string, string> = {};
       fs.createReadStream(csvPath)
         .pipe(csv())
-        .on('data', (row: any) => {
+        .on('data', (row: Record<string, string>) => {
           languageJson[row.Key] = row.Message;
         })
         .on('end', () => {

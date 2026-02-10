@@ -1,7 +1,7 @@
-import { AttributeOptions, EntityMeta, LifecycleHook, WaterlineModelDefinition } from './types';
+import { AttributeOptions, Constructor, EntityMeta, LifecycleHook, LifecycleHandler, WaterlineModelDefinition } from './types';
 import { REGISTRY } from './registry';
 
-export function toWaterlineModelDef(target: Function | EntityMeta): WaterlineModelDefinition {
+export function toWaterlineModelDef(target: Constructor | EntityMeta): WaterlineModelDefinition {
   const meta = typeof target === 'function' ? REGISTRY.get(target) : target;
   if (!meta) {
     throw new Error('Entity has not been registered');
@@ -27,15 +27,12 @@ export function toWaterlineModelDef(target: Function | EntityMeta): WaterlineMod
     if (handlers && handlers.length) {
       if (handlers.length === 1) {
         // Single handler - pass it directly for best compatibility
-        definition[hook as LifecycleHook] = handlers[0] as (
-          recordOrRecords: unknown,
-          proceed: (err?: Error) => void,
-        ) => void;
+        definition[hook as LifecycleHook] = handlers[0] as LifecycleHandler;
       } else {
         // Multiple handlers - chain them with proceed callbacks
         definition[hook as LifecycleHook] = function(
           this: unknown,
-          recordOrRecords: unknown,
+          recordOrRecords: Record<string, unknown>,
           proceed: (err?: Error) => void,
         ) {
           let index = 0;

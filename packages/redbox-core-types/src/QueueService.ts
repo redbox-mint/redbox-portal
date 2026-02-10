@@ -22,10 +22,7 @@
  */
 
 export interface QueueService {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  every(jobName: string, interval: string, data: any, options: any): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  schedule(jobName: string, schedule: string, data: any): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  now(jobName: string, data: any): void;
+  every(jobName: string, interval: string, data: unknown, options: unknown): void;
+  schedule(jobName: string, schedule: string, data: unknown): void;
+  now(jobName: string, data: unknown): void;
 }

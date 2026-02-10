@@ -1,6 +1,6 @@
 export class ReportConfig {
     title: string = '';
-    reportSource: ReportSource = ReportSource.solr;
+  reportSource?: ReportSource = ReportSource.solr;
     databaseQuery: ReportDatabaseQueryConfig | null = null;
     solrQuery: ReportSolrQueryConfig | null = null;
     filter: ReportFilterConfig[] = [];
@@ -53,8 +53,7 @@ export class ReportConfig {
     total: number = 0;
     pageNum: number = 0;
     recordPerPage: number = 0;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    records: any[] = [];
+    records: Record<string, unknown>[] = [];
     success: boolean = false;
   
   }

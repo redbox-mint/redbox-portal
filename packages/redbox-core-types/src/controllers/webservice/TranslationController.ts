@@ -1,10 +1,9 @@
 import { APIActionResponse, APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
 
-declare var sails: any;
-declare var I18nEntriesService: any;
-declare var _: any;
+type BrandReqLike = { params?: globalThis.Record<string, unknown>; body?: globalThis.Record<string, unknown>; session?: globalThis.Record<string, unknown> };
 
-export module Controllers {
+
+export namespace Controllers {
   /**
    * Webservice TranslationController: manage language content via REST.
    */
@@ -12,7 +11,7 @@ export module Controllers {
     private asError(err: unknown): Error {
       return err instanceof Error ? err : new Error(String(err));
     }
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'listEntries',
       'getEntry',
       'setEntry',
@@ -22,9 +21,9 @@ export module Controllers {
       'updateBundleEnabled'
     ];
 
-    public async listEntries(req: any, res: any) {
+    public async listEntries(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandName: string = BrandingService.getBrandFromReq(req);
+        const brandName: string = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
@@ -44,9 +43,9 @@ export module Controllers {
       }
     }
 
-    public async getEntry(req: any, res: any) {
+    public async getEntry(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandName: string = BrandingService.getBrandFromReq(req);
+        const brandName: string = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
@@ -73,9 +72,9 @@ export module Controllers {
       }
     }
 
-    public async setEntry(req: any, res: any) {
+    public async setEntry(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandName: string = BrandingService.getBrandFromReq(req);
+        const brandName: string = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
@@ -99,9 +98,9 @@ export module Controllers {
       }
     }
 
-    public async deleteEntry(req: any, res: any) {
+    public async deleteEntry(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandName: string = BrandingService.getBrandFromReq(req);
+        const brandName: string = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
@@ -130,9 +129,9 @@ export module Controllers {
       }
     }
 
-    public async getBundle(req: any, res: any) {
+    public async getBundle(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandName: string = BrandingService.getBrandFromReq(req);
+        const brandName: string = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
@@ -158,9 +157,9 @@ export module Controllers {
       }
     }
 
-    public async setBundle(req: any, res: any) {
+    public async setBundle(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandName: string = BrandingService.getBrandFromReq(req);
+        const brandName: string = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
@@ -183,9 +182,9 @@ export module Controllers {
       }
     }
 
-    public async updateBundleEnabled(req: any, res: any) {
+    public async updateBundleEnabled(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandName: string = BrandingService.getBrandFromReq(req);
+        const brandName: string = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';

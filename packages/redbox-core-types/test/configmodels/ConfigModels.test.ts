@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { ConfigModels } from '../../src/configmodels/ConfigModels';
 
 describe('ConfigModels', function() {
+  class TestConfigClass {}
   
   describe('getModelInfo', function() {
     it('should return model info for known key', function() {
@@ -26,7 +27,7 @@ describe('ConfigModels', function() {
 
   describe('register', function() {
     it('should register new model', function() {
-      ConfigModels.register('newModel', { modelName: 'NewModel', class: {} });
+      ConfigModels.register('newModel', { modelName: 'NewModel', class: TestConfigClass });
       const info = ConfigModels.getModelInfo('newModel');
       expect(info).to.have.property('modelName', 'NewModel');
     });
@@ -34,12 +35,14 @@ describe('ConfigModels', function() {
     it('should override existing model if preventOverride is false', function() {
         const original = ConfigModels.getModelInfo('menu');
         try {
-            ConfigModels.register('menu', {modelName: 'Overridden', class: {}});
+            ConfigModels.register('menu', {modelName: 'Overridden', class: TestConfigClass});
             const info = ConfigModels.getModelInfo('menu');
             expect(info).to.have.property('modelName', 'Overridden');
         } finally {
             // Restore the original model so other tests can access it.
-            ConfigModels.register('menu', original);
+            if (original) {
+              ConfigModels.register('menu', original);
+            }
         }
     });
 
@@ -49,8 +52,8 @@ describe('ConfigModels', function() {
       // I can't easily revert static state without clearing the map, which is private.
       // But I can register a new key.
       
-      ConfigModels.register('uniqueKey', { modelName: 'Original', class: {} });
-      ConfigModels.register('uniqueKey', { modelName: 'New', class: {} }, { preventOverride: true });
+      ConfigModels.register('uniqueKey', { modelName: 'Original', class: TestConfigClass });
+      ConfigModels.register('uniqueKey', { modelName: 'New', class: TestConfigClass }, { preventOverride: true });
       
       const info = ConfigModels.getModelInfo('uniqueKey');
       expect(info).to.have.property('modelName', 'Original');
