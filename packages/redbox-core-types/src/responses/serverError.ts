@@ -1,8 +1,6 @@
-import { Response } from 'express';
-
 declare module 'express-serve-static-core' {
     interface Response {
-        serverError(data?: any, options?: string | { view?: string }): Response;
+        serverError(data?: unknown, options?: string | { view?: string }): Response;
     }
 }
 
@@ -14,12 +12,12 @@ declare module 'express-serve-static-core' {
  * return res.serverError(data);
  * return res.serverError(data, 'some/specific/error/view');
  */
-export function serverError(this: { req: any, res: Response }, data?: any, options?: string | { view?: string }) {
+export function serverError(this: { req: Sails.Req, res: Sails.Res }, data?: unknown, options?: string | { view?: string }) {
 
     // Get access to `req`, `res`, & `sails`
     const req = this.req;
     const res = this.res;
-    const sails = req._sails;
+    const sails = req._sails as Sails.Application;
 
     // Set status code
     res.status(500);
@@ -53,7 +51,7 @@ export function serverError(this: { req: any, res: Response }, data?: any, optio
         try {
             viewData = require('util').inspect(data, { depth: null });
         }
-        catch (e) {
+        catch (_e) {
             viewData = undefined;
         }
     }
@@ -65,12 +63,12 @@ export function serverError(this: { req: any, res: Response }, data?: any, optio
     // Otherwise try to guess an appropriate view, or if that doesn't
     // work, just send JSON.
     if (options.view) {
-        return (res as any).view(options.view, { data: viewData, title: 'Server Error' });
+        return res.view(options.view, { data: viewData, title: 'Server Error' });
     }
 
     // If no second argument provided, try to serve the implied view,
     // but fall back to sending JSON(P) if no view can be inferred.
-    else return (res as any).guessView({ data: viewData, title: 'Server Error' }, function couldNotGuessView() {
+    else return res.guessView({ data: viewData, title: 'Server Error' }, function couldNotGuessView() {
         return res.json(data);
     });
 

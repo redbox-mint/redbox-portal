@@ -5,7 +5,6 @@
  * Database adapter configuration for Sails.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const sailsMongo = require('sails-mongo');
 
 export interface DatastoreAdapterConfig {

@@ -1,11 +1,11 @@
 export class FigshareArticleCreate {
-    impersonate: number;
-    title: string;
-    description: string;
-    keywords: string[];
-    categories: number[];
-    custom_fields: any;
-    license: number;
+    impersonate: number = 0;
+    title: string = '';
+    description: string = '';
+    keywords: string[] = [];
+    categories: number[] = [];
+    custom_fields: Record<string, unknown> = {};
+    license: number = 0;
 
     constructor() {
     }

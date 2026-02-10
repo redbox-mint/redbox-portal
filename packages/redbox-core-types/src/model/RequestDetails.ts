@@ -1,29 +1,31 @@
+import type { Application } from 'express';
+
 export class RequestDetails {
-    app: any;
-    baseUrl: any;
-    body: any;
-    cookies: any;
-    fresh: any;
-    hostname: any;
-    ip: any;
-    ips: any;
-    method: any;
-    originalUrl: any;
-    params: any;
-    path: any;
-    protocol: any;
-    query: any;
-    secure: any;
-    route: any;
-    stale: any;
-    subdomains: any;
-    xhr: any;
-    headers: any;
-    url: any;
-    rawHeaders: any;
+    app: Application;
+    baseUrl: string;
+    body: unknown;
+    cookies: Record<string, string>;
+    fresh: boolean;
+    hostname: string;
+    ip: string | undefined;
+    ips: string[];
+    method: string;
+    originalUrl: string;
+    params: Record<string, string>;
+    path: string;
+    protocol: string;
+    query: Record<string, string | undefined>;
+    secure: boolean;
+    route: unknown;
+    stale: boolean;
+    subdomains: string[];
+    xhr: boolean;
+    headers: Record<string, string | string[] | undefined>;
+    url: string;
+    rawHeaders: string[];
 
 
-    constructor(req) {
+    constructor(req: Sails.Req) {
         this.app = req.app;
         this.baseUrl = req.baseUrl;
         this.body = req.body;

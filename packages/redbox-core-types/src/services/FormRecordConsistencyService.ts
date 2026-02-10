@@ -25,17 +25,12 @@ import {
     TemplateFormConfigVisitor, TemplateCompileInput, ConstructFormConfigVisitor, FormModesConfig,
     ValidatorFormConfigVisitor, ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
-import {Sails} from "sails";
 import {firstValueFrom} from "rxjs";
 
 
 
-declare var sails: Sails;
-declare var _;
-declare var RecordsService;
-declare var FormsService;
 
-export module Services {
+export namespace Services {
 
     export type BasicRedboxRecord = {
         redboxOid: string,
@@ -112,7 +107,7 @@ export module Services {
             // get the original record's form config
             const formName = changed?.metaMetadata?.['form'];
             const isEditMode = formMode === "edit";
-            const formConfig = await FormsService.getFormByName(formName, isEditMode).toPromise();
+            const formConfig = await firstValueFrom(FormsService.getFormByName(String(formName ?? ""), isEditMode)) as unknown as FormConfigFrame;
 
             // build the client form config
             const userRoles: string[] | undefined = undefined;
@@ -120,7 +115,7 @@ export module Services {
             const clientFormConfig = FormsService.buildClientFormConfig(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs);
 
             // merge the original and changed records using the client form config to know which changes to include
-            return this.mergeRecordClientFormConfig(original, changed, clientFormConfig, formMode, reusableFormDefs);
+            return this.mergeRecordClientFormConfig(original as unknown as BasicRedboxRecord, changed, clientFormConfig, formMode, reusableFormDefs);
         }
 
         /**
@@ -185,20 +180,24 @@ export module Services {
             // check all keys in either the original or changes objects
             const {keys: originalKeys} = this.toKeysEntries(original);
             const {keys: changedKeys} = this.toKeysEntries(changed);
-            const allKeys = new Set(originalKeys);
+            const allKeys = new Set<string | number>(originalKeys);
             changedKeys.forEach(i => allKeys.add(i));
 
             // permittedChanged is in JSON Type Def format
             // permitted changes is always for an object (i.e. has property 'properties')
-            const permittedChangesObj = permittedChanges as object;
+            const originalRecord = original as Record<string | number, unknown>;
+            const changedRecord = changed as Record<string | number, unknown>;
+            const permittedChangesObj = permittedChanges as Record<string | number, unknown>;
             // if (!('properties' in permittedChangesObj)) {
             //     throw new Error(`Permitted changes must have an object, a 'properties' property, at the top level ${JSON.stringify(permittedChanges)}`)
             // }
-            const permittedChangesProps = 'properties' in permittedChangesObj ? permittedChangesObj['properties'] as object : permittedChangesObj;
+            const permittedChangesProps = (('properties' in permittedChangesObj)
+              ? (permittedChangesObj['properties'] as Record<string | number, unknown>)
+              : permittedChangesObj) as Record<string | number, unknown>;
 
 
             // create a new record instance
-            const result = {
+            const result: Record<string | number, unknown> = {
                 // for debugging:
                 // _meta: {keys:Array.from(allKeys),currentPath:currentPath},
             };
@@ -206,22 +205,22 @@ export module Services {
             // for each key, evaluate the value
             for (const key of allKeys) {
                 // pre-calculate aspects of the original item
-                const isKeyInOriginal = key in original;
-                const originalValue = isKeyInOriginal ? original[key] : undefined;
+                const isKeyInOriginal = key in originalRecord;
+                const originalValue = isKeyInOriginal ? originalRecord[key] : undefined;
                 const originalValueType = guessType(originalValue);
 
                 // pre-calculate aspects of the changed item
-                const isKeyInChanged = key in changed;
-                const changedValue = isKeyInChanged ? changed[key] : undefined;
+                const isKeyInChanged = key in changedRecord;
+                const changedValue = isKeyInChanged ? changedRecord[key] : undefined;
                 const changedValueType = guessType(changedValue);
 
                 // pre-calculate aspects of the permitted changes
                 const isKeyInPermittedChange = key in permittedChangesProps;
-                const permittedChangesValue = permittedChangesProps?.[key];
-                const isPermittedChangeObject = isKeyInPermittedChange && 'properties' in permittedChangesValue;
-                const isPermittedChangeArray = isKeyInPermittedChange && 'elements' in permittedChangesValue;
-                const isPermittedChangeType = isKeyInPermittedChange && 'type' in permittedChangesValue;
-                const isPermittedChangeEmpty = isKeyInPermittedChange && Object.keys(permittedChangesValue).length === 0;
+                const permittedChangesValue = permittedChangesProps?.[key] as Record<string, unknown> | undefined;
+                const isPermittedChangeObject = isKeyInPermittedChange && !!permittedChangesValue && 'properties' in permittedChangesValue;
+                const isPermittedChangeArray = isKeyInPermittedChange && !!permittedChangesValue && 'elements' in permittedChangesValue;
+                const isPermittedChangeType = isKeyInPermittedChange && !!permittedChangesValue && 'type' in permittedChangesValue;
+                const isPermittedChangeEmpty = isKeyInPermittedChange && !!permittedChangesValue && Object.keys(permittedChangesValue).length === 0;
 
                 // ensure the permitted changes item is valid
                 const isPermittedChangeMatches = {
@@ -230,7 +229,7 @@ export module Services {
                     isPermittedChangeType: isPermittedChangeType,
                     isPermittedChangeEmpty: isPermittedChangeEmpty,
                 };
-                if (isKeyInPermittedChange && Object.values(isPermittedChangeMatches).filter(i => i === true).length !== 1) {
+                if (isKeyInPermittedChange && Object.values(isPermittedChangeMatches).filter((i: boolean) => i === true).length !== 1) {
                     throw new Error(`Invalid permittedChanges object, all definitions must have a property that is one of 'properties', 'elements', 'type', (none): ${JSON.stringify(isPermittedChangeMatches)} - ${JSON.stringify(permittedChangesValue)}`);
                 }
 
@@ -248,7 +247,7 @@ export module Services {
                     // TODO: Consider how to replace each element in the array instead of the whole array.
                     //       Replacing the whole array prevents use of constraints in components in the array elements.
                     const newPermittedChanges = permittedChangesValue['elements'] as Record<string, unknown>;
-                    result[key] = changedValue.map((changedElement: unknown, index: number) => {
+                    result[key] = (changedValue as unknown[]).map((changedElement: unknown, index: number) => {
                         // Evaluate the element in the array.
                         const guessedType = guessType(changedElement);
                         if (guessedType === "object") {
@@ -265,7 +264,7 @@ export module Services {
                                 keyChanges: keyChanges,
                                 newPath: newPath,
                             });
-                            return this.mergeRecordMetadataPermitted(originalElement, changedElement as object, newPermittedChanges, keyChanges, newPath);
+                            return this.mergeRecordMetadataPermitted(originalElement, changedElement as object, newPermittedChanges, keyChanges, newPath as FormRecordConsistencyChangePath);
                         } else {
                             // For anything that's not an object, there's nothing else to do, return it.
                             return changedElement;
@@ -284,7 +283,7 @@ export module Services {
                     const newPermittedChanges = permittedChangesValue as Record<string, unknown>;
                     const newPath = [...currentPath, key];
                     const keyChanges = relevantChanges?.filter(i => this.arrayStartsWithArray(newPath, i?.path));
-                    result[key] = this.mergeRecordMetadataPermitted(originalValue, changedValue, newPermittedChanges, keyChanges, newPath);
+                    result[key] = this.mergeRecordMetadataPermitted(originalValue as object, changedValue as object, newPermittedChanges, keyChanges, newPath as FormRecordConsistencyChangePath);
 
                 } else if (isKeyInPermittedChange && isKeyInChanged) {
                     // The change is permitted and the key is in the changed.
@@ -363,12 +362,14 @@ export module Services {
             if ((isOriginalArray && isChangedArray) || (isOriginalObject && isChangedObject)) {
                 const {entries: originalEntries, keys: originalKeys} = this.toKeysEntries(original);
                 const {entries: changedEntries, keys: changedKeys} = this.toKeysEntries(changed);
+                const originalRecord = original as Record<string | number, unknown>;
+                const changedRecord = changed as Record<string | number, unknown>;
 
                 // delete
                 for (const [key, value] of originalEntries) {
                     const newPath = [...path, key];
                     const isKeyInChanged = changedKeys.includes(key);
-                    const changedValue = isKeyInChanged ? changed[key] : undefined;
+                    const changedValue = isKeyInChanged ? changedRecord[key] : undefined;
 
                     if (!isKeyInChanged) {
                         // delete key & value
@@ -389,7 +390,7 @@ export module Services {
                 for (const [key, value] of changedEntries) {
                     const newPath = [...path, key];
                     const isKeyInOriginal = originalKeys.includes(key);
-                    const originalValue = isKeyInOriginal ? original[key] : undefined;
+                    const originalValue = isKeyInOriginal ? originalRecord[key] : undefined;
                     if (!isKeyInOriginal) {
                         // add key & value
                         result.push({
@@ -475,7 +476,7 @@ export module Services {
             const isEditMode = formMode === "edit";
 
             // get the record's form config
-            const formConfig = await firstValueFrom(FormsService.getFormByName(formName, isEditMode)) as FormConfigFrame;
+            const formConfig = await firstValueFrom(FormsService.getFormByName(String(formName ?? ""), isEditMode)) as unknown as FormConfigFrame;
 
             // Get the validator definitions from the sails config, so the definitions can be overwritten.
             const validatorDefinitions = sails.config.validators.definitions;
@@ -526,7 +527,7 @@ export module Services {
         private toKeysEntries(item: unknown): {
             entries: [string | number, unknown][],
             keys: (string | number)[]
-        } | undefined {
+        } {
             const guessedType = guessType(item);
             if (guessedType === "object") {
                 const entries = Object.entries(item as Record<string, unknown>);
@@ -549,4 +550,8 @@ export module Services {
             return base?.every((value, index) => check?.length > index && check?.[index] == value);
         }
     }
+}
+
+declare global {
+    let FormRecordConsistencyService: Services.FormRecordConsistency;
 }

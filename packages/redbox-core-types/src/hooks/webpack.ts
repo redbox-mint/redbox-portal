@@ -16,8 +16,6 @@ import { once } from 'lodash';
 // Import to ensure Sails namespace is available
 import '../sails';
 
-declare var sails: Sails.Application;
-declare var global: any;
 
 interface WebpackStats {
     hasErrors(): boolean;
@@ -56,7 +54,7 @@ export function defineWebpackHook(sailsInstance: Sails.Application, _webpack = w
         initialize: async function (done: () => void) {
             sailsInstance.log.info('Initializing custom hook (`webpack`)');
 
-            const isSailsScriptEnv = () => global.isSailsScriptEnv;
+            const isSailsScriptEnv = () => Boolean((global as { isSailsScriptEnv?: boolean }).isSailsScriptEnv);
             if (isSailsScriptEnv()) {
                 done();
                 return;
@@ -64,7 +62,10 @@ export function defineWebpackHook(sailsInstance: Sails.Application, _webpack = w
 
             // Enable minimization of CSS when explicitly told so
             if (process.env.WEBPACK_CSS_MINI === 'true') {
-                sailsInstance.config.webpack.config[0].optimization.minimize = true;
+                if (sailsInstance.config.webpack.config?.[0]) {
+                    sailsInstance.config.webpack.config[0].optimization = sailsInstance.config.webpack.config[0].optimization || {};
+                    sailsInstance.config.webpack.config[0].optimization.minimize = true;
+                }
                 sailsInstance.log.info(`Webpack hook is configured for CSS minimization.`);
             }
 
@@ -86,7 +87,7 @@ export function defineWebpackHook(sailsInstance: Sails.Application, _webpack = w
                 triggerDoneOnce(...args);
             };
 
-            compiler.run(compileCallback as any);
+            compiler.run(compileCallback as Parameters<typeof compiler.run>[0]);
         }
     };
 }

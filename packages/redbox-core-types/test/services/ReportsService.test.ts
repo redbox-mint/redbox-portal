@@ -51,7 +51,7 @@ describe('ReportsService', function() {
     };
 
     setupServiceTestGlobals(mockSails);
-    (global as any).Report = mockReport;
+    (global as any).RBReport = mockReport;
     (global as any).BrandingService = {
       getFullPath: sinon.stub().returns('http://portal')
     };
@@ -70,7 +70,7 @@ describe('ReportsService', function() {
 
   afterEach(function() {
     cleanupServiceTestGlobals();
-    delete (global as any).Report;
+    delete (global as any).RBReport;
     delete (global as any).BrandingService;
     delete (global as any).NamedQueryService;
     sinon.restore();

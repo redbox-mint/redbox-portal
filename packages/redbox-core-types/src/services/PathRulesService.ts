@@ -21,16 +21,30 @@ import { Observable, from, of } from 'rxjs';
 import { mergeMap as flatMap, last } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
-import {Sails, Model} from "sails";
+import { RoleModel } from '../model/storage/RoleModel';
 import { default as UrlPattern } from 'url-pattern';
 
-declare var sails: Sails;
-declare var PathRule: Model;
-declare var RolesService, BrandingService;
-declare var _this;
-declare var _;
 
-export module Services {
+type PathRuleModel = {
+  path?: string;
+  role: { id: string };
+  branding: { id?: string; name: string };
+  can_read?: boolean;
+  can_update?: boolean;
+};
+
+type PathRulePattern = {
+  pattern: UrlPattern;
+  rule: PathRuleModel;
+};
+
+type RoleLike = {
+  id: string;
+  name?: string;
+  branding?: { name: string };
+};
+
+export namespace Services {
 
   /**
    * Enforces authorization rules on paths...
@@ -40,38 +54,38 @@ export module Services {
    */
   export class PathRules extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'getRulesFromPath',
       'canRead',
       'canWrite'
     ]
     // compromising, will cache for speed...
-    protected pathRules;
-    protected rulePatterns;
+    protected pathRules: PathRuleModel[] = [];
+    protected rulePatterns: PathRulePattern[] = [];
 
-    public bootstrap = (defUser, defRoles) => {
+    public bootstrap = (_defUser: unknown, defRoles: RoleLike[]) => {
       sails.log.verbose("Bootstrapping path rules....");
-      var defBrand:BrandingModel = BrandingService.getDefault();
+      const defBrand:BrandingModel = BrandingService.getDefault();
       return this.loadRules()
         .pipe(flatMap(rules => {
           if (!rules || rules.length == 0) {
             sails.log.verbose("Rules, don't exist, seeding...");
-            var seedRules = sails.config.auth.rules;
+            const seedRules = sails.config.auth.rules as Array<{ role: string; branding?: string; path: string; can_read?: boolean; can_update?: boolean }>;
             _.forEach(seedRules, (rule) => {
-              var role = RolesService.getRoleWithName(defRoles, rule.role);
-              rule.role = role.id;
+              const role = RolesService.getRoleWithName(defRoles as unknown as RoleModel[], rule.role);
+              rule.role = role?.id ?? '';
               rule.branding = defBrand.id;
             });
             return from(seedRules)
-                           .pipe(flatMap(rule => {
-                             return super.getObservable(PathRule.create(rule));
+                           .pipe(flatMap((rule) => {
+                             return super.getObservable<PathRuleModel>(PathRule.create(rule as unknown as PathRuleModel));
                            })
                            ,last()
-                           ,flatMap(rule => {
+                           ,flatMap(() => {
                              return this.loadRules();
                            })
-                           ,flatMap(rules => {
+                           ,flatMap((rules: PathRuleModel[]) => {
                              return of(rules);
                            }));
           } else {
@@ -84,13 +98,13 @@ export module Services {
     /**
     * Loads and caches rules...
     */
-    public loadRules = () => {
-      return super.getObservable(PathRule.find({}).populate('role').populate('branding'))
-                  .pipe(flatMap(rules => {
+    public loadRules = (): Observable<PathRuleModel[]> => {
+      return super.getObservable<PathRuleModel[]>(PathRule.find({}).populate('role').populate('branding'))
+                  .pipe(flatMap((rules: PathRuleModel[]) => {
                     this.pathRules = rules;
                     this.rulePatterns = [];
-                    _.forEach(rules, (rule) => {
-                      this.rulePatterns.push({pattern: new UrlPattern(rule.path), rule: rule});
+                    _.forEach(rules, (rule: PathRuleModel) => {
+                      this.rulePatterns.push({pattern: new UrlPattern(rule.path ?? ''), rule: rule});
                     });
                     return of(this.pathRules);
                   }));
@@ -99,9 +113,9 @@ export module Services {
     * Check path using cached rules...
     @return PathRule[]
     */
-    public getRulesFromPath = (path, brand) => {
-      var matchedRulePatterns =  _.filter(this.rulePatterns, (rulePattern) => {
-        var pattern = rulePattern.pattern;
+    public getRulesFromPath = (path: string, brand: BrandingModel): PathRuleModel[] | null => {
+      const matchedRulePatterns =  _.filter(this.rulePatterns, (rulePattern: PathRulePattern) => {
+        const pattern = rulePattern.pattern;
         // matching by path and brand, meaning only brand-specific rules apply
         return pattern.match(path) && rulePattern.rule.branding.id  == brand.id;
       });
@@ -112,10 +126,10 @@ export module Services {
       }
     }
 
-    public canRead = (rules, roles, brandName) => {
-      var matchRule = _.filter(rules, (rule) => {
+    public canRead = (rules: PathRuleModel[], roles: RoleLike[], brandName: string): boolean => {
+      const matchRule = _.filter(rules, (rule: PathRuleModel) => {
         // user must have this role, and at least can_read
-        var userRole = _.find(roles, (role) => {
+        const userRole = _.find(roles, (role: RoleLike) => {
           // match by id and branding
           return role.id == rule.role.id && rule.branding.name == brandName;
         });
@@ -124,9 +138,9 @@ export module Services {
       return matchRule.length > 0;
     }
 
-    public canWrite = (rules, roles, brandName) => {
-      return _.filter(rules, (rule) => {
-        var userRole = _.find(roles, (role) => {
+    public canWrite = (rules: PathRuleModel[], roles: RoleLike[], brandName: string): boolean => {
+      return _.filter(rules, (rule: PathRuleModel) => {
+        const userRole = _.find(roles, (role: RoleLike) => {
           // match by id and branding
           return role.id == rule.role.id && rule.branding.name == brandName;
         });
@@ -137,3 +151,6 @@ export module Services {
   }
 }
 
+declare global {
+  let PathRulesService: Services.PathRules;
+}

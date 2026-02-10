@@ -1,9 +1,8 @@
 export class CreateUserAPIResponse {
-    id: string
-    username: string
-    name:string
-    email: string
-    type: string
-    lastLogin: Date
-    
+    id: string = '';
+    username: string = '';
+    name: string = '';
+    email: string = '';
+    type: string = '';
+    lastLogin: Date | null = null;
 }

@@ -18,23 +18,17 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable, from, of, throwError, firstValueFrom
+  Observable, from, firstValueFrom
 } from 'rxjs';
 import { Services as services } from '../CoreService';
-import {
-  Sails,
-  Model
-} from "sails";
 // removed deprecated rxjs/add/operator imports; use firstValueFrom instead
 import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
 import * as nodemailer from 'nodemailer';
 import {isObservable} from "rxjs";
 
-declare var sails: Sails;
-declare var _;
 
-export module Services {
+export namespace Services {
   /**
    *
    *
@@ -43,7 +37,7 @@ export module Services {
    */
   export class Email extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'sendMessage',
       'buildFromTemplate',
       'sendTemplate',
@@ -72,14 +66,14 @@ export module Services {
      * @return A promise that evaluates to the result of sending the email.
      */
     public sendMessage(
-      msgTo,
+      msgTo: string,
       msgBody: string,
       msgSubject: string = sails.config.emailnotification.defaults.subject,
       msgFrom: string = sails.config.emailnotification.defaults.from,
       msgFormat: string = sails.config.emailnotification.defaults.format,
       cc: string = _.get(sails.config.emailnotification.defaults, 'cc', ''),
       bcc: string = _.get(sails.config.emailnotification.defaults, 'bcc', ''),
-      otherSendOptions: { [dict_key: string]: any } = _.get(sails.config.emailnotification.defaults, 'otherSendOptions', {}),
+      otherSendOptions: Record<string, unknown> = _.get(sails.config.emailnotification.defaults, 'otherSendOptions', {}),
     ): Observable<{ success: boolean, msg: string }> {
 
   return from(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat, cc, bcc, otherSendOptions));
@@ -106,14 +100,14 @@ export module Services {
      * @private
      */
     private async sendMessageAsync(
-      msgTo,
+      msgTo: string,
       msgBody: string,
       msgSubject: string,
       msgFrom: string,
       msgFormat: string,
       cc: string,
       bcc: string,
-      otherSendOptions: { [dict_key: string]: any } = {},
+      otherSendOptions: Record<string, unknown> = {},
     ): Promise<{ success: boolean, msg: string }> {
       if (!sails.config.emailnotification.settings.enabled) {
         sails.log.debug("Received email notification request, but is disabled. Ignoring.");
@@ -144,13 +138,13 @@ export module Services {
       });
 
       message[msgFormat] = msgBody;
-      let response = {
+      const response = {
         success: false,
         msg: "",
       };
       sails.log.debug(`Email message to send will be ${JSON.stringify(message)}`)
       try {
-        let sendResult = await transport.sendMail(message);
+        const sendResult = await transport.sendMail(message);
         response.msg = `Email sent successfully. Message Id: ${sendResult.messageId}`;
         response.success = true;
         sails.log.info(response.msg);
@@ -173,12 +167,12 @@ export module Services {
      * @param res The response object. Will contain 'status', 'body', might contain 'ex'.
      * @return The response object with 'status', 'body', and maybe 'ex' set.
      */
-    public async buildFromTemplateAsync(template: string, data: any = {}, res: any = {}) {
+    public async buildFromTemplateAsync(template: string, data: Record<string, unknown> = {}, res: Record<string, unknown> = {}) {
       try {
-        let readTemplate = fs.readFileSync(sails.config.emailnotification.settings.templateDir + template + '.ejs', 'utf-8')
+        const readTemplate = fs.readFileSync(sails.config.emailnotification.settings.templateDir + template + '.ejs', 'utf-8')
 
 
-        var renderedTemplate = ejs.render((readTemplate || "").toString(), data, {
+        const renderedTemplate = ejs.render((readTemplate || "").toString(), data, {
           cache: true,
           filename: template
         });
@@ -204,7 +198,7 @@ export module Services {
      * @param data The variables to use when rendering the template.
      * @return A promise that evaluates to the response object with 'status', 'body', and maybe 'ex' set.
      */
-    public buildFromTemplate(template: string, data: any = {}): Observable<any> {
+    public buildFromTemplate(template: string, data: Record<string, unknown> = {}): Observable<Record<string, unknown>> {
   return from(this.buildFromTemplateAsync(template, data));
     }
 
@@ -219,15 +213,15 @@ export module Services {
      * @param template The file name without extension.
      * @param data The variables to use when rendering the template.
      */
-    public sendTemplate(to, subject, template, data) {
+    public sendTemplate(to: string, subject: string, template: string, data: Record<string, unknown>) {
       sails.log.verbose("Inside Send Template");
-      var buildResponse = this.buildFromTemplate(template, data);
+      const buildResponse = this.buildFromTemplate(template, data);
       sails.log.verbose("buildResponse");
-      buildResponse.subscribe(buildResult => {
+      buildResponse.subscribe((buildResult: Record<string, unknown>) => {
         if (buildResult['status'] != 200) {
-          return buildResult;
+          return;
         } else {
-          var sendResponse = this.sendMessage(to, buildResult['body'], subject);
+          const sendResponse = this.sendMessage(to, buildResult['body'] as string, subject);
 
           sendResponse.subscribe(sendResult => {
             return sendResult;
@@ -243,7 +237,7 @@ export module Services {
      * @return The rendered template string.
      * @protected
      */
-    public runTemplate(template: string, variables) {
+    public runTemplate(template: string, variables: Record<string, unknown>) {
       if (template && template.indexOf('<%') != -1) {
         return _.template(template, variables)();
       }
@@ -260,12 +254,16 @@ export module Services {
      * @param response The optional response to return.
      * @return The response if provided or the record data.
      */
-    public async sendRecordNotification(oid, record, options, user, response) {
+    public async sendRecordNotification(oid: string, record: Record<string, unknown>, options: Record<string, unknown>, user: Record<string, unknown>, response: Record<string, unknown>) {
       const msgPartial = `for oid '${oid}' template '${options.template}'`;
-      const isSailsEmailConfigDisabled = (_.get(sails.config, 'services.email.disabled', false) == "true");
+      const isSailsEmailConfigDisabled = String(_.get(sails.config, 'services.email.disabled', false)) === 'true';
       let triggerConditionResult;
       if (isSailsEmailConfigDisabled) {
         sails.log.verbose(`Not sending record notification ${msgPartial}, config: services.email.disabled is ${isSailsEmailConfigDisabled}`);
+        if (!_.isEmpty(response)) {
+          options.returnType = 'response';
+          return response;
+        }
         return record;
       } else if ((triggerConditionResult = this.metTriggerCondition(oid, record, options, user)) == "true") {
         const variables = {
@@ -288,7 +286,8 @@ export module Services {
           throw new Error('Invalid email address.');
         }
 
-  const buildResult = await firstValueFrom(optionsEvaluated.templateRendered);
+        const templateRendered = optionsEvaluated.templateRendered ?? from(Promise.resolve({ status: 500, body: 'Templating error.' }));
+        const buildResult: Record<string, unknown> = await firstValueFrom(templateRendered);
 
         if (buildResult['status'] != 200) {
           sails.log.error(`Failed to build email body ${msgPartial}, result: ${JSON.stringify(buildResult)}`);
@@ -296,13 +295,13 @@ export module Services {
         }
         const sendResult = await firstValueFrom(this.sendMessage(
           optionsEvaluated.toRendered,
-          buildResult['body'],
+          buildResult['body'] as string,
           optionsEvaluated.subjectRendered,
           optionsEvaluated.fromRendered,
           optionsEvaluated.formatRendered,
           optionsEvaluated.ccRendered,
           optionsEvaluated.bccRendered,
-          _.get(options, 'otherSendOptions', {}),
+          _.get(options, 'otherSendOptions', {}) as Record<string, unknown>,
         ));
 
         if (sendResult.success) {
@@ -310,9 +309,9 @@ export module Services {
           const postSendHooks = _.get(options, "onNotifySuccess", null);
           if (postSendHooks) {
             sails.log.verbose(`Processing onNotifySuccess hooks`);
-            _.each(postSendHooks, (postSendHook) => {
+            _.each(postSendHooks, (postSendHook: Record<string, unknown>) => {
               const postSendHookFnName = _.get(postSendHook, 'function', null);
-              if (postSendHookFnName) {
+              if (typeof postSendHookFnName === 'string' && postSendHookFnName.length > 0) {
                 sails.log.verbose(`Pre notification onNotifySuccess hook: ${postSendHookFnName}`);
                 const postSendHookFn = eval(postSendHookFnName);
                 const postSendHookOpts = _.get(postSendHook, 'options', null);
@@ -324,7 +323,7 @@ export module Services {
                   postSendHookResult = Promise.resolve(postSendHookResult);
                 }
 
-                (postSendHookResult as Promise<any>).then(result => {
+                (postSendHookResult as Promise<Record<string, unknown>>).then(result => {
                   sails.log.verbose(`Post notification ${msgPartial} sending hook '${postSendHookFnName}' completed with result: ${JSON.stringify(result)}`);
                 }).catch(error => {
                   sails.log.verbose(`Post notification ${msgPartial} sending hook '${postSendHookFnName}' failed with error: ${JSON.stringify(error)}`);
@@ -357,14 +356,14 @@ export module Services {
      * @param config
      * @param templateData
      */
-    public evaluateProperties(options: object, config: object = {}, templateData: object = {}): {
+    public evaluateProperties(options: Record<string, unknown>, config: Record<string, unknown> = {}, templateData: Record<string, unknown> = {}): {
       format: string, formatRendered: string,
       from: string, fromRendered: string,
       to: string, toRendered: string,
       cc: string, ccRendered: string,
       bcc: string, bccRendered: string,
       subject: string, subjectRendered: string,
-      template: any, templateRendered: any,
+      template: string | null, templateRendered: Observable<Record<string, unknown>> | null,
     } {
       let result = {
         format: "", formatRendered: "",
@@ -415,7 +414,7 @@ export module Services {
           names: ["template"],
           templateFunc: this.buildFromTemplate,
         }
-      }, config);
+      }, config) as Record<string, Record<string, unknown>>;
 
       // Add the sails config to the template data.
       templateData['sailsConfig'] = sails.config;
@@ -427,7 +426,7 @@ export module Services {
 
       // Evaluate each property.
       for (const prop in mergedConfig) {
-        const propConfig = mergedConfig[prop];
+        const propConfig = mergedConfig[prop] as Record<string, unknown>;
         sails.log.verbose(`EmailService::EvaluateProperties: Evaluating ${prop} using ${JSON.stringify(propConfig)}.`);
 
         result = _.merge(
@@ -436,7 +435,14 @@ export module Services {
         );
       }
 
-      return result;
+      const fallbackTemplate = from(Promise.resolve({ status: 500, body: 'Templating error.' }));
+      const templateRendered = !_.isNil(result.template)
+        ? (result.templateRendered as Observable<Record<string, unknown>> | null) ?? fallbackTemplate
+        : null;
+      return {
+        ...result,
+        templateRendered,
+      };
     }
 
     /**
@@ -451,8 +457,8 @@ export module Services {
      *         and the rendered value with the property name + 'Rendered' as the key.
      * @private
      */
-    private evaluateProperty(options: object, prop: string, propConfig: object, templateData: object, templateName: string | null) {
-      const result = {};
+    private evaluateProperty(options: Record<string, unknown>, prop: string, propConfig: Record<string, unknown>, templateData: Record<string, unknown>, templateName: string | null) {
+      const result: Record<string, unknown> = {};
       let propValue = null;
 
       propValue = this.evaluatePropertyOptions(options, propValue, propConfig);
@@ -476,12 +482,12 @@ export module Services {
      * @return The property value if it is in options, otherwise null.
      * @private
      */
-    private evaluatePropertyOptions(options: object, propValue: string | null, propConfig: object) {
+    private evaluatePropertyOptions(options: Record<string, unknown>, propValue: string | null, propConfig: Record<string, unknown>) {
       //
-      const propNames = _.get(propConfig, "names", []);
+      const propNames = _.get(propConfig, "names", []) as string[];
       if (!_.isNil(propNames)) {
         for (const propName of propNames) {
-          propValue = _.get(options, propName, null);
+          propValue = _.get(options, propName, null) as string | null;
           if (!_.isNil(propValue)) {
             sails.log.verbose(`EmailService::EvaluatePropertyOptions: Got value for '${propName}': ${JSON.stringify(propValue)}.`);
             break;
@@ -500,10 +506,10 @@ export module Services {
      * @return The default value from the defaults configuration, or the property value.
      * @private
      */
-    private evaluatePropertyDefault(propValue: string | null, propConfig: object) {
-      const propDefaultKey = _.get(propConfig, "defaultKey", null);
+    private evaluatePropertyDefault(propValue: string | null, propConfig: Record<string, unknown>) {
+      const propDefaultKey = _.get(propConfig, "defaultKey", null) as string | null;
       if (_.isNil(propValue) && !_.isNil(propDefaultKey)) {
-        propValue = _.get(sails.config.emailnotification.defaults, propDefaultKey, null);
+        propValue = _.get(sails.config.emailnotification.defaults, propDefaultKey, null) as string | null;
         sails.log.verbose(`EmailService::EvaluatePropertyDefault: Got value for '${propDefaultKey}': ${JSON.stringify(propValue)}.`);
       }
       return propValue;
@@ -519,7 +525,7 @@ export module Services {
      * @return The default value from the templates configuration, or the property value.
      * @private
      */
-    private evaluatePropertyTemplateConfig(prop: string, propValue: string | null, propConfig: object, templateName: string | null) {
+    private evaluatePropertyTemplateConfig(prop: string, propValue: string | null, propConfig: Record<string, unknown>, templateName: string | null) {
       const propTemplateConfigKey = _.get(propConfig, "templatesKey", null);
       if (!_.isNil(propValue) || _.isNil(propTemplateConfigKey) || _.isNil(templateName)) {
         return propValue;
@@ -543,8 +549,8 @@ export module Services {
      * @return The result of rendering the template function with the data, or the property value if there is no template function.
      * @private
      */
-    private evaluatePropertyTemplate(propValue: string | null, propConfig: object, templateData: object) {
-      const templateFunc = _.get(propConfig, 'templateFunc', null);
+    private evaluatePropertyTemplate(propValue: string | null, propConfig: Record<string, unknown>, templateData: Record<string, unknown>) {
+      const templateFunc = _.get(propConfig, 'templateFunc', null) as ((value: string | null, data: Record<string, unknown>) => unknown) | null;
       if (!_.isNil(propValue) && !_.isNil(templateFunc)) {
         sails.log.verbose(`EmailService::EvaluatePropertyTemplate: Rendering using template function. Data: ${JSON.stringify(propValue)} `);
 
@@ -563,3 +569,6 @@ export module Services {
 
 }
 
+declare global {
+  let EmailService: Services.Email;
+}

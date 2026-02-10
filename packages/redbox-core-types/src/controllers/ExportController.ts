@@ -17,11 +17,6 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-declare var module;
-declare var sails;
-declare var _;
-import { Observable } from 'rxjs';
-declare var RecordsService, DashboardService, BrandingService, TranslationService;
 import { default as util } from 'util';
 import { default as stream } from 'stream';
 const pipeline = util.promisify(stream.pipeline);
@@ -31,7 +26,7 @@ const pipeline = util.promisify(stream.pipeline);
 import { BrandingModel } from '../model';
 import { Controllers as controllers } from '../CoreController';
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to exporting anything
    *
@@ -42,7 +37,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
         'index',
         'downloadRecs'
     ];
@@ -52,12 +47,12 @@ export module Controllers {
      * **************************************** Add custom methods **************************************
      * *************************************************************************************************
      */
-    public index(req, res) {
+    public override index(req: Sails.Req, res: Sails.Res) {
       return this.sendView(req, res, 'export/index');
     }
 
-    public async downloadRecs(req, res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+    public async downloadRecs(req: Sails.Req, res: Sails.Res) {
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const format = req.param('format');
       const recType = req.param('recType');
       const before = _.isEmpty(req.query.before) ? null : req.query.before;
@@ -68,11 +63,12 @@ export module Controllers {
         sails.log.verbose("filename "+filename);
         res.attachment(filename);
         await pipeline(
-          RecordsService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after, recType),
+          RecordsService.exportAllPlans(req.user!.username, req.user!.roles as globalThis.Record<string, unknown>[], brand, format, before, after, recType),
           res
         );
+        return res;
       } else {
-        return res.send(500, 'Unsupported export format');
+        return res.status(500).send('Unsupported export format');
       }
     }
     /**

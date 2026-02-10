@@ -8,6 +8,7 @@ export interface RedboxSessionConfig {
     secret: string;
     adapter: string;
     mongoUrl: string;
+    [key: string]: unknown;
     // Optional fields from comments
     cookie?: {
         maxAge?: number;

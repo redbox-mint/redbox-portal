@@ -2,7 +2,6 @@ import { expect } from 'chai';
 import { setLang } from '../../src/policies/setLang';
 
 // Mock TranslationService
-declare var TranslationService: any;
 (global as any).TranslationService = {
     handle: async (req: any, res: any, next: any) => { next(); }
 };

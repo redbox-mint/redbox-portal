@@ -21,12 +21,13 @@
  * Response class for StorageService methods.
  */
 export class StorageServiceResponse {
-  success: boolean;
-  oid: string;
-  message: string;
-  metadata:  any;
-  totalItems: number;
-  items: any[];
+  success: boolean = false;
+  oid: string = '';
+  message: string = '';
+  metadata: Record<string, unknown> | null = null;
+  details?: Record<string, unknown> | string;
+  totalItems: number = 0;
+  items: Record<string, unknown>[] = [];
   constructor() {
 
   }

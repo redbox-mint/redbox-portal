@@ -40,21 +40,32 @@
 import { Services as services } from '../CoreService';
 import { QueueService } from '../QueueService';
 
-import { Agenda } from 'agenda';
+import { Agenda, type Job } from 'agenda';
+import type { Filter, Sort } from 'mongodb';
+
+type AgendaJob = {
+  name: string;
+  fnName: string;
+  options?: unknown;
+  schedule?: {
+    method: string;
+    intervalOrSchedule?: string;
+    data?: unknown;
+    opts?: unknown;
+  };
+};
+
+type AgendaJobHandler = (job: Job) => Promise<void>;
 
 
-declare var sails: Sails.Application;
-declare var User: Sails.Model<any>;
-declare var _;
-declare var _this;
 
-export module Services {
+export namespace Services {
   /**
    * Service class for queuing using Agenda: https://github.com/agenda/agenda
    *
    */
   export class AgendaQueue extends services.Core.Service implements QueueService {
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'every',
       'schedule',
       'now',
@@ -65,7 +76,7 @@ export module Services {
       'init'
     ];
 
-    protected agenda: Agenda;
+    protected agenda!: Agenda;
 
     constructor() {
       super();
@@ -77,13 +88,13 @@ export module Services {
      * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
      * @return
      */
-    public async init() {
+    public override async init() {
       const that = this;
       this.registerSailsHook('on', 'ready', async function () {
 
         // set the options for Agenda, see: https://github.com/agenda/agenda#configuring-an-agenda
-        const agendaOpts = {};
-        _.forOwn(sails.config.agendaQueue.options, (optionVal: any, optionName: string) => {
+        const agendaOpts: Record<string, unknown> = {};
+        _.forOwn(sails.config.agendaQueue.options, (optionVal: unknown, optionName: string) => {
           that.setOptionIfDefined(agendaOpts, optionName, optionVal);
         });
         const dbManager = User.getDatastore().manager;
@@ -100,10 +111,10 @@ export module Services {
           sails.log.error(`AgendaQueue:: Error:`);
           sails.log.error(JSON.stringify(err));
         });
-        that.agenda.on('start', job => {
+        that.agenda.on('start', (job: Job) => {
           sails.log.verbose(`AgendaQueue:: Job ${job.attrs.name} starting`,);
         });
-        that.agenda.on('complete', job => {
+        that.agenda.on('complete', (job: Job) => {
           sails.log.verbose(`AgendaQueue:: Job ${job.attrs.name} finished`);
         });
         that.agenda.on('fail', (err, job) => {
@@ -113,22 +124,22 @@ export module Services {
         await that.agenda.start();
 
         //Create indexes after agenda start
-        const collectionName = _.get(agendaOpts, 'collection', 'agendaJobs');
+        const collectionName = String(_.get(agendaOpts, 'collection', 'agendaJobs'));
         await dbManager.collection(collectionName).createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 });
         await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1 });
 
         // check for in-line job schedule
-        _.each(sails.config.agendaQueue.jobs, (job) => {
+        _.each(sails.config.agendaQueue.jobs, (job: AgendaJob) => {
           if (!_.isEmpty(job.schedule)) {
             const method = job.schedule.method;
             const intervalOrSchedule = job.schedule.intervalOrSchedule;
             const data = job.schedule.data;
-            const opts = job.schedule.opts;
+            const opts = job.schedule.opts as { timezone?: string; skipImmediate?: boolean; forkMode?: boolean } | undefined;
             if (method == 'now') {
               that.now(job.name, data)
-            } else if (method == 'every') {
+            } else if (method == 'every' && intervalOrSchedule) {
               that.every(job.name, intervalOrSchedule, data, opts);
-            } else if (method == 'schedule') {
+            } else if (method == 'schedule' && intervalOrSchedule) {
               that.schedule(job.name, intervalOrSchedule, data);
             } else {
               sails.log.error(`AgendaQueue:: incorrect job schedule definition, method not found:`);
@@ -156,17 +167,17 @@ export module Services {
       }
      ]
      */
-    public defineJobs(jobs: any[], ref: AgendaQueue = this): void {
-      _.each(jobs, (job) => {
-        const serviceFn = _.get(sails.services, job.fnName);
+    public defineJobs(jobs: AgendaJob[], ref: AgendaQueue = this): void {
+      _.each(jobs, (job: AgendaJob) => {
+        const serviceFn = _.get(sails.services, job.fnName) as unknown as AgendaJobHandler | undefined;
         if (_.isUndefined(serviceFn)) {
           sails.log.error(`AgendaQueue:: Job name: ${job.name}'s service function not found: ${job.fnName}`);
           sails.log.error(JSON.stringify(job));
         } else {
           if (_.isEmpty(job.options)) {
-            ref.agenda.define(job.name, serviceFn);
+            ref.agenda.define(job.name, serviceFn as (job: Job) => Promise<void>);
           } else {
-            ref.agenda.define(job.name, serviceFn, job.options);
+            ref.agenda.define(job.name, serviceFn as (job: Job) => Promise<void>, job.options as Parameters<Agenda['define']>[2]);
           }
           sails.log.verbose(`AgendaQueue:: Defined job:`);
           sails.log.verbose(JSON.stringify(job));
@@ -174,15 +185,15 @@ export module Services {
       });
     }
 
-    public defineJob(name, options, serviceFn) {
+    public defineJob(name: string, options: unknown, serviceFn: AgendaJobHandler) {
       if (!this.agenda) {
         sails.log.error(`AgendaQueue:: defineJob called before init for job: ${name}`);
         return;
       }
       if (_.isEmpty(options)) {
-        this.agenda.define(name, serviceFn);
+        this.agenda.define(name, serviceFn as (job: Job) => Promise<void>);
       } else {
-        this.agenda.define(name, options, serviceFn);
+        this.agenda.define(name, serviceFn as (job: Job) => Promise<void>, options as Parameters<Agenda['define']>[2]);
       }
       sails.log.verbose(`AgendaQueue:: Defined job: ${name}`);
     }
@@ -193,38 +204,38 @@ export module Services {
      * 
      * @param job 
      */
-    public async moveCompletedJobsToHistory(job: any) {
+    public async moveCompletedJobsToHistory(_job: Job) {
       const dbManager = User.getDatastore().manager;
-      const collectionName = _.get(sails.config.agendaQueue, 'collection', 'agendaJobs');
-      await dbManager.collection(collectionName).find({ nextRunAt: null }).forEach(async (doc) => {
+      const collectionName = String(_.get(sails.config.agendaQueue, 'collection', 'agendaJobs'));
+      await dbManager.collection(collectionName).find({ nextRunAt: null }).forEach(async (doc: Record<string, unknown>) => {
         await dbManager.collection(`${collectionName}History`).insertOne(doc);
-        await dbManager.collection(collectionName).deleteOne({ _id: doc._id });
+        await dbManager.collection(collectionName).deleteOne({ _id: (doc as { _id?: unknown })._id });
       });
 
       sails.log.verbose(`moveCompletedJobsToHistory:: Moved completed jobs to history`);
     }
 
 
-    private setOptionIfDefined(agendaOpts, optionName, optionVal) {
+    private setOptionIfDefined(agendaOpts: Record<string, unknown>, optionName: string, optionVal: unknown) {
       if (!_.isEmpty(optionVal)) {
         _.set(agendaOpts, optionName, optionVal);
       }
     }
 
-    public async sampleFunctionToDemonstrateHowToDefineAJobFunction(job) {
+    public async sampleFunctionToDemonstrateHowToDefineAJobFunction(job: unknown) {
       sails.log.info(`AgendaQueue:: sample function called by job: `);
       sails.log.info(JSON.stringify(job));
     }
 
-    public every(jobName: string, interval: string, data: any = undefined, options: any = undefined) {
+    public every(jobName: string, interval: string, data: unknown = undefined, options: { timezone?: string; skipImmediate?: boolean; forkMode?: boolean } | undefined = undefined) {
       this.agenda.every(interval, jobName, data, options);
     }
 
-    public schedule(jobName: string, schedule: string, data: any = undefined) {
+    public schedule(jobName: string, schedule: string, data: unknown = undefined) {
       this.agenda.schedule(schedule, jobName, data);
     }
 
-    public now(jobName: string, data: any = undefined) {
+    public now(jobName: string, data: unknown = undefined) {
       sails.log.verbose(`AgendaQueue:: Starting job: '${jobName}' now!`)
       try {
         this.agenda.now(jobName, data);
@@ -234,8 +245,12 @@ export module Services {
       }
     }
 
-    public async jobs(query: any = {}, sort = {}, limit = 0, skip = 0) {
+    public async jobs(query: Filter<unknown> = {}, sort: Sort = {}, limit = 0, skip = 0) {
       return await this.agenda.jobs(query, sort, limit, skip);
     }
   }
+}
+
+declare global {
+  let AgendaQueueService: Services.AgendaQueue;
 }

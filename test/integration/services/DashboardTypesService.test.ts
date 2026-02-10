@@ -2,9 +2,6 @@ const { of } = require('rxjs');
 
 
 declare var global: any;
-declare var RecordTypesService: any;
-declare var WorkflowStepsService: any;
-declare var DashboardTypesService: any;
 
 describe('DashboardTypesService', function () {
     let originalRecordTypesService;

@@ -21,12 +21,8 @@ import { Controllers as controllers } from '../CoreController';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 
-declare var sails: any;
-declare var BrandingService: any;
-declare var I18nEntriesService: any;
-declare var TranslationService: any;
 
-export module Controllers {
+export namespace Controllers {
   /**
    * TranslationController - serves i18next namespace JSON for http-backend.
    */
@@ -35,7 +31,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'getNamespace',
       'getLanguages',
       'listEntriesApp',
@@ -44,7 +40,7 @@ export module Controllers {
       'setBundleApp'
     ];
 
-    public async getNamespace(req, res) {
+    public async getNamespace(req: Sails.Req, res: Sails.Res) {
       try {
         const brandingName = req.params.branding;
         const lng = req.params.lng;
@@ -60,7 +56,7 @@ export module Controllers {
         if (!bundle) {
           const entries = await I18nEntriesService.listEntries(branding, lng, ns);
           if (entries && entries.length > 0) {
-            bundle = { data: I18nEntriesService.composeNamespace(entries) } as any;
+            bundle = { data: I18nEntriesService.composeNamespace(entries) } as NonNullable<typeof bundle>;
           }
         }
 
@@ -95,7 +91,7 @@ export module Controllers {
      * Combines configured languages with any detected from DB bundles.
      * Returns a list of objects with code, displayName, and enabled.
      */
-    public async getLanguages(req, res) {
+    public async getLanguages(req: Sails.Req, res: Sails.Res) {
       try {
         const brandingName = req.params.branding;
         const branding = BrandingService.getBrand(brandingName);
@@ -108,8 +104,8 @@ export module Controllers {
         if (Array.isArray(configured)) configured.forEach((l: string) => l && langCodes.add(l));
 
         // From DB bundles using I18nEntriesService
-        const bundles: any[] = await I18nEntriesService.listBundles(branding);
-        bundles.forEach((b: any) => b?.locale && langCodes.add(b.locale));
+        const bundles = await I18nEntriesService.listBundles(branding);
+        bundles.forEach((b) => b?.locale && langCodes.add(b.locale));
 
         const codes = Array.from(langCodes);
         const bundleMap = new Map(bundles.map(b => [b.locale, b]));
@@ -134,7 +130,7 @@ export module Controllers {
     /**
      * Angular app endpoints (CSRF-enabled by default)
      */
-    public async listEntriesApp(req, res) {
+    public async listEntriesApp(req: Sails.Req, res: Sails.Res) {
       try {
         const brandingName = req.params.branding;
         const branding = BrandingService.getBrand(brandingName);
@@ -150,7 +146,7 @@ export module Controllers {
       }
     }
 
-    public async setEntryApp(req, res) {
+    public async setEntryApp(req: Sails.Req, res: Sails.Res) {
       try {
         const brandingName = req.params.branding;
         const branding = BrandingService.getBrand(brandingName);
@@ -162,7 +158,7 @@ export module Controllers {
         const category = req.body?.category;
         const description = req.body?.description;
         const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, description });
-        try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.setEntryApp] reload failed', e?.message || e); }
+        try { TranslationService.reloadResources(); } catch (e: unknown) { sails.log.warn('[TranslationController.setEntryApp] reload failed', e instanceof Error ? e.message : String(e)); }
         return res.json(saved);
       } catch (err) {
         sails.log.error('Error in TranslationController.setEntryApp:', err);
@@ -170,7 +166,7 @@ export module Controllers {
       }
     }
 
-    public async getBundleApp(req, res) {
+    public async getBundleApp(req: Sails.Req, res: Sails.Res) {
       try {
         const brandingName = req.params.branding;
         const branding = BrandingService.getBrand(brandingName);
@@ -186,7 +182,7 @@ export module Controllers {
       }
     }
 
-    public async setBundleApp(req, res) {
+    public async setBundleApp(req: Sails.Req, res: Sails.Res) {
       try {
         const brandingName = req.params.branding;
         const branding = BrandingService.getBrand(brandingName);
@@ -196,7 +192,7 @@ export module Controllers {
         const data = req.body?.data || req.body;
         const displayName = req.body?.displayName;
         const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, displayName);
-        try { TranslationService.reloadResources(); } catch (e) { sails.log.warn('[TranslationController.setBundleApp] reload failed', e?.message || e); }
+        try { TranslationService.reloadResources(); } catch (e: unknown) { sails.log.warn('[TranslationController.setBundleApp] reload failed', e instanceof Error ? e.message : String(e)); }
         return res.json(bundle);
       } catch (err) {
         sails.log.error('Error in TranslationController.setBundleApp:', err);

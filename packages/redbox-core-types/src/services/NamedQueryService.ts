@@ -18,24 +18,33 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Services as services } from '../CoreService';
-
-import {
-  Sails,
-  Model
-} from "sails";
-
-declare var sails: Sails;
-declare var Record: Model;
-declare var User: Model;
-declare var NamedQuery: Model;
+import type { NamedQueryDefinition } from '../config/namedQuery.config';
 import { DateTime } from 'luxon';
-declare var _this;
-declare var _;
 
 import { ListAPIResponse } from '../model/ListAPIResponse';
-import { Observable, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
+import { BrandingModel } from '../model/storage/BrandingModel';
+import { RecordModel } from '../model/storage/RecordModel';
+import { UserAttributes } from '../waterline-models/User';
+import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
 
-export module Services {
+export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
+
+const parseJson = <T>(input: unknown, fallback: T): T => {
+  if (typeof input !== 'string' || input.length === 0) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(input) as T;
+  } catch (_error) {
+    return fallback;
+  }
+};
+
+export namespace Services {
+  type RecordLike = RecordModel & { createdAt?: string | Date; updatedAt?: string | Date };
+  type UserLike = UserAttributes & { createdAt?: string | Date; updatedAt?: string | Date };
+
   /**
    * Named Query related functions...
    * 
@@ -44,7 +53,7 @@ export module Services {
 
   
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       "bootstrap",
       "getNamedQueryConfig",
       "performNamedQuery",
@@ -52,14 +61,14 @@ export module Services {
       "performNamedQueryFromConfigResults",
     ];
 
-  public async bootstrap (defBrand) {
-      const namedQueries = await firstValueFrom(super.getObservable(NamedQuery.find({
+  public async bootstrap (defBrand: BrandingModel) {
+      const namedQueries = await firstValueFrom(super.getObservable<Array<{ id?: string | number }>>(NamedQuery.find({
         branding: defBrand.id
    })));
       
         if (!_.isEmpty(namedQueries)) {
           if (sails.config.appmode.bootstrapAlways) {
-            for(let namedQuery of namedQueries) {
+            for(const namedQuery of namedQueries) {
               await NamedQuery.destroyOne({id: namedQuery.id});
             }
           } else {
@@ -70,14 +79,14 @@ export module Services {
   await this.createNamedQueriesForBrand(defBrand);
     }
 
-    private async createNamedQueriesForBrand(defBrand: any) {
+    private async createNamedQueriesForBrand(defBrand: BrandingModel) {
       for (const [namedQuery, config] of Object.entries(sails.config.namedQuery)) {
-        const namedQueryConfig: any = config;
+        const namedQueryConfig = config as NamedQueryConfig;
   await firstValueFrom(this.create(defBrand, namedQuery, namedQueryConfig));
       }
     }
 
-    public create(brand, name, config: NamedQueryConfig) {
+    public create(brand: BrandingModel, name: string, config: NamedQueryConfig) {
       return super.getObservable(NamedQuery.create({
         name: name,
         branding: brand.id,
@@ -91,18 +100,30 @@ export module Services {
     }
 
 
-    async getNamedQueryConfig(brand, namedQuery) {
-      let nQDBEntry = await NamedQuery.findOne({
+    async getNamedQueryConfig(brand: BrandingModel, namedQuery: string) {
+      const nQDBEntry = await NamedQuery.findOne({
         key: brand.id + "_" + namedQuery
       });
       return new NamedQueryConfig(nQDBEntry)
     }
 
-    async performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user = undefined, sort: NamedQuerySortConfig | undefined = undefined): Promise<ListAPIResponse<Object>> {
+    async performNamedQuery(
+      brandIdFieldPath: string,
+      resultObjectMapping: Record<string, unknown>,
+      collectionName: string,
+      mongoQuery: Record<string, unknown>,
+      queryParams: Record<string, QueryParameterDefinition>,
+      paramMap: Record<string, unknown>,
+      brand: BrandingModel,
+      start: number,
+      rows: number,
+      _user: unknown = undefined,
+      sort: NamedQuerySortConfig | undefined = undefined
+    ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
       const criteriaMeta = {enableExperimentalDeepTargets: true};
       this.setParamsInQuery(mongoQuery, queryParams, paramMap);
 
-      let that = this;
+      const that = this;
 
       // Add branding
       if(brandIdFieldPath != '') {
@@ -119,10 +140,10 @@ export module Services {
       }
 
       // Build query criteria
-      const criteria = {
+      const criteria: { where: Record<string, unknown>; skip: number; limit: number; sort?: NamedQuerySortConfig } = {
         where: mongoQuery,
         skip: start,
-        limit: rows
+        limit: rows,
       };
 
       // Add sorting
@@ -133,29 +154,30 @@ export module Services {
 
       // Run query
       sails.log.debug("Mongo query criteria", criteria);
-      let results = [];
+      let results: Array<RecordLike | UserLike> = [];
       if (totalItems > 0) {
         if(collectionName == 'user') {
-          results = await User.find(criteria).meta(criteriaMeta);
+          results = await User.find(criteria).meta(criteriaMeta) as unknown as Array<RecordLike | UserLike>;
         } else {
-          results = await Record.find(criteria).meta(criteriaMeta);
+          results = await Record.find(criteria).meta(criteriaMeta) as unknown as Array<RecordLike | UserLike>;
         }
       }
       
-      let responseRecords:NamedQueryResponseRecord[] = []
-      for (let record of results) {
+      const responseRecords: NamedQueryResponseRecord[] = []
+      for (const record of results) {
 
         if(collectionName == 'user') {
+          const userRecord = record as UserLike;
 
-          let defaultMetadata = {};
-          let variables = { record: record };
+          let defaultMetadata: NamedQueryResponseMetadata = {};
+          const variables: Record<string, unknown> = { record: userRecord };
 
           if(!_.isEmpty(resultObjectMapping)) {
-            let resultMetadata = _.cloneDeep(resultObjectMapping);
-            _.forOwn(resultObjectMapping, function(value, key) {
-              _.set(resultMetadata,key,that.runTemplate(value,variables));
+            const resultMetadata = _.cloneDeep(resultObjectMapping);
+            _.forOwn(resultObjectMapping, function(value: unknown, key: string) {
+              _.set(resultMetadata,key,that.runTemplate(value as string,variables));
             });
-            defaultMetadata = resultMetadata;
+            defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
 
           } else {
             defaultMetadata = {
@@ -167,48 +189,49 @@ export module Services {
             };
           }
 
-          let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
+          const responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
             oid: '',
             title: '',
             metadata: defaultMetadata,
-            lastSaveDate: record.updatedAt,
-            dateCreated: record.createdAt
+            lastSaveDate: userRecord.updatedAt ?? null,
+            dateCreated: userRecord.createdAt ?? null
           });
           responseRecords.push(responseRecord);
 
         } else {
+          const recordItem = record as RecordLike;
 
-          let defaultMetadata = {};
-          let variables = { record: record };
+          let defaultMetadata: NamedQueryResponseMetadata = {};
+          const variables: Record<string, unknown> = { record: recordItem };
 
           if(!_.isEmpty(resultObjectMapping)) {
-            let resultMetadata = _.cloneDeep(resultObjectMapping);
-            _.forOwn(resultObjectMapping, function(value, key) {
-              _.set(resultMetadata,key,that.runTemplate(value,variables));
+            const resultMetadata = _.cloneDeep(resultObjectMapping);
+            _.forOwn(resultObjectMapping, function(value: unknown, key: string) {
+              _.set(resultMetadata,key,that.runTemplate(value as string,variables));
             });
-            defaultMetadata = resultMetadata;
+            defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
             
           } else {
-            defaultMetadata =  that.runTemplate('record.metadata',variables);
+            defaultMetadata =  that.runTemplate('record.metadata',variables) as NamedQueryResponseMetadata;
           }
 
-          let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
-            oid: record.redboxOid,
-            title: record.metadata.title,
+          const responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
+            oid: recordItem.redboxOid ?? '',
+            title: (recordItem.metadata as Record<string, unknown> | undefined)?.title as string ?? '',
             metadata: defaultMetadata,
-            lastSaveDate: record.lastSaveDate,
-            dateCreated: record.dateCreated
+            lastSaveDate: recordItem.lastSaveDate ?? null,
+            dateCreated: recordItem.dateCreated ?? null
           });
           responseRecords.push(responseRecord);
 
         }
       }
-      let response = new ListAPIResponse<NamedQueryResponseRecord>();
+      const response = new ListAPIResponse<NamedQueryResponseRecord>();
 
 
-      let startIndex = start;
-      let noItems = rows;
-      let pageNumber = Math.floor((startIndex / noItems) + 1);
+      const startIndex = start;
+      const noItems = rows;
+      const pageNumber = Math.floor((startIndex / noItems) + 1);
 
       response.records = responseRecords;
       response.summary.start = start
@@ -218,11 +241,11 @@ export module Services {
       return response;
     }
 
-    setParamsInQuery(mongoQuery: any, queryParams: Map<string, QueryParameterDefinition>, paramMap:any) {
-      for (let queryParamKey in queryParams) {
+    setParamsInQuery(mongoQuery: Record<string, unknown>, queryParams: Record<string, QueryParameterDefinition>, paramMap: Record<string, unknown>) {
+      for (const queryParamKey in queryParams) {
         
         let value = paramMap[queryParamKey];
-        let queryParam:QueryParameterDefinition = queryParams[queryParamKey];
+        const queryParam:QueryParameterDefinition = queryParams[queryParamKey];
         sails.log.debug(`${queryParamKey} has value ${value}`);
         if (value == undefined && queryParam.required === true) {
           throw Error(`${queryParamKey} is a required parameter`);
@@ -236,7 +259,7 @@ export module Services {
 
         if (queryParam.type == DataType.String) {
           if (!_.isEmpty(queryParam.queryType)) {
-            let query = {}
+            const query: Record<string, unknown> = {}
             // if there is no value pass empty string
             if (value == undefined) {
               if (queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.defaultValue) {
@@ -253,7 +276,7 @@ export module Services {
 
         if(queryParam.type == DataType.Date) {
           if (!_.isEmpty(queryParam.queryType)) { 
-            let query = {};
+            const query: Record<string, unknown> = {};
             if (_.isUndefined(value)) {
               if (queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.defaultValue) {
                 value = queryParam.defaultValue;
@@ -285,7 +308,7 @@ export module Services {
             delete mongoQuery[queryParam.path];
         } else {
 
-          let existingValue = _.get(mongoQuery,queryParam.path)
+          const existingValue = _.get(mongoQuery,queryParam.path)
           if(existingValue != null && _.isObject(existingValue)) {
             _.merge(value,existingValue);
           }
@@ -295,14 +318,14 @@ export module Services {
       return mongoQuery;
     }
 
-    runTemplate(templateOrPath: string, variables: any) {
+    runTemplate(templateOrPath: string, variables: Record<string, unknown>): unknown {
       if (templateOrPath && templateOrPath.indexOf('<%') != -1) {
         return _.template(templateOrPath)(variables);
       }
       return _.get(variables, templateOrPath);
     }
 
-    public async performNamedQueryFromConfig(config: NamedQueryConfig, paramMap, brand, start, rows, user?) {
+    public async performNamedQueryFromConfig(config: NamedQueryDefinition | NamedQueryConfig, paramMap: Record<string, unknown>, brand: BrandingModel, start: number, rows: number, user?: unknown) {
       sails.log.debug("performNamedQueryFromConfig with parameters", {
         config: config,
         paramMap: paramMap,
@@ -315,12 +338,12 @@ export module Services {
       const resultObjectMapping = _.get(config, 'resultObjectMapping', {}) ?? {};
       const brandIdFieldPath = _.get(config, 'brandIdFieldPath', '') ?? '';
       const mongoQuery = _.clone(_.get(config, 'mongoQuery', {}) ?? {});
-      const queryParams = _.get(config, 'queryParams', {}) ?? {};
+      const queryParams = (_.get(config, 'queryParams', {}) ?? {}) as Record<string, QueryParameterDefinition>;
       const sort = _.get(config, 'sort', []) ?? [];
       return await this.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user, sort);
     }
 
-    public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand, queryName: string, start: number = 0,rows: number = 30, maxRecords: number = 100, user = undefined) {
+    public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand: BrandingModel, queryName: string, start: number = 0,rows: number = 30, maxRecords: number = 100, user: unknown = undefined) {
       const records = [];
       let requestCount = 0;
       sails.log.debug(`All named query results: start query with name '${queryName}' brand ${JSON.stringify(brand)} start ${start} rows ${rows} paramMap ${JSON.stringify(paramMap)}`);
@@ -387,58 +410,62 @@ enum NamedQueryFormatOptions {
 type NamedQuerySortConfig = Record<string, "ASC" | "DESC">[];
 
 class QueryParameterDefinition {
-  required:boolean
-  type:DataType
-  defaultValue: any
-  queryType:string
-  whenUndefined:NamedQueryWhenUndefinedOptions
-  format: NamedQueryFormatOptions;
-  path: string;
-  template: string;
+  required: boolean = false;
+  type: DataType = DataType.String;
+  defaultValue: unknown = null;
+  queryType: string = '';
+  whenUndefined: NamedQueryWhenUndefinedOptions = NamedQueryWhenUndefinedOptions.ignore;
+  format: NamedQueryFormatOptions = NamedQueryFormatOptions.days;
+  path: string = '';
+  template: string = '';
 }
 
 export class NamedQueryConfig {
   name: string;
   branding: string;
-  metadata: any;
+  metadata: unknown;
   createdAt: string;
   updatedAt: string;
   key: string;
-  queryParams: Map<string,QueryParameterDefinition>;
-  mongoQuery: object;
+  queryParams: Record<string, QueryParameterDefinition>;
+  mongoQuery: Record<string, unknown>;
   collectionName: string;
-  resultObjectMapping: any;
+  resultObjectMapping: Record<string, unknown>;
   brandIdFieldPath: string;
   sort: NamedQuerySortConfig | undefined;
 
-  constructor(values:any) {
-      this.name = values.name;
-      this.branding = values.branding;
-      this.metadata = values.metadata;
-      this.createdAt = values.createdAt;
-      this.updatedAt = values.updatedAt;
-      this.key = values.key;
-      this.queryParams = JSON.parse(values.queryParams);
-      this.mongoQuery = JSON.parse(values.mongoQuery);
-      this.collectionName = values.collectionName;
-      this.resultObjectMapping = JSON.parse(values.resultObjectMapping);
-      this.brandIdFieldPath = values.brandIdFieldPath;
-      this.sort = (values.sort !== undefined && values.sort.length > 0) ? JSON.parse(values.sort) : [];
+  constructor(values: Partial<NamedQueryAttributes> & { metadata?: unknown; createdAt?: string; updatedAt?: string; sort?: string } | null | undefined) {
+      this.name = values?.name ?? '';
+      this.branding = (values?.branding as string) ?? '';
+      this.metadata = values?.metadata;
+      this.createdAt = values?.createdAt ?? '';
+      this.updatedAt = values?.updatedAt ?? '';
+      this.key = values?.key ?? '';
+      this.queryParams = parseJson<Record<string, QueryParameterDefinition>>(values?.queryParams, {});
+      this.mongoQuery = parseJson<Record<string, unknown>>(values?.mongoQuery, {});
+      this.collectionName = values?.collectionName ?? '';
+      this.resultObjectMapping = parseJson<Record<string, unknown>>(values?.resultObjectMapping, {});
+      this.brandIdFieldPath = values?.brandIdFieldPath ?? '';
+      this.sort = parseJson<NamedQuerySortConfig>(values?.sort, []);
   }
 }
 
 export class NamedQueryResponseRecord {
   oid: string;
   title: string;
-  metadata: any;
-  lastSaveDate: string;
-  dateCreated: string;
+  metadata: NamedQueryResponseMetadata;
+  lastSaveDate: string | Date | null;
+  dateCreated: string | Date | null;
 
-  constructor(values:any) {
+  constructor(values: { oid: string; title: string; metadata: NamedQueryResponseMetadata; lastSaveDate: string | Date | null; dateCreated: string | Date | null }) {
       this.oid= values.oid
       this.title= values.title
       this.metadata= values.metadata
       this.lastSaveDate= values.lastSaveDate
       this.dateCreated= values.dateCreated
   }
+}
+
+declare global {
+  let NamedQueryService: Services.NamedQueryService;
 }

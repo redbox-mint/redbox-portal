@@ -1,17 +1,14 @@
-import { Request, Response, NextFunction } from 'express';
-
-declare const sails: any;
-
 /**
  * NoCache Policy
  *
  * Sets no-cache headers to prevent caching of responses.
  * Can be selectively applied based on view controller requests and configuration.
  */
-export function noCache(req: Request, res: Response, next: NextFunction): any {
+export function noCache(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
     let setHeaders = true;
     // check if this request is RenderViewController related
-    if ((req as any).options?.locals?.view !== undefined && (req as any).options?.locals?.view != null) {
+    const optionsLocals = req.options?.locals as Record<string, unknown> | undefined;
+    if (optionsLocals?.view !== undefined && optionsLocals?.view != null) {
         sails.log.verbose(`Render view controller request detected: ${req.path}`);
         // allows caching for view components by default
         setHeaders = false;

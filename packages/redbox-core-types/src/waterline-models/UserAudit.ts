@@ -1,5 +1,4 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, toWaterlineModelDef } from '../decorators';
 
 @Entity('useraudit')
@@ -29,5 +28,5 @@ export interface UserAuditWaterlineModel extends Sails.Model<UserAuditAttributes
 }
 
 declare global {
-  var UserAudit: UserAuditWaterlineModel;
+  const UserAudit: UserAuditWaterlineModel;
 }

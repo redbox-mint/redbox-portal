@@ -1,9 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
+import * as BrandingServiceModule from '../services/BrandingService';
+import * as RolesServiceModule from '../services/RolesService';
+import * as PathRulesServiceModule from '../services/PathRulesService';
 
-declare const sails: any;
-declare const BrandingService: any;
-declare const RolesService: any;
-declare const PathRulesService: any;
+declare const BrandingService: BrandingServiceModule.Services.Branding;
+declare const RolesService: RolesServiceModule.Services.Roles;
+declare const PathRulesService: PathRulesServiceModule.Services.PathRules;
 
 /**
  * CheckAuth Policy
@@ -11,20 +12,21 @@ declare const PathRulesService: any;
  * Checks if the current user has permission to access the requested path
  * based on their roles and the path rules defined for the brand.
  */
-export function checkAuth(req: Request, res: Response, next: NextFunction): any {
-    const brand = BrandingService.getBrand((req as any).session.branding);
+export function checkAuth(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
+    const brand = BrandingService.getBrand(req.session.branding ?? '');
     if (!brand) {
         sails.log.verbose("In checkAuth, no branding found.");
         // invalid brand
-        return res.status(404).json({
+        res.status(404).json({
             branding: sails.config.auth.defaultBrand,
             portal: sails.config.auth.defaultPortal
         });
+        return;
     }
 
-    let roles: string[];
-    if ((req as any).isAuthenticated()) {
-        roles = (req as any).user.roles;
+    let roles: unknown[];
+    if (req.isAuthenticated()) {
+        roles = (req.user?.roles ?? []) as unknown[];
     } else {
         // assign default role if needed...
         roles = [];
@@ -35,16 +37,19 @@ export function checkAuth(req: Request, res: Response, next: NextFunction): any 
     const rules = PathRulesService.getRulesFromPath(req.path, brand);
     if (rules) {
         // populate variables if this user has a role that can read or write...
-        const canRead = PathRulesService.canRead(rules, roles, brand.name);
+        const canRead = PathRulesService.canRead(rules, roles as unknown as Parameters<typeof PathRulesService.canRead>[1], brand.name);
         if (!canRead) {
-            if ((req as any).isAuthenticated()) {
-                return res.status(403).send();
+            if (req.isAuthenticated()) {
+                res.status(403).send();
+                return;
             } else {
                 const contentTypeHeader = req.headers["content-type"] == null ? "" : req.headers["content-type"];
                 if (contentTypeHeader.indexOf("application/json") !== -1) {
-                    return res.status(403).json({ message: "Access Denied" });
+                    res.status(403).json({ message: "Access Denied" });
+                    return;
                 } else {
-                    return sails.getActions()['user/redirlogin'](req, res);
+                    (sails.getActions()['user/redirlogin'] as (r: Sails.Req, s: Sails.Res) => void)(req, res);
+                    return;
                 }
             }
         }
