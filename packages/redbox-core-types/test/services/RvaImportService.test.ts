@@ -1,13 +1,14 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import * as lodash from 'lodash';
-import { ResourcesApi } from '@researchdatabox/rva-registry-openapi-generated-node';
+import { ResourcesApi, ServicesApi } from '@researchdatabox/rva-registry-openapi-generated-node';
 import { Services as RvaImportServiceModule } from '../../src/services/RvaImportService';
 
 describe('RvaImportService', () => {
   let service: any;
   let createStub: sinon.SinonStub;
   let conceptTreeStub: sinon.SinonStub;
+  let getVocabularyByIdStub: sinon.SinonStub;
 
   beforeEach(() => {
     (global as any)._ = lodash;
@@ -30,7 +31,7 @@ describe('RvaImportService', () => {
     };
     (global as any).VocabularyService = (global as any).sails.services.vocabularyservice;
 
-    const getVocabularyByIdStub = sinon.stub(ResourcesApi.prototype, 'getVocabularyById');
+    getVocabularyByIdStub = sinon.stub(ResourcesApi.prototype, 'getVocabularyById');
     getVocabularyByIdStub.onCall(0).resolves({
       data: { id: 1, title: 'RVA Vocab', version: [{ id: 101, status: 'current' }] }
     } as unknown as Awaited<ReturnType<ResourcesApi['getVocabularyById']>>);
@@ -41,6 +42,13 @@ describe('RvaImportService', () => {
     conceptTreeStub = sinon.stub(ResourcesApi.prototype, 'getVersionArtefactConceptTree').resolves({
       data: JSON.stringify([{ id: 'c1', label: 'A', notation: 'a' }])
     } as unknown as Awaited<ReturnType<ResourcesApi['getVersionArtefactConceptTree']>>);
+    sinon.stub(ServicesApi.prototype, 'search').resolves({
+      data: {
+        response: {
+          docs: [{ id: '1', title: 'RVA Vocab', slug: 'anzsrc-for' }]
+        }
+      }
+    } as unknown as Awaited<ReturnType<ServicesApi['search']>>);
 
     service = new RvaImportServiceModule.RvaImport();
   });
@@ -92,5 +100,10 @@ describe('RvaImportService', () => {
     const result = await service.syncRvaVocabulary('v1');
     expect(result.updated).to.equal(2);
     expect(result.created).to.equal(1);
+  });
+
+  it('imports an RVA vocabulary from an RVA URL', async () => {
+    await service.importRvaVocabulary('https://vocabs.ardc.edu.au/repository/api/lda/anzsrc-for/2020');
+    expect(getVocabularyByIdStub.firstCall.args[0]).to.equal(1);
   });
 });

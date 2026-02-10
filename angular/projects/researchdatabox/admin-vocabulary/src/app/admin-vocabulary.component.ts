@@ -179,7 +179,7 @@ export class AdminVocabularyComponent extends BaseComponent {
     this.importStatusMessage = '';
     this.importStatusVariant = '';
     try {
-      const trimmedId = this.normalizeRvaId(rvaId);
+      const trimmedId = String(rvaId ?? '').trim();
       if (!trimmedId) {
         this.error = 'RVA ID is required';
         this.importStatusMessage = this.error;
@@ -293,44 +293,4 @@ export class AdminVocabularyComponent extends BaseComponent {
     setTimeout(() => target.focus(), 0);
   }
 
-  private normalizeRvaId(value: string): string {
-    const input = String(value ?? '').trim();
-    if (!input) {
-      return '';
-    }
-
-    const extracted = this.extractRvaIdFromUrl(input);
-    return extracted || input;
-  }
-
-  private extractRvaIdFromUrl(value: string): string {
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(value);
-    } catch (_err) {
-      return '';
-    }
-
-    const paramKeys = ['rvaId', 'vocabularyId', 'vocabId', 'id'];
-    for (const key of paramKeys) {
-      const queryValue = parsedUrl.searchParams.get(key)?.trim() ?? '';
-      if (/^\d+$/.test(queryValue)) {
-        return queryValue;
-      }
-    }
-
-    const pathSegments = parsedUrl.pathname
-      .split('/')
-      .map((segment: string) => segment.trim())
-      .filter((segment: string) => segment.length > 0);
-
-    for (let index = pathSegments.length - 1; index >= 0; index--) {
-      const segment = pathSegments[index];
-      if (/^\d+$/.test(segment)) {
-        return segment;
-      }
-    }
-
-    return '';
-  }
 }

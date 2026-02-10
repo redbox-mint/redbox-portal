@@ -228,7 +228,7 @@ export namespace Services {
     }
 
     private async getVocabularyById(rvaId: string): Promise<RvaVocabularyResponse> {
-      const id = this.parseIdAsNumber(rvaId, 'vocabulary');
+      const id = await this.resolveVocabularyId(rvaId);
       const response = await this.resourcesApi.getVocabularyById(
         id,
         true,
@@ -238,6 +238,104 @@ export namespace Services {
         { headers: { Accept: 'application/json' } }
       );
       return response.data as RvaVocabulary;
+    }
+
+    private async resolveVocabularyId(value: string): Promise<number> {
+      const input = String(value ?? '').trim();
+      const direct = this.parseStrictInt(input);
+      if (direct !== null) {
+        return direct;
+      }
+
+      const parsed = this.tryParseUrl(input);
+      if (!parsed) {
+        throw new Error(`Invalid RVA vocabulary id: ${value}`);
+      }
+
+      const paramKeys = ['rvaId', 'vocabularyId', 'vocabId', 'id'];
+      for (const key of paramKeys) {
+        const raw = parsed.searchParams.get(key) ?? '';
+        const candidate = this.parseStrictInt(raw);
+        if (candidate !== null) {
+          return candidate;
+        }
+      }
+
+      const pathSegments = parsed.pathname
+        .split('/')
+        .map((segment: string) => decodeURIComponent(segment).trim())
+        .filter((segment: string) => segment.length > 0);
+
+      const markerTokens = new Set(['viewbyid', 'vocabulary', 'vocab', 'id']);
+      for (let index = 0; index < pathSegments.length - 1; index++) {
+        if (!markerTokens.has(pathSegments[index].toLowerCase())) {
+          continue;
+        }
+        const candidate = this.parseStrictInt(pathSegments[index + 1]);
+        if (candidate !== null) {
+          return candidate;
+        }
+      }
+
+      const slug = this.extractSlugCandidate(pathSegments, parsed.searchParams);
+      if (slug) {
+        const resolved = await this.findVocabularyIdBySlug(slug);
+        if (resolved !== null) {
+          return resolved;
+        }
+      }
+
+      throw new Error(`Unable to resolve RVA vocabulary id from input: ${value}`);
+    }
+
+    private tryParseUrl(value: string): URL | null {
+      try {
+        return new URL(value);
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    private extractSlugCandidate(pathSegments: string[], searchParams: URLSearchParams): string {
+      const querySlug = searchParams.get('slug')?.trim() ?? '';
+      if (querySlug) {
+        return querySlug;
+      }
+
+      const ldaIndex = pathSegments.findIndex((segment) => segment.toLowerCase() === 'lda');
+      if (ldaIndex >= 0 && ldaIndex + 1 < pathSegments.length) {
+        const candidate = pathSegments[ldaIndex + 1].trim();
+        if (candidate && !/^\d+$/.test(candidate)) {
+          return candidate;
+        }
+      }
+
+      return '';
+    }
+
+    private async findVocabularyIdBySlug(slug: string): Promise<number | null> {
+      const normalizedSlug = slug.toLowerCase();
+      const response = await this.servicesApi.search(JSON.stringify({ q: slug, pp: 50 }), { headers: { Accept: 'application/json' } });
+      const results = this.extractSearchResults(response.data);
+      const exactMatch = results.find((result) => String(result.slug ?? '').toLowerCase() === normalizedSlug);
+      if (!exactMatch?.id) {
+        return null;
+      }
+
+      const candidate = this.parseStrictInt(exactMatch.id);
+      if (candidate === null) {
+        return null;
+      }
+      return candidate;
+    }
+
+    private parseStrictInt(value: string): number | null {
+      const trimmed = String(value ?? '').trim();
+      if (!/^\d+$/.test(trimmed)) {
+        return null;
+      }
+      const parsed = Number.parseInt(trimmed, 10);
+      return Number.isFinite(parsed) ? parsed : null;
     }
 
     private async getConceptTree(versionId: string): Promise<RvaConceptNode[]> {

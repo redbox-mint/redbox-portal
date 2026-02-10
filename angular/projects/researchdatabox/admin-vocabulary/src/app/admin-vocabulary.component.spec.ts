@@ -66,7 +66,7 @@ describe('AdminVocabularyComponent', () => {
     expect(component.vocabularies[0].name).toBe('Imported');
   });
 
-  it('extracts numeric rva id from url before importing', async () => {
+  it('passes url input through to backend import resolver', async () => {
     const fixture = TestBed.createComponent(AdminVocabularyComponent);
     const component = fixture.componentInstance;
     const api = TestBed.inject(VocabularyApiService);
@@ -74,9 +74,9 @@ describe('AdminVocabularyComponent', () => {
     const importSpy = spyOn(api, 'importRva').and.resolveTo({ name: 'Imported', type: 'flat', source: 'rva' });
     spyOn(api, 'list').and.resolveTo([]);
 
-    await component.importRva('https://vocabs.ardc.edu.au/viewById/365');
+    await component.importRva('https://vocabs.ardc.edu.au/repository/api/lda/anzsrc-for/2020');
 
-    expect(importSpy).toHaveBeenCalledWith('365');
+    expect(importSpy).toHaveBeenCalledWith('https://vocabs.ardc.edu.au/repository/api/lda/anzsrc-for/2020');
     expect(component.error).toBe('');
   });
 
