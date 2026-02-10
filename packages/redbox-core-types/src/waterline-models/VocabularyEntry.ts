@@ -72,11 +72,26 @@ const validateParent = async (record: Record<string, unknown>): Promise<void> =>
     }
     cursor = await VocabularyEntry.findOne({ id: String(cursor.parent) }) as VocabularyEntryAttributes | null;
   }
+};
 
+const validateIdentifierUnique = async (record: Record<string, unknown>): Promise<void> => {
   const identifier = String(record.identifier ?? '').trim();
+
+  let recordVocabulary = record.vocabulary ? String(record.vocabulary) : '';
+  if (!recordVocabulary && record.id) {
+    const existing = await VocabularyEntry.findOne({ id: String(record.id) });
+    if (!existing) {
+      throw new Error('VocabularyEntry not found for parent validation');
+    }
+    if (existing.vocabulary) {
+      recordVocabulary = String(existing.vocabulary);
+    }
+  }
+
   if (!identifier || !recordVocabulary) {
     return;
   }
+  const recordId = record.id ? String(record.id) : '';
   const duplicate = await VocabularyEntry.findOne({ vocabulary: recordVocabulary, identifier }) as VocabularyEntryAttributes | null;
   if (duplicate && (!recordId || String(duplicate.id) !== recordId)) {
     throw new Error('VocabularyEntry.identifier must be unique within a vocabulary');
@@ -90,7 +105,8 @@ const beforeCreate = (record: Record<string, unknown>, cb: (err?: Error) => void
     cb(err as Error);
     return;
   }
-  validateParent(record)
+  validateIdentifierUnique(record)
+    .then(() => validateParent(record))
     .then(() => cb())
     .catch((err: Error) => cb(err));
 };
@@ -102,7 +118,8 @@ const beforeUpdate = (record: Record<string, unknown>, cb: (err?: Error) => void
     cb(err as Error);
     return;
   }
-  validateParent(record)
+  validateIdentifierUnique(record)
+    .then(() => validateParent(record))
     .then(() => cb())
     .catch((err: Error) => cb(err));
 };
