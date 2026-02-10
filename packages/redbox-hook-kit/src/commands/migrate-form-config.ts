@@ -1,8 +1,9 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
+import { ILogger } from '@researchdatabox/sails-ng-common';
 
-const migrationLogger = {
+const migrationLogger: ILogger = {
   silly: (...args: any[]) => console.debug(...args),
   verbose: (...args: any[]) => console.debug(...args),
   trace: (...args: any[]) => console.debug(...args),
