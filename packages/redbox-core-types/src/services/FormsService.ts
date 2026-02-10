@@ -127,12 +127,20 @@ export namespace Services {
         sails.log.verbose(`Preparing to create form...`);
         // TODO: assess the form config to see what should change
         const formConfig = sails.config.form.forms[formName] as Record<string, unknown>;
-        const formObj: FormConfigFrame = {
-          name: formName,
 
+        // TODO: Make the typing stronger here by removing the Record type here 
+        // once we remove the legacy forms config
+        const formObj: FormConfigFrame & Record<string, unknown> = {
+          name: formName,
+          fields: formConfig.fields,
+          workflowStep: workflowStep.id,
+          requiredFieldIndicator: formConfig.requiredFieldIndicator,
           type: typeof formConfig.type === 'string' ? formConfig.type : '',
           viewCssClasses: formConfig.viewCssClasses as FormConfigFrame['viewCssClasses'],
           editCssClasses: formConfig.editCssClasses as FormConfigFrame['editCssClasses'],
+          skipValidationOnSave: formConfig.skipValidationOnSave,
+          attachmentFields: formConfig.attachmentFields,
+          customAngularApp: formConfig.customAngularApp || null,
 
           // new fields
           domElementType: formConfig.domElementType as FormConfigFrame['domElementType'],
