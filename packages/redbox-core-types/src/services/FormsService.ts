@@ -22,7 +22,7 @@ import { mergeMap as flatMap, last, filter } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { FormModel } from '../model/storage/FormModel';
-import {createSchema} from 'genson-js';
+import { createSchema } from 'genson-js';
 import {
   ClientFormConfigVisitor,
   ConstructFormConfigVisitor,
@@ -127,18 +127,12 @@ export namespace Services {
         sails.log.verbose(`Preparing to create form...`);
         // TODO: assess the form config to see what should change
         const formConfig = sails.config.form.forms[formName] as Record<string, unknown>;
-        const formObj = {
+        const formObj: FormConfigFrame = {
           name: formName,
-          fields: (Array.isArray(formConfig.fields) ? formConfig.fields : []) as FormModel['fields'],
-          workflowStep: workflowStep.id,
+
           type: typeof formConfig.type === 'string' ? formConfig.type : '',
-          messages: (formConfig.messages && typeof formConfig.messages === 'object' ? formConfig.messages : {}) as FormModel['messages'],
           viewCssClasses: formConfig.viewCssClasses as FormConfigFrame['viewCssClasses'],
-          requiredFieldIndicator: typeof formConfig.requiredFieldIndicator === 'string' ? formConfig.requiredFieldIndicator : '',
           editCssClasses: formConfig.editCssClasses as FormConfigFrame['editCssClasses'],
-          skipValidationOnSave: Boolean(formConfig.skipValidationOnSave),
-          attachmentFields: formConfig.attachmentFields,
-          customAngularApp: (formConfig.customAngularApp as FormModel['customAngularApp']) ?? { appName: '', appSelector: '' },
 
           // new fields
           domElementType: formConfig.domElementType as FormConfigFrame['domElementType'],
@@ -148,9 +142,9 @@ export namespace Services {
           validators: formConfig.validators as FormConfigFrame['validators'],
           validationGroups: formConfig.validationGroups as FormConfigFrame['validationGroups'],
           defaultLayoutComponent: formConfig.defaultLayoutComponent as FormConfigFrame['defaultLayoutComponent'],
-          componentDefinitions: (formConfig.componentDefinitions ?? []) as FormConfigFrame['componentDefinitions'],
-          debugValue: formConfig.debugValue as FormConfigFrame['debugValue'],
-        } as FormModel & FormConfigFrame;
+          componentDefinitions: formConfig.componentDefinitions as FormConfigFrame['componentDefinitions'],
+          debugValue: formConfig.debugValue as FormConfigFrame['debugValue']
+        };
 
         result = await Form.create(formObj) as unknown as FormModel;
         this.logger.verbose("Created form record: ");
@@ -192,7 +186,7 @@ export namespace Services {
       // allow client to set the form name to use
       const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata?.form : formParam;
 
-      if(formName == 'generated-view-only') {
+      if (formName == 'generated-view-only') {
         return await this.generateFormFromSchema(branding, recordType, currentRec);
       } else {
 
@@ -244,9 +238,9 @@ export namespace Services {
 
     public async generateFormFromSchema(branding: BrandingModel, recordType: string, record: RecordLike): Promise<FormConfigFrame | Record<string, unknown>> {
 
-      if(recordType == '') {
-        recordType = _.get(record,'metaMetadata.type','');
-        if(recordType == '') {
+      if (recordType == '') {
+        recordType = _.get(record, 'metaMetadata.type', '');
+        if (recordType == '') {
           return {};
         }
       }
@@ -278,7 +272,7 @@ export namespace Services {
             name: 'confirmDelete',
             label: 'Delete this record',
             closeOnSave: true,
-            redirectLocation: '/@branding/@portal/dashboard/'+recordType,
+            redirectLocation: '/@branding/@portal/dashboard/' + recordType,
             cssClasses: 'btn-danger',
             confirmationMessage: '@dataPublication-confirmDelete',
             confirmationTitle: '@dataPublication-confirmDeleteTitle',
@@ -302,12 +296,12 @@ export namespace Services {
           subscribe: {
             'form': {
               onFormLoaded: [{
-              action: 'utilityService.runTemplate',
-              template: '',
-              includeFieldInFnCall: true
-            }]
+                action: 'utilityService.runTemplate',
+                template: '',
+                includeFieldInFnCall: true
+              }]
+            }
           }
-        }
         }
       };
 
@@ -329,7 +323,7 @@ export namespace Services {
           type: 'text',
           groupName: '',
           groupClasses: 'width-30',
-          cssClasses : "width-80 form-control"
+          cssClasses: "width-80 form-control"
         }
       };
 
@@ -359,7 +353,7 @@ export namespace Services {
       const fieldList = [
       ];
 
-      for(const fieldKey of fieldKeys) {
+      for (const fieldKey of fieldKeys) {
 
         const schemaProperty = (schema.properties?.[fieldKey] as {
           type?: string;
@@ -368,73 +362,73 @@ export namespace Services {
         }) ?? {};
 
         const schemaType = schemaProperty.type;
-        if(schemaType === 'string') {
+        if (schemaType === 'string') {
 
           const textField = _.cloneDeep(textFieldTemplate);
-          _.set(textField.definition,'name',fieldKey);
-          _.set(textField.definition,'label',fieldKey);
-          _.set(textField.definition,'subscribe.form.onFormLoaded[0].template','<%= _.trim(field.fieldMap["'+fieldKey+'"].field.value) == "" ? field.translationService.t("@lookup-record-field-empty") : field.fieldMap["'+fieldKey+'"].field.value %>');
+          _.set(textField.definition, 'name', fieldKey);
+          _.set(textField.definition, 'label', fieldKey);
+          _.set(textField.definition, 'subscribe.form.onFormLoaded[0].template', '<%= _.trim(field.fieldMap["' + fieldKey + '"].field.value) == "" ? field.translationService.t("@lookup-record-field-empty") : field.fieldMap["' + fieldKey + '"].field.value %>');
           fieldList.push(textField);
 
-        } if(schemaType === 'array') {
+        } if (schemaType === 'array') {
           const itemType = schemaProperty.items?.type;
-          if(itemType === 'string') {
+          if (itemType === 'string') {
 
             const textField = _.cloneDeep(textFieldTemplate);
-            _.set(textField.definition,'name',fieldKey);
-            _.set(textField.definition,'label',fieldKey);
-            _.set(textField.definition,'subscribe.form.onFormLoaded[0].template','<%= _.isEmpty(_.trim(field.fieldMap["'+fieldKey+'"].field.value)) ? [field.translationService.t("@lookup-record-field-empty")] : field.fieldMap["'+fieldKey+'"].field.value %>');
+            _.set(textField.definition, 'name', fieldKey);
+            _.set(textField.definition, 'label', fieldKey);
+            _.set(textField.definition, 'subscribe.form.onFormLoaded[0].template', '<%= _.isEmpty(_.trim(field.fieldMap["' + fieldKey + '"].field.value)) ? [field.translationService.t("@lookup-record-field-empty")] : field.fieldMap["' + fieldKey + '"].field.value %>');
             fieldList.push(textField);
 
-          } else if(itemType === 'object') {
+          } else if (itemType === 'object') {
 
             const objectFieldKeys = _.keys(schemaProperty.items?.properties ?? {});
             const repeatableGroupField = _.cloneDeep(repeatableGroupComponentTemplate);
             const groupField = _.cloneDeep(groupComponentTemplate);
             const groupFieldList = [];
 
-            for(const objectFieldKey of objectFieldKeys) {
+            for (const objectFieldKey of objectFieldKeys) {
               const innerProperty = schemaProperty.items?.properties?.[objectFieldKey];
-              if(innerProperty?.type === 'string') {
+              if (innerProperty?.type === 'string') {
                 const textField = _.cloneDeep(groupTextFieldTemplate);
-                _.set(textField.definition,'name',objectFieldKey);
-                _.set(textField.definition,'label',objectFieldKey);
-                _.set(textField.definition,'groupName','item');
+                _.set(textField.definition, 'name', objectFieldKey);
+                _.set(textField.definition, 'label', objectFieldKey);
+                _.set(textField.definition, 'groupName', 'item');
                 groupFieldList.push(textField);
               }
             }
 
-            _.set(groupField.definition,'name','item');
-            _.set(groupField.definition,'fields',groupFieldList);
-            _.set(repeatableGroupField.definition,'name',fieldKey);
-            _.set(repeatableGroupField.definition,'label',fieldKey);
-            _.set(repeatableGroupField.definition,'fields',[groupField]);
+            _.set(groupField.definition, 'name', 'item');
+            _.set(groupField.definition, 'fields', groupFieldList);
+            _.set(repeatableGroupField.definition, 'name', fieldKey);
+            _.set(repeatableGroupField.definition, 'label', fieldKey);
+            _.set(repeatableGroupField.definition, 'fields', [groupField]);
             fieldList.push(repeatableGroupField);
           }
 
-        } else if(schemaType === 'object') {
+        } else if (schemaType === 'object') {
 
           const objectFieldKeys = _.keys(schemaProperty.properties ?? {});
           const groupField = _.cloneDeep(groupComponentTemplate);
           const groupFieldList = [];
 
-          for(const objectFieldKey of objectFieldKeys) {
+          for (const objectFieldKey of objectFieldKeys) {
             const innerProperty = schemaProperty.properties?.[objectFieldKey];
-            if(innerProperty?.type === 'string') {
+            if (innerProperty?.type === 'string') {
               const textField = _.cloneDeep(groupTextFieldTemplate);
-              _.set(textField.definition,'name',objectFieldKey);
-              _.set(textField.definition,'label',objectFieldKey);
-              _.set(textField.definition,'groupName',fieldKey);
+              _.set(textField.definition, 'name', objectFieldKey);
+              _.set(textField.definition, 'label', objectFieldKey);
+              _.set(textField.definition, 'groupName', fieldKey);
               groupFieldList.push(textField);
             }
           }
 
-          const objectFieldHeading =  _.cloneDeep(objectFieldHeadingTemplate);
+          const objectFieldHeading = _.cloneDeep(objectFieldHeadingTemplate);
           _.set(objectFieldHeading.definition, 'value', fieldKey);
           fieldList.push(objectFieldHeading);
 
-          _.set(groupField.definition,'name',fieldKey);
-          _.set(groupField.definition,'fields',groupFieldList);
+          _.set(groupField.definition, 'name', fieldKey);
+          _.set(groupField.definition, 'fields', groupFieldList);
           fieldList.push(groupField);
         }
       }
@@ -466,26 +460,26 @@ export namespace Services {
             }
           },
           {
-          class: 'TabOrAccordionContainer',
-          compClass: 'TabOrAccordionContainerComponent',
-          definition: {
-            id: 'mainTab',
-            accContainerClass: 'view-accordion',
-            expandAccordionsOnOpen: true,
-            fields: [
-              {
-                class: 'Container',
-                editOnly: true,
-                definition: {
-                  id: 'main',
-                  label: '@lookup-record-details-'+recordType,
-                  active: true,
-                  fields: fieldList
+            class: 'TabOrAccordionContainer',
+            compClass: 'TabOrAccordionContainerComponent',
+            definition: {
+              id: 'mainTab',
+              accContainerClass: 'view-accordion',
+              expandAccordionsOnOpen: true,
+              fields: [
+                {
+                  class: 'Container',
+                  editOnly: true,
+                  definition: {
+                    id: 'main',
+                    label: '@lookup-record-details-' + recordType,
+                    active: true,
+                    fields: fieldList
+                  }
                 }
-              }
-            ]
-          }
-        }]
+              ]
+            }
+          }]
       };
 
       form = formObject as FormConfigFrame;
@@ -493,7 +487,7 @@ export namespace Services {
       return form;
     }
 
-    protected setFormEditMode(_fields: FormFieldLike[], _editMode: boolean): void{
+    protected setFormEditMode(_fields: FormFieldLike[], _editMode: boolean): void {
       // TODO: Form is processed differently now, see buildClientFormConfig
       // _.remove(fields, field => {
       //   if (editMode) {
@@ -548,10 +542,10 @@ export namespace Services {
       reusableFormDefs?: ReusableFormDefinitions
     ): FormConfigOutline {
       const constructor = new ConstructFormConfigVisitor(this.logger);
-      const constructed = constructor.start({data: item, reusableFormDefs, formMode, record: recordMetadata});
+      const constructed = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
-      const result = visitor.start({form: constructed, formMode, userRoles});
+      const result = visitor.start({ form: constructed, formMode, userRoles });
       if (!result) {
         throw new Error(`The form config is invalid because all form fields were removed, ` +
           `the form config must have at least one field the current user can view: ${JSON.stringify({
