@@ -17,9 +17,14 @@ export class AdminVocabularyComponent extends BaseComponent {
   importStatusMessage = '';
   importStatusVariant: '' | 'info' | 'success' | 'danger' = '';
   isImportInProgress = false;
+  syncStatusMessage = '';
+  syncStatusVariant: '' | 'info' | 'success' | 'warning' | 'danger' = '';
+  isSyncInProgress = false;
+  isSyncConfirmationOpen = false;
   isEditModalOpen = false;
   isImportModalOpen = false;
   private editModalTrigger: HTMLElement | null = null;
+  private syncStatusTimer: ReturnType<typeof setTimeout> | null = null;
 
   draft: VocabularyDetail = {
     name: '',
@@ -54,7 +59,7 @@ export class AdminVocabularyComponent extends BaseComponent {
   }
 
   get canSyncSelected(): boolean {
-    return this.isEditModalOpen && !!this.selectedVocabulary?.id && this.draft.source === 'rva';
+    return this.isEditModalOpen && !!this.selectedVocabulary?.id && this.draft.source === 'rva' && !this.isSyncInProgress && !this.isSyncConfirmationOpen;
   }
 
   protected override async initComponent(): Promise<void> {
@@ -83,6 +88,9 @@ export class AdminVocabularyComponent extends BaseComponent {
         ...result.vocabulary,
         entries: flattenedEntries
       };
+      this.clearSyncStatus();
+      this.isSyncInProgress = false;
+      this.isSyncConfirmationOpen = false;
       this.isEditModalOpen = true;
       this.isImportModalOpen = false;
     } catch (err) {
@@ -104,6 +112,9 @@ export class AdminVocabularyComponent extends BaseComponent {
       source: 'local',
       entries: []
     };
+    this.clearSyncStatus();
+    this.isSyncInProgress = false;
+    this.isSyncConfirmationOpen = false;
     this.isEditModalOpen = true;
     this.isImportModalOpen = false;
   }
@@ -209,18 +220,52 @@ export class AdminVocabularyComponent extends BaseComponent {
   async syncSelected(): Promise<void> {
     this.message = '';
     this.error = '';
+    if (!this.selectedVocabulary?.id) {
+      this.error = 'No vocabulary selected';
+      return;
+    }
+
+    this.isSyncConfirmationOpen = true;
+    this.clearSyncStatusTimer();
+    this.syncStatusMessage = 'Syncing will replace local changes for this vocabulary.';
+    this.syncStatusVariant = 'warning';
+  }
+
+  cancelSyncConfirmation(): void {
+    if (this.isSyncInProgress) {
+      return;
+    }
+    this.isSyncConfirmationOpen = false;
+    this.clearSyncStatus();
+  }
+
+  async confirmSyncSelected(): Promise<void> {
+    this.message = '';
+    this.error = '';
     try {
       if (!this.selectedVocabulary?.id) {
         this.error = 'No vocabulary selected';
         return;
       }
+      this.isSyncConfirmationOpen = false;
+      this.isSyncInProgress = true;
+      this.clearSyncStatusTimer();
+      this.syncStatusMessage = 'Sync in progress...';
+      this.syncStatusVariant = 'info';
       const result = await this.vocabularyApi.sync(this.selectedVocabulary.id);
       this.message = `Sync complete (created=${result.created}, updated=${result.updated}, skipped=${result.skipped})`;
       await this.openVocabulary(this.selectedVocabulary.id);
       await this.refresh();
+      this.syncStatusMessage = 'Sync completed successfully.';
+      this.syncStatusVariant = 'success';
+      this.scheduleSyncStatusClear();
     } catch (err) {
       this.error = `Failed to sync vocabulary: ${this.asErrorMessage(err)}`;
+      this.syncStatusMessage = this.error;
+      this.syncStatusVariant = 'danger';
       this.logger.error(this.error);
+    } finally {
+      this.isSyncInProgress = false;
     }
   }
 
@@ -291,6 +336,28 @@ export class AdminVocabularyComponent extends BaseComponent {
     const target = this.editModalTrigger;
     this.editModalTrigger = null;
     setTimeout(() => target.focus(), 0);
+  }
+
+  private clearSyncStatus(): void {
+    this.clearSyncStatusTimer();
+    this.syncStatusMessage = '';
+    this.syncStatusVariant = '';
+  }
+
+  private clearSyncStatusTimer(): void {
+    if (this.syncStatusTimer) {
+      clearTimeout(this.syncStatusTimer);
+      this.syncStatusTimer = null;
+    }
+  }
+
+  private scheduleSyncStatusClear(delayMs: number = 5000): void {
+    this.clearSyncStatusTimer();
+    this.syncStatusTimer = setTimeout(() => {
+      this.syncStatusMessage = '';
+      this.syncStatusVariant = '';
+      this.syncStatusTimer = null;
+    }, delayMs);
   }
 
 }

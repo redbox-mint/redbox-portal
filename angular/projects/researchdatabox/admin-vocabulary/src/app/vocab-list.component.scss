@@ -1,3 +1,29 @@
+.vocab-panel-card {
+  background-color: #fff;
+  border-color: #d6dbe1;
+}
+
+.vocab-panel-card .panel-heading .text-muted {
+  color: inherit !important;
+  opacity: 0.9;
+}
+
+.vocab-filters {
+  margin-bottom: 1rem;
+}
+
+.vocab-filters label {
+  margin-top: 0;
+}
+
+.vocab-filters .form-control-sm {
+  height: calc(1.5em + 0.5rem + 2px);
+}
+
+.vocab-filters .btn-group .btn-light {
+  border-color: #ced4da;
+}
+
 .vocab-table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -11,6 +37,27 @@
   min-width: 920px;
   border-collapse: collapse;
   border-spacing: 0;
+  table-layout: fixed;
+}
+
+.vocab-data-table .vocab-col-name {
+  width: 42%;
+}
+
+.vocab-data-table .vocab-col-slug {
+  width: 29%;
+}
+
+.vocab-data-table .vocab-col-type {
+  width: 10%;
+}
+
+.vocab-data-table .vocab-col-source {
+  width: 8%;
+}
+
+.vocab-data-table .vocab-col-actions {
+  width: 170px;
 }
 
 .vocab-data-table thead {
@@ -48,4 +95,8 @@
 
 .vocab-data-table .btn {
   vertical-align: middle;
+}
+
+.vocab-data-table .action-button + .action-button {
+  margin-left: 0.5rem;
 }

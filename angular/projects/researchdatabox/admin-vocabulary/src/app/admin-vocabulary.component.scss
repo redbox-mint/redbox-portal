@@ -14,3 +14,7 @@
 .badge-light {
   border: 1px solid #d4d9de;
 }
+
+.vocab-action-button + .vocab-action-button {
+  margin-left: 0.5rem;
+}

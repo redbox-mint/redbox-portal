@@ -310,6 +310,8 @@ export namespace Services {
       let created = 0;
       let updated = 0;
       let skipped = 0;
+      const inputIdToEntryId: Record<string, string> = {};
+      const parentAssignments: Array<{ entryId: string; parent: string | null }> = [];
 
       for (const rawEntry of entries) {
         const entry = this.normalizeEntry(rawEntry);
@@ -329,30 +331,45 @@ export namespace Services {
         }
 
         if (!existing) {
-          await this.validateParent(vocabularyId, null, entry.parent ?? null, connection);
           const createQuery = VocabularyEntry.create({
             vocabulary: vocabularyId,
             label: entry.label,
             value: entry.value,
             identifier: entry.identifier,
-            parent: entry.parent ?? undefined,
             order: entry.order ?? 0
           });
-          await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
+          const createdEntry = await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
+          const createdEntryId = String(createdEntry.id);
+          if (entry.id) {
+            inputIdToEntryId[String(entry.id)] = createdEntryId;
+          }
+          parentAssignments.push({ entryId: createdEntryId, parent: entry.parent ?? null });
           created++;
           continue;
         }
 
-        await this.validateParent(vocabularyId, String(existing.id), entry.parent ?? null, connection);
+        const existingEntryId = String(existing.id);
+        if (entry.id) {
+          inputIdToEntryId[String(entry.id)] = existingEntryId;
+        }
+        parentAssignments.push({ entryId: existingEntryId, parent: entry.parent ?? null });
         const updateQuery = VocabularyEntry.updateOne({ id: existing.id }).set({
           label: entry.label,
           value: entry.value,
           identifier: entry.identifier,
-          parent: entry.parent ?? undefined,
           order: entry.order ?? existing.order ?? 0
         }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
         await this.executeQuery(updateQuery, connection);
         updated++;
+      }
+
+      for (const assignment of parentAssignments) {
+        const parentCandidate = assignment.parent ? inputIdToEntryId[assignment.parent] ?? assignment.parent : null;
+        await this.validateParent(vocabularyId, assignment.entryId, parentCandidate, connection);
+        const parentUpdateQuery = VocabularyEntry.updateOne({ id: assignment.entryId }).set({
+          parent: parentCandidate ?? null
+        }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+        await this.executeQuery(parentUpdateQuery, connection);
       }
 
       return { created, updated, skipped };

@@ -118,4 +118,36 @@ describe('VocabularyService', () => {
     expect(tree).to.have.length(1);
     expect(tree[0].children).to.have.length(1);
   });
+
+  it('upserts entries with synthetic parent ids by remapping parents after create', async () => {
+    const updateSetStub = sinon.stub().resolves({ id: 'ok' });
+    const updateOneStub = sinon.stub().callsFake(() => ({ set: updateSetStub }));
+    g.VocabularyEntry.updateOne = updateOneStub as unknown as VocabularyEntryModelStub['updateOne'];
+
+    const createFetchParent = sinon.stub().resolves({ id: 'db-parent' });
+    const createFetchChild = sinon.stub().resolves({ id: 'db-child' });
+    g.VocabularyEntry.create = sinon.stub()
+      .onFirstCall().returns({ fetch: createFetchParent })
+      .onSecondCall().returns({ fetch: createFetchChild }) as unknown as VocabularyEntryModelStub['create'];
+
+    g.VocabularyEntry.findOne = sinon.stub().callsFake(async (criteria: Record<string, unknown>) => {
+      if (criteria.id === 'db-parent') {
+        return { id: 'db-parent', vocabulary: 'v1', parent: null };
+      }
+      if (criteria.id === 'db-child') {
+        return { id: 'db-child', vocabulary: 'v1', parent: 'db-parent' };
+      }
+      return null;
+    }) as unknown as VocabularyEntryModelStub['findOne'];
+
+    const result = await service.upsertEntries('v1', [
+      { id: 'root-0', label: 'Parent', value: 'parent', identifier: 'p', order: 0 },
+      { id: 'root-0-0', parent: 'root-0', label: 'Child', value: 'child', identifier: 'c', order: 1 }
+    ]);
+
+    expect(result.created).to.equal(2);
+    expect(result.updated).to.equal(0);
+    const setPayloads = updateSetStub.getCalls().map((call) => call.args[0]);
+    expect(setPayloads.some((payload) => payload?.parent === 'db-parent')).to.equal(true);
+  });
 });

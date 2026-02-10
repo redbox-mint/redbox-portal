@@ -143,4 +143,119 @@ describe('AdminVocabularyComponent', () => {
     expect(component.draft.entries?.[1].id).toBe('child');
     expect(component.draft.entries?.[1].parent).toBe('parent');
   });
+
+  it('opens sync confirmation without syncing immediately', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(VocabularyApiService);
+
+    component.isEditModalOpen = true;
+    component.selectedVocabulary = { id: 'v1', name: 'RVA', type: 'tree', source: 'rva' };
+    component.draft = { ...component.selectedVocabulary, entries: [] };
+    const syncSpy = spyOn(api, 'sync').and.callThrough();
+
+    await component.syncSelected();
+
+    expect(syncSpy).not.toHaveBeenCalled();
+    expect(component.isSyncConfirmationOpen).toBeTrue();
+    expect(component.syncStatusVariant).toBe('warning');
+    expect(component.syncStatusMessage).toContain('replace local changes');
+    expect(component.isSyncInProgress).toBeFalse();
+  });
+
+  it('cancels pending sync confirmation', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+
+    component.isEditModalOpen = true;
+    component.selectedVocabulary = { id: 'v1', name: 'RVA', type: 'tree', source: 'rva' };
+    component.draft = { ...component.selectedVocabulary, entries: [] };
+
+    await component.syncSelected();
+    component.cancelSyncConfirmation();
+
+    expect(component.isSyncConfirmationOpen).toBeFalse();
+    expect(component.syncStatusMessage).toBe('');
+    expect(component.syncStatusVariant).toBe('');
+  });
+
+  it('shows sync in-progress and completion state when syncing confirmed vocabulary', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(VocabularyApiService);
+
+    component.isEditModalOpen = true;
+    component.selectedVocabulary = { id: 'v1', name: 'RVA', type: 'tree', source: 'rva' };
+    component.draft = { ...component.selectedVocabulary, entries: [] };
+
+    spyOn(api, 'list').and.resolveTo([]);
+    spyOn(api, 'get').and.resolveTo({
+      vocabulary: { id: 'v1', name: 'RVA', type: 'tree', source: 'rva' },
+      entries: []
+    });
+
+    let resolveSync: ((value: { created: number; updated: number; skipped: number; lastSyncedAt: string }) => void) | undefined;
+    const pendingSync = new Promise<{ created: number; updated: number; skipped: number; lastSyncedAt: string }>((resolve) => {
+      resolveSync = resolve;
+    });
+    spyOn(api, 'sync').and.returnValue(pendingSync);
+
+    await component.syncSelected();
+    const syncPromise = component.confirmSyncSelected();
+
+    expect(component.isSyncInProgress).toBeTrue();
+    expect(component.isSyncConfirmationOpen).toBeFalse();
+    expect(component.syncStatusVariant).toBe('info');
+    expect(component.syncStatusMessage).toBe('Sync in progress...');
+
+    if (!resolveSync) {
+      fail('resolveSync callback not set');
+      return;
+    }
+    resolveSync({ created: 1, updated: 2, skipped: 0, lastSyncedAt: new Date().toISOString() });
+    await syncPromise;
+
+    expect(component.isSyncInProgress).toBeFalse();
+    expect(component.syncStatusVariant).toBe('success');
+    expect(component.syncStatusMessage).toBe('Sync completed successfully.');
+  });
+
+  it('auto-clears sync success status after a short delay', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(VocabularyApiService);
+
+    component.isEditModalOpen = true;
+    component.selectedVocabulary = { id: 'v1', name: 'RVA', type: 'tree', source: 'rva' };
+    component.draft = { ...component.selectedVocabulary, entries: [] };
+
+    spyOn(api, 'list').and.resolveTo([]);
+    spyOn(api, 'get').and.resolveTo({
+      vocabulary: { id: 'v1', name: 'RVA', type: 'tree', source: 'rva' },
+      entries: []
+    });
+    spyOn(api, 'sync').and.resolveTo({ created: 1, updated: 0, skipped: 0, lastSyncedAt: new Date().toISOString() });
+
+    let timeoutCallback: (() => void) | undefined;
+    spyOn(globalThis, 'setTimeout').and.callFake((callback: TimerHandler) => {
+      timeoutCallback = callback as () => void;
+      return 1 as unknown as number;
+    });
+
+    await component.syncSelected();
+    await component.confirmSyncSelected();
+
+    expect(component.syncStatusVariant).toBe('success');
+    expect(component.syncStatusMessage).toBe('Sync completed successfully.');
+    expect(timeoutCallback).toBeDefined();
+
+    if (!timeoutCallback) {
+      fail('timeoutCallback not set');
+      return;
+    }
+    timeoutCallback();
+
+    expect(component.syncStatusMessage).toBe('');
+    expect(component.syncStatusVariant).toBe('');
+  });
 });
