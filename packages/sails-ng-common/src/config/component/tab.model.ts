@@ -1,6 +1,6 @@
 import {
     FieldComponentConfigKind, FieldComponentDefinitionKind, FieldLayoutConfigKind, FieldLayoutDefinitionKind,
-    FormComponentDefinitionKind
+    FormComponentDefinitionKind, KeyValueStringProperty
 } from "../shared.outline";
 import {
     ButtonSectionAriaOrientationOptionsType,
@@ -19,6 +19,7 @@ import {TabContentFormComponentDefinitionOutline} from "./tab-content.outline";
 
 export class TabFieldComponentConfig extends FieldComponentConfig implements TabFieldComponentConfigOutline {
     tabs: TabContentFormComponentDefinitionOutline[];
+    hostCssClasses = 'tab-content';
 
     constructor() {
         super();
@@ -44,9 +45,10 @@ export class TabFieldComponentDefinition extends FieldComponentDefinition implem
 
 
 export class TabFieldLayoutConfig extends FieldLayoutConfig implements TabFieldLayoutConfigOutline {
-    buttonSectionCssClass?: string;
-    tabPaneCssClass?: string;
-    tabPaneActiveCssClass?: string;
+    hostCssClasses?: KeyValueStringProperty = 'd-flex align-items-start';
+    buttonSectionCssClass?: string = 'nav flex-column nav-pills me-5';
+    tabPaneCssClass?: string = 'tab-pane fade';
+    tabPaneActiveCssClass?: string = 'active show';
     buttonSectionAriaOrientation?: ButtonSectionAriaOrientationOptionsType = 'vertical';
 
     constructor() {

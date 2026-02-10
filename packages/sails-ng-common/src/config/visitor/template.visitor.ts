@@ -314,7 +314,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     }
 
     protected extractExpressions(expressions?: FormExpressionsConfigFrame[]): void {
-        this.logger.debug(`TemplateFormConfigVisitor: Extracting expressions...`);
+        const extracted: string[] = [];
         (expressions ?? []).forEach((expression, index) => {
             for (const prop of ['template', 'condition'] as const) {
                 const value = (expression.config as any)?.[prop];
@@ -329,9 +329,13 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
                         value: value,
                         kind: "jsonata"
                     });
+                    extracted.push(`${index}-${expression.name}`);
                 }
             }
         });
+        if (extracted.length > 0) {
+            this.logger.debug(`${this.logName}: Extracted ${extracted.length} expressions ${extracted.join(', ')}.`);
+        }
     }
 
 

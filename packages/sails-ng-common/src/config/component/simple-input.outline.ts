@@ -24,7 +24,7 @@ import {
 export const SimpleInputComponentName = "SimpleInputComponent" as const;
 export type SimpleInputComponentNameType = typeof SimpleInputComponentName;
 
-export const SimpleInputFieldComponentConfigTypeNames = ["email", "text", "tel", "number", "password", "url"] as const;
+export const SimpleInputFieldComponentConfigTypeNames = ["email", "text", "tel", "number", "password", "url", "hidden"] as const;
 export type SimpleInputFieldComponentConfigType = typeof SimpleInputFieldComponentConfigTypeNames[number];
 
 export interface SimpleInputFieldComponentConfigFrame extends FieldComponentConfigFrame {

@@ -1,12 +1,13 @@
 import {
-    FieldComponentConfigFrame, FieldComponentDefinitionFrame,
+    FieldComponentConfigFrame, FieldComponentConfigOutline, FieldComponentDefinitionFrame,
+    FieldComponentDefinitionOutline,
 } from "../field-component.outline";
-import {FormComponentDefinitionFrame} from "../form-component.outline";
-import {AvailableFormComponentDefinitionFrames} from "../dictionary.outline";
+import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
+import {AvailableFormComponentDefinitionFrames, AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
 import {
-    FieldComponentConfigFrameKindType,
-    FieldComponentDefinitionFrameKindType,
-    FormComponentDefinitionFrameKindType,
+    FieldComponentConfigFrameKindType, FieldComponentConfigKindType,
+    FieldComponentDefinitionFrameKindType, FieldComponentDefinitionKindType,
+    FormComponentDefinitionFrameKindType, FormComponentDefinitionKindType,
 } from "../shared.outline";
 
 /* Reusable Component */
@@ -18,12 +19,19 @@ export interface ReusableFieldComponentConfigFrame extends FieldComponentConfigF
     componentDefinitions: AvailableFormComponentDefinitionFrames[];
 }
 
+export interface ReusableFieldComponentConfigOutline extends ReusableFieldComponentConfigFrame, FieldComponentConfigOutline {
+    componentDefinitions: AvailableFormComponentDefinitionOutlines[];
+}
 
 export interface ReusableFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
     class: ReusableComponentNameType;
     config?: ReusableFieldComponentConfigFrame;
 }
 
+export interface ReusableFieldComponentDefinitionOutline extends ReusableFieldComponentDefinitionFrame, FieldComponentDefinitionOutline {
+    class: ReusableComponentNameType;
+    config?: ReusableFieldComponentConfigOutline;
+}
 
 /* Reusable Form Component */
 
@@ -33,9 +41,17 @@ export interface ReusableFormComponentDefinitionFrame extends FormComponentDefin
     layout?: never;
 }
 
+export interface ReusableFormComponentDefinitionOutline extends ReusableFormComponentDefinitionFrame, FormComponentDefinitionOutline {
+    component: ReusableFieldComponentDefinitionOutline;
+    model?: never;
+    layout?: never;
+}
 
 export type ReusableTypes =
-    | { kind: FieldComponentConfigFrameKindType, class: ReusableFieldComponentConfigFrame }
+    { kind: FieldComponentConfigFrameKindType, class: ReusableFieldComponentConfigFrame }
     | { kind: FieldComponentDefinitionFrameKindType, class: ReusableFieldComponentDefinitionFrame }
     | { kind: FormComponentDefinitionFrameKindType, class: ReusableFormComponentDefinitionFrame }
+    | { kind: FieldComponentConfigKindType, class: ReusableFieldComponentConfigOutline }
+    | { kind: FieldComponentDefinitionKindType, class: ReusableFieldComponentDefinitionOutline }
+    | { kind: FormComponentDefinitionKindType, class: ReusableFormComponentDefinitionOutline }
     ;

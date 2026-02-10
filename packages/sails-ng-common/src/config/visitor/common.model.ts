@@ -6,14 +6,14 @@ import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../f
 import {CanVisit, FormConfigVisitorOutline} from "./base.outline";
 import {FormConstraintAuthorizationConfig, FormConstraintConfig} from "../form-component.model";
 import {
-    ComponentClassDefMapType,
+    VisitorComponentClassDefMapType,
     FieldComponentDefinitionMap,
     FieldLayoutDefinitionMap,
     FieldModelDefinitionMap,
-    FormComponentClassDefMapType,
+    VisitorFormComponentClassDefMapType,
     FormComponentDefinitionMap, KindNameDefaultsMap, KindNameDefaultsMapType,
-    LayoutClassDefMapType,
-    ModelClassDefMapType,
+    VisitorLayoutClassDefMapType,
+    VisitorModelClassDefMapType,
 } from "../dictionary.model";
 import {
     buildLineagePaths,
@@ -25,10 +25,10 @@ import {AllFormComponentDefinitionOutlines} from "../dictionary.outline";
 import {FieldLayoutDefinitionKind, FieldModelDefinitionKind, FormComponentDefinitionKind} from "../shared.outline";
 
 export class PropertiesHelper {
-    private fieldComponentMap: ComponentClassDefMapType;
-    private fieldModelMap: ModelClassDefMapType;
-    private fieldLayoutMap: LayoutClassDefMapType;
-    private formComponentMap: FormComponentClassDefMapType;
+    private fieldComponentMap: VisitorComponentClassDefMapType;
+    private fieldModelMap: VisitorModelClassDefMapType;
+    private fieldLayoutMap: VisitorLayoutClassDefMapType;
+    private formComponentMap: VisitorFormComponentClassDefMapType;
     private kindNameDefaultsMap: KindNameDefaultsMapType;
 
     constructor() {
@@ -263,13 +263,15 @@ export class FormPathHelper {
      * @param more The lineage paths to add to the end of the current paths.
      */
     public acceptFormPath(item: CanVisit, more?: LineagePathsPartial): void {
+        if (!item) {
+            throw new Error(`${this.logName}: acceptFormPath requires an item: ${JSON.stringify(item)}`);
+        }
         // Copy the original lineage paths so they can be restored.
         const original = buildLineagePaths(this._formPath);
         try {
             this._formPath = buildLineagePaths(original, more);
             item.accept(this.visitor);
         } catch (error) {
-            // Rethrow error - the finally block will ensure the original is restored.
             throw error;
         } finally {
             this._formPath = original;
@@ -325,6 +327,14 @@ export class FormPathHelper {
     public lineagePathsForRepeatableFieldComponentDefinition(item: FormComponentDefinitionOutline): LineagePathsPartial {
         return {
             formConfig: ["config", "elementTemplate"],
+            dataModel: this.getFormPathDataModel(item),
+            angularComponents: this.getFormPathAngularComponents(item),
+        };
+    }
+
+    public lineagePathsForReusableFieldComponentDefinition(item: FormComponentDefinitionOutline, index: number): LineagePathsPartial {
+        return {
+            formConfig: ["config", "componentDefinitions", index.toString()],
             dataModel: this.getFormPathDataModel(item),
             angularComponents: this.getFormPathAngularComponents(item),
         };
