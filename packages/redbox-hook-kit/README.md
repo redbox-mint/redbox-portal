@@ -156,6 +156,16 @@ npx @researchdatabox/redbox-hook-kit install-skills -a claude-code --skill 'redb
 
 For advanced options, see the `vercel-labs/skills` documentation: https://github.com/vercel-labs/skills
 
+### `migrate-form-config`
+
+Migrate a legacy v4 JavaScript form config to the v5 TypeScript form framework format.
+
+```bash
+npx @researchdatabox/redbox-hook-kit migrate-form-config \
+  --input /path/to/legacy-form.js \
+  --output /path/to/migrated-form.ts
+```
+
 ### `help`
 
 Show CLI help and usage information.
