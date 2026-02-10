@@ -2,6 +2,7 @@ import { RoleModel } from "./RoleModel"
 import { WorkspaceAppModel } from "./WorkspaceAppModel"
 
 export class UserModel {
+    [key: string]: unknown;
     id: string = ''
     username: string = ''
     password?: string
@@ -10,8 +11,7 @@ export class UserModel {
     email: string = ''
     token?: string
     lastLogin: Date = new Date()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    additionalAttributes: any = {};
+    additionalAttributes: Record<string, unknown> = {};
     workspaceApps: WorkspaceAppModel[] = [];
     roles: RoleModel[] = [];
 }

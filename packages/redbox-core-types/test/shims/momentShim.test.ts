@@ -49,7 +49,7 @@ describe('momentShim', () => {
             const result = momentShim();
             expect(result.format()).to.be.a('string');
             // Result should be valid ISO format
-            const dt = DateTime.fromISO(result.format());
+            const dt = DateTime.fromISO(result.format()!);
             expect(dt.isValid).to.be.true;
         });
 
@@ -99,7 +99,7 @@ describe('momentShim', () => {
             const result = momentShim(testDate);
             const formatted = result.format('L');
             expect(formatted).to.be.a('string');
-            expect(formatted.length).to.be.greaterThan(0);
+            expect(formatted!.length).to.be.greaterThan(0);
         });
     });
 });

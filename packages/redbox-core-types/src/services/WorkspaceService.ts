@@ -3,7 +3,7 @@ import { Services as services } from '../CoreService';
 import axios, { AxiosResponse } from 'axios';
 
 
-export module Services {
+export namespace Services {
 
   export class WorkspaceService extends services.Core.Service {
 
@@ -11,7 +11,6 @@ export module Services {
       'createWorkspaceRecord',
       'getRecordMeta',
       'updateRecordMeta',
-      'registerUserApp',
       'userInfo',
       'provisionerUser',
       'infoFormUserId',
@@ -75,11 +74,11 @@ export module Services {
      * @param  targetRecord
      * @return list of workspaces
      */
-    public async getWorkspaces(targetRecordOid: string, targetRecord: any = undefined) {
+    public async getWorkspaces(targetRecordOid: string, targetRecord: unknown = undefined) {
       if (_.isUndefined(targetRecord)) {
         targetRecord = await RecordsService.getMeta(targetRecordOid);
       }
-      const workspaces: any[] = [];
+      const workspaces: unknown[] = [];
       for (const workspaceInfo of (_.get(targetRecord, 'metadata.workspaces', []) as Array<{ id: string }>)) {
         workspaces.push(await RecordsService.getMeta(workspaceInfo.id));
       }

@@ -1,10 +1,9 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, HasMany, BeforeCreate, AfterCreate, AfterUpdate, toWaterlineModelDef } from '../decorators';
 
-declare const sails: any;
-declare const UsersService: any;
-declare const _: any;
+declare const sails: Sails.Application;
+declare const UsersService: { findAndAssignAccessToRecords: (email: string, username: string) => void };
+declare const _: typeof import('lodash');
 
 const customToJSON = function customToJSON(this: Record<string, unknown>) {
   const obj: Record<string, unknown> = {};
@@ -22,10 +21,10 @@ const customToJSON = function customToJSON(this: Record<string, unknown>) {
   return obj;
 };
 
-const assignAccessToPendingRecords = function assignAccessToPendingRecords(user: Record<string, any>) {
+const assignAccessToPendingRecords = function assignAccessToPendingRecords(user: Record<string, unknown>) {
   try {
     if (user.email != null && user.name !== 'Local Admin') {
-      UsersService.findAndAssignAccessToRecords(user.email, user.username);
+      UsersService.findAndAssignAccessToRecords(user.email as string, user.username as string);
     }
   } catch (error) {
     if (typeof sails !== 'undefined' && sails.log && typeof sails.log.error === 'function') {
@@ -35,11 +34,11 @@ const assignAccessToPendingRecords = function assignAccessToPendingRecords(user:
   }
 };
 
-const hashPassword = (user: Record<string, any>, cb: (err?: Error) => void) => {
+const hashPassword = (user: Record<string, unknown>, cb: (err?: Error) => void) => {
   if (!user.password) {
     return cb();
   }
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   const bcryptLib = require('bcryptjs');
   bcryptLib.genSalt(10, (err: Error | null, salt: string) => {
     if (err) {
@@ -57,8 +56,8 @@ const hashPassword = (user: Record<string, any>, cb: (err?: Error) => void) => {
   });
 };
 
-const handleAfterMutation = (user: Record<string, any>, cb: (err?: Error) => void) => {
-  const userModel = typeof globalThis !== 'undefined' ? (globalThis as any).User : undefined;
+const handleAfterMutation = (user: Record<string, unknown>, cb: (err?: Error) => void) => {
+  const userModel = typeof globalThis !== 'undefined' ? (globalThis as Record<string, unknown>).User as Record<string, unknown> | undefined : undefined;
   if (userModel && typeof userModel.assignAccessToPendingRecords === 'function') {
     userModel.assignAccessToPendingRecords(user);
   }
@@ -133,5 +132,5 @@ export interface UserWaterlineModel extends Sails.Model<UserAttributes> {
 }
 
 declare global {
-  var User: UserWaterlineModel;
+  const User: UserWaterlineModel;
 }

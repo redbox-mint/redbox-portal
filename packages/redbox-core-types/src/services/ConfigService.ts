@@ -24,7 +24,7 @@ import * as fs from 'fs-extra';
 import { resolve, basename } from 'path';
 import * as _ from 'lodash';
 
-export module Services {
+export namespace Services {
   /**
    * Dynamic Configuration related functions...
    *
@@ -79,15 +79,15 @@ export module Services {
       dontMergeFields: Array<string | Record<string, unknown>> = ["fields"]
     ) {
       const that = this;
-      var hook_root_dir = `${sails.config.appPath}/node_modules/${hookName}`;
-      var appPath = sails.config.appPath;
+      let hook_root_dir = `${sails.config.appPath}/node_modules/${hookName}`;
+      let appPath = sails.config.appPath;
       // check if the app path was launched from the hook directory, e.g. when launching tests.
       if (!fs.pathExistsSync(hook_root_dir) && _.endsWith(sails.config.appPath, hookName)) {
         hook_root_dir = sails.config.appPath;
         appPath = appPath.substring(0, appPath.lastIndexOf(`/node_modules/${hookName}`));
       }
       const hook_log_header = hookName;
-      let origDontMerge = _.clone(dontMergeFields);
+      const origDontMerge = _.clone(dontMergeFields);
       const concatArrsFn = function (objValue: unknown, srcValue: unknown, key: string): unknown {
         const dontMergeIndex = _.findIndex(dontMergeFields, (o: string | Record<string, unknown>) => {
           return _.isString(o) ? _.isEqual(o, key) : !_.isEmpty(o[key]);
@@ -110,11 +110,11 @@ export module Services {
         branded_app_config_dir = `${hook_root_dir}/${branded_app_config_dir}`;
         sails.log.verbose(`${hook_log_header}::Looking at: ${branded_app_config_dir}`);
         if (fs.pathExistsSync(branded_app_config_dir)) {
-          var dirs = fs.readdirSync(branded_app_config_dir);
+          const dirs = fs.readdirSync(branded_app_config_dir);
           _.each(dirs, (dir: string) => {
             const fullPath = resolve(branded_app_config_dir, dir);
             if (fs.statSync(fullPath).isDirectory()) {
-              let brandName = basename(fullPath)
+              const brandName = basename(fullPath)
 
               // init-only directory will only create config entries. Intended for initialising config in a new environment that's managed either via API or screens once live.
               const initFiles = this.walkDirSync(`${fullPath}/init-only`, []);
@@ -122,7 +122,7 @@ export module Services {
               sails.log.verbose(initFiles);
               _.each(initFiles, (file_path: string) => {
                 const config_file = require(file_path);
-                let configKey = basename(file_path)
+                const configKey = basename(file_path)
                 AppConfigService.createConfig(brandName, configKey, config_file).then((config: unknown) => { sails.log.verbose(hook_log_header + "::Configuration created:"); sails.log.verbose(config) })
                   .catch((error: unknown) => { sails.log.verbose(hook_log_header + "::Skipping creation of config as it already exists:"); sails.log.verbose(error) });
               });
@@ -135,7 +135,7 @@ export module Services {
               sails.log.verbose(overrideFiles);
               _.each(overrideFiles, (file_path: string) => {
                 const config_file = require(file_path);
-                let configKey = basename(file_path)
+                const configKey = basename(file_path)
                 const brand: BrandingModel = BrandingService.getBrand(brandName);
                 AppConfigService.createOrUpdateConfig(brand, configKey, config_file).then((config: unknown) => {
                   sails.log.verbose(hook_log_header + "::Configuration created or updated:");
@@ -209,7 +209,7 @@ export module Services {
       }
       sails.log.verbose(`${hook_log_header}::Adding custom API elements...`);
 
-      let apiDirs = ["services"];
+      const apiDirs = ["services"];
       const sailsDynamic = sails as Sails.Application & Record<string, unknown>;
       _.each(apiDirs, (apiType: string) => {
         const files = this.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
@@ -230,7 +230,7 @@ export module Services {
         }
       });
 
-      let controllerDirs = ["controllers"];
+      const controllerDirs = ["controllers"];
       _.each(controllerDirs, (apiType: string) => {
         const files = that.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
         sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
@@ -263,10 +263,10 @@ export module Services {
       // for simple copying of API elements...
       // Note: 'policies' removed - now loaded via api/hooks/redbox-core-loader
       const apiCopyDirs = ['responses'];
-      for (let apiCopyDir of apiCopyDirs) {
+      for (const apiCopyDir of apiCopyDirs) {
         const apiCopyFiles = this.walkDirSync(`${hook_root_dir}/api/${apiCopyDir}`, []);
         if (!_.isEmpty(apiCopyFiles)) {
-          for (let apiCopyFile of apiCopyFiles) {
+          for (const apiCopyFile of apiCopyFiles) {
             const dest = `${appPath}/api/${apiCopyDir}/${basename(apiCopyFile)}`;
             sails.log.verbose(`Copying ${apiCopyFile} to ${dest}`)
             fs.copySync(apiCopyFile, dest);
@@ -283,7 +283,7 @@ export module Services {
         return filelist;
       }
       try {
-        var files = fs.readdirSync(dir).sort();
+        const files = fs.readdirSync(dir).sort();
         _.each(files, (file: string) => {
           const resolved = resolve(dir, file);
           if (fs.statSync(resolved).isDirectory()) {
@@ -311,7 +311,7 @@ export module Services {
     private mergeTranslationFiles(hook_root_dir: string, hook_log_header: string, overwriteOrig: boolean = false) {
       const langCodes = this.getDirsSync(`${hook_root_dir}/locales`);
       sails.log.verbose(`${hook_log_header}::Language codes to process: ${JSON.stringify(langCodes)}`);
-      for (let langCode of langCodes) {
+      for (const langCode of langCodes) {
         const langBasePath = `locales/${langCode}/translation`;
         const langJsonPath = `${langBasePath}.json`;
         const langCsvPath = `${langBasePath}.csv`;
@@ -348,7 +348,7 @@ export module Services {
     private csvToi18Next(csvPath: string, jsonPath: string, cb: () => void) {
       const csv = require('csv-parser');
 
-      let languageJson: Record<string, string> = {};
+      const languageJson: Record<string, string> = {};
       fs.createReadStream(csvPath)
         .pipe(csv())
         .on('data', (row: Record<string, string>) => {

@@ -25,7 +25,7 @@ import { RoleModel } from '../model/storage/RoleModel';
  
 
 
-export module Services {
+export namespace Services {
   interface AuthRoleConfig {
     name: string;
     [key: string]: unknown;
@@ -105,7 +105,7 @@ export module Services {
     }
 
     public getRolesWithBrand = (brand: BrandingModel): Observable<RoleModel[]> => {
-      return super.getObservable(Role.find({ branding: brand.id }).populate('users'));
+      return super.getObservable<RoleModel[]>(Role.find({ branding: brand.id }).populate('users'));
     }
 
     public getRoleIds = (fromRoles: RoleModel[], roleNames: string[]) => {
@@ -114,14 +114,14 @@ export module Services {
     }
 
     public async createRoleWithBrand(brand: BrandingModel, roleName: string) {
-      let roleConfig =
+      const roleConfig =
       {
         name: roleName,
         branding: brand.id
       };
       sails.log.verbose('createRoleWithBrand - brand.id ' + brand.id);
       const rolesResp: { roles: RoleModel[] } = { roles: [] };
-      let rolesRespPromise = await firstValueFrom(this.getRolesWithBrand(brand).pipe(flatMap((roles: RoleModel[]) => {
+      const rolesRespPromise = await firstValueFrom(this.getRolesWithBrand(brand).pipe(flatMap((roles: RoleModel[]) => {
         _.map(roles, (role: RoleModel) => {
           rolesResp.roles.push(role);
         });
@@ -129,13 +129,13 @@ export module Services {
       }), first()));
 
       sails.log.verbose(rolesRespPromise);
-      let roleToCreate = _.find(rolesRespPromise.roles, ['name', roleName]);
+      const roleToCreate = _.find(rolesRespPromise.roles, ['name', roleName]);
       if (_.isUndefined(roleToCreate)) {
         sails.log.verbose('createRoleWithBrand - roleConfig ' + JSON.stringify(roleConfig));
-        let newRole = await Role.create(roleConfig);
+        const newRole = await Role.create(roleConfig);
         sails.log.verbose("createRoleWithBrand - adding role to brand " + newRole.id);
         const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
-  return await firstValueFrom(super.getObservable(q, 'exec', 'simplecb'));
+  return await firstValueFrom(super.getObservable<BrandingModel>(q, 'exec', 'simplecb'));
       } else {
         sails.log.verbose('createRoleWithBrand - role ' + roleName + ' exists');
         return of(brand);
@@ -148,21 +148,21 @@ export module Services {
         sails.log.verbose("Creating default admin, and other roles...");
         return from(this.getConfigRoles())
                          .pipe(flatMap((roleConfig: AuthRoleConfig) => {
-                           return super.getObservable(Role.create(roleConfig))
+                           return super.getObservable<RoleModel>(Role.create(roleConfig))
                                        .pipe(flatMap((newRole: RoleModel) => {
                                          sails.log.verbose("Adding role to brand:" + newRole.id);
-                                         let brand:BrandingModel = sails.services.brandingservice.getDefault();
+                                         const brand:BrandingModel = sails.services.brandingservice.getDefault() as unknown as BrandingModel;
                                          // START Sails 1.0 upgrade
                                          // brand.roles.add(newRole.id);
                                          const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
                                          // return super.getObservable(brand, 'save', 'simplecb');
-                                         return super.getObservable(q, 'exec', 'simplecb');
+                                         return super.getObservable<BrandingModel>(q, 'exec', 'simplecb');
                                          // END Sails 1.0 upgrade
                                        }));
                          }),
                          last(),
-                         flatMap((brand: BrandingModel) => {
-                           return sails.services.brandingservice.loadAvailableBrands();
+                         flatMap((_brand: BrandingModel) => {
+                           return sails.services.brandingservice.loadAvailableBrands() as unknown as Observable<BrandingModel>;
                          }));
       } else {
         sails.log.verbose("Admin role exists.");

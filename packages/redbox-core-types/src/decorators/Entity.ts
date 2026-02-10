@@ -1,4 +1,4 @@
-import { EntityOptions } from './types';
+import { Constructor, EntityOptions } from './types';
 import { ensureMeta, toIdentity } from './registry';
 
 export function Entity(
@@ -9,7 +9,7 @@ export function Entity(
   const options = typeof identityOrOpts === 'object' ? identityOrOpts : maybeOpts;
 
   return target => {
-    const meta = ensureMeta(target);
+    const meta = ensureMeta(target as unknown as Constructor);
     const { identity: providedIdentity, ...rest } = options ?? {};
     const defaultTableName = toIdentity(target.name);
     const resolvedIdentity = providedIdentity ?? identity;

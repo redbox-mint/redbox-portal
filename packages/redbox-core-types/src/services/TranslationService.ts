@@ -17,7 +17,6 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { Services as services } from '../CoreService';
@@ -42,7 +41,7 @@ type NextFunction = () => void;
 //   getBrandFromReq: (req: RequestLike) => string;
 // };
 
-export module Services {
+export namespace Services {
   /**
    * Translation services...
    *
@@ -189,7 +188,7 @@ export module Services {
       
       // Initialize the default branding instance
       const availableBrandings = BrandingService.getAvailable();
-      for(let availableBranding of availableBrandings) {
+      for(const availableBranding of availableBrandings) {
         const branding = BrandingService.getBrand(availableBranding);  
         await this.getI18nextForBranding(branding);
       }
@@ -303,7 +302,7 @@ export module Services {
 
         // Add languages from DB bundles
         try {
-          const bundles = await I18nBundle.find({ branding: brandingId }).sort('locale');
+          const bundles = await I18nBundle.find({ branding: brandingId }).sort('locale') as unknown as Array<{ locale?: string }>;
           this.logger.debug(`Found ${bundles.length} bundles for branding ${brandingId}`);
           bundles.forEach((b: { locale?: string }) => {
             if (b?.locale) {
@@ -328,8 +327,8 @@ export module Services {
 
     public async handle(req: RequestLike, res: ResponseLike, next: NextFunction) {
       let langCode = req.param('lng');
-      let sessLangCode = req.session?.lang;
-      let defaultLang = _.isArray(sails.config.i18n.next.init.fallbackLng) ? sails.config.i18n.next.init.fallbackLng[0] : sails.config.i18n.next.init.fallbackLng;
+      const sessLangCode = req.session?.lang;
+      const defaultLang = _.isArray(sails.config.i18n.next.init.fallbackLng) ? sails.config.i18n.next.init.fallbackLng[0] : sails.config.i18n.next.init.fallbackLng;
       if (_.isEmpty(langCode) && _.isEmpty(sessLangCode)) {
         // use the default
         langCode = defaultLang;
@@ -341,7 +340,6 @@ export module Services {
       // Get branding and ensure i18next instance exists
       const brandingName = BrandingService.getBrandFromReq(req);
       const branding = BrandingService.getBrand(brandingName);
-      const brandingId = branding?.id || 'default';
       
       // Ensure i18next instance exists for this branding
       const i18nextInstance = await this.getI18nextForBranding(branding);

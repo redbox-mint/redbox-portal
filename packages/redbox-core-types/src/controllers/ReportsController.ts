@@ -3,7 +3,7 @@ import { BrandingModel } from '../model';
 import { from } from 'rxjs';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
@@ -15,7 +15,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
         'render'
     ];
 
@@ -30,10 +30,10 @@ export module Controllers {
     }
 
     public render(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding as string);
 
       from(ReportsService.findAllReportsForBrand(brand)).subscribe(reports => {
-        req.options.locals["reports"] = reports;
+        (req.options!.locals as globalThis.Record<string, unknown>)["reports"] = reports;
         return this.sendView(req, res, 'admin/reports');
       });
     }

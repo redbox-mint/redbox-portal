@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable, from, of, throwError, firstValueFrom
+  Observable, from, firstValueFrom
 } from 'rxjs';
 import { Services as services } from '../CoreService';
 // removed deprecated rxjs/add/operator imports; use firstValueFrom instead
@@ -28,7 +28,7 @@ import * as nodemailer from 'nodemailer';
 import {isObservable} from "rxjs";
 
 
-export module Services {
+export namespace Services {
   /**
    *
    *
@@ -138,13 +138,13 @@ export module Services {
       });
 
       message[msgFormat] = msgBody;
-      let response = {
+      const response = {
         success: false,
         msg: "",
       };
       sails.log.debug(`Email message to send will be ${JSON.stringify(message)}`)
       try {
-        let sendResult = await transport.sendMail(message);
+        const sendResult = await transport.sendMail(message);
         response.msg = `Email sent successfully. Message Id: ${sendResult.messageId}`;
         response.success = true;
         sails.log.info(response.msg);
@@ -169,10 +169,10 @@ export module Services {
      */
     public async buildFromTemplateAsync(template: string, data: Record<string, unknown> = {}, res: Record<string, unknown> = {}) {
       try {
-        let readTemplate = fs.readFileSync(sails.config.emailnotification.settings.templateDir + template + '.ejs', 'utf-8')
+        const readTemplate = fs.readFileSync(sails.config.emailnotification.settings.templateDir + template + '.ejs', 'utf-8')
 
 
-        var renderedTemplate = ejs.render((readTemplate || "").toString(), data, {
+        const renderedTemplate = ejs.render((readTemplate || "").toString(), data, {
           cache: true,
           filename: template
         });
@@ -215,13 +215,13 @@ export module Services {
      */
     public sendTemplate(to: string, subject: string, template: string, data: Record<string, unknown>) {
       sails.log.verbose("Inside Send Template");
-      var buildResponse = this.buildFromTemplate(template, data);
+      const buildResponse = this.buildFromTemplate(template, data);
       sails.log.verbose("buildResponse");
       buildResponse.subscribe((buildResult: Record<string, unknown>) => {
         if (buildResult['status'] != 200) {
           return;
         } else {
-          var sendResponse = this.sendMessage(to, buildResult['body'] as string, subject);
+          const sendResponse = this.sendMessage(to, buildResult['body'] as string, subject);
 
           sendResponse.subscribe(sendResult => {
             return sendResult;

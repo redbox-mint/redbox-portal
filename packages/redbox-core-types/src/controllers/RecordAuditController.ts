@@ -22,7 +22,7 @@ import { momentShim as moment } from '../shims/momentShim';
 import { orderBy } from 'lodash';
 import { RecordsService } from '../RecordsService';
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
@@ -35,7 +35,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'render',
       'init'
     ];
@@ -47,7 +47,7 @@ export module Controllers {
      */
 
     public init() {
-      this.recordsService = sails.services.recordsservice;
+      this.recordsService = sails.services.recordsservice as unknown as RecordsService;
     }
 
     public bootstrap() {
@@ -55,8 +55,8 @@ export module Controllers {
     }
 
     public render(req: Sails.Req, res: Sails.Res) {
-      let oid = req.param('oid');
-      let params = { 'oid': oid, 'dateFrom': null, 'dateTo': null };
+      const oid = req.param('oid');
+      const params = { 'oid': oid, 'dateFrom': null, 'dateTo': null };
       // Use this.recordsService or fallback to global if strictly needed, but migrated style is class property
       // However, RecordsService in this context is likely a static or singleton usage in the old code
       // checking RecordsService.ts to be sure.
@@ -74,9 +74,9 @@ export module Controllers {
       // But assuming standard pattern: `this.recordsService.getRecordAudit(params)`
       
       this.recordsService.getRecordAudit(params).then(records => {
-        let orderedRecords = orderBy(records, ['updatedAt'], ['desc']);
-        req.options.locals["records"] = orderedRecords;
-        req.options.locals["moment"] = moment;
+        const orderedRecords = orderBy(records, ['updatedAt'], ['desc']);
+        (req.options!.locals as globalThis.Record<string, unknown>)["records"] = orderedRecords;
+        (req.options!.locals as globalThis.Record<string, unknown>)["moment"] = moment;
         return this.sendView(req, res, 'record/viewAudit');
       });
     }

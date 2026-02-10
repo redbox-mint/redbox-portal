@@ -10,6 +10,13 @@ export type LifecycleHook =
   | 'afterDestroy'
   | 'afterValidate';
 
+export type Constructor<T = unknown> = new (...args: unknown[]) => T;
+
+export type LifecycleHandler = (
+  recordOrRecords: Record<string, unknown>,
+  proceed: (err?: Error) => void,
+) => void;
+
 export interface AttributeOptions {
   [key: string]: unknown;
   type?: string;
@@ -46,7 +53,7 @@ export interface EntityOptions {
 }
 
 export interface EntityMeta {
-  target: Function;
+  target: Constructor;
   className: string;
   entity: {
     identity: string;
@@ -63,7 +70,7 @@ export interface EntityMeta {
     [key: string]: unknown;
   };
   attributes: Record<string, AttributeOptions>;
-  lifecycle: Partial<Record<LifecycleHook, Function[]>>;
+  lifecycle: Partial<Record<LifecycleHook, LifecycleHandler[]>>;
 }
 
 export interface WaterlineModelDefinition {
@@ -80,13 +87,13 @@ export interface WaterlineModelDefinition {
   archiveDateField?: string;
   attributes: Record<string, AttributeOptions>;
   // Lifecycle hooks are functions with signature (recordOrRecords, proceed) => void
-  beforeCreate?: (recordOrRecords: unknown, proceed: (err?: Error) => void) => void;
-  beforeUpdate?: (recordOrRecords: unknown, proceed: (err?: Error) => void) => void;
-  beforeDestroy?: (recordOrRecords: unknown, proceed: (err?: Error) => void) => void;
-  beforeValidate?: (recordOrRecords: unknown, proceed: (err?: Error) => void) => void;
-  afterCreate?: (recordOrRecords: unknown, proceed: (err?: Error) => void) => void;
-  afterUpdate?: (recordOrRecords: unknown, proceed: (err?: Error) => void) => void;
-  afterDestroy?: (recordOrRecords: unknown, proceed: (err?: Error) => void) => void;
-  afterValidate?: (recordOrRecords: unknown, proceed: (err?: Error) => void) => void;
+  beforeCreate?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  beforeUpdate?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  beforeDestroy?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  beforeValidate?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  afterCreate?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  afterUpdate?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  afterDestroy?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  afterValidate?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
   [key: string]: unknown;
 }

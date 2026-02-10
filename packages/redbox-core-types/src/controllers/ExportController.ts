@@ -17,7 +17,6 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs';
 import { default as util } from 'util';
 import { default as stream } from 'stream';
 const pipeline = util.promisify(stream.pipeline);
@@ -27,7 +26,7 @@ const pipeline = util.promisify(stream.pipeline);
 import { BrandingModel } from '../model';
 import { Controllers as controllers } from '../CoreController';
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to exporting anything
    *
@@ -38,7 +37,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
         'index',
         'downloadRecs'
     ];
@@ -53,7 +52,7 @@ export module Controllers {
     }
 
     public async downloadRecs(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const format = req.param('format');
       const recType = req.param('recType');
       const before = _.isEmpty(req.query.before) ? null : req.query.before;
@@ -64,7 +63,7 @@ export module Controllers {
         sails.log.verbose("filename "+filename);
         res.attachment(filename);
         await pipeline(
-          RecordsService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after, recType),
+          RecordsService.exportAllPlans(req.user!.username, req.user!.roles as globalThis.Record<string, unknown>[], brand, format, before, after, recType),
           res
         );
         return res;

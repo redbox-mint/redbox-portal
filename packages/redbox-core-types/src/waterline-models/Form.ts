@@ -1,5 +1,4 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, BelongsTo, toWaterlineModelDef } from '../decorators';
 
 @Entity('form')
@@ -61,5 +60,5 @@ export interface FormWaterlineModel extends Sails.Model<FormAttributes> {
 }
 
 declare global {
-  var Form: FormWaterlineModel;
+  const Form: FormWaterlineModel;
 }

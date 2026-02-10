@@ -1,9 +1,8 @@
-import { Observable } from 'rxjs';
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model/storage/BrandingModel';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to exporting anything
    *
@@ -14,7 +13,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
         'index',
         'start',
         'progress',
@@ -35,7 +34,7 @@ export module Controllers {
 
     public start(req: Sails.Req, res: Sails.Res) {
       const progressObj = this.createProgressObjFromRequest(req);
-      AsynchsService.start(progressObj).subscribe((progress: any) => {
+      AsynchsService.start(progressObj).subscribe((progress: globalThis.Record<string, unknown>) => {
         this.broadcast(req, 'start', progress);
         this.sendResp(req, res, { data: progress, headers: this.getNoCacheHeaders() });
       });
@@ -43,7 +42,7 @@ export module Controllers {
 
     public stop(req: Sails.Req, res: Sails.Res) {
       const id = req.param('id');
-      AsynchsService.finish(id).subscribe((progress: any[]) => {
+      AsynchsService.finish(id).subscribe((progress: globalThis.Record<string, unknown>[]) => {
         this.broadcast(req, 'stop', progress[0]);
         this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
       });
@@ -52,21 +51,20 @@ export module Controllers {
     public update(req: Sails.Req, res: Sails.Res) {
       const id = req.param('id');
       const progressObj = this.createProgressObjFromRequest(req);
-      AsynchsService.update({id: id}, progressObj).subscribe((progress: any[]) => {
+      AsynchsService.update({id: id}, progressObj).subscribe((progress: globalThis.Record<string, unknown>[]) => {
         this.broadcast(req, 'update', progress[0]);
         this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
       });
     }
 
     protected createProgressObjFromRequest(req: Sails.Req): Record<string, unknown> {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      const username = req.user.username;
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const username = req.user!.username;
       const name = req.param('name');
       const recordOid = req.param('relatedRecordId');
       const metadata = req.param('metadata') ? req.param('metadata') : null;
-      const method = req.method;
       const status = req.param('status');
-      const progressObj:any = {
+      const progressObj: globalThis.Record<string, unknown> = {
          name: name,
          started_by: username,
          branding: brand.id,
@@ -90,21 +88,22 @@ export module Controllers {
       if (_.isEmpty(fq)) {
         return this.sendResp(req, res, { data: { status: false, message: 'Empty queries are not allowed.' }, headers: this.getNoCacheHeaders() });
       }
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      fq.where.branding = brand.id;
-      return AsynchsService.get(fq).subscribe((progress: any) => {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      (fq.where as globalThis.Record<string, unknown>).branding = brand.id;
+      return AsynchsService.get(fq).subscribe((progress: unknown) => {
         this.sendResp(req, res, { data: progress, headers: this.getNoCacheHeaders() });
       });
     }
 
-    protected getQuery(fq: unknown): any {
+    protected getQuery(fq: unknown): globalThis.Record<string, unknown> {
       if (typeof fq === 'string') {
         fq = JSON.parse(fq);
       }
-      _.unset(fq, '$where');
-      _.unset(fq, 'group');
-      _.unset(fq, 'mapReduce');
-      return fq;
+      const result = fq as globalThis.Record<string, unknown>;
+      _.unset(result, '$where');
+      _.unset(result, 'group');
+      _.unset(result, 'mapReduce');
+      return result;
     }
 
     public subscribe(req: Sails.Req, res: Sails.Res) {
@@ -143,10 +142,10 @@ export module Controllers {
       });
     }
 
-    protected broadcast(req: Sails.Req, eventName: string, progressObj: any) {
+    protected broadcast(req: Sails.Req, eventName: string, progressObj: globalThis.Record<string, unknown>) {
       if (!_.isEmpty(progressObj.relatedRecordId) && !_.isUndefined(progressObj.relatedRecordId)) {
-        sails.sockets.broadcast(progressObj.relatedRecordId, eventName, progressObj, req);
-        sails.sockets.broadcast(progressObj.id, eventName, progressObj, req);
+        sails.sockets.broadcast(progressObj.relatedRecordId as string, eventName, progressObj, req);
+        sails.sockets.broadcast(progressObj.id as string, eventName, progressObj, req);
         if (progressObj.taskType) {
           sails.sockets.broadcast(`${progressObj.relatedRecordId}-${progressObj.taskType}`, eventName, progressObj, req);
         }

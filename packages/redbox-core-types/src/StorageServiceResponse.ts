@@ -24,11 +24,10 @@ export class StorageServiceResponse {
   success: boolean = false;
   oid: string = '';
   message: string = '';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata: any = null;
+  metadata: Record<string, unknown> | null = null;
+  details?: Record<string, unknown> | string;
   totalItems: number = 0;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  items: any[] = [];
+  items: Record<string, unknown>[] = [];
   constructor() {
 
   }

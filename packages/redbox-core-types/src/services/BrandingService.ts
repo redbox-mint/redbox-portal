@@ -21,10 +21,11 @@ import { Observable, of, throwError } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import { BrandingConfigHistoryAttributes } from '../waterline-models/BrandingConfigHistory';
 import * as crypto from 'crypto';
 
 
-export module Services {
+export namespace Services {
   /**
    * Branding related functions...
    *
@@ -79,7 +80,7 @@ export module Services {
         .pipe(flatMap(brands => {
           this.brandings = brands as BrandingModel[];
           this.availableBrandings = _.map(this.brandings, 'name');
-          var defBrandEntry: BrandingModel = this.getDefault();
+          const defBrandEntry: BrandingModel = this.getDefault();
           if (defBrandEntry == null) {
             sails.log.error("Failed to load default brand!");
             return throwError(new Error("Failed to load default brand!"));
@@ -135,7 +136,7 @@ export module Services {
     }
 
     public getBrandFromReq(req: { params?: Record<string, unknown>; body?: Record<string, unknown>; session?: Record<string, unknown> }): string {
-      var branding = null;
+      let branding = null;
       if (req && req.params) {
         const paramBranding = req.params['branding'];
         branding = typeof paramBranding === 'string' ? paramBranding : null;
@@ -160,7 +161,7 @@ export module Services {
     }
 
     public getPortalFromReq(req: { params?: Record<string, unknown>; body?: Record<string, unknown>; session?: Record<string, unknown> }): string {
-      var portal = null;
+      let portal = null;
       if (req && req.params) {
         const paramPortal = req.params['portal'];
         portal = typeof paramPortal === 'string' ? paramPortal : null;
@@ -252,7 +253,7 @@ export module Services {
     }
 
     /** Publish current draft (variables) -> CSS, bump version, persist hash, history */
-    public async publish(branding: string, portal: string, actor: unknown, opts?: { expectedVersion?: number; }): Promise<{ version: number; hash: string; idempotent?: boolean; }> {
+    public async publish(branding: string, portal: string, _actor: unknown, opts?: { expectedVersion?: number; }): Promise<{ version: number; hash: string; idempotent?: boolean; }> {
       const brand = await BrandingConfig.findOne({ name: branding });
       if (!brand) throw new Error('branding-not-found');
       if (opts?.expectedVersion != null && brand.version != null && opts.expectedVersion !== brand.version) {
@@ -271,20 +272,20 @@ export module Services {
     }
 
     /** Rollback to a previous published version via history id */
-    public async rollback(historyId: string, actor: unknown): Promise<{ version: number; hash: string; branding: BrandingModel | null; }> {
-      const historyEntry = await BrandingConfigHistory.findOne({ id: historyId }).populate('branding');
+    public async rollback(historyId: string, _actor: unknown): Promise<{ version: number; hash: string; branding: BrandingModel | null; }> {
+      const historyEntry = await BrandingConfigHistory.findOne({ id: historyId }).populate('branding') as unknown as BrandingConfigHistoryAttributes | null;
       if (!historyEntry) throw new Error('history-not-found');
-      const branding = historyEntry.branding;
+      const branding = historyEntry.branding as unknown as BrandingModel | null;
       if (!branding) throw new Error('branding-not-found');
 
       // Restore variables, CSS, hash from history
-      await BrandingConfig.update({ id: branding.id }, {
+      await BrandingConfig.update({ id: (branding as BrandingModel).id }, {
         variables: historyEntry.variables,
         css: historyEntry.css,
         hash: historyEntry.hash,
         version: historyEntry.version
       });
-      const refreshed = await this.refreshBrandingCache(branding.id);
+      const refreshed = await this.refreshBrandingCache((branding as BrandingModel).id);
       return {
         version: historyEntry.version,
         hash: historyEntry.hash,
@@ -293,8 +294,8 @@ export module Services {
     }
 
     /** Refresh a single branding record in the in-memory cache (this.brandings & availableBrandings) */
-    public async refreshBrandingCache(id: string) {
-      const updated = await BrandingConfig.findOne({ id }).populate('roles');
+    public async refreshBrandingCache(id: string): Promise<BrandingModel | null> {
+      const updated = await BrandingConfig.findOne({ id }).populate('roles') as unknown as BrandingModel | null;
       if (updated) {
         const idx = this.brandings.findIndex((b: BrandingModel) => b.id === id);
         if (idx >= 0) {

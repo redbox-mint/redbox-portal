@@ -33,8 +33,6 @@ type SolrCore = SolrCoreConfig;
 type SolrConfig = SolrSearchConfig;
 
 const axios = require('axios');
-const util = require('util');
-const querystring = require('querystring');
 type FlatModule = { flatten: (obj: Record<string, unknown>, options?: Record<string, unknown>) => Record<string, unknown> };
 type LuceneEscapeQueryModule = ((value: string) => string) | { escape?: (value: string) => string; default?: (value: string) => string };
 let flat: FlatModule | null = null;
@@ -101,7 +99,7 @@ class Solr {
   }
 }
 
-export module Services {
+export namespace Services {
   type SolrFacetFields = Record<string, Array<string | number>>;
   type SolrResponse = {
     response: { numFound: number; docs: Array<Record<string, unknown>> };
@@ -144,7 +142,7 @@ export module Services {
     public override init() {
       const that = this;
       this.registerSailsHook('on', 'ready', async function () {
-        that.queueService = sails.services[sails.config.queue.serviceName];
+        that.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
         that.initClient();
         await that.buildSchema(that);
       });
@@ -156,22 +154,22 @@ export module Services {
 
     protected initClient(ref: SolrSearchService = this) {
       const solrConfig: SolrConfig = sails.config.solr;
-      let coreIds: string[] = Object.keys(solrConfig.cores);
-      for (let coreId of coreIds) {
-        let solrOpts: SolrOptions = solrConfig.cores[coreId].options;
-        let client: SolrClient = Solr.createClient(solrOpts);
+      const coreIds: string[] = Object.keys(solrConfig.cores);
+      for (const coreId of coreIds) {
+        const solrOpts: SolrOptions = solrConfig.cores[coreId].options;
+        const client: SolrClient = Solr.createClient(solrOpts);
         ref.clients[coreId] = client;
       }
     }
 
     protected async buildSchema(ref: SolrSearchService = this) {
       const solrConfig: SolrConfig = sails.config.solr;
-      let coreNameKeys: string[] = Object.keys(solrConfig.cores);
+      const coreNameKeys: string[] = Object.keys(solrConfig.cores);
 
       // wait for SOLR deafult core to start up
       await ref.waitForSolr('default');
 
-      for (let coreId of coreNameKeys) {
+      for (const coreId of coreNameKeys) {
 
         const core: SolrCore = solrConfig.cores[coreId];
         const coreName = core.options.core;
@@ -234,7 +232,7 @@ export module Services {
     private async waitForSolr(coreId: string, ref: SolrSearchService = this) {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
-      let coreName: string = core.options.core;
+      const coreName: string = core.options.core;
       let solrUp = false;
       let tryCtr = 0;
       const urlCheck = `${ref.getBaseUrl(core.options)}admin/cores?action=STATUS&core=${coreName}`;
@@ -287,7 +285,7 @@ export module Services {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const coreName = core.options.core;
-      let url = `${this.getBaseUrl(core.options)}${coreName}/select?q=${query}`;
+      const url = `${this.getBaseUrl(core.options)}${coreName}/select?q=${query}`;
       sails.log.verbose(`Searching advanced using: ${url}`);
       const response = await axios.get(url).then((response: { data: Record<string, unknown> }) => response.data);
       return response;
@@ -317,7 +315,7 @@ export module Services {
       const customResp: { records: Array<Record<string, unknown>>; facets?: Array<{ name: string; values: Array<{ value: string; count: number }> }>; totalItems?: number } = {
         records: []
       };
-      let totalItems = response.response.numFound;
+      const totalItems = response.response.numFound;
 
       _.forEach(response.response.docs, (solrdoc: Record<string, unknown>) => {
         const customDoc: Record<string, unknown> = {};
@@ -329,7 +327,7 @@ export module Services {
             customDoc[retField] = fieldValue;
           }
         });
-        customDoc["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, solrdoc);
+        customDoc["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles as unknown as Array<Record<string, unknown>>, solrdoc);
         customResp.records.push(customDoc);
       });
       // check if have facets turned on...
@@ -367,10 +365,10 @@ export module Services {
 
     public async solrAddOrUpdate(job: QueueJob<RecordModel>) {
       try {
-        let data: RecordModel = job.attrs.data as RecordModel;
-        let coreId = _.get(data, 'metaMetadata.searchCore', 'default');
+        const data: RecordModel = job.attrs.data as RecordModel;
+        const coreId = String(_.get(data, 'metaMetadata.searchCore', 'default'));
         // storage_id is used as the main ID in searches
-        let solrDocument: SolrDocument = new SolrDocument(data);
+        const solrDocument: SolrDocument = new SolrDocument(data);
         sails.log.verbose(`${this.logHeader} adding document: ${solrDocument.id} to index`);
         // flatten the JSON
         const processedData = this.preIndex(solrDocument);
@@ -391,8 +389,8 @@ export module Services {
     public preIndex(data: SolrDocument): Record<string, unknown> {
       let processedData: Record<string, unknown> = _.cloneDeep(data) as unknown as Record<string, unknown>;
 
-      let coreId = _.get(data, 'metaMetadata.searchCore', 'default');
-      let moveObj = _.get(sails.config.solr.cores, coreId + '.preIndex.move') as unknown as PreIndexMoveConfig[];
+      const coreId = _.get(data, 'metaMetadata.searchCore', 'default');
+      const moveObj = _.get(sails.config.solr.cores, coreId + '.preIndex.move') as unknown as PreIndexMoveConfig[];
       // moving
       _.each(moveObj, (moveConfig: PreIndexMoveConfig) => {
         const source: string = moveConfig.source;
@@ -411,12 +409,12 @@ export module Services {
           sails.log.verbose(`${this.logHeader} no data to move from: ${moveConfig.source}, ignoring.`);
         }
       });
-      let copyObj = _.get(sails.config.solr.cores, coreId + '.preIndex.copy') as unknown as PreIndexCopyConfig[];
+      const copyObj = _.get(sails.config.solr.cores, coreId + '.preIndex.copy') as unknown as PreIndexCopyConfig[];
       // copying
       _.each(copyObj, (copyConfig: PreIndexCopyConfig) => {
         _.set(processedData, copyConfig.dest, _.get(data, copyConfig.source));
       });
-      let jsonStringObj = _.get(sails.config.solr.cores, coreId + '.preIndex.jsonString') as unknown as PreIndexJsonStringConfig[];
+      const jsonStringObj = _.get(sails.config.solr.cores, coreId + '.preIndex.jsonString') as unknown as PreIndexJsonStringConfig[];
       _.each(jsonStringObj, (jsonStringConfig: PreIndexJsonStringConfig) => {
         let setProperty: string = jsonStringConfig.source;
         if (jsonStringConfig.dest != null) {
@@ -424,7 +422,7 @@ export module Services {
         }
         _.set(processedData, setProperty, JSON.stringify(_.get(data, jsonStringConfig.source, undefined)));
       });
-      let templateObj = _.get(sails.config.solr.cores, coreId + '.preIndex.template') as unknown as PreIndexTemplateConfig[];
+      const templateObj = _.get(sails.config.solr.cores, coreId + '.preIndex.template') as unknown as PreIndexTemplateConfig[];
       //Evaluate a template to generate a value for the solr document
       _.each(templateObj, (templateConfig: PreIndexTemplateConfig) => {
         let setProperty: string = templateConfig.source ?? '';
@@ -444,13 +442,13 @@ export module Services {
         _.set(processedData, setProperty, template({ data: templateData }));
       });
 
-      let flattenSpecialObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.special') as unknown as PreIndexFlattenSpecialConfig[];
+      const flattenSpecialObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.special') as unknown as PreIndexFlattenSpecialConfig[];
       // flattening...
       // first remove those with special flattening options
       _.each(flattenSpecialObj, (specialFlattenConfig: PreIndexFlattenSpecialConfig) => {
         _.unset(processedData, specialFlattenConfig.field);
       });
-      let flattenOptionsObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.options') as unknown as Record<string, unknown> | undefined;
+      const flattenOptionsObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.options') as unknown as Record<string, unknown> | undefined;
       const flatModule = flat;
       if (!flatModule) {
         throw new Error('flat module not loaded');
@@ -463,7 +461,7 @@ export module Services {
         } else {
           _.set(dataToFlatten, specialFlattenConfig.source, _.get(data, specialFlattenConfig.source));
         }
-        let flattened = flatModule.flatten(dataToFlatten, specialFlattenConfig.options);
+        const flattened = flatModule.flatten(dataToFlatten, specialFlattenConfig.options);
         _.merge(processedData, flattened);
       });
 
@@ -500,11 +498,11 @@ export module Services {
       return url;
     }
 
-    public async solrDelete(job: QueueJob<RecordModel>, done: unknown) {
+    public async solrDelete(job: QueueJob<RecordModel>, _done: unknown) {
       try {
-        let data = job.attrs.data;
-        let coreId = _.get(data, 'searchCore', 'default');
-        let solrDocument: SolrDocument = new SolrDocument(data);
+        const data = job.attrs.data;
+        const coreId = String(_.get(data, 'searchCore', 'default'));
+        const solrDocument: SolrDocument = new SolrDocument(data);
         sails.log.verbose(`${this.logHeader} deleting document: ${solrDocument.id}`);
         await this.clients[coreId].delete('id', solrDocument.id);
         // intentionally adding the commit call as the client doesn't respect the 'autoCommit' flag

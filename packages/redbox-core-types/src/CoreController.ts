@@ -15,7 +15,7 @@ import {
 
 
 
-export module Controllers.Core {
+export namespace Controllers.Core {
 
   /**
    * Core controller which defines common logic between controllers.
@@ -212,7 +212,7 @@ export module Controllers.Core {
      * @param callback  Function to execute.
      * @param options   Object that contains options.
      */
-    public index(req: Sails.Req, res: Sails.Res, callback: unknown, options: Record<string, unknown> = {}): void {
+    public index(req: Sails.Req, res: Sails.Res, callback: unknown, _options: Record<string, unknown> = {}): void {
       res.notFound();
     }
 
@@ -273,10 +273,13 @@ export module Controllers.Core {
 
     public sendView(req: Sails.Req, res: Sails.Res, view: string, locals: Record<string, unknown> = {}): void {
 
+      if (!req.options) {
+        req.options = {};
+      }
       if (req.options.locals == null) {
         req.options.locals = {};
       }
-      const mergedLocal: Record<string, unknown> = Object.assign({}, req.options.locals, locals);
+      const mergedLocal: Record<string, unknown> = Object.assign({}, req.options.locals as Record<string, unknown>, locals);
 
       const branding = mergedLocal['branding'] as string;
       const portal = mergedLocal['portal'] as string;
@@ -645,7 +648,7 @@ export module Controllers.Core {
       return collectedDisplayErrors.map(displayError => {
         const code = displayError.code?.toString()?.trim() || "";
         let title = displayError.title?.toString()?.trim() || "";
-        let detail = displayError.detail?.toString()?.trim() || "";
+        const detail = displayError.detail?.toString()?.trim() || "";
 
         if (code && !title && !detail) {
           title = code;

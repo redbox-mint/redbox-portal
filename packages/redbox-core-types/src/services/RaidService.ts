@@ -39,7 +39,7 @@ import { RecordModel } from '../model/storage/RecordModel';
 
 
 
-export module Services {
+export namespace Services {
   type RecordLike = RecordModel | Record<string, unknown>;
   type RaidOptions = Record<string, unknown>;
   type OAuthTokenResponse = { access_token?: string; expires_in?: number } & Record<string, unknown>;
@@ -54,7 +54,7 @@ export module Services {
   export class Raid extends services.Core.Service {
     protected override _exportedMethods: string[] = [
       'mintTrigger',
-      'buildContributors',
+      'getContributors',
       'buildContribVal',
       'mintPostCreateRetryHandler',
       'mintRetryJob'
@@ -101,7 +101,7 @@ export module Services {
      * @param record
      * @param options
      */
-    public async mintPostCreateRetryHandler(oid: string, record: RecordLike, options: RaidOptions) {
+    public async mintPostCreateRetryHandler(oid: string, record: RecordLike, _options: RaidOptions) {
       const attemptCount = Number(_.get(record, 'metaMetadata.raid.attemptCount', 0));
       if (!_.isEmpty(oid) && attemptCount > 0) {
         sails.log.verbose(`${this.logHeader} mintPostCreateRetryHandler() -> Scheduled for ${oid} `);
@@ -353,7 +353,7 @@ export module Services {
         const contribVal = _.get(record, `metadata.${fieldName}`) as unknown;
         const contribConfig = contributorMapConfig[fieldName];
         if (Array.isArray(contribVal)) {
-          for (let entry of contribVal as Array<Record<string, unknown>>) {
+          for (const entry of contribVal as Array<Record<string, unknown>>) {
             this.buildContribVal(contributors, entry, contribConfig, startDate, endDate);
           }
         } else {
@@ -433,7 +433,7 @@ export module Services {
     private setContributorFlags(contrib: Record<string, unknown>, contribConfig: Record<string, unknown>) {
       // setting the required flags: https://metadata.raid.org/en/latest/core/contributors.html
       const configFlags = sails.config.raid.types.contributor.flags;
-      for (let configFlagName in configFlags) {
+      for (const configFlagName in configFlags) {
           if (_.includes(configFlags[configFlagName], contribConfig.position as string)) {
           _.set(contrib, configFlagName, true);
         }
@@ -484,7 +484,7 @@ export module Services {
 
     private getMappedData(record: RecordLike, fields: Record<string, unknown>, options: RaidOptions): MappedData {
       const mappedData: MappedData = {};
-      for (let fieldName in fields) {
+      for (const fieldName in fields) {
         try {
           const fieldConfig = _.get(fields, fieldName, {}) as Record<string, unknown>;
           const src = String(_.get(fieldConfig, 'src', ''));
@@ -506,7 +506,7 @@ export module Services {
               imports: imports
             };
             data = _.template(src, templateData)();
-            if (Boolean(_.get(fieldConfig, 'parseJson', false))) {
+            if (_.get(fieldConfig, 'parseJson', false)) {
               data = JSON.parse(data);
             }
           } else {
@@ -531,7 +531,7 @@ export module Services {
 
     public getSubject(record: RecordLike, options: RaidOptions, fieldConfig?: Record<string, unknown>, subjects: Array<Record<string, unknown>> = [], subjectType: string = '', subjectData?: Array<Record<string, unknown>>) {
       if (_.isArray(subjectData) && !_.isEmpty(subjectData) && !_.isEmpty(subjectType)) {
-        for (let subject of subjectData) {
+        for (const subject of subjectData) {
           const notation = String(_.get(subject, 'notation', ''));
           const label = String(_.get(subject, 'label', ''));
           subjects.push({
@@ -558,13 +558,13 @@ export module Services {
         // don't save the response object as it contains the auth token
         _.set(record as Record<string, unknown>, 'metaMetadata.raid.response', metaMetadataInfo);
       }
-      let alsoSaveRaidToOid = _.get(options, 'request.alsoSaveRaidToOid', []) as Array<{ oidPath?: string; raidPath?: string }>;
+      const alsoSaveRaidToOid = _.get(options, 'request.alsoSaveRaidToOid', []) as Array<{ oidPath?: string; raidPath?: string }>;
       if (!_.isEmpty(alsoSaveRaidToOid)) {
         sails.log.verbose(`${this.logHeader} saveRaid() -> Configured to save to associated records, config: ${JSON.stringify(alsoSaveRaidToOid)}`)
-        for (let saveOidConfig of alsoSaveRaidToOid) {
+        for (const saveOidConfig of alsoSaveRaidToOid) {
           const oidPath = String(saveOidConfig.oidPath ?? '');
           const raidPath = String(saveOidConfig.raidPath ?? '');
-          let optOid = _.get(record, oidPath);
+          const optOid = _.get(record, oidPath);
           if (!_.isEmpty(optOid)) {
             sails.log.verbose(`${this.logHeader} saveRaid() -> Saving to associated record: ${optOid}`);
             const updateResp = await RecordsService.appendToRecord(String(optOid), raid.id, raidPath);

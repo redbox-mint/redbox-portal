@@ -2,7 +2,6 @@ import { Observable } from 'rxjs';
 import { Services as services } from '../CoreService';
 import type { WorkspaceAsyncAttributes } from '../waterline-models/WorkspaceAsync';
 
-const util = require('util');
 import { DateTime } from 'luxon';
 
 
@@ -15,7 +14,7 @@ type WorkspaceAsyncStartInput = {
   args?: unknown;
 };
 
-export module Services {
+export namespace Services {
   /**
    * WorkspaceAsync Service
    *
@@ -73,7 +72,7 @@ export module Services {
       this.pending().subscribe((pending: WorkspaceAsyncAttributes[]) => {
         _.forEach(pending, (wa: WorkspaceAsyncAttributes) => {
           const args = wa.args || null;
-          sails.services[wa.service][wa.method](args).subscribe((message: unknown) => {
+          (sails.services[wa.service][wa.method](args) as Observable<unknown>).subscribe((message: unknown) => {
             this.update(wa.id, {status: 'finished', message: message}).subscribe();
           }, (error: unknown) => {
             this.update(wa.id, {status: 'error', message: error}).subscribe();

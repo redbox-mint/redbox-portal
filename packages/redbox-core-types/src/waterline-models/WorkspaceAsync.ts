@@ -1,5 +1,4 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, toWaterlineModelDef } from '../decorators';
 
 @Entity('workspaceasync')
@@ -57,5 +56,5 @@ export interface WorkspaceAsyncWaterlineModel extends Sails.Model<WorkspaceAsync
 }
 
 declare global {
-  var WorkspaceAsync: WorkspaceAsyncWaterlineModel;
+  const WorkspaceAsync: WorkspaceAsyncWaterlineModel;
 }

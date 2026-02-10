@@ -1,5 +1,4 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, BelongsTo, toWaterlineModelDef } from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
 import { RoleAttributes } from './Role';
@@ -43,5 +42,5 @@ export interface PathRuleWaterlineModel extends Sails.Model<PathRuleAttributes> 
 }
 
 declare global {
-  var PathRule: PathRuleWaterlineModel;
+  const PathRule: PathRuleWaterlineModel;
 }

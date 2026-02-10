@@ -1,5 +1,4 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, BelongsTo, toWaterlineModelDef } from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
 
@@ -30,5 +29,5 @@ export interface AppConfigWaterlineModel extends Sails.Model<AppConfigAttributes
 }
 
 declare global {
-  var AppConfig: AppConfigWaterlineModel;
+  const AppConfig: AppConfigWaterlineModel;
 }

@@ -1,4 +1,3 @@
-import { TranslationService } from "../services";
 import { Services } from "../services/TranslationService";
 import { ErrorResponseItemV2 } from "./api";
 
@@ -22,7 +21,7 @@ export class RBValidationError extends Error {
    * @param build.displayErrors The display errors. These are sent to the end user.
    */
   constructor(build: { message?: string, options?: RBErrorOptions, displayErrors?: ErrorResponseItemV2[] } = {}) {
-    super(build.message ?? "", build.options as any ?? {});
+    super(build.message ?? "", build.options ?? {});
     this.name = RBValidationError.errorName;
     this._displayErrors = build.displayErrors ?? [];
   }
@@ -65,7 +64,7 @@ export class RBValidationError extends Error {
       collectedErrors.push(error);
 
       // Extract and store displayErrors from any RBValidationErrors
-      const maybeDisplayErrors = (error as any)?.displayErrors;
+      const maybeDisplayErrors = (error as RBValidationError)?.displayErrors;
       if (RBValidationError.isRBValidationError(error) || Array.isArray(maybeDisplayErrors)) {
         collectedDisplayErrors.push(...(maybeDisplayErrors ?? []));
       }

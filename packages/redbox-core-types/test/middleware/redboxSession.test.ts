@@ -5,7 +5,7 @@ import * as sinon from 'sinon';
 describe('Middleware: redboxSession', () => {
 
   it('should return a function', () => {
-    const middleware = redboxSession({});
+    const middleware = redboxSession({ secret: 'test-secret' });
     expect(middleware).to.be.a('function');
   });
 

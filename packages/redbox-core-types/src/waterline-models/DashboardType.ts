@@ -1,9 +1,8 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, BelongsTo, BeforeCreate, toWaterlineModelDef } from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
 
-const assignKey = (dashboardType: Record<string, any>, cb: (err?: Error) => void) => {
+const assignKey = (dashboardType: Record<string, unknown>, cb: (err?: Error) => void) => {
   dashboardType.key = `${dashboardType.branding}_${dashboardType.name}`;
   cb();
 };
@@ -44,5 +43,5 @@ export interface DashboardTypeWaterlineModel extends Sails.Model<DashboardTypeAt
 }
 
 declare global {
-  var DashboardType: DashboardTypeWaterlineModel;
+  const DashboardType: DashboardTypeWaterlineModel;
 }

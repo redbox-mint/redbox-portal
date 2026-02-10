@@ -1,12 +1,12 @@
-import { Observable, zip, of, firstValueFrom } from 'rxjs';
-import { mergeMap as flatMap } from 'rxjs/operators';
+import { Observable, firstValueFrom } from 'rxjs';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import { DashboardTypeModel } from '../model/storage/DashboardTypeModel';
 import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
 import type { DashboardTypeDefinition } from '../config/dashboardtype.config';
 
 
-export module Services {
+export namespace Services {
 
   /**
    * Dashboard row configuration interface
@@ -72,10 +72,10 @@ export module Services {
       'extractDashboardTemplates'
     ];
 
-    protected dashboardTypes: Array<{ name?: string }> = [];
+    protected dashboardTypes: DashboardTypeModel[] = [];
 
-    public async bootstrap(defBrand: BrandingModel): Promise<Array<{ name?: string }>> {
-      let dashboardTypes = await DashboardType.find({ branding: defBrand.id }) as Array<{ name?: string }>;
+    public async bootstrap(defBrand: BrandingModel): Promise<DashboardTypeModel[]> {
+      let dashboardTypes = await DashboardType.find({ branding: defBrand.id }) as DashboardTypeModel[];
       if (sails.config.appmode.bootstrapAlways) {
         await DashboardType.destroy({ branding: defBrand.id });
         dashboardTypes = [];
@@ -86,11 +86,11 @@ export module Services {
       // }
       sails.log.verbose(`DashboardTypes found: ${dashboardTypes} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
       if (_.isEmpty(dashboardTypes)) {
-        const dashTypes: Array<{ name?: string }> = [];
+        const dashTypes: DashboardTypeModel[] = [];
         sails.log.verbose("Bootstrapping DashboardTypes definitions... ");
-        for (let dashboardType in sails.config.dashboardtype) {
-          let config = sails.config.dashboardtype[dashboardType];
-          var createdDashboardType = await firstValueFrom(this.create(defBrand, dashboardType, config));
+        for (const dashboardType in sails.config.dashboardtype) {
+          const config = sails.config.dashboardtype[dashboardType];
+          const createdDashboardType = await firstValueFrom(this.create(defBrand, dashboardType, config));
           dashTypes.push(createdDashboardType);
         };
         this.dashboardTypes = dashTypes;
@@ -102,11 +102,11 @@ export module Services {
       return dashboardTypes
     }
 
-    public create(brand: BrandingModel, name: string, config: DashboardTypeConfig) {
+    public create(brand: BrandingModel, name: string, config: DashboardTypeConfig): Observable<DashboardTypeModel> {
 
       sails.log.verbose(JSON.stringify(config));
 
-      return super.getObservable(DashboardType.create({
+      return super.getObservable<DashboardTypeModel>(DashboardType.create({
         name: name,
         branding: brand.id,
         searchFilters: config.searchFilters,
@@ -115,14 +115,14 @@ export module Services {
       }));
     }
 
-    public get(brand: BrandingModel, name: string) {
+    public get(brand: BrandingModel, name: string): Observable<DashboardTypeModel | null> {
       const criteria: { where: { branding: string; name: string } } = { where: { branding: brand.id, name: name } };
-      return super.getObservable(DashboardType.findOne(criteria));
+      return super.getObservable<DashboardTypeModel | null>(DashboardType.findOne(criteria));
     }
 
-    public getAll(brand: BrandingModel) {
+    public getAll(brand: BrandingModel): Observable<DashboardTypeModel[]> {
       const criteria: { where: { branding: string } } = { where: { branding: brand.id } };
-      return super.getObservable(DashboardType.find(criteria));
+      return super.getObservable<DashboardTypeModel[]>(DashboardType.find(criteria));
     }
 
     private defaultRowConfig: DashboardRowConfig[] = [

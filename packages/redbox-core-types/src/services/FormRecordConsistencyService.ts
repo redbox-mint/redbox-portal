@@ -30,7 +30,7 @@ import {firstValueFrom} from "rxjs";
 
 
 
-export module Services {
+export namespace Services {
 
     export type BasicRedboxRecord = {
         redboxOid: string,

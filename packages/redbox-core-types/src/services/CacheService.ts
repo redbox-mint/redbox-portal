@@ -24,7 +24,7 @@ import { default as NodeCache } from "node-cache";
 import { DateTime } from 'luxon';
 import { readdir, access } from 'node:fs/promises';
 
-export module Services {
+export namespace Services {
   /**
    * Cache related functions...
    *
@@ -58,16 +58,17 @@ export module Services {
           return of(data);
         } else {
           sails.log.verbose(`Getting DB cache entry for name: ${name}`);
-          return super.getObservable(CacheEntry.findOne({name: name})).pipe(flatMap(dbData => {
+          return super.getObservable<Record<string, unknown> | null>(CacheEntry.findOne({name: name})).pipe(flatMap(dbData => {
             if (!_.isEmpty(dbData)) {
               sails.log.verbose(`Got DB cache entry`);
               // check if entry is expired...
-              if (Math.floor(DateTime.local().toSeconds()) - dbData.ts_added > sails.config.custom_cache.cacheExpiry) {
+              const dbDataObj = dbData as { ts_added?: number; data?: unknown };
+              if (Math.floor(DateTime.local().toSeconds()) - (dbDataObj.ts_added ?? 0) > sails.config.custom_cache.cacheExpiry) {
                 sails.log.verbose(`Cache entry for ${name} has expired while on the DB, returning null...`);
                 return of(null);
               } else {
-                this.cache.set(name, dbData.data);
-                return of(dbData.data);
+                this.cache.set(name, dbDataObj.data);
+                return of(dbDataObj.data ?? null);
               }
             }
             sails.log.verbose(`No DB cache entry for: ${name}`);
@@ -96,7 +97,7 @@ export module Services {
       ,flatMap(dbData => {
         return of(dbData);
       }))
-      .subscribe(data => {
+      .subscribe(_data => {
         sails.log.verbose(`Saved local and remote cache for entry:${name}`);
       }, error => {
         sails.log.error(`Error updating cache for entry ${name}:`);
@@ -115,7 +116,7 @@ export module Services {
           try {
             await access(`${ngPath}/browser`);
             ngPath = `${ngPath}/browser`;
-          } catch (error) {
+          } catch (_error) {
             sails.log.verbose(`Detected legacy angular app: ${ngPath}`);
             continue;
           }

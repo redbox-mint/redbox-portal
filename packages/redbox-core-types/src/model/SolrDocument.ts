@@ -6,7 +6,7 @@ export class SolrDocument {
     harvestId: string;
     metaMetadata: RecordMetaMetadata;
     metadata: {
-        [key: string]: any;
+        [key: string]: unknown;
     };
     workflow: RecordWorkflow;
     authorization: RecordAuthorization;

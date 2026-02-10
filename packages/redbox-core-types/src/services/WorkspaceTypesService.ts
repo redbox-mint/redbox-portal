@@ -32,7 +32,7 @@ type WorkspaceTypeConfig = {
   externallyProvisioned?: boolean;
 };
 
-export module Services {
+export namespace Services {
   /**
    * WorkflowSteps related functions...
    *
@@ -53,19 +53,19 @@ export module Services {
         const obsArr: Array<Observable<unknown>> = [];
         sails.log.debug('WorkspaceTypes::Bootstrap');
         sails.log.debug(sails.config.workspacetype);
-        let workspaceTypes: string[] = [];
+        const workspaceTypes: string[] = [];
         if (!_.isEmpty(sails.config.workspacetype)) {
           sails.log.verbose("Bootstrapping workspace type definitions... ");
           _.forOwn(sails.config.workspacetype, (config: WorkspaceTypeConfig, workspaceType: string) => {
             workspaceTypes.push(workspaceType);
-            var obs = this.create(defBrand, config);
+            const obs = this.create(defBrand, config);
             obsArr.push(obs);
           });
         }
         // check if we have services to bootstrap...
         if (!_.isEmpty(sails.config.workspacetype_services) && _.isArray(sails.config.workspacetype_services)) {
           _.each(sails.config.workspacetype_services, (wservice: string) => {
-            obsArr.push(sails.services[wservice]['bootstrap']());
+            obsArr.push(sails.services[wservice]['bootstrap']() as Observable<unknown>);
           });
         }
         if (_.isEmpty(obsArr)) {
@@ -77,8 +77,8 @@ export module Services {
       }));
     }
 
-    public create(brand: BrandingLike, workspaceType: WorkspaceTypeConfig) {
-      return super.getObservable(
+    public create(brand: BrandingLike, workspaceType: WorkspaceTypeConfig): Observable<Record<string, unknown>> {
+      return super.getObservable<Record<string, unknown>>(
         WorkspaceType.create({
           name: workspaceType['name'],
           label: workspaceType['label'],
@@ -91,12 +91,12 @@ export module Services {
       )
     }
 
-    public get(brand: BrandingLike) {
-      return super.getObservable(WorkspaceType.find({ branding: brand.id }));
+    public get(brand: BrandingLike): Observable<Record<string, unknown>[]> {
+      return super.getObservable<Record<string, unknown>[]>(WorkspaceType.find({ branding: brand.id }));
     }
 
-    public getOne(brand: BrandingLike, name: string) {
-      return super.getObservable(WorkspaceType.findOne({ branding: brand.id, name: name }));
+    public getOne(brand: BrandingLike, name: string): Observable<Record<string, unknown> | null> {
+      return super.getObservable<Record<string, unknown> | null>(WorkspaceType.findOne({ branding: brand.id, name: name }));
     }
   }
 }

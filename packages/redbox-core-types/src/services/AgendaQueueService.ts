@@ -59,7 +59,7 @@ type AgendaJobHandler = (job: Job) => Promise<void>;
 
 
 
-export module Services {
+export namespace Services {
   /**
    * Service class for queuing using Agenda: https://github.com/agenda/agenda
    *
@@ -124,7 +124,7 @@ export module Services {
         await that.agenda.start();
 
         //Create indexes after agenda start
-        const collectionName = _.get(agendaOpts, 'collection', 'agendaJobs');
+        const collectionName = String(_.get(agendaOpts, 'collection', 'agendaJobs'));
         await dbManager.collection(collectionName).createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 });
         await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1 });
 
@@ -169,7 +169,7 @@ export module Services {
      */
     public defineJobs(jobs: AgendaJob[], ref: AgendaQueue = this): void {
       _.each(jobs, (job: AgendaJob) => {
-        const serviceFn = _.get(sails.services, job.fnName) as AgendaJobHandler | undefined;
+        const serviceFn = _.get(sails.services, job.fnName) as unknown as AgendaJobHandler | undefined;
         if (_.isUndefined(serviceFn)) {
           sails.log.error(`AgendaQueue:: Job name: ${job.name}'s service function not found: ${job.fnName}`);
           sails.log.error(JSON.stringify(job));
@@ -206,7 +206,7 @@ export module Services {
      */
     public async moveCompletedJobsToHistory(_job: Job) {
       const dbManager = User.getDatastore().manager;
-      const collectionName = _.get(sails.config.agendaQueue, 'collection', 'agendaJobs');
+      const collectionName = String(_.get(sails.config.agendaQueue, 'collection', 'agendaJobs'));
       await dbManager.collection(collectionName).find({ nextRunAt: null }).forEach(async (doc: Record<string, unknown>) => {
         await dbManager.collection(`${collectionName}History`).insertOne(doc);
         await dbManager.collection(collectionName).deleteOne({ _id: (doc as { _id?: unknown })._id });

@@ -143,7 +143,7 @@ const DOMPurify = initialiseDOMPurify();
 
 (globalThis as typeof globalThis & { DOMPurify?: DomPurifyInstance }).DOMPurify = DOMPurify;
 
-export module Services {
+export namespace Services {
   /**
    * SVG and DOM sanitization service using DOMPurify.
    * 
@@ -214,7 +214,7 @@ export module Services {
     }
 
     getMaxBytes(): number {
-      return _.get(sails.config, 'record.form.svgMaxBytes', 1048576); // 1MB default
+      return _.get(sails.config, 'record.form.svgMaxBytes', 1048576) as number; // 1MB default
     }
 
     /**

@@ -48,7 +48,7 @@ interface SolrFlattenOptions {
     object?: boolean;
     overwrite?: boolean;
     maxDepth?: number;
-    transformKey?: Function; 
+    transformKey?: (key: string) => string;
   };
 
 export class SolrField {

@@ -64,7 +64,7 @@ type SolrSearchResponse = {
 };
 
 
-export module Services {
+export namespace Services {
   /**
    * Reporting related functions...
    *
@@ -101,11 +101,11 @@ export module Services {
       let reportModel: ReportWaterlineModel;
       try {
         reportModel = this.getReportModel();
-      } catch (error) {
+      } catch (_error) {
         sails.log.warn(`${this.logHeader} bootstrap() -> Report model unavailable, skipping report bootstrap.`);
         return of({} as ReportModel);
       }
-      return super.getObservable(reportModel.find({
+      return super.getObservable<ReportModel[]>(reportModel.find({
         branding: defBrand.id
       })).pipe(flatMap(reports => {
         if (_.isEmpty(reports)) {
@@ -132,7 +132,7 @@ export module Services {
 
     public findAllReportsForBrand(brand: BrandingModel) {
       const reportModel = this.getReportModel();
-      return super.getObservable(reportModel.find({
+      return super.getObservable<ReportModel[]>(reportModel.find({
         branding: brand.id
       }));
     }
@@ -146,7 +146,7 @@ export module Services {
 
     public create(brand: BrandingModel, name: string, config: ReportConfig): Observable<ReportModel> {
       const reportModel = this.getReportModel();
-      return super.getObservable(reportModel.create({
+      return super.getObservable<ReportModel>(reportModel.create({
         name: name,
         branding: brand.id,
         solrQuery: config.solrQuery,
@@ -165,9 +165,9 @@ export module Services {
 
       if (report.filter != null) {
         let filterQuery = ""
-        for (let filter of report.filter) {
+        for (const filter of report.filter) {
           if (filter.type == ReportFilterType.dateRange) {
-            let paramName = filter.paramName;
+            const paramName = filter.paramName;
             const fromDate = req.param(paramName + "_fromDate");
             const toDate = req.param(paramName + "_toDate");
             const searchProperty = filter.property;
@@ -177,10 +177,10 @@ export module Services {
             filterQuery = filterQuery + (toDate == null ? "NOW" : toDate) + "]";
           }
           if (filter.type == ReportFilterType.text) {
-            let paramName = filter.paramName;
-            let value = req.param(paramName)
+            const paramName = filter.paramName;
+            const value = req.param(paramName)
             if (!_.isEmpty(value)) {
-              let searchProperty = filter.property;
+              const searchProperty = filter.property;
               filterQuery = filterQuery + "&fq=" + searchProperty + ":"
               filterQuery = filterQuery + value + "*"
             }
@@ -194,14 +194,14 @@ export module Services {
 
     public async getResults(brand: BrandingModel, name = '', req: RequestLike, start = 0, rows = 10) {
       const reportModel = this.getReportModel();
-      const reportObs = super.getObservable(reportModel.findOne({
+      const reportObs = super.getObservable<ReportModel | null>(reportModel.findOne({
         key: brand.id + "_" + name
       }));
 
       let reportObject = await firstValueFrom(reportObs)
 
 
-      reportObject = this.convertLegacyReport(reportObject);
+      reportObject = this.convertLegacyReport(reportObject as ReportModel);
       const report: ReportConfig = reportObject as ReportConfig;
       if (report.reportSource == ReportSource.database) {
         if (!report.databaseQuery) {
@@ -217,11 +217,11 @@ export module Services {
         }
         const url = this.buildSolrParams(brand, req, report, start, rows, 'json');
         const solrResults = await this.getSearchService().searchAdvanced(report.solrQuery.searchCore, '', url);
-        return this.getTranslateSolrResultToReportResult(solrResults, rows);
+        return this.getTranslateSolrResultToReportResult(solrResults as SolrSearchResponse, rows);
       }
     }
 
-    getTranslateDatabaseResultToReportResult(dbResult: ListAPIResponse<Record<string, unknown>>, report: ReportConfig) {
+    getTranslateDatabaseResultToReportResult(dbResult: ListAPIResponse<Record<string, unknown>>, _report: ReportConfig) {
       const totalItems = dbResult.summary.numFound;
       const startIndex = dbResult.summary.start;
       const pageNumber = dbResult.summary.page;
@@ -248,9 +248,9 @@ export module Services {
     buildNamedQueryParamMap(req: RequestLike, report: ReportConfig) {
       const paramMap: Record<string, unknown> = {}
       if (report.filter != null) {
-        for (let filter of report.filter) {
+        for (const filter of report.filter) {
           if (filter.type == ReportFilterType.dateRange) {
-            let paramName = filter.paramName;
+            const paramName = filter.paramName;
             const fromDate = req.param(paramName + "_fromDate");
             const toDate = req.param(paramName + "_toDate");
             if (filter.database) {
@@ -259,8 +259,8 @@ export module Services {
             }
           }
           if (filter.type == ReportFilterType.text) {
-            let paramName = filter.paramName;
-            let value = req.param(paramName)
+            const paramName = filter.paramName;
+            const value = req.param(paramName)
             paramMap[paramName] = value;
           }
         }
@@ -297,7 +297,7 @@ export module Services {
     }
 
     private getSearchService(): SearchService{
-      return sails.services[sails.config.search.serviceName];
+      return sails.services[sails.config.search.serviceName] as unknown as SearchService;
     }
 
     private convertLegacyReport(report: ReportModel): ReportModel {
@@ -316,7 +316,7 @@ export module Services {
 
     public async getCSVResult(brand: BrandingModel, name = '', req: RequestLike, start = 0, rows = 1000000000) {
       const reportModel = this.getReportModel();
-      var report:ReportModel = await firstValueFrom(super.getObservable(reportModel.findOne({
+      let report:ReportModel = await firstValueFrom(super.getObservable<ReportModel>(reportModel.findOne({
         key: brand.id + "_" + name
       })));
 
@@ -339,14 +339,14 @@ export module Services {
         }
         const url = this.buildSolrParams(brand, req, report, start, rows, 'json');
         const solrResults = await this.getSearchService().searchAdvanced(report.solrQuery.searchCore, '', url); 
-        result = this.getTranslateSolrResultToReportResult(solrResults, rows);
+        result = this.getTranslateSolrResultToReportResult(solrResults as SolrSearchResponse, rows);
       }
 
       const headerRow: string[] = this.getCSVHeaderRow(report)
-      let optTemplateData = this.buildOptTemplateData(req)
-      let dataRows: string[][] = this.getDataRows(report, result.records, optTemplateData);
+      const optTemplateData = this.buildOptTemplateData(req)
+      const dataRows: string[][] = this.getDataRows(report, result.records, optTemplateData);
       dataRows.unshift(headerRow);
-      let csvString = stringify(dataRows);
+      const csvString = stringify(dataRows);
       return csvString;
 
     }
@@ -360,9 +360,9 @@ export module Services {
 
     //TODO: It's public only because we need it at the moment to unit test it
     public getDataRows(report: ReportConfig, data: Array<Record<string, unknown>>, optTemplateData: Record<string, unknown>): string[][] {
-      let dataRows: string[][] = [];
+      const dataRows: string[][] = [];
 
-      for (let row of data) {
+      for (const row of data) {
         dataRows.push(this.getDataRow(row, report.columns, optTemplateData));
       }
 
@@ -370,8 +370,8 @@ export module Services {
     }
 
     getDataRow(row: Record<string, unknown>, columns: ReportColumnLike[], optTemplateData: Record<string, unknown>): string[] {
-      let dataRow: string[] = [];
-      for (let column of columns) {
+      const dataRow: string[] = [];
+      for (const column of columns) {
         dataRow.push(this.getColValue(row, column, optTemplateData))
       }
       return dataRow;
@@ -382,7 +382,7 @@ export module Services {
         const retVal: string[] = [];
         const values = _.get(row, col.property);
         if (Array.isArray(values)) {
-          for (let val of values) {
+          for (const val of values) {
             retVal.push(this.getEntryValue(row, col, val, optTemplateData) as string);
           }
         }
@@ -455,7 +455,7 @@ export module Services {
      * @param additionalImports Additional data to merge into context (deprecated, for backward compat)
      * @param field Optional field data (deprecated, for backward compat)
      */
-    runTemplate(data: Record<string, unknown>, config: TemplateConfig, additionalImports: Record<string, unknown> = {}, field: unknown = undefined) {
+    runTemplate(data: Record<string, unknown>, config: TemplateConfig, additionalImports: Record<string, unknown> = {}, _field: unknown = undefined) {
       try {
         const template = this.getCompiledTemplate(config.template);
         // Build context compatible with the new Handlebars templates
@@ -525,8 +525,8 @@ export module Services {
     }
 
     public getCSVHeaderRow(report: ReportConfig): string[] {
-      let headerRow: string[] = [];
-      for (let column of report.columns) {
+      const headerRow: string[] = [];
+      for (const column of report.columns) {
         headerRow.push(column.label)
       }
       return headerRow;
@@ -553,7 +553,7 @@ export module Services {
     }
 
     public getReportDto(reportModel: ReportModel): ReportDto {
-      return this.convertToType<ReportDto>(reportModel, new ReportDto(), {
+      return this.convertToType<ReportDto>(reportModel as unknown as Record<string, unknown>, new ReportDto() as unknown as Record<string, unknown>, {
         "solr_query": "solrQuery"
       }, true);
     }

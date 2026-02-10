@@ -21,6 +21,7 @@ import { Observable, from, of } from 'rxjs';
 import { mergeMap as flatMap, last } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import { RoleModel } from '../model/storage/RoleModel';
 import { default as UrlPattern } from 'url-pattern';
 
 
@@ -43,7 +44,7 @@ type RoleLike = {
   branding?: { name: string };
 };
 
-export module Services {
+export namespace Services {
 
   /**
    * Enforces authorization rules on paths...
@@ -65,20 +66,20 @@ export module Services {
 
     public bootstrap = (_defUser: unknown, defRoles: RoleLike[]) => {
       sails.log.verbose("Bootstrapping path rules....");
-      var defBrand:BrandingModel = BrandingService.getDefault();
+      const defBrand:BrandingModel = BrandingService.getDefault();
       return this.loadRules()
         .pipe(flatMap(rules => {
           if (!rules || rules.length == 0) {
             sails.log.verbose("Rules, don't exist, seeding...");
             const seedRules = sails.config.auth.rules as Array<{ role: string; branding?: string; path: string; can_read?: boolean; can_update?: boolean }>;
             _.forEach(seedRules, (rule) => {
-              const role = RolesService.getRoleWithName(defRoles as any, rule.role);
+              const role = RolesService.getRoleWithName(defRoles as unknown as RoleModel[], rule.role);
               rule.role = role?.id ?? '';
               rule.branding = defBrand.id;
             });
             return from(seedRules)
                            .pipe(flatMap((rule) => {
-                             return super.getObservable(PathRule.create(rule as unknown as PathRuleModel));
+                             return super.getObservable<PathRuleModel>(PathRule.create(rule as unknown as PathRuleModel));
                            })
                            ,last()
                            ,flatMap(() => {
@@ -98,7 +99,7 @@ export module Services {
     * Loads and caches rules...
     */
     public loadRules = (): Observable<PathRuleModel[]> => {
-      return super.getObservable(PathRule.find({}).populate('role').populate('branding'))
+      return super.getObservable<PathRuleModel[]>(PathRule.find({}).populate('role').populate('branding'))
                   .pipe(flatMap((rules: PathRuleModel[]) => {
                     this.pathRules = rules;
                     this.rulePatterns = [];
@@ -113,8 +114,8 @@ export module Services {
     @return PathRule[]
     */
     public getRulesFromPath = (path: string, brand: BrandingModel): PathRuleModel[] | null => {
-      var matchedRulePatterns =  _.filter(this.rulePatterns, (rulePattern: PathRulePattern) => {
-        var pattern = rulePattern.pattern;
+      const matchedRulePatterns =  _.filter(this.rulePatterns, (rulePattern: PathRulePattern) => {
+        const pattern = rulePattern.pattern;
         // matching by path and brand, meaning only brand-specific rules apply
         return pattern.match(path) && rulePattern.rule.branding.id  == brand.id;
       });
@@ -126,9 +127,9 @@ export module Services {
     }
 
     public canRead = (rules: PathRuleModel[], roles: RoleLike[], brandName: string): boolean => {
-      var matchRule = _.filter(rules, (rule: PathRuleModel) => {
+      const matchRule = _.filter(rules, (rule: PathRuleModel) => {
         // user must have this role, and at least can_read
-        var userRole = _.find(roles, (role: RoleLike) => {
+        const userRole = _.find(roles, (role: RoleLike) => {
           // match by id and branding
           return role.id == rule.role.id && rule.branding.name == brandName;
         });
@@ -139,7 +140,7 @@ export module Services {
 
     public canWrite = (rules: PathRuleModel[], roles: RoleLike[], brandName: string): boolean => {
       return _.filter(rules, (rule: PathRuleModel) => {
-        var userRole = _.find(roles, (role: RoleLike) => {
+        const userRole = _.find(roles, (role: RoleLike) => {
           // match by id and branding
           return role.id == rule.role.id && rule.branding.name == brandName;
         });

@@ -1,5 +1,4 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, BelongsTo, toWaterlineModelDef } from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
 
@@ -66,5 +65,5 @@ export interface AsynchProgressWaterlineModel extends Sails.Model<AsynchProgress
 }
 
 declare global {
-  var AsynchProgress: AsynchProgressWaterlineModel;
+  const AsynchProgress: AsynchProgressWaterlineModel;
 }

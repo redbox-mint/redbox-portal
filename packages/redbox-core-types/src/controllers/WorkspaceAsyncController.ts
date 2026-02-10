@@ -1,7 +1,7 @@
 import { Controllers as controllers } from '../CoreController';
 
 
-export module Controllers {
+export namespace Controllers {
   /**
    * WorkspaceAsync Controller
    *
@@ -12,7 +12,7 @@ export module Controllers {
     /**
      * Methods required for workspace dashboard.
      */
-    protected override _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'start',
       'loop',
       'status'
@@ -21,12 +21,12 @@ export module Controllers {
     public start(req: Sails.Req, res: Sails.Res) {
       const name = req.param('name');
       const recordType = req.param('recordType');
-      const username = req.username;
+      const username = req.username as string;
       const method = req.param('method');
       const service = req.param('service');
       const args = req.param('args');
       return WorkspaceAsyncService.start({ name, recordType, username, service, method, args })
-        .subscribe((response: unknown) => {
+        .subscribe((_response: unknown) => {
           this.sendResp(req, res, { data: {}, headers: this.getNoCacheHeaders() });
         }, (error: unknown) => {
           sails.log.error(error);
