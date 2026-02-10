@@ -70,6 +70,10 @@ import {FieldModelDefinitionFrame} from "../field-model.outline";
 import {ILogger} from "../../logger.interface";
 import {FormConfig} from "../form-config.model";
 import {FormPathHelper} from "./common.model";
+import {
+    QuestionTreeFieldComponentDefinitionOutline,
+    QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline
+} from "../component/question-tree.outline";
 
 /**
  * Visit each form config component and extract the value for each field.
@@ -309,6 +313,19 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+    }
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+        this.setFromModelDefinition(item);
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

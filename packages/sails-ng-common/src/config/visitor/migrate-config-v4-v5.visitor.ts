@@ -124,6 +124,9 @@ import {
     ReusableFormComponentDefinitionOutline
 } from "../component/reusable.outline";
 import {ReusableFieldComponentConfig} from "../component/reusable.model";
+import { QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline } from "../component/question-tree.outline";
+import {QuestionTreeFieldComponentDefinitionOutline} from "../component/question-tree.outline";
+import {QuestionTreeFieldComponentConfig, QuestionTreeFieldModelConfig} from "../component/question-tree.model";
 
 interface V4ClassNames {
     v4ClassName: string;
@@ -1016,6 +1019,24 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.populateFormComponent(item);
     }
 
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new QuestionTreeFieldComponentConfig();
+        this.sharedPopulateFieldComponentConfig(item.config, field);
+    }
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new QuestionTreeFieldModelConfig();
+        this.sharedPopulateFieldModelConfig(item.config, field);
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+    
     /* Shared */
 
     protected acceptV4FormConfigPath(item: CanVisit, more?: LineagePathsPartial, v4FormPath?: string[]): void {

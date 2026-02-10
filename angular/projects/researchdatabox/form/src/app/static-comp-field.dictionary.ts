@@ -26,7 +26,9 @@ import {
   CheckboxInputComponentName, DropdownInputComponentName, RadioInputComponentName, DateInputComponentName,
   GroupFieldComponentName,
   TabLayoutName, TabContentLayoutName, RepeatableElementLayoutName, DefaultLayoutName, StaticClassMapType,
+  QuestionTreeModelName, QuestionTreeComponentName,
 } from "@researchdatabox/sails-ng-common";
+import {QuestionTreeComponent, QuestionTreeModel} from "./component/question-tree.component";
 
 /*
  * The Component classes.
@@ -48,6 +50,7 @@ export const StaticComponentClassMap: StaticComponentClassMapType = {
   [DropdownInputComponentName]: DropdownInputComponent,
   [RadioInputComponentName]: RadioInputComponent,
   [DateInputComponentName]: DateInputComponent,
+  [QuestionTreeComponentName]: QuestionTreeComponent,
 };
 
 /*
@@ -64,7 +67,8 @@ export const StaticModelClassMap: StaticModelClassMapType = {
   [CheckboxInputModelName]: CheckboxInputModel,
   [DropdownInputModelName]: DropdownInputModel,
   [RadioInputModelName]: RadioInputModel,
-  [DateInputModelName]: DateInputModel
+  [DateInputModelName]: DateInputModel,
+  [QuestionTreeModelName]: QuestionTreeModel,
 };
 
 /*

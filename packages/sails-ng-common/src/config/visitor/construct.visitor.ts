@@ -162,6 +162,13 @@ import {FieldModelConfigFrame, FieldModelDefinitionOutline} from "../field-model
 import {FormOverride} from "../form-override.model";
 import {FormPathHelper, PropertiesHelper} from "./common.model";
 import {LineagePath} from "../names/naming-helpers";
+import {
+    QuestionTreeComponentName, QuestionTreeFieldComponentDefinitionFrame,
+    QuestionTreeFieldComponentDefinitionOutline, QuestionTreeFieldModelDefinitionFrame,
+    QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline,
+    QuestionTreeModelName
+} from "../component/question-tree.outline";
+import {QuestionTreeFieldComponentConfig, QuestionTreeFieldModelConfig} from "../component/question-tree.model";
 
 
 /**
@@ -905,6 +912,41 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.populateFormComponent(item);
     }
 
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(currentData, QuestionTreeComponentName)) {
+            throw new Error(`Invalid ${QuestionTreeComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new QuestionTreeFieldComponentConfig();
+
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+    }
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<QuestionTreeFieldModelDefinitionFrame>(currentData, QuestionTreeModelName)) {
+            throw new Error(`Invalid ${QuestionTreeModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+
+        // Create the class instance for the config
+        item.config = new QuestionTreeFieldModelConfig();
+
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item, currentData?.config);
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+    
     /* Shared */
 
     protected constructFormComponent(item: FormComponentDefinitionFrame): AllFormComponentDefinitionOutlines {

@@ -79,6 +79,10 @@ import {FormConfig} from "../form-config.model";
 import {FormPathHelper} from "./common.model";
 import {DataValueFormConfigVisitor} from "./data-value.visitor";
 import {buildLineagePaths} from "../names/naming-helpers";
+import {
+    QuestionTreeFieldComponentDefinitionOutline,
+    QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline
+} from "../component/question-tree.outline";
 
 /**
  * Visit each form config component and run its validators.
@@ -334,6 +338,18 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+    }
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

@@ -39,6 +39,7 @@ import { TextAreaComponent } from './component/text-area.component';
 import { DropdownInputComponent } from './component/dropdown-input.component';
 import { CheckboxInputComponent } from './component/checkbox-input.component';
 import { RadioInputComponent } from './component/radio-input.component';
+import { QuestionTreeComponent } from './component/question-tree.component';
 import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
 import { provideFormFeature } from './form-state';
@@ -67,7 +68,8 @@ import { provideStoreDevtools } from '@ngrx/store-devtools';
     DropdownInputComponent,
     CheckboxInputComponent,
     RadioInputComponent,
-    DateInputComponent
+    DateInputComponent,
+    QuestionTreeComponent,
   ],
   imports: [
     CommonModule,

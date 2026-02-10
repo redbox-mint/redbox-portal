@@ -68,6 +68,10 @@ import {
 import {FormComponentDefinitionOutline, FormExpressionsConfigFrame} from "../form-component.outline";
 import {ILogger} from "../../logger.interface";
 import {FormPathHelper} from "./common.model";
+import {
+    QuestionTreeFieldComponentDefinitionOutline,
+    QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline
+} from "../component/question-tree.outline";
 
 
 /**
@@ -303,6 +307,18 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+    }
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

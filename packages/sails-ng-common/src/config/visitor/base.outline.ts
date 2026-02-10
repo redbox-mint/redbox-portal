@@ -65,6 +65,10 @@ import {
     ReusableFieldComponentDefinitionOutline,
     ReusableFormComponentDefinitionOutline
 } from "../component/reusable.outline";
+import {
+    QuestionTreeFieldComponentDefinitionOutline, QuestionTreeFieldModelDefinitionOutline,
+    QuestionTreeFormComponentDefinitionOutline
+} from "../component/question-tree.outline";
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -96,10 +100,10 @@ export interface FormConfigVisitorOutline {
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
 
     visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void;
+    
+    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
 
     /* Repeatable  */
-
-    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void;
 
@@ -194,4 +198,12 @@ export interface FormConfigVisitorOutline {
     visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void;
 
     visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void;
+
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void;
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void;
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void;
 }

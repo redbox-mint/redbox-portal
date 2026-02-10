@@ -68,6 +68,8 @@ export * from "./config/component/validation-summary.model";
 export * from "./config/component/validation-summary.outline";
 export * from "./config/component/date-input.model";
 export * from "./config/component/date-input.outline";
+export * from "./config/component/question-tree.model";
+export * from "./config/component/question-tree.outline";
 // validation
 export * from "./validation/helpers";
 export * from "./validation/form.model";

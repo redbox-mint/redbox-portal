@@ -28,6 +28,7 @@ import {DropdownInputTypes} from "./component/dropdown-input.outline";
 import {RadioInputTypes} from "./component/radio-input.outline";
 import {DateInputTypes} from "./component/date-input.outline";
 import {ReusableTypes} from "./component/reusable.outline";
+import {QuestionTreeTypes} from "./component/question-tree.outline";
 
 
 /**
@@ -49,6 +50,7 @@ export type AllTypes = DefaultLayoutTypes
     | RadioInputTypes
     | DateInputTypes
     | ReusableTypes
+    | QuestionTreeTypes
     ;
 
 
