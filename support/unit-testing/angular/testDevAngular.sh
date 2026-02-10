@@ -16,8 +16,9 @@ function testAngular() {
   fi
 }
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
+export NVM_DIR="${NVM_DIR:-/usr/local/share/nvm}"
+[ -s "$HOME/.nvm/nvm.sh" ] && NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 cd angular
 nvm i < .nvmrc && npm install
 

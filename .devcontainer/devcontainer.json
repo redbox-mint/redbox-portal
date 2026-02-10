@@ -1,0 +1,19 @@
+{
+  "name": "redbox-portal",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceFolder": "/workspaces/redbox-portal",
+  "remoteUser": "vscode",
+  "runArgs": ["--privileged"],
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "containerEnv": {
+    "COMPOSE_PROFILES": "mount",
+    "NVM_DIR": "/usr/local/share/nvm",
+    "CHROME_BIN": "/opt/chrome/chrome-linux64/chrome"
+  },
+  "forwardPorts": [1500, 9876, 27017, 8983, 80, 1501, 9838, 8080, 1025, 8025],
+  "postCreateCommand": "bash -lc \"bash .devcontainer/postCreate.sh\""
+}

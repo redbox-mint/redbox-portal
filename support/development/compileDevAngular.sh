@@ -15,8 +15,9 @@ function buildAngularApp() {
   (node_modules/.bin/ng build --configuration=development $NG_BUILD_WATCH $NG_BUILD_PREFIX @researchdatabox/${1} )
 }
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
+export NVM_DIR="${NVM_DIR:-/usr/local/share/nvm}"
+[ -s "$HOME/.nvm/nvm.sh" ] && NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 cd angular
 nvm i < .nvmrc 
 ARCH=$(uname -m)

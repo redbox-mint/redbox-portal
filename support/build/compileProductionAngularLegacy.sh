@@ -4,8 +4,9 @@ function buildAngularApp() {
   (node_modules/.bin/ng build --app=${1} --prod --build-optimizer --output-hashing=none --extract-css true)
 }
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
+export NVM_DIR="${NVM_DIR:-/usr/local/share/nvm}"
+[ -s "$HOME/.nvm/nvm.sh" ] && NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 cd angular-legacy
 nvm i < .nvmrc && npm ci --legacy-peer-deps
 
