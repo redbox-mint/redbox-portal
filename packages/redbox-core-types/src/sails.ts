@@ -54,22 +54,6 @@ declare global {
 			[method: string]: (...args: unknown[]) => unknown;
 		}
 
-		export interface DatastoreCollection {
-			createIndex: (spec: object) => Promise<unknown>;
-			find: (filter: object) => { forEach: (cb: (doc: globalThis.Record<string, unknown>) => void | Promise<void>) => Promise<void> | void };
-			insertOne: (doc: globalThis.Record<string, unknown>) => Promise<unknown>;
-			deleteOne: (filter: object) => Promise<unknown>;
-		}
-
-		export interface DatastoreManager {
-			collection: (name: string) => DatastoreCollection;
-		}
-
-		export interface Datastore {
-			transaction?: <TResult>(cb: (db: unknown) => Promise<TResult>) => Promise<TResult>;
-			manager: DatastoreManager;
-		}
-
 		export interface Application {
 			config: ConfigObject;
 			log: Log;
@@ -88,7 +72,6 @@ declare global {
 			};
 			// Action lookup method
 			getActions(): { [actionName: string]: unknown };
-			getDatastore?(name?: string): Datastore | null;
             on(event: string, cb: (...args: unknown[]) => void): void;
             emit(event: string, ...args: unknown[]): void;
 		}		export interface Hook {
@@ -104,16 +87,17 @@ declare global {
 		export interface Model<T> {
 			attributes: object;
 
-			create(params: object): WaterlinePromise<T>;
-			create(params: Array<object>): WaterlinePromise<T[]>;
-			create(params: object, cb: (err: Error, created: T) => void): void;
-			create(params: Array<object>, cb: (err: Error, created: T[]) => void): void;
+			create(params: object): WaterlinePromise<QueryResult>;
+			create(params: Array<object>): WaterlinePromise<QueryResult>;
+			create(params: object, cb: (err: Error, created: QueryResult) => void): void;
+			create(params: Array<object>, cb: (err: Error, created: Array<QueryResult>) => void): void;
 
 			find(): QueryBuilder;
 			find(params: object): QueryBuilder;
+			find(params: object): WaterlinePromise<Array<QueryResult>>;
 
-			findOne(criteria: object): WaterlinePromise<T | null>;
-			findOne(criteria: object, cb: (err: Error, found: T | null) => void): void;
+			findOne(criteria: object): WaterlinePromise<T>;
+			findOne(criteria: object, cb: (err: Error, found: T) => void): void;
 
 			findOrCreate(criteria: object, values: object): WaterlinePromise<T>;
 			findOrCreate(criteria: object, values: object, cb: (err: Error, found: T) => void): void;
@@ -184,7 +168,12 @@ declare global {
 			addToCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
 			replaceCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
 			removeFromCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
-			getDatastore(): Datastore;
+            getDatastore(): { manager: { collection: (name: string) => {
+              createIndex: (spec: object) => Promise<unknown>;
+              find: (filter: object) => { forEach: (cb: (doc: globalThis.Record<string, unknown>) => void | Promise<void>) => Promise<void> | void };
+              insertOne: (doc: globalThis.Record<string, unknown>) => Promise<unknown>;
+              deleteOne: (filter: object) => Promise<unknown>;
+            } } };
 		}
 
 		export interface WaterlineAttributes {
@@ -223,8 +212,6 @@ declare global {
 			exec(cb: (err: Error, results: T) => void): void;
 			set(values: object): WaterlinePromise<T>;
 			meta(options: object): WaterlinePromise<T>;
-			fetch(): WaterlinePromise<T>;
-			usingConnection(connection: unknown): WaterlinePromise<T>;
 
 			populate(association: string): QueryBuilder;
 			populate(association: string, filter: object): QueryBuilder;
@@ -246,7 +233,6 @@ declare global {
 			exec(cb: (error: Error | null, results: Array<QueryResult>) => void): void;
 			set(values: object): QueryBuilder;
 			meta(options: object): QueryBuilder;
-			usingConnection(connection: unknown): QueryBuilder;
 
 			where(condition: object): QueryBuilder;
 

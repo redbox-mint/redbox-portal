@@ -97,7 +97,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     // Build a form config to store the info needed to build the components.
     const formConfig = this.getFormComponent.formDefMap?.formConfig;
     const groupComponentDefinitions = (this.formFieldCompMapEntry?.compConfigJson?.component?.config as GroupFieldComponentConfig)?.componentDefinitions ?? [];
-    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name;
+    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
     this.elementFormConfig = {
       name: `form-config-generated-group-${formComponentName}`,
       // Store the child component definitions.
@@ -127,27 +127,34 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     const elemVals = this.model.initValue ?? {};
     const formGroupMap = this.formService.groupComponentsByName(this.formComponentsMap);
     for (const key of Object.keys(formGroupMap.withFormControl ?? {})) {
-      const elemVal = elemVals?.[key];
+      // Create the wrapper component.
       const wrapperRef = this.componentContainer.createComponent(FormBaseWrapperComponent<unknown>);
       wrapperRef.instance.defaultComponentConfig = this.elementFormConfig?.defaultComponentConfig;
       const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
       const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
-      if (this.model?.formControl && compInstance?.model) {
-        if (!_isUndefined(elemVal)) {
+
+      // Populate the component model if it has one.
+      const hasModel = this.model?.formControl && compInstance?.model;
+      if (hasModel) {
+        const elemVal = elemVals?.[key];
+        if (compInstance?.model && !_isUndefined(elemVal)) {
           compInstance.model.setValue(elemVal);
         }
         this.model.addItem(key, compInstance.model);
       } else {
-        this.loggerService.warn(`${this.logName}: model or formControl is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`);
+        this.loggerService.warn(`${this.logName}: model or formControl for '${key}' is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`);
       }
 
-      // TODO: is this necessary?
+      // Set the lineage path and reference to the wrapper component.
       if (elemFieldEntry) {
+        const dataModel = hasModel ? [key] : [];
         elemFieldEntry.lineagePaths = this.formService.buildLineagePaths(
           this.formFieldCompMapEntry?.lineagePaths,
           {
             angularComponents: [key],
-            dataModel: [],
+            dataModel: dataModel,
+            // TODO: The formConfig likely needs to be updated with the path to the group child component.
+            //       This requires the index in the componentDefinition, which isn't readily available here.
             formConfig: [],
           }
         )

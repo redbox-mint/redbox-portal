@@ -29,7 +29,7 @@ import {
  *
  * Use Cases:
  * - show value of an editable component (e.g. SimpleInputComponent) in view mode
- * - show a static
+ * - show a static content value
  */
 
 
@@ -55,20 +55,6 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
 
   private injector = inject(Injector);
   private handlebarsTemplateService = inject(HandlebarsTemplateService);
-
-  /*
-   * The below template is a reference that needs to be taken into account for legacy compatibility
-   *
-   * <span *ngSwitchCase="'h1'" role="heading" aria-level="1" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-   * <span *ngSwitchCase="'h2'" role="heading" aria-level="2" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-   * <span *ngSwitchCase="'h3'" role="heading" aria-level="3" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-   * <span *ngSwitchCase="'h4'" role="heading" aria-level="4" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-   * <span *ngSwitchCase="'h5'" role="heading" aria-level="5" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-   * <span *ngSwitchCase="'h6'" role="heading" aria-level="6" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-   * <hr *ngSwitchCase="'hr'" [ngClass]="field.cssClasses">
-   * <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.label == null? '' : field.label + ': '}}{{field.value == null? '' : field.value}}</span>
-   * <p *ngSwitchDefault [ngClass]="field.cssClasses" [innerHtml]="field.value == null? '' : field.value"></p>
-   */
 
   private get getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);

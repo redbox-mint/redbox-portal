@@ -66,6 +66,10 @@ import {
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
 import {ILogger} from "../../logger.interface";
+import {
+    ReusableFieldComponentDefinitionOutline,
+    ReusableFormComponentDefinitionOutline
+} from "../component/reusable.outline";
 
 
 /**
@@ -262,6 +266,16 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    /* Reusable */
+
+    visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void{
+        this.notImplemented();
+    }
+
+    visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void{
         this.notImplemented();
     }
 

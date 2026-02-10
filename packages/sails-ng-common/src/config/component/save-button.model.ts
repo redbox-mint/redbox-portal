@@ -2,7 +2,11 @@ import {FieldComponentConfig, FieldComponentDefinition} from "../field-component
 import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 import {FormComponentDefinition,} from "../form-component.model";
 import {FormConfigVisitorOutline} from "../visitor/base.outline";
-import {FieldComponentConfigKind, FieldComponentDefinitionKind, FormComponentDefinitionKind} from "../shared.outline";
+import {
+    FieldComponentConfigKind,
+    FieldComponentDefinitionKind,
+    FormComponentDefinitionKind
+} from "../shared.outline";
 import {
     SaveButtonComponentName,
     SaveButtonFieldComponentConfigOutline,
@@ -55,10 +59,13 @@ export class SaveButtonFormComponentDefinition extends FormComponentDefinition i
 
 export const SaveButtonMap = [
     {kind: FieldComponentConfigKind, def: SaveButtonFieldComponentConfig},
-    {
-        kind: FieldComponentDefinitionKind,
-        def: SaveButtonFieldComponentDefinition,
-        class: SaveButtonComponentName
-    },
+    {kind: FieldComponentDefinitionKind, def: SaveButtonFieldComponentDefinition, class: SaveButtonComponentName},
     {kind: FormComponentDefinitionKind, def: SaveButtonFormComponentDefinition, class:SaveButtonComponentName},
 ];
+export const SaveButtonDefaults = {
+    [FormComponentDefinitionKind]: {
+        [SaveButtonComponentName]: {
+            [FieldComponentDefinitionKind]: SaveButtonComponentName,
+        },
+    },
+};

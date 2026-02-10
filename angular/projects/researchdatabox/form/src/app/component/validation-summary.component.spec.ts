@@ -39,6 +39,7 @@ describe('ValidationSummaryFieldComponent', () => {
     // act
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
 
+    // assert
     const nativeEl: HTMLElement = fixture.nativeElement;
     const el = nativeEl.querySelector('div.alert-info')!;
     expect(el.textContent).toContain('The form is valid.');
@@ -61,7 +62,7 @@ describe('ValidationSummaryFieldComponent', () => {
             config: {
               value: '',
               validators: [
-                { class: 'required' },
+                {class: 'required'},
               ]
             }
           },
@@ -79,9 +80,28 @@ describe('ValidationSummaryFieldComponent', () => {
     // act
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
 
+    // assert
     const nativeEl: HTMLElement = fixture.nativeElement;
     console.log(nativeEl);
     const el = nativeEl.querySelector('div.alert-danger');
-    expect(el?.innerHTML).toContain('<ul><li><!--container--><a href="#form-item-id-text-1-event">form-item-id-text-1-event</a>');
+    expect(el?.innerHTML).toContain('<a data-validation-summary-id="form-item-id-text-1-event" href="#form-item-id-text-1-event">form-item-id-text-1-event</a>:');
+    expect(el?.innerHTML).toContain('<span data-validation-error-class="required" data-validation-error-message="@validator-error-required"> 1)  </span>');
+
+    // Ensure the expected failures have the expected lineage paths.
+    const validationSummary = fixture.componentInstance.componentDefArr[1].component as ValidationSummaryFieldComponent;
+    expect(validationSummary.allValidationErrorsDisplay).toEqual([
+      {
+        id: 'form-item-id-text-1-event',
+        message: null,
+        errors: [{class: 'required', message: "@validator-error-required", params: {required: true, actual: ''}}],
+        lineagePaths: {
+          formConfig: ['componentDefinitions', 0],
+          dataModel: ['text_1_event'],
+          angularComponents: ['text_1_event'],
+          angularComponentsJsonPointer: '/text_1_event'
+        }
+      }
+    ]);
   });
+
 });

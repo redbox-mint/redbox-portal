@@ -61,6 +61,10 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
+import {
+    ReusableFieldComponentDefinitionOutline,
+    ReusableFormComponentDefinitionOutline
+} from "../component/reusable.outline";
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -185,4 +189,9 @@ export interface FormConfigVisitorOutline {
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void;
 
+    /* Reusable */
+
+    visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void;
+
+    visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void;
 }

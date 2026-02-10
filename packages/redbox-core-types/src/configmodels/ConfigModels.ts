@@ -13,6 +13,13 @@ export interface ConfigModelInfo {
     tsGlob?: string | string[];
 }
 
+export type ConfigModelKey =
+    | 'systemMessage'
+    | 'authorizedDomainsEmails'
+    | 'menu'
+    | 'homePanels'
+    | 'adminSidebar';
+
 export class ConfigModels {
     private static modelsMap: Map<string, ConfigModelInfo> = new Map([
         ['systemMessage', {
@@ -50,12 +57,14 @@ export class ConfigModels {
         }],
     ]);
 
+    public static getModelInfo(key: ConfigModelKey): ConfigModelInfo;
+    public static getModelInfo(key: string): ConfigModelInfo | undefined;
     public static getModelInfo(key: string): ConfigModelInfo | undefined {
         return this.modelsMap.get(key);
     }
 
-    public static getConfigKeys(): string[] {
-        return Array.from(this.modelsMap.keys());
+    public static getConfigKeys(): ConfigModelKey[] {
+        return Array.from(this.modelsMap.keys()) as ConfigModelKey[];
     }
 
     /**

@@ -70,7 +70,8 @@ import {FieldModelDefinitionFrame} from "../field-model.outline";
 import {FormComponentDefinitionOutline} from "../form-component.outline";
 import {ILogger} from "../../logger.interface";
 import {CanVisit} from "./base.outline";
-import {FormConfigPathHelper} from "./common.model";
+import {FormPathHelper} from "./common.model";
+import {LineagePath, LineagePathsPartial} from "../names/naming-helpers";
 
 
 /**
@@ -81,19 +82,15 @@ import {FormConfigPathHelper} from "./common.model";
 export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     protected override logName = "JsonTypeDefSchemaFormConfigVisitor";
 
-    private jsonTypeDefPath: string[];
-
+    private jsonTypeDefPath: LineagePath;
     private jsonTypeDef: Record<string, unknown>;
-
-    private formConfigPathHelper: FormConfigPathHelper;
+    private formPathHelper: FormPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
         this.jsonTypeDefPath = [];
-
         this.jsonTypeDef = {};
-
-        this.formConfigPathHelper = new FormConfigPathHelper(logger, this);
+        this.formPathHelper = new FormPathHelper(logger, this);
     }
 
     /**
@@ -102,10 +99,9 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
      * @param options.form The constructed form.
      */
     start(options: { form: FormConfigOutline }): Record<string, unknown> {
-        this.formConfigPathHelper.reset();
         this.jsonTypeDefPath = [];
-
         this.jsonTypeDef = {};
+        this.formPathHelper.reset();
 
         options.form.accept(this);
         return this.jsonTypeDef;
@@ -116,7 +112,11 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     visitFormConfig(item: FormConfigOutline): void {
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptJsonTypeDefPath(componentDefinition, ["componentDefinitions", index.toString()], ["properties"]);
+            this.acceptJsonTypeDefPath(
+                componentDefinition,
+                this.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index),
+                ["properties"]
+            );
         });
     }
 
@@ -130,7 +130,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Content */
@@ -139,14 +139,19 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Repeatable  */
 
     visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-        if (item.config?.elementTemplate) {
-            this.acceptJsonTypeDefPath(item.config?.elementTemplate, ["config", "elementTemplate"], ["elements"]);
+        const componentDefinition = item.config?.elementTemplate;
+        if (componentDefinition) {
+            this.acceptJsonTypeDefPath(
+                componentDefinition,
+                this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(componentDefinition),
+                ["elements"]
+            );
         }
     }
 
@@ -160,7 +165,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Validation Summary */
@@ -169,7 +174,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Group */
@@ -177,7 +182,11 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.acceptJsonTypeDefPath(componentDefinition, ["config", "componentDefinitions", index.toString()], ["properties"]);
+            this.acceptJsonTypeDefPath(
+                componentDefinition,
+                this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(componentDefinition, index),
+                ["properties"]
+            );
         });
     }
 
@@ -188,7 +197,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Tab  */
@@ -196,7 +205,10 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "tabs", index.toString()]);
+            this.acceptJsonTypeDefPath(
+                componentDefinition,
+                this.formPathHelper.lineagePathsForTabFieldComponentDefinition(componentDefinition, index),
+            );
         });
     }
 
@@ -204,7 +216,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /*  Tab Content */
@@ -212,7 +224,10 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
-            this.formConfigPathHelper.acceptFormConfigPath(componentDefinition, ["config", "componentDefinitions", index.toString()]);
+            this.acceptJsonTypeDefPath(
+                componentDefinition,
+                this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index),
+            );
         });
     }
 
@@ -220,7 +235,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Save Button  */
@@ -229,7 +244,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Text Area */
@@ -242,7 +257,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Default Layout  */
@@ -260,7 +275,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Dropdown Input */
@@ -273,7 +288,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Radio Input */
@@ -286,7 +301,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Date Input */
@@ -299,7 +314,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinitionWithModel(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Shared */
@@ -330,27 +345,24 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
      * @param item The form component definition outline.
      * @protected
      */
-    protected acceptFormComponentDefinitionWithModel(item: FormComponentDefinitionOutline) {
+    protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
         const jsonTypeDefPathKeys = item.model && item.name ? [item.name] : [];
 
-        this.acceptJsonTypeDefPath(item.component, ['component'], jsonTypeDefPathKeys);
+        this.acceptJsonTypeDefPath(item.component, {formConfig: ['component']}, jsonTypeDefPathKeys);
         if (item.model) {
-            this.acceptJsonTypeDefPath(item.model, ['model'], jsonTypeDefPathKeys);
+            this.acceptJsonTypeDefPath(item.model, {formConfig: ['model']}, jsonTypeDefPathKeys);
         }
         if (item.layout) {
-            this.acceptJsonTypeDefPath(item.layout, ['layout'], jsonTypeDefPathKeys);
+            this.acceptJsonTypeDefPath(item.layout, {formConfig: ['layout']}, jsonTypeDefPathKeys);
         }
     }
 
-    protected acceptJsonTypeDefPath(item: CanVisit, formConfigPathKeys: string[], jsonTypeDefPathKeys: string[]): void {
+    protected acceptJsonTypeDefPath(item: CanVisit, more: LineagePathsPartial, jsonTypeDefPathKeys?: LineagePath): void {
         const originalPath = [...this.jsonTypeDefPath];
         try {
-            this.jsonTypeDefPath = [...originalPath, ...jsonTypeDefPathKeys];
-            // TODO: is this needed?
-            // _set(this.result, this.resultPath, {});
-            this.formConfigPathHelper.acceptFormConfigPath(item, formConfigPathKeys);
+            this.jsonTypeDefPath = [...originalPath, ...(jsonTypeDefPathKeys ?? [])];
+            this.formPathHelper.acceptFormPath(item, more);
         } catch (error) {
-            // rethrow error - the finally block will ensure the currentPath is correct
             throw error;
         } finally {
             this.jsonTypeDefPath = originalPath;

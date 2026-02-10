@@ -59,23 +59,24 @@ import {FormService} from "../form.service";
       <ng-container #componentContainer  ></ng-container>
       <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
       <ng-template #beforeComponentTemplate>
-        @if (isVisible) {
-          Before {{ componentName }}
-          <br>
-          }
+<!--        @if (isVisible) {-->
+<!--          Before {{ componentName }}-->
+<!--          <br>-->
+<!--          }-->
         </ng-template>
         <ng-template #afterComponentTemplate>
           @if (isVisible) {
-            After {{ componentName }}
+<!--            After {{ componentName }}-->
             @let componentValidationList = getFormValidatorComponentErrors;
             @if (componentValidationList.length > 0) {
               <div class="invalid-feedback">
-                Field validation errors:
-                <ul>
-                  @for (error of componentValidationList; track $index) {
-                    <li>{{ error.message | i18next: error.params }}</li>
-                  }
-                </ul>
+                Invalid value:
+                @for (error of componentValidationList; track (error.class ?? 'err') + '-' + $index) {
+                  <span [attr.data-validation-error-class]="error.class"
+                        [attr.data-validation-error-message]="error.message">
+                    {{ $index + 1 }}) {{ error.message | i18next: error.params }}
+                  </span>
+                }
               </div>
             }
             <div class="valid-feedback">The field is valid.</div>

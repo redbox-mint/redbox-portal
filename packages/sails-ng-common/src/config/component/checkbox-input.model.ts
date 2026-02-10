@@ -92,4 +92,11 @@ export const CheckboxInputMap = [
     {kind: FieldModelDefinitionKind, def: CheckboxInputFieldModelDefinition, class: CheckboxInputModelName},
     {kind: FormComponentDefinitionKind, def: CheckboxInputFormComponentDefinition, class: CheckboxInputComponentName},
 ];
-
+export const CheckboxInputDefaults = {
+    [FormComponentDefinitionKind]: {
+        [CheckboxInputComponentName]: {
+            [FieldComponentDefinitionKind]: CheckboxInputComponentName,
+            [FieldModelDefinitionKind]: CheckboxInputModelName,
+        }
+    }
+};
