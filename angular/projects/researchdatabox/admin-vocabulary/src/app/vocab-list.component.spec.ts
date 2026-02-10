@@ -1,5 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Pipe, PipeTransform } from '@angular/core';
 import { VocabListComponent } from './vocab-list.component';
+
+@Pipe({ name: 'i18next', standalone: false })
+class I18NextPipeStub implements PipeTransform {
+  transform(value: string): string {
+    return value;
+  }
+}
 
 describe('VocabListComponent', () => {
   let fixture: ComponentFixture<VocabListComponent>;
@@ -7,7 +15,7 @@ describe('VocabListComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [VocabListComponent]
+      declarations: [VocabListComponent, I18NextPipeStub]
     }).compileComponents();
 
     fixture = TestBed.createComponent(VocabListComponent);

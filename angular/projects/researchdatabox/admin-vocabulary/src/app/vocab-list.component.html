@@ -1,34 +1,34 @@
 <div class="panel panel-default vocab-panel-card">
   <div class="panel-heading d-flex justify-content-between align-items-center flex-wrap">
-    <strong>Vocabularies</strong>
-    <small class="text-muted">{{ filteredVocabularies.length }} shown</small>
+    <strong>{{ 'admin-vocabulary-list-title' | i18next }}</strong>
+    <small class="text-muted">{{ 'admin-vocabulary-list-shown' | i18next: { count: filteredVocabularies.length } }}</small>
   </div>
   <div class="panel-body">
     <div class="row no-gutters align-items-start vocab-filters">
       <div class="col-md-5 pr-md-3 mb-2 mb-md-0">
-        <label for="vocab-search" class="small text-uppercase text-muted mb-1">Search</label>
-        <input id="vocab-search" class="form-control form-control-sm" type="search" placeholder="Find by name or slug" [(ngModel)]="searchTerm" />
+        <label for="vocab-search" class="small text-uppercase text-muted mb-1">{{ 'admin-vocabulary-search' | i18next }}</label>
+        <input id="vocab-search" class="form-control form-control-sm" type="search" [attr.placeholder]="'admin-vocabulary-search-placeholder' | i18next" [(ngModel)]="searchTerm" />
       </div>
       <div class="col-md-4 pr-md-3 mb-2 mb-md-0">
-        <label class="small text-uppercase text-muted mb-1 d-block">Source</label>
+        <label class="small text-uppercase text-muted mb-1 d-block">{{ 'admin-vocabulary-source' | i18next }}</label>
         <div class="btn-group" role="group">
-          <button type="button" class="btn" [ngClass]="sourceFilter === 'all' ? 'btn-info text-white' : 'btn-light'" (click)="setSourceFilter('all')">All</button>
-          <button type="button" class="btn" [ngClass]="sourceFilter === 'local' ? 'btn-info text-white' : 'btn-light'" (click)="setSourceFilter('local')">Local</button>
-          <button type="button" class="btn" [ngClass]="sourceFilter === 'rva' ? 'btn-info text-white' : 'btn-light'" (click)="setSourceFilter('rva')">RVA</button>
+          <button type="button" class="btn" [ngClass]="sourceFilter === 'all' ? 'btn-info text-white' : 'btn-light'" (click)="setSourceFilter('all')">{{ 'admin-vocabulary-filter-all' | i18next }}</button>
+          <button type="button" class="btn" [ngClass]="sourceFilter === 'local' ? 'btn-info text-white' : 'btn-light'" (click)="setSourceFilter('local')">{{ 'admin-vocabulary-source-local' | i18next }}</button>
+          <button type="button" class="btn" [ngClass]="sourceFilter === 'rva' ? 'btn-info text-white' : 'btn-light'" (click)="setSourceFilter('rva')">{{ 'admin-vocabulary-source-rva' | i18next }}</button>
         </div>
       </div>
       <div class="col-md-3">
-        <label class="small text-uppercase text-muted mb-1 d-block">Type</label>
+        <label class="small text-uppercase text-muted mb-1 d-block">{{ 'admin-vocabulary-type' | i18next }}</label>
         <div class="btn-group" role="group">
-          <button type="button" class="btn" [ngClass]="typeFilter === 'all' ? 'btn-info text-white' : 'btn-light'" (click)="setTypeFilter('all')">All</button>
-          <button type="button" class="btn" [ngClass]="typeFilter === 'flat' ? 'btn-info text-white' : 'btn-light'" (click)="setTypeFilter('flat')">Flat</button>
-          <button type="button" class="btn" [ngClass]="typeFilter === 'tree' ? 'btn-info text-white' : 'btn-light'" (click)="setTypeFilter('tree')">Tree</button>
+          <button type="button" class="btn" [ngClass]="typeFilter === 'all' ? 'btn-info text-white' : 'btn-light'" (click)="setTypeFilter('all')">{{ 'admin-vocabulary-filter-all' | i18next }}</button>
+          <button type="button" class="btn" [ngClass]="typeFilter === 'flat' ? 'btn-info text-white' : 'btn-light'" (click)="setTypeFilter('flat')">{{ 'admin-vocabulary-type-flat' | i18next }}</button>
+          <button type="button" class="btn" [ngClass]="typeFilter === 'tree' ? 'btn-info text-white' : 'btn-light'" (click)="setTypeFilter('tree')">{{ 'admin-vocabulary-type-tree' | i18next }}</button>
         </div>
       </div>
     </div>
 
     <div class="vocab-table-wrap">
-      <table class="vocab-data-table" aria-label="Vocabulary list">
+      <table class="vocab-data-table" [attr.aria-label]="'admin-vocabulary-list-aria-label' | i18next">
         <colgroup>
           <col class="vocab-col-name" />
           <col class="vocab-col-slug" />
@@ -38,26 +38,26 @@
         </colgroup>
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Slug</th>
-            <th>Type</th>
-            <th>Source</th>
-            <th class="text-right">Actions</th>
+            <th>{{ 'admin-vocabulary-name' | i18next }}</th>
+            <th>{{ 'admin-vocabulary-slug' | i18next }}</th>
+            <th>{{ 'admin-vocabulary-type' | i18next }}</th>
+            <th>{{ 'admin-vocabulary-source' | i18next }}</th>
+            <th class="text-right">{{ 'record-table-results-table-header-actions' | i18next }}</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let vocabulary of filteredVocabularies; trackBy: trackByVocabularyId" [class.vocab-selected]="selectedId === vocabulary.id">
             <td><a href="#" (click)="$event.preventDefault(); open(vocabulary.id)">{{ vocabulary.name }}</a></td>
             <td><code>{{ vocabulary.slug || '-' }}</code></td>
-            <td><span class="badge badge-secondary text-uppercase">{{ vocabulary.type }}</span></td>
-            <td><span class="badge text-uppercase" [ngClass]="vocabulary.source === 'rva' ? 'badge-warning' : 'badge-info'">{{ vocabulary.source }}</span></td>
+            <td><span class="badge badge-secondary text-uppercase">{{ ('admin-vocabulary-type-' + vocabulary.type) | i18next }}</span></td>
+            <td><span class="badge text-uppercase" [ngClass]="vocabulary.source === 'rva' ? 'badge-warning' : 'badge-info'">{{ ('admin-vocabulary-source-' + vocabulary.source) | i18next }}</span></td>
             <td class="text-right text-nowrap">
-              <button class="btn btn-sm btn-primary action-button" type="button" (click)="open(vocabulary.id)">Edit</button>
-              <button class="btn btn-sm btn-danger action-button" type="button" (click)="remove(vocabulary.id)">Delete</button>
+              <button class="btn btn-sm btn-primary action-button" type="button" (click)="open(vocabulary.id)">{{ 'admin-vocabulary-edit' | i18next }}</button>
+              <button class="btn btn-sm btn-danger action-button" type="button" (click)="remove(vocabulary.id)">{{ 'admin-vocabulary-delete' | i18next }}</button>
             </td>
           </tr>
           <tr *ngIf="filteredVocabularies.length === 0">
-            <td colspan="5" class="text-muted">No vocabularies match the current filters.</td>
+            <td colspan="5" class="text-muted">{{ 'admin-vocabulary-empty-filtered' | i18next }}</td>
           </tr>
         </tbody>
       </table>

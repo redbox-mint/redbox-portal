@@ -1,28 +1,26 @@
 <div class="container-fluid py-3" *ngIf="isReady">
   <div class="row align-items-end mb-3">
     <div class="col-md-8">
-      <p class="text-uppercase text-muted small mb-1">Admin Console</p>
-      <h2 class="mb-2">Vocabulary Management</h2>
-      <p class="text-muted mb-0">Curate controlled lists, keep RVA imports in sync, and maintain entry order from one
-        workspace.</p>
+      <p class="text-uppercase text-muted small mb-1">{{ 'admin-vocabulary-admin-console' | i18next }}</p>
+      <h2 class="mb-2">{{ 'admin-vocabulary-title' | i18next }}</h2>
+      <p class="text-muted mb-0">{{ 'admin-vocabulary-subtitle' | i18next }}</p>
     </div>
     <div class="col-md-4 mt-3 mt-md-0">
       <div class="d-flex justify-content-md-end flex-wrap">
-        <span class="badge badge-light mr-2 mb-2 p-2">Total: {{ totalVocabularies }}</span>
-        <span class="badge badge-light mr-2 mb-2 p-2">Local: {{ localVocabularies }}</span>
-        <span class="badge badge-light mb-2 p-2">RVA: {{ rvaVocabularies }}</span>
+        <span class="badge badge-light mr-2 mb-2 p-2">{{ 'admin-vocabulary-count-total' | i18next: { count: totalVocabularies } }}</span>
+        <span class="badge badge-light mr-2 mb-2 p-2">{{ 'admin-vocabulary-count-local' | i18next: { count: localVocabularies } }}</span>
+        <span class="badge badge-light mb-2 p-2">{{ 'admin-vocabulary-count-rva' | i18next: { count: rvaVocabularies } }}</span>
       </div>
     </div>
   </div>
 
   <div class="card mb-3">
     <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
-      <div class="d-flex flex-wrap mb-2 mb-md-0 vocab-action-group" role="group" aria-label="Vocabulary actions">
-        <button class="btn btn-primary vocab-action-button" type="button" (click)="newVocabulary()">Create
-          Vocabulary</button>
-        <button class="btn btn-info vocab-action-button" type="button" (click)="showImport()">Import from RVA</button>
+      <div class="d-flex flex-wrap mb-2 mb-md-0 vocab-action-group" role="group" [attr.aria-label]="'admin-vocabulary-actions-aria-label' | i18next">
+        <button class="btn btn-primary vocab-action-button" type="button" (click)="newVocabulary()">{{ 'admin-vocabulary-create-button' | i18next }}</button>
+        <button class="btn btn-info vocab-action-button" type="button" (click)="showImport()">{{ 'admin-vocabulary-import-from-rva-button' | i18next }}</button>
       </div>
-      <small class="text-muted">Select a row to edit.</small>
+      <small class="text-muted">{{ 'admin-vocabulary-row-help' | i18next }}</small>
     </div>
   </div>
 
@@ -38,9 +36,8 @@
   <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
     <div class="modal-content">
       <div class="modal-header">
-        <span class="modal-title h4-header" id="vocabModalTitle">{{ selectedVocabulary?.id ? 'Edit Vocabulary' : 'Create
-          Vocabulary' }}</span>
-        <button type="button" class="btn-close" aria-label="Close" (click)="closeEditModal()" cdkFocusInitial></button>
+        <span class="modal-title h4-header" id="vocabModalTitle">{{ selectedVocabulary?.id ? ('admin-vocabulary-edit-title' | i18next) : ('admin-vocabulary-create-title' | i18next) }}</span>
+        <button type="button" class="btn-close" [attr.aria-label]="'admin-vocabulary-close' | i18next" (click)="closeEditModal()" cdkFocusInitial></button>
       </div>
       <div class="modal-body">
         <vocab-detail [draft]="draft" [selectedVocabularyId]="selectedVocabulary?.id || null"></vocab-detail>
@@ -57,25 +54,25 @@
             <div class="btn-group ml-2 mt-2 mt-sm-0" role="group" *ngIf="isSyncConfirmationOpen">
               <button type="button" class="btn btn-secondary" (click)="cancelSyncConfirmation()"
                 [disabled]="isSyncInProgress">
-                Keep Local Changes
+                {{ 'admin-vocabulary-keep-local-changes' | i18next }}
               </button>
               <button type="button" class="btn btn-warning" (click)="confirmSyncSelected()"
                 [disabled]="isSyncInProgress">
                 <span *ngIf="isSyncInProgress" class="spinner-border spinner-border-sm mr-2" role="status"
                   aria-hidden="true"></span>
-                {{ isSyncInProgress ? 'Syncing...' : 'Replace and Sync' }}
+                {{ isSyncInProgress ? ('admin-vocabulary-syncing' | i18next) : ('admin-vocabulary-replace-and-sync' | i18next) }}
               </button>
             </div>
           </div>
         </div>
         <button type="button" class="btn btn-success" (click)="save()"
-          [disabled]="!canSave || isSyncInProgress">Save</button>
+          [disabled]="!canSave || isSyncInProgress">{{ 'admin-vocabulary-save' | i18next }}</button>
         <button *ngIf="!isSyncConfirmationOpen" type="button" class="btn btn-warning" (click)="syncSelected()"
           [disabled]="!canSyncSelected">
-          Sync RVA
+          {{ 'admin-vocabulary-sync-rva' | i18next }}
         </button>
         <button type="button" class="btn btn-secondary" (click)="closeEditModal()"
-          [disabled]="isSyncInProgress">Cancel</button>
+          [disabled]="isSyncInProgress">{{ 'admin-vocabulary-cancel' | i18next }}</button>
       </div>
     </div>
   </div>
@@ -87,8 +84,8 @@
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <span class="modal-title h4-header" id="importModalTitle">Import from RVA</span>
-        <button type="button" class="btn-close" aria-label="Close" (click)="closeImportModal()"></button>
+        <span class="modal-title h4-header" id="importModalTitle">{{ 'admin-vocabulary-import-from-rva-title' | i18next }}</span>
+        <button type="button" class="btn-close" [attr.aria-label]="'admin-vocabulary-close' | i18next" (click)="closeImportModal()"></button>
       </div>
       <div class="modal-body">
         <rva-import #importForm (importRequested)="importRva($event)"></rva-import>
@@ -102,10 +99,10 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="closeImportModal()"
-          [disabled]="isImportInProgress">Cancel</button>
+          [disabled]="isImportInProgress">{{ 'admin-vocabulary-cancel' | i18next }}</button>
         <button type="button" class="btn btn-primary" (click)="importForm.runImport()"
           [disabled]="!importForm.canImport || isImportInProgress">
-          {{ isImportInProgress ? 'Importing...' : 'Import' }}
+          {{ isImportInProgress ? ('admin-vocabulary-importing' | i18next) : ('admin-vocabulary-import' | i18next) }}
         </button>
       </div>
     </div>

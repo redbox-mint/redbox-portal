@@ -1,12 +1,20 @@
 import { TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
+import { Pipe, PipeTransform } from '@angular/core';
 import { AdminVocabularyComponent } from './admin-vocabulary.component';
 import { VocabularyApiService } from './vocabulary-api.service';
 import { LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { VocabListComponent } from './vocab-list.component';
 import { VocabDetailComponent } from './vocab-detail.component';
 import { RvaImportComponent } from './rva-import.component';
+
+@Pipe({ name: 'i18next', standalone: false })
+class I18NextPipeStub implements PipeTransform {
+  transform(value: string): string {
+    return value;
+  }
+}
 
 class VocabularyApiServiceStub {
   async waitForInit(): Promise<this> { return this; }
@@ -21,13 +29,13 @@ class VocabularyApiServiceStub {
 
 class TranslationServiceStub {
   async waitForInit(): Promise<this> { return this; }
-  t(value: string): string { return value; }
+  t(value: string, defaultValue?: string): string { return defaultValue || value; }
 }
 
 describe('AdminVocabularyComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [AdminVocabularyComponent, VocabListComponent, VocabDetailComponent, RvaImportComponent],
+      declarations: [AdminVocabularyComponent, VocabListComponent, VocabDetailComponent, RvaImportComponent, I18NextPipeStub],
       imports: [FormsModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },

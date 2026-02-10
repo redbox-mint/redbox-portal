@@ -70,7 +70,7 @@ export class AdminVocabularyComponent extends BaseComponent {
     try {
       this.vocabularies = await this.vocabularyApi.list();
     } catch (err) {
-      this.error = `Failed to load vocabularies: ${this.asErrorMessage(err)}`;
+      this.error = this.t('admin-vocabulary-error-load-vocabularies', 'Failed to load vocabularies: {{error}}', { error: this.asErrorMessage(err) });
       this.logger.error(this.error);
     }
   }
@@ -94,7 +94,7 @@ export class AdminVocabularyComponent extends BaseComponent {
       this.isEditModalOpen = true;
       this.isImportModalOpen = false;
     } catch (err) {
-      this.error = `Failed to load vocabulary: ${this.asErrorMessage(err)}`;
+      this.error = this.t('admin-vocabulary-error-load-vocabulary', 'Failed to load vocabulary: {{error}}', { error: this.asErrorMessage(err) });
       this.logger.error(this.error);
     }
   }
@@ -140,7 +140,7 @@ export class AdminVocabularyComponent extends BaseComponent {
 
   async save(): Promise<void> {
     if (!this.canSave) {
-      this.error = 'Vocabulary name is required';
+      this.error = this.t('admin-vocabulary-error-name-required', 'Vocabulary name is required');
       return;
     }
 
@@ -149,21 +149,21 @@ export class AdminVocabularyComponent extends BaseComponent {
     try {
       if (this.selectedVocabulary?.id) {
         await this.vocabularyApi.update(this.selectedVocabulary.id, this.draft);
-        this.message = 'Vocabulary updated';
+        this.message = this.t('admin-vocabulary-message-updated', 'Vocabulary updated');
       } else {
         await this.vocabularyApi.create(this.draft);
-        this.message = 'Vocabulary created';
+        this.message = this.t('admin-vocabulary-message-created', 'Vocabulary created');
       }
       await this.refresh();
       this.closeEditModal();
     } catch (err) {
-      this.error = `Failed to save vocabulary: ${this.asErrorMessage(err)}`;
+      this.error = this.t('admin-vocabulary-error-save-vocabulary', 'Failed to save vocabulary: {{error}}', { error: this.asErrorMessage(err) });
       this.logger.error(this.error);
     }
   }
 
   async deleteVocabulary(id: string): Promise<void> {
-    if (typeof globalThis.confirm === 'function' && !globalThis.confirm('Delete this vocabulary? This action cannot be undone.')) {
+    if (typeof globalThis.confirm === 'function' && !globalThis.confirm(this.t('admin-vocabulary-confirm-delete', 'Delete this vocabulary? This action cannot be undone.'))) {
       return;
     }
 
@@ -171,7 +171,7 @@ export class AdminVocabularyComponent extends BaseComponent {
     this.error = '';
     try {
       await this.vocabularyApi.delete(id);
-      this.message = 'Vocabulary deleted';
+      this.message = this.t('admin-vocabulary-message-deleted', 'Vocabulary deleted');
       if (this.selectedVocabulary?.id === id) {
         this.selectedVocabulary = null;
         this.selectedEntries = [];
@@ -179,7 +179,7 @@ export class AdminVocabularyComponent extends BaseComponent {
       }
       await this.refresh();
     } catch (err) {
-      this.error = `Failed to delete vocabulary: ${this.asErrorMessage(err)}`;
+      this.error = this.t('admin-vocabulary-error-delete-vocabulary', 'Failed to delete vocabulary: {{error}}', { error: this.asErrorMessage(err) });
       this.logger.error(this.error);
     }
   }
@@ -192,23 +192,23 @@ export class AdminVocabularyComponent extends BaseComponent {
     try {
       const trimmedId = String(rvaId ?? '').trim();
       if (!trimmedId) {
-        this.error = 'RVA ID is required';
+        this.error = this.t('admin-vocabulary-error-rva-id-required', 'RVA ID is required');
         this.importStatusMessage = this.error;
         this.importStatusVariant = 'danger';
         return;
       }
 
       this.isImportInProgress = true;
-      this.importStatusMessage = 'Import in progress...';
+      this.importStatusMessage = this.t('admin-vocabulary-import-in-progress', 'Import in progress...');
       this.importStatusVariant = 'info';
       await this.vocabularyApi.importRva(trimmedId);
-      this.message = 'RVA vocabulary imported';
-      this.importStatusMessage = 'RVA vocabulary imported successfully.';
+      this.message = this.t('admin-vocabulary-message-rva-imported', 'RVA vocabulary imported');
+      this.importStatusMessage = this.t('admin-vocabulary-import-success', 'RVA vocabulary imported successfully.');
       this.importStatusVariant = 'success';
       await this.refresh();
       this.isImportModalOpen = false;
     } catch (err) {
-      this.error = `Failed to import RVA vocabulary: ${this.asErrorMessage(err)}`;
+      this.error = this.t('admin-vocabulary-error-import-rva', 'Failed to import RVA vocabulary: {{error}}', { error: this.asErrorMessage(err) });
       this.importStatusMessage = this.error;
       this.importStatusVariant = 'danger';
       this.logger.error(this.error);
@@ -221,13 +221,13 @@ export class AdminVocabularyComponent extends BaseComponent {
     this.message = '';
     this.error = '';
     if (!this.selectedVocabulary?.id) {
-      this.error = 'No vocabulary selected';
+      this.error = this.t('admin-vocabulary-error-no-selection', 'No vocabulary selected');
       return;
     }
 
     this.isSyncConfirmationOpen = true;
     this.clearSyncStatusTimer();
-    this.syncStatusMessage = 'Syncing will replace local changes for this vocabulary.';
+    this.syncStatusMessage = this.t('admin-vocabulary-sync-warning', 'Syncing will replace local changes for this vocabulary.');
     this.syncStatusVariant = 'warning';
   }
 
@@ -244,23 +244,27 @@ export class AdminVocabularyComponent extends BaseComponent {
     this.error = '';
     try {
       if (!this.selectedVocabulary?.id) {
-        this.error = 'No vocabulary selected';
+        this.error = this.t('admin-vocabulary-error-no-selection', 'No vocabulary selected');
         return;
       }
       this.isSyncConfirmationOpen = false;
       this.isSyncInProgress = true;
       this.clearSyncStatusTimer();
-      this.syncStatusMessage = 'Sync in progress...';
+      this.syncStatusMessage = this.t('admin-vocabulary-sync-in-progress', 'Sync in progress...');
       this.syncStatusVariant = 'info';
       const result = await this.vocabularyApi.sync(this.selectedVocabulary.id);
-      this.message = `Sync complete (created=${result.created}, updated=${result.updated}, skipped=${result.skipped})`;
+      this.message = this.t(
+        'admin-vocabulary-sync-complete',
+        'Sync complete (created={{created}}, updated={{updated}}, skipped={{skipped}})',
+        { created: result.created, updated: result.updated, skipped: result.skipped }
+      );
       await this.openVocabulary(this.selectedVocabulary.id);
       await this.refresh();
-      this.syncStatusMessage = 'Sync completed successfully.';
+      this.syncStatusMessage = this.t('admin-vocabulary-sync-success', 'Sync completed successfully.');
       this.syncStatusVariant = 'success';
       this.scheduleSyncStatusClear();
     } catch (err) {
-      this.error = `Failed to sync vocabulary: ${this.asErrorMessage(err)}`;
+      this.error = this.t('admin-vocabulary-error-sync-vocabulary', 'Failed to sync vocabulary: {{error}}', { error: this.asErrorMessage(err) });
       this.syncStatusMessage = this.error;
       this.syncStatusVariant = 'danger';
       this.logger.error(this.error);
@@ -291,7 +295,7 @@ export class AdminVocabularyComponent extends BaseComponent {
       }
       const firstError = maybe.errors?.[0];
       if (firstError) {
-        return firstError.message || firstError.detail || firstError.title || 'Unknown error';
+        return firstError.message || firstError.detail || firstError.title || this.t('admin-vocabulary-error-unknown', 'Unknown error');
       }
     }
     return String(err);
@@ -358,6 +362,10 @@ export class AdminVocabularyComponent extends BaseComponent {
       this.syncStatusVariant = '';
       this.syncStatusTimer = null;
     }, delayMs);
+  }
+
+  private t(key: string, defaultValue: string, options?: Record<string, unknown>): string {
+    return String(this.translationService.t(key, defaultValue, options));
   }
 
 }
