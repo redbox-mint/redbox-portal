@@ -20,6 +20,7 @@ import { DropdownInputComponent, DropdownInputModel } from './component/dropdown
 import { CheckboxInputComponent, CheckboxInputModel } from './component/checkbox-input.component';
 import { RadioInputComponent, RadioInputModel } from './component/radio-input.component';
 import { DateInputComponent, DateInputModel } from './component/date-input.component';
+import { QuestionTreeComponent, QuestionTreeModel } from './component/question-tree.component';
 import { CheckboxTreeComponent, CheckboxTreeModel } from './component/checkbox-tree.component';
 import { TypeaheadInputComponent, TypeaheadInputModel } from './component/typeahead-input.component';
 import { RichTextEditorComponent, RichTextEditorModel } from './component/rich-text-editor.component';
@@ -37,6 +38,7 @@ import {
   DropdownInputModelName,
   RadioInputModelName,
   DateInputModelName,
+  QuestionTreeModelName,
   GroupFieldModelName,
   CheckboxTreeModelName,
   TypeaheadInputModelName,
@@ -55,6 +57,7 @@ import {
   DropdownInputComponentName,
   RadioInputComponentName,
   DateInputComponentName,
+  QuestionTreeComponentName,
   CheckboxTreeComponentName,
   TypeaheadInputComponentName,
   RichTextEditorComponentName,
@@ -98,6 +101,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [DropdownInputComponentName]: DropdownInputComponent,
   [RadioInputComponentName]: RadioInputComponent,
   [DateInputComponentName]: DateInputComponent,
+  [QuestionTreeComponentName]: QuestionTreeComponent,
   [CheckboxTreeComponentName]: CheckboxTreeComponent,
   [TypeaheadInputComponentName]: TypeaheadInputComponent,
   [RichTextEditorComponentName]: RichTextEditorComponent,
@@ -122,6 +126,7 @@ export const getStaticModelClassMap = (): StaticModelClassMapType => ({
   [DropdownInputModelName]: DropdownInputModel,
   [RadioInputModelName]: RadioInputModel,
   [DateInputModelName]: DateInputModel,
+  [QuestionTreeModelName]: QuestionTreeModel,
   [CheckboxTreeModelName]: CheckboxTreeModel,
   [TypeaheadInputModelName]: TypeaheadInputModel,
   [RichTextEditorModelName]: RichTextEditorModel,

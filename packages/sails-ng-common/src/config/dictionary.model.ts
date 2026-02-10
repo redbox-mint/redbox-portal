@@ -24,6 +24,7 @@ import { RadioInputDefaults, RadioInputMap } from './component/radio-input.model
 import { DateInputDefaults, DateInputMap } from './component/date-input.model';
 import { ReusableDefaults, ReusableMap } from './component/reusable.model';
 import { ReusableComponentName } from './component/reusable.outline';
+import { QuestionTreeDefaults, QuestionTreeMap } from './component/question-tree.model';
 import { CheckboxTreeDefaults, CheckboxTreeMap } from './component/checkbox-tree.model';
 import { TypeaheadInputDefaults, TypeaheadInputMap } from './component/typeahead-input.model';
 import { RichTextEditorDefaults, RichTextEditorMap } from './component/rich-text-editor.model';
@@ -57,6 +58,7 @@ export const AllDefs = [
   ...RadioInputMap,
   ...DateInputMap,
   ...ReusableMap,
+  ...QuestionTreeMap,
   ...CheckboxTreeMap,
   ...TypeaheadInputMap,
   ...RichTextEditorMap,
@@ -87,6 +89,7 @@ const RawDefaults = [
   RadioInputDefaults,
   DateInputDefaults,
   ReusableDefaults,
+  QuestionTreeDefaults,
   CheckboxTreeDefaults,
   TypeaheadInputDefaults,
   RichTextEditorDefaults,

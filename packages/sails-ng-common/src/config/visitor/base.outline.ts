@@ -85,6 +85,11 @@ import {
   ReusableFormComponentDefinitionOutline,
 } from '../component/reusable.outline';
 import {
+  QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFieldModelDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
+} from '../component/question-tree.outline';
+import {
   CheckboxTreeFieldComponentDefinitionOutline,
   CheckboxTreeFieldModelDefinitionOutline,
   CheckboxTreeFormComponentDefinitionOutline,
@@ -271,6 +276,14 @@ export interface FormConfigVisitorOutline {
   visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void;
 
   visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void;
+
+  /* Question Tree */
+
+  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void;
+
+  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void;
+
+  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void;
 
   /* Checkbox Tree */
 
