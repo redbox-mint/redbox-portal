@@ -40,6 +40,7 @@ export namespace Services {
     notation?: string;
     value?: string;
     children?: RvaConceptNode[];
+    narrower?: RvaConceptNode[];
   }
 
   export class RvaImport extends services.Core.Service {
@@ -333,8 +334,18 @@ export namespace Services {
       return String(sorted[0].id ?? '');
     }
 
+    private getChildNodes(node: RvaConceptNode): RvaConceptNode[] {
+      if (Array.isArray(node.children) && node.children.length > 0) {
+        return node.children;
+      }
+      if (Array.isArray(node.narrower) && node.narrower.length > 0) {
+        return node.narrower;
+      }
+      return [];
+    }
+
     private hasChildren(nodes: RvaConceptNode[]): boolean {
-      return nodes.some(node => Array.isArray(node.children) && node.children.length > 0);
+      return nodes.some((node) => this.getChildNodes(node).length > 0);
     }
 
     private toVocabularyEntries(nodes: RvaConceptNode[], parentId: string | null = null, path: string = 'root'): VocabularyServiceModule.VocabularyEntryInput[] {
@@ -350,8 +361,9 @@ export namespace Services {
           order: index
         });
 
-        if (Array.isArray(node.children) && node.children.length > 0) {
-          mapped.push(...this.toVocabularyEntries(node.children, id, id));
+        const children = this.getChildNodes(node);
+        if (children.length > 0) {
+          mapped.push(...this.toVocabularyEntries(children, id, id));
         }
       });
       return mapped;

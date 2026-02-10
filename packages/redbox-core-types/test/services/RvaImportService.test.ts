@@ -6,14 +6,17 @@ import { Services as RvaImportServiceModule } from '../../src/services/RvaImport
 
 describe('RvaImportService', () => {
   let service: any;
+  let createStub: sinon.SinonStub;
+  let conceptTreeStub: sinon.SinonStub;
 
   beforeEach(() => {
     (global as any)._ = lodash;
+    createStub = sinon.stub().resolves({ id: 'v1', name: 'Imported' });
     (global as any).sails = {
       config: { vocab: { rva: { baseUrl: 'https://example.org/rva' } }, auth: { defaultBrand: 'default' } },
       services: {
         vocabularyservice: {
-          create: sinon.stub().resolves({ id: 'v1', name: 'Imported' }),
+          create: createStub,
           upsertEntries: sinon.stub().resolves({ created: 1, updated: 2, skipped: 0 })
         }
       },
@@ -35,15 +38,9 @@ describe('RvaImportService', () => {
       data: { id: 1, title: 'RVA Vocab', version: [{ id: 101, status: 'current' }] }
     } as unknown as Awaited<ReturnType<ResourcesApi['getVocabularyById']>>);
 
-    sinon.stub(ResourcesApi.prototype, 'getVersionArtefactConceptTree')
-      .onCall(0)
-      .resolves({
-        data: JSON.stringify([{ id: 'c1', label: 'A', notation: 'a' }])
-      } as unknown as Awaited<ReturnType<ResourcesApi['getVersionArtefactConceptTree']>>)
-      .onCall(1)
-      .resolves({
-        data: JSON.stringify([{ id: 'c1', label: 'A', notation: 'a' }])
-      } as unknown as Awaited<ReturnType<ResourcesApi['getVersionArtefactConceptTree']>>);
+    conceptTreeStub = sinon.stub(ResourcesApi.prototype, 'getVersionArtefactConceptTree').resolves({
+      data: JSON.stringify([{ id: 'c1', label: 'A', notation: 'a' }])
+    } as unknown as Awaited<ReturnType<ResourcesApi['getVersionArtefactConceptTree']>>);
 
     service = new RvaImportServiceModule.RvaImport();
   });
@@ -59,6 +56,36 @@ describe('RvaImportService', () => {
   it('imports an RVA vocabulary', async () => {
     const created = await service.importRvaVocabulary('1');
     expect(created.id).to.equal('v1');
+  });
+
+  it('imports RVA concept trees that use narrower links', async () => {
+    conceptTreeStub.resolves({
+      data: JSON.stringify({
+        forest: [
+          {
+            iri: 'https://example.org/root',
+            prefLabel: 'Root',
+            narrower: [
+              {
+                iri: 'https://example.org/child',
+                prefLabel: 'Child'
+              }
+            ]
+          }
+        ]
+      })
+    } as unknown as Awaited<ReturnType<ResourcesApi['getVersionArtefactConceptTree']>>);
+
+    await service.importRvaVocabulary('1');
+
+    expect(createStub.calledOnce).to.equal(true);
+    const payload = createStub.firstCall.args[0];
+    expect(payload.type).to.equal('tree');
+    expect(payload.entries).to.be.an('array');
+    expect(payload.entries).to.have.length(2);
+    expect(payload.entries[0].label).to.equal('Root');
+    expect(payload.entries[1].label).to.equal('Child');
+    expect(payload.entries[1].parent).to.equal(payload.entries[0].id);
   });
 
   it('syncs an RVA vocabulary', async () => {
