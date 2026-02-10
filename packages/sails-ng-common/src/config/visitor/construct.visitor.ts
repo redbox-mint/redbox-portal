@@ -399,9 +399,17 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         }
         frame.elementTemplate = compDefs[0];
 
-        // Check the element template name is falsy
-        if (!!frame.elementTemplate?.name) {
-            throw new Error(`Repeatable element template must have a 'falsy' name, got '${frame.elementTemplate?.name}' at '${currentFormConfigPath}'.`);
+        // The element template name must be falsy.
+        // It is also allowed for a ReusableComponent to have a replaceName that is falsy.
+        const elementTemplateName = frame.elementTemplate?.name;
+        const elementTemplateClass  = frame.elementTemplate?.component?.class;
+        const elementTemplateReplaceName = frame.elementTemplate?.overrides?.replaceName;
+        const nameIsFalsy = !elementTemplateName;
+        const nameWillBeTransformedToFalsy = elementTemplateReplaceName === null || elementTemplateReplaceName === "";
+        if (!nameIsFalsy && !nameWillBeTransformedToFalsy) {
+            this.logger.error(`Repeatable element template must have a 'falsy' name: elementTemplateName '${JSON.stringify(elementTemplateName)}' ` +
+                `elementTemplateClass ${JSON.stringify(elementTemplateClass)} elementTemplateReplaceName ${JSON.stringify(elementTemplateReplaceName)}`);
+            throw new Error(`Repeatable element template must have a 'falsy' name, got ${JSON.stringify(frame.elementTemplate?.name)} at ${JSON.stringify(currentFormConfigPath)}.`);
         }
 
         // Track the most recent element template.
@@ -1065,22 +1073,22 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
      * @protected
      */
     protected isMostRecentRepeatableElementTemplate(): boolean {
-        const array1 = this.mostRecentRepeatableElementTemplatePath ?? [];
-        const array2 = this.formPathHelper.formPath.formConfig;
-        if (!array1 || array1.length === 0 || !array2 || array2.length === 0) {
+        const mostRecent = this.mostRecentRepeatableElementTemplatePath ?? [];
+        const formConfig = this.formPathHelper.formPath.formConfig;
+        if (!mostRecent || mostRecent.length === 0 || !formConfig || formConfig.length === 0) {
             return false;
         }
         // Either array can have 'component', 'model', 'layout' at the end and
         // still match if the other array is one item shorter.
         const allowedExtras: LineagePath = ["component", "model", "layout"];
-        if (array1.length === array2.length) {
-            return array1.every((value, index) => value === array2[index]);
-        } else if (array1.length === array2.length - 1) {
-            return allowedExtras.includes(array2[array2.length - 1]) &&
-                array1.every((value, index) => value === array2[index]);
-        } else if (array1.length - 1 === array2.length) {
-            return allowedExtras.includes(array1[array1.length - 1]) &&
-                array2.every((value, index) => value === array1[index]);
+        if (mostRecent.length === formConfig.length) {
+            return mostRecent.every((value, index) => value === formConfig[index]);
+        } else if (mostRecent.length === formConfig.length - 1) {
+            return allowedExtras.includes(formConfig[formConfig.length - 1]) &&
+                mostRecent.every((value, index) => value === formConfig[index]);
+        } else if (mostRecent.length - 1 === formConfig.length) {
+            return allowedExtras.includes(mostRecent[mostRecent.length - 1]) &&
+                formConfig.every((value, index) => value === mostRecent[index]);
         }
         return false;
     }
@@ -1091,12 +1099,17 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
      * @protected
      */
     protected isRepeatableElementTemplateDescendant(): boolean {
-        const array1 = this.mostRecentRepeatableElementTemplatePath ?? [];
-        const array2 = this.formPathHelper.formPath.formConfig;
-        if (!array1 || array1.length === 0 || !array2 || array2.length === 0 || array2.length + 2 <= array1.length) {
+        const mostRecentPath = this.mostRecentRepeatableElementTemplatePath ?? [];
+        const formConfigPath = this.formPathHelper.formPath.formConfig;
+        if (!mostRecentPath || mostRecentPath.length === 0 || !formConfigPath || formConfigPath.length === 0) {
             return false;
         }
-        return array1.every((value, index) => value === array2[index]);
+        // The formConfig path might have ["[component|model|layout]", "config"] at the end (2 additional items),
+        // but only the path up to ["config", "elementTemplate"] is relevant for this check.
+        if ((formConfigPath.length + 2) <= mostRecentPath.length) {
+            return false;
+        }
+        return mostRecentPath.every((value, index) => value === formConfigPath[index]);
     }
 
     /**

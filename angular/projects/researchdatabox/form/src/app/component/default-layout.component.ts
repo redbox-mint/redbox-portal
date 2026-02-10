@@ -59,14 +59,14 @@ import {FormService} from "../form.service";
       <ng-container #componentContainer  ></ng-container>
       <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
       <ng-template #beforeComponentTemplate>
-        @if (isVisible) {
-          Before {{ componentName }}
-          <br>
-          }
+<!--        @if (isVisible) {-->
+<!--          Before {{ componentName }}-->
+<!--          <br>-->
+<!--          }-->
         </ng-template>
         <ng-template #afterComponentTemplate>
           @if (isVisible) {
-            After {{ componentName }}
+<!--            After {{ componentName }}-->
             @let componentValidationList = getFormValidatorComponentErrors;
             @if (componentValidationList.length > 0) {
               <div class="invalid-feedback">

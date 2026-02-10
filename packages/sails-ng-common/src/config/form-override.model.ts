@@ -268,7 +268,7 @@ export class FormOverride {
         const result = hasTransform ? transformFunc.call(this, original, formMode) : original;
 
         // Use 'replaceName' to update the form component name.
-        if (original.overrides?.replaceName) {
+        if (original.overrides?.replaceName !== undefined) {
             result.name = original.overrides?.replaceName;
         }
 

@@ -49,8 +49,8 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
 
   protected get tabConfig(): TabFieldComponentConfigFrame {
     const component = this.formFieldCompMapEntry?.compConfigJson?.component;
-    if (!component || !isTypeFieldDefinitionName<TabFieldComponentDefinitionFrame>(component, component.class)){
-      throw new Error();
+    if (!component || !isTypeFieldDefinitionName<TabFieldComponentDefinitionFrame>(component, component.class)) {
+      throw new Error(`Invalid tabConfig ${JSON.stringify(component)}`);
     }
     return component?.config || {tabs:[]};
   }

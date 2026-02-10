@@ -1,7 +1,6 @@
 /**
  * Reusable Form Definitions Config Interface and Default Values
- * 
- * 
+ *
  * Re-usable, server-side only, component templates.
  * Used as defaults for properties not defined.
  * The 'name' property for these templates can be used as the value
@@ -16,6 +15,49 @@ import { ReusableFormDefinitions } from "@researchdatabox/sails-ng-common";
 export { ReusableFormDefinitions };
 
 export const reusableFormDefinitions: ReusableFormDefinitions = {
+
+    "standard-contributor-fields": [
+        {
+            name: "name",
+            component: {class: "SimpleInputComponent", config: {type: "text", hostCssClasses: ""}},
+            model: {class: "SimpleInputModel", config: {}},
+            layout: {class: "DefaultLayout", config: {label: "Name", hostCssClasses: "col-md-4 mb-3"}},
+        },
+        {
+            name: "email",
+            component: {class: "SimpleInputComponent", config: {type: "text", hostCssClasses: ""}},
+            model: {class: "SimpleInputModel", config: {validators: [{class: "email"}]}},
+            layout: {class: "DefaultLayout", config: {label: "Email", hostCssClasses: "col-md-4 mb-3"}},
+        },
+        {
+            name: "orcid",
+            component: {class: "SimpleInputComponent", config: {type: "text", hostCssClasses: ""}},
+            model: {class: "SimpleInputModel", config: {validators: [{class: "orcid"}]}},
+            layout: {class: "DefaultLayout", config: {label: "ORCID", hostCssClasses: "col-md-4 mb-3"}},
+        },
+    ],
+
+    "standard-contributor-fields-group": [
+        {
+            name: "standard_contributor_fields_group",
+            layout: {class: "DefaultLayout", config: {label: "Standard Contributor"}},
+            model: {class: "GroupModel", config: {}},
+            component: {
+                class: "GroupComponent",
+                config: {
+                    hostCssClasses: "row g-3",
+                    componentDefinitions: [
+                        {
+                            overrides: {reusableFormName: "standard-contributor-fields"},
+                            name: "standard_contributor_fields_reusable",
+                            component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+                        },
+                    ],
+                },
+            },
+        },
+    ],
+
     // definition of a reusable form config - standard component definitions
     // The standard people field
     "standard-contributor-field": [

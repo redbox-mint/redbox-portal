@@ -60,14 +60,16 @@ export type AllTypes = DefaultLayoutTypes
  *
  * Compile-time-only type unions for the various kinds of classes.
  * These make it easier to reference the set of types of one kind.
+ *
+ * These include the Reusable component classes because they are used in the migration and construct visitors.
  */
 
-/**
- * All form component definition frames.
- */
-export type AllFormComponentDefinitionFrames = Extract<AllTypes, {
-    kind: FormComponentDefinitionFrameKindType
-}>['class'];
+// /**
+//  * All form component definition frames.
+//  */
+// export type AllFormComponentDefinitionFrames = Extract<AllTypes, {
+//     kind: FormComponentDefinitionFrameKindType
+// }>['class'];
 
 /**
  * The form component definition frames available for use in any list of form components.
