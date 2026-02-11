@@ -2,48 +2,27 @@ import { Controllers as controllers } from '../../CoreController';
 import { ListAPIResponse, ListAPISummary } from '../../model';
 import { Services as VocabularyServiceModule } from '../../services/VocabularyService';
 
-type BrandingServiceApi = {
-  getBrandFromReq: (req: { params?: Record<string, unknown>; body?: Record<string, unknown>; session?: Record<string, unknown> }) => string;
-  getBrand: (nameOrId: string) => { id?: string | number } | null;
-};
-
-type VocabularyServiceApi = {
-  list: (options: VocabularyServiceModule.VocabularyListOptions) => Promise<{ data: unknown[]; meta: { total: number; limit: number; offset: number } }>;
-  getById: (id: string) => Promise<unknown>;
-  getTree: (id: string) => Promise<unknown[]>;
-  create: (input: VocabularyServiceModule.VocabularyInput) => Promise<unknown>;
-  update: (id: string, input: Partial<VocabularyServiceModule.VocabularyInput>) => Promise<unknown>;
-  reorderEntries: (id: string, entryOrders: Array<{ id: string; order: number }>) => Promise<number>;
-  delete: (id: string) => Promise<void>;
-};
-
-type RvaImportServiceApi = {
-  importRvaVocabulary: (rvaId: string, versionId?: string, branding?: string) => Promise<unknown>;
-  syncRvaVocabulary: (vocabularyId: string, versionId?: string) => Promise<{ updated: number; created: number; skipped: number; lastSyncedAt: string }>;
-};
-
-declare const BrandingService: BrandingServiceApi;
-declare const VocabularyService: VocabularyServiceApi;
-declare const RvaImportService: RvaImportServiceApi;
-
 export namespace Controllers {
   export class Vocabulary extends controllers.Core.Controller {
+    private asRecord(value: unknown): Record<string, unknown> | undefined {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        return value as Record<string, unknown>;
+      }
+      return undefined;
+    }
+
+    private resolveBrandingId(req: Sails.Req): string {
+      const brandingNameOrId = BrandingService.getBrandNameFromReq(req);
+      const branding = BrandingService.getBrand(brandingNameOrId);
+      return String(branding?.id ?? brandingNameOrId);
+    }
+
     private parseNumberParam(value: unknown, fallback: number): number {
       if (value === '' || typeof value === 'undefined' || value === null) {
         return fallback;
       }
       const parsed = Number(value);
       return Number.isFinite(parsed) ? parsed : fallback;
-    }
-
-    private resolveBrandingId(req: Sails.Req): string {
-      const brandingNameOrId = BrandingService.getBrandFromReq(req as unknown as {
-        params?: Record<string, unknown>;
-        body?: Record<string, unknown>;
-        session?: Record<string, unknown>;
-      });
-      const branding = BrandingService.getBrand(brandingNameOrId);
-      return String(branding?.id ?? brandingNameOrId);
     }
 
     private asError(error: unknown): Error {
@@ -72,7 +51,7 @@ export namespace Controllers {
           limit,
           offset,
           sort: req.param('sort'),
-          branding: this.resolveBrandingId(req)
+          branding: BrandingService.getBrand(BrandingService.getBrandNameFromReq(req)).id,
         });
         const response = new ListAPIResponse<unknown>();
         const summary = new ListAPISummary();
@@ -108,7 +87,7 @@ export namespace Controllers {
       try {
         const payload = {
           ...req.body,
-          branding: this.resolveBrandingId(req)
+          branding: BrandingService.getBrand(BrandingService.getBrandNameFromReq(req)).id
         } as VocabularyServiceModule.VocabularyInput;
         const created = await VocabularyService.create(payload);
         return this.sendResp(req, res, { status: 201, data: created, headers: this.getNoCacheHeaders() });

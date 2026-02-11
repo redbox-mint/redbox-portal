@@ -10,12 +10,12 @@ export function isUnsupportedTransactionAdapterError(error: unknown): boolean {
 
 export async function runWithOptionalTransaction<T>(
   datastore: Sails.Datastore | null | undefined,
-  work: (connection?: unknown) => Promise<T>,
+  work: (connection?: Sails.Connection) => Promise<T>,
   options: RunWithOptionalTransactionOptions = {}
 ): Promise<T> {
   if (datastore?.transaction) {
     try {
-      return await datastore.transaction(async (connection: unknown) => work(connection));
+      return await datastore.transaction(async (connection: Sails.Connection) => work(connection));
     } catch (error) {
       if (!isUnsupportedTransactionAdapterError(error)) {
         throw error;

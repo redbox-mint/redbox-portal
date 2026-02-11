@@ -141,14 +141,21 @@ export namespace Services {
       'upsertEntries'
     ];
 
-    private async executeQuery<T>(query: Sails.WaterlinePromise<T>, connection?: unknown): Promise<T> {
+    private async executeQuery<T>(query: Sails.WaterlinePromise<T>, connection?: Sails.Connection): Promise<T> {
       if (connection) {
         return query.usingConnection(connection);
       }
       return query;
     }
 
-    private async createAndFetch<T>(createQuery: Sails.WaterlinePromise<T>, connection?: unknown): Promise<T> {
+    private async executeFindQuery<T>(query: Sails.QueryBuilder, connection?: Sails.Connection): Promise<T> {
+      if (connection) {
+        return await query.usingConnection(connection) as T;
+      }
+      return await query as T;
+    }
+
+    private async createAndFetch<T>(createQuery: Sails.WaterlinePromise<T>, connection?: Sails.Connection): Promise<T> {
       const fetchedQuery = createQuery.fetch();
       return this.executeQuery(fetchedQuery, connection);
     }
@@ -532,12 +539,8 @@ export namespace Services {
             throw new Error('entryOrders contains duplicate ids');
           }
 
-          const existingQuery = VocabularyEntry.find({ id: Array.from(dedupedIds) }) as unknown as {
-            usingConnection?: (db: unknown) => Promise<VocabularyEntryAttributes[]>;
-          };
-          const existingEntries = connection && typeof existingQuery.usingConnection === 'function'
-            ? await existingQuery.usingConnection(connection)
-            : await VocabularyEntry.find({ id: Array.from(dedupedIds) }) as VocabularyEntryAttributes[];
+          const existingQuery = VocabularyEntry.find({ id: Array.from(dedupedIds) });
+          const existingEntries = await this.executeFindQuery<VocabularyEntryAttributes[]>(existingQuery, connection);
           if (existingEntries.length !== dedupedIds.size) {
             throw new Error('One or more entry ids were not found');
           }
@@ -580,7 +583,7 @@ export namespace Services {
       };
     }
 
-    public async validateParent(vocabularyId: string, entryId: string | null, parentId: string | null, connection?: unknown): Promise<void> {
+    public async validateParent(vocabularyId: string, entryId: string | null, parentId: string | null, connection?: Sails.Connection): Promise<void> {
       if (!parentId) {
         return;
       }
@@ -636,7 +639,7 @@ export namespace Services {
       return roots;
     }
 
-    public async upsertEntries(vocabularyId: string, entries: VocabularyEntryInput[], connection?: unknown): Promise<{ created: number; updated: number; skipped: number }> {
+    public async upsertEntries(vocabularyId: string, entries: VocabularyEntryInput[], connection?: Sails.Connection): Promise<{ created: number; updated: number; skipped: number }> {
       let created = 0;
       let updated = 0;
       let skipped = 0;
@@ -707,7 +710,7 @@ export namespace Services {
       return { created, updated, skipped };
     }
 
-    private async replaceEntries(vocabularyId: string, isFlat: boolean, entries: VocabularyEntryInput[], connection?: unknown): Promise<void> {
+    private async replaceEntries(vocabularyId: string, isFlat: boolean, entries: VocabularyEntryInput[], connection?: Sails.Connection): Promise<void> {
       const flatEntries = this.flattenEntries(entries);
       if (isFlat && flatEntries.some(entry => entry.parent)) {
         throw new Error('Vocabulary.type = flat does not support parent entries');

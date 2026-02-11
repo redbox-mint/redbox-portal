@@ -51,6 +51,13 @@ Use this skill after a feature implementation lands (services, controllers, mode
 
 1. The schema matches `implementation_plan.md`.
 2. Models are defined in `packages/redbox-core-types/src/waterline-models`.
+3. Avoid using `globalThis` to access Waterline models.
+   - Rationale: Waterline models are exposed as global variables (for example `Vocabulary`, `VocabularyEntry`) by Sails at runtime. Wrapping them again with `globalThis` lookups (e.g., `globalThis as typeof globalThis & { Vocabulary?: ... }`) is unnecessary and noisy; prefer referencing the global model by name and, if needed, cast to the appropriate model interface for typing only (e.g., `const VocabularyModel = Vocabulary as unknown as VocabularyWaterlineModel`).
+   - Expected behavior: use direct global model references in service/controller code instead of building `globalThis` accessor objects.
+   - Area mapping: `services`, `controllers` where Waterline models are used.
+   - Severity: `minor` for stylistic/clarity fixes, `major` if the `globalThis` indirection caused incorrect model resolution.
+   - Evidence: include file path, line range, and snippet where `globalThis` is used to access models.
+   - Suggested fix: replace `globalThis` lookups with direct model names and add a local typed alias only for TypeScript typing (see example above).
 
 ### Controllers
 

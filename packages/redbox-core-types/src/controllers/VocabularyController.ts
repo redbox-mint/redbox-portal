@@ -9,13 +9,13 @@ export namespace Controllers {
   export class Vocabulary extends controllers.Core.Controller {
     private get brandingService() {
       return sails.services['brandingservice'] as Sails.DynamicService & {
-        getBrandFromReq: (req: Sails.Req) => string;
+        getBrandNameFromReq: (req: Sails.Req) => string;
         getBrand: (nameOrId: string) => { id?: string | number } | null;
       };
     }
 
     private resolveBrandingId(req: Sails.Req): string {
-      const brandingNameOrId = this.brandingService.getBrandFromReq(req);
+      const brandingNameOrId = this.brandingService.getBrandNameFromReq(req);
       const branding = this.brandingService.getBrand(brandingNameOrId);
       return String(branding?.id ?? brandingNameOrId);
     }

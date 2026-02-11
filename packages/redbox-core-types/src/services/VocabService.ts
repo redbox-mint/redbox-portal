@@ -23,6 +23,8 @@ import { SearchService } from '../SearchService';
 import { VocabQueryConfig } from '../model/config/VocabQueryConfig';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as services } from '../CoreService';
+import type { VocabularyWaterlineModel } from '../waterline-models/Vocabulary';
+import type { VocabularyEntryWaterlineModel } from '../waterline-models/VocabularyEntry';
 import axios, { AxiosResponse } from 'axios';
 
 
@@ -65,11 +67,11 @@ export namespace Services {
       return _.isEmpty(sails.config.vocab.bootStrapVocabs) ?
         of(null)
         : from(sails.config.vocab.bootStrapVocabs as string[]).pipe(
-            flatMap((vocabId: string) => {
-              return this.getVocab(vocabId);
-            }),
-            last()
-          );
+          flatMap((vocabId: string) => {
+            return this.getVocab(vocabId);
+          }),
+          last()
+        );
     }
 
     /** @deprecated Legacy Mint trigger wrapper. */
@@ -161,7 +163,7 @@ export namespace Services {
     }
 
     /** @deprecated Legacy record query implementation. */
-    public async findRecords(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number, user: VocabUserContext): Promise<Record<string, unknown> | Array<Record<string, unknown>>> {
+    public async findRecords(sourceType: string, brand: BrandingModel, searchString: string, start: number, rows: number, user: VocabUserContext): Promise<Record<string, unknown> | Array<Record<string, unknown>>> {
 
       const queryConfig = sails.config.vocab.queries[sourceType] as unknown as VocabQueryConfig;
 
@@ -170,16 +172,16 @@ export namespace Services {
         const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, queryConfig.databaseQuery.queryName);
         const paramMap = this.buildNamedQueryParamMap(queryConfig, searchString, user);
         const dbResults = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
-        if(queryConfig.resultObjectMapping) {
-          return this.getResultObjectMappings(dbResults as unknown as Record<string, unknown>,queryConfig);
+        if (queryConfig.resultObjectMapping) {
+          return this.getResultObjectMappings(dbResults as unknown as Record<string, unknown>, queryConfig);
         } else {
           return dbResults as unknown as Record<string, unknown>;
         }
       } else if (queryConfig.querySource == 'solr') {
-        const solrQuery = this.buildSolrParams(brand, searchString, queryConfig, start, rows, 'json',user);
+        const solrQuery = this.buildSolrParams(brand, searchString, queryConfig, start, rows, 'json', user);
         const solrResults = await this.getSearchService().searchAdvanced(queryConfig.searchQuery.searchCore, '', solrQuery);
-        if(queryConfig.resultObjectMapping) {
-          return this.getResultObjectMappings(solrResults,queryConfig);
+        if (queryConfig.resultObjectMapping) {
+          return this.getResultObjectMappings(solrResults, queryConfig);
         } else {
           return solrResults;
         }
@@ -187,20 +189,20 @@ export namespace Services {
       return {};
     }
 
-    buildNamedQueryParamMap(queryConfig:VocabQueryConfig, searchString:string, user: VocabUserContext): Record<string, unknown> {
+    buildNamedQueryParamMap(queryConfig: VocabQueryConfig, searchString: string, user: VocabUserContext): Record<string, unknown> {
       const paramMap: Record<string, unknown> = {}
       if (queryConfig.queryField.type == 'text') {
         paramMap[queryConfig.queryField.property] = searchString;
       }
       if (queryConfig.userQueryFields != null) {
-        for(const userQueryField of queryConfig.userQueryFields) {
+        for (const userQueryField of queryConfig.userQueryFields) {
           paramMap[userQueryField.property] = _.get(user, userQueryField.userValueProperty, null);
         }
       }
       return paramMap;
     }
 
-    private buildSolrParams(brand:BrandingModel, searchString:string, queryConfig:VocabQueryConfig, start:number, rows:number, format:string = 'json', user: VocabUserContext):string {
+    private buildSolrParams(brand: BrandingModel, searchString: string, queryConfig: VocabQueryConfig, start: number, rows: number, format: string = 'json', user: VocabUserContext): string {
       let query = `${queryConfig.searchQuery.baseQuery}&sort=date_object_modified desc&version=2.2&start=${start}&rows=${rows}`;
       query = query + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
 
@@ -209,8 +211,8 @@ export namespace Services {
         if (!_.isEmpty(value)) {
           const searchProperty = queryConfig.queryField.property;
           query = query + '&fq=' + searchProperty + ':';
-          if(value.indexOf('*') != -1){
-            query = query + value.replaceAll('*','') + '*';
+          if (value.indexOf('*') != -1) {
+            query = query + value.replaceAll('*', '') + '*';
           } else {
             query = query + value + '*';
           }
@@ -218,56 +220,56 @@ export namespace Services {
       }
 
       if (queryConfig.userQueryFields != null) {
-        for(const userQueryField of queryConfig.userQueryFields) {
+        for (const userQueryField of queryConfig.userQueryFields) {
           const searchProperty = userQueryField.property;
-          query = query + '&fq=' + searchProperty + ':'+ _.get(user, userQueryField.userValueProperty, null);
+          query = query + '&fq=' + searchProperty + ':' + _.get(user, userQueryField.userValueProperty, null);
         }
       }
 
       return query;
     }
 
-    getResultObjectMappings(results: Record<string, unknown>, queryConfig:VocabQueryConfig): Array<Record<string, unknown>> {
+    getResultObjectMappings(results: Record<string, unknown>, queryConfig: VocabQueryConfig): Array<Record<string, unknown>> {
 
-      let responseRecords = _.get(results,'response.docs','') as Array<Record<string, unknown>> | '';
-      if(responseRecords == '') {
+      let responseRecords = _.get(results, 'response.docs', '') as Array<Record<string, unknown>> | '';
+      if (responseRecords == '') {
         responseRecords = (results as { records?: Array<Record<string, unknown>> }).records ?? [];
       }
       const response: Array<Record<string, unknown>> = [];
       const that = this;
       const resultObjectMapping = queryConfig.resultObjectMapping;
-      for(const record of responseRecords) {
+      for (const record of responseRecords) {
         try {
-          const variables = { 
+          const variables = {
             record: record,
             _: _
-           };
+          };
           let defaultMetadata: Record<string, unknown> = {};
-          if(!_.isEmpty(resultObjectMapping)) {
+          if (!_.isEmpty(resultObjectMapping)) {
             const resultMetadata = _.cloneDeep(resultObjectMapping);
-            _.forOwn(resultObjectMapping, function(value: unknown, key: string) {
-              _.set(resultMetadata,key,that.runTemplate(value as string,variables));
+            _.forOwn(resultObjectMapping, function (value: unknown, key: string) {
+              _.set(resultMetadata, key, that.runTemplate(value as string, variables));
             });
             defaultMetadata = resultMetadata as Record<string, unknown>;
             response.push(defaultMetadata);
           }
         } catch (_error) {
-            //This is required because the records retrieved from the solr index can have different structure and runTemplate method 
-            //cannot handle this .i.e if there are records type rdmp thar normal rdmp records and there are mock mint records that 
-            //are also rdmp type when the mock mint records are set to a different record type this should not happen 
-            continue;
+          //This is required because the records retrieved from the solr index can have different structure and runTemplate method 
+          //cannot handle this .i.e if there are records type rdmp thar normal rdmp records and there are mock mint records that 
+          //are also rdmp type when the mock mint records are set to a different record type this should not happen 
+          continue;
         }
       }
       return response;
     }
 
-    private getSearchService(): SearchService{
+    private getSearchService(): SearchService {
       return sails.services[sails.config.search.serviceName] as unknown as SearchService;
     }
 
     private runTemplate(templateOrPath: string, variables: Record<string, unknown>) {
       if (templateOrPath && templateOrPath.indexOf('<%') != -1) {
-          return _.template(templateOrPath)(variables);
+        return _.template(templateOrPath)(variables);
       }
       return _.get(variables, templateOrPath);
     }
@@ -360,29 +362,26 @@ export namespace Services {
     }
 
     private async getManagedVocabulary(vocabId: string): Promise<ManagedVocabOption[] | null> {
-      const vocabularyModel = (global as unknown as { Vocabulary?: { findOne: (criteria: unknown) => Promise<ManagedVocabulary | null> } }).Vocabulary;
-      const vocabularyEntryModel = (global as unknown as { VocabularyEntry?: { find: (criteria: unknown) => { sort: (value: string) => { sort: (value: string) => Promise<ManagedVocabularyEntry[]> } } } }).VocabularyEntry;
 
-      if (!vocabularyModel?.findOne || !vocabularyEntryModel?.find) {
-        return null;
-      }
+
+
 
       const normalizedId = String(vocabId ?? '').trim();
       if (!normalizedId) {
         return null;
       }
 
-      const vocabulary = await vocabularyModel.findOne({
+      const vocabulary = await Vocabulary.findOne({
         or: [{ id: normalizedId }, { slug: normalizedId }, { name: normalizedId }]
-      });
+      }) as ManagedVocabulary | null;
       if (!vocabulary?.id) {
         return null;
       }
 
-      const entries = await vocabularyEntryModel
+      const entries = await VocabularyEntry
         .find({ vocabulary: vocabulary.id })
         .sort('order ASC')
-        .sort('label ASC');
+        .sort('label ASC') as ManagedVocabularyEntry[];
 
       return entries.map((entry) => ({
         uri: String(entry.identifier ?? entry.value ?? ''),
@@ -457,19 +456,19 @@ export namespace Services {
             concatMap((buffer: unknown, i: number) => {
               sails.log.verbose(`Processing chunk: ${i}`);
               return of(buffer).pipe(
-                  delay(i * processWindow),
-                  flatMap(() => this.saveCollectionChunk(methodName, buffer, i).pipe(
-                    flatMap(_saveResp => {
-                      sails.log.verbose(`Updating chunk progress...${i}`);
-                      if (i === (collectionData || []).length - 1) {
-                        sails.log.verbose(`Asynch completed.`);
-                        return AsynchsService.finish(progressKey);
-                      } else {
-                        return AsynchsService.update({ id: progressKey }, { currentIdx: i + 1, status: 'processing' });
-                      }
-                    })
-                  ))
-                );
+                delay(i * processWindow),
+                flatMap(() => this.saveCollectionChunk(methodName, buffer, i).pipe(
+                  flatMap(_saveResp => {
+                    sails.log.verbose(`Updating chunk progress...${i}`);
+                    if (i === (collectionData || []).length - 1) {
+                      sails.log.verbose(`Asynch completed.`);
+                      return AsynchsService.finish(progressKey);
+                    } else {
+                      return AsynchsService.update({ id: progressKey }, { currentIdx: i + 1, status: 'processing' });
+                    }
+                  })
+                ))
+              );
             })
           )
         } else {

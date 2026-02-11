@@ -2,7 +2,7 @@ import * as BrandingServiceModule from '../services/BrandingService';
 import * as I18nEntriesServiceModule from '../services/I18nEntriesService';
 
 declare const BrandingService: {
-    getBrandFromReq(req: Sails.Req): string;
+    getBrandNameFromReq(req: Sails.Req): string;
     getBrand(name: string): ReturnType<BrandingServiceModule.Services.Branding['getBrand']>;
 };
 declare const I18nEntriesService: I18nEntriesServiceModule.Services.I18nEntries;
@@ -19,7 +19,7 @@ interface LanguageInfo {
  */
 export async function i18nLanguages(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): Promise<void> {
     try {
-        const brandingName = BrandingService.getBrandFromReq(req);
+        const brandingName = BrandingService.getBrandNameFromReq(req);
         const branding = BrandingService.getBrand(brandingName);
 
         if (branding && I18nEntriesService && I18nEntriesService.listBundles) {
