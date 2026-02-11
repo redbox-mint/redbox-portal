@@ -1,4 +1,5 @@
 import {
+  CheckboxTreeFormComponentDefinitionOutline,
   CheckboxInputFormComponentDefinitionOutline,
   ConstructFormConfigVisitor,
   DropdownInputFormComponentDefinitionOutline,
@@ -172,5 +173,57 @@ describe('Vocab Inline Visitor', () => {
     const options = dropdown?.component?.config?.options as Array<{ label: string; value: string }>;
     expect(options).to.have.length(1);
     expect(options[0]?.value).to.equal('applied');
+  });
+
+  it('inlines checkbox tree vocab by paging all entries and building nested treeData', async () => {
+    (global as any).VocabularyService = {
+      getEntries: async (_branding: string, _vocabRef: string, options?: { limit?: number; offset?: number }) => {
+        if ((options?.offset ?? 0) === 0) {
+          return {
+            entries: [
+              { id: 'e1', label: 'Mathematical Sciences', value: '01', identifier: '01', parent: null },
+              { id: 'e2', label: 'Physical Sciences', value: '02', identifier: '02', parent: null }
+            ],
+            meta: { total: 3 }
+          };
+        }
+        return {
+          entries: [
+            { id: 'e3', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: 'e1' }
+          ],
+          meta: { total: 3 }
+        };
+      },
+    };
+
+    const input: FormConfigFrame = {
+      name: 'test',
+      componentDefinitions: [
+        {
+          name: 'anzsrc',
+          component: {
+            class: 'CheckboxTreeComponent',
+            config: {
+              vocabRef: 'anzsrc-2020-for',
+              inlineVocab: true,
+            },
+          },
+          model: { class: 'CheckboxTreeModel', config: {} },
+        },
+      ],
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({ data: input, formMode: 'edit' });
+    const visitor = new VocabInlineFormConfigVisitor(logger);
+    await visitor.resolveVocabs(constructed, 'default');
+
+    const tree = constructed.componentDefinitions?.[0] as CheckboxTreeFormComponentDefinitionOutline;
+    const treeData = tree.component.config?.treeData ?? [];
+    expect(treeData).to.have.length(2);
+    expect(treeData[0]?.id).to.equal('e1');
+    expect(treeData[0]?.children).to.have.length(1);
+    expect(treeData[0]?.hasChildren).to.equal(true);
+    expect(treeData[0]?.children?.[0]?.id).to.equal('e3');
   });
 });

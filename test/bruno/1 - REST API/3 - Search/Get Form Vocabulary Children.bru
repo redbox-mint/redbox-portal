@@ -1,0 +1,31 @@
+meta {
+  name: Get Form Vocabulary Children
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/default/rdmp/vocab/anzsrc-2020-for/children
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Response has children contract shape", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property('data');
+      expect(jsonData).to.have.property('meta');
+      expect(jsonData.meta).to.have.property('vocabularyId');
+      expect(jsonData.meta).to.have.property('parentId');
+      expect(jsonData.meta).to.have.property('total');
+  });
+}

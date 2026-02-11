@@ -4,6 +4,7 @@ import { FormComponentDefinitionOutline } from '../form-component.outline';
 import { DropdownInputComponentName, DropdownOption } from '../component/dropdown-input.outline';
 import { RadioInputComponentName, RadioOption } from '../component/radio-input.outline';
 import { CheckboxInputComponentName, CheckboxOption } from '../component/checkbox-input.outline';
+import { CheckboxTreeComponentName, CheckboxTreeNode } from '../component/checkbox-tree.outline';
 import { GroupFieldComponentName, GroupFormComponentDefinitionOutline } from '../component/group.outline';
 import { TabComponentName, TabFormComponentDefinitionOutline } from '../component/tab.outline';
 import { TabContentComponentName, TabContentFormComponentDefinitionOutline } from '../component/tab-content.outline';
@@ -11,13 +12,17 @@ import { RepeatableComponentName, RepeatableFormComponentDefinitionOutline } fro
 
 type ComponentConfigWithInlineVocab = {
   options?: DropdownOption[] | RadioOption[] | CheckboxOption[];
+  treeData?: CheckboxTreeNode[];
   vocabRef?: string;
   inlineVocab?: boolean;
 };
 
 type VocabularyEntryLike = {
+  id?: unknown;
   label?: unknown;
   value?: unknown;
+  identifier?: unknown;
+  parent?: unknown;
 };
 
 type VocabularyServiceLike = {
@@ -25,7 +30,7 @@ type VocabularyServiceLike = {
     branding: string,
     vocabIdOrSlug: string,
     options?: { limit?: number; offset?: number }
-  ) => Promise<{ entries?: VocabularyEntryLike[] } | null>;
+  ) => Promise<{ entries?: VocabularyEntryLike[]; meta?: { total?: number } } | null>;
 };
 
 /**
@@ -62,6 +67,11 @@ export class VocabInlineFormConfigVisitor {
       componentClass === CheckboxInputComponentName
     ) {
       await this.resolveComponentVocab(definition, branding);
+      return;
+    }
+
+    if (componentClass === CheckboxTreeComponentName) {
+      await this.resolveTreeComponentVocab(definition, branding);
       return;
     }
 
@@ -122,6 +132,101 @@ export class VocabInlineFormConfigVisitor {
       this.logger.debug(error);
       throw error;
     }
+  }
+
+  private async resolveTreeComponentVocab(definition: FormComponentDefinitionOutline, branding: string): Promise<void> {
+    const config = definition?.component?.config as ComponentConfigWithInlineVocab | undefined;
+    if (!config?.inlineVocab || !config.vocabRef) {
+      return;
+    }
+
+    const vocabService = this.getVocabularyService();
+    if (!vocabService?.getEntries) {
+      this.logger.warn('VocabularyService.getEntries is not available, skipping inline vocab resolution');
+      return;
+    }
+
+    try {
+      const entries = await this.fetchAllEntries(vocabService, branding, config.vocabRef);
+      config.treeData = this.buildTreeData(entries);
+    } catch (error) {
+      this.logger.warn(`Failed to resolve inline vocab '${config.vocabRef}' for component '${definition?.name ?? ''}'`);
+      this.logger.debug(error);
+      throw error;
+    }
+  }
+
+  private async fetchAllEntries(
+    vocabService: VocabularyServiceLike,
+    branding: string,
+    vocabRef: string
+  ): Promise<VocabularyEntryLike[]> {
+    const allEntries: VocabularyEntryLike[] = [];
+    const limit = 1000;
+    let offset = 0;
+    let total: number | null = null;
+
+    while (total === null || allEntries.length < total) {
+      const response = await vocabService.getEntries?.(branding, vocabRef, { limit, offset });
+      if (!response) {
+        throw new Error(`Inline vocabulary '${vocabRef}' was not found for branding '${branding}'`);
+      }
+      const pageEntries = response.entries ?? [];
+      allEntries.push(...pageEntries);
+
+      const responseTotal = Number(response?.meta?.total);
+      if (Number.isFinite(responseTotal) && responseTotal >= 0) {
+        total = responseTotal;
+      } else if (total === null) {
+        total = pageEntries.length;
+      }
+
+      if (pageEntries.length === 0) {
+        break;
+      }
+      offset += pageEntries.length;
+    }
+
+    return allEntries;
+  }
+
+  private buildTreeData(entries: VocabularyEntryLike[]): CheckboxTreeNode[] {
+    const nodeById = new Map<string, CheckboxTreeNode>();
+    const entryIds = new Set<string>();
+    const rootNodes: CheckboxTreeNode[] = [];
+
+    for (const entry of entries) {
+      const id = String(entry?.id ?? '').trim();
+      if (!id) {
+        continue;
+      }
+      entryIds.add(id);
+      nodeById.set(id, {
+        id,
+        label: String(entry?.label ?? ''),
+        value: String(entry?.value ?? ''),
+        notation: String(entry?.identifier ?? '').trim() || String(entry?.value ?? '').trim() || undefined,
+        parent: String(entry?.parent ?? '').trim() || null,
+        children: [],
+        hasChildren: false
+      });
+    }
+
+    for (const node of nodeById.values()) {
+      const parentId = String(node.parent ?? '').trim();
+      if (parentId && entryIds.has(parentId)) {
+        const parent = nodeById.get(parentId);
+        if (parent) {
+          parent.children = parent.children ?? [];
+          parent.children.push(node);
+          parent.hasChildren = true;
+        }
+      } else {
+        rootNodes.push(node);
+      }
+    }
+
+    return rootNodes;
   }
 
   private resolveBranding(brandingOverride?: string): string {

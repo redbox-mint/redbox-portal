@@ -133,6 +133,23 @@ describe('FormVocabularyController', () => {
     expect(sendResp.firstCall.args[2]?.data).to.have.length(1);
     expect(sendResp.firstCall.args[2]?.meta?.vocabularyId).to.equal('v1');
     expect(sendResp.firstCall.args[2]?.meta?.parentId).to.equal(null);
+    expect((global as any).VocabularyService.getChildren.calledWith('default', 'anzsrc-2020-for', undefined)).to.equal(true);
+  });
+
+  it('returns nested children when parentId is provided', async () => {
+    (global as any).VocabularyService.getChildren.resolves({
+      entries: [{ id: 'e2', label: 'Pure Mathematics', value: '0101', notation: '0101', parent: 'e1', hasChildren: false }],
+      meta: { vocabularyId: 'v1', parentId: 'e1', total: 1 },
+    });
+    const req = makeReq({ branding: 'default', vocabIdOrSlug: 'anzsrc-2020-for', parentId: 'e1' });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.children(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(undefined);
+    expect(sendResp.firstCall.args[2]?.meta?.parentId).to.equal('e1');
+    expect((global as any).VocabularyService.getChildren.calledWith('default', 'anzsrc-2020-for', 'e1')).to.equal(true);
   });
 
   it('returns 404 from children when vocab is missing', async () => {
@@ -145,6 +162,32 @@ describe('FormVocabularyController', () => {
     expect(sendResp.calledOnce).to.equal(true);
     expect(sendResp.firstCall.args[2]?.status).to.equal(404);
     expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('vocabulary-not-found');
+  });
+
+  it('returns 400 invalid-parent-id from children when service rejects with invalid parent', async () => {
+    const error = new Error('invalid parent') as Error & { code?: string };
+    error.code = 'invalid-parent-id';
+    (global as any).VocabularyService.getChildren.rejects(error);
+    const req = makeReq({ branding: 'default', vocabIdOrSlug: 'anzsrc-2020-for', parentId: 'does-not-exist' });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.children(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(400);
+    expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('invalid-parent-id');
+  });
+
+  it('returns 500 vocabulary-children-failed from children on unexpected error', async () => {
+    (global as any).VocabularyService.getChildren.rejects(new Error('boom'));
+    const req = makeReq({ branding: 'default', vocabIdOrSlug: 'anzsrc-2020-for', parentId: 'e1' });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.children(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(500);
+    expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('vocabulary-children-failed');
   });
 
   it('returns 400 for getRecords when params are invalid', async () => {

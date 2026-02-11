@@ -76,6 +76,16 @@ export namespace Services {
     };
   }
 
+  export class InvalidParentIdError extends Error {
+    public readonly code: 'invalid-parent-id';
+
+    constructor(message = 'Parent entry does not belong to the requested vocabulary') {
+      super(message);
+      this.name = 'InvalidParentIdError';
+      this.code = 'invalid-parent-id';
+    }
+  }
+
   interface BootstrapVocabularyEntryInput {
     id?: unknown;
     label?: unknown;
@@ -164,7 +174,8 @@ export namespace Services {
       }
 
 
-      const brandingService = BrandingService as { getBrand?: (nameOrId: string) => { id?: string | number } | null } | undefined;
+      const globals = globalThis as { BrandingService?: { getBrand?: (nameOrId: string) => { id?: string | number } | null } };
+      const brandingService = globals.BrandingService;
       const brand = brandingService?.getBrand?.(brandingString);
       if (brand?.id) {
         return String(brand.id);
@@ -282,6 +293,16 @@ export namespace Services {
       }
 
       const normalizedParentId = String(parentId ?? '').trim();
+      if (normalizedParentId) {
+        const parentEntry = await VocabularyEntry.findOne({
+          id: normalizedParentId,
+          vocabulary: String(vocabulary.id)
+        }) as VocabularyEntryAttributes | null;
+        if (!parentEntry) {
+          throw new InvalidParentIdError();
+        }
+      }
+
       const where: { vocabulary: string; parent?: string | null } = {
         vocabulary: String(vocabulary.id),
       };

@@ -906,17 +906,34 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         item.config = new CheckboxTreeFieldComponentConfig();
         this.sharedPopulateFieldComponentConfig(item.config, field);
 
-        const vocabRef = field?.definition?.vocabRef ?? field?.definition?.vocabId;
-        this.sharedProps.setPropOverride('vocabRef', item.config, {vocabRef});
-        this.sharedProps.setPropOverride('inlineVocab', item.config, field?.definition);
-        this.sharedProps.setPropOverride('leafOnly', item.config, field?.definition);
-        this.sharedProps.setPropOverride('maxDepth', item.config, field?.definition);
+        const rawDefinition = (field?.definition ?? {}) as Record<string, unknown>;
+        const vocabRef = String(rawDefinition.vocabRef ?? rawDefinition.vocabId ?? '').trim();
+        if (!vocabRef) {
+            this.logger.warn(`${this.logName}: CheckboxTree migration missing vocabId/vocabRef at ${JSON.stringify(this.v4FormPath)}.`);
+        } else {
+            this.sharedProps.setPropOverride('vocabRef', item.config, {vocabRef});
+        }
+
+        const inlineVocab = this.parseLegacyBooleanFlag(rawDefinition.inlineVocab, undefined, 'inlineVocab');
+        if (inlineVocab !== undefined) {
+            this.sharedProps.setPropOverride('inlineVocab', item.config, {inlineVocab});
+        }
+        const leafOnly = this.parseLegacyBooleanFlag(rawDefinition.leafOnly, true, 'leafOnly');
+        this.sharedProps.setPropOverride('leafOnly', item.config, {leafOnly});
+
+        const maxDepth = this.parseLegacyPositiveInteger(rawDefinition.maxDepth, 'maxDepth');
+        if (maxDepth !== undefined) {
+            this.sharedProps.setPropOverride('maxDepth', item.config, {maxDepth});
+        }
+
+        this.warnOnMalformedLegacyRegex(rawDefinition);
     }
 
     visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
         const field = this.getV4Data();
         item.config = new CheckboxTreeFieldModelConfig();
         this.sharedPopulateFieldModelConfig(item.config, field);
+        this.coerceCheckboxTreeDefaultValue(item.config);
     }
 
     visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
@@ -1265,5 +1282,93 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             return false;
         }
         return mostRecentPath.every((value, index) => value === formConfigPath[index]);
+    }
+
+    private parseLegacyBooleanFlag(rawValue: unknown, defaultValue: boolean | undefined, fieldName: string): boolean | undefined {
+        if (typeof rawValue === 'boolean') {
+            return rawValue;
+        }
+        if (rawValue === undefined || rawValue === null || rawValue === '') {
+            return defaultValue;
+        }
+        if (typeof rawValue === 'number') {
+            return rawValue !== 0;
+        }
+        if (typeof rawValue === 'string') {
+            const normalized = rawValue.trim().toLowerCase();
+            if (['true', '1', 'yes', 'on'].includes(normalized)) {
+                return true;
+            }
+            if (['false', '0', 'no', 'off'].includes(normalized)) {
+                return false;
+            }
+        }
+        this.logger.warn(`${this.logName}: CheckboxTree migration received malformed '${fieldName}' value, using safe default.`);
+        return defaultValue;
+    }
+
+    private parseLegacyPositiveInteger(rawValue: unknown, fieldName: string): number | undefined {
+        if (rawValue === undefined || rawValue === null || rawValue === '') {
+            return undefined;
+        }
+        const parsed = Number.parseInt(String(rawValue), 10);
+        if (Number.isInteger(parsed) && parsed > 0) {
+            return parsed;
+        }
+        this.logger.warn(`${this.logName}: CheckboxTree migration received invalid '${fieldName}' value, ignoring it.`);
+        return undefined;
+    }
+
+    private warnOnMalformedLegacyRegex(definition: Record<string, unknown>): void {
+        for (const key of ['regex', 'pattern', 'leafRegex']) {
+            if (!Object.hasOwn(definition, key)) {
+                continue;
+            }
+            const rawValue = definition[key];
+            if (rawValue === undefined || rawValue === null || rawValue === '') {
+                continue;
+            }
+            if (rawValue instanceof RegExp) {
+                continue;
+            }
+            if (typeof rawValue === 'string') {
+                try {
+                    // Validate regex string syntax to avoid carrying malformed values into v5 config.
+                    new RegExp(rawValue);
+                    continue;
+                } catch {
+                    this.logger.warn(`${this.logName}: CheckboxTree migration found malformed regex in '${key}', using defaults.`);
+                    continue;
+                }
+            }
+            this.logger.warn(`${this.logName}: CheckboxTree migration found unsupported regex value in '${key}', using defaults.`);
+        }
+    }
+
+    private coerceCheckboxTreeDefaultValue(config: CheckboxTreeFieldModelConfig): void {
+        const rawDefaultValue = config.defaultValue;
+        if (rawDefaultValue === undefined || rawDefaultValue === null) {
+            return;
+        }
+        if (!Array.isArray(rawDefaultValue)) {
+            config.defaultValue = [];
+            this.logger.warn(`${this.logName}: CheckboxTree migration coerced non-array default value to empty selection array.`);
+            return;
+        }
+
+        const coerced = (rawDefaultValue as unknown[]).filter((item) => {
+            if (!item || typeof item !== 'object') {
+                return false;
+            }
+            const notation = String((item as { notation?: unknown }).notation ?? '').trim();
+            const label = String((item as { label?: unknown }).label ?? '').trim();
+            const name = String((item as { name?: unknown }).name ?? '').trim();
+            return Boolean(notation && label && name);
+        });
+
+        if (coerced.length !== rawDefaultValue.length) {
+            this.logger.warn(`${this.logName}: CheckboxTree migration dropped malformed default selection entries.`);
+        }
+        config.defaultValue = coerced as CheckboxTreeFieldModelConfig['defaultValue'];
     }
 }

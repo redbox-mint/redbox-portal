@@ -64,9 +64,11 @@ type TestGlobals = typeof globalThis & {
 describe('VocabularyService', () => {
   let service: VocabularyServiceModule.VocabularyService;
   let g: TestGlobals;
+  let previousUnderscore: unknown;
 
   beforeEach(() => {
     g = globalThis as TestGlobals;
+    previousUnderscore = Reflect.get(globalThis, '_');
     Reflect.set(globalThis, '_', lodash);
     g.sails = {
       log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() },
@@ -129,7 +131,11 @@ describe('VocabularyService', () => {
     Reflect.deleteProperty(globalThis, 'VocabularyEntry');
     Reflect.deleteProperty(globalThis, 'BrandingService');
     Reflect.deleteProperty(globalThis, 'sails');
-    Reflect.deleteProperty(globalThis, '_');
+    if (previousUnderscore === undefined) {
+      Reflect.deleteProperty(globalThis, '_');
+    } else {
+      Reflect.set(globalThis, '_', previousUnderscore);
+    }
   });
 
   it('lists vocabularies with pagination metadata', async () => {
@@ -213,6 +219,122 @@ describe('VocabularyService', () => {
     g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
     const result = await service.getEntries('default', 'missing');
     expect(result).to.equal(null);
+  });
+
+  it('getChildren returns direct root entries and hasChildren metadata', async () => {
+    g.Vocabulary.findOne = sinon.stub().resolves({
+      id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
+    }) as unknown as VocabularyModelStub['findOne'];
+    g.VocabularyEntry.findOne = sinon.stub().resolves(null) as unknown as VocabularyEntryModelStub['findOne'];
+    g.VocabularyEntry.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
+      if (typeof criteria.parent === 'object' && criteria.parent !== null) {
+        return Promise.resolve([
+          { id: 'e3', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: 'e1' }
+        ]);
+      }
+      return {
+        sort: sinon.stub().returns({
+          sort: sinon.stub().resolves(
+            criteria.parent === null
+              ? [
+                { id: 'e1', label: 'Mathematical Sciences', value: '01', identifier: '01', parent: null },
+                { id: 'e2', label: 'Physical Sciences', value: '02', identifier: '02', parent: null }
+              ]
+              : []
+          )
+        })
+      };
+    }) as unknown as VocabularyEntryModelStub['find'];
+
+    const result = await service.getChildren('default', 'anzsrc-2020-for');
+
+    expect(result?.entries).to.have.length(2);
+    expect(result?.entries[0].id).to.equal('e1');
+    expect(result?.entries[0].hasChildren).to.equal(true);
+    expect(result?.entries[1].hasChildren).to.equal(false);
+    expect(result?.meta.parentId).to.equal(null);
+  });
+
+  it('getChildren returns only direct children for supplied parentId', async () => {
+    g.Vocabulary.findOne = sinon.stub().resolves({
+      id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
+    }) as unknown as VocabularyModelStub['findOne'];
+    g.VocabularyEntry.findOne = sinon.stub().resolves({
+      id: 'e1', vocabulary: 'v1', label: 'Mathematical Sciences', value: '01', parent: null
+    }) as unknown as VocabularyEntryModelStub['findOne'];
+    g.VocabularyEntry.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
+      if (typeof criteria.parent === 'object' && criteria.parent !== null) {
+        return Promise.resolve([]);
+      }
+      return {
+        sort: sinon.stub().returns({
+          sort: sinon.stub().resolves(
+            criteria.parent === 'e1'
+              ? [
+                { id: 'e3', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: 'e1' },
+                { id: 'e4', label: 'Applied Mathematics', value: '0102', identifier: '0102', parent: 'e1' }
+              ]
+              : []
+          )
+        })
+      };
+    }) as unknown as VocabularyEntryModelStub['find'];
+
+    const result = await service.getChildren('default', 'anzsrc-2020-for', 'e1');
+
+    expect(result?.entries).to.have.length(2);
+    expect(result?.entries.every((entry) => entry.parent === 'e1')).to.equal(true);
+    expect(result?.meta.parentId).to.equal('e1');
+  });
+
+  it('getChildren rejects with invalid-parent-id when parent does not belong to vocabulary', async () => {
+    g.Vocabulary.findOne = sinon.stub().resolves({
+      id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
+    }) as unknown as VocabularyModelStub['findOne'];
+    g.VocabularyEntry.findOne = sinon.stub().resolves(null) as unknown as VocabularyEntryModelStub['findOne'];
+
+    let thrown: unknown = null;
+    try {
+      await service.getChildren('default', 'anzsrc-2020-for', 'missing-parent');
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).to.be.instanceOf(Error);
+    expect((thrown as Error & { code?: string }).code).to.equal('invalid-parent-id');
+  });
+
+  it('getChildren tolerates orphan and cycle-like entries by returning direct rows only', async () => {
+    g.Vocabulary.findOne = sinon.stub().resolves({
+      id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
+    }) as unknown as VocabularyModelStub['findOne'];
+    g.VocabularyEntry.findOne = sinon.stub().resolves({
+      id: 'e1', vocabulary: 'v1', label: 'Node A', value: 'A', parent: 'e2'
+    }) as unknown as VocabularyEntryModelStub['findOne'];
+    g.VocabularyEntry.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
+      if (typeof criteria.parent === 'object' && criteria.parent !== null) {
+        return Promise.resolve([
+          { id: 'e1', label: 'Node A', value: 'A', identifier: 'A', parent: 'e2' }
+        ]);
+      }
+      return {
+        sort: sinon.stub().returns({
+          sort: sinon.stub().resolves(
+            criteria.parent === 'e1'
+              ? [
+                { id: 'e2', label: 'Node B', value: 'B', identifier: 'B', parent: 'e1' }
+              ]
+              : []
+          )
+        })
+      };
+    }) as unknown as VocabularyEntryModelStub['find'];
+
+    const result = await service.getChildren('default', 'anzsrc-2020-for', 'e1');
+
+    expect(result?.entries).to.have.length(1);
+    expect(result?.entries[0].id).to.equal('e2');
+    expect(result?.entries[0].hasChildren).to.equal(true);
   });
 
   it('upserts entries with synthetic parent ids by remapping parents after create', async () => {

@@ -114,20 +114,38 @@ export namespace Controllers {
       }
 
       const parentId = String(req.param('parentId') ?? '').trim();
-      const result = await VocabularyService.getChildren(branding, vocabIdOrSlug, parentId || undefined);
-      if (!result) {
+      try {
+        const result = await VocabularyService.getChildren(branding, vocabIdOrSlug, parentId || undefined);
+        if (!result) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ code: 'vocabulary-not-found' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
         return this.sendResp(req, res, {
-          status: 404,
-          displayErrors: [{ code: 'vocabulary-not-found' }],
+          data: result.entries,
+          meta: result.meta,
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        const errorCode = String((error as { code?: string } | null)?.code ?? '');
+        if (errorCode === 'invalid-parent-id') {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ code: 'invalid-parent-id' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        sails.log.verbose('Error getting vocabulary children:');
+        sails.log.verbose(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ code: 'vocabulary-children-failed' }],
           headers: this.getNoCacheHeaders()
         });
       }
-
-      return this.sendResp(req, res, {
-        data: result.entries,
-        meta: result.meta,
-        headers: this.getNoCacheHeaders()
-      });
     }
 
     public async getRecords(req: Sails.Req, res: Sails.Res): Promise<unknown> {
