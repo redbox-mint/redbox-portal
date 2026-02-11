@@ -42,7 +42,7 @@
     "less": "^4.4.0",
     "less-loader": "^12.2.0",
     "lodash": "^4.17.21",
-    "lodash-es": "^4.17.21",
+    "lodash-es": "^4.17.23",
     "lucene-escape-query": "^1.0.1",
     "luxon": "^3.7.1",
     "mini-css-extract-plugin": "^2.9.4",
