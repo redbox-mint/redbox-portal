@@ -87,9 +87,10 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
       --rb-tree-text: #1d1f24;
       --rb-tree-muted: #5f6774;
       --rb-tree-accent: #0f3a66;
+      --rb-focus-color: #0f3a66;
       border-radius: 0.6rem;
       padding: 0.55rem 0.5rem;
-      font-size: 14px;
+      font-size: inherit;
       background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 249, 252, 0.97) 80%),
         linear-gradient(90deg, var(--rb-tree-bg-soft) 0%, var(--rb-tree-bg) 100%);
@@ -101,7 +102,13 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
       margin: 0.1rem 0;
     }
 
-    .rb-tree-node[tabindex="0"] {
+    .rb-tree-node[tabindex="0"]:focus-visible {
+      outline: 2px solid var(--rb-focus-color);
+      outline-offset: 2px;
+      border-radius: 0.45rem;
+    }
+
+    .rb-tree-node[tabindex="0"]:focus:not(:focus-visible) {
       outline: none;
     }
 
@@ -117,7 +124,7 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
     }
 
     .rb-tree-focused {
-      background-color: transparent;
+      background-color: rgba(15, 58, 102, 0.08);
     }
 
     .rb-expander,
@@ -366,10 +373,13 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
         break;
       case "ArrowRight":
         event.preventDefault();
-        if (!this.isExpanded(currentNode) && (currentNode.hasChildren || (currentNode.children?.length ?? 0) > 0)) {
-          void this.toggleExpand(currentNode, this.getNodeLevel(currentNode.id));
-        } else if (this.isExpanded(currentNode) && (currentNode.children?.length ?? 0) > 0) {
-          this.focusedNodeId = currentNode.children![0].id;
+        const currentLevel = this.getNodeLevel(currentNode.id);
+        if (this.canExpand(currentNode, currentLevel)) {
+          if (!this.isExpanded(currentNode)) {
+            void this.toggleExpand(currentNode, currentLevel);
+          } else if ((currentNode.children?.length ?? 0) > 0) {
+            this.focusedNodeId = currentNode.children![0].id;
+          }
         }
         break;
       case "ArrowLeft":
@@ -519,6 +529,10 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   }
 
   private rebuildIndexes(nodes: CheckboxTreeRenderNode[], parentId: string | null): void {
+    if (parentId === null) {
+      this.nodeById.clear();
+      this.parentById.clear();
+    }
     for (const node of nodes) {
       if (!node.id) {
         continue;

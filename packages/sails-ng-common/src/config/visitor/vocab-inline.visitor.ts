@@ -118,11 +118,7 @@ export class VocabInlineFormConfigVisitor {
     }
 
     try {
-      const response = await vocabService.getEntries(branding, config.vocabRef, { limit: 1000, offset: 0 });
-      if (!response) {
-        throw new Error(`Inline vocabulary '${config.vocabRef}' was not found for branding '${branding}'`);
-      }
-      const entries = response?.entries ?? [];
+      const entries = await this.fetchAllEntries(vocabService, branding, config.vocabRef);
       config.options = entries.map((entry) => ({
         label: String(entry?.label ?? ''),
         value: String(entry?.value ?? '')

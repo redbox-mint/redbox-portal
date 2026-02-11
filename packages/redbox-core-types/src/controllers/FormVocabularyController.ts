@@ -33,7 +33,19 @@ export namespace Controllers {
         });
       }
 
-      const vocabulary = await VocabularyService.getByIdOrSlug(branding, vocabIdOrSlug);
+      let vocabulary: Awaited<ReturnType<typeof VocabularyService.getByIdOrSlug>> | null;
+      try {
+        vocabulary = await VocabularyService.getByIdOrSlug(branding, vocabIdOrSlug);
+      } catch (error) {
+        sails.log.verbose('Error getting vocabulary:');
+        sails.log.verbose(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ code: 'vocabulary-service-error' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
       if (!vocabulary) {
         return this.sendResp(req, res, {
           status: 404,
@@ -81,11 +93,22 @@ export namespace Controllers {
         });
       }
 
-      const result = await VocabularyService.getEntries(branding, vocabIdOrSlug, {
-        search,
-        limit,
-        offset,
-      });
+      let result: Awaited<ReturnType<typeof VocabularyService.getEntries>> | null;
+      try {
+        result = await VocabularyService.getEntries(branding, vocabIdOrSlug, {
+          search,
+          limit,
+          offset,
+        });
+      } catch (error) {
+        sails.log.verbose('Error getting vocabulary entries:');
+        sails.log.verbose(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ code: 'internal-server-error' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
 
       if (!result) {
         return this.sendResp(req, res, {
