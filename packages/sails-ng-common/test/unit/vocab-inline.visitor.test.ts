@@ -89,7 +89,7 @@ describe('Vocab Inline Visitor', () => {
     expect(options[0]?.label).to.equal('Local');
   });
 
-  it('handles nested components and missing vocab response', async () => {
+  it('throws when inline vocab slug cannot be resolved', async () => {
     (global as any).VocabularyService = {
       getEntries: async () => null,
     };
@@ -125,11 +125,52 @@ describe('Vocab Inline Visitor', () => {
     const constructed = constructor.start({ data: input, formMode: 'edit' });
 
     const visitor = new VocabInlineFormConfigVisitor(logger);
-    await visitor.resolveVocabs(constructed);
+    let thrown: unknown = null;
+    try {
+      await visitor.resolveVocabs(constructed);
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).to.be.instanceOf(Error);
+    expect((thrown as Error).message).to.contain("Inline vocabulary 'status' was not found");
+  });
 
-    const group = constructed.componentDefinitions?.[0] as GroupFormComponentDefinitionOutline;
-    const nested = group?.component?.config?.componentDefinitions?.[0] as CheckboxInputFormComponentDefinitionOutline;
-    const options = nested?.component?.config?.options as Array<{ label: string; value: string }>;
-    expect(options).to.have.length(0);
+  it('uses sails.services.vocabularyservice when global VocabularyService is not set', async () => {
+    delete (global as any).VocabularyService;
+    (global as any).sails = {
+      config: { auth: { defaultBrand: 'default' } },
+      services: {
+        vocabularyservice: {
+          getEntries: async () => ({ entries: [{ label: 'Applied', value: 'applied' }] }),
+        },
+      },
+    };
+
+    const input: FormConfigFrame = {
+      name: 'test',
+      componentDefinitions: [
+        {
+          name: 'activity_type',
+          component: {
+            class: 'DropdownInputComponent',
+            config: {
+              vocabRef: 'anzsrc-toa',
+              inlineVocab: true,
+            },
+          },
+        },
+      ],
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({ data: input, formMode: 'edit' });
+
+    const visitor = new VocabInlineFormConfigVisitor(logger);
+    await visitor.resolveVocabs(constructed, 'default');
+
+    const dropdown = constructed.componentDefinitions?.[0] as DropdownInputFormComponentDefinitionOutline;
+    const options = dropdown?.component?.config?.options as Array<{ label: string; value: string }>;
+    expect(options).to.have.length(1);
+    expect(options[0]?.value).to.equal('applied');
   });
 });

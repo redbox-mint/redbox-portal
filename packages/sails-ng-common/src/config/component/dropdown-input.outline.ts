@@ -32,7 +32,7 @@ export interface DropdownOption {
 
 export interface DropdownInputFieldComponentConfigFrame extends FieldComponentConfigFrame {
     placeholder?: string;
-    options: DropdownOption[];
+    options?: DropdownOption[];
     vocabRef?: string;
     inlineVocab?: boolean;
 }

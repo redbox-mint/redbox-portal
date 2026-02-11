@@ -379,7 +379,14 @@ export namespace Controllers {
         const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[]).map((role: AnyRecord) => String(role['name'] ?? '')).filter((name: string) => !!name);
         const recordData = currentRec;
         const reusableFormDefs = sails.config.reusableFormDefinitions;
-        const mergedForm = await FormsService.buildClientFormConfig(form as unknown as FormConfigFrame, formMode, userRoles, recordData?.metadata ?? null, reusableFormDefs);
+        const mergedForm = await FormsService.buildClientFormConfig(
+          form as unknown as FormConfigFrame,
+          formMode,
+          userRoles,
+          recordData?.metadata ?? null,
+          reusableFormDefs,
+          String(brand?.name ?? '')
+        );
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {

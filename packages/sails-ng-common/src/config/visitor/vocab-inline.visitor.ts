@@ -38,9 +38,8 @@ export class VocabInlineFormConfigVisitor {
     this.logger = logger;
   }
 
-  public async resolveVocabs(form: FormConfigOutline): Promise<void> {
-    const globals = globalThis as { sails?: { config?: { auth?: { defaultBrand?: string } } } };
-    const branding = String(globals?.sails?.config?.auth?.defaultBrand ?? '').trim();
+  public async resolveVocabs(form: FormConfigOutline, brandingOverride?: string): Promise<void> {
+    const branding = this.resolveBranding(brandingOverride);
     if (!branding) {
       return;
     }
@@ -102,8 +101,7 @@ export class VocabInlineFormConfigVisitor {
       return;
     }
 
-    const globals = globalThis as { VocabularyService?: VocabularyServiceLike };
-    const vocabService = globals.VocabularyService;
+    const vocabService = this.getVocabularyService();
     if (!vocabService?.getEntries) {
       this.logger.warn('VocabularyService.getEntries is not available, skipping inline vocab resolution');
       return;
@@ -111,6 +109,9 @@ export class VocabInlineFormConfigVisitor {
 
     try {
       const response = await vocabService.getEntries(branding, config.vocabRef, { limit: 1000, offset: 0 });
+      if (!response) {
+        throw new Error(`Inline vocabulary '${config.vocabRef}' was not found for branding '${branding}'`);
+      }
       const entries = response?.entries ?? [];
       config.options = entries.map((entry) => ({
         label: String(entry?.label ?? ''),
@@ -119,6 +120,24 @@ export class VocabInlineFormConfigVisitor {
     } catch (error) {
       this.logger.warn(`Failed to resolve inline vocab '${config.vocabRef}' for component '${definition?.name ?? ''}'`);
       this.logger.debug(error);
+      throw error;
     }
+  }
+
+  private resolveBranding(brandingOverride?: string): string {
+    const normalizedOverride = String(brandingOverride ?? '').trim();
+    if (normalizedOverride) {
+      return normalizedOverride;
+    }
+    const globals = globalThis as { sails?: { config?: { auth?: { defaultBrand?: string } } } };
+    return String(globals?.sails?.config?.auth?.defaultBrand ?? '').trim();
+  }
+
+  private getVocabularyService(): VocabularyServiceLike | undefined {
+    const globals = globalThis as {
+      VocabularyService?: VocabularyServiceLike;
+      sails?: { services?: { vocabularyservice?: VocabularyServiceLike } };
+    };
+    return globals.VocabularyService ?? globals?.sails?.services?.vocabularyservice;
   }
 }

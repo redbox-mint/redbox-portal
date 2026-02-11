@@ -31,7 +31,7 @@ export interface RadioOption {
 }
 
 export interface RadioInputFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    options: RadioOption[];
+    options?: RadioOption[];
     vocabRef?: string;
     inlineVocab?: boolean;
 }

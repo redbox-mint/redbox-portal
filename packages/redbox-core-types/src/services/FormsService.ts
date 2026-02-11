@@ -548,12 +548,13 @@ export namespace Services {
       formMode?: FormModesConfig,
       userRoles?: string[],
       recordMetadata?: Record<string, unknown> | null,
-      reusableFormDefs?: ReusableFormDefinitions
+      reusableFormDefs?: ReusableFormDefinitions,
+      branding?: string
     ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
       const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
-      await vocabVisitor.resolveVocabs(constructed);
+      await vocabVisitor.resolveVocabs(constructed, branding);
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       const result = visitor.start({ form: constructed, formMode, userRoles });
