@@ -820,6 +820,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.sharedProps.setPropOverride('treeData', item.config, config);
         this.sharedProps.setPropOverride('leafOnly', item.config, config);
         this.sharedProps.setPropOverride('maxDepth', item.config, config);
+        this.sharedProps.setPropOverride('labelTemplate', item.config, config);
     }
 
     visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {

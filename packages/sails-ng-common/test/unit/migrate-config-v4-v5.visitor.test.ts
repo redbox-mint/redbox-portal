@@ -144,6 +144,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(migratedFieldConfig?.vocabRef).to.equal(undefined);
         expect(migratedFieldConfig?.leafOnly).to.equal(true);
         expect(migratedFieldConfig?.maxDepth).to.equal(undefined);
+        expect(migratedFieldConfig?.labelTemplate).to.equal("{{default (split notation \"/\" -1) notation}} - {{label}}");
         expect(migratedField.model?.class).to.equal('CheckboxTreeModel');
         expect(Array.isArray(migratedField.model?.config?.defaultValue)).to.equal(true);
         expect((migratedField.model?.config?.defaultValue as unknown[]).length).to.equal(0);

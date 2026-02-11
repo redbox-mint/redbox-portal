@@ -29,6 +29,7 @@ export class CheckboxTreeFieldComponentConfig extends FieldComponentConfig imple
     treeData: CheckboxTreeNode[] = [];
     leafOnly?: boolean;
     maxDepth?: number;
+    labelTemplate?: string;
 
     constructor() {
         super();

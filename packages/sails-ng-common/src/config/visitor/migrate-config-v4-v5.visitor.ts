@@ -323,6 +323,8 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
     },
 };
 
+const andsVocabDefaultLabelTemplate = "{{default (split notation \"/\" -1) notation}} - {{label}}";
+
 /**
  * Post-processing after mapping v4 to v5 class names.
  * @param v4Field The v4 field.
@@ -926,6 +928,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             this.sharedProps.setPropOverride('maxDepth', item.config, {maxDepth});
         }
 
+        if (this.isLegacyAndsVocabField(field)) {
+            this.sharedProps.setPropOverride("labelTemplate", item.config, {
+                labelTemplate: andsVocabDefaultLabelTemplate
+            });
+        }
+
         this.warnOnMalformedLegacyRegex(rawDefinition);
     }
 
@@ -1370,5 +1378,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             this.logger.warn(`${this.logName}: CheckboxTree migration dropped malformed default selection entries.`);
         }
         config.defaultValue = coerced as CheckboxTreeFieldModelConfig['defaultValue'];
+    }
+
+    private isLegacyAndsVocabField(field: Record<string, unknown>): boolean {
+        const v4Class = String(field?.class ?? '').trim();
+        const v4CompClass = String(field?.compClass ?? '').trim();
+        return v4Class === "ANDSVocab" || v4CompClass === "ANDSVocabComponent";
     }
 }

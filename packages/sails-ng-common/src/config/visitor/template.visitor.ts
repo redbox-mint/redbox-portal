@@ -278,6 +278,14 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     /* Checkbox Tree */
 
     visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {
+        const labelTemplate = (item.config?.labelTemplate ?? "").trim();
+        if (labelTemplate) {
+            this.templates?.push({
+                key: [...(this.formPathHelper.formPath.formConfig ?? []), "config", "labelTemplate"],
+                value: labelTemplate,
+                kind: "handlebars"
+            });
+        }
     }
 
     visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {

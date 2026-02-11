@@ -47,6 +47,7 @@ export interface CheckboxTreeFieldComponentConfigFrame extends FieldComponentCon
     treeData?: CheckboxTreeNode[];
     leafOnly?: boolean;
     maxDepth?: number;
+    labelTemplate?: string;
 }
 
 export interface CheckboxTreeFieldComponentConfigOutline extends CheckboxTreeFieldComponentConfigFrame, FieldComponentConfigOutline {
