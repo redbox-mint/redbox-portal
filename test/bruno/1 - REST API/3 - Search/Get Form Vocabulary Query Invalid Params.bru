@@ -1,0 +1,29 @@
+meta {
+  name: Get Form Vocabulary Query Invalid Params
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{host}}/default/rdmp/query/vocab/rdmp?search=test&start=-1&rows=0
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 400", function () {
+      expect(res.getStatus()).to.equal(400);
+  });
+
+  test("Error code is invalid-query-params", function () {
+      var jsonData = res.getBody();
+      var err = jsonData.errors[0];
+      expect(err).to.have.property('code');
+      expect(err.code).to.equal('invalid-query-params');
+  });
+}

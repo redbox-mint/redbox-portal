@@ -1,0 +1,29 @@
+meta {
+  name: Get Form Vocabulary Query Failure
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/default/rdmp/query/vocab/not-a-real-query-id?search=test&start=0&rows=10
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 500", function () {
+      expect(res.getStatus()).to.equal(500);
+  });
+
+  test("Error code is query-vocab-failed", function () {
+      var jsonData = res.getBody();
+      var err = jsonData.errors[0];
+      expect(err).to.have.property('code');
+      expect(err.code).to.equal('query-vocab-failed');
+  });
+}

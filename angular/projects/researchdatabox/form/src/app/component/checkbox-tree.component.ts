@@ -22,6 +22,9 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
       <div class="redbox-checkbox-tree" role="tree" [attr.aria-label]="label || name || 'Checkbox tree'" (keydown)="onTreeKeydown($event)">
+        @if (rootLoading) {
+          <div class="small text-muted mb-2">Loading vocabulary tree...</div>
+        }
         <ng-container *ngTemplateOutlet="treeNodes; context: { $implicit: rootNodes, level: 1 }"></ng-container>
       </div>
       @if (rootError) {
@@ -64,6 +67,9 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
           @if (loadErrors.has(node.id)) {
             <div class="text-danger small ms-4">{{ loadErrors.get(node.id) }}</div>
           }
+          @if (isNodeLoading(node.id)) {
+            <div class="small text-muted ms-4">Loading...</div>
+          }
           @if (isExpanded(node) && (node.children?.length ?? 0) > 0) {
             <ng-container *ngTemplateOutlet="treeNodes; context: { $implicit: node.children, level: level + 1 }"></ng-container>
           }
@@ -93,6 +99,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
 
   public rootNodes: CheckboxTreeRenderNode[] = [];
   public rootError: string | null = null;
+  public rootLoading = false;
   public loadErrors = new Map<string, string>();
   public focusedNodeId: string | null = null;
 
@@ -171,6 +178,10 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       return false;
     }
     return true;
+  }
+
+  public isNodeLoading(nodeId: string): boolean {
+    return this.loadingNodeIds.has(nodeId);
   }
 
   public getCheckboxId(node: CheckboxTreeRenderNode): string {
@@ -265,12 +276,15 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   }
 
   private async loadRootNodes(): Promise<void> {
+    this.rootLoading = true;
     try {
       const response = await this.vocabTreeService.getChildren(this.vocabRef);
       this.rootNodes = this.toRenderNodes(response.data);
       this.rebuildIndexes(this.rootNodes, null);
     } catch (error) {
       this.rootError = this.describeLoadError(error);
+    } finally {
+      this.rootLoading = false;
     }
   }
 
@@ -293,27 +307,46 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   }
 
   private toRenderNodes(nodes: VocabTreeApiNode[]): CheckboxTreeRenderNode[] {
-    return nodes.map((node) => ({
-      id: String(node.id ?? ""),
-      label: String(node.label ?? ""),
-      value: String(node.value ?? ""),
-      notation: String(node.notation ?? node.value ?? ""),
-      parent: String(node.parent ?? "").trim() || null,
-      hasChildren: Boolean(node.hasChildren),
-      children: []
-    }));
+    const seen = new Set<string>();
+    const normalized: CheckboxTreeRenderNode[] = [];
+    for (const node of nodes) {
+      const id = String(node.id ?? "").trim();
+      if (!id || seen.has(id)) {
+        continue;
+      }
+      seen.add(id);
+      normalized.push({
+        id,
+        label: String(node.label ?? ""),
+        value: String(node.value ?? ""),
+        notation: String(node.notation ?? node.value ?? ""),
+        parent: String(node.parent ?? "").trim() || null,
+        hasChildren: Boolean(node.hasChildren),
+        children: []
+      });
+    }
+    return normalized;
   }
 
-  private normalizeNodes(nodes: CheckboxTreeNode[]): CheckboxTreeRenderNode[] {
-    return (nodes ?? []).map((node) => ({
-      id: String(node.id ?? ""),
-      label: String(node.label ?? ""),
-      value: String(node.value ?? ""),
-      notation: String(node.notation ?? node.value ?? ""),
-      parent: String(node.parent ?? "").trim() || null,
-      hasChildren: Boolean(node.hasChildren || (node.children?.length ?? 0) > 0),
-      children: this.normalizeNodes(node.children ?? [])
-    }));
+  private normalizeNodes(nodes: CheckboxTreeNode[], seen = new Set<string>()): CheckboxTreeRenderNode[] {
+    const normalized: CheckboxTreeRenderNode[] = [];
+    for (const node of nodes ?? []) {
+      const id = String(node.id ?? "").trim();
+      if (!id || seen.has(id)) {
+        continue;
+      }
+      seen.add(id);
+      normalized.push({
+        id,
+        label: String(node.label ?? ""),
+        value: String(node.value ?? ""),
+        notation: String(node.notation ?? node.value ?? ""),
+        parent: String(node.parent ?? "").trim() || null,
+        hasChildren: Boolean(node.hasChildren || (node.children?.length ?? 0) > 0),
+        children: this.normalizeNodes(node.children ?? [], seen)
+      });
+    }
+    return normalized;
   }
 
   private rebuildIndexes(nodes: CheckboxTreeRenderNode[], parentId: string | null): void {

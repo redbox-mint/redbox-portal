@@ -226,4 +226,42 @@ describe('Vocab Inline Visitor', () => {
     expect(treeData[0]?.hasChildren).to.equal(true);
     expect(treeData[0]?.children?.[0]?.id).to.equal('e3');
   });
+
+  it('treats entries with broken parent references as root nodes when inlining tree data', async () => {
+    (global as any).VocabularyService = {
+      getEntries: async () => ({
+        entries: [
+          { id: 'e1', label: 'Root', value: '01', identifier: '01', parent: null },
+          { id: 'e2', label: 'Broken Parent', value: '9999', identifier: '9999', parent: 'missing-parent' }
+        ],
+        meta: { total: 2 }
+      }),
+    };
+
+    const input: FormConfigFrame = {
+      name: 'test',
+      componentDefinitions: [
+        {
+          name: 'anzsrc',
+          component: {
+            class: 'CheckboxTreeComponent',
+            config: {
+              vocabRef: 'anzsrc-2020-for',
+              inlineVocab: true,
+            },
+          },
+          model: { class: 'CheckboxTreeModel', config: {} },
+        },
+      ],
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({ data: input, formMode: 'edit' });
+    const visitor = new VocabInlineFormConfigVisitor(logger);
+    await visitor.resolveVocabs(constructed, 'default');
+
+    const tree = constructed.componentDefinitions?.[0] as CheckboxTreeFormComponentDefinitionOutline;
+    const treeData = tree.component.config?.treeData ?? [];
+    expect(treeData.map((node) => node.id)).to.deep.equal(['e1', 'e2']);
+  });
 });

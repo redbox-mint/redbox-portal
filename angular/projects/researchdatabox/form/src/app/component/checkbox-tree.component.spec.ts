@@ -5,6 +5,16 @@ import { CheckboxTreeComponent } from "./checkbox-tree.component";
 import { VocabTreeService } from "../service/vocab-tree.service";
 
 describe("CheckboxTreeComponent", () => {
+  const createDeferred = <T>() => {
+    let resolve!: (value: T) => void;
+    let reject!: (reason?: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  };
+
   beforeEach(async () => {
     await createTestbedModule({
       declarations: {
@@ -143,6 +153,183 @@ describe("CheckboxTreeComponent", () => {
     expect(tree).toBeTruthy();
     expect(treeItem?.getAttribute("aria-level")).toBe("1");
     expect(treeItem?.getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("supports keyboard navigation and selection", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              inlineVocab: true,
+              leafOnly: false,
+              treeData: [
+                { id: "root-1", label: "Root 1", value: "01", notation: "01", hasChildren: false },
+                { id: "root-2", label: "Root 2", value: "02", notation: "02", hasChildren: false }
+              ]
+            }
+          },
+          model: { class: "CheckboxTreeModel", config: { value: [] } }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const tree = compiled.querySelector('[role="tree"]') as HTMLElement;
+    tree.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    let activeItem = compiled.querySelector('[role="treeitem"][tabindex="0"]') as HTMLElement;
+    expect(activeItem.textContent ?? "").toContain("Root 2");
+
+    tree.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const selectedCheckbox = activeItem.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    expect(selectedCheckbox.checked).toBeTrue();
+  });
+
+  it("shows loading indicator while lazy child nodes are loading", async () => {
+    const vocabTreeService = TestBed.inject(VocabTreeService);
+    const deferred = createDeferred<{ data: Array<Record<string, unknown>>; meta: Record<string, unknown> }>();
+    spyOn(vocabTreeService, "getChildren").and.callFake((_vocabRef: string, parentId?: string) => {
+      if (!parentId) {
+        return Promise.resolve({
+          data: [{ id: "root", label: "Root", value: "01", notation: "01", parent: null, hasChildren: true }],
+          meta: { vocabularyId: "v1", parentId: null, total: 1 }
+        } as any);
+      }
+      return deferred.promise as Promise<any>;
+    });
+
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              vocabRef: "anzsrc-2020-for",
+              inlineVocab: false,
+              leafOnly: true,
+              treeData: [{ id: "root", label: "Root", value: "01", notation: "01", hasChildren: true }]
+            }
+          },
+          model: { class: "CheckboxTreeModel", config: { value: [] } }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    (compiled.querySelector("button") as HTMLButtonElement)?.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect((compiled.textContent ?? "").includes("Loading...")).toBeTrue();
+
+    deferred.resolve({ data: [], meta: { vocabularyId: "v1", parentId: null, total: 0 } });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect((compiled.textContent ?? "").includes("Loading...")).toBeFalse();
+  });
+
+  it("handles empty vocabulary response without errors", async () => {
+    const vocabTreeService = TestBed.inject(VocabTreeService);
+    spyOn(vocabTreeService, "getChildren").and.resolveTo({
+      data: [],
+      meta: { vocabularyId: "v1", parentId: null, total: 0 }
+    });
+
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              vocabRef: "anzsrc-2020-for",
+              inlineVocab: false,
+              leafOnly: true
+            }
+          },
+          model: { class: "CheckboxTreeModel", config: { value: [] } }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelectorAll('[role="treeitem"]').length).toBe(0);
+    expect((compiled.textContent ?? "").includes("Unable to load vocabulary tree.")).toBeFalse();
+  });
+
+  it("deduplicates duplicate node ids in inline tree data", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              inlineVocab: true,
+              leafOnly: false,
+              treeData: [
+                { id: "dup", label: "First", value: "01", notation: "01", hasChildren: false },
+                { id: "dup", label: "Second", value: "02", notation: "02", hasChildren: false }
+              ]
+            }
+          },
+          model: { class: "CheckboxTreeModel", config: { value: [] } }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const treeItems = compiled.querySelectorAll('[role="treeitem"]');
+    expect(treeItems.length).toBe(1);
+    expect(treeItems[0].textContent ?? "").toContain("First");
+  });
+
+  it("renders very large sibling lists", async () => {
+    const treeData = Array.from({ length: 250 }).map((_, index) => ({
+      id: `node-${index}`,
+      label: `Node ${index}`,
+      value: `${index}`,
+      notation: `${index}`,
+      hasChildren: false
+    }));
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              inlineVocab: true,
+              leafOnly: false,
+              treeData
+            }
+          },
+          model: { class: "CheckboxTreeModel", config: { value: [] } }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelectorAll('[role="treeitem"]').length).toBe(250);
   });
 
   it("shows error state when lazy loading root nodes fails", async () => {
