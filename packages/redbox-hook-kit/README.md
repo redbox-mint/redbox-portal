@@ -132,12 +132,75 @@ Initialize a new ReDBox hook project with TypeScript setup.
 npx @researchdatabox/redbox-hook-kit init
 ```
 
+### `install-skills`
+
+Install the bundled agent skills using the `vercel-labs/skills` CLI. Bundled agent skills are curated prompt packs that teach supported agents how to work with ReDBox conventions, file layouts, and workflows. Install them to enable consistent, repo-aware assistance from your agent.
+
+Prerequisites
+- Install the external Skills CLI: `npx @vercel/skills --help` (or follow the install instructions in the Skills docs).
+- Authenticate if required by your agent runtime (some agents prompt for login on first run).
+
+Usage
+- `-a <agent>`: Target agent runtime (for example `claude-code`).
+- `--skill <pattern>`: Skill name or glob pattern (for example `redbox-*` or `*`).
+- Skills are optional but recommended for consistent guidance and guardrails.
+
+This will:
+- Copy the bundled skill definitions from this package into the Skills CLI workspace.
+- Register the skills for the specified agent runtime.
+- Make the skills available for subsequent agent sessions.
+
+```bash
+npx @researchdatabox/redbox-hook-kit install-skills -a claude-code --skill 'redbox-*'
+```
+
+For advanced options, see the `vercel-labs/skills` documentation: https://github.com/vercel-labs/skills
+
+### `migrate-form-config`
+
+Migrate a legacy v4 JavaScript form config to the v5 TypeScript form framework format.
+
+```bash
+npx @researchdatabox/redbox-hook-kit migrate-form-config \
+  --input /path/to/legacy-form.js \
+  --output /path/to/migrated-form.ts
+```
+
 ### `help`
 
 Show CLI help and usage information.
 
 ```bash
 npx @researchdatabox/redbox-hook-kit help
+```
+
+### `completion`
+
+Output shell completion scripts for `bash`, `zsh`, `fish`, and `powershell`.
+
+```bash
+npx @researchdatabox/redbox-hook-kit completion <shell>
+```
+
+Install examples:
+
+```bash
+# bash
+npx @researchdatabox/redbox-hook-kit completion bash > ~/.local/share/bash-completion/completions/redbox-hook-kit
+
+# zsh
+mkdir -p ~/.zsh/completions
+npx @researchdatabox/redbox-hook-kit completion zsh > ~/.zsh/completions/_redbox-hook-kit
+# then ensure your ~/.zshrc includes:
+# fpath=(~/.zsh/completions $fpath)
+# autoload -U compinit && compinit
+
+# fish
+npx @researchdatabox/redbox-hook-kit completion fish > ~/.config/fish/completions/redbox-hook-kit.fish
+
+# powershell
+npx @researchdatabox/redbox-hook-kit completion powershell > ~/.config/powershell/redbox-hook-kit-completion.ps1
+# then source it from your PowerShell profile
 ```
 
 ## Contributing
