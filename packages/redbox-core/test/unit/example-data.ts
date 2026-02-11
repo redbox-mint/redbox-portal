@@ -82,11 +82,14 @@ export const reusableDefinitionsExample1: ReusableFormDefinitions = {
     "questiontree-answer-one": [
         {
             name: "questiontree_answer_one",
-            component: {class: "SimpleInputComponent", config: {type: "text"}}
+            component: {class: "RadioInputComponent", config: {options: []}}
         }
     ],
     "questiontree-answer-one-more": [
-
+        {
+            name: "questiontree_answer_one_more",
+            component: {class: "CheckboxInputComponent", config: {options: []}}
+        }
     ],
 };
 
