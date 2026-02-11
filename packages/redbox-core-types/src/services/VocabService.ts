@@ -60,6 +60,7 @@ export namespace Services {
       'findRecords'
     ];
 
+    /** @deprecated Legacy bootstrap flow for deprecated vocab API. */
     public bootstrap() {
       return _.isEmpty(sails.config.vocab.bootStrapVocabs) ?
         of(null)
@@ -71,6 +72,7 @@ export namespace Services {
           );
     }
 
+    /** @deprecated Legacy Mint trigger wrapper. */
     public async findInMintTriggerWrapper(user: VocabUserContext, options: MintTriggerOptions, failureMode: string) {
       let additionalInfoFound = _.get(user, 'additionalInfoFound') as Array<AdditionalInfoRecord> | undefined;
       if (!_.isArray(additionalInfoFound)) {
@@ -141,6 +143,7 @@ export namespace Services {
       }
     }
 
+    /** @deprecated Legacy Mint integration. */
     public async findInMint(sourceType: string, queryString: string): Promise<Record<string, unknown>> {
       queryString = _.trim(queryString);
       let searchString = '';
@@ -157,6 +160,7 @@ export namespace Services {
       return response.data as Record<string, unknown>;
     }
 
+    /** @deprecated Legacy record query implementation. */
     public async findRecords(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number, user: VocabUserContext): Promise<Record<string, unknown> | Array<Record<string, unknown>>> {
 
       const queryConfig = sails.config.vocab.queries[sourceType] as unknown as VocabQueryConfig;
@@ -268,6 +272,7 @@ export namespace Services {
       return _.get(variables, templateOrPath);
     }
 
+    /** @deprecated Legacy external service proxy. */
     public async findInExternalService(providerName: string, params: ExternalServiceParams): Promise<Record<string, unknown>> {
       const method = sails.config.vocab.external[providerName].method;
       let url = sails.config.vocab.external[providerName].url;
@@ -314,6 +319,7 @@ export namespace Services {
     }
 
 
+    /** @deprecated Use VocabularyService.getEntries() or FormVocabularyController endpoints. */
     public getVocab = (vocabId: string): Observable<Array<{ uri: string; notation: string; label: string }> | unknown> => {
       // Check cache
       return from(CacheService.get(vocabId)).pipe(
@@ -420,6 +426,7 @@ export namespace Services {
       }));
     }
 
+    /** @deprecated Managed via Vocabulary admin. */
     loadCollection(collectionId: string, progressId: string | null = null, force = false) {
       const progressKey = progressId ?? '';
       const getMethod = sails.config.vocab.collection[collectionId].getMethod;
@@ -476,10 +483,12 @@ export namespace Services {
       return (this as unknown as Record<string, (buf: unknown) => Observable<unknown>>)[methodName](buffer);
     }
 
+    /** @deprecated Managed via Vocabulary admin. */
     findCollection(collectionId: string, searchString: string) {
       return (this as unknown as Record<string, (value: string) => Observable<unknown>>)[sails.config.vocab.collection[collectionId].searchMethod](searchString);
     }
 
+    /** @deprecated Legacy ANDS/RVA lookup. */
     public rvaGetResourceDetails(uri: string, vocab: string): Observable<AxiosResponse<unknown>> {
       const url = sails.config.vocab.rootUrl + `${vocab}/resource.json?uri=${uri}`;
       return from(axios.get(url)).pipe(flatMap(response => {

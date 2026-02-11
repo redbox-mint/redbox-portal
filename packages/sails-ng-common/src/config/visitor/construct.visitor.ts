@@ -767,6 +767,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.sharedProps.setPropOverride('placeholder', item.config, config);
         this.sharedProps.setPropOverride('options', item.config, config);
         this.sharedProps.setPropOverride('multipleValues', item.config, config);
+        this.sharedProps.setPropOverride('vocabRef', item.config, config);
+        this.sharedProps.setPropOverride('inlineVocab', item.config, config);
     }
 
     visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
@@ -805,6 +807,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.sharedProps.setPropOverride('placeholder', item.config, config);
         this.sharedProps.setPropOverride('options', item.config, config);
+        this.sharedProps.setPropOverride('vocabRef', item.config, config);
+        this.sharedProps.setPropOverride('inlineVocab', item.config, config);
     }
 
     visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
@@ -842,6 +846,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
         this.sharedProps.setPropOverride('options', item.config, config);
+        this.sharedProps.setPropOverride('vocabRef', item.config, config);
+        this.sharedProps.setPropOverride('inlineVocab', item.config, config);
     }
 
     visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {

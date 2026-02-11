@@ -235,17 +235,18 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/listDeletedRecords': 'RecordController.getDeletedRecordList',
 
     // Vocab routes
-    'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
-    'get /:branding/:portal/ands/vocab/resourceDetails': 'VocabController.rvaGetResourceDetails',
-    'get /:branding/:portal/mint/:mintSourceType': 'VocabController.getMint',
-    'get /:branding/:portal/query/vocab/:queryId': 'VocabController.getRecords',
-    'post /:branding/:portal/external/vocab/:provider': {
-        controller: 'VocabController',
-        action: 'searchExternalService',
-        csrf: false
+    'get /:branding/:portal/vocab/:vocabIdOrSlug': {
+        controller: 'FormVocabularyController',
+        action: 'get'
     },
-    'get /:branding/:portal/collection/:collectionId': 'VocabController.getCollection',
-    'post /:branding/:portal/collection/:collectionId': 'VocabController.loadCollection',
+    'get /:branding/:portal/vocab/:vocabIdOrSlug/entries': {
+        controller: 'FormVocabularyController',
+        action: 'entries'
+    },
+    'get /:branding/:portal/query/vocab/:queryId': {
+        controller: 'FormVocabularyController',
+        action: 'getRecords'
+    },
 
     // Export routes
     'get /:branding/:portal/export': 'ExportController.index',
@@ -266,9 +267,6 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/admin/getReport': 'ReportController.get',
     'get /:branding/:portal/admin/getReportResults': 'ReportController.getResults',
     'get /:branding/:portal/admin/downloadReportCSV': 'ReportController.downloadCSV',
-
-    // People search
-    'get /:branding/:portal/people/search': 'VocabController.searchPeople',
 
     // API docs
     'get /:branding/:portal/api-docs.apib': 'BrandingController.renderApiB',

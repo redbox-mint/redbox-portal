@@ -37,6 +37,22 @@ export namespace Services {
     children: VocabularyTreeNode[];
   }
 
+  export interface VocabularyEntriesOptions {
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }
+
+  export interface VocabularyEntriesResponse {
+    entries: VocabularyEntryAttributes[];
+    meta: {
+      total: number;
+      limit: number;
+      offset: number;
+      vocabularyId: string;
+    };
+  }
+
   type VocabularyListWhere = {
     type?: VocabularyAttributes['type'];
     source?: VocabularyAttributes['source'];
@@ -50,6 +66,8 @@ export namespace Services {
     protected override _exportedMethods: string[] = [
       'list',
       'getById',
+      'getByIdOrSlug',
+      'getEntries',
       'create',
       'update',
       'reorderEntries',
@@ -143,6 +161,61 @@ export namespace Services {
 
     public async getById(id: string): Promise<VocabularyAttributes | null> {
       return await Vocabulary.findOne({ id });
+    }
+
+    public async getByIdOrSlug(branding: string, idOrSlug: string): Promise<VocabularyAttributes | null> {
+      const normalizedBranding = this.resolveBrandingId(branding);
+      const normalizedIdOrSlug = String(idOrSlug ?? '').trim();
+      if (!normalizedBranding || !normalizedIdOrSlug) {
+        return null;
+      }
+
+      const byId = await Vocabulary.findOne({ id: normalizedIdOrSlug, branding: normalizedBranding }) as VocabularyAttributes | null;
+      if (byId) {
+        return byId;
+      }
+      return await Vocabulary.findOne({ slug: normalizedIdOrSlug, branding: normalizedBranding }) as VocabularyAttributes | null;
+    }
+
+    public async getEntries(
+      branding: string,
+      vocabIdOrSlug: string,
+      options?: VocabularyEntriesOptions
+    ): Promise<VocabularyEntriesResponse | null> {
+      const vocabulary = await this.getByIdOrSlug(branding, vocabIdOrSlug);
+      if (!vocabulary) {
+        return null;
+      }
+
+      const parsedLimit = Number.parseInt(String(options?.limit ?? 200), 10);
+      const parsedOffset = Number.parseInt(String(options?.offset ?? 0), 10);
+      const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(1000, parsedLimit) : 200;
+      const offset = Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
+      const search = String(options?.search ?? '').trim().toLowerCase();
+
+      const where: { vocabulary: string; labelLower?: { contains: string } } = {
+        vocabulary: String(vocabulary.id)
+      };
+      if (search) {
+        where.labelLower = { contains: search };
+      }
+
+      const total = await VocabularyEntry.count(where);
+      const entries = await VocabularyEntry.find(where)
+        .sort('order ASC')
+        .sort('label ASC')
+        .skip(offset)
+        .limit(limit) as VocabularyEntryAttributes[];
+
+      return {
+        entries,
+        meta: {
+          total,
+          limit,
+          offset,
+          vocabularyId: String(vocabulary.id)
+        }
+      };
     }
 
     public async create(input: VocabularyInput): Promise<VocabularyAttributes> {

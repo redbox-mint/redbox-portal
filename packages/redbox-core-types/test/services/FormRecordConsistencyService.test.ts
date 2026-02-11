@@ -116,7 +116,7 @@ describe('FormRecordConsistencyService', function() {
   });
 
   describe('extractRawTemplates', function() {
-    it('should extract templates using visitor', function() {
+    it('should extract templates using visitor', async function() {
       const item = { type: 'form' };
       
       (global as any).FormsService.buildClientFormConfig.returns({});
@@ -126,7 +126,7 @@ describe('FormRecordConsistencyService', function() {
       // Assuming dependencies are available
       
       try {
-        const result = FormRecordConsistencyService.extractRawTemplates(item, 'edit');
+        const result = await FormRecordConsistencyService.extractRawTemplates(item, 'edit');
         expect(result).to.be.an('array');
       } catch (e) {
         // If dependencies are missing, we might skip

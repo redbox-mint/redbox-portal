@@ -24,6 +24,8 @@ import {
 export class DropdownInputFieldComponentConfig extends FieldComponentConfig implements DropdownInputFieldComponentConfigOutline {
     placeholder?: string;
     options: DropdownOption[] = [];
+    vocabRef?: string;
+    inlineVocab?: boolean;
 
     constructor() {
         super();

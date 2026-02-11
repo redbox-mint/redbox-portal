@@ -27,7 +27,8 @@ import {
   ClientFormConfigVisitor,
   ConstructFormConfigVisitor,
   FormConfigFrame, FormConfigOutline,
-  FormModesConfig, ReusableFormDefinitions
+  FormModesConfig, ReusableFormDefinitions,
+  VocabInlineFormConfigVisitor
 } from "@researchdatabox/sails-ng-common";
 
 type WorkflowStepLike = {
@@ -542,15 +543,17 @@ export namespace Services {
      * @param recordMetadata The record metadata.
      * @param reusableFormDefs The reusable form definitions.
      */
-    public buildClientFormConfig(
+    public async buildClientFormConfig(
       item: FormConfigFrame,
       formMode?: FormModesConfig,
       userRoles?: string[],
       recordMetadata?: Record<string, unknown> | null,
       reusableFormDefs?: ReusableFormDefinitions
-    ): FormConfigOutline {
+    ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
+      const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
+      await vocabVisitor.resolveVocabs(constructed);
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       const result = visitor.start({ form: constructed, formMode, userRoles });
