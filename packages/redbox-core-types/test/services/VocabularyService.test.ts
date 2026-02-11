@@ -1,7 +1,11 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import * as lodash from 'lodash';
+import * as fs from 'node:fs/promises';
 import { Services as VocabularyServiceModule } from '../../src/services/VocabularyService';
+import type { VocabularyAttributes } from '../../src/waterline-models';
+
+type ReaddirResult = Awaited<ReturnType<typeof fs.readdir>>;
 
 type StubbedLogger = {
   error: (...args: unknown[]) => void;
@@ -11,7 +15,10 @@ type StubbedLogger = {
 
 type StubbedSails = {
   log: StubbedLogger;
-  config: { auth: { defaultBrand: string } };
+  config: {
+    auth: { defaultBrand: string };
+    vocab?: { bootstrapDataPath?: string; bootstrapRvaImports?: boolean };
+  };
   services: Record<string, unknown>;
 };
 
@@ -64,7 +71,10 @@ describe('VocabularyService', () => {
     g.sails = {
       log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() },
       config: { auth: { defaultBrand: 'default' } },
-      services: {}
+      services: {
+        brandingservice: { getDefault: sinon.stub().returns('default') },
+        rvaimportservice: { importRvaVocabulary: sinon.stub().resolves({ id: 'rva-v1' }) }
+      }
     };
 
     g.Vocabulary = {
@@ -235,5 +245,145 @@ describe('VocabularyService', () => {
     expect(result.updated).to.equal(0);
     const setPayloads = updateSetStub.getCalls().map((call) => call.args[0]);
     expect(setPayloads.some((payload) => payload?.parent === 'db-parent')).to.equal(true);
+  });
+
+  describe('bootstrapData', () => {
+    const stubBootstrapFileOps = (): { readdirStub: sinon.SinonStub; readFileStub: sinon.SinonStub } => {
+      const readdirStub = sinon.stub();
+      const readFileStub = sinon.stub();
+      sinon.stub(
+        service as unknown as { getBootstrapFileOps: () => Pick<typeof fs, 'readdir' | 'readFile'> },
+        'getBootstrapFileOps'
+      ).returns({
+        readdir: readdirStub as unknown as typeof fs.readdir,
+        readFile: readFileStub as unknown as typeof fs.readFile
+      });
+      return { readdirStub, readFileStub };
+    };
+
+    it('returns without error when bootstrap directory does not exist', async () => {
+      const { readdirStub } = stubBootstrapFileOps();
+      readdirStub.rejects({ code: 'ENOENT' });
+      const createStub = sinon.stub(service, 'create');
+
+      await service.bootstrapData();
+
+      expect(createStub.called).to.equal(false);
+      expect((g.sails.log.verbose as sinon.SinonStub).called).to.equal(true);
+    });
+
+    it('creates vocabulary from valid local bootstrap json when vocabulary does not exist', async () => {
+      const { readdirStub, readFileStub } = stubBootstrapFileOps();
+      readdirStub.resolves([{ isFile: () => true, name: 'local.json' }] as unknown as ReaddirResult);
+      readFileStub.resolves(JSON.stringify({
+        name: 'ANZSRC Type of Activity',
+        slug: 'anzsrc-toa',
+        description: 'desc',
+        type: 'flat',
+        entries: [{ label: 'A', value: 'a' }]
+      }));
+      g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+      const createStub = sinon.stub(service, 'create').resolves({ id: 'v-created' } as unknown as VocabularyAttributes);
+
+      await service.bootstrapData();
+
+      expect(createStub.calledOnce).to.equal(true);
+      const payload = createStub.firstCall.args[0];
+      expect(payload.slug).to.equal('anzsrc-toa');
+      expect(payload.branding).to.equal('default');
+      expect(payload.entries?.length).to.equal(1);
+    });
+
+    it('skips creating local vocabulary when slug and branding already exist', async () => {
+      const { readdirStub, readFileStub } = stubBootstrapFileOps();
+      readdirStub.resolves([{ isFile: () => true, name: 'local.json' }] as unknown as ReaddirResult);
+      readFileStub.resolves(JSON.stringify({ name: 'Existing', slug: 'existing' }));
+      g.Vocabulary.findOne = sinon.stub().resolves({ id: 'existing-id', name: 'Existing', type: 'flat' }) as unknown as VocabularyModelStub['findOne'];
+      const createStub = sinon.stub(service, 'create');
+
+      await service.bootstrapData();
+
+      expect(createStub.called).to.equal(false);
+    });
+
+    it('continues processing when one file has malformed json', async () => {
+      const { readdirStub, readFileStub } = stubBootstrapFileOps();
+      readdirStub.resolves([
+        { isFile: () => true, name: 'a-bad.json' },
+        { isFile: () => true, name: 'b-good.json' }
+      ] as unknown as ReaddirResult);
+      readFileStub
+        .onFirstCall().resolves('{invalid json')
+        .onSecondCall().resolves(JSON.stringify({ name: 'Good', slug: 'good' }));
+      g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+      const createStub = sinon.stub(service, 'create').resolves({ id: 'good-id' } as unknown as VocabularyAttributes);
+
+      await service.bootstrapData();
+
+      expect(createStub.calledOnce).to.equal(true);
+      expect((g.sails.log.error as sinon.SinonStub).called).to.equal(true);
+    });
+
+    it('logs and skips local file when name or slug is missing', async () => {
+      const { readdirStub, readFileStub } = stubBootstrapFileOps();
+      readdirStub.resolves([{ isFile: () => true, name: 'missing-name.json' }] as unknown as ReaddirResult);
+      readFileStub.resolves(JSON.stringify({ slug: 'missing-name' }));
+      const createStub = sinon.stub(service, 'create');
+
+      await service.bootstrapData();
+
+      expect(createStub.called).to.equal(false);
+      expect((g.sails.log.error as sinon.SinonStub).called).to.equal(true);
+    });
+
+    it('imports rva vocabularies when missing and skips existing ones', async () => {
+      const { readdirStub, readFileStub } = stubBootstrapFileOps();
+      readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
+      readFileStub.resolves(JSON.stringify({
+        imports: [{ rvaId: '316' }, { rvaId: '317' }]
+      }));
+      const findOneStub = sinon.stub();
+      findOneStub.onFirstCall().resolves(null);
+      findOneStub.onSecondCall().resolves({ id: 'existing-rva', name: 'Existing RVA', type: 'flat' });
+      g.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
+      const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+
+      await service.bootstrapData();
+
+      expect(importStub.calledOnce).to.equal(true);
+      expect(importStub.firstCall.args[0]).to.equal('316');
+    });
+
+    it('does not import rva vocabularies when disabled in config', async () => {
+      g.sails.config.vocab = { bootstrapRvaImports: false };
+      const { readdirStub, readFileStub } = stubBootstrapFileOps();
+      readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
+      readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
+      const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+
+      await service.bootstrapData();
+
+      expect(importStub.called).to.equal(false);
+    });
+
+    it('processes bootstrap files in sorted filename order', async () => {
+      const { readdirStub, readFileStub } = stubBootstrapFileOps();
+      readdirStub.resolves([
+        { isFile: () => true, name: 'z.json' },
+        { isFile: () => true, name: 'a.json' },
+        { isFile: () => true, name: 'm.json' }
+      ] as unknown as ReaddirResult);
+      readFileStub
+        .onFirstCall().resolves(JSON.stringify({ name: 'A', slug: 'a' }))
+        .onSecondCall().resolves(JSON.stringify({ name: 'M', slug: 'm' }))
+        .onThirdCall().resolves(JSON.stringify({ name: 'Z', slug: 'z' }));
+      g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+      sinon.stub(service, 'create').resolves({ id: 'created' } as unknown as VocabularyAttributes);
+
+      await service.bootstrapData();
+
+      const readOrder = readFileStub.getCalls().map((call) => String(call.args[0]).split('/').pop());
+      expect(readOrder).to.deep.equal(['a.json', 'm.json', 'z.json']);
+    });
   });
 });
