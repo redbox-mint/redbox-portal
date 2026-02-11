@@ -41,6 +41,9 @@ describe('redbox-loader', function () {
         await fsPromises.mkdir(path.join(sandboxDir, 'api', 'policies'), { recursive: true });
         await fsPromises.mkdir(path.join(sandboxDir, 'api', 'middleware'), { recursive: true });
         await fsPromises.mkdir(path.join(sandboxDir, 'api', 'responses'), { recursive: true });
+        await fsPromises.mkdir(path.join(sandboxDir, 'api', 'services'), { recursive: true });
+        await fsPromises.mkdir(path.join(sandboxDir, 'api', 'controllers'), { recursive: true });
+        await fsPromises.mkdir(path.join(sandboxDir, 'api', 'form-config'), { recursive: true });
         // Create config directory for config shims and bootstrap
         await fsPromises.mkdir(path.join(sandboxDir, 'config'), { recursive: true });
 
@@ -136,6 +139,9 @@ describe('redbox-loader', function () {
             await fsPromises.writeFile(path.join(sandboxDir, 'api/policies/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/middleware/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/responses/test.js'), 'x');
+            await fsPromises.writeFile(path.join(sandboxDir, 'api/services/test.js'), 'x');
+            await fsPromises.writeFile(path.join(sandboxDir, 'api/controllers/test.js'), 'x');
+            await fsPromises.writeFile(path.join(sandboxDir, 'api/form-config/index.js'), 'x');
 
             const result = await redboxLoader.shouldRegenerateShims(sandboxDir, false);
             expect(result.shouldRegenerate).to.be.false;
@@ -150,6 +156,9 @@ describe('redbox-loader', function () {
             await fsPromises.writeFile(path.join(sandboxDir, 'api/policies/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/middleware/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/responses/test.js'), 'x');
+            await fsPromises.writeFile(path.join(sandboxDir, 'api/services/test.js'), 'x');
+            await fsPromises.writeFile(path.join(sandboxDir, 'api/controllers/test.js'), 'x');
+            await fsPromises.writeFile(path.join(sandboxDir, 'api/form-config/index.js'), 'x');
 
             const result = await redboxLoader.generateAllShims(sandboxDir);
             expect(result.skipped).to.be.true;
@@ -173,6 +182,9 @@ describe('redbox-loader', function () {
             await fsPromises.writeFile(path.join(sandboxDir, 'api/policies/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/middleware/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/responses/test.js'), 'x');
+            await fsPromises.writeFile(path.join(sandboxDir, 'api/services/test.js'), 'x');
+            await fsPromises.writeFile(path.join(sandboxDir, 'api/controllers/test.js'), 'x');
+            await fsPromises.writeFile(path.join(sandboxDir, 'api/form-config/index.js'), 'x');
 
             const result = await redboxLoader.generateAllShims(sandboxDir);
             expect(result.skipped).to.be.false;
@@ -191,6 +203,59 @@ describe('redbox-loader', function () {
             expect(result.stats.bootstrapStats).to.exist;
             expect(result.stats.bootstrapStats.total).to.equal(1);
             expect(result.stats.bootstrapStats.hookCount).to.be.a('number');
+        });
+    });
+
+    describe('generateFormConfigShims', function () {
+        let formConfigDir: string;
+
+        beforeEach(async function () {
+            formConfigDir = path.join(sandboxDir, 'api', 'form-config');
+            await fsPromises.mkdir(formConfigDir, { recursive: true });
+        });
+
+        it('should include core forms when LOAD_DEFAULT_FORMS=true', async function () {
+            process.env.LOAD_DEFAULT_FORMS = 'true';
+            await redboxLoader.generateFormConfigShims(formConfigDir, {});
+
+            const content = await fsPromises.readFile(path.join(formConfigDir, 'index.js'), 'utf8');
+            expect(content).to.include("default-1.0-draft");
+        });
+
+        it('should use hook-only registry when LOAD_DEFAULT_FORMS=false', async function () {
+            process.env.LOAD_DEFAULT_FORMS = 'false';
+            const hookFormConfigs = {
+                'hook-form': { module: 'hook-module' }
+            };
+            await redboxLoader.generateFormConfigShims(formConfigDir, hookFormConfigs);
+
+            const content = await fsPromises.readFile(path.join(formConfigDir, 'index.js'), 'utf8');
+            expect(content).to.include("'hook-form'");
+            expect(content).to.not.include("default-1.0-draft");
+        });
+
+        it('should treat missing LOAD_DEFAULT_FORMS as hook-only', async function () {
+            delete process.env.LOAD_DEFAULT_FORMS;
+            const hookFormConfigs = {
+                'hook-form': { module: 'hook-module' }
+            };
+            await redboxLoader.generateFormConfigShims(formConfigDir, hookFormConfigs);
+
+            const content = await fsPromises.readFile(path.join(formConfigDir, 'index.js'), 'utf8');
+            expect(content).to.include("'hook-form'");
+            expect(content).to.not.include("default-1.0-draft");
+        });
+
+        it('should treat invalid LOAD_DEFAULT_FORMS as hook-only', async function () {
+            process.env.LOAD_DEFAULT_FORMS = 'maybe';
+            const hookFormConfigs = {
+                'hook-form': { module: 'hook-module' }
+            };
+            await redboxLoader.generateFormConfigShims(formConfigDir, hookFormConfigs);
+
+            const content = await fsPromises.readFile(path.join(formConfigDir, 'index.js'), 'utf8');
+            expect(content).to.include("'hook-form'");
+            expect(content).to.not.include("default-1.0-draft");
         });
     });
 

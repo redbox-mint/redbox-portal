@@ -23,6 +23,7 @@ When ReDBox Portal starts, the loader runs **before** `sails.lift()` to:
 │     ├── Generate api/middleware/*.js shims                  │
 │     ├── Generate api/responses/*.js shims                   │
 │     ├── Generate api/controllers/*.js shims                 │
+│     ├── Generate api/form-config/*.js shims                 │
 │     ├── Generate config/*.js shims                          │
 │     └── Generate config/bootstrap.js shim                   │
 ├─────────────────────────────────────────────────────────────┤
@@ -120,6 +121,30 @@ module.exports.appmode = Config.appmode;
 
 Config shims also merge hook-provided configurations in alphabetical order.
 
+### Form-Config Shims (`api/form-config/`)
+
+Form-config shims expose typed form definitions from core-types and hooks. The
+generated `api/form-config/index.js` provides a map compatible with legacy
+`config/form.js` consumers.
+
+```javascript
+// Example: api/form-config/default-1.0-draft.js
+const { FormConfigExports } = require('@researchdatabox/redbox-core-types');
+module.exports = FormConfigExports['default-1.0-draft'];
+```
+
+```javascript
+// Example: api/form-config/index.js
+const forms = {
+    'default-1.0-draft': require('./default-1.0-draft.js'),
+};
+
+module.exports = { forms };
+```
+
+`LOAD_DEFAULT_FORMS=true` includes core + hook forms in the registry. When
+`LOAD_DEFAULT_FORMS` is false or unset, only hook forms are included.
+
 ### Bootstrap Shim (`config/bootstrap.js`)
 
 Calls `coreBootstrap()` and any hook-provided bootstrap functions.
@@ -137,7 +162,8 @@ The loader scans `package.json` dependencies for hooks that declare capabilities
         "hasServices": true,
         "hasControllers": true,
         "hasBootstrap": true,
-        "hasConfig": true
+        "hasConfig": true,
+        "hasFormConfigs": true
     }
 }
 ```
@@ -152,6 +178,7 @@ Hooks must export registration functions:
 | `hasControllers` | `registerRedboxControllers()` / `registerRedboxWebserviceControllers()` | Returns controller export objects (hook controllers take precedence) |
 | `hasBootstrap` | `registerRedboxBootstrap()` | Returns async bootstrap function |
 | `hasConfig` | `registerRedboxConfig()` | Returns config object to merge |
+| `hasFormConfigs` | `registerRedboxFormConfigs()` | Returns form config registry |
 
 ### Service Override Precedence
 

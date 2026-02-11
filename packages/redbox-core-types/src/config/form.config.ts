@@ -14,7 +14,11 @@ export interface FormConfig {
     forms: {
         [formName: string]: unknown;
     };
+
+    /** Shimmed registry for bootstrap and legacy consumers */
+    formConfigRegistry?: {
+        [formName: string]: unknown;
+    };
 }
 
-// Note: Default values require runtime require() calls to form-config files.
-// The original config/form.js file must be kept for runtime.
+// Note: The runtime config/form.js now delegates to api/form-config shims.

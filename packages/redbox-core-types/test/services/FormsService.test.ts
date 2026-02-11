@@ -18,6 +18,14 @@ describe('FormsService', function() {
           bootstrapAlways: false
         },
         form: {
+          formConfigRegistry: {
+            'default-form': {
+              type: 'rdmp',
+              fields: [],
+              messages: {},
+              attachmentFields: []
+            }
+          },
           forms: {
             'default-form': {
               type: 'rdmp',
@@ -196,6 +204,25 @@ describe('FormsService', function() {
       
       expect(mockForm.create.called).to.be.true;
       expect(mockWorkflowStep.update.calledWith({ id: 'step-1' })).to.be.true;
+    });
+
+    it('should prefer formConfigRegistry over legacy forms', async function() {
+      mockSails.config.form.forms = {};
+      mockSails.config.form.formConfigRegistry = {
+        'default-form': {
+          type: 'rdmp',
+          fields: [],
+          messages: {},
+          attachmentFields: []
+        }
+      };
+      const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
+      mockForm.find.resolves([]);
+      mockForm.create.resolves({ id: 'form-1', workflowStep: 'step-1' });
+
+      await FormsService.bootstrap(workflowStep);
+
+      expect(mockForm.create.called).to.be.true;
     });
 
     it('should skip if form exists', async function() {

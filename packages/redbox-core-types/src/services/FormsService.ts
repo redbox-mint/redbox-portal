@@ -23,6 +23,7 @@ import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { FormModel } from '../model/storage/FormModel';
 import { createSchema } from 'genson-js';
+import * as path from 'path';
 import {
   ClientFormConfigVisitor,
   ConstructFormConfigVisitor,
@@ -71,6 +72,7 @@ export namespace Services {
     ];
 
     public async bootstrap(workflowStep: WorkflowStepLike): Promise<unknown> {
+      sails.log.verbose(`Bootstrapping form for workflow step: ${workflowStep.id} with form config: ${workflowStep.config.form}`);
       let form = await Form.find({
         workflowStep: workflowStep.id
       })
@@ -83,12 +85,15 @@ export namespace Services {
       }
       let formDefs: string[] = [];
       let formName: string | null = null;
+      const formRegistry = this.getFormConfigRegistry();
+      sails.log.verbose("Form registry: ");
+      sails.log.verbose(JSON.stringify(formRegistry));
       this.logger.verbose("Found : ");
       this.logger.verbose(form);
       if (!form || (Array.isArray(form) && form.length == 0)) {
         this.logger.verbose("Bootstrapping form definitions..");
         // only bootstrap the form for this workflow step
-        _.forOwn(sails.config.form.forms, (_formDef: unknown, formName: string) => {
+        _.forOwn(formRegistry, (_formDef: unknown, formName: string) => {
           if (formName == workflowStep.config.form) {
             formDefs.push(formName);
           }
@@ -126,7 +131,11 @@ export namespace Services {
       if (formName) {
         sails.log.verbose(`Preparing to create form...`);
         // TODO: assess the form config to see what should change
-        const formConfig = sails.config.form.forms[formName] as Record<string, unknown>;
+        const formConfig = formRegistry[formName] as Record<string, unknown> | undefined;
+        if (!formConfig) {
+          this.logger.warn(`No form config found for ${formName}, skipping bootstrap.`);
+          return null;
+        }
 
         // TODO: Make the typing stronger here by removing the Record type here 
         // once we remove the legacy forms config
@@ -170,6 +179,25 @@ export namespace Services {
       }
 
       return null;
+    }
+
+    private getFormConfigRegistry(): Record<string, unknown> {
+      const formConfigRegistry = _.get(sails, 'config.form.formConfigRegistry') as Record<string, unknown> | undefined;
+      if (formConfigRegistry && typeof formConfigRegistry === 'object') {
+        sails.log.verbose(`Using form config registry from sails config with keys: ${Object.keys(formConfigRegistry).join(', ')}`);
+        return formConfigRegistry;
+      }
+
+      const appPath = _.get(sails, 'config.appPath', process.cwd());
+      try {
+        sails.log.verbose(`Attempting to load form config registry from file system at path: ${appPath}/api/form-config`);
+        const registryModule = require(path.join(appPath, 'api', 'form-config')) as { forms?: Record<string, unknown> };
+        return registryModule?.forms ?? {};
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Unable to load form-config registry: ${message}`);
+        return {};
+      }
     }
 
     public listForms = (): Observable<FormModel[]> => {
