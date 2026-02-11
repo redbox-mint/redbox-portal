@@ -78,6 +78,16 @@ export const reusableDefinitionsExample1: ReusableFormDefinitions = {
     ],
     // TODO: The standard project info fields: title, description, keywords, SEO codes, FOR codes
     "standard-project-info-fields": [],
+
+    "questiontree-answer-one": [
+        {
+            name: "questiontree_answer_one",
+            component: {class: "SimpleInputComponent", config: {type: "text"}}
+        }
+    ],
+    "questiontree-answer-one-more": [
+
+    ],
 };
 
 /**

@@ -21,19 +21,27 @@ import {
     QuestionTreeFieldModelDefinitionOutline,
     QuestionTreeFormComponentDefinitionOutline,
     QuestionTreeModelName,
-    QuestionTreeModelValueType
+    QuestionTreeModelValueType,
+    QuestionTreeOutcomes,
+    QuestionTreeQuestion
 } from "./question-tree.outline";
 import {
-    AvailableFieldLayoutDefinitionOutlines
+    AvailableFieldLayoutDefinitionOutlines, QuestionTreeFormComponentDefinitionOutlines
 } from "../dictionary.outline";
 
 
 /* QuestionTree Component */
 
 export class QuestionTreeFieldComponentConfig extends FieldComponentConfig implements QuestionTreeFieldComponentConfigOutline {
+    outcomes: QuestionTreeOutcomes;
+    questions: QuestionTreeQuestion[];
+    componentDefinitions: QuestionTreeFormComponentDefinitionOutlines[];
 
     constructor() {
         super();
+        this.outcomes = {};
+        this.questions = [];
+        this.componentDefinitions = [];
     }
 }
 
