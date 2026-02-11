@@ -929,7 +929,7 @@ describe("Construct Visitor", async () => {
             ];
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = visitor.start({
-                formMode: "view",
+                formMode: "edit",
                 reusableFormDefs: reusableDefinitionsExample1,
                 data: {
                     name: "form",

@@ -417,7 +417,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // The element template name must be falsy.
         // It is also allowed for a ReusableComponent to have a replaceName that is falsy.
         const elementTemplateName = frame.elementTemplate?.name;
-        const elementTemplateClass  = frame.elementTemplate?.component?.class;
+        const elementTemplateClass = frame.elementTemplate?.component?.class;
         const elementTemplateReplaceName = frame.elementTemplate?.overrides?.replaceName;
         const nameIsFalsy = !elementTemplateName;
         const nameWillBeTransformedToFalsy = elementTemplateReplaceName === null || elementTemplateReplaceName === "";
@@ -982,7 +982,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
         this.populateFormComponent(item);
     }
-    
+
     /* Shared */
 
     protected constructFormComponent(item: FormComponentDefinitionFrame): AllFormComponentDefinitionOutlines {
@@ -1254,34 +1254,94 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         const outcomes = item.config?.outcomes ?? {};
         const questions = item.config?.questions ?? [];
 
+        // Prepare question and answer info to assist checking for valid structure
         const questionIds = questions?.map(question => question.id).filter(i => !!i);
-        const questionAnswerMap = Object.fromEntries(questions?.flatMap(question => question.answers.map(answer => [question.id, answer.value])));
+        const questionAnswerValuesMap = Object.fromEntries(questions?.map(question => [question.id, question.answers.map(answer => answer.value)]));
+
+        const errors: string[] = [];
+        const duplicateQuestionIds = new Set(questionIds.filter((e, i, a) => a.indexOf(e) !== i));
+        if (duplicateQuestionIds.size > 0) {
+            errors.push(`Question ids must be unique, these were not ${Array.from(duplicateQuestionIds).sort().join(', ')}.`);
+        }
 
         const result: QuestionTreeFormComponentDefinitionFrames[] = [];
-        for (const question of questions) {
+        questions.forEach((question, questionIndex) => {
             const id = question.id;
             const answersMin = question.answersMin;
             const answersMax = question.answersMax;
             const answers = question.answers;
             const rules = question.rules;
 
-            const component = {
-                name: answersMax > 1 ?"questiontree-answer-one" : "questiontree-answer-one-more",
-                overrides: {replaceName: ""},
-                layout: {class: "DefaultLayout", config: {}},
-                component: {class: "GroupComponent", config: {}},
-            };
-
-            for (const answer of answers) {
-                const outcome = answer.outcome ?? {};
-                for (const [outcomeKey, outcomeValue] of Object.entries(outcome)){
-                    if (!(outcomeKey in outcomes)){
-                        throw new Error(`${this.logName}: Question tree answer ${answer.value} outcome ${outcomeKey}`);
-                    }
-                }
+            // validate question structure
+            if (!id) {
+                errors.push(`Question ${questionIndex + 1} has no id.`);
+            }
+            if (answersMin < 1 || answersMax < 1 || answersMin > answersMax) {
+                errors.push(`Question ${questionIndex + 1} '${id}' answer min (${answersMin}) must be 1 or greater and less than max (${answersMax}).`);
+            }
+            if (answers.length < 1) {
+                errors.push(`Question ${questionIndex + 1} '${id}' must have at least one answer.`);
+            }
+            if (Object.keys(rules).length === 0) {
+                rules["op"] = "true";
             }
 
+            // All answer outcome property keys and values must match a defined outcome.
+            answers.forEach((answer, answerIndex) => {
+                const outcome = answer.outcome ?? {};
+                for (const [outcomeKey, outcomeValue] of Object.entries(outcome)) {
+                    if (!(outcomeKey in outcomes)) {
+                        errors.push(`Question ${questionIndex + 1} '${id}' answer ${answerIndex + 1} '${answer.value}' outcome has an unknown key '${outcomeKey}'.`);
+                    }
+                    if (!(outcomeValue in outcomes[outcomeKey])) {
+                        errors.push(`Question ${questionIndex + 1} '${id}' answer ${answerIndex + 1} '${answer.value}' outcome has an unknown value '${outcomeValue}' for key '${outcomeKey}'.`);
+                    }
+                }
+            });
+
+            // build reusable component
+            const hasOneAnswer = answersMax === 1;
+            const componentAnswerOne: QuestionTreeFormComponentDefinitionFrames = {
+                overrides: {reusableFormName: "questiontree-answer-one"},
+                name: "",
+                component: {
+                    class: "ReusableComponent", config: {
+                        componentDefinitions: [
+                            {
+                                name: "questiontree_answer_one",
+                                overrides: {replaceName: id},
+                                layout: {class: "DefaultLayout", config: {label: id}},
+                                component: {class: "RadioInputComponent", config: {options: []}}
+                            }
+                        ]
+                    }
+                }
+            };
+            const componentAnswerMore: QuestionTreeFormComponentDefinitionFrames = {
+                overrides: {reusableFormName: "questiontree-answer-one-more"},
+                name: "",
+                component: {
+                    class: "ReusableComponent", config: {
+                        componentDefinitions: [
+                            {
+                                name: "questiontree_answer_one_more",
+                                overrides: {replaceName: id},
+                                layout: {class: "DefaultLayout", config: {label: id}},
+                                component: {class: "CheckboxInputComponent", config: {options: []}}
+                            }
+                        ]
+                    }
+                }
+            };
+            result.push(hasOneAnswer ? componentAnswerOne : componentAnswerMore);
+
+
+        });
+
+        if (errors.length > 0) {
+            throw new Error(`${this.logName}: Question tree is not valid: ${errors.join(' ')}`);
         }
+
         return result;
     }
 
