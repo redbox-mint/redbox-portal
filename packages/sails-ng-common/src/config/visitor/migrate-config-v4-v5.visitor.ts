@@ -703,7 +703,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const config = new GroupFieldComponentConfig();
         item.config = config;
         this.sharedPopulateFieldComponentConfig(item.config, field);
-        this.logger.info(`${this.logName}: visitGroupFieldComponentDefinition field ${JSON.stringify(field)} item ${JSON.stringify(item)}`);
+        // this.logger.info(`${this.logName}: visitGroupFieldComponentDefinition field ${JSON.stringify(field)} item ${JSON.stringify(item)}`);
 
         const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
         // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);

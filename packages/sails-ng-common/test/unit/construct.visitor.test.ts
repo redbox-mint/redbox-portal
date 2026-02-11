@@ -1,7 +1,7 @@
 import {
     ConstructFormConfigVisitor,
     FormConfig,
-    FormConfigFrame, FormModesConfig, ReusableFormDefinitions,
+    FormConfigFrame, FormModesConfig, QuestionTreeOutcomes, QuestionTreeQuestion, ReusableFormDefinitions,
 } from "../../src";
 import {formConfigExample2, reusableDefinitionsExample1} from "./example-data";
 import {logger} from "./helpers";
@@ -136,7 +136,7 @@ describe("Construct Visitor", async () => {
                                         name: "",
                                         model: {
                                             class: 'GroupModel',
-                                            config: { }
+                                            config: {}
                                         },
                                         component: {
                                             class: 'GroupComponent',
@@ -754,7 +754,7 @@ describe("Construct Visitor", async () => {
                         component: {
                             class: 'ContentComponent',
                             config: {
-                                content: [{label: 'Option 2', value: 'option2'},{label: 'Option 3', value: 'option3'}],
+                                content: [{label: 'Option 2', value: 'option2'}, {label: 'Option 3', value: 'option3'}],
                                 template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
                             }
                         },
@@ -864,6 +864,125 @@ describe("Construct Visitor", async () => {
                                 value: {component_1: ["text_1", "text_2"]},
                             }
                         }
+                    }
+                ]
+            };
+            expect(actual).to.containSubset(expected);
+        });
+    });
+    describe("question tree", async () => {
+        it("should build the expected form config", async () => {
+            const outcomes: QuestionTreeOutcomes = {
+                prop1: {
+                    "value1": "@outcomes-prop1-value1",
+                    "value2": "@outcomes-prop1-value2",
+                },
+                prop2: {
+                    "value1": "@outcomes-prop2-value1",
+                    "value2": "@outcomes-prop2-value2",
+                },
+            };
+            const questions: QuestionTreeQuestion[] = [
+                {
+                    id: "question_1",
+                    answersMin: 1,
+                    answersMax: 1,
+                    answers: [{value: "yes"}, {value: "no"}],
+                    rules: {op: "true"},
+                },
+                {
+                    id: "question_2",
+                    answersMin: 1,
+                    answersMax: 2,
+                    answers: [{value: "yes"}, {value: "no"}],
+                    rules: {op: "in", q: "question_1", a: ["no"],}
+                },
+                {
+                    id: "question_3",
+                    answersMin: 1,
+                    answersMax: 1,
+                    answers: [
+                        {
+                            value: "yes",
+                            label: "@answer-yes",
+                            outcome: {prop1: "value1", prop2: "value2"}
+                        },
+                        {value: "no", label: "No"},
+                    ],
+                    rules: {
+                        op: "or", args: [
+                            {
+                                op: "and", args: [
+                                    {op: "in", q: "question_2", a: ["no"]},
+                                    {op: "in", q: "question_3", a: ["yes", "maybe"]},
+                                ]
+                            },
+                            {
+                                op: "or", args: [
+                                    {op: "notin", q: "question_2", a: ["yes"]},
+                                    {op: "in", q: "question_2", a: ["no", "maybe"]},
+                                ]
+                            }
+                        ]
+                    },
+                }
+            ];
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "view",
+                reusableFormDefs: reusableDefinitionsExample1,
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "questiontree_1",
+                            component: {
+                                class: "QuestionTreeComponent",
+                                config: {
+                                    outcomes: outcomes,
+                                    questions: questions,
+                                    componentDefinitions: [],
+                                }
+                            },
+                        }
+                    ]
+                },
+            });
+            const expected: FormConfigFrame = {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "questiontree_1",
+                        component: {
+                            class: "QuestionTreeComponent",
+                            config: {
+                                outcomes: outcomes,
+                                questions: questions,
+                                componentDefinitions: [
+                                    {
+                                        name: "question_1",
+                                        component: {
+                                            class: "RadioInputComponent",
+                                            config: {options: []}
+                                        },
+                                    },
+                                    {
+                                        name: "question_2",
+                                        component: {
+                                            class: "CheckboxInputComponent",
+                                            config: {options: []}
+                                        },
+                                    },
+                                    {
+                                        name: "question_3",
+                                        component: {
+                                            class: "RadioInputComponent",
+                                            config: {options: []}
+                                        },
+                                    },
+                                ],
+                            }
+                        },
                     }
                 ]
             };

@@ -1,6 +1,7 @@
 import {
     AvailableFieldLayoutDefinitionFrames,
-    AvailableFieldLayoutDefinitionOutlines,
+    AvailableFieldLayoutDefinitionOutlines, QuestionTreeFormComponentDefinitionFrames,
+    QuestionTreeFormComponentDefinitionOutlines,
 } from "../dictionary.outline";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {
@@ -41,12 +42,17 @@ export interface QuestionTreeOutcomes {
         [key: string]: string | null,
     }
 }
+
 type QuestionTreeOutcomePropKeys = keyof QuestionTreeOutcomes;
 
 /**
  * One answer to a question in a question tree.
  */
 export interface QuestionTreeQuestionAnswer {
+    /**
+     * The answer value.
+     */
+    value: string;
     /**
      * The optional translation message to use as the label, or the actual label text.
      * Leave out or set 'falsy' to use a translation message id of `${question-id}-${answer-id}`.
@@ -61,89 +67,141 @@ export interface QuestionTreeQuestionAnswer {
 }
 
 /**
- * The possible answers to a question.
+ * A question rule that always matches.
  */
-export interface QuestionTreeQuestionAnswers {
+export interface QuestionTreeQuestionRuleTrue {
     /**
-     * The key is the answer value.
+     * The question rule operation identifier.
+     * A question rule that always matches.
      */
-    [key: string]: QuestionTreeQuestionAnswer;
+    op: "true";
 }
-
-type QuestionTreeQuestionAnswerValues = keyof QuestionTreeQuestionAnswers;
 
 /**
- * A condition to fulfil to show the question.
+ * A question rule that combines others rules using 'AND'.
  */
-export interface QuestionTreeQuestionRule {
+export interface QuestionTreeQuestionRuleAnd {
     /**
-     * The match strategy to apply:
-     * - 'all': all items must match
-     * - 'any': at least one item much match
+     * The question rule operation identifier.
+     * A question rule that combines others rules using 'AND'.
      */
-    match: "all" | "any";
+    op: "and";
     /**
-     * Each key value pair is a match to check.
-     * The key is a question id, the value is an answer value.
+     * The other rules to combine.
      */
-    items: { [key in QuestionTreeQuestionIds]: QuestionTreeQuestionAnswerValues };
+    args: QuestionTreeQuestionRules[];
 }
 
-export interface QuestionTreeQuestions {
+/**
+ * A question rule that combines others rules using 'OR'.
+ */
+export interface QuestionTreeQuestionRuleOr {
     /**
-     * A question definition.
-     * The key is the question id.
+     * The question rule operation identifier.
+     * A question rule that combines others rules using 'OR'.
      */
-    [key: string]: {
-        /**
-         * The minimum number of answers that can be supplied.
-         * Must be at least 1, up to the maximum or the number of answers.
-         */
-        answersMin: number;
-        /**
-         * The maximum number of answers that can be supplied.
-         * Must be at least the minimum, up to the number of answers.
-         */
-        answersMax: number;
-        /**
-         * The possible answers to the question.
-         */
-        answers: QuestionTreeQuestionAnswers;
-        /**
-         * The rules for showing this question.
-         */
-        rules: QuestionTreeQuestionRule[];
-    }
+    op: "or";
+    /**
+     * The other rules to combine.
+     */
+    args: QuestionTreeQuestionRules[];
 }
 
-type QuestionTreeQuestionIds =  keyof QuestionTreeQuestions;
+/**
+ * A question rule that checks whether the question has at least the answer values.
+ */
+export interface QuestionTreeQuestionRuleIn {
+    /**
+     * The question rule operation identifier.
+     * A question rule that checks whether the question has at least the answer values.
+     */
+    op: "in";
+    /**
+     * The question identifier.
+     */
+    q: string;
+    /**
+     * The answer values.
+     */
+    a: string[];
+}
 
-const example: QuestionTreeFieldComponentConfigFrame = {
-    outcomes: {
-        prop1: {
-            "value1": "@outcomes-prop1-value1",
-            "value2": "@outcomes-prop1-value2",
-        },
-        prop2: {
-            "value1": "@outcomes-prop2-value1",
-            "value2": "@outcomes-prop2-value2",
-        },
-    },
-    questions: {
-        "question-1": {
-            answersMin: 1,
-            answersMax: 1,
-            answers: {
-                "yes": {label: "@answer-yes", outcome: {prop1: "value1", prop2: "value2"}},
-                "no": {label: "No"},
-            },
-            rules: [
-                {match: "all", items: {"question-2": "no", "question-3": "yes"}},
-                {match: "any", items: {"question-2": "no", "question-3": "yes"}},
-            ],
-        },
-    },
-};
+/**
+ * A question rule that checks whether the question does not have the answer values.
+ */
+export interface QuestionTreeQuestionRuleNotIn {
+    /**
+     * The question rule operation identifier.
+     * A question rule that checks whether the question does not have the answer values.
+     */
+    op: "notin";
+    /**
+     * The question identifier.
+     */
+    q: string;
+    /**
+     * The answer values.
+     */
+    a: string[];
+}
+
+/**
+ * A question rule that checks whether the question has only the answer values.
+ */
+export interface QuestionTreeQuestionRuleOnly {
+    /**
+     * The question rule operation identifier.
+     * A question rule that checks whether the question has only the answer values.
+     */
+    op: "only";
+    /**
+     * The question identifier.
+     */
+    q: string;
+    /**
+     * The answer values.
+     */
+    a: string[];
+}
+
+export type QuestionTreeQuestionRules =
+    QuestionTreeQuestionRuleTrue
+    | QuestionTreeQuestionRuleAnd
+    | QuestionTreeQuestionRuleOr
+    | QuestionTreeQuestionRuleIn
+    | QuestionTreeQuestionRuleNotIn
+    | QuestionTreeQuestionRuleOnly
+    ;
+
+/**
+ * A question definition.
+ */
+export interface QuestionTreeQuestion {
+    /**
+     *
+     * The question identifier.
+     * Used to reference this question and for label and help text translations.
+     */
+    id: string;
+    /**
+     * The minimum number of answers that can be supplied.
+     * Must be at least 1, up to the maximum or the number of answers.
+     */
+    answersMin: number;
+    /**
+     * The maximum number of answers that can be supplied.
+     * Must be at least the minimum, up to the number of answers.
+     */
+    answersMax: number;
+    /**
+     * The possible answers to the question.
+     */
+    answers: QuestionTreeQuestionAnswer[];
+    /**
+     * The rules for showing this question.
+     */
+    rules: QuestionTreeQuestionRules;
+}
 
 /* QuestionTree Component */
 
@@ -152,11 +210,14 @@ export type QuestionTreeComponentNameType = typeof QuestionTreeComponentName;
 
 export interface QuestionTreeFieldComponentConfigFrame extends FieldComponentConfigFrame {
     outcomes: QuestionTreeOutcomes;
-    questions: QuestionTreeQuestions;
+    questions: QuestionTreeQuestion[];
+    componentDefinitions: QuestionTreeFormComponentDefinitionFrames[];
 }
 
 export interface QuestionTreeFieldComponentConfigOutline extends QuestionTreeFieldComponentConfigFrame, FieldComponentConfigOutline {
-
+    outcomes: QuestionTreeOutcomes;
+    questions: QuestionTreeQuestion[];
+    componentDefinitions: QuestionTreeFormComponentDefinitionOutlines[];
 }
 
 export interface QuestionTreeFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {

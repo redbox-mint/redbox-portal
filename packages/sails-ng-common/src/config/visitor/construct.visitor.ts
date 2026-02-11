@@ -35,11 +35,14 @@ import {
     SimpleInputFieldComponentDefinitionFrame,
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionFrame,
-    SimpleInputFieldModelDefinitionOutline,
+    SimpleInputFieldModelDefinitionOutline, SimpleInputFormComponentDefinitionFrame,
     SimpleInputFormComponentDefinitionOutline,
     SimpleInputModelName
 } from "../component/simple-input.outline";
-import {SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig} from "../component/simple-input.model";
+import {
+    SimpleInputFieldComponentConfig,
+    SimpleInputFieldModelConfig,
+} from "../component/simple-input.model";
 import {
     DefaultFieldLayoutDefinitionFrame,
     DefaultFieldLayoutDefinitionOutline,
@@ -110,7 +113,7 @@ import {
     CheckboxInputFieldComponentDefinitionFrame,
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionFrame,
-    CheckboxInputFieldModelDefinitionOutline,
+    CheckboxInputFieldModelDefinitionOutline, CheckboxInputFormComponentDefinitionFrame,
     CheckboxInputFormComponentDefinitionOutline,
     CheckboxInputModelName
 } from "../component/checkbox-input.outline";
@@ -120,7 +123,7 @@ import {
     RadioInputFieldComponentDefinitionFrame,
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionFrame,
-    RadioInputFieldModelDefinitionOutline,
+    RadioInputFieldModelDefinitionOutline, RadioInputFormComponentDefinitionFrame,
     RadioInputFormComponentDefinitionOutline,
     RadioInputModelName
 } from "../component/radio-input.outline";
@@ -155,7 +158,11 @@ import {
     isTypeFormComponentDefinitionName,
     isTypeFormConfig,
 } from "../form-types.outline";
-import {AllFormComponentDefinitionOutlines, ReusableFormDefinitions} from "../dictionary.outline";
+import {
+    AllFormComponentDefinitionOutlines, AvailableFormComponentDefinitionFrames,
+    QuestionTreeFormComponentDefinitionFrames, QuestionTreeFormComponentDefinitionOutlines,
+    ReusableFormDefinitions
+} from "../dictionary.outline";
 import {ILogger} from "../../logger.interface";
 import {FormModesConfig} from "../shared.outline";
 import {FieldModelConfigFrame, FieldModelDefinitionOutline} from "../field-model.outline";
@@ -169,6 +176,7 @@ import {
     QuestionTreeModelName
 } from "../component/question-tree.outline";
 import {QuestionTreeFieldComponentConfig, QuestionTreeFieldModelConfig} from "../component/question-tree.model";
+import {ReusableComponentName, ReusableFormComponentDefinitionFrame} from "../component/reusable.outline";
 
 
 /**
@@ -503,17 +511,17 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         if (!isTypeFieldDefinitionName<GroupFieldComponentDefinitionFrame>(currentData, GroupFieldComponentName)) {
             throw new Error(`Invalid ${GroupFieldComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
-        const frame = currentData?.config ?? {componentDefinitions: []};
+        const configFrame = currentData?.config ?? {componentDefinitions: []};
 
         // Create the class instance for the config
         item.config = new GroupFieldComponentConfig();
 
-        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, frame);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, configFrame);
 
-        frame.componentDefinitions = this.formOverride.applyOverridesReusable(frame?.componentDefinitions ?? [], this.reusableFormDefs);
+        configFrame.componentDefinitions = this.formOverride.applyOverridesReusable(configFrame?.componentDefinitions ?? [], this.reusableFormDefs);
 
         // Visit the components
-        frame.componentDefinitions.forEach((componentDefinition, index) => {
+        configFrame.componentDefinitions.forEach((componentDefinition, index) => {
             const formComponent = this.constructFormComponent(componentDefinition);
 
             // Continue the construction
@@ -920,12 +928,40 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(currentData, QuestionTreeComponentName)) {
             throw new Error(`Invalid ${QuestionTreeComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
-        const config = currentData?.config;
+        const configFrame = currentData?.config ?? {outcomes: {}, questions: [], componentDefinitions: []};
 
         // Create the class instance for the config
         item.config = new QuestionTreeFieldComponentConfig();
 
-        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, configFrame);
+
+        this.sharedProps.setPropOverride('outcomes', item.config, configFrame);
+        this.sharedProps.setPropOverride('questions', item.config, configFrame);
+
+        // Transform the question tree questions DSL into reusable components.
+        configFrame.componentDefinitions = this.applyQuestionTreeDsl(item);
+
+        // Apply the reusable component overrides.
+        configFrame.componentDefinitions = this.applyQuestionTreeFrames(this.formOverride.applyOverridesReusable(configFrame?.componentDefinitions ?? [], this.reusableFormDefs));
+
+        // formOverride.applyOverridesReusable(config?.componentDefinitions ?? [], this.reusableFormDefs);
+        // Visit the components
+        configFrame.componentDefinitions.forEach((componentDefinition, index) => {
+            const formComponent = this.constructFormComponent(componentDefinition);
+
+            // Continue the construction
+            this.formPathHelper.acceptFormPath(
+                formComponent,
+                this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, index),
+            );
+
+            // After the construction is done, apply any transforms
+            const itemTransformed = this.applyQuestionTreeOutline(this.formOverride.applyOverrideTransform(formComponent, this.formMode));
+
+            // Store the instance on the item
+            item.config?.componentDefinitions.push(itemTransformed);
+        });
+
     }
 
     visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
@@ -959,7 +995,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             throw new Error(`Invalid FormComponentDefinition at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
 
-        // NOTE: Leaving expressions form-level processing placeholder, currently unused and unimplemented.
+        // TODO: Leaving expressions form-level processing placeholder, currently unused and unimplemented.
         // Set the expressions
         item.expressions = [];
         const expressionNames = new Set<string>();
@@ -1207,5 +1243,92 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         }
 
         return _get(formConfigData, formConfigPath.map(i => i.toString()))
+    }
+
+    /**
+     * Create reusable components from the question tree questions DSL.
+     * @param item The question tree component.
+     * @private
+     */
+    private applyQuestionTreeDsl(item: QuestionTreeFieldComponentDefinitionOutline): QuestionTreeFormComponentDefinitionFrames[] {
+        const outcomes = item.config?.outcomes ?? {};
+        const questions = item.config?.questions ?? [];
+
+        const questionIds = questions?.map(question => question.id).filter(i => !!i);
+        const questionAnswerMap = Object.fromEntries(questions?.flatMap(question => question.answers.map(answer => [question.id, answer.value])));
+
+        const result: QuestionTreeFormComponentDefinitionFrames[] = [];
+        for (const question of questions) {
+            const id = question.id;
+            const answersMin = question.answersMin;
+            const answersMax = question.answersMax;
+            const answers = question.answers;
+            const rules = question.rules;
+
+            const component = {
+                name: answersMax > 1 ?"questiontree-answer-one" : "questiontree-answer-one-more",
+                overrides: {replaceName: ""},
+                layout: {class: "DefaultLayout", config: {}},
+                component: {class: "GroupComponent", config: {}},
+            };
+
+            for (const answer of answers) {
+                const outcome = answer.outcome ?? {};
+                for (const [outcomeKey, outcomeValue] of Object.entries(outcome)){
+                    if (!(outcomeKey in outcomes)){
+                        throw new Error(`${this.logName}: Question tree answer ${answer.value} outcome ${outcomeKey}`);
+                    }
+                }
+            }
+
+        }
+        return result;
+    }
+
+    /**
+     * Check that only the allowed form component frames have been used.
+     * @param items The form components after reusable components have been applied.
+     * @private
+     */
+    private applyQuestionTreeFrames(items: AvailableFormComponentDefinitionFrames[]): QuestionTreeFormComponentDefinitionFrames[] {
+        const result: QuestionTreeFormComponentDefinitionFrames[] = [];
+        for (const item of items) {
+            if (isTypeFormComponentDefinitionName<SimpleInputFormComponentDefinitionFrame>(item, SimpleInputComponentName)) {
+                result.push(item);
+                continue;
+            }
+            if (isTypeFormComponentDefinitionName<CheckboxInputFormComponentDefinitionFrame>(item, CheckboxInputComponentName)) {
+                result.push(item);
+                continue;
+            }
+            if (isTypeFormComponentDefinitionName<RadioInputFormComponentDefinitionFrame>(item, RadioInputComponentName)) {
+                result.push(item);
+                continue;
+            }
+            if (isTypeFormComponentDefinitionName<ReusableFormComponentDefinitionFrame>(item, ReusableComponentName)) {
+                result.push(item);
+                continue;
+            }
+            throw new Error(`${this.logName}: Invalid form component frame ${item.name} class ${item.component.class} in Question Tree.`);
+        }
+        return result;
+    }
+
+    /**
+     * Check that only the allowed form component outlines have been used.
+     * @param item The form components after the components have been visited and transformed.
+     * @private
+     */
+    private applyQuestionTreeOutline(item: AllFormComponentDefinitionOutlines): QuestionTreeFormComponentDefinitionOutlines {
+        if (isTypeFormComponentDefinitionName<SimpleInputFormComponentDefinitionFrame>(item, SimpleInputComponentName)) {
+            return item;
+        }
+        if (isTypeFormComponentDefinitionName<CheckboxInputFormComponentDefinitionFrame>(item, CheckboxInputComponentName)) {
+            return item;
+        }
+        if (isTypeFormComponentDefinitionName<RadioInputFormComponentDefinitionFrame>(item, RadioInputComponentName)) {
+            return item;
+        }
+        throw new Error(`${this.logName}: Invalid form component frame ${item.name} class ${item.component.class} in Question Tree.`);
     }
 }
