@@ -105,6 +105,14 @@ import {
     ValidationSummaryFormComponentDefinitionOutline
 } from "../component/validation-summary.outline";
 import {ValidationSummaryFieldComponentConfig} from "../component/validation-summary.model";
+import {
+    CheckboxTreeComponentName,
+    CheckboxTreeFieldComponentDefinitionOutline,
+    CheckboxTreeFieldModelDefinitionOutline,
+    CheckboxTreeFormComponentDefinitionOutline,
+    CheckboxTreeModelName
+} from "../component/checkbox-tree.outline";
+import {CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig} from "../component/checkbox-tree.model";
 
 
 import {FieldModelConfigFrame} from "../field-model.outline";
@@ -301,6 +309,16 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
     "ContributorField": {
         "": {
             componentClassName: ReusableComponentName,
+        },
+    },
+    "ANDSVocab": {
+        "": {
+            componentClassName: CheckboxTreeComponentName,
+            modelClassName: CheckboxTreeModelName
+        },
+        "ANDSVocabComponent": {
+            componentClassName: CheckboxTreeComponentName,
+            modelClassName: CheckboxTreeModelName
         },
     },
 };
@@ -878,6 +896,30 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
+    /* Checkbox Tree */
+
+    visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new CheckboxTreeFieldComponentConfig();
+        this.sharedPopulateFieldComponentConfig(item.config, field);
+
+        const vocabRef = field?.definition?.vocabRef ?? field?.definition?.vocabId;
+        this.sharedProps.setPropOverride('vocabRef', item.config, {vocabRef});
+        this.sharedProps.setPropOverride('inlineVocab', item.config, field?.definition);
+        this.sharedProps.setPropOverride('leafOnly', item.config, field?.definition);
+        this.sharedProps.setPropOverride('maxDepth', item.config, field?.definition);
+    }
+
+    visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new CheckboxTreeFieldModelConfig();
+        this.sharedPopulateFieldModelConfig(item.config, field);
+    }
+
+    visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
         this.populateFormComponent(item);
     }
 

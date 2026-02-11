@@ -7,7 +7,7 @@ type BrandingServiceLike = {
   getBrand: (brandingNameOrId: string) => BrandingModel;
 };
 
-declare const VocabularyService: Pick<VocabularyServiceModule.VocabularyService, 'getByIdOrSlug' | 'getEntries'>;
+declare const VocabularyService: Pick<VocabularyServiceModule.VocabularyService, 'getByIdOrSlug' | 'getEntries' | 'getChildren'>;
 declare const VocabService: Pick<VocabServiceModule.Vocab, 'findRecords'>;
 declare const BrandingService: BrandingServiceLike;
 
@@ -17,6 +17,7 @@ export namespace Controllers {
     protected override _exportedMethods: string[] = [
       'get',
       'entries',
+      'children',
       'getRecords'
     ];
 
@@ -86,6 +87,34 @@ export namespace Controllers {
         offset,
       });
 
+      if (!result) {
+        return this.sendResp(req, res, {
+          status: 404,
+          displayErrors: [{ code: 'vocabulary-not-found' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      return this.sendResp(req, res, {
+        data: result.entries,
+        meta: result.meta,
+        headers: this.getNoCacheHeaders()
+      });
+    }
+
+    public async children(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      const branding = String(req.param('branding') ?? '').trim();
+      const vocabIdOrSlug = String(req.param('vocabIdOrSlug') ?? '').trim();
+      if (!vocabIdOrSlug) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ code: 'invalid-vocabulary-id-or-slug' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      const parentId = String(req.param('parentId') ?? '').trim();
+      const result = await VocabularyService.getChildren(branding, vocabIdOrSlug, parentId || undefined);
       if (!result) {
         return this.sendResp(req, res, {
           status: 404,

@@ -116,6 +116,16 @@ import {
 } from "../component/checkbox-input.outline";
 import {CheckboxInputFieldComponentConfig, CheckboxInputFieldModelConfig} from "../component/checkbox-input.model";
 import {
+    CheckboxTreeComponentName,
+    CheckboxTreeFieldComponentDefinitionFrame,
+    CheckboxTreeFieldComponentDefinitionOutline,
+    CheckboxTreeFieldModelDefinitionFrame,
+    CheckboxTreeFieldModelDefinitionOutline,
+    CheckboxTreeFormComponentDefinitionOutline,
+    CheckboxTreeModelName
+} from "../component/checkbox-tree.outline";
+import {CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig} from "../component/checkbox-tree.model";
+import {
     RadioInputComponentName,
     RadioInputFieldComponentDefinitionFrame,
     RadioInputFieldComponentDefinitionOutline,
@@ -787,6 +797,47 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
+    /* Checkbox Tree */
+
+    visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<CheckboxTreeFieldComponentDefinitionFrame>(currentData, CheckboxTreeComponentName)) {
+            throw new Error(`Invalid ${CheckboxTreeComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+        const config = currentData?.config;
+
+        // Create the class instance for the config
+        item.config = new CheckboxTreeFieldComponentConfig();
+
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.sharedProps.setPropOverride('vocabRef', item.config, config);
+        this.sharedProps.setPropOverride('inlineVocab', item.config, config);
+        this.sharedProps.setPropOverride('treeData', item.config, config);
+        this.sharedProps.setPropOverride('leafOnly', item.config, config);
+        this.sharedProps.setPropOverride('maxDepth', item.config, config);
+    }
+
+    visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<CheckboxTreeFieldModelDefinitionFrame>(currentData, CheckboxTreeModelName)) {
+            throw new Error(`Invalid ${CheckboxTreeModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+
+        // Create the class instance for the config
+        item.config = new CheckboxTreeFieldModelConfig();
+
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item, currentData?.config);
+    }
+
+    visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
         this.populateFormComponent(item);
     }
 

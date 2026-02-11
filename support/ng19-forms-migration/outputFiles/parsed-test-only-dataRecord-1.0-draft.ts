@@ -717,7 +717,7 @@ const formConfig: FormConfigFrame = {
                         "allowModes": []
                       },
                       "component": {
-                        "class": "ContentComponent",
+                        "class": "CheckboxTreeComponent",
                         "config": {
                           "readonly": false,
                           "visible": true,
@@ -725,7 +725,14 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-project-anzsrcFor",
                           "disabled": false,
                           "autofocus": false,
-                          "content": "Not yet implemented in v5: v4ClassName \"ANDSVocab\" v4CompClassName \"ANDSVocabComponent\" v4Name \"dc:subject_anzsrc:for\". At path '[\"fields\",\"3\",\"definition\",\"fields\",\"0\",\"definition\",\"fields\",\"8\"]'."
+                          "vocabRef": "anzsrc-2020-for",
+                          "treeData": []
+                        }
+                      },
+                      "model": {
+                        "class": "CheckboxTreeModel",
+                        "config": {
+                          "validators": []
                         }
                       },
                       "layout": {
@@ -754,7 +761,7 @@ const formConfig: FormConfigFrame = {
                         "allowModes": []
                       },
                       "component": {
-                        "class": "ContentComponent",
+                        "class": "CheckboxTreeComponent",
                         "config": {
                           "readonly": false,
                           "visible": true,
@@ -762,7 +769,14 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-project-anzsrcSeo",
                           "disabled": false,
                           "autofocus": false,
-                          "content": "Not yet implemented in v5: v4ClassName \"ANDSVocab\" v4CompClassName \"ANDSVocabComponent\" v4Name \"dc:subject_anzsrc:seo\". At path '[\"fields\",\"3\",\"definition\",\"fields\",\"0\",\"definition\",\"fields\",\"9\"]'."
+                          "vocabRef": "anzsrc-2020-seo",
+                          "treeData": []
+                        }
+                      },
+                      "model": {
+                        "class": "CheckboxTreeModel",
+                        "config": {
+                          "validators": []
                         }
                       },
                       "layout": {

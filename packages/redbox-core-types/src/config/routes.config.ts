@@ -243,6 +243,10 @@ export const routes: RoutesConfig = {
         controller: 'FormVocabularyController',
         action: 'entries'
     },
+    'get /:branding/:portal/vocab/:vocabIdOrSlug/children': {
+        controller: 'FormVocabularyController',
+        action: 'children'
+    },
     'get /:branding/:portal/query/vocab/:queryId': {
         controller: 'FormVocabularyController',
         action: 'getRecords'

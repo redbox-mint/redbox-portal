@@ -70,6 +70,11 @@ import {
     ReusableFieldComponentDefinitionOutline,
     ReusableFormComponentDefinitionOutline
 } from "../component/reusable.outline";
+import {
+    CheckboxTreeFieldComponentDefinitionOutline,
+    CheckboxTreeFieldModelDefinitionOutline,
+    CheckboxTreeFormComponentDefinitionOutline
+} from "../component/checkbox-tree.outline";
 
 
 /**
@@ -276,6 +281,20 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     }
 
     visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void{
+        this.notImplemented();
+    }
+
+    /* Checkbox Tree */
+
+    visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
         this.notImplemented();
     }
 

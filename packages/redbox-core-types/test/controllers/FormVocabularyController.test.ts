@@ -21,6 +21,7 @@ describe('FormVocabularyController', () => {
         vocabularyservice: {
           getByIdOrSlug: sinon.stub(),
           getEntries: sinon.stub(),
+          getChildren: sinon.stub(),
         },
         vocabservice: {
           findRecords: sinon.stub(),
@@ -105,6 +106,45 @@ describe('FormVocabularyController', () => {
     expect(sendResp.calledOnce).to.equal(true);
     expect(sendResp.firstCall.args[2]?.data).to.have.length(1);
     expect(sendResp.firstCall.args[2]?.meta?.vocabularyId).to.equal('v1');
+  });
+
+  it('returns 400 for children when vocabIdOrSlug is missing', async () => {
+    const req = makeReq({ branding: 'default', vocabIdOrSlug: '' });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.children(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(400);
+    expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('invalid-vocabulary-id-or-slug');
+  });
+
+  it('returns children with metadata from children action', async () => {
+    (global as any).VocabularyService.getChildren.resolves({
+      entries: [{ id: 'e1', label: 'Science', value: '01', notation: '01', parent: null, hasChildren: true }],
+      meta: { vocabularyId: 'v1', parentId: null, total: 1 },
+    });
+    const req = makeReq({ branding: 'default', vocabIdOrSlug: 'anzsrc-2020-for' });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.children(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.data).to.have.length(1);
+    expect(sendResp.firstCall.args[2]?.meta?.vocabularyId).to.equal('v1');
+    expect(sendResp.firstCall.args[2]?.meta?.parentId).to.equal(null);
+  });
+
+  it('returns 404 from children when vocab is missing', async () => {
+    (global as any).VocabularyService.getChildren.resolves(null);
+    const req = makeReq({ branding: 'default', vocabIdOrSlug: 'missing' });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.children(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(404);
+    expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('vocabulary-not-found');
   });
 
   it('returns 400 for getRecords when params are invalid', async () => {

@@ -107,6 +107,8 @@ describe("Migrate v4 to v5 Visitor", async () => {
             const v5OutputFile = `${outputFiles}/parsed-${v5InputFile}`;
             const actual = await migrateV4ToV5(fullPath, v5OutputFile);
             expect(actual).to.not.be.empty;
+            const serialised = JSON.stringify(actual);
+            expect(serialised).to.not.contain('v4ClassName "ANDSVocab"');
         }
     });
 });

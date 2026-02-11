@@ -9,12 +9,15 @@
   },
   "files": [
     "bin/",
+    "dist/",
     "config/",
+    "skills/",
     "index.js",
     "README.md"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "test": "./node_modules/.bin/mocha --require ts-node/register --extension ts --exit test/**/*.test.ts"
   },
   "repository": {
     "type": "git",
@@ -38,8 +41,22 @@
   },
   "dependencies": {
     "@researchdatabox/redbox-core-types": "^1.5.0",
+    "@researchdatabox/sails-ng-common": "file:../sails-ng-common",
     "@types/lodash": "^4.17.20",
-    "@types/node": "^24.10.0"
+    "@types/node": "^24.10.0",
+    "commander": "^14.0.0",
+    "ts-morph": "^21.0.1",
+    "zod": "^3.25.28"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@types/sinon": "^17.0.3",
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0",
+    "sinon": "^17.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   },
   "peerDependenciesMeta": {
     "@researchdatabox/redbox-core-types": {

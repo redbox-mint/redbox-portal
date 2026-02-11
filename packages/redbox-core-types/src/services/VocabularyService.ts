@@ -58,6 +58,24 @@ export namespace Services {
     };
   }
 
+  export interface VocabularyChildrenNode {
+    id: string;
+    label: string;
+    value: string;
+    notation?: string;
+    parent?: string | null;
+    hasChildren: boolean;
+  }
+
+  export interface VocabularyChildrenResponse {
+    entries: VocabularyChildrenNode[];
+    meta: {
+      vocabularyId: string;
+      parentId: string | null;
+      total: number;
+    };
+  }
+
   interface BootstrapVocabularyEntryInput {
     id?: unknown;
     label?: unknown;
@@ -101,6 +119,7 @@ export namespace Services {
       'getById',
       'getByIdOrSlug',
       'getEntries',
+      'getChildren',
       'bootstrapData',
       'create',
       'update',
@@ -248,6 +267,67 @@ export namespace Services {
           limit,
           offset,
           vocabularyId: String(vocabulary.id)
+        }
+      };
+    }
+
+    public async getChildren(
+      branding: string,
+      vocabIdOrSlug: string,
+      parentId?: string | null
+    ): Promise<VocabularyChildrenResponse | null> {
+      const vocabulary = await this.getByIdOrSlug(branding, vocabIdOrSlug);
+      if (!vocabulary) {
+        return null;
+      }
+
+      const normalizedParentId = String(parentId ?? '').trim();
+      const where: { vocabulary: string; parent?: string | null } = {
+        vocabulary: String(vocabulary.id),
+      };
+      where.parent = normalizedParentId || null;
+
+      const entries = await VocabularyEntry.find(where)
+        .sort('order ASC')
+        .sort('label ASC') as VocabularyEntryAttributes[];
+
+      const childParentIds = entries.map((entry) => String(entry.id));
+      const hasChildrenById = new Map<string, boolean>();
+
+      if (childParentIds.length > 0) {
+        const descendants = await VocabularyEntry.find({
+          vocabulary: String(vocabulary.id),
+          parent: { in: childParentIds }
+        }) as VocabularyEntryAttributes[];
+
+        for (const descendant of descendants) {
+          const descendantParent = String(descendant.parent ?? '');
+          if (descendantParent) {
+            hasChildrenById.set(descendantParent, true);
+          }
+        }
+      }
+
+      const responseEntries: VocabularyChildrenNode[] = entries.map((entry) => {
+        const id = String(entry.id);
+        const parent = entry.parent ? String(entry.parent) : null;
+        const notation = String(entry.identifier ?? '').trim() || String(entry.value ?? '').trim();
+        return {
+          id,
+          label: String(entry.label ?? ''),
+          value: String(entry.value ?? ''),
+          notation: notation || undefined,
+          parent,
+          hasChildren: hasChildrenById.get(id) === true
+        };
+      });
+
+      return {
+        entries: responseEntries,
+        meta: {
+          vocabularyId: String(vocabulary.id),
+          parentId: normalizedParentId || null,
+          total: responseEntries.length
         }
       };
     }
