@@ -9,7 +9,7 @@ export namespace Services {
   const VALID_SOURCES = new Set<VocabSource>(['local', 'rva']);
 
   export type VocabularyEntryInput =
-    Pick<VocabularyEntryAttributes, 'id' | 'label' | 'value' | 'identifier' | 'order'> & {
+    Pick<VocabularyEntryAttributes, 'id' | 'label' | 'value' | 'identifier' | 'order' | 'historical'> & {
       parent?: string | null;
       children?: VocabularyEntryInput[];
     };
@@ -100,6 +100,17 @@ export namespace Services {
       }
 
       return brandingString;
+    }
+
+    private toBoolean(value: unknown): boolean {
+      if (typeof value === 'boolean') {
+        return value;
+      }
+      if (typeof value === 'number') {
+        return value !== 0;
+      }
+      const normalized = String(value ?? '').trim().toLowerCase();
+      return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
     }
 
     public async list(options: VocabularyListOptions): Promise<{ data: VocabularyAttributes[]; meta: { total: number; limit: number; offset: number } }> {
@@ -318,7 +329,8 @@ export namespace Services {
       return {
         ...entry,
         label: String(entry.label ?? '').trim(),
-        value: String(entry.value ?? '').trim()
+        value: String(entry.value ?? '').trim(),
+        historical: this.toBoolean(entry.historical)
       };
     }
 
@@ -408,7 +420,8 @@ export namespace Services {
             label: entry.label,
             value: entry.value,
             identifier: entry.identifier,
-            order: entry.order ?? 0
+            order: entry.order ?? 0,
+            historical: entry.historical ?? false
           });
           const createdEntry = await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
           const createdEntryId = String(createdEntry.id);
@@ -429,7 +442,8 @@ export namespace Services {
           label: entry.label,
           value: entry.value,
           identifier: entry.identifier,
-          order: entry.order ?? existing.order ?? 0
+          order: entry.order ?? existing.order ?? 0,
+          historical: entry.historical ?? existing.historical ?? false
         }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
         await this.executeQuery(updateQuery, connection);
         updated++;
@@ -468,7 +482,8 @@ export namespace Services {
           label: normalized.label,
           value: normalized.value,
           identifier: normalized.identifier,
-          order: normalized.order ?? 0
+          order: normalized.order ?? 0,
+          historical: normalized.historical ?? false
         });
         const created = await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
 

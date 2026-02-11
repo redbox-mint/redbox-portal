@@ -16,6 +16,10 @@ describe('Webservice VocabularyController', () => {
           update: sinon.stub().resolves({ id: 'v1' }),
           delete: sinon.stub().resolves()
         },
+        brandingservice: {
+          getBrandFromReq: sinon.stub().returns('default'),
+          getBrand: sinon.stub().returns({ id: 'default' })
+        },
         rvaimportservice: {
           importRvaVocabulary: sinon.stub().resolves({ id: 'v2' }),
           syncRvaVocabulary: sinon.stub().resolves({ created: 1, updated: 0, skipped: 0, lastSyncedAt: 'now' })
@@ -24,10 +28,16 @@ describe('Webservice VocabularyController', () => {
       log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() }
     };
     controller = new Controllers.Vocabulary();
+    (global as any).BrandingService = (global as any).sails.services.brandingservice;
+    (global as any).VocabularyService = (global as any).sails.services.vocabularyservice;
+    (global as any).RvaImportService = (global as any).sails.services.rvaimportservice;
   });
 
   afterEach(() => {
     sinon.restore();
+    delete (global as any).BrandingService;
+    delete (global as any).VocabularyService;
+    delete (global as any).RvaImportService;
     delete (global as any).sails;
   });
 
@@ -39,6 +49,10 @@ describe('Webservice VocabularyController', () => {
     await controller.list(req, res);
 
     expect(sendResp.calledOnce).to.be.true;
+    expect(sendResp.firstCall.args[2]?.data?.records).to.deep.equal([]);
+    expect(sendResp.firstCall.args[2]?.data?.summary?.numFound).to.equal(0);
+    expect(sendResp.firstCall.args[2]?.data?.summary?.start).to.equal(0);
+    expect(sendResp.firstCall.args[2]?.data?.summary?.page).to.equal(1);
   });
 
   it('gets vocabulary details with tree', async () => {

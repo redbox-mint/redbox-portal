@@ -17,6 +17,7 @@ export interface VocabularyEntry {
   id?: string;
   label: string;
   value: string;
+  historical?: boolean;
   parent?: string | null;
   identifier?: string;
   order?: number;
@@ -34,6 +35,37 @@ export interface VocabularyDetail {
   sourceVersionId?: string;
   owner?: string;
   entries?: VocabularyEntry[];
+}
+
+export interface VocabularyListQuery {
+  q?: string;
+  type?: 'flat' | 'tree';
+  source?: 'local' | 'rva';
+  limit?: number;
+  offset?: number;
+  sort?: string;
+}
+
+export interface VocabularyListMeta {
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+interface ListAPISummary {
+  numFound?: number;
+  page?: number;
+  start?: number;
+}
+
+interface ListAPIResponse<T> {
+  summary?: ListAPISummary;
+  records?: T[];
+}
+
+export interface VocabularyListResult {
+  data: VocabularySummary[];
+  meta: VocabularyListMeta;
 }
 
 type ApiResponse<T> = { data: T };
@@ -79,19 +111,117 @@ export class VocabularyApiService extends HttpClientService {
     }
   }
 
-  public async list(): Promise<VocabularySummary[]> {
+  public async list(query: VocabularyListQuery = {}): Promise<VocabularyListResult> {
     const url = `${this.brandingAndPortalUrl}/api/vocabulary`;
-    const response = await firstValueFrom(
-      this.http.get<ApiResponse<{ data?: VocabularySummary[] }> | { data?: VocabularySummary[] }>(url, this.getJsonRequestOptions())
-    );
-    const maybeV2 = response as ApiResponse<{ data?: VocabularySummary[] }>;
-    if (maybeV2 && typeof maybeV2 === 'object' && 'data' in maybeV2 && maybeV2.data && Array.isArray(maybeV2.data.data)) {
-      return maybeV2.data.data;
+    const params: Record<string, string> = {};
+    if (query.q && query.q.trim()) {
+      params['q'] = query.q.trim();
+    }
+    if (query.type) {
+      params['type'] = query.type;
+    }
+    if (query.source) {
+      params['source'] = query.source;
+    }
+    if (typeof query.limit === 'number' && Number.isFinite(query.limit)) {
+      params['limit'] = String(query.limit);
+    }
+    if (typeof query.offset === 'number' && Number.isFinite(query.offset)) {
+      params['offset'] = String(query.offset);
+    }
+    if (query.sort && query.sort.trim()) {
+      params['sort'] = query.sort.trim();
     }
 
-    const maybeV1 = response as { data?: VocabularySummary[] };
-    if (maybeV1 && typeof maybeV1 === 'object' && Array.isArray(maybeV1.data)) {
-      return maybeV1.data;
+    const response = await firstValueFrom(
+      this.http.get<
+        ApiResponse<ListAPIResponse<VocabularySummary>> |
+        ListAPIResponse<VocabularySummary> |
+        ApiResponse<VocabularyListResult> |
+        VocabularyListResult |
+        ApiResponse<{ data?: VocabularySummary[]; meta?: VocabularyListMeta }> |
+        { data?: VocabularySummary[]; meta?: VocabularyListMeta }
+      >(url, {
+        ...this.getJsonRequestOptions(),
+        params
+      })
+    );
+
+    const asWrapped = response as ApiResponse<VocabularyListResult>;
+    if (
+      asWrapped &&
+      typeof asWrapped === 'object' &&
+      'data' in asWrapped &&
+      asWrapped.data &&
+      Array.isArray(asWrapped.data.data) &&
+      asWrapped.data.meta
+    ) {
+      return asWrapped.data;
+    }
+
+    const listApiWrapped = response as ApiResponse<ListAPIResponse<VocabularySummary>>;
+    if (
+      listApiWrapped &&
+      typeof listApiWrapped === 'object' &&
+      'data' in listApiWrapped &&
+      listApiWrapped.data &&
+      Array.isArray(listApiWrapped.data.records)
+    ) {
+      const records = listApiWrapped.data.records;
+      const summary = listApiWrapped.data.summary ?? {};
+      const offset = Number(summary.start ?? query.offset ?? 0);
+      const limit = Number(query.limit ?? records.length ?? 25);
+      return {
+        data: records,
+        meta: {
+          total: Number(summary.numFound ?? records.length),
+          limit,
+          offset
+        }
+      };
+    }
+
+    const listApiDirect = response as ListAPIResponse<VocabularySummary>;
+    if (listApiDirect && typeof listApiDirect === 'object' && Array.isArray(listApiDirect.records)) {
+      const records = listApiDirect.records;
+      const summary = listApiDirect.summary ?? {};
+      const offset = Number(summary.start ?? query.offset ?? 0);
+      const limit = Number(query.limit ?? records.length ?? 25);
+      return {
+        data: records,
+        meta: {
+          total: Number(summary.numFound ?? records.length),
+          limit,
+          offset
+        }
+      };
+    }
+
+    const asDirect = response as VocabularyListResult;
+    if (asDirect && typeof asDirect === 'object' && Array.isArray(asDirect.data) && asDirect.meta) {
+      return asDirect;
+    }
+
+    const legacyWrapped = response as ApiResponse<{ data?: VocabularySummary[]; meta?: VocabularyListMeta }>;
+    if (
+      legacyWrapped &&
+      typeof legacyWrapped === 'object' &&
+      'data' in legacyWrapped &&
+      legacyWrapped.data &&
+      Array.isArray(legacyWrapped.data.data)
+    ) {
+      return {
+        data: legacyWrapped.data.data,
+        meta: legacyWrapped.data.meta ?? { total: legacyWrapped.data.data.length, limit: legacyWrapped.data.data.length, offset: 0 }
+      };
+    }
+
+    const legacyDirect = response as { data?: VocabularySummary[]; meta?: VocabularyListMeta };
+    if (legacyDirect && typeof legacyDirect === 'object' && Array.isArray(legacyDirect.data)) {
+      return {
+        data: legacyDirect.data,
+        meta: legacyDirect.meta ?? { total: legacyDirect.data.length, limit: legacyDirect.data.length, offset: 0 }
+      };
     }
 
     throw new Error(`Unexpected response from ${url}: ${this.describeUnexpectedResponse(response)}`);

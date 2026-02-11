@@ -18,7 +18,7 @@ class I18NextPipeStub implements PipeTransform {
 
 class VocabularyApiServiceStub {
   async waitForInit(): Promise<this> { return this; }
-  async list() { return []; }
+  async list() { return { data: [], meta: { total: 0, limit: 25, offset: 0 } }; }
   async get(_id: string) { return { vocabulary: { name: 'One', type: 'flat', source: 'local' }, entries: [] }; }
   async create(payload: unknown) { return payload; }
   async update(_id: string, payload: unknown) { return payload; }
@@ -62,8 +62,11 @@ describe('AdminVocabularyComponent', () => {
     const api = TestBed.inject(VocabularyApiService);
 
     spyOn(api, 'list').and.returnValues(
-      Promise.resolve([]),
-      Promise.resolve([{ id: 'v1', name: 'Imported', slug: 'imported', type: 'flat', source: 'rva' }])
+      Promise.resolve({ data: [], meta: { total: 0, limit: 25, offset: 0 } }),
+      Promise.resolve({
+        data: [{ id: 'v1', name: 'Imported', slug: 'imported', type: 'flat', source: 'rva' }],
+        meta: { total: 1, limit: 25, offset: 0 }
+      })
     );
 
     fixture.detectChanges();
@@ -80,7 +83,7 @@ describe('AdminVocabularyComponent', () => {
     const api = TestBed.inject(VocabularyApiService);
 
     const importSpy = spyOn(api, 'importRva').and.resolveTo({ name: 'Imported', type: 'flat', source: 'rva' });
-    spyOn(api, 'list').and.resolveTo([]);
+    spyOn(api, 'list').and.resolveTo({ data: [], meta: { total: 0, limit: 25, offset: 0 } });
 
     await component.importRva('https://vocabs.ardc.edu.au/repository/api/lda/anzsrc-for/2020');
 
@@ -99,7 +102,7 @@ describe('AdminVocabularyComponent', () => {
     });
 
     spyOn(api, 'importRva').and.returnValue(pendingImport);
-    spyOn(api, 'list').and.resolveTo([]);
+    spyOn(api, 'list').and.resolveTo({ data: [], meta: { total: 0, limit: 25, offset: 0 } });
 
     const importPromise = component.importRva('123');
 
@@ -196,7 +199,7 @@ describe('AdminVocabularyComponent', () => {
     component.selectedVocabulary = { id: 'v1', name: 'RVA', type: 'tree', source: 'rva' };
     component.draft = { ...component.selectedVocabulary, entries: [] };
 
-    spyOn(api, 'list').and.resolveTo([]);
+    spyOn(api, 'list').and.resolveTo({ data: [], meta: { total: 0, limit: 25, offset: 0 } });
     spyOn(api, 'get').and.resolveTo({
       vocabulary: { id: 'v1', name: 'RVA', type: 'tree', source: 'rva' },
       entries: []
@@ -237,7 +240,7 @@ describe('AdminVocabularyComponent', () => {
     component.selectedVocabulary = { id: 'v1', name: 'RVA', type: 'tree', source: 'rva' };
     component.draft = { ...component.selectedVocabulary, entries: [] };
 
-    spyOn(api, 'list').and.resolveTo([]);
+    spyOn(api, 'list').and.resolveTo({ data: [], meta: { total: 0, limit: 25, offset: 0 } });
     spyOn(api, 'get').and.resolveTo({
       vocabulary: { id: 'v1', name: 'RVA', type: 'tree', source: 'rva' },
       entries: []

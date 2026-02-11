@@ -1,4 +1,5 @@
 import { Controllers as controllers } from '../../CoreController';
+import { ListAPIResponse, ListAPISummary } from '../../model';
 import { Services as VocabularyServiceModule } from '../../services/VocabularyService';
 
 type BrandingServiceApi = {
@@ -64,7 +65,7 @@ export namespace Controllers {
       try {
         const limit = this.parseNumberParam(req.param('limit'), 25);
         const offset = this.parseNumberParam(req.param('offset'), 0);
-        const response = await VocabularyService.list({
+        const result = await VocabularyService.list({
           q: req.param('q'),
           type: req.param('type'),
           source: req.param('source'),
@@ -73,7 +74,17 @@ export namespace Controllers {
           sort: req.param('sort'),
           branding: this.resolveBrandingId(req)
         });
-        return this.sendResp(req, res, { data: response.data, meta: response.meta, headers: this.getNoCacheHeaders() });
+        const response = new ListAPIResponse<unknown>();
+        const summary = new ListAPISummary();
+        summary.numFound = result.meta.total;
+        summary.start = result.meta.offset;
+        summary.page = result.meta.limit > 0 ? Math.floor(result.meta.offset / result.meta.limit) + 1 : 1;
+        response.summary = summary;
+        response.records = result.data;
+        return this.sendResp(req, res, {
+          data: response,
+          headers: this.getNoCacheHeaders()
+        });
       } catch (error) {
         return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
       }

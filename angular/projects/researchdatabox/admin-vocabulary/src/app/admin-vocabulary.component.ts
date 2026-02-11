@@ -2,6 +2,14 @@ import { Component, Inject, OnDestroy } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { VocabularyApiService, VocabularyDetail, VocabularyEntry, VocabularySummary } from './vocabulary-api.service';
 
+type SourceFilter = 'all' | 'local' | 'rva';
+type TypeFilter = 'all' | 'flat' | 'tree';
+type VocabularyListQueryState = {
+  searchTerm: string;
+  sourceFilter: SourceFilter;
+  typeFilter: TypeFilter;
+};
+
 @Component({
   selector: 'admin-vocabulary',
   templateUrl: './admin-vocabulary.component.html',
@@ -10,6 +18,14 @@ import { VocabularyApiService, VocabularyDetail, VocabularyEntry, VocabularySumm
 })
 export class AdminVocabularyComponent extends BaseComponent implements OnDestroy {
   vocabularies: VocabularySummary[] = [];
+  totalVocabularyCount = 0;
+  listLimit = 25;
+  listOffset = 0;
+  listQuery: VocabularyListQueryState = {
+    searchTerm: '',
+    sourceFilter: 'all',
+    typeFilter: 'all'
+  };
   selectedVocabulary: VocabularyDetail | null = null;
   selectedEntries: VocabularyEntry[] = [];
   message = '';
@@ -43,7 +59,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
   }
 
   get totalVocabularies(): number {
-    return this.vocabularies.length;
+    return this.totalVocabularyCount;
   }
 
   get localVocabularies(): number {
@@ -72,8 +88,36 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
   }
 
   async refresh(): Promise<void> {
+    await this.loadVocabularyPage();
+  }
+
+  async onListQueryChanged(query: VocabularyListQueryState): Promise<void> {
+    this.listQuery = {
+      ...query,
+      searchTerm: String(query.searchTerm ?? '')
+    };
+    this.listOffset = 0;
+    await this.loadVocabularyPage();
+  }
+
+  async onListPageChanged(offset: number): Promise<void> {
+    this.listOffset = Math.max(0, Number(offset) || 0);
+    await this.loadVocabularyPage();
+  }
+
+  private async loadVocabularyPage(): Promise<void> {
     try {
-      this.vocabularies = await this.vocabularyApi.list();
+      const response = await this.vocabularyApi.list({
+        q: this.listQuery.searchTerm.trim() || undefined,
+        source: this.listQuery.sourceFilter === 'all' ? undefined : this.listQuery.sourceFilter,
+        type: this.listQuery.typeFilter === 'all' ? undefined : this.listQuery.typeFilter,
+        limit: this.listLimit,
+        offset: this.listOffset
+      });
+      this.vocabularies = response.data;
+      this.totalVocabularyCount = Number(response.meta?.total ?? response.data.length);
+      this.listLimit = Number(response.meta?.limit ?? this.listLimit);
+      this.listOffset = Number(response.meta?.offset ?? this.listOffset);
     } catch (err) {
       this.error = this.t('admin-vocabulary-error-load-vocabularies', 'Failed to load vocabularies: {{error}}', { error: this.asErrorMessage(err) });
       this.logger.error(this.error);
@@ -181,6 +225,9 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
         this.selectedVocabulary = null;
         this.selectedEntries = [];
         this.closeEditModal();
+      }
+      if (this.listOffset > 0 && this.vocabularies.length <= 1) {
+        this.listOffset = Math.max(0, this.listOffset - this.listLimit);
       }
       await this.refresh();
     } catch (err) {

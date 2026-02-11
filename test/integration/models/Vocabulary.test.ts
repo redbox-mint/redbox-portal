@@ -53,5 +53,6 @@ describe('Vocabulary Models', () => {
 
     expect(entry.labelLower).to.equal('science');
     expect(entry.valueLower).to.equal('http://example.org/sci');
+    expect(entry.historical === true).to.equal(false);
   });
 });

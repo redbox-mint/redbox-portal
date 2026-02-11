@@ -114,3 +114,7 @@
 .vocab-data-table .action-button + .action-button {
   margin-left: 0.5rem;
 }
+
+.vocab-pagination .btn[disabled] {
+  cursor: default;
+}

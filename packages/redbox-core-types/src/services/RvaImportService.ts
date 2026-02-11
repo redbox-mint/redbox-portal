@@ -456,7 +456,8 @@ export namespace Services {
           label: String(node.label ?? node.prefLabel ?? node.id ?? node.iri ?? ''),
           value: String(node.notation ?? node.value ?? node.identifier ?? node.iri ?? node.id ?? ''),
           identifier: String(node.identifier ?? node.iri ?? node.id ?? ''),
-          order: index
+          order: index,
+          historical: false
         });
 
         const children = this.getChildNodes(node);

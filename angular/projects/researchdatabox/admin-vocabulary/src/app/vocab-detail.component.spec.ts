@@ -70,6 +70,12 @@ describe('VocabDetailComponent', () => {
     expect(optionsForSecond.some(option => option.id === first.id)).toBeTrue();
   });
 
+  it('defaults new entries to non-historical', () => {
+    component.addEntry();
+
+    expect(component.draft.entries![0].historical).toBeFalse();
+  });
+
   it('tracks parent editor state per entry', () => {
     component.draft.type = 'tree';
     component.draft.entries = [

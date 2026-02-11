@@ -5,6 +5,7 @@ import type { VocabularyAttributes } from './Vocabulary';
 const normalize = (record: Record<string, unknown>, isCreate: boolean): void => {
   const hasLabel = typeof record.label !== 'undefined';
   const hasValue = typeof record.value !== 'undefined';
+  const hasHistorical = typeof record.historical !== 'undefined';
 
   const label = hasLabel ? String(record.label ?? '').trim() : '';
   const value = hasValue ? String(record.value ?? '').trim() : '';
@@ -24,6 +25,20 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
     record.value = value;
     record.valueLower = value.toLowerCase();
   }
+  if (hasHistorical || isCreate) {
+    record.historical = toBoolean(record.historical);
+  }
+};
+
+const toBoolean = (value: unknown): boolean => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+  const normalized = String(value ?? '').trim().toLowerCase();
+  return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
 };
 
 const validateParent = async (record: Record<string, unknown>): Promise<void> => {
@@ -160,6 +175,9 @@ export class VocabularyEntryClass {
 
   @Attr({ type: 'number', defaultsTo: 0 })
   public order?: number;
+
+  @Attr({ type: 'boolean', defaultsTo: false })
+  public historical?: boolean;
 }
 
 export const VocabularyEntryWLDef = toWaterlineModelDef(VocabularyEntryClass);
@@ -170,6 +188,7 @@ export interface VocabularyEntryAttributes extends Sails.WaterlineAttributes {
   label: string;
   labelLower: string;
   order?: number;
+  historical?: boolean;
   parent?: string | number | VocabularyEntryAttributes;
   value: string;
   valueLower: string;

@@ -1,13 +1,20 @@
 <div class="panel panel-default vocab-panel-card">
   <div class="panel-heading d-flex justify-content-between align-items-center flex-wrap">
     <strong>{{ 'admin-vocabulary-list-title' | i18next }}</strong>
-    <small class="text-muted">{{ 'admin-vocabulary-list-shown' | i18next: { count: filteredVocabularies.length } }}</small>
+    <small class="text-muted">{{ 'admin-vocabulary-list-shown' | i18next: { count: totalCount } }}</small>
   </div>
   <div class="panel-body">
     <div class="row no-gutters align-items-start vocab-filters">
       <div class="col-md-5 pr-md-3 mb-2 mb-md-0">
         <label for="vocab-search" class="small text-uppercase text-muted mb-1">{{ 'admin-vocabulary-search' | i18next }}</label>
-        <input id="vocab-search" class="form-control form-control-sm" type="search" [attr.placeholder]="'admin-vocabulary-search-placeholder' | i18next" [(ngModel)]="searchTerm" />
+        <input
+          id="vocab-search"
+          class="form-control form-control-sm"
+          type="search"
+          [attr.placeholder]="'admin-vocabulary-search-placeholder' | i18next"
+          [ngModel]="searchTerm"
+          (ngModelChange)="onSearchTermChanged($event)"
+        />
       </div>
       <div class="col-md-4 pr-md-3 mb-2 mb-md-0">
         <label class="small text-uppercase text-muted mb-1 d-block">{{ 'admin-vocabulary-source' | i18next }}</label>
@@ -46,7 +53,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let vocabulary of filteredVocabularies; trackBy: trackByVocabularyId" [class.vocab-selected]="selectedId === vocabulary.id"
+          <tr *ngFor="let vocabulary of vocabularies; trackBy: trackByVocabularyId" [class.vocab-selected]="selectedId === vocabulary.id"
             tabindex="0" (keydown.enter)="open(vocabulary.id)">
             <td><a href="#" (click)="$event.preventDefault(); open(vocabulary.id)">{{ vocabulary.name }}</a></td>
             <td><code>{{ vocabulary.slug || '-' }}</code></td>
@@ -57,11 +64,28 @@
               <button class="btn btn-sm btn-danger action-button" type="button" (click)="remove(vocabulary.id)">{{ 'admin-vocabulary-delete' | i18next }}</button>
             </td>
           </tr>
-          <tr *ngIf="filteredVocabularies.length === 0">
+          <tr *ngIf="vocabularies.length === 0">
             <td colspan="5" class="text-muted">{{ 'admin-vocabulary-empty-filtered' | i18next }}</td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="vocab-pagination d-flex justify-content-between align-items-center flex-wrap mt-2">
+      <small class="text-muted">
+        {{ 'admin-vocabulary-pagination-range' | i18next: { start: pageStartIndex, end: pageEndIndex, total: totalCount } }}
+      </small>
+      <div class="btn-group" role="group">
+        <button type="button" class="btn btn-light btn-sm" [disabled]="!canGoPrevious" (click)="previousPage()">
+          {{ 'admin-vocabulary-pagination-previous' | i18next }}
+        </button>
+        <button type="button" class="btn btn-light btn-sm" disabled>
+          {{ 'admin-vocabulary-pagination-page' | i18next: { page: currentPage, totalPages: totalPages } }}
+        </button>
+        <button type="button" class="btn btn-light btn-sm" [disabled]="!canGoNext" (click)="nextPage()">
+          {{ 'admin-vocabulary-pagination-next' | i18next }}
+        </button>
+      </div>
     </div>
   </div>
 </div>

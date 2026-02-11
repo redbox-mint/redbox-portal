@@ -67,6 +67,7 @@
           <th style="width: 50px;">#</th>
           <th>{{ 'admin-vocabulary-label' | i18next }}</th>
           <th>{{ 'admin-vocabulary-value' | i18next }}</th>
+          <th>{{ 'admin-vocabulary-historical' | i18next }}</th>
           <th>{{ 'admin-vocabulary-parent' | i18next }}</th>
           <th style="width: 220px;">{{ 'record-table-results-table-header-actions' | i18next }}</th>
         </tr>
@@ -76,6 +77,14 @@
           <td class="align-middle">{{ idx + 1 }}</td>
           <td><input class="form-control form-control-sm" [(ngModel)]="entry.label" (ngModelChange)="onEntryEdited()" [attr.placeholder]="'admin-vocabulary-entry-label-placeholder' | i18next" /></td>
           <td><input class="form-control form-control-sm" [(ngModel)]="entry.value" (ngModelChange)="onEntryEdited()" [attr.placeholder]="'admin-vocabulary-entry-value-placeholder' | i18next" /></td>
+          <td class="align-middle text-center">
+            <input
+              type="checkbox"
+              [(ngModel)]="entry.historical"
+              (ngModelChange)="onEntryEdited()"
+              [attr.aria-label]="'admin-vocabulary-historical-checkbox' | i18next"
+            />
+          </td>
           <td>
             <ng-container *ngIf="draft.type === 'tree'; else flatParentField">
               <ng-container *ngIf="isParentEditorOpen(entry); else parentReadOnly">

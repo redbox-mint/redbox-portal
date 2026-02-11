@@ -107,10 +107,12 @@ describe('VocabularyService', () => {
       label: '  Science ',
       value: ' SCI ',
       identifier: 'science',
-      order: 0
+      order: 0,
+      historical: true
     });
     expect(normalized.label).to.equal('Science');
     expect(normalized.value).to.equal('SCI');
+    expect(normalized.historical).to.equal(true);
   });
 
   it('builds a tree response', async () => {

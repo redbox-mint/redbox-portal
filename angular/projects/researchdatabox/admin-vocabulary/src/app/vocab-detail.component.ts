@@ -47,6 +47,7 @@ export class VocabDetailComponent implements OnChanges {
       id: this.newTempId(),
       label: '',
       value: '',
+      historical: false,
       order: this.draft.entries.length
     });
     this.refreshTreePreviewIfVisible();
@@ -208,6 +209,9 @@ export class VocabDetailComponent implements OnChanges {
     this.draft.entries.forEach((entry: VocabularyEntry) => {
       if (!this.entryId(entry)) {
         entry.id = this.newTempId();
+      }
+      if (typeof entry.historical !== 'boolean') {
+        entry.historical = false;
       }
     });
   }
