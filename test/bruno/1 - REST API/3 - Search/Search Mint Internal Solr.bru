@@ -28,9 +28,13 @@ tests {
   
   test("Test response format", function () {
         var jsonData = res.getBody();
-        expect(jsonData[0]).to.have.property('fullName');
-        expect(jsonData[0]).to.have.property('email');
-        expect(jsonData[0]).to.have.property('orcid');
+        expect(jsonData).to.have.property('summary');
+        expect(jsonData).to.have.property('records');
+        var records = jsonData.records;
+        expect(records).to.be.an('array');
+        expect(records[0]).to.have.property('fullName');
+        expect(records[0]).to.have.property('email');
+        expect(records[0]).to.have.property('orcid');
   });
   
 }
