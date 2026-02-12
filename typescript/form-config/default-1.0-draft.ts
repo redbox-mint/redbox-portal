@@ -234,6 +234,37 @@ const formConfig: FormConfigFrame = {
                                     }
                                 },
                                 {
+                                    name: 'lookahead_party_1',
+                                    layout: {
+                                        class: 'DefaultLayout',
+                                        config: {
+                                            label: 'Party lookup',
+                                            helpText: 'Type to search party records via named query.',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'TypeaheadInputModel',
+                                        config: {
+                                            defaultValue: null,
+                                        }
+                                    },
+                                    component: {
+                                        class: 'TypeaheadInputComponent',
+                                        config: {
+                                            sourceType: 'namedQuery',
+                                            queryId: 'party',
+                                            labelField: 'metadata.fullName',
+                                            valueField: 'oid',
+                                            placeholder: 'Start typing a party name...',
+                                            minChars: 1,
+                                            debounceMs: 250,
+                                            maxResults: 25,
+                                            allowFreeText: false,
+                                            valueMode: 'value',
+                                        }
+                                    }
+                                },
+                                {
                                     name: 'checkbox_1',
                                     layout: {
                                         class: 'DefaultLayout',
