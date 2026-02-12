@@ -142,20 +142,7 @@ export class FormComponentGenerator extends Generator {
     if (startIdx === -1) {
       throw new Error('Unable to find object opening brace.');
     }
-    let depth = 0;
-    let endIdx = -1;
-    for (let i = startIdx; i < content.length; i += 1) {
-      const ch = content[i];
-      if (ch === '{') {
-        depth += 1;
-      } else if (ch === '}') {
-        depth -= 1;
-        if (depth === 0) {
-          endIdx = i;
-          break;
-        }
-      }
-    }
+    const endIdx = this.findMatchingDelimiter(content, startIdx, '{', '}');
     if (endIdx === -1) {
       throw new Error('Unable to locate end of object literal.');
     }
@@ -174,24 +161,114 @@ export class FormComponentGenerator extends Generator {
     if (startIdx === -1) {
       throw new Error('Unable to find array opening bracket.');
     }
-    let depth = 0;
-    let endIdx = -1;
-    for (let i = startIdx; i < content.length; i += 1) {
-      const ch = content[i];
-      if (ch === '[') {
-        depth += 1;
-      } else if (ch === ']') {
-        depth -= 1;
-        if (depth === 0) {
-          endIdx = i;
-          break;
-        }
-      }
-    }
+    const endIdx = this.findMatchingDelimiter(content, startIdx, '[', ']');
     if (endIdx === -1) {
       throw new Error('Unable to locate end of array literal.');
     }
     return `${content.slice(0, endIdx)}${lineToAdd}${content.slice(endIdx)}`;
+  }
+
+  private findMatchingDelimiter(content: string, startIdx: number, openChar: '{' | '[', closeChar: '}' | ']'): number {
+    let depth = 0;
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+    let inTemplateLiteral = false;
+    let inLineComment = false;
+    let inBlockComment = false;
+    let isEscaped = false;
+
+    for (let i = startIdx; i < content.length; i += 1) {
+      const ch = content[i];
+      const nextCh = content[i + 1] ?? '';
+
+      if (inLineComment) {
+        if (ch === '\n' || ch === '\r') {
+          inLineComment = false;
+        }
+        continue;
+      }
+
+      if (inBlockComment) {
+        if (ch === '*' && nextCh === '/') {
+          inBlockComment = false;
+          i += 1;
+        }
+        continue;
+      }
+
+      if (inSingleQuote) {
+        if (ch === '\\' && !isEscaped) {
+          isEscaped = true;
+          continue;
+        }
+        if (ch === '\'' && !isEscaped) {
+          inSingleQuote = false;
+        }
+        isEscaped = false;
+        continue;
+      }
+
+      if (inDoubleQuote) {
+        if (ch === '\\' && !isEscaped) {
+          isEscaped = true;
+          continue;
+        }
+        if (ch === '"' && !isEscaped) {
+          inDoubleQuote = false;
+        }
+        isEscaped = false;
+        continue;
+      }
+
+      if (inTemplateLiteral) {
+        if (ch === '\\' && !isEscaped) {
+          isEscaped = true;
+          continue;
+        }
+        if (ch === '`' && !isEscaped) {
+          inTemplateLiteral = false;
+        }
+        isEscaped = false;
+        continue;
+      }
+
+      if (ch === '/' && nextCh === '/') {
+        inLineComment = true;
+        i += 1;
+        continue;
+      }
+      if (ch === '/' && nextCh === '*') {
+        inBlockComment = true;
+        i += 1;
+        continue;
+      }
+      if (ch === '\'') {
+        inSingleQuote = true;
+        isEscaped = false;
+        continue;
+      }
+      if (ch === '"') {
+        inDoubleQuote = true;
+        isEscaped = false;
+        continue;
+      }
+      if (ch === '`') {
+        inTemplateLiteral = true;
+        isEscaped = false;
+        continue;
+      }
+
+      if (ch === openChar) {
+        depth += 1;
+      } else if (ch === closeChar) {
+        depth -= 1;
+        if (depth === 0) {
+          return i;
+        }
+      }
+    }
+
+    return -1;
   }
 
   private generateSailsNgCommonComponentFiles(): void {
@@ -859,15 +936,19 @@ describe("${serviceClassName}", () => {
       const constantsImport = `  ${this.modelNameConstant},`;
       const constantsCompImport = `  ${this.componentNameConstant},`;
       updated = this.ensureImport(updated, compImport);
-      if (!updated.includes(constantsImport) || !updated.includes(constantsCompImport)) {
-        const marker = '} from "@researchdatabox/sails-ng-common";';
-        const idx = updated.indexOf(marker);
+      const marker = '} from "@researchdatabox/sails-ng-common";';
+      const insertMissingConstant = (source: string, constantLine: string): string => {
+        if (source.includes(constantLine)) {
+          return source;
+        }
+        const idx = source.indexOf(marker);
         if (idx === -1) {
           throw new Error(`Unable to find sails-ng-common import in ${staticDictionaryPath}`);
         }
-        const insertion = `${constantsImport}\n  ${this.componentNameConstant},\n`;
-        updated = `${updated.slice(0, idx)}${insertion}${updated.slice(idx)}`;
-      }
+        return `${source.slice(0, idx)}${constantLine}\n${source.slice(idx)}`;
+      };
+      updated = insertMissingConstant(updated, constantsImport);
+      updated = insertMissingConstant(updated, constantsCompImport);
       updated = this.appendToObjectLiteral(
         updated,
         /export const StaticComponentClassMap[^=]*=\s*\{/,

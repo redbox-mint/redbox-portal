@@ -696,7 +696,7 @@ export const recordtype: RecordTypeConfig = {
                             templates: [
                                 {
                                     field: "metadata.fullName",
-                                    template: "<%= _.get(record, 'metadata.givenName') + ' ' + _.get(record, 'metadata.surname') %>"
+                                    template: "<%= _.get(record, 'metadata.givenName', '') + ' ' + _.get(record, 'metadata.surname', '') %>"
                                 },
                                 {
                                     field: "metadata.l_fullName",
@@ -716,7 +716,7 @@ export const recordtype: RecordTypeConfig = {
                             templates: [
                                 {
                                     field: "metadata.fullName",
-                                    template: "<%= _.get(record, 'metadata.givenName') + ' ' + _.get(record, 'metadata.surname') %>"
+                                    template: "<%= _.get(record, 'metadata.givenName', '') + ' ' + _.get(record, 'metadata.surname', '') %>"
                                 },
                                 {
                                     field: "metadata.l_fullName",

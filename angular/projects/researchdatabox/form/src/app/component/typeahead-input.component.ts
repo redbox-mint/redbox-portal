@@ -1,5 +1,6 @@
-import {Component, inject, Input} from "@angular/core";
-import {FormControl} from "@angular/forms";
+import { Component, DestroyRef, inject, Input } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { FormControl } from "@angular/forms";
 import {
     FormFieldBaseComponent,
     FormFieldCompMapEntry,
@@ -13,9 +14,9 @@ import {
     TypeaheadInputModelValueType,
     TypeaheadOption
 } from "@researchdatabox/sails-ng-common";
-import {TypeaheadMatch} from "ngx-bootstrap/typeahead";
-import {defer, from, Observable} from "rxjs";
-import {TypeaheadDataService} from "../service/typeahead-data.service";
+import { TypeaheadMatch } from "ngx-bootstrap/typeahead";
+import { defer, from, Observable } from "rxjs";
+import { TypeaheadDataService } from "../service/typeahead-data.service";
 
 type TypeaheadStatus = "idle" | "loading" | "no-results" | "error" | "misconfigured";
 
@@ -39,7 +40,7 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
         [readonly]="isReadonly || readOnlyAfterSelectLocked"
         [disabled]="isDisabled"
         [attr.role]="'combobox'"
-        [attr.aria-expanded]="false"
+        [attr.aria-expanded]="isOpen"
         [attr.aria-autocomplete]="'list'"
         [attr.aria-busy]="searchState === 'loading'"
         [attr.aria-describedby]="statusElementId"
@@ -53,6 +54,8 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
         [dropup]="false"
         [adaptivePosition]="true"
         [typeaheadScrollable]="true"
+                (typeaheadOnShown)="onDropdownShown()"
+                (typeaheadOnHidden)="onDropdownHidden()"
         (typeaheadOnSelect)="onSelect($event)"
         (blur)="onBlur()"
       />
@@ -85,6 +88,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     public searchState: TypeaheadStatus = "idle";
     public statusMessage = "";
     public statusElementId = "typeahead-status";
+    public isOpen = false;
     public readOnlyAfterSelectLocked = false;
 
     private sourceType: "static" | "vocabulary" | "namedQuery" = "static";
@@ -97,6 +101,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     private staticOptions: TypeaheadOption[] = [];
     private cache = new Map<string, TypeaheadOption[]>();
     private programmaticDisplayUpdate = false;
+    private readonly destroyRef = inject(DestroyRef);
     private readonly typeaheadDataService = inject(TypeaheadDataService);
 
     public readonly displayControl = new FormControl<string>("");
@@ -128,12 +133,14 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
         this.staticOptions = Array.isArray(cfg.staticOptions) ? cfg.staticOptions : [];
 
         this.applyInitialDisplayFromModel();
-        this.displayControl.valueChanges.subscribe((value) => {
-            if (this.programmaticDisplayUpdate) {
-                return;
-            }
-            this.onInputTextChanged(String(value ?? ""));
-        });
+        this.displayControl.valueChanges
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((value) => {
+                if (this.programmaticDisplayUpdate) {
+                    return;
+                }
+                this.onInputTextChanged(String(value ?? ""));
+            });
     }
 
     protected override async initData(): Promise<void> {
@@ -148,6 +155,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
         if (!selected) {
             return;
         }
+        this.isOpen = false;
         this.searchState = "idle";
         this.statusMessage = "";
         this.setDisplayValue(selected.label);
@@ -158,6 +166,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     }
 
     public onBlur(): void {
+        this.isOpen = false;
         const text = String(this.displayControl.value ?? "").trim();
         if (!text) {
             this.setModelValue(null);
@@ -173,9 +182,11 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
         if (this.isDisabled || this.isReadonly || this.readOnlyAfterSelectLocked) {
             return;
         }
+        this.isOpen = text.length >= this.minChars;
         if (!text) {
             this.searchState = "idle";
             this.statusMessage = "";
+            this.isOpen = false;
             if (this.allowFreeText) {
                 this.setModelValue(null);
             }
@@ -184,7 +195,16 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
         if (text.length < this.minChars) {
             this.searchState = "idle";
             this.statusMessage = "";
+            this.isOpen = false;
         }
+    }
+
+    public onDropdownShown(): void {
+        this.isOpen = true;
+    }
+
+    public onDropdownHidden(): void {
+        this.isOpen = false;
     }
 
     private validateConfiguration(): boolean {
@@ -324,7 +344,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
     private setDisplayValue(value: string): void {
         this.programmaticDisplayUpdate = true;
-        this.displayControl.setValue(value, {emitEvent: false});
+        this.displayControl.setValue(value, { emitEvent: false });
         this.programmaticDisplayUpdate = false;
     }
 
@@ -354,7 +374,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
         }
 
         if (typeof value === "string") {
-            return {label: value, value, sourceType: "freeText"};
+            return { label: value, value, sourceType: "freeText" };
         }
         if (typeof value === "object") {
             const source = value as unknown as Record<string, unknown>;
