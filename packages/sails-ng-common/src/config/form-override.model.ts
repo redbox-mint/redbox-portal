@@ -38,7 +38,16 @@ import { isTypeFormComponentDefinitionName, isTypeReusableComponent } from './fo
 import { PropertiesHelper } from './visitor/common.model';
 import { ILogger } from '../logger.interface';
 import { ContentFieldComponentConfig } from './component/content.model';
-import { QuestionTreeFieldComponentDefinitionOutline } from './component/question-tree.outline';
+import {
+  QuestionTreeFieldComponentConfigFrame,
+  QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeMeta,
+  QuestionTreeOutcome,
+  QuestionTreeQuestion,
+  QuestionTreeQuestionAnswer,
+  QuestionTreeQuestionRuleIn,
+  QuestionTreeQuestionRules,
+} from './component/question-tree.outline';
 import { TabFormComponentDefinitionOutline, TabComponentName } from './component/tab.outline';
 import {
   AccordionComponentName,
@@ -66,6 +75,7 @@ import { FileUploadComponentName, FileUploadFormComponentDefinitionOutline } fro
 import { TypeaheadInputModelOptionValue } from './component/typeahead-input.outline';
 import { FormConstraintConfigOutline } from './form-component.outline';
 import { SimpleInputFormComponentDefinitionFrame } from './component/simple-input.outline';
+import { guessType } from './helpers';
 
 export class FormOverride {
   private propertiesHelper: PropertiesHelper;
@@ -478,7 +488,8 @@ export class FormOverride {
     name: string | null,
     item: QuestionTreeFieldComponentDefinitionOutline
   ): QuestionTreeFormComponentDefinitionFrames[] {
-    const outcomes = item.config?.outcomes ?? {};
+    const availableOutcomeValues = (item.config?.availableOutcomes ?? []).map(i => i.value);
+    const availableMeta = item.config?.availableMeta ?? {};
     const questions = item.config?.questions ?? [];
     const questionAnswerValuesMap = Object.fromEntries(
       questions?.map(question => [question.id, question.answers.map(answer => answer.value)])
@@ -519,14 +530,23 @@ export class FormOverride {
       }
 
       answers.forEach((answer, answerIndex) => {
-        const outcome = answer.outcome ?? {};
-        for (const [outcomeKey, outcomeValue] of Object.entries(outcome)) {
-          if (!(outcomeKey in outcomes)) {
-            errors.push(`${msgQ} answer ${answerIndex + 1} '${answer.value}' outcome has an unknown key '${outcomeKey}'.`);
-          }
-          if (!(outcomeValue in outcomes[outcomeKey])) {
+        const outcome = answer.outcome;
+        if (outcome && !availableOutcomeValues.includes(outcome)) {
+          errors.push(
+            `${msgQ} answer ${answerIndex + 1} '${answer.value}' outcome is unknown '${outcome}', available are '${availableOutcomeValues.join(', ')}'.`
+          );
+        }
+
+        const meta = answer.meta ?? {};
+        for (const [metaKey, metaValue] of Object.entries(meta)) {
+          if (!(metaKey in availableMeta)) {
             errors.push(
-              `${msgQ} answer ${answerIndex + 1} '${answer.value}' outcome has an unknown value '${outcomeValue}' for key '${outcomeKey}'.`
+              `${msgQ} answer ${answerIndex + 1} '${answer.value}' meta key is unknown '${metaKey}', available are '${Object.keys(availableMeta).join(', ')}'.`
+            );
+          }
+          if (availableMeta[metaKey] && !(metaValue in availableMeta[metaKey])) {
+            errors.push(
+              `${msgQ} answer ${answerIndex + 1} '${answer.value}' meta key '${metaKey}' has unknown value '${metaValue}', available are '${Object.values(availableMeta).join(', ')}'.`
             );
           }
         }
@@ -1327,6 +1347,82 @@ export class FormOverride {
     if (nested.elementTemplate) {
       this.forceAllowModeForTransformedTree(nested.elementTemplate, formMode);
     }
+  }
+
+  public migrateDataClassificationToQuestionTree(data: any): QuestionTreeFieldComponentConfigFrame {
+    const v4Definition = data.createDataClassificationStructure();
+    const v4OrderedOutcomes: string[] = data.orderedOutcomes ?? [];
+    const availableOutcomes: QuestionTreeOutcome[] = v4OrderedOutcomes.map(o => ({ value: o, label: o }));
+    const availableMeta: QuestionTreeMeta = {};
+    const questions: QuestionTreeQuestion[] = [];
+    const defaultOutcomePropName = 'classification';
+
+    for (const [questionId, questionInfo] of Object.entries(v4Definition)) {
+      const qInfo = questionInfo as Record<string, unknown>;
+      const rawConditions = qInfo?.conditions as Record<string, string[]>;
+      const rawAnswers = (Array.isArray(qInfo?.answers) ? qInfo?.answers : []) ?? [];
+      const rawMinAnswers = qInfo?.minAnswers;
+      const rawMaxAnswers = qInfo?.maxAnswers;
+      const questionAnswers: QuestionTreeQuestionAnswer[] = [];
+
+      for (const rawAnswer of rawAnswers as any[]) {
+        const answerValue = rawAnswer?.value;
+        const answerLabel = rawAnswer?.label;
+        const answerOutcome = rawAnswer?.outcome;
+        const answerOutcomeGuessedType = guessType(answerOutcome);
+        if (answerOutcomeGuessedType === 'string') {
+          questionAnswers.push({ value: answerValue, label: answerLabel, outcome: answerOutcome });
+        } else if (answerOutcomeGuessedType === 'object') {
+          const meta = Object.fromEntries(
+            Object.entries(answerOutcome)
+              .filter(([k, v]) => k !== defaultOutcomePropName && !!v)
+              .map(([k, v]) => [k, v?.toString() ?? ''])
+          );
+          questionAnswers.push({
+            value: answerValue,
+            label: answerLabel,
+            outcome: answerOutcome[defaultOutcomePropName],
+            meta: meta,
+          });
+          Object.entries(meta).forEach(([k, v]) => {
+            if (!(k in availableMeta)) {
+              availableMeta[k] = {};
+            }
+            if (!(v in availableMeta[k])) {
+              availableMeta[k][v] = v;
+            }
+          });
+        } else if (['undefined', 'null'].includes(answerOutcomeGuessedType)) {
+          questionAnswers.push({ value: answerValue, label: answerLabel });
+        } else {
+          throw new Error(JSON.stringify({ answerOutcomeGuessedType, rawAnswer }));
+        }
+      }
+
+      const rules: QuestionTreeQuestionRules = {
+        op: 'or',
+        args: [
+          ...Object.entries(rawConditions).map(([ruleQuestionId, ruleAnswerValue]) => {
+            return { op: 'in', q: ruleQuestionId, a: ruleAnswerValue } as QuestionTreeQuestionRuleIn;
+          }),
+        ],
+      };
+
+      questions.push({
+        id: questionId,
+        answersMin: parseInt(rawMinAnswers?.toString() ?? '1'),
+        answersMax: parseInt(rawMaxAnswers?.toString() ?? '1'),
+        answers: questionAnswers,
+        rules: rules,
+      });
+    }
+
+    return {
+      availableOutcomes,
+      availableMeta,
+      questions,
+      componentDefinitions: [],
+    };
   }
 
   private commonContentComponent(

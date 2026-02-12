@@ -29,21 +29,43 @@ import {
 /**
  * The available outcomes for a question tree.
  */
-export interface QuestionTreeOutcomes {
+export interface QuestionTreeOutcome {
     /**
-     * The available outcome property keys.
+     * The outcome value.
+     */
+    value: QuestionTreeOutcomeValue;
+    /**
+     * The optional translation message to use as the label, or the actual label text.
+     * Leave out or set 'falsy' to use a translation message id of `${question-tree-name}-${outcome-value}`.
+     */
+    label?: string | null;
+}
+
+type QuestionTreeOutcomeValue = string;
+
+/**
+ * The available additional data that can be included with answers and outcomes for a question tree.
+ */
+export interface QuestionTreeMeta {
+    /**
+     * The available additional metadata property keys.
      */
     [key: string]: {
         /**
-         * The key is an available outcome property value.
+         * The key is an available property value.
          * The optional value is the translation message id.
-         * Set value 'falsy' to use a translation message id of `${outcome-key}-${outcome-value}`.
+         * Set value 'falsy' to use a translation message id of `${question-tree-name}-${outcome-meta-property0key}-${outcome-meta-property-value}`.
          */
         [key: string]: string | null,
     }
 }
 
-type QuestionTreeOutcomePropKeys = keyof QuestionTreeOutcomes;
+/**
+ * The additional metadata for an answer.
+ */
+export interface QuestionTreeAnswerMeta {
+    [key: string]: string;
+}
 
 /**
  * One answer to a question in a question tree.
@@ -55,15 +77,20 @@ export interface QuestionTreeQuestionAnswer {
     value: string;
     /**
      * The optional translation message to use as the label, or the actual label text.
-     * Leave out or set 'falsy' to use a translation message id of `${question-id}-${answer-id}`.
+     * Leave out or set 'falsy' to use a translation message id of `${question-tree-name}-${question-id}-${answer-id}`.
      */
     label?: string | null;
     /**
      * The optional outcome applied when this answer is selected.
+     *
      * The 'outcomes' object specifies the valid keys and values that can be used here.
      * Setting an outcome may not finish the question tree, as it is possible to have multiple outcomes.
      */
-    outcome?: { [key in QuestionTreeOutcomePropKeys]: string };
+    outcome?: QuestionTreeOutcomeValue;
+    /**
+     * Optional additional / meta allows including more data with the answer and outcome.
+     */
+    meta?: QuestionTreeAnswerMeta;
 }
 
 /**
@@ -211,9 +238,19 @@ export type QuestionTreeComponentNameType = typeof QuestionTreeComponentName;
 export interface QuestionTreeFieldComponentConfigFrame extends FieldComponentConfigFrame {
     /**
      * The available outcome keys and values.
+     *
+     * The order of the outcomes is the importance / sensitivity,
+     * from lowest / least at index 0 to highest / most at index length - 1.
+     *
      * Interface only, there is no class for this config property.
      */
-    outcomes: QuestionTreeOutcomes;
+    availableOutcomes: QuestionTreeOutcome[];
+    /**
+     * The additional data that can be included with outcomes.
+     * The additional data has no notion of important / sensitivity.
+     * Interface only, there is no class for this config property.
+     */
+    availableMeta?: QuestionTreeMeta;
     /**
      * The question definitions.
      * Interface only, there is no class for this config property.
@@ -223,7 +260,8 @@ export interface QuestionTreeFieldComponentConfigFrame extends FieldComponentCon
 }
 
 export interface QuestionTreeFieldComponentConfigOutline extends QuestionTreeFieldComponentConfigFrame, FieldComponentConfigOutline {
-    outcomes: QuestionTreeOutcomes;
+    availableOutcomes: QuestionTreeOutcome[];
+    availableMeta?: QuestionTreeMeta;
     questions: QuestionTreeQuestion[];
     componentDefinitions: QuestionTreeFormComponentDefinitionOutlines[];
 }
