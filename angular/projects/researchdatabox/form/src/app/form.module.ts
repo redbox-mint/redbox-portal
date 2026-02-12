@@ -50,6 +50,8 @@ import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { TypeaheadModule } from 'ngx-bootstrap/typeahead';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { TypeaheadInputComponent } from './component/typeahead-input.component';
+import { RichTextEditorComponent } from './component/rich-text-editor.component';
+import { CKEditorModule } from "@ckeditor/ckeditor5-angular";
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -72,7 +74,8 @@ import { TypeaheadInputComponent } from './component/typeahead-input.component';
     RadioInputComponent,
     DateInputComponent,
     CheckboxTreeComponent,
-    TypeaheadInputComponent
+    TypeaheadInputComponent,
+    RichTextEditorComponent
   ],
   imports: [
     CommonModule,
@@ -81,6 +84,7 @@ import { TypeaheadInputComponent } from './component/typeahead-input.component';
     RedboxPortalCoreModule,
     I18NextPipe,
     BrowserAnimationsModule,
+    CKEditorModule,
     BsDatepickerModule.forRoot(),
     TypeaheadModule.forRoot()
   ],

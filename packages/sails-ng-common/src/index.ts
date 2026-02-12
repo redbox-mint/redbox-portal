@@ -74,6 +74,8 @@ export * from "./config/component/checkbox-tree.model";
 export * from "./config/component/checkbox-tree.outline";
 export * from "./config/component/typeahead-input.model";
 export * from "./config/component/typeahead-input.outline";
+export * from "./config/component/rich-text-editor.model";
+export * from "./config/component/rich-text-editor.outline";
 // validation
 export * from "./validation/helpers";
 export * from "./validation/form.model";

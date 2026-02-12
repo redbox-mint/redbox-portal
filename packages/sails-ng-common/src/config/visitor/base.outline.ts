@@ -75,6 +75,11 @@ import {
     TypeaheadInputFieldModelDefinitionOutline,
     TypeaheadInputFormComponentDefinitionOutline
 } from "../component/typeahead-input.outline";
+import {
+    RichTextEditorFieldComponentDefinitionOutline,
+    RichTextEditorFieldModelDefinitionOutline,
+    RichTextEditorFormComponentDefinitionOutline
+} from "../component/rich-text-editor.outline";
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -220,4 +225,12 @@ export interface FormConfigVisitorOutline {
     visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void;
 
     visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void;
+
+    /* Rich Text Editor */
+
+    visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void;
+
+    visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void;
+
+    visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void;
 }

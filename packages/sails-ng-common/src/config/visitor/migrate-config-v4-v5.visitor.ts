@@ -65,6 +65,14 @@ import {
     TextAreaModelName
 } from "../component/text-area.outline";
 import { TextAreaFieldComponentConfig, TextAreaFieldModelConfig } from "../component/text-area.model";
+import {
+    RichTextEditorComponentName,
+    RichTextEditorFieldComponentDefinitionOutline,
+    RichTextEditorFieldModelDefinitionOutline,
+    RichTextEditorFormComponentDefinitionOutline,
+    RichTextEditorModelName
+} from "../component/rich-text-editor.outline";
+import { RichTextEditorFieldComponentConfig, RichTextEditorFieldModelConfig } from "../component/rich-text-editor.model";
 import { ContentFieldComponentConfig } from "../component/content.model";
 import {
     DropdownInputComponentName,
@@ -189,15 +197,14 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
             modelClassName: TextAreaModelName
         },
     },
-    // TODO: create a Markdown / HTML text edit component
     "MarkdownTextArea": {
         "": {
-            componentClassName: TextAreaComponentName,
-            modelClassName: TextAreaModelName
+            componentClassName: RichTextEditorComponentName,
+            modelClassName: RichTextEditorModelName
         },
         "MarkdownTextAreaComponent": {
-            componentClassName: TextAreaComponentName,
-            modelClassName: TextAreaModelName
+            componentClassName: RichTextEditorComponentName,
+            modelClassName: RichTextEditorModelName
         }
     },
     "TabOrAccordionContainer": {
@@ -887,6 +894,29 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
+    /* Rich Text Editor */
+
+    visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new RichTextEditorFieldComponentConfig();
+        this.sharedPopulateFieldComponentConfig(item.config, field);
+
+        const v4ClassName = field?.class?.toString() ?? "";
+        if (v4ClassName === "MarkdownTextArea") {
+            item.config.outputFormat = "markdown";
+        }
+    }
+
+    visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new RichTextEditorFieldModelConfig();
+        this.sharedPopulateFieldModelConfig(item.config, field);
+    }
+
+    visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
         this.populateFormComponent(item);
     }
 

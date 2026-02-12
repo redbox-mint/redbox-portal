@@ -66,6 +66,11 @@ import {
     TypeaheadInputFormComponentDefinitionOutline
 } from "../component/typeahead-input.outline";
 import {
+    RichTextEditorFieldComponentDefinitionOutline,
+    RichTextEditorFieldModelDefinitionOutline,
+    RichTextEditorFormComponentDefinitionOutline
+} from "../component/rich-text-editor.outline";
+import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline,
     RadioInputFormComponentDefinitionOutline
@@ -319,6 +324,19 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Rich Text Editor */
+
+    visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void {
+    }
+
+    visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
+        this.setFromModelDefinition(item);
+    }
+
+    visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 
