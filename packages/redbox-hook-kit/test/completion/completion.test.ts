@@ -6,6 +6,7 @@ describe('completion scripts', () => {
     const script = generateCompletionScript('bash');
     expect(script).to.contain('complete -F _redbox_hook_kit_completion redbox-hook-kit');
     expect(script).to.contain('migrate-form-config');
+    expect(script).to.contain('form-component');
   });
 
   it('should generate zsh completion script', () => {
