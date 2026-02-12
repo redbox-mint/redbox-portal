@@ -10,7 +10,6 @@ import {
     TypeaheadInputComponentName,
     TypeaheadInputFieldComponentConfig,
     TypeaheadInputModelName,
-    TypeaheadInputModelOptionValue,
     TypeaheadInputModelValueType,
     TypeaheadOption
 } from "@researchdatabox/sails-ng-common";
@@ -276,17 +275,13 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     }
 
     private applyInitialDisplayFromModel(): void {
-        const coerced = this.coerceLegacyModelValue(this.model?.getValue());
-        if (coerced !== this.model?.getValue()) {
-            this.setModelValue(coerced);
-        }
-
-        if (this.valueMode === "optionObject" && coerced && typeof coerced === "object") {
-            this.setDisplayValue(String((coerced as TypeaheadInputModelOptionValue).label ?? ""));
+        const value = this.model?.getValue();
+        if (this.valueMode === "optionObject" && this.isOptionObjectValue(value)) {
+            this.setDisplayValue(value.label);
             return;
         }
-        if (typeof coerced === "string") {
-            this.setDisplayValue(coerced);
+        if (this.valueMode === "value" && typeof value === "string") {
+            this.setDisplayValue(value);
             return;
         }
         this.setDisplayValue("");
@@ -353,47 +348,14 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
         this.formControl.markAsTouched();
     }
 
-    private coerceLegacyModelValue(value: TypeaheadInputModelValueType | undefined): TypeaheadInputModelValueType {
-        if (value === undefined || value === null) {
-            return null;
-        }
-
-        if (this.valueMode === "value") {
-            if (typeof value === "string") {
-                return value;
-            }
-            if (typeof value === "object") {
-                const source = value as unknown as Record<string, unknown>;
-                const resolved = String(source[this.labelField] ?? source["title"] ?? source["label"] ?? source["value"] ?? "").trim();
-                if (resolved) {
-                    return resolved;
-                }
-            }
-            this.loggerService.warn(`${this.logName}: Unable to coerce legacy value to string; using null`);
-            return null;
-        }
-
-        if (typeof value === "string") {
-            return { label: value, value, sourceType: "freeText" };
-        }
-        if (typeof value === "object") {
-            const source = value as unknown as Record<string, unknown>;
-            const label = String(source["label"] ?? source[this.labelField] ?? source["title"] ?? source["value"] ?? "").trim();
-            const resolvedValue = String(source["value"] ?? source[this.labelField] ?? source["label"] ?? source["title"] ?? "").trim();
-            if (label || resolvedValue) {
-                const sourceType = String(source["sourceType"] ?? "").trim();
-                const normalizedSourceType = ["static", "vocabulary", "namedQuery", "freeText"].includes(sourceType)
-                    ? sourceType as "static" | "vocabulary" | "namedQuery" | "freeText"
-                    : undefined;
-                return {
-                    label: label || resolvedValue,
-                    value: resolvedValue || label,
-                    sourceType: normalizedSourceType
-                };
-            }
-        }
-
-        this.loggerService.warn(`${this.logName}: Unable to coerce legacy value to optionObject; using null`);
-        return null;
+    private isOptionObjectValue(value: TypeaheadInputModelValueType | undefined): value is { label: string; value: string } {
+        return Boolean(
+            value
+            && typeof value === "object"
+            && "label" in value
+            && "value" in value
+            && typeof value.label === "string"
+            && typeof value.value === "string"
+        );
     }
 }
