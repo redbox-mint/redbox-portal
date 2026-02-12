@@ -140,7 +140,7 @@ jobs:
       - run:
           name: Run Bruno General tests
           no_output_timeout: 30m
-          command: BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:general
+          command: BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:general:ci
       - run:
           name: Clean up Bruno containers
           command: npm run test:bruno:clean || true
@@ -203,7 +203,7 @@ jobs:
       - run:
           name: Run Bruno OIDC tests
           no_output_timeout: 30m
-          command: BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:oidc
+          command: BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:oidc:ci
       - run:
           name: Clean up Bruno containers
           command: npm run test:bruno:clean || true
@@ -270,7 +270,7 @@ jobs:
       - run:
           name: Run Mocha tests
           no_output_timeout: 30m
-          command: timeout 1800s npm run test:mocha
+          command: timeout 1800s npm run test:mocha:ci
       - run:
           name: Upload Mocha code coverage
           command: |
