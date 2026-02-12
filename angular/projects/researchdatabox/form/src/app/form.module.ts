@@ -45,6 +45,7 @@ import { provideFormFeature } from './form-state';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { DateInputComponent } from './component/date-input.component';
+import { CheckboxTreeComponent } from './component/checkbox-tree.component';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 @NgModule({
@@ -67,7 +68,8 @@ import { provideStoreDevtools } from '@ngrx/store-devtools';
     DropdownInputComponent,
     CheckboxInputComponent,
     RadioInputComponent,
-    DateInputComponent
+    DateInputComponent,
+    CheckboxTreeComponent
   ],
   imports: [
     CommonModule,

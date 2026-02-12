@@ -55,6 +55,13 @@ export namespace Services {
     private resourcesClient: ResourcesApi | null = null;
     private servicesClient: ServicesApi | null = null;
 
+    private async executeQuery<T>(query: Sails.WaterlinePromise<T>, connection?: Sails.Connection): Promise<T> {
+      if (connection) {
+        return query.usingConnection(connection);
+      }
+      return query;
+    }
+
     private get httpClient(): AxiosInstance {
       if (!this.client) {
         this.client = axios.create({ timeout: 15000 });
@@ -103,7 +110,7 @@ export namespace Services {
       }
       const concepts = await this.getConceptTree(selectedVersionId);
 
-     
+
       const vocabulary = await VocabularyService.create({
         name: String(metadata.title ?? metadata.slug ?? rvaId),
         slug: metadata.slug,
@@ -143,29 +150,24 @@ export namespace Services {
       const counters = await runWithOptionalTransaction(
         Vocabulary.getDatastore(),
         async (connection) => {
-        const results = await VocabularyService.upsertEntries(String(vocabulary.id), entries, connection);
-        const updater = Vocabulary.updateOne({ id: vocabulary.id }).set({
-          sourceVersionId: selectedVersionId,
-          lastSyncedAt,
-          name: String(metadata.title ?? vocabulary.name),
-          description: metadata.description ?? vocabulary.description,
-          owner: metadata.owner ?? vocabulary.owner
-        });
-        try {
-          const updaterWithConnection = updater as unknown as { usingConnection?: (db: unknown) => Promise<void> };
-          if (connection && typeof updaterWithConnection.usingConnection === 'function') {
-            await updaterWithConnection.usingConnection(connection);
-          } else {
-            await updater;
+          const results = await VocabularyService.upsertEntries(String(vocabulary.id), entries, connection);
+          const updaterQuery = Vocabulary.updateOne({ id: vocabulary.id }).set({
+            sourceVersionId: selectedVersionId,
+            lastSyncedAt,
+            name: String(metadata.title ?? vocabulary.name),
+            description: metadata.description ?? vocabulary.description,
+            owner: metadata.owner ?? vocabulary.owner
+          });
+          try {
+            await this.executeQuery(updaterQuery, connection);
+          } catch (error) {
+            if (!connection) {
+              sails.log?.error?.('RVA sync failed after entry upsert; retry may be required.', error);
+              throw new Error(`Sync failed after updating entries: ${String(error)}`);
+            }
+            throw error;
           }
-        } catch (error) {
-          if (!connection) {
-            sails.log?.error?.('RVA sync failed after entry upsert; retry may be required.', error);
-            throw new Error(`Sync failed after updating entries: ${String(error)}`);
-          }
-          throw error;
-        }
-        return results;
+          return results;
         },
         {
           logger: sails.log,

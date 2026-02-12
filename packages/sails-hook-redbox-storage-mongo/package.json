@@ -54,6 +54,7 @@
     "@researchdatabox/redbox-core-types": "file:../redbox-core-types",
     "json2csv": "^5.0.3",
     "lodash": "^4.17.21",
+    "reflect-metadata": "^0.2.2",
     "uuid": "11.1.0"
   },
   "peerDependencies": {

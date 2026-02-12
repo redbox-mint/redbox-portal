@@ -78,6 +78,8 @@ export async function coreBootstrap(): Promise<void> {
     sails.log.verbose("Forms service, bootstrapped.");
     await lastValueFrom(sails.services.vocabservice.bootstrap() as Observable<unknown>);
     sails.log.verbose("Vocab service, bootstrapped.");
+    await sails.services.vocabularyservice.bootstrapData();
+    sails.log.verbose("Vocabulary bootstrap data, loaded.");
 
     // Schedule cronjobs
     if (sails.config.crontab.enabled) {

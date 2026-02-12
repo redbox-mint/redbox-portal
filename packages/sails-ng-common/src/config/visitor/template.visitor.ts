@@ -51,6 +51,11 @@ import {
     CheckboxInputFormComponentDefinitionOutline
 } from "../component/checkbox-input.outline";
 import {
+    CheckboxTreeFieldComponentDefinitionOutline,
+    CheckboxTreeFieldModelDefinitionOutline,
+    CheckboxTreeFormComponentDefinitionOutline
+} from "../component/checkbox-tree.outline";
+import {
     DropdownInputFieldComponentDefinitionOutline,
     DropdownInputFieldModelDefinitionOutline,
     DropdownInputFormComponentDefinitionOutline
@@ -267,6 +272,26 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Checkbox Tree */
+
+    visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {
+        const labelTemplate = (item.config?.labelTemplate ?? "").trim();
+        if (labelTemplate) {
+            this.templates?.push({
+                key: [...(this.formPathHelper.formPath.formConfig ?? []), "config", "labelTemplate"],
+                value: labelTemplate,
+                kind: "handlebars"
+            });
+        }
+    }
+
+    visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
+    }
+
+    visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

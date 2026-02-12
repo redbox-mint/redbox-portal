@@ -90,6 +90,7 @@ COPY --from=builder --chown=node:node /opt/redbox-portal/assets ./assets
 COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
 COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config
 COPY --from=builder --chown=node:node /opt/redbox-portal/form-config ./form-config
+COPY --from=builder --chown=node:node /opt/redbox-portal/bootstrap-data ./bootstrap-data
 COPY --from=builder --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages ./packages
 COPY --from=builder --chown=node:node /opt/redbox-portal/views ./views

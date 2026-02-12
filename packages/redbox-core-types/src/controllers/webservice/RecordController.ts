@@ -484,7 +484,7 @@ export namespace Controllers {
                   status: 201,
                   data: response,
                   headers: {
-                    'Location': sails.config.appUrl + BrandingService.getBrandAndPortalPath(req as unknown as globalThis.Record<string, unknown>) + "/api/records/metadata/" + response.oid,
+                    'Location': sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + response.oid,
                   }
                 });
               } else {

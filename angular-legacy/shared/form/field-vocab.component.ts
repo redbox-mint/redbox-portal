@@ -297,7 +297,7 @@ export class VocabField extends FieldBase<any> {
       if (_.isEmpty(keys)) {
         return false;
       }
-      return _.every(keys, (key: string) => this.compareFieldValue((currentValue as any)[key], mappedValue[key]));
+      return _.every(keys, (key: string) => this.compareFieldValue(_.get(currentValue, key), mappedValue[key]));
     }
 
     return this.compareFieldValue(currentValue, mappedValue);

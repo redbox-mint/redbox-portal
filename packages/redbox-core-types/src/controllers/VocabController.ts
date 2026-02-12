@@ -61,6 +61,7 @@ export namespace Controllers {
     **************************************************************************************************
     */
 
+    /** @deprecated Replaced by FormVocabularyController.get(). */
     public get(req: Sails.Req, res: Sails.Res) {
       const vocabId = req.param("vocabId");
       const that = this;
@@ -73,6 +74,7 @@ export namespace Controllers {
       });
     }
 
+    /** @deprecated Managed via Vocabulary admin. */
     public getCollection(req: Sails.Req, res: Sails.Res) {
       const collectionId = req.param('collectionId');
       const searchString = req.query.search ? req.query.search.toLowerCase() : '';
@@ -87,6 +89,7 @@ export namespace Controllers {
       });
     }
 
+    /** @deprecated Managed via Vocabulary admin. */
     public loadCollection(req: Sails.Req, res: Sails.Res) {
       const collectionId = req.param('collectionId');
       const that = this;
@@ -100,6 +103,7 @@ export namespace Controllers {
       });
     }
 
+    /** @deprecated Legacy Mint integration. */
     public async getMint(req: Sails.Req, res: Sails.Res) {
       const mintSourceType = req.param('mintSourceType');
       const searchString = req.query.search ?? '';
@@ -128,6 +132,7 @@ export namespace Controllers {
       }
     }
 
+    /** @deprecated Replaced by FormVocabularyController.getRecords(). */
     public async getRecords(req: Sails.Req, res: Sails.Res) {
       const mintSourceType = req.param('queryId');
       const searchString = req.param('search');
@@ -142,6 +147,7 @@ export namespace Controllers {
       }
     }
 
+    /** @deprecated Legacy external service proxy. */
     public async searchExternalService(req: Sails.Req, res: Sails.Res) {
       const providerName = req.param('provider');
       const params = req.body;
@@ -157,6 +163,7 @@ export namespace Controllers {
       }
     }
 
+    /** @deprecated Legacy people search endpoint. */
     public searchPeople(req: Sails.Req, res: Sails.Res) {
       const source = req.param('source');
       const page = req.param('page');
@@ -176,6 +183,7 @@ export namespace Controllers {
 
     }
 
+    /** @deprecated Legacy ANDS/RVA lookup. */
     public rvaGetResourceDetails(req: Sails.Req, res: Sails.Res) {
       const uri = req.param('uri');
       const vocab = req.param('vocab');

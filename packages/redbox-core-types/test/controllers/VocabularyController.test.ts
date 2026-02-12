@@ -17,7 +17,7 @@ describe('Ajax VocabularyController', () => {
           delete: sinon.stub().resolves()
         },
         brandingservice: {
-          getBrandFromReq: sinon.stub().returns('default'),
+          getBrandNameFromReq: sinon.stub().returns('default'),
           getBrand: sinon.stub().returns({ id: 'default' })
         },
         rvaimportservice: {

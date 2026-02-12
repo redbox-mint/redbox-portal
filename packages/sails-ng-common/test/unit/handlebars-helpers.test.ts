@@ -146,6 +146,25 @@ describe('Shared Handlebars Helpers', function () {
         });
     });
 
+    describe('substring', function () {
+        it('should return sliced substring', function () {
+            const result = handlebarsHelperDefinitions.substring('https://linked.data.gov.au/def/anzsrc-for/2020/300101', -6);
+            expect(result).to.equal('300101');
+        });
+    });
+
+    describe('split', function () {
+        it('should return a selected segment by index', function () {
+            const result = handlebarsHelperDefinitions.split('https://linked.data.gov.au/def/anzsrc-for/2020/300101', '/', -1);
+            expect(result).to.equal('300101');
+        });
+
+        it('should return all segments when index is omitted', function () {
+            const result = handlebarsHelperDefinitions.split('a/b/c', '/');
+            expect(result).to.deep.equal(['a', 'b', 'c']);
+        });
+    });
+
     describe('default', function () {
         it('should return value if truthy', function () {
             const result = handlebarsHelperDefinitions.default('hello', 'default');

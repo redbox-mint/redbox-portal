@@ -40,6 +40,7 @@ export namespace Services {
       'getBrand',
       'getAvailable',
       'getBrandAndPortalPath',
+      'getBrandNameFromReq',
       'getBrandFromReq',
       'getPortalFromReq',
       'getFullPath',
@@ -109,8 +110,8 @@ export namespace Services {
       return this.availableBrandings;
     }
 
-    public getBrandAndPortalPath(req: { params?: Record<string, unknown>; body?: Record<string, unknown>; session?: Record<string, unknown> }): string {
-      const branding = this.getBrandFromReq(req);
+    public getBrandAndPortalPath(req: Sails.ReqParamProvider): string {
+      const branding = this.getBrandNameFromReq(req);
       const portal = this.getPortalFromReq(req);
       const rootContext = this.getRootContext();
       if (_.isEmpty(rootContext)) {
@@ -131,11 +132,11 @@ export namespace Services {
     }
 
 
-    public getFullPath(req: { params?: Record<string, unknown>; body?: Record<string, unknown>; session?: Record<string, unknown> }): string {
+    public getFullPath(req: Sails.ReqParamProvider): string {
       return sails.config.appUrl + this.getBrandAndPortalPath(req);
     }
 
-    public getBrandFromReq(req: { params?: Record<string, unknown>; body?: Record<string, unknown>; session?: Record<string, unknown> }): string {
+    public getBrandNameFromReq(req: Sails.ReqParamProvider): string {
       let branding = null;
       if (req && req.params) {
         const paramBranding = req.params['branding'];
@@ -160,7 +161,11 @@ export namespace Services {
       return branding;
     }
 
-    public getPortalFromReq(req: { params?: Record<string, unknown>; body?: Record<string, unknown>; session?: Record<string, unknown> }): string {
+    public getBrandFromReq(req: Sails.ReqParamProvider): BrandingModel {
+      return this.getBrand(this.getBrandNameFromReq(req));
+    }
+
+    public getPortalFromReq(req: Sails.ReqParamProvider): string {
       let portal = null;
       if (req && req.params) {
         const paramPortal = req.params['portal'];

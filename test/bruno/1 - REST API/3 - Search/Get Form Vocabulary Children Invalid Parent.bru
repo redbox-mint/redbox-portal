@@ -1,0 +1,29 @@
+meta {
+  name: Get Form Vocabulary Children Invalid Parent
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/default/rdmp/vocab/anzsrc-2020-for/children?parentId=not-a-valid-parent-id
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 400", function () {
+      expect(res.getStatus()).to.equal(400);
+  });
+
+  test("Error code is invalid-parent-id", function () {
+      var jsonData = res.getBody();
+      var err = jsonData.errors[0];
+      expect(err).to.have.property('code');
+      expect(err.code).to.equal('invalid-parent-id');
+  });
+}

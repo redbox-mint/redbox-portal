@@ -25,7 +25,6 @@ import {
 } from '../index';
 
 type AnyRecord = globalThis.Record<string, unknown>;
-type RequestLike = { params?: AnyRecord; body?: AnyRecord; session?: AnyRecord };
 
 export namespace Controllers {
   /**
@@ -97,7 +96,7 @@ export namespace Controllers {
         req.session.redirUrl = url;
 
       }
-      return res.redirect(`${BrandingService.getBrandAndPortalPath(req as unknown as RequestLike)}/${sails.config.auth.loginPath}`);
+      return res.redirect(`${BrandingService.getBrandAndPortalPath(req)}/${sails.config.auth.loginPath}`);
     }
 
     public redirPostLogin(req: Sails.Req, res: Sails.Res) {
@@ -105,7 +104,7 @@ export namespace Controllers {
     }
 
     protected getPostLoginUrl(req: Sails.Req, _res: Sails.Res) {
-      const branding = BrandingService.getBrandFromReq(req as unknown as RequestLike);
+      const branding = BrandingService.getBrandNameFromReq(req);
       let postLoginUrl = null;
       if (req.session.redirUrl) {
         postLoginUrl = req.session.redirUrl;
@@ -114,7 +113,7 @@ export namespace Controllers {
       } else {
         const authConfig = ConfigService.getBrand(branding, 'auth');
         const postLoginRedir = _.get(authConfig, 'local.postLoginRedir', 'home');
-        postLoginUrl = `${BrandingService.getBrandAndPortalPath(req as unknown as RequestLike)}/${postLoginRedir}`;
+        postLoginUrl = `${BrandingService.getBrandAndPortalPath(req)}/${postLoginRedir}`;
       }
       sails.log.debug(`post login url: ${postLoginUrl}`);
       return postLoginUrl;
@@ -129,7 +128,7 @@ export namespace Controllers {
 
       // If the redirect URL is empty then revert back to the default
       if (_.isEmpty(redirUrl)) {
-        redirUrl = _.isEmpty(sails.config.auth.postLogoutRedir) ? `${BrandingService.getBrandAndPortalPath(req as unknown as RequestLike)}/home` : sails.config.auth.postLogoutRedir;
+        redirUrl = _.isEmpty(sails.config.auth.postLogoutRedir) ? `${BrandingService.getBrandAndPortalPath(req)}/home` : sails.config.auth.postLogoutRedir;
       }
 
       const user = req.session.user ? req.session.user : req.user;
@@ -304,7 +303,7 @@ export namespace Controllers {
             }
           }
 
-          const branding = BrandingService.getBrandFromReq(req as unknown as RequestLike);
+          const branding = BrandingService.getBrandNameFromReq(req);
           const oidcConfig = _.get(ConfigService.getBrand(branding, 'auth'), 'oidc', {});
           const errorMessage = _.get(err, 'message', err?.toString() ?? '');
 
@@ -345,7 +344,7 @@ export namespace Controllers {
             };
           }
 
-          const url = `${BrandingService.getFullPath(req as unknown as RequestLike)}/home`;
+          const url = `${BrandingService.getFullPath(req)}/home`;
           return res.redirect(url);
         }
         const requestDetails = new RequestDetails(req);
@@ -485,9 +484,9 @@ export namespace Controllers {
       return interpolationMap;
     }
 
-	    public aafLogin(req: Sails.Req, res: Sails.Res) {
-	      const passport = sails.config.passport as unknown as { authenticate: (strategy: string, callback: (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) => void) => (req: Sails.Req, res: Sails.Res) => void };
-	      passport.authenticate('aaf-jwt', function (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) {
+    public aafLogin(req: Sails.Req, res: Sails.Res) {
+      const passport = sails.config.passport as unknown as { authenticate: (strategy: string, callback: (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) => void) => (req: Sails.Req, res: Sails.Res) => void };
+      passport.authenticate('aaf-jwt', function (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) {
         sails.log.verbose("At AAF Controller, verify...");
         sails.log.verbose("Error:");
         sails.log.verbose(err);
@@ -528,7 +527,7 @@ export namespace Controllers {
           sails.log.error(err)
         });
 
-	        req.logIn(user, function (err: unknown) {
+        req.logIn(user, function (err: unknown) {
           if (err) res.send(err);
           sails.log.debug("AAF Login OK, redirecting...");
           return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);

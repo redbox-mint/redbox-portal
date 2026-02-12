@@ -72,8 +72,8 @@ declare global {
 			};
 			// Action lookup method
 			getActions(): { [actionName: string]: unknown };
-            on(event: string, cb: (...args: unknown[]) => void): void;
-            emit(event: string, ...args: unknown[]): void;
+			on(event: string, cb: (...args: unknown[]) => void): void;
+			emit(event: string, ...args: unknown[]): void;
 			getDatastore(name?: string): Datastore;
 		}
 
@@ -98,8 +98,10 @@ declare global {
 					deleteOne: (filter: object) => Promise<unknown>;
 				};
 			};
-			transaction?<T>(work: (connection: unknown) => Promise<T>): Promise<T>;
+			transaction?<T>(work: (connection: Connection) => Promise<T>): Promise<T>;
 		}
+
+		export type Connection = unknown;
 
 		export interface Model<T> {
 			attributes: object;
@@ -161,12 +163,12 @@ declare global {
 			// Overload for update without changes (chainable with .set())
 			update(criteria: object): WaterlinePromise<T[]>;
 
-			updateOne(criteria: object, changes: object): WaterlinePromise<T>;
-			updateOne(criteria: object): WaterlinePromise<T>;
-			updateOne(criteria: string, changes: object): WaterlinePromise<T>;
-			updateOne(criteria: string): WaterlinePromise<T>;
-			updateOne(criteria: number, changes: object): WaterlinePromise<T>;
-			updateOne(criteria: number): WaterlinePromise<T>;
+			updateOne(criteria: object, changes: object): WaterlinePromise<T | null>;
+			updateOne(criteria: object): WaterlinePromise<T | null>;
+			updateOne(criteria: string, changes: object): WaterlinePromise<T | null>;
+			updateOne(criteria: string): WaterlinePromise<T | null>;
+			updateOne(criteria: number, changes: object): WaterlinePromise<T | null>;
+			updateOne(criteria: number): WaterlinePromise<T | null>;
 
 			query(sqlQuery: string, cb: (err: Error, results: Array<Record>) => void): void;
 			native(cb: (err: Error, collection: Model<T>) => void): void;
@@ -194,7 +196,8 @@ declare global {
 		export interface NextFunction extends express.NextFunction { }
 
 		export interface Req extends express.Request {
-			options?: globalThis.Record<string, unknown>;
+			options?: any;
+			session: express.Request['session'];
 			user?: globalThis.Record<string, unknown>;
 			query: { [key: string]: string | undefined };
 			param(name: string, defaultValue?: string): string;
@@ -202,8 +205,17 @@ declare global {
 			[key: string]: unknown;
 		}
 
+		// TODO: We have some places where Req.param expects a non nullable string, and some places where it can be undefined or null. 
+		// We should standardize this to avoid confusion and refactor accordingly.
+		export interface ReqParamProvider {
+			param(name: string, defaultValue?: string): string | undefined | null;
+			params?: globalThis.Record<string, unknown>;
+			body?: globalThis.Record<string, unknown>;
+			session?: express.Request['session'];
+		}
+
 		// Sails.js Response interface - uses intersection type to add Sails-specific methods
-		 
+
 		export interface Res extends Omit<express.Response, 'badRequest'> {
 			attachement(filename: string): void;
 
@@ -224,7 +236,7 @@ declare global {
 			set(values: object): WaterlinePromise<T>;
 			meta(options: object): WaterlinePromise<T>;
 			fetch(): WaterlinePromise<T>;
-			usingConnection(connection: unknown): WaterlinePromise<T>;
+			usingConnection(connection: Connection): WaterlinePromise<T>;
 
 			populate(association: string): QueryBuilder;
 			populate(association: string, filter: object): QueryBuilder;
@@ -246,7 +258,7 @@ declare global {
 			exec(cb: (error: Error | null, results: Array<QueryResult>) => void): void;
 			set(values: object): QueryBuilder;
 			meta(options: object): QueryBuilder;
-			usingConnection(connection: unknown): QueryBuilder;
+			usingConnection(connection: Connection): QueryBuilder;
 
 			where(condition: object): QueryBuilder;
 

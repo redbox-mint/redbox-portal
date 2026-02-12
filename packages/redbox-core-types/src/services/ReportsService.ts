@@ -31,12 +31,6 @@ import { ReportDto, TemplateCompileInput, registerSharedHandlebarsHelpers } from
 import { stringify } from 'csv-stringify/sync';
 import Handlebars from "handlebars";
 
-type RequestLike = {
-  param: (name: string) => string | undefined | null;
-  params?: Record<string, unknown>;
-  body?: Record<string, unknown>;
-  session?: Record<string, unknown>;
-};
 
 type ReportColumnLike = {
   label: string;
@@ -127,7 +121,7 @@ export namespace Services {
           sails.log.verbose("Default reports definition(s) exist.");
           return from(rTypes);
         }
-      }),last());
+      }), last());
     }
 
     public findAllReportsForBrand(brand: BrandingModel) {
@@ -158,7 +152,7 @@ export namespace Services {
       }));
     }
 
-    private buildSolrParams(brand: BrandingModel, req: RequestLike, report: ReportConfig, start: number, rows: number, format = 'json') {
+    private buildSolrParams(brand: BrandingModel, req: Sails.ReqParamProvider, report: ReportConfig, start: number, rows: number, format = 'json') {
       let params = this.getQueryValue(report);
       params = this.addPaginationParams(params, start, rows);
       params = params + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
@@ -192,7 +186,7 @@ export namespace Services {
       return params;
     }
 
-    public async getResults(brand: BrandingModel, name = '', req: RequestLike, start = 0, rows = 10) {
+    public async getResults(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 10) {
       const reportModel = this.getReportModel();
       const reportObs = super.getObservable<ReportModel | null>(reportModel.findOne({
         key: brand.id + "_" + name
@@ -245,7 +239,7 @@ export namespace Services {
       return response;
     }
 
-    buildNamedQueryParamMap(req: RequestLike, report: ReportConfig) {
+    buildNamedQueryParamMap(req: Sails.ReqParamProvider, report: ReportConfig) {
       const paramMap: Record<string, unknown> = {}
       if (report.filter != null) {
         for (const filter of report.filter) {
@@ -296,7 +290,7 @@ export namespace Services {
       return response;
     }
 
-    private getSearchService(): SearchService{
+    private getSearchService(): SearchService {
       return sails.services[sails.config.search.serviceName] as unknown as SearchService;
     }
 
@@ -314,9 +308,9 @@ export namespace Services {
       return legacyReport;
     }
 
-    public async getCSVResult(brand: BrandingModel, name = '', req: RequestLike, start = 0, rows = 1000000000) {
+    public async getCSVResult(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 1000000000) {
       const reportModel = this.getReportModel();
-      let report:ReportModel = await firstValueFrom(super.getObservable<ReportModel>(reportModel.findOne({
+      let report: ReportModel = await firstValueFrom(super.getObservable<ReportModel>(reportModel.findOne({
         key: brand.id + "_" + name
       })));
 
@@ -338,7 +332,7 @@ export namespace Services {
           throw new Error(`Report '${name}' is missing solrQuery config`);
         }
         const url = this.buildSolrParams(brand, req, report, start, rows, 'json');
-        const solrResults = await this.getSearchService().searchAdvanced(report.solrQuery.searchCore, '', url); 
+        const solrResults = await this.getSearchService().searchAdvanced(report.solrQuery.searchCore, '', url);
         result = this.getTranslateSolrResultToReportResult(solrResults as SolrSearchResponse, rows);
       }
 
@@ -351,7 +345,7 @@ export namespace Services {
 
     }
 
-    buildOptTemplateData(req: RequestLike) {
+    buildOptTemplateData(req: Sails.ReqParamProvider) {
       const templateData: Record<string, unknown> = {
         'brandingAndPortalUrl': BrandingService.getFullPath(req)
       }
@@ -438,7 +432,7 @@ export namespace Services {
      */
     private getCompiledTemplate(templateString: string): HandlebarsTemplateDelegate {
       this.ensureHelpersRegistered();
-      
+
       if (!this.compiledTemplates.has(templateString)) {
         const compiled = Handlebars.compile(templateString);
         this.compiledTemplates.set(templateString, compiled);
@@ -462,7 +456,7 @@ export namespace Services {
         // The data is provided as the root context
         const context = _.merge({}, data, additionalImports);
         const templateRes = template(context);
-        
+
         // added ability to parse the string template result into JSON
         // requirement: template must return a valid JSON string object
         if (config.json == true && !_.isEmpty(templateRes)) {

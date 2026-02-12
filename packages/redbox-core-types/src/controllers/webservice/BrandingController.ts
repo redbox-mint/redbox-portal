@@ -16,7 +16,7 @@ function mapError(e: unknown): { status: number; body: unknown } {
 
 export namespace Controllers {
   export class Branding extends controllers.Core.Controller {
-    protected override _exportedMethods: string[] = [ 'draft','preview','publish','rollback','logo','history' ];
+    protected override _exportedMethods: string[] = ['draft', 'preview', 'publish', 'rollback', 'logo', 'history'];
 
     async draft(req: Sails.Req, res: Sails.Res) {
       const branding = req.params['branding'];
@@ -25,14 +25,14 @@ export namespace Controllers {
         const variables = req.body?.variables || {};
         const updated = await BrandingService.saveDraft({ branding, variables, actor });
         return res.ok({ branding: updated });
-      } catch(e: unknown){
+      } catch (e: unknown) {
         const { status, body } = mapError(e);
         return res.status(status).json(body);
       }
     }
 
     async preview(req: Sails.Req, res: Sails.Res) {
-      const branding = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
+      const branding = BrandingService.getBrandNameFromReq(req);
       const portal = req.params['portal'];
       try {
         const { token, url, hash } = await BrandingService.preview(branding, portal);
@@ -43,7 +43,7 @@ export namespace Controllers {
           if (typeof BrandingService.getBrand === 'function') {
             brandConfig = await BrandingService.getBrand(branding);
           }
-        
+
         } catch (_e) {
           sails.log.debug('Failed to fetch brand config for preview:', _e);
         }
@@ -56,7 +56,7 @@ export namespace Controllers {
           previewUrl: url,
           branding: brandConfig || undefined
         });
-      } catch(e: unknown){
+      } catch (e: unknown) {
         const { status, body } = mapError(e);
         return res.status(status).json(body);
       }
@@ -71,7 +71,7 @@ export namespace Controllers {
         const body: globalThis.Record<string, unknown> = { version, hash };
         if (idempotent) body.idempotent = true;
         return res.ok(body);
-      } catch(e: unknown){
+      } catch (e: unknown) {
         const { status, body } = mapError(e);
         return res.status(status).json(body);
       }
@@ -82,7 +82,7 @@ export namespace Controllers {
       try {
         const { version, hash } = await BrandingService.rollback(versionId, actor);
         return res.ok({ version, hash });
-      } catch(e: unknown){
+      } catch (e: unknown) {
         const { status, body } = mapError(e);
         return res.status(status).json(body);
       }
@@ -97,7 +97,7 @@ export namespace Controllers {
         }
         const fileFn = reqObj.file as (name: string) => { upload: (cb: (err: unknown, uploaded: Array<{ fd: string; type: string }>) => void) => void };
         const files = await new Promise<Array<{ fd: string; type: string }>>((resolve, reject) => {
-          try { fileFn('logo').upload((err: unknown, uploaded) => err ? reject(err) : resolve(uploaded)); } catch(_e) { resolve([]); }
+          try { fileFn('logo').upload((err: unknown, uploaded) => err ? reject(err) : resolve(uploaded)); } catch (_e) { resolve([]); }
         });
         if (!files || !files.length) return res.badRequest({ error: 'no-file' });
         const f = files[0];
@@ -105,20 +105,20 @@ export namespace Controllers {
         const buf = await fs.readFile(f.fd);
         const { hash } = await BrandingLogoService.putLogo({ branding, portal, fileBuffer: buf, contentType: f.type });
         return res.ok({ hash });
-      } catch(e: unknown){
+      } catch (e: unknown) {
         const { status, body } = mapError(e);
         return res.status(status).json(body);
       }
     }
-    async history(req: Sails.Req, res: Sails.Res){
+    async history(req: Sails.Req, res: Sails.Res) {
       const branding = req.params['branding'];
-      
+
       try {
         const brand = await BrandingService.getBrand(branding);
-        if(!brand) throw new Error('branding-not-found');
+        if (!brand) throw new Error('branding-not-found');
         const histories = await BrandingConfigHistory.find({ branding: brand.id }).sort('version ASC');
         return res.ok(histories);
-      } catch(e:unknown){
+      } catch (e: unknown) {
         const { status, body } = mapError(e);
         return res.status(status).json(body);
       }

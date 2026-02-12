@@ -19,7 +19,7 @@ import { i18nLanguages } from '../../src/policies/i18nLanguages';
 };
 
 (global as any).BrandingService = {
-    getBrandFromReq: (req: any) => 'default',
+    getBrandNameFromReq: (req: any) => 'default',
     getBrand: (name: string) => ({ name })
 };
 
@@ -57,7 +57,7 @@ describe('i18nLanguages policy', function () {
         };
 
         (global as any).BrandingService = {
-            getBrandFromReq: () => 'default',
+            getBrandNameFromReq: () => 'default',
             getBrand: (name: string) => ({ name })
         };
 
@@ -150,7 +150,7 @@ describe('i18nLanguages policy', function () {
     });
 
     it('should provide English fallback on error', async function () {
-        (global as any).BrandingService.getBrandFromReq = () => { throw new Error('fail'); };
+        (global as any).BrandingService.getBrandNameFromReq = () => { throw new Error('fail'); };
 
         const { req, res } = createMockReqRes();
         let nextCalled = false;

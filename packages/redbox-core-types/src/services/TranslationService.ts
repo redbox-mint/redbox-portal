@@ -22,15 +22,7 @@ import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.de
 import { Services as services } from '../CoreService';
 import i18next, { type i18n as I18nInstance } from "i18next"
 
-interface RequestLike {
-  param: (name: string) => string | undefined;
-  session?: { lang?: string; [key: string]: unknown };
-  options: { locals: Record<string, unknown> };
-}
 
-interface ResponseLike {
-  cookie: (name: string, value: string) => void;
-}
 
 type NextFunction = () => void;
 
@@ -38,7 +30,7 @@ type NextFunction = () => void;
 // declare let BrandingService: {
 //   getBrand: (name: string) => BrandingModel;
 //   getAvailable: () => string[];
-//   getBrandFromReq: (req: RequestLike) => string;
+//   getBrandNameFromReq: (req: RequestLike) => string;
 // };
 
 export namespace Services {
@@ -64,7 +56,7 @@ export namespace Services {
         branding = BrandingService.getBrand('default');
       }
       const brandingId = branding?.id;
-      
+
       if (this.i18nextInstances[brandingId]) {
         return this.i18nextInstances[brandingId];
       }
@@ -73,10 +65,10 @@ export namespace Services {
       const i18nextInstance = i18next.createInstance();
       const initBase = sails.config.i18n.next.init || {};
       const resources = await this._fetchResourcesFromDb(branding);
-      
+
       // Get available languages for this branding (includes both config and DB languages)
       const availableLanguages = await this.getAvailableLanguagesForBranding(branding);
-      
+
       // Debug logging
       this.logger.debug(`Initializing i18next for branding ${branding?.id || 'default'}`);
       this.logger.debug(`Available languages: ${JSON.stringify(availableLanguages)}`);
@@ -97,7 +89,7 @@ export namespace Services {
         }
       }
       this.logger.debug(`InitBase supportedLngs: ${JSON.stringify(initBase.supportedLngs)}`);
-      
+
       const initConfig = {
         ...initBase,
         lng: availableLanguages[0] ?? 'en', // Set primary language
@@ -112,9 +104,9 @@ export namespace Services {
         // Force i18next to load all languages during init
         load: 'all' as const
       };
-      
+
       this.logger.debug(`Final init config: ${JSON.stringify(initConfig, null, 2)}`);
-      
+
       await i18nextInstance.init(initConfig);
 
       // After initialization, try to activate all available languages
@@ -130,7 +122,7 @@ export namespace Services {
           }
         }
       }
-      
+
       // Change back to the primary language
       await i18nextInstance.changeLanguage(availableLanguages[0] ?? 'en');
 
@@ -161,12 +153,12 @@ export namespace Services {
       this.logger.debug(`i18next languages after init: ${JSON.stringify(i18nextInstance.languages)}`);
       this.logger.debug(`i18next options.supportedLngs: ${JSON.stringify(i18nextInstance.options.supportedLngs)}`);
       this.logger.debug(`i18next options.preload: ${JSON.stringify(i18nextInstance.options.preload)}`);
-      
+
       this.logger.debug(`Final i18next languages: ${JSON.stringify(i18nextInstance.languages)}`);
-      
+
       this.i18nextInstances[brandingId] = i18nextInstance;
       this.logger.debug(`i18next instance created for branding: ${brandingId}`);
-      
+
       return i18nextInstance;
     }
 
@@ -182,14 +174,14 @@ export namespace Services {
         this.logger.debug('Cleared all i18next instances');
       }
     }
-    
+
     public async bootstrap() {
       this.logger.debug("TranslationService initialising from DB...")
-      
+
       // Initialize the default branding instance
       const availableBrandings = BrandingService.getAvailable();
-      for(const availableBranding of availableBrandings) {
-        const branding = BrandingService.getBrand(availableBranding);  
+      for (const availableBranding of availableBrandings) {
+        const branding = BrandingService.getBrand(availableBranding);
         await this.getI18nextForBranding(branding);
       }
 
@@ -201,9 +193,9 @@ export namespace Services {
     }
 
     private async _fetchResourcesFromDb(brand: BrandingModel | null = null): Promise<Record<string, Record<string, Record<string, unknown>>>> {
-     
-      if(!brand) {
-       brand = BrandingService.getBrand('default');
+
+      if (!brand) {
+        brand = BrandingService.getBrand('default');
       }
       if (!brand) {
         this.logger.warn('Default brand not found; resources will be empty');
@@ -257,7 +249,7 @@ export namespace Services {
       return i18nextInstance.getFixedT(resolvedLang)(key, context);
     }
 
-    public tInter(key: string, context: Record<string, unknown> | null = null, langCode:string = 'en') {
+    public tInter(key: string, context: Record<string, unknown> | null = null, langCode: string = 'en') {
       return this.t(key, context ?? undefined, langCode);
     }
 
@@ -289,11 +281,11 @@ export namespace Services {
 
         const brandingId = branding.id || 'default';
         const langs: Record<string, true> = {};
-        
+
         // Add configured languages as baseline
         const configured = sails?.config?.i18n?.next?.init?.supportedLngs;
         this.logger.debug(`Configured languages: ${JSON.stringify(configured)}`);
-        
+
         if (Array.isArray(configured)) {
           configured.forEach((l: string) => {
             if (l && l !== 'cimode') langs[l] = true;
@@ -325,8 +317,8 @@ export namespace Services {
       }
     }
 
-    public async handle(req: RequestLike, res: ResponseLike, next: NextFunction) {
-      let langCode = req.param('lng');
+    public async handle(req: Sails.Req, res: Sails.Res, next: NextFunction) {
+      let langCode: string | undefined = req.param('lng');
       const sessLangCode = req.session?.lang;
       const defaultLang = _.isArray(sails.config.i18n.next.init.fallbackLng) ? sails.config.i18n.next.init.fallbackLng[0] : sails.config.i18n.next.init.fallbackLng;
       if (_.isEmpty(langCode) && _.isEmpty(sessLangCode)) {
@@ -336,14 +328,14 @@ export namespace Services {
         // use the session code if not found as request param
         langCode = sessLangCode;
       }
-      
+
       // Get branding and ensure i18next instance exists
-      const brandingName = BrandingService.getBrandFromReq(req);
+      const brandingName = BrandingService.getBrandNameFromReq(req);
       const branding = BrandingService.getBrand(brandingName);
-      
+
       // Ensure i18next instance exists for this branding
       const i18nextInstance = await this.getI18nextForBranding(branding);
-      
+
       // validating language - get available languages from DB for current branding
       const availableLanguages = await this.getAvailableLanguagesForBranding(branding);
       if (_.findIndex(availableLanguages, (l: string) => { return langCode == l }) == -1) {
@@ -352,10 +344,10 @@ export namespace Services {
         langCode = defaultLang;
       }
       const resolvedLang = (langCode || defaultLang || 'en') as string;
-      
+
       // save the lang in the session
       if (_.isEmpty(req.session)) {
-        req.session = {};
+        req.session = {} as typeof req.session;
       }
       req.session.lang = resolvedLang;
       // set the locals lang code
@@ -365,20 +357,20 @@ export namespace Services {
 
       // Inject branding-specific i18next instance into locals
       req.options.locals.TranslationService = _.merge(this, {
-        t: function(key: string, context?: Record<string, unknown>) {
+        t: function (key: string, context?: Record<string, unknown>) {
           if (context === undefined) {
             return i18nextInstance.getFixedT(resolvedLang)(key);
           }
           return i18nextInstance.getFixedT(resolvedLang)(key, context);
         },
-        tInter: function(key: string, context?: Record<string, unknown>) {
+        tInter: function (key: string, context?: Record<string, unknown>) {
           if (context === undefined) {
             return i18nextInstance.getFixedT(resolvedLang)(key);
           }
           return i18nextInstance.getFixedT(resolvedLang)(key, context);
         }
       });
-      
+
       next();
     }
   }
