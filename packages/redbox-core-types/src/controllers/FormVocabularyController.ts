@@ -1,15 +1,5 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
-import { Services as VocabularyServiceModule } from '../services/VocabularyService';
-import { Services as VocabServiceModule } from '../services/VocabService';
-
-type BrandingServiceLike = {
-  getBrand: (brandingNameOrId: string) => BrandingModel;
-};
-
-declare const VocabularyService: Pick<VocabularyServiceModule.VocabularyService, 'getByIdOrSlug' | 'getEntries' | 'getChildren'>;
-declare const VocabService: Pick<VocabServiceModule.Vocab, 'findRecords'>;
-declare const BrandingService: BrandingServiceLike;
 
 export namespace Controllers {
   export class FormVocabulary extends controllers.Core.Controller {
