@@ -28,15 +28,14 @@ import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 
 /* Rich Text Editor Component */
 
-const defaultToolbar = ["heading", "bold", "italic", "link", "bulletedList", "numberedList", "blockQuote", "insertTable", "undo", "redo"];
+const defaultToolbar = ["heading", "bold", "italic", "link", "bulletList", "orderedList", "blockquote", "table", "undo", "redo"];
 
 export class RichTextEditorFieldComponentConfig extends FieldComponentConfig implements RichTextEditorFieldComponentConfigOutline {
     outputFormat: "html" | "markdown" = "html";
-    editorType: "classic" = "classic";
+    showSourceToggle = false;
     toolbar: string[] = [...defaultToolbar];
     minHeight: string = "200px";
     placeholder: string = "";
-    removePlugins: string[] = [];
 
     constructor() {
         super();

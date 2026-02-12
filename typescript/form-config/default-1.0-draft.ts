@@ -1,4 +1,4 @@
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 
 const formConfig: FormConfigFrame = {
     name: "default-1.0-draft",
@@ -30,7 +30,7 @@ const formConfig: FormConfigFrame = {
 
     // Validators that operate on multiple fields.
     validators: [
-        {class: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
+        { class: 'different-values', config: { controlNames: ['text_1_event', 'text_2'] } },
     ],
     // operations: [
     //   // sample operations...that can be referenced by expressions
@@ -173,334 +173,383 @@ const formConfig: FormConfigFrame = {
                                             // ]
                                         },
                                         {
+                                            name: 'rich_text_1',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'Rich text editor',
+                                                    helpText: 'Use the rich text editor to format content.',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'RichTextEditorModel',
+                                                config: {
+                                                    defaultValue: '<p><strong>Rich text test content</strong></p><p>Try headings, lists, links, and tables.</p>',
+                                                }
+                                            },
+                                            component: {
+                                                class: 'RichTextEditorComponent',
+                                                config: {
+                                                    outputFormat: 'html',
+                                                    minHeight: '240px',
+                                                    placeholder: 'Start writing formatted content...',
+                                                }
+                                            }
+                                        },
+                                        {
+                                            name: 'rich_text_markdown_1',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'Rich text editor (Markdown output)',
+                                                    helpText: 'Stores Markdown while keeping rich text editing.',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'RichTextEditorModel',
+                                                config: {
+                                                    defaultValue: '## Markdown heading\n\nThis is **bold** and this is *italic*.',
+                                                }
+                                            },
+                                            component: {
+                                                class: 'RichTextEditorComponent',
+                                                config: {
+                                                    outputFormat: 'markdown',
+                                                    minHeight: '240px',
+                                                    showSourceToggle: true,
+                                                    placeholder: 'Start writing markdown-backed rich text...',
+                                                }
+                                            }
+                                        },
+                                        {
                                             name: 'dropdown_1',
-                                    layout: {
-                                        class: 'DefaultLayout',
-                                        config: {
-                                            label: 'Dropdown some label',
-                                            helpText: 'Dropdown some help text',
-                                        }
-                                    },
-                                    model: {
-                                        class: 'DropdownInputModel',
-                                        config: {
-                                            defaultValue: 'Dropdown hello world!!!',
-                                        }
-                                    },
-                                    component: {
-                                        class: 'DropdownInputComponent',
-                                        config: {
-                                            options: [
-                                                { label: 'Option 1', value: 'option1' },
-                                                { label: 'Option 2', value: 'option2' },
-                                                { label: 'Option 3', value: 'option3' },
-                                            ],
-                                            tooltip: 'Dropdown tooltip'
-                                        }
-                                    }
-                                },
-                                {
-                                    name: 'lookahead_1',
-                                    layout: {
-                                        class: 'DefaultLayout',
-                                        config: {
-                                            label: 'Lookahead example',
-                                            helpText: 'Type to filter static options in a typeahead field.',
-                                        }
-                                    },
-                                    model: {
-                                        class: 'TypeaheadInputModel',
-                                        config: {
-                                            defaultValue: 'option2',
-                                        }
-                                    },
-                                    component: {
-                                        class: 'TypeaheadInputComponent',
-                                        config: {
-                                            sourceType: 'static',
-                                            staticOptions: [
-                                                { label: 'Option 1', value: 'option1' },
-                                                { label: 'Option 2', value: 'option2' },
-                                                { label: 'Option 3', value: 'option3' },
-                                                { label: 'Another Option', value: 'another-option' },
-                                            ],
-                                            placeholder: 'Start typing to search...',
-                                            minChars: 1,
-                                            debounceMs: 200,
-                                            maxResults: 10,
-                                            allowFreeText: false,
-                                            valueMode: 'value',
-                                        }
-                                    }
-                                },
-                                {
-                                    name: 'lookahead_party_1',
-                                    layout: {
-                                        class: 'DefaultLayout',
-                                        config: {
-                                            label: 'Party lookup',
-                                            helpText: 'Type to search party records via named query.',
-                                        }
-                                    },
-                                    model: {
-                                        class: 'TypeaheadInputModel',
-                                        config: {
-                                            defaultValue: null,
-                                        }
-                                    },
-                                    component: {
-                                        class: 'TypeaheadInputComponent',
-                                        config: {
-                                            sourceType: 'namedQuery',
-                                            queryId: 'party',
-                                            labelField: 'metadata.fullName',
-                                            valueField: 'oid',
-                                            placeholder: 'Start typing a party name...',
-                                            minChars: 1,
-                                            debounceMs: 250,
-                                            maxResults: 25,
-                                            allowFreeText: false,
-                                            valueMode: 'value',
-                                        }
-                                    }
-                                },
-                                {
-                                    name: 'lookahead_vocab_1',
-                                    layout: {
-                                        class: 'DefaultLayout',
-                                        config: {
-                                            label: 'ANZSRC ToA lookup',
-                                            helpText: 'Type to search vocabulary entries from anzsrc-toa.',
-                                        }
-                                    },
-                                    model: {
-                                        class: 'TypeaheadInputModel',
-                                        config: {
-                                            defaultValue: null,
-                                        }
-                                    },
-                                    component: {
-                                        class: 'TypeaheadInputComponent',
-                                        config: {
-                                            sourceType: 'vocabulary',
-                                            vocabRef: 'anzsrc-toa',
-                                            placeholder: 'Start typing a ToA term...',
-                                            minChars: 1,
-                                            debounceMs: 250,
-                                            maxResults: 25,
-                                            allowFreeText: false,
-                                            valueMode: 'value',
-                                        }
-                                    }
-                                },
-                                {
-                                    name: 'checkbox_1',
-                                    layout: {
-                                        class: 'DefaultLayout',
-                                        config: {
-                                            label: 'Checkbox some label (single value)',
-                                            helpText: 'Checkbox some help text - single selection mode',
-                                        }
-                                    },
-                                    model: {
-                                        class: 'CheckboxInputModel',
-                                        config: {
-                                            defaultValue: 'option1',
-                                        }
-                                    },
-                                    component: {
-                                        class: 'CheckboxInputComponent',
-                                        config: {
-                                            options: [
-                                                { label: 'Option 1', value: 'option1' },
-                                                { label: 'Option 2', value: 'option2' },
-                                                { label: 'Option 3', value: 'option3' },
-                                            ],
-                                            tooltip: 'Checkbox tooltip',
-                                            multipleValues: false
-                                        }
-                                    }
-                                },
-                                {
-                                    name: 'checkbox_multiple',
-                                    layout: {
-                                        class: 'DefaultLayout',
-                                        config: {
-                                            label: 'Checkbox multiple values',
-                                            helpText: 'Checkbox with multiple selection enabled',
-                                        }
-                                    },
-                                    model: {
-                                        class: 'CheckboxInputModel',
-                                        config: {
-                                            defaultValue: ['option1', 'option3'],
-                                        }
-                                    },
-                                    component: {
-                                        class: 'CheckboxInputComponent',
-                                        config: {
-                                            options: [
-                                                { label: 'Multi Option 1', value: 'option1' },
-                                                { label: 'Multi Option 2', value: 'option2' },
-                                                { label: 'Multi Option 3', value: 'option3' },
-                                                { label: 'Multi Option 4', value: 'option4' },
-                                            ],
-                                            tooltip: 'Multiple selection checkbox tooltip',
-                                            multipleValues: true
-                                        }
-                                    }
-                                },
-                                {
-                                    name: 'radio_1',
-                                    layout: {
-                                        class: 'DefaultLayout',
-                                        config: {
-                                            label: 'Radio some label (single value)',
-                                            helpText: 'Radio some help text - single selection mode',
-                                        }
-                                    },
-                                    model: {
-                                        class: 'RadioInputModel',
-                                        config: {
-                                            defaultValue: 'option1',
-                                        }
-                                    },
-                                    component: {
-                                        class: 'RadioInputComponent',
-                                        config: {
-                                            options: [
-                                                { label: 'Option 1', value: 'option1' },
-                                                { label: 'Option 2', value: 'option2' },
-                                                { label: 'Option 3', value: 'option3' },
-                                            ],
-                                            tooltip: 'Checkbox tooltip'
-                                        }
-                                    }
-                                },
-                                {
-                                    name: 'date_1',
-                                    layout: {
-                                        class: 'DefaultLayout',
-                                        config: {
-                                            label: 'Date1',
-                                            helpText: 'Date1 some help text',
-                                        }
-                                    },
-                                    model: {
-                                        class: 'DateInputModel',
-                                        config: {
-                                        }
-                                    },
-                                    component: {
-                                        class: 'DateInputComponent'
-                                    },
-                                    expressions: [
-                                        {
-                                            name: "listenToRadio1Change",
-                                            config: {
-                                                template: `value = "option2"`,
-                                                conditionKind: 'jsonpointer',
-                                                condition: `/main_tab/tab_1/radio_1::field.value.changed`,
-                                                target: `layout.visible`
-                                            }
-                                        }
-                                    ]
-                                },
-                                {
-                                    name: 'date_2',
-                                    layout: {
-                                        class: 'DefaultLayout',
-                                        config: {
-                                            label: 'Date some label',
-                                            helpText: 'Date some help text',
-                                        }
-                                    },
-                                    model: {
-                                        class: 'DateInputModel',
-                                        config: {
-                                        }
-                                    },
-                                    component: {
-                                        class: 'DateInputComponent',
-                                        config: {
-                                            enableTimePicker: true
-                                        }
-                                    }
-                                },
-                                {
-                                    name: 'text_1_event',
-                                    layout: {
-                                        class: 'DefaultLayout',
-                                        config: {
-                                            label: 'TextField1 emitting events',
-                                            helpText: 'This is a help text',
-                                        }
-                                    },
-                                    model: {
-                                        class: 'SimpleInputModel',
-                                        config: {
-                                            defaultValue: 'hello world!',
-                                            validators: [
-                                                {class: 'required'},
-                                            ]
-                                        }
-                                    },
-                                    component: {
-                                        class: 'SimpleInputComponent'
-                                    }
-                                },
-                                {
-                                    name: 'text_2',
-                                    layout: {
-                                        class: 'DefaultLayout',
-                                        config: {
-                                            label: 'TextField2 with expression listening to text_1_event',
-                                            helpText: 'This is a help text',
-                                        }
-                                    },
-                                    model: {
-                                        class: 'SimpleInputModel',
-                                        config: {
-                                            defaultValue: 'hello world 2!',
-                                            validators: [
-                                                // {class: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"}},
-                                                // {class: 'minLength', message: "@validator-error-custom-text_2", config: {minLength: 3}},
-                                            ]
-                                        }
-                                    },
-                                    component: {
-                                        class: 'SimpleInputComponent'
-                                    },
-                                     expressions: [
-                                        {
-                                            name: "listenToText1Event",
-                                            config: {
-                                                template: `value & "__suffix"`,
-                                                conditionKind: 'jsonpointer',
-                                                condition: `/main_tab/tab_1/text_1_event::field.value.changed`,
-                                                target: `model.value`
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'Dropdown some label',
+                                                    helpText: 'Dropdown some help text',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'DropdownInputModel',
+                                                config: {
+                                                    defaultValue: 'Dropdown hello world!!!',
+                                                }
+                                            },
+                                            component: {
+                                                class: 'DropdownInputComponent',
+                                                config: {
+                                                    options: [
+                                                        { label: 'Option 1', value: 'option1' },
+                                                        { label: 'Option 2', value: 'option2' },
+                                                        { label: 'Option 3', value: 'option3' },
+                                                    ],
+                                                    tooltip: 'Dropdown tooltip'
+                                                }
                                             }
                                         },
                                         {
-                                            name: "listenToText1Event2",
-                                            config: {
-                                                template: `formData.text_2 & "__hasJSONata"`,
-                                                conditionKind: 'jsonata',
-                                                condition: `$contains($lowercase(formData.text_1_event), "jsonata")`,
-                                                target: `model.value`
+                                            name: 'lookahead_1',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'Lookahead example',
+                                                    helpText: 'Type to filter static options in a typeahead field.',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'TypeaheadInputModel',
+                                                config: {
+                                                    defaultValue: 'option2',
+                                                }
+                                            },
+                                            component: {
+                                                class: 'TypeaheadInputComponent',
+                                                config: {
+                                                    sourceType: 'static',
+                                                    staticOptions: [
+                                                        { label: 'Option 1', value: 'option1' },
+                                                        { label: 'Option 2', value: 'option2' },
+                                                        { label: 'Option 3', value: 'option3' },
+                                                        { label: 'Another Option', value: 'another-option' },
+                                                    ],
+                                                    placeholder: 'Start typing to search...',
+                                                    minChars: 1,
+                                                    debounceMs: 200,
+                                                    maxResults: 10,
+                                                    allowFreeText: false,
+                                                    valueMode: 'value',
+                                                }
                                             }
                                         },
                                         {
-                                            name: "listenToRepeatable1",
-                                            config: {
-                                                conditionKind: 'jsonata_query',
-                                                condition: `$count(**[name="repeatable_textfield_1"].children) >= 2`,
-                                                template: `formData.text_2 & "__repeatableMoreThan2"`,
-                                                target: `model.value`
+                                            name: 'lookahead_party_1',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'Party lookup',
+                                                    helpText: 'Type to search party records via named query.',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'TypeaheadInputModel',
+                                                config: {
+                                                    defaultValue: null,
+                                                }
+                                            },
+                                            component: {
+                                                class: 'TypeaheadInputComponent',
+                                                config: {
+                                                    sourceType: 'namedQuery',
+                                                    queryId: 'party',
+                                                    labelField: 'metadata.fullName',
+                                                    valueField: 'oid',
+                                                    placeholder: 'Start typing a party name...',
+                                                    minChars: 1,
+                                                    debounceMs: 250,
+                                                    maxResults: 25,
+                                                    allowFreeText: false,
+                                                    valueMode: 'value',
+                                                }
                                             }
-                                        }
-                                    ]
-                                },
+                                        },
+                                        {
+                                            name: 'lookahead_vocab_1',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'ANZSRC ToA lookup',
+                                                    helpText: 'Type to search vocabulary entries from anzsrc-toa.',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'TypeaheadInputModel',
+                                                config: {
+                                                    defaultValue: null,
+                                                }
+                                            },
+                                            component: {
+                                                class: 'TypeaheadInputComponent',
+                                                config: {
+                                                    sourceType: 'vocabulary',
+                                                    vocabRef: 'anzsrc-toa',
+                                                    placeholder: 'Start typing a ToA term...',
+                                                    minChars: 1,
+                                                    debounceMs: 250,
+                                                    maxResults: 25,
+                                                    allowFreeText: false,
+                                                    valueMode: 'value',
+                                                }
+                                            }
+                                        },
+                                        {
+                                            name: 'checkbox_1',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'Checkbox some label (single value)',
+                                                    helpText: 'Checkbox some help text - single selection mode',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'CheckboxInputModel',
+                                                config: {
+                                                    defaultValue: 'option1',
+                                                }
+                                            },
+                                            component: {
+                                                class: 'CheckboxInputComponent',
+                                                config: {
+                                                    options: [
+                                                        { label: 'Option 1', value: 'option1' },
+                                                        { label: 'Option 2', value: 'option2' },
+                                                        { label: 'Option 3', value: 'option3' },
+                                                    ],
+                                                    tooltip: 'Checkbox tooltip',
+                                                    multipleValues: false
+                                                }
+                                            }
+                                        },
+                                        {
+                                            name: 'checkbox_multiple',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'Checkbox multiple values',
+                                                    helpText: 'Checkbox with multiple selection enabled',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'CheckboxInputModel',
+                                                config: {
+                                                    defaultValue: ['option1', 'option3'],
+                                                }
+                                            },
+                                            component: {
+                                                class: 'CheckboxInputComponent',
+                                                config: {
+                                                    options: [
+                                                        { label: 'Multi Option 1', value: 'option1' },
+                                                        { label: 'Multi Option 2', value: 'option2' },
+                                                        { label: 'Multi Option 3', value: 'option3' },
+                                                        { label: 'Multi Option 4', value: 'option4' },
+                                                    ],
+                                                    tooltip: 'Multiple selection checkbox tooltip',
+                                                    multipleValues: true
+                                                }
+                                            }
+                                        },
+                                        {
+                                            name: 'radio_1',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'Radio some label (single value)',
+                                                    helpText: 'Radio some help text - single selection mode',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'RadioInputModel',
+                                                config: {
+                                                    defaultValue: 'option1',
+                                                }
+                                            },
+                                            component: {
+                                                class: 'RadioInputComponent',
+                                                config: {
+                                                    options: [
+                                                        { label: 'Option 1', value: 'option1' },
+                                                        { label: 'Option 2', value: 'option2' },
+                                                        { label: 'Option 3', value: 'option3' },
+                                                    ],
+                                                    tooltip: 'Checkbox tooltip'
+                                                }
+                                            }
+                                        },
+                                        {
+                                            name: 'date_1',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'Date1',
+                                                    helpText: 'Date1 some help text',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'DateInputModel',
+                                                config: {
+                                                }
+                                            },
+                                            component: {
+                                                class: 'DateInputComponent'
+                                            },
+                                            expressions: [
+                                                {
+                                                    name: "listenToRadio1Change",
+                                                    config: {
+                                                        template: `value = "option2"`,
+                                                        conditionKind: 'jsonpointer',
+                                                        condition: `/main_tab/tab_1/radio_1::field.value.changed`,
+                                                        target: `layout.visible`
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            name: 'date_2',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'Date some label',
+                                                    helpText: 'Date some help text',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'DateInputModel',
+                                                config: {
+                                                }
+                                            },
+                                            component: {
+                                                class: 'DateInputComponent',
+                                                config: {
+                                                    enableTimePicker: true
+                                                }
+                                            }
+                                        },
+                                        {
+                                            name: 'text_1_event',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'TextField1 emitting events',
+                                                    helpText: 'This is a help text',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'SimpleInputModel',
+                                                config: {
+                                                    defaultValue: 'hello world!',
+                                                    validators: [
+                                                        { class: 'required' },
+                                                    ]
+                                                }
+                                            },
+                                            component: {
+                                                class: 'SimpleInputComponent'
+                                            }
+                                        },
+                                        {
+                                            name: 'text_2',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'TextField2 with expression listening to text_1_event',
+                                                    helpText: 'This is a help text',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'SimpleInputModel',
+                                                config: {
+                                                    defaultValue: 'hello world 2!',
+                                                    validators: [
+                                                        // {class: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"}},
+                                                        // {class: 'minLength', message: "@validator-error-custom-text_2", config: {minLength: 3}},
+                                                    ]
+                                                }
+                                            },
+                                            component: {
+                                                class: 'SimpleInputComponent'
+                                            },
+                                            expressions: [
+                                                {
+                                                    name: "listenToText1Event",
+                                                    config: {
+                                                        template: `value & "__suffix"`,
+                                                        conditionKind: 'jsonpointer',
+                                                        condition: `/main_tab/tab_1/text_1_event::field.value.changed`,
+                                                        target: `model.value`
+                                                    }
+                                                },
+                                                {
+                                                    name: "listenToText1Event2",
+                                                    config: {
+                                                        template: `formData.text_2 & "__hasJSONata"`,
+                                                        conditionKind: 'jsonata',
+                                                        condition: `$contains($lowercase(formData.text_1_event), "jsonata")`,
+                                                        target: `model.value`
+                                                    }
+                                                },
+                                                {
+                                                    name: "listenToRepeatable1",
+                                                    config: {
+                                                        conditionKind: 'jsonata_query',
+                                                        condition: `$count(**[name="repeatable_textfield_1"].children) >= 2`,
+                                                        template: `formData.text_2 & "__repeatableMoreThan2"`,
+                                                        target: `model.value`
+                                                    }
+                                                }
+                                            ]
+                                        },
                                         {
                                             name: 'text_7',
                                             layout: {
@@ -521,12 +570,12 @@ const formConfig: FormConfigFrame = {
                                                                 pattern: /prefix.*/,
                                                                 description: "must start with prefix"
                                                             },
-                                                            groups: {include: ['minimumCreate']},
+                                                            groups: { include: ['minimumCreate'] },
                                                         },
                                                         {
                                                             class: 'minLength',
                                                             message: "@validator-error-custom-text_7",
-                                                            config: {minLength: 3}
+                                                            config: { minLength: 3 }
                                                         },
                                                     ]
                                                 }
@@ -547,7 +596,7 @@ const formConfig: FormConfigFrame = {
                                                 config: {
                                                     defaultValue: 'hello world! component event',
                                                     validators: [
-                                                        {class: 'required'},
+                                                        { class: 'required' },
                                                     ]
                                                 }
                                             },
@@ -583,7 +632,7 @@ const formConfig: FormConfigFrame = {
                                                 }
                                             },
                                             // expressions: [
-                                                
+
                                             // ]
                                         },
                                         {
@@ -593,7 +642,7 @@ const formConfig: FormConfigFrame = {
                                                 config: {
                                                     defaultValue: 'hello world! layout event',
                                                     validators: [
-                                                        {class: 'required'},
+                                                        { class: 'required' },
                                                     ]
                                                 }
                                             },
@@ -701,7 +750,7 @@ const formConfig: FormConfigFrame = {
                                                             // second group component, nested in first group component
                                                             name: 'group_2_component',
                                                             layout: {
-                                                                            class: 'DefaultLayout',
+                                                                class: 'DefaultLayout',
                                                                 config: {
                                                                     label: 'Group2 label',
                                                                     helpText: 'Group 2 help',
@@ -743,15 +792,15 @@ const formConfig: FormConfigFrame = {
                                                     ]
                                                 }
                                             },
-                        //                     expressions: {
-                        //                         'layout.visible': {
-                        //                             template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                        //     return false;
-                        //   } else {
-                        //     return true;
-                        //   } %>`
-                        //                         }
-                        //                     }
+                                            //                     expressions: {
+                                            //                         'layout.visible': {
+                                            //                             template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
+                                            //     return false;
+                                            //   } else {
+                                            //     return true;
+                                            //   } %>`
+                                            //                         }
+                                            //                     }
                                         },
                                         {
                                             name: 'repeatable_textfield_1',
@@ -781,7 +830,7 @@ const formConfig: FormConfigFrame = {
                                                                     {
                                                                         class: 'minLength',
                                                                         message: "@validator-error-custom-example_repeatable",
-                                                                        config: {minLength: 3}
+                                                                        config: { minLength: 3 }
                                                                     },
                                                                 ]
                                                             }
@@ -833,7 +882,7 @@ const formConfig: FormConfigFrame = {
             model: {
                 class: 'RepeatableModel',
                 config: {
-                    defaultValue: [{text_3: "hello world from repeating groups"}]
+                    defaultValue: [{ text_3: "hello world from repeating groups" }]
                 }
             },
             component: {
@@ -845,7 +894,7 @@ const formConfig: FormConfigFrame = {
                         model: {
                             class: 'GroupModel',
                             config: {
-                                newEntryValue: {text_3: 'hello world 3!'},
+                                newEntryValue: { text_3: 'hello world 3!' },
                             }
                         },
                         component: {
@@ -862,8 +911,8 @@ const formConfig: FormConfigFrame = {
                                                     {
                                                         class: 'minLength',
                                                         message: "@validator-error-custom-text_3",
-                                                        config: {minLength: 3},
-                                                        groups: {exclude: ['transitionDraftToSubmitted']},
+                                                        config: { minLength: 3 },
+                                                        groups: { exclude: ['transitionDraftToSubmitted'] },
                                                     }
                                                 ]
                                             }
@@ -907,7 +956,7 @@ const formConfig: FormConfigFrame = {
         },
         {
             name: 'validation_summary_1',
-            component: {class: "ValidationSummaryComponent"}
+            component: { class: "ValidationSummaryComponent" }
         },
         // {
         //   module: 'custom',

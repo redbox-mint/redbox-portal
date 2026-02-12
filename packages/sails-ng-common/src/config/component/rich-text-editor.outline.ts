@@ -25,24 +25,21 @@ export const RichTextEditorComponentName = "RichTextEditorComponent" as const;
 export type RichTextEditorComponentNameType = typeof RichTextEditorComponentName;
 
 export type RichTextEditorOutputFormatType = "html" | "markdown";
-export type RichTextEditorEditorType = "classic";
 
 export interface RichTextEditorFieldComponentConfigFrame extends FieldComponentConfigFrame {
     outputFormat?: RichTextEditorOutputFormatType;
-    editorType?: RichTextEditorEditorType;
+    showSourceToggle?: boolean;
     toolbar?: string[];
     minHeight?: string;
     placeholder?: string;
-    removePlugins?: string[];
 }
 
 export interface RichTextEditorFieldComponentConfigOutline extends RichTextEditorFieldComponentConfigFrame, FieldComponentConfigOutline {
     outputFormat?: RichTextEditorOutputFormatType;
-    editorType?: RichTextEditorEditorType;
+    showSourceToggle?: boolean;
     toolbar?: string[];
     minHeight?: string;
     placeholder?: string;
-    removePlugins?: string[];
 }
 
 export interface RichTextEditorFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {

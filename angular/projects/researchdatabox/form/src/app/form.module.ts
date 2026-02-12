@@ -51,7 +51,7 @@ import { TypeaheadModule } from 'ngx-bootstrap/typeahead';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { TypeaheadInputComponent } from './component/typeahead-input.component';
 import { RichTextEditorComponent } from './component/rich-text-editor.component';
-import { CKEditorModule } from "@ckeditor/ckeditor5-angular";
+import { TiptapEditorDirective } from "ngx-tiptap";
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -84,7 +84,7 @@ import { CKEditorModule } from "@ckeditor/ckeditor5-angular";
     RedboxPortalCoreModule,
     I18NextPipe,
     BrowserAnimationsModule,
-    CKEditorModule,
+    TiptapEditorDirective,
     BsDatepickerModule.forRoot(),
     TypeaheadModule.forRoot()
   ],

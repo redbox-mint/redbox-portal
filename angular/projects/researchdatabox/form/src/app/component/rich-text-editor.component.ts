@@ -1,5 +1,12 @@
-import {ChangeEvent} from "@ckeditor/ckeditor5-angular";
 import {Component, Input, OnDestroy} from "@angular/core";
+import {Editor, type AnyExtension} from "@tiptap/core";
+import {Table} from "@tiptap/extension-table";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
+import TableRow from "@tiptap/extension-table-row";
+import {Markdown} from "@tiptap/markdown";
+import StarterKit from "@tiptap/starter-kit";
+import {Subscription} from "rxjs";
 import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel} from "@researchdatabox/portal-ng-common";
 import {
   RichTextEditorComponentName,
@@ -7,25 +14,6 @@ import {
   RichTextEditorModelName,
   type RichTextEditorOutputFormatType,
 } from "@researchdatabox/sails-ng-common";
-import {
-  BlockQuote,
-  Bold,
-  ClassicEditor,
-  Essentials,
-  Heading,
-  Italic,
-  Link,
-  List,
-  Markdown,
-  MarkdownGfmMdToHtml,
-  Paragraph,
-  Table,
-  TableToolbar,
-  type Editor,
-  type EditorConfig,
-  Undo
-} from "ckeditor5";
-import {Subscription} from "rxjs";
 
 export class RichTextEditorModel extends FormFieldModel<string> {
   protected override logName = RichTextEditorModelName;
@@ -40,54 +28,108 @@ export class RichTextEditorModel extends FormFieldModel<string> {
         <div class="redbox-rich-text-view form-control" [style.minHeight]="minHeight" [innerHTML]="renderedViewHtml"></div>
       } @else {
         <div class="redbox-rich-text-editor" [style.--redbox-rich-text-min-height]="minHeight">
-          <ckeditor
-            [editor]="Editor"
-            [config]="editorConfig"
-            [data]="editorData"
-            [disabled]="isDisabled"
-            (change)="onEditorChange($event)"
-            (ready)="onEditorReady($event)"
-          />
+          @if (showSourceToggle) {
+            <div class="redbox-rich-text-toolbar">
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                [disabled]="isDisabled"
+                (click)="toggleSourceMode()">
+                {{ getSourceToggleLabel() }}
+              </button>
+            </div>
+          }
+          @if (toolbar.length) {
+            <div class="redbox-rich-text-toolbar">
+              @for (action of toolbar; track action) {
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  [disabled]="isDisabled || !editor"
+                  (click)="onToolbarAction(action)">
+                  {{ getToolbarLabel(action) }}
+                </button>
+              }
+            </div>
+          }
+          @if (editor && editor.isActive('table')) {
+            <div class="redbox-rich-text-toolbar redbox-rich-text-toolbar-table">
+              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="addTableRow()">+ Row</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="addTableColumn()">+ Column</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="removeTableRow()">- Row</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="removeTableColumn()">- Column</button>
+            </div>
+          }
+          @if (isSourceMode) {
+            <textarea
+              class="form-control redbox-rich-text-source"
+              [style.minHeight]="minHeight"
+              [value]="sourceValue"
+              [attr.aria-label]="'Raw ' + getSourceLabel() + ' editor'"
+              [disabled]="isDisabled"
+              (input)="onSourceValueChange(($any($event.target)).value)"></textarea>
+          } @else {
+            <div class="redbox-rich-text-editor-surface" tiptapEditor [editor]="editor!"></div>
+          }
         </div>
       }
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
   styles: [`
-    :host ::ng-deep .redbox-rich-text-editor .ck {
-      box-sizing: border-box;
-    }
-
-    :host ::ng-deep .redbox-rich-text-editor .ck.ck-toolbar {
+    .redbox-rich-text-toolbar {
+      display: flex;
       flex-wrap: wrap;
-      row-gap: 0.25rem;
+      gap: 0.25rem;
+      margin-bottom: 0.5rem;
     }
 
-    :host ::ng-deep .redbox-rich-text-editor .ck.ck-button,
-    :host ::ng-deep .redbox-rich-text-editor .ck.ck-button.ck-on {
-      min-height: 2rem;
-      min-width: 2rem;
-      padding: 0.25rem 0.375rem;
-      font-size: 0.875rem;
-      line-height: 1.2;
+    .redbox-rich-text-toolbar-table {
+      margin-top: -0.25rem;
     }
 
-    :host ::ng-deep .redbox-rich-text-editor .ck.ck-button .ck-icon {
-      width: 1rem;
-      height: 1rem;
-      font-size: 1rem;
-    }
-
-    :host ::ng-deep .redbox-rich-text-editor .ck.ck-button .ck-button__label {
-      font-size: 0.875rem;
-      line-height: 1.2;
-    }
-
-    :host ::ng-deep .redbox-rich-text-editor .ck-editor__editable_inline {
+    :host ::ng-deep .redbox-rich-text-editor .ProseMirror {
       min-height: var(--redbox-rich-text-min-height, 200px);
       max-height: 60vh;
       overflow-y: auto;
       overscroll-behavior: contain;
+      border: 1px solid #ced4da;
+      border-radius: 0.25rem;
+      padding: 0.75rem;
+      background: #fff;
+      outline: none;
+    }
+
+    :host ::ng-deep .redbox-rich-text-editor .ProseMirror table,
+    :host ::ng-deep .redbox-rich-text-view table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      border: 1px solid #adb5bd;
+    }
+
+    :host ::ng-deep .redbox-rich-text-editor .ProseMirror th,
+    :host ::ng-deep .redbox-rich-text-editor .ProseMirror td,
+    :host ::ng-deep .redbox-rich-text-view th,
+    :host ::ng-deep .redbox-rich-text-view td {
+      border: 1px solid #adb5bd;
+      padding: 0.4rem 0.5rem;
+      vertical-align: top;
+    }
+
+    :host ::ng-deep .redbox-rich-text-editor .ProseMirror th,
+    :host ::ng-deep .redbox-rich-text-view th {
+      background: #f8f9fa;
+      font-weight: 600;
+    }
+
+    :host ::ng-deep .redbox-rich-text-editor .ProseMirror .selectedCell {
+      background: #e7f1ff;
+    }
+
+    .redbox-rich-text-source {
+      font-family: monospace;
+      resize: vertical;
     }
   `],
   standalone: false
@@ -95,19 +137,20 @@ export class RichTextEditorModel extends FormFieldModel<string> {
 export class RichTextEditorComponent extends FormFieldBaseComponent<string> implements OnDestroy {
   protected override logName = RichTextEditorComponentName;
 
-  public Editor = ClassicEditor;
-  public editorConfig: EditorConfig = {};
-  public editorData = "";
+  public editor?: Editor;
   public renderedViewHtml = "";
 
   public outputFormat: RichTextEditorOutputFormatType = "html";
+  public showSourceToggle = false;
   public toolbar: string[] = [];
   public minHeight = "200px";
   public placeholder = "";
-  public removePlugins: string[] = [];
+  public isSourceMode = false;
+  public sourceValue = "";
 
-  private readonly markdownConverter = new MarkdownGfmMdToHtml();
   private valueSyncSub?: Subscription;
+  private markdownViewEditor?: Editor;
+  private skipNextSync = false;
 
   @Input() public override model?: RichTextEditorModel;
 
@@ -117,89 +160,248 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     const defaults = new RichTextEditorFieldComponentConfig();
 
     this.outputFormat = componentConfig?.outputFormat ?? defaults.outputFormat;
+    this.showSourceToggle = componentConfig?.showSourceToggle ?? defaults.showSourceToggle;
     this.toolbar = componentConfig?.toolbar ?? defaults.toolbar;
     this.minHeight = componentConfig?.minHeight ?? defaults.minHeight;
     this.placeholder = componentConfig?.placeholder ?? defaults.placeholder;
-    this.removePlugins = componentConfig?.removePlugins ?? defaults.removePlugins;
 
-    this.editorConfig = this.buildEditorConfig();
-    this.editorData = this.formControl.value ?? "";
-    this.renderedViewHtml = this.toViewHtml(this.editorData);
-
-    if (this.outputFormat === "markdown" && /<[a-z][\s\S]*>/i.test(this.editorData)) {
-      this.loggerService.warn(`${this.logName}: '${this.formFieldConfigName()}' is configured as markdown but appears to contain HTML.`);
-    }
+    const initialValue = this.formControl.value ?? "";
+    this.sourceValue = initialValue;
+    this.renderedViewHtml = this.toViewHtml(initialValue);
+    this.createEditor(initialValue);
   }
 
   protected override async initEventHandlers() {
     this.valueSyncSub?.unsubscribe();
     this.valueSyncSub = this.formControl.valueChanges.subscribe((value) => {
       const nextValue = value ?? "";
-      if (nextValue !== this.editorData) {
-        this.editorData = nextValue;
-      }
+      this.sourceValue = nextValue;
       this.renderedViewHtml = this.toViewHtml(nextValue);
+      if (!this.editor) {
+        return;
+      }
+      if (this.skipNextSync) {
+        this.skipNextSync = false;
+        return;
+      }
+      if (nextValue === this.getEditorValue(this.editor)) {
+        return;
+      }
+      this.skipNextSync = true;
+      this.setEditorValue(nextValue);
     });
+  }
+
+  public onToolbarAction(action: string): void {
+    if (!this.editor || this.isDisabled) {
+      return;
+    }
+    const chain = this.editor.chain().focus();
+    switch (action) {
+      case "bold":
+        chain.toggleBold().run();
+        break;
+      case "italic":
+        chain.toggleItalic().run();
+        break;
+      case "heading":
+        chain.toggleHeading({level: 2}).run();
+        break;
+      case "link":
+        this.toggleLink();
+        break;
+      case "bulletList":
+        chain.toggleBulletList().run();
+        break;
+      case "orderedList":
+        chain.toggleOrderedList().run();
+        break;
+      case "blockquote":
+        chain.toggleBlockquote().run();
+        break;
+      case "table":
+        chain.insertTable({rows: 3, cols: 3, withHeaderRow: true}).run();
+        break;
+      case "undo":
+        chain.undo().run();
+        break;
+      case "redo":
+        chain.redo().run();
+        break;
+      default:
+        this.loggerService.warn(`${this.logName}: Unknown toolbar action '${action}' on '${this.formFieldConfigName()}'.`);
+        break;
+    }
+  }
+
+  public getToolbarLabel(action: string): string {
+    const labels: Record<string, string> = {
+      heading: "H2",
+      bold: "Bold",
+      italic: "Italic",
+      link: "Link",
+      bulletList: "Bullets",
+      orderedList: "Numbers",
+      blockquote: "Quote",
+      table: "Table",
+      undo: "Undo",
+      redo: "Redo",
+    };
+    return labels[action] ?? action;
+  }
+
+  public toggleSourceMode(): void {
+    this.isSourceMode = !this.isSourceMode;
+  }
+
+  public onSourceValueChange(value: string): void {
+    this.sourceValue = value;
+    if (value === (this.formControl.value ?? "")) {
+      return;
+    }
+    this.formControl.setValue(value);
+    this.formControl.markAsDirty();
+    this.formControl.markAsTouched();
+  }
+
+  public getSourceToggleLabel(): string {
+    return this.isSourceMode ? "Rich Text" : this.getSourceLabel();
+  }
+
+  public getSourceLabel(): string {
+    return this.outputFormat === "markdown" ? "Markdown" : "HTML";
+  }
+
+  public addTableRow(): void {
+    this.editor?.chain().focus().addRowAfter().run();
+  }
+
+  public addTableColumn(): void {
+    this.editor?.chain().focus().addColumnAfter().run();
+  }
+
+  public removeTableRow(): void {
+    this.editor?.chain().focus().deleteRow().run();
+  }
+
+  public removeTableColumn(): void {
+    this.editor?.chain().focus().deleteColumn().run();
   }
 
   ngOnDestroy(): void {
     this.valueSyncSub?.unsubscribe();
+    this.editor?.destroy();
+    this.editor = undefined;
+    this.markdownViewEditor?.destroy();
+    this.markdownViewEditor = undefined;
   }
 
-  public onEditorReady(editor: Editor): void {
-    if (this.editorData && editor.getData() !== this.editorData) {
-      editor.setData(this.editorData);
-    }
+  private createEditor(initialValue: string): void {
+    this.editor?.destroy();
+    this.editor = new Editor({
+      extensions: this.buildExtensions(),
+      contentType: this.outputFormat === "markdown" ? "markdown" : "html",
+      content: initialValue,
+      editable: !this.isReadonly && !this.isDisabled,
+      editorProps: {
+        attributes: {
+          "aria-label": this.placeholder || "Rich text editor",
+          class: "redbox-rich-text-prosemirror",
+        }
+      },
+      onUpdate: ({editor}) => {
+        const value = this.getEditorValue(editor);
+        this.renderedViewHtml = this.toViewHtml(value);
+        if (this.skipNextSync) {
+          this.skipNextSync = false;
+          return;
+        }
+        if (value === (this.formControl.value ?? "")) {
+          return;
+        }
+        this.skipNextSync = true;
+        this.formControl.setValue(value);
+        this.formControl.markAsDirty();
+        this.formControl.markAsTouched();
+      }
+    });
   }
 
-  public onEditorChange(event: ChangeEvent<Editor>): void {
-    const data = event.editor.getData();
-    if (data !== this.formControl.value) {
-      this.formControl.setValue(data);
-      this.formControl.markAsDirty();
-      this.formControl.markAsTouched();
-    }
-    this.editorData = data;
-    this.renderedViewHtml = this.toViewHtml(data);
-  }
-
-  private buildEditorConfig(): EditorConfig {
-    const plugins: NonNullable<EditorConfig["plugins"]> = [
-      Essentials,
-      Paragraph,
-      Heading,
-      Bold,
-      Italic,
-      Link,
-      List,
-      BlockQuote,
-      Table,
-      TableToolbar,
-      Undo,
+  private buildExtensions(): AnyExtension[] {
+    const extensions: AnyExtension[] = [
+      StarterKit,
+      Table.configure({resizable: true}),
+      TableRow,
+      TableHeader,
+      TableCell,
     ];
     if (this.outputFormat === "markdown") {
-      plugins.push(Markdown);
+      extensions.push(Markdown);
     }
-    return {
-      licenseKey: "GPL",
-      plugins,
-      toolbar: this.toolbar,
-      placeholder: this.placeholder,
-      removePlugins: this.removePlugins
-    };
+    return extensions;
+  }
+
+  private getEditorValue(editor: Editor): string {
+    if (this.outputFormat === "markdown") {
+      return this.normalizeEditorValue(editor.getMarkdown());
+    }
+    return this.normalizeEditorValue(editor.getHTML());
+  }
+
+  private setEditorValue(value: string): void {
+    if (!this.editor) {
+      return;
+    }
+    this.editor.commands.setContent(value, {
+      contentType: this.outputFormat === "markdown" ? "markdown" : "html",
+    });
+  }
+
+  private toggleLink(): void {
+    if (!this.editor) {
+      return;
+    }
+    const activeHref = this.editor.getAttributes("link")?.["href"] as string | undefined;
+    const enteredHref = globalThis?.prompt?.("Enter URL", activeHref || "https://");
+    if (!enteredHref) {
+      this.editor.chain().focus().unsetLink().run();
+      return;
+    }
+    this.editor.chain().focus().toggleLink({href: enteredHref}).run();
   }
 
   private toViewHtml(value: string): string {
     if (!value) {
       return "";
     }
-    if (this.outputFormat === "markdown") {
-      try {
-        return this.markdownConverter.parse(value);
-      } catch (error) {
-        this.loggerService.error(`${this.logName}: Failed to parse markdown for view mode.`, error);
-        return `<pre>${this.escapeHtml(value)}</pre>`;
-      }
+    if (this.outputFormat !== "markdown") {
+      return value;
+    }
+    try {
+      const mdEditor = this.getOrCreateMarkdownViewEditor();
+      mdEditor.commands.setContent(value, {contentType: "markdown"});
+      return mdEditor.getHTML();
+    } catch (error) {
+      this.loggerService.error(`${this.logName}: Failed to parse markdown for view mode.`, error);
+      return `<pre>${this.escapeHtml(value)}</pre>`;
+    }
+  }
+
+  private getOrCreateMarkdownViewEditor(): Editor {
+    if (!this.markdownViewEditor) {
+      this.markdownViewEditor = new Editor({
+        extensions: this.buildExtensions(),
+        contentType: "markdown",
+        content: "",
+        editable: false,
+      });
+    }
+    return this.markdownViewEditor;
+  }
+
+  private normalizeEditorValue(value: string): string {
+    if (value === "<p></p>") {
+      return "";
     }
     return value;
   }

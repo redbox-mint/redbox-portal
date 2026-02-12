@@ -778,11 +778,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
         this.sharedProps.setPropOverride('outputFormat', item.config, config);
-        this.sharedProps.setPropOverride('editorType', item.config, config);
+        this.sharedProps.setPropOverride('showSourceToggle', item.config, config);
         this.sharedProps.setPropOverride('toolbar', item.config, config);
         this.sharedProps.setPropOverride('minHeight', item.config, config);
         this.sharedProps.setPropOverride('placeholder', item.config, config);
-        this.sharedProps.setPropOverride('removePlugins', item.config, config);
     }
 
     visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
