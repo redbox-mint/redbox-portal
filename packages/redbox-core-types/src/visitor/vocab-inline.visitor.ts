@@ -1,14 +1,24 @@
-import { ILogger } from '../../logger.interface';
-import { FormConfigOutline } from '../form-config.outline';
-import { FormComponentDefinitionOutline } from '../form-component.outline';
-import { DropdownInputComponentName, DropdownOption } from '../component/dropdown-input.outline';
-import { RadioInputComponentName, RadioOption } from '../component/radio-input.outline';
-import { CheckboxInputComponentName, CheckboxOption } from '../component/checkbox-input.outline';
-import { CheckboxTreeComponentName, CheckboxTreeNode } from '../component/checkbox-tree.outline';
-import { GroupFieldComponentName, GroupFormComponentDefinitionOutline } from '../component/group.outline';
-import { TabComponentName, TabFormComponentDefinitionOutline } from '../component/tab.outline';
-import { TabContentComponentName, TabContentFormComponentDefinitionOutline } from '../component/tab-content.outline';
-import { RepeatableComponentName, RepeatableFormComponentDefinitionOutline } from '../component/repeatable.outline';
+import { ILogger } from '../Logger';
+import {
+  CheckboxInputComponentName,
+  CheckboxOption,
+  CheckboxTreeComponentName,
+  CheckboxTreeNode,
+  DropdownInputComponentName,
+  DropdownOption,
+  FormComponentDefinitionOutline,
+  FormConfigOutline,
+  GroupFieldComponentName,
+  GroupFormComponentDefinitionOutline,
+  RadioInputComponentName,
+  RadioOption,
+  RepeatableComponentName,
+  RepeatableFormComponentDefinitionOutline,
+  TabComponentName,
+  TabContentComponentName,
+  TabContentFormComponentDefinitionOutline,
+  TabFormComponentDefinitionOutline
+} from '@researchdatabox/sails-ng-common';
 
 type ComponentConfigWithInlineVocab = {
   options?: DropdownOption[] | RadioOption[] | CheckboxOption[];
@@ -17,21 +27,7 @@ type ComponentConfigWithInlineVocab = {
   inlineVocab?: boolean;
 };
 
-type VocabularyEntryLike = {
-  id?: unknown;
-  label?: unknown;
-  value?: unknown;
-  identifier?: unknown;
-  parent?: unknown;
-};
-
-type VocabularyServiceLike = {
-  getEntries?: (
-    branding: string,
-    vocabIdOrSlug: string,
-    options?: { limit?: number; offset?: number }
-  ) => Promise<{ entries?: VocabularyEntryLike[]; meta?: { total?: number } } | null>;
-};
+type VocabularyEntry = NonNullable<Awaited<ReturnType<typeof VocabularyService.getEntries>>>['entries'][number];
 
 /**
  * Resolve vocab-backed options into form component configs at build time.
@@ -153,17 +149,17 @@ export class VocabInlineFormConfigVisitor {
   }
 
   private async fetchAllEntries(
-    vocabService: VocabularyServiceLike,
+    vocabService: Pick<typeof VocabularyService, 'getEntries'>,
     branding: string,
     vocabRef: string
-  ): Promise<VocabularyEntryLike[]> {
-    const allEntries: VocabularyEntryLike[] = [];
+  ): Promise<VocabularyEntry[]> {
+    const allEntries: VocabularyEntry[] = [];
     const limit = 1000;
     let offset = 0;
     let total: number | null = null;
 
     while (total === null || allEntries.length < total) {
-      const response = await vocabService.getEntries?.(branding, vocabRef, { limit, offset });
+      const response = await vocabService.getEntries(branding, vocabRef, { limit, offset });
       if (!response) {
         throw new Error(`Inline vocabulary '${vocabRef}' was not found for branding '${branding}'`);
       }
@@ -186,7 +182,7 @@ export class VocabInlineFormConfigVisitor {
     return allEntries;
   }
 
-  private buildTreeData(entries: VocabularyEntryLike[]): CheckboxTreeNode[] {
+  private buildTreeData(entries: VocabularyEntry[]): CheckboxTreeNode[] {
     const nodeById = new Map<string, CheckboxTreeNode>();
     const entryIds = new Set<string>();
     const rootNodes: CheckboxTreeNode[] = [];
@@ -201,8 +197,8 @@ export class VocabInlineFormConfigVisitor {
         id,
         label: String(entry?.label ?? ''),
         value: String(entry?.value ?? ''),
-        notation: String(entry?.identifier ?? '').trim() || String(entry?.value ?? '').trim() || undefined,
-        parent: String(entry?.parent ?? '').trim() || null,
+        notation: String((entry as any)?.identifier ?? '').trim() || String(entry?.value ?? '').trim() || undefined,
+        parent: String((entry as any)?.parent ?? '').trim() || null,
         children: [],
         hasChildren: false
       });
@@ -230,15 +226,20 @@ export class VocabInlineFormConfigVisitor {
     if (normalizedOverride) {
       return normalizedOverride;
     }
-    const globals = globalThis as { sails?: { config?: { auth?: { defaultBrand?: string } } } };
-    return String(globals?.sails?.config?.auth?.defaultBrand ?? '').trim();
+    return String((globalThis as any)?.sails?.config?.auth?.defaultBrand ?? '').trim();
   }
 
-  private getVocabularyService(): VocabularyServiceLike | undefined {
-    const globals = globalThis as {
-      VocabularyService?: VocabularyServiceLike;
-      sails?: { services?: { vocabularyservice?: VocabularyServiceLike } };
-    };
-    return globals.VocabularyService ?? globals?.sails?.services?.vocabularyservice;
+  private getVocabularyService(): Pick<typeof VocabularyService, 'getEntries'> | undefined {
+    const globals = globalThis as any;
+    if (globals?.VocabularyService?.getEntries) {
+      return globals.VocabularyService as Pick<typeof VocabularyService, 'getEntries'>;
+    }
+
+    const service = globals?.sails?.services?.vocabularyservice;
+    if (service?.getEntries) {
+      return service as Pick<typeof VocabularyService, 'getEntries'>;
+    }
+
+    return undefined;
   }
 }

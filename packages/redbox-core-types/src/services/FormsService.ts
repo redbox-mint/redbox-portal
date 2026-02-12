@@ -23,12 +23,12 @@ import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { FormModel } from '../model/storage/FormModel';
 import { createSchema } from 'genson-js';
+import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import {
   ClientFormConfigVisitor,
   ConstructFormConfigVisitor,
   FormConfigFrame, FormConfigOutline,
   FormModesConfig, ReusableFormDefinitions,
-  VocabInlineFormConfigVisitor
 } from "@researchdatabox/sails-ng-common";
 
 type WorkflowStepLike = {
