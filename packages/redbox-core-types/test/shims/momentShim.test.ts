@@ -77,7 +77,7 @@ describe('momentShim', () => {
     });
 
     describe('format()', () => {
-        const testDate = new Date('2024-01-15T10:30:45Z');
+        const testDate = '2024-01-15T10:30:45Z';
 
         it('should return ISO format when no format specified', () => {
             const result = momentShim(testDate);

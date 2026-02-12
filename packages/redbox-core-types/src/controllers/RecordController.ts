@@ -30,7 +30,6 @@ import {
   SearchService,
   BrandingModel,
   RecordTypeModel, ErrorResponseItemV2,
-  FormModel,
   RecordModel,
   UserModel,
   RoleModel,
@@ -40,6 +39,7 @@ import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormAttributes } from '../waterline-models/Form';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -176,7 +176,14 @@ export namespace Controllers {
       const form = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
       const formMode = editMode ? "edit" : "view";
       const reusableFormDefs = sails.config.reusableFormDefinitions;
-      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(form as unknown as FormConfigFrame, formMode, reusableFormDefs);
+      const formConfig = form?.configuration;
+      if (!formConfig) {
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{detail: `Form configuration not found for record type: ${recordType}`}],
+        });
+      }
+      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig, formMode, reusableFormDefs);
 
       // return the matching format, return the model data as json
       return this.sendResp(req, res, {
@@ -213,10 +220,7 @@ export namespace Controllers {
               displayErrors: [{ detail: 'Form not found' }]
             });
           }
-          if (form['customAngularApp'] != null) {
-            appSelector = form['customAngularApp']['appSelector'];
-            appName = form['customAngularApp']['appName'];
-          }
+          // Deprecated: customAngularApp has been removed from FormConfigFrame
           return this.sendView(req, res, 'record/edit', {
             oid: oid,
             rdmp: rdmp,
@@ -234,10 +238,7 @@ export namespace Controllers {
               displayErrors: [{ detail: 'Form not found' }]
             });
           }
-          if (form['customAngularApp'] != null) {
-            appSelector = form['customAngularApp']['appSelector'];
-            appName = form['customAngularApp']['appName'];
-          }
+          // Deprecated: customAngularApp has been removed from FormConfigFrame
           return this.sendView(req, res, 'record/edit', {
             oid: oid,
             rdmp: rdmp,
@@ -264,12 +265,9 @@ export namespace Controllers {
             });
           }
           sails.log.debug(form);
-          if (form['customAngularApp'] != null) {
-            appSelector = form['customAngularApp']['appSelector'];
-            appName = form['customAngularApp']['appName'];
-          }
+          // Deprecated: customAngularApp has been removed from FormConfigFrame
           if (!recordType) {
-            recordType = form['type'];
+            recordType = form.configuration?.type ?? '';
           }
           return this.sendView(req, res, 'record/edit', {
             oid: oid,
@@ -315,7 +313,7 @@ export namespace Controllers {
       const formParam = req.param('formName');
 
       try {
-        let form: FormModel | null = null;
+        let form: FormAttributes | null = null;
         let currentRec: RecordModel | null = null;
         if (!oid) {
           //find form to create a record
@@ -361,7 +359,7 @@ export namespace Controllers {
           }
 
           // get the form config
-          form = await FormsService.getForm(brand, formParam, editMode, '', currentRec as RecordModel) as FormModel | null;
+          form = await FormsService.getForm(brand, formParam, editMode, '', currentRec as RecordModel) as FormAttributes | null;
           if (_.isEmpty(form)) {
             const msg = `Error, getting form ${formParam} for OID: ${oid}`;
             return this.sendResp(req, res, {
@@ -379,7 +377,16 @@ export namespace Controllers {
         const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[]).map((role: AnyRecord) => String(role['name'] ?? '')).filter((name: string) => !!name);
         const recordData = currentRec;
         const reusableFormDefs = sails.config.reusableFormDefinitions;
-        const mergedForm = FormsService.buildClientFormConfig(form as unknown as FormConfigFrame, formMode, userRoles, recordData?.metadata ?? null, reusableFormDefs);
+        const formConfig = form?.configuration;
+        if (!formConfig) {
+          const msg = `Form configuration not found for form ${formParam}, record type ${recordType}, oid ${oid}`;
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{detail: msg}],
+            v1: {message: msg}
+          });
+        }
+        const mergedForm = FormsService.buildClientFormConfig(formConfig, formMode, userRoles, recordData?.metadata ?? null, reusableFormDefs);
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {

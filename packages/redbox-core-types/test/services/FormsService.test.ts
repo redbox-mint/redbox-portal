@@ -190,13 +190,16 @@ describe('FormsService', function() {
       const result = await FormsService.getForm({}, undefined, false, 'type', record);
       
       expect(FormsService.generateFormFromSchema.called).to.be.true;
-      expect(result).to.deep.equal({ generated: true });
+      expect(result).to.deep.equal({ id: '', name: 'generated-view-only', configuration: { generated: true } });
     });
   });
 
   describe('bootstrap', function() {
     it('should create form if not exists', async function() {
       const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
+      sinon.stub(FormsService, 'getFormConfigRegistry').returns({
+        'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }
+      });
       mockForm.find.resolves([]); // not found initially
       mockForm.create.resolves({ id: 'form-1', workflowStep: 'step-1' });
       
@@ -207,15 +210,9 @@ describe('FormsService', function() {
     });
 
     it('should prefer formConfigRegistry over legacy forms', async function() {
-      mockSails.config.form.forms = {};
-      mockSails.config.form.formConfigRegistry = {
-        'default-form': {
-          type: 'rdmp',
-          fields: [],
-          messages: {},
-          attachmentFields: []
-        }
-      };
+      sinon.stub(FormsService, 'getFormConfigRegistry').returns({
+        'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }
+      });
       const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
       mockForm.find.resolves([]);
       mockForm.create.resolves({ id: 'form-1', workflowStep: 'step-1' });
@@ -226,6 +223,9 @@ describe('FormsService', function() {
     });
 
     it('should skip if form exists', async function() {
+      sinon.stub(FormsService, 'getFormConfigRegistry').returns({
+        'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }
+      });
       const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
       mockForm.find.onFirstCall().resolves([]); // nothing linked to step
       mockForm.find.onSecondCall().resolves([{ id: 'existing-form', name: 'default-form' }]); // form def exists
@@ -237,6 +237,9 @@ describe('FormsService', function() {
 
     it('should destroy and recreate if bootstrapAlways is true', async function() {
       mockSails.config.appmode.bootstrapAlways = true;
+      sinon.stub(FormsService, 'getFormConfigRegistry').returns({
+        'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }
+      });
       const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
       
       // first find returns something (existing linked form)

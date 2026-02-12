@@ -1,4 +1,5 @@
-import { APIErrorResponse, FormModel, ListAPIResponse, ListAPISummary, Controllers as controllers } from '../../index';
+import { APIErrorResponse, ListAPIResponse, ListAPISummary, Controllers as controllers } from '../../index';
+import { FormAttributes } from '../../waterline-models/Form';
 import { firstValueFrom } from 'rxjs';
 
 
@@ -57,8 +58,8 @@ export namespace Controllers {
 
     public async listForms(req: Sails.Req, res: Sails.Res) {
       try {
-        const forms: FormModel[] = await firstValueFrom(FormsService.listForms());
-        const response: ListAPIResponse<FormModel> = new ListAPIResponse();
+        const forms: FormAttributes[] = await firstValueFrom(FormsService.listForms());
+        const response: ListAPIResponse<FormAttributes> = new ListAPIResponse();
         const summary: ListAPISummary = new ListAPISummary();
         summary.numFound = forms.length;
         response.summary = summary;

@@ -1,23 +1,6 @@
-export interface FormModel {
-    id?: string;
-    name: string;
-    customAngularApp: FormCustomAngularApp;
-    fields: {
-        [key: string]: unknown;
-    }[];
-    workflowStep: string;
-    type: string;
-    messages: {
-        [key: string]: unknown;
-    };
-    requiredFieldIndicator: string;
-    viewCssClasses: string;
-    editCssClasses: string;
-    skipValidationOnSave: boolean;
-    attachmentFields: unknown;
-}
+import { FormAttributes } from '../../waterline-models/Form';
 
-export interface FormCustomAngularApp {
-  appName:string;
-  appSelector:string;
-}
+/**
+ * @deprecated Use {@link FormAttributes} from waterline-models/Form instead.
+ */
+export type FormModel = FormAttributes;

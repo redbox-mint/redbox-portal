@@ -107,7 +107,11 @@ export namespace Services {
             // get the original record's form config
             const formName = changed?.metaMetadata?.['form'];
             const isEditMode = formMode === "edit";
-            const formConfig = await firstValueFrom(FormsService.getFormByName(String(formName ?? ""), isEditMode)) as unknown as FormConfigFrame;
+            const formRecord = await firstValueFrom(FormsService.getFormByName(String(formName ?? ""), isEditMode));
+            const formConfig = formRecord?.configuration;
+            if (!formConfig) {
+                throw new Error(`Form configuration not found for form: ${formName}`);
+            }
 
             // build the client form config
             const userRoles: string[] | undefined = undefined;
@@ -476,7 +480,11 @@ export namespace Services {
             const isEditMode = formMode === "edit";
 
             // get the record's form config
-            const formConfig = await firstValueFrom(FormsService.getFormByName(String(formName ?? ""), isEditMode)) as unknown as FormConfigFrame;
+            const formRecord = await firstValueFrom(FormsService.getFormByName(String(formName ?? ""), isEditMode));
+            const formConfig = formRecord?.configuration;
+            if (!formConfig) {
+                throw new Error(`Form configuration not found for form: ${formName}`);
+            }
 
             // Get the validator definitions from the sails config, so the definitions can be overwritten.
             const validatorDefinitions = sails.config.validators.definitions;

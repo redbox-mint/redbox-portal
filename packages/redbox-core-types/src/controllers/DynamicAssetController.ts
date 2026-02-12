@@ -109,7 +109,15 @@ export namespace Controllers {
           recordMetadata = record?.metadata ?? {};
           form = await FormsService.getForm(brand, "", editMode, "", record);
         }
-        const entries: TemplateCompileInput[] = FormRecordConsistencyService.extractRawTemplates(form as FormConfigFrame, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
+        const formRecord = form as { configuration?: FormConfigFrame } | null;
+        const formConfig = formRecord?.configuration;
+        if (!formConfig) {
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{detail: "Form configuration not found."}],
+          });
+        }
+        const entries: TemplateCompileInput[] = FormRecordConsistencyService.extractRawTemplates(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
         return this.sendResp(req, res, {
