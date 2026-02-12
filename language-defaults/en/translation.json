@@ -917,5 +917,22 @@
 	"@validator-error-email": "Please enter a valid email address.",
 	"@validator-error-pattern": "Value does not match the pattern: {{description}}.",
 	"@validator-error-different-values": "The {{controlCount}} field(s) must have different values.",
-	"@validator-error-orcid": "Please enter a valid ORCID identifier in the format: 0000-0000-0000-0000."
+	"@validator-error-orcid": "Please enter a valid ORCID identifier in the format: 0000-0000-0000-0000.",
+	"@rich-text-editor-source-toggle-rich-text": "Rich Text",
+	"@rich-text-editor-source-toggle-markdown": "Markdown",
+	"@rich-text-editor-source-toggle-html": "HTML",
+	"@rich-text-editor-toolbar-heading": "H2",
+	"@rich-text-editor-toolbar-bold": "Bold",
+	"@rich-text-editor-toolbar-italic": "Italic",
+	"@rich-text-editor-toolbar-link": "Link",
+	"@rich-text-editor-toolbar-bullet-list": "Bullets",
+	"@rich-text-editor-toolbar-ordered-list": "Numbers",
+	"@rich-text-editor-toolbar-blockquote": "Quote",
+	"@rich-text-editor-toolbar-table": "Table",
+	"@rich-text-editor-toolbar-undo": "Undo",
+	"@rich-text-editor-toolbar-redo": "Redo",
+	"@rich-text-editor-toolbar-table-add-row": "+ Row",
+	"@rich-text-editor-toolbar-table-add-column": "+ Column",
+	"@rich-text-editor-toolbar-table-remove-row": "- Row",
+	"@rich-text-editor-toolbar-table-remove-column": "- Column"
 }

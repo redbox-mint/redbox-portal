@@ -33,9 +33,10 @@ export class RichTextEditorModel extends FormFieldModel<string> {
               <button
                 type="button"
                 class="btn btn-outline-secondary btn-sm"
+                data-source-toggle-button="true"
                 [disabled]="isDisabled"
                 (click)="toggleSourceMode()">
-                {{ getSourceToggleLabel() }}
+                {{ getSourceToggleLabelKey() | i18next }}
               </button>
             </div>
           }
@@ -47,17 +48,17 @@ export class RichTextEditorModel extends FormFieldModel<string> {
                   class="btn btn-outline-secondary btn-sm"
                   [disabled]="isDisabled || !editor"
                   (click)="onToolbarAction(action)">
-                  {{ getToolbarLabel(action) }}
+                  {{ getToolbarLabelKey(action) | i18next }}
                 </button>
               }
             </div>
           }
           @if (editor && editor.isActive('table')) {
             <div class="redbox-rich-text-toolbar redbox-rich-text-toolbar-table">
-              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="addTableRow()">+ Row</button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="addTableColumn()">+ Column</button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="removeTableRow()">- Row</button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="removeTableColumn()">- Column</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="addTableRow()">{{ "@rich-text-editor-toolbar-table-add-row" | i18next }}</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="addTableColumn()">{{ "@rich-text-editor-toolbar-table-add-column" | i18next }}</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="removeTableRow()">{{ "@rich-text-editor-toolbar-table-remove-row" | i18next }}</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="removeTableColumn()">{{ "@rich-text-editor-toolbar-table-remove-column" | i18next }}</button>
             </div>
           }
           @if (isSourceMode) {
@@ -234,20 +235,20 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     }
   }
 
-  public getToolbarLabel(action: string): string {
-    const labels: Record<string, string> = {
-      heading: "H2",
-      bold: "Bold",
-      italic: "Italic",
-      link: "Link",
-      bulletList: "Bullets",
-      orderedList: "Numbers",
-      blockquote: "Quote",
-      table: "Table",
-      undo: "Undo",
-      redo: "Redo",
+  public getToolbarLabelKey(action: string): string {
+    const labelKeys: Record<string, string> = {
+      heading: "@rich-text-editor-toolbar-heading",
+      bold: "@rich-text-editor-toolbar-bold",
+      italic: "@rich-text-editor-toolbar-italic",
+      link: "@rich-text-editor-toolbar-link",
+      bulletList: "@rich-text-editor-toolbar-bullet-list",
+      orderedList: "@rich-text-editor-toolbar-ordered-list",
+      blockquote: "@rich-text-editor-toolbar-blockquote",
+      table: "@rich-text-editor-toolbar-table",
+      undo: "@rich-text-editor-toolbar-undo",
+      redo: "@rich-text-editor-toolbar-redo",
     };
-    return labels[action] ?? action;
+    return labelKeys[action] ?? action;
   }
 
   public toggleSourceMode(): void {
@@ -264,8 +265,14 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     this.formControl.markAsTouched();
   }
 
-  public getSourceToggleLabel(): string {
-    return this.isSourceMode ? "Rich Text" : this.getSourceLabel();
+  public getSourceToggleLabelKey(): string {
+    if (this.isSourceMode) {
+      return "@rich-text-editor-source-toggle-rich-text";
+    }
+    if (this.outputFormat === "markdown") {
+      return "@rich-text-editor-source-toggle-markdown";
+    }
+    return "@rich-text-editor-source-toggle-html";
   }
 
   public getSourceLabel(): string {

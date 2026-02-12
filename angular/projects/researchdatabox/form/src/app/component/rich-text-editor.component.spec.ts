@@ -144,9 +144,8 @@ describe("RichTextEditorComponent", () => {
 
     const {fixture} = await createFormAndWaitForReady(formConfig, editModeProps);
     const compiled = fixture.nativeElement as HTMLElement;
-    const sourceToggleButton = Array.from(compiled.querySelectorAll("button"))
-      .find((button) => button.textContent?.trim() === "HTML" || button.textContent?.trim() === "Markdown");
-    expect(sourceToggleButton).toBeUndefined();
+    const sourceToggleButton = compiled.querySelector("[data-source-toggle-button='true']");
+    expect(sourceToggleButton).toBeNull();
   });
 
   it("toggles to raw source mode and syncs source edits", async () => {
@@ -166,8 +165,7 @@ describe("RichTextEditorComponent", () => {
     const richTextComponent = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
     const compiled = fixture.nativeElement as HTMLElement;
 
-    const toggleButton = Array.from(compiled.querySelectorAll("button"))
-      .find((button) => button.textContent?.trim() === "HTML") as HTMLButtonElement | undefined;
+    const toggleButton = compiled.querySelector("[data-source-toggle-button='true']") as HTMLButtonElement | null;
     expect(toggleButton).toBeDefined();
     toggleButton?.click();
     fixture.detectChanges();
