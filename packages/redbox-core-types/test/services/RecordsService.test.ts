@@ -81,6 +81,11 @@ describe('RecordsService', function() {
         error: sinon.stub()
       },
       services: {
+        brandingservice: {
+          getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+          getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+          getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' })
+        },
         mongostorageservice: mockStorageService,
         solrsearchservice: mockSearchService,
         agendaqueueservice: mockQueueService,
@@ -562,6 +567,62 @@ describe('RecordsService', function() {
     });
   });
 
+  describe('bootstrapData', function() {
+    it('should return without create when bootstrap directory is missing', async function() {
+      const readdirStub = sinon.stub().rejects({ code: 'ENOENT' });
+      const readFileStub = sinon.stub();
+      sinon.stub(RecordsService, 'getBootstrapFileOps').returns({
+        readdir: readdirStub,
+        readFile: readFileStub
+      });
+      const createStub = sinon.stub(RecordsService, 'create');
+
+      await RecordsService.bootstrapData();
+
+      expect(createStub.called).to.be.false;
+      expect(mockSails.log.verbose.called).to.be.true;
+    });
+
+    it('should create records from record-type named file arrays', async function() {
+      const readdirStub = sinon.stub().resolves([{ isFile: () => true, name: 'party.json' }]);
+      const readFileStub = sinon.stub().resolves(JSON.stringify([
+        { title: 'Party one' },
+        { title: 'Party two' }
+      ]));
+      sinon.stub(RecordsService, 'getBootstrapFileOps').returns({
+        readdir: readdirStub,
+        readFile: readFileStub
+      });
+      mockRecord.findOne.onFirstCall().resolves(null);
+      mockRecord.findOne.onSecondCall().resolves(null);
+      const createStub = sinon.stub(RecordsService, 'create').resolves({ isSuccessful: () => true });
+      (global as any).RecordTypesService.get = sinon.stub().returns(of({ name: 'party', hooks: {} }));
+
+      await RecordsService.bootstrapData();
+
+      expect(createStub.callCount).to.equal(2);
+      const firstCreateArgs = createStub.firstCall.args;
+      expect(firstCreateArgs[1].metadata.title).to.equal('Party one');
+      expect(firstCreateArgs[1].redboxOid).to.equal('bootstrap-party-1');
+      expect(firstCreateArgs[2].name).to.equal('party');
+    });
+
+    it('should skip existing records by redboxOid', async function() {
+      const readdirStub = sinon.stub().resolves([{ isFile: () => true, name: 'grant.json' }]);
+      const readFileStub = sinon.stub().resolves(JSON.stringify([{ title: 'Grant one' }]));
+      sinon.stub(RecordsService, 'getBootstrapFileOps').returns({
+        readdir: readdirStub,
+        readFile: readFileStub
+      });
+      mockRecord.findOne.resolves({ redboxOid: 'bootstrap-grant-1' });
+      const createStub = sinon.stub(RecordsService, 'create');
+
+      await RecordsService.bootstrapData();
+
+      expect(createStub.called).to.be.false;
+    });
+  });
+
   describe('delete', function() {
     it('should delete record if user has access', async function() {
       const user = { username: 'admin' };
@@ -626,6 +687,7 @@ describe('RecordsService', function() {
       expect(exported).to.have.property('delete');
       expect(exported).to.have.property('getRecords');
       expect(exported).to.have.property('getAttachments');
+      expect(exported).to.have.property('bootstrapData');
       expect(exported).to.have.property('appendToRecord');
       expect(exported).to.have.property('removeFromRecord');
       expect(exported).to.have.property('storeRecordAudit');
