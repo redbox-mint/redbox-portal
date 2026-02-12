@@ -236,8 +236,8 @@ export namespace Services {
               },
               recordTypeModel,
               bootstrapUser,
-              false,
-              false
+              true,
+              true
             );
             if (createResponse?.isSuccessful?.()) {
               sails.log.verbose(`Created records bootstrap entry: ${redboxOid}`);
