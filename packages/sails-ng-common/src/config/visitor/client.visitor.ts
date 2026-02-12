@@ -60,6 +60,11 @@ import {
     DropdownInputFormComponentDefinitionOutline
 } from "../component/dropdown-input.outline";
 import {
+    TypeaheadInputFieldComponentDefinitionOutline,
+    TypeaheadInputFieldModelDefinitionOutline,
+    TypeaheadInputFormComponentDefinitionOutline
+} from "../component/typeahead-input.outline";
+import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline,
     RadioInputFormComponentDefinitionOutline
@@ -414,6 +419,21 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
+        this.acceptCheckConstraintsCurrentPath(item);
+        this.processFormComponentDefinition(item);
+    }
+
+    /* Typeahead Input */
+
+    visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
+        this.processFieldComponentDefinition(item);
+    }
+
+    visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
+        this.processFieldModelDefinition(item);
+    }
+
+    visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
         this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }

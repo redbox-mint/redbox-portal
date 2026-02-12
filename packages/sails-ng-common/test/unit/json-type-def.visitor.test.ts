@@ -293,6 +293,39 @@ describe("JSON Type Def Schema Visitor", async () => {
                     },
                 }
             }
+        },
+        {
+            title: "create typeahead schema from valueMode",
+            args: {
+                name: "typeahead-form",
+                componentDefinitions: [
+                    {
+                        name: "person_lookup",
+                        component: {
+                            class: "TypeaheadInputComponent",
+                            config: {
+                                sourceType: "namedQuery",
+                                queryId: "contributors",
+                                valueMode: "optionObject"
+                            }
+                        },
+                        model: {class: "TypeaheadInputModel", config: {}}
+                    }
+                ]
+            },
+            expected: {
+                properties: {
+                    person_lookup: {
+                        properties: {
+                            label: {type: "string"},
+                            value: {type: "string"}
+                        },
+                        optionalProperties: {
+                            sourceType: {type: "string"}
+                        }
+                    }
+                }
+            }
         }
     ];
     cases.forEach(({title, args, expected}) => {

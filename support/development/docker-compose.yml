@@ -23,6 +23,7 @@ x-rbportal-volumes: &rbportal-volumes
   - "./.dev/attachments:/attachments:delegated"
   - "./.dev/publication:/publication:delegated"
   - "./.dev/hooks:/opt/hooks:delegated"
+  - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
 
 x-rbportal-service: &rbportal-service
   environment: *rbportal-env
@@ -38,7 +39,7 @@ x-rbportal-service: &rbportal-service
       aliases:
         - rbportal
   init: true
-  entrypoint: /bin/bash -c "cd /opt/redbox-portal && node --inspect=0.0.0.0:9876 app.js"
+  entrypoint: /bin/bash -c "cd /opt/redbox-portal && node --enable-source-maps --inspect=0.0.0.0:9876 app.js"
 
 networks:
   main:
@@ -53,6 +54,7 @@ services:
       - "./.dev/attachments:/attachments:delegated"
       - "./.dev/publication:/publication:delegated"
       - "./.dev/hooks:/opt/hooks:delegated"
+      - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
   rbportal-build:
     <<: *rbportal-service
     profiles: [build]

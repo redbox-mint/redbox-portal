@@ -76,6 +76,33 @@ describe("Template Visitor", async () => {
                     value: "{{notation}} - {{label}}"
                 }
             ]
+        },
+        {
+            title: "extract typeahead label template",
+            args: {
+                name: "test",
+                componentDefinitions: [
+                    {
+                        name: "person_lookup",
+                        component: {
+                            class: "TypeaheadInputComponent",
+                            config: {
+                                sourceType: "namedQuery",
+                                queryId: "people",
+                                labelTemplate: "{{raw.title}} ({{raw.code}})"
+                            }
+                        },
+                        model: { class: "TypeaheadInputModel", config: {} }
+                    }
+                ]
+            },
+            expected: [
+                {
+                    key: ["componentDefinitions", "0", "component", "config", "labelTemplate"],
+                    kind: "handlebars",
+                    value: "{{raw.title}} ({{raw.code}})"
+                }
+            ]
         }
     ];
     cases.forEach(({title, args, expected}) => {

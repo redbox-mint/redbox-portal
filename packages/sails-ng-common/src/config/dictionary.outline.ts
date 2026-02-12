@@ -29,6 +29,7 @@ import {RadioInputTypes} from "./component/radio-input.outline";
 import {DateInputTypes} from "./component/date-input.outline";
 import {ReusableTypes} from "./component/reusable.outline";
 import {CheckboxTreeTypes} from "./component/checkbox-tree.outline";
+import {TypeaheadInputTypes} from "./component/typeahead-input.outline";
 
 
 /**
@@ -51,6 +52,7 @@ export type AllTypes = DefaultLayoutTypes
     | DateInputTypes
     | ReusableTypes
     | CheckboxTreeTypes
+    | TypeaheadInputTypes
     ;
 
 

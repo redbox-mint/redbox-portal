@@ -19,7 +19,8 @@ if [[ "$SCRIPT_PATH" != /* ]]; then
 fi
 SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 
-LEGACY_DIR="$SCRIPT_DIR/angular-legacy"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+LEGACY_DIR="$ROOT_DIR/angular-legacy"
 NVM_VERSION="$(tr -d '[:space:]' < "$LEGACY_DIR/.nvmrc")"
 # nvm does not support partial major.minor selectors reliably.
 if [ "$NVM_VERSION" = "14.19" ]; then

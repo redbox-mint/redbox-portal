@@ -80,6 +80,8 @@ export async function coreBootstrap(): Promise<void> {
     sails.log.verbose("Vocab service, bootstrapped.");
     await sails.services.vocabularyservice.bootstrapData();
     sails.log.verbose("Vocabulary bootstrap data, loaded.");
+    await sails.services.recordsservice.bootstrapData();
+    sails.log.verbose("Records bootstrap data, loaded.");
 
     // Schedule cronjobs
     if (sails.config.crontab.enabled) {
@@ -164,6 +166,11 @@ export function preLiftSetup(): void {
     }
 
     sails.config.startupMinute = Math.floor(Date.now() / 60000);
+
+    const configuredBootstrapDataPath = _.get(sails.config, 'bootstrap.bootstrapDataPath');
+    if (typeof configuredBootstrapDataPath !== 'string' || !configuredBootstrapDataPath.trim()) {
+        _.set(sails.config, 'bootstrap.bootstrapDataPath', 'bootstrap-data');
+    }
 
     if (sails.config.environment === "production" || sails.config.ng2.force_bundle) {
         sails.config.ng2.use_bundled = true;

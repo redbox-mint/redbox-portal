@@ -1,6 +1,6 @@
-import {cloneDeep as _cloneDeep, get as _get} from "lodash";
-import {FormConfig} from "../form-config.model";
-import {FormConfigOutline} from "../form-config.outline";
+import { cloneDeep as _cloneDeep, get as _get } from "lodash";
+import { FormConfig } from "../form-config.model";
+import { FormConfigOutline } from "../form-config.outline";
 import {
     GroupFieldComponentDefinitionOutline,
     GroupFieldComponentName,
@@ -21,7 +21,7 @@ import {
     RepeatableFieldComponentConfig,
     RepeatableFieldModelConfig
 } from "../component/repeatable.model";
-import {GroupFieldComponentConfig, GroupFieldModelConfig} from "../component/group.model";
+import { GroupFieldComponentConfig, GroupFieldModelConfig } from "../component/group.model";
 import {
     SimpleInputComponentName,
     SimpleInputFieldComponentDefinitionOutline,
@@ -29,10 +29,10 @@ import {
     SimpleInputFormComponentDefinitionOutline,
     SimpleInputModelName
 } from "../component/simple-input.outline";
-import {SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig} from "../component/simple-input.model";
-import {DefaultFieldLayoutDefinitionOutline, DefaultLayoutName} from "../component/default-layout.outline";
-import {DefaultFieldLayoutConfig} from "../component/default-layout.model";
-import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
+import { SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig } from "../component/simple-input.model";
+import { DefaultFieldLayoutDefinitionOutline, DefaultLayoutName } from "../component/default-layout.outline";
+import { DefaultFieldLayoutConfig } from "../component/default-layout.model";
+import { FormComponentDefinitionFrame, FormComponentDefinitionOutline } from "../form-component.outline";
 import {
     ContentComponentName,
     ContentFieldComponentDefinitionOutline,
@@ -45,7 +45,7 @@ import {
     TabFormComponentDefinitionOutline,
     TabLayoutName
 } from "../component/tab.outline";
-import {TabFieldComponentConfig, TabFieldLayoutConfig} from "../component/tab.model";
+import { TabFieldComponentConfig, TabFieldLayoutConfig } from "../component/tab.model";
 import {
     TabContentComponentName,
     TabContentFieldComponentDefinitionOutline,
@@ -64,8 +64,8 @@ import {
     TextAreaFormComponentDefinitionOutline,
     TextAreaModelName
 } from "../component/text-area.outline";
-import {TextAreaFieldComponentConfig, TextAreaFieldModelConfig} from "../component/text-area.model";
-import {ContentFieldComponentConfig} from "../component/content.model";
+import { TextAreaFieldComponentConfig, TextAreaFieldModelConfig } from "../component/text-area.model";
+import { ContentFieldComponentConfig } from "../component/content.model";
 import {
     DropdownInputComponentName,
     DropdownInputFieldComponentDefinitionOutline,
@@ -73,19 +73,27 @@ import {
     DropdownInputFormComponentDefinitionOutline,
     DropdownInputModelName
 } from "../component/dropdown-input.outline";
-import {DropdownInputFieldComponentConfig, DropdownInputFieldModelConfig} from "../component/dropdown-input.model";
+import { DropdownInputFieldComponentConfig, DropdownInputFieldModelConfig } from "../component/dropdown-input.model";
+import {
+    TypeaheadInputComponentName,
+    TypeaheadInputFieldComponentDefinitionOutline,
+    TypeaheadInputFieldModelDefinitionOutline,
+    TypeaheadInputFormComponentDefinitionOutline,
+    TypeaheadInputModelName
+} from "../component/typeahead-input.outline";
+import { TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig } from "../component/typeahead-input.model";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionOutline,
     CheckboxInputFormComponentDefinitionOutline
 } from "../component/checkbox-input.outline";
-import {CheckboxInputFieldComponentConfig, CheckboxInputFieldModelConfig} from "../component/checkbox-input.model";
+import { CheckboxInputFieldComponentConfig, CheckboxInputFieldModelConfig } from "../component/checkbox-input.model";
 import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline,
     RadioInputFormComponentDefinitionOutline
 } from "../component/radio-input.outline";
-import {RadioInputFieldComponentConfig, RadioInputFieldModelConfig} from "../component/radio-input.model";
+import { RadioInputFieldComponentConfig, RadioInputFieldModelConfig } from "../component/radio-input.model";
 import {
     DateInputComponentName,
     DateInputFieldComponentDefinitionOutline,
@@ -93,18 +101,18 @@ import {
     DateInputFormComponentDefinitionOutline,
     DateInputModelName
 } from "../component/date-input.outline";
-import {DateInputFieldComponentConfig, DateInputFieldModelConfig} from "../component/date-input.model";
+import { DateInputFieldComponentConfig, DateInputFieldModelConfig } from "../component/date-input.model";
 import {
     SaveButtonComponentName,
     SaveButtonFieldComponentDefinitionOutline,
     SaveButtonFormComponentDefinitionOutline
 } from "../component/save-button.outline";
-import {SaveButtonFieldComponentConfig} from "../component/save-button.model";
+import { SaveButtonFieldComponentConfig } from "../component/save-button.model";
 import {
     ValidationSummaryFieldComponentDefinitionOutline,
     ValidationSummaryFormComponentDefinitionOutline
 } from "../component/validation-summary.outline";
-import {ValidationSummaryFieldComponentConfig} from "../component/validation-summary.model";
+import { ValidationSummaryFieldComponentConfig } from "../component/validation-summary.model";
 import {
     CheckboxTreeComponentName,
     CheckboxTreeFieldComponentDefinitionOutline,
@@ -112,26 +120,26 @@ import {
     CheckboxTreeFormComponentDefinitionOutline,
     CheckboxTreeModelName
 } from "../component/checkbox-tree.outline";
-import {CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig} from "../component/checkbox-tree.model";
+import { CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig } from "../component/checkbox-tree.model";
 
 
-import {FieldModelConfigFrame} from "../field-model.outline";
-import {FieldComponentConfigFrame} from "../field-component.outline";
-import {FieldLayoutConfigFrame} from "../field-layout.outline";
-import {FormConfigVisitor} from "./base.model";
-import {FormPathHelper, PropertiesHelper} from "./common.model";
-import {AllFormComponentDefinitionOutlines} from "../dictionary.outline";
-import {CanVisit} from "./base.outline";
-import {LineagePath, LineagePathsPartial} from "../names/naming-helpers";
-import {VisitorFormComponentClassDefMapType, FormComponentDefinitionMap} from "../dictionary.model";
-import {isTypeFormComponentDefinitionName} from "../form-types.outline";
-import {ILogger} from "../../logger.interface";
+import { FieldModelConfigFrame } from "../field-model.outline";
+import { FieldComponentConfigFrame } from "../field-component.outline";
+import { FieldLayoutConfigFrame } from "../field-layout.outline";
+import { FormConfigVisitor } from "./base.model";
+import { FormPathHelper, PropertiesHelper } from "./common.model";
+import { AllFormComponentDefinitionOutlines } from "../dictionary.outline";
+import { CanVisit } from "./base.outline";
+import { LineagePath, LineagePathsPartial } from "../names/naming-helpers";
+import { VisitorFormComponentClassDefMapType, FormComponentDefinitionMap } from "../dictionary.model";
+import { isTypeFormComponentDefinitionName } from "../form-types.outline";
+import { ILogger } from "../../logger.interface";
 import {
     ReusableComponentName,
     ReusableFieldComponentDefinitionOutline,
     ReusableFormComponentDefinitionOutline
 } from "../component/reusable.outline";
-import {ReusableFieldComponentConfig} from "../component/reusable.model";
+import { ReusableFieldComponentConfig } from "../component/reusable.model";
 
 interface V4ClassNames {
     v4ClassName: string;
@@ -268,6 +276,16 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
             modelClassName: DropdownInputModelName
         }
     },
+    "VocabField": {
+        "": {
+            componentClassName: TypeaheadInputComponentName,
+            modelClassName: TypeaheadInputModelName
+        },
+        "VocabFieldComponent": {
+            componentClassName: TypeaheadInputComponentName,
+            modelClassName: TypeaheadInputModelName
+        }
+    },
     "DateTime": {
         "": {
             componentClassName: DateInputComponentName,
@@ -392,7 +410,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
         this.v4FormConfig = {
             attachmentFields: undefined,
-            customAngularApp: {appName: "", appSelector: ""},
+            customAngularApp: { appName: "", appSelector: "" },
             editCssClasses: "",
             fields: [],
             messages: {},
@@ -480,7 +498,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         // Add the validation summary.
         const validationSummaryFrame = {
             name: 'validation_summary',
-            component: {class: "ValidationSummaryComponent"}
+            component: { class: "ValidationSummaryComponent" }
         };
         const validationSummaryComponent = this.sharedProps.sharedConstructFormComponent(validationSummaryFrame);
         item.componentDefinitions.push(validationSummaryComponent);
@@ -523,7 +541,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
         // Content component is used to display info about missing component mappings.
         // Provide a message for not yet implemented fields.
-        let {componentClassName, modelClassName, layoutClassName} = this.mapV4ToV5(field);
+        let { componentClassName, modelClassName, layoutClassName } = this.mapV4ToV5(field);
         if (!componentClassName) {
             const v4ClassName = field?.class?.toString() ?? "";
             const v4CompClassName = field?.compClass?.toString() ?? "";
@@ -597,7 +615,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
                 case "span":
                     const label = item.config.label;
                     if (v4Value && label) {
-                        item.config.content = {value: v4Value, label: item.config.label};
+                        item.config.content = { value: v4Value, label: item.config.label };
                         item.config.template = `<span>{{content.label}}: {{content.value}}</span>`;
                     } else if (v4Value && !label) {
                         item.config.content = v4Value
@@ -856,10 +874,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.sharedPopulateFieldComponentConfig(item.config, field);
 
         const cols = field?.definition?.cols ?? field?.definition?.columns ?? undefined;
-        this.sharedProps.setPropOverride('cols', item.config, {cols: cols === undefined ? undefined : parseInt(cols)});
+        this.sharedProps.setPropOverride('cols', item.config, { cols: cols === undefined ? undefined : parseInt(cols) });
 
         const rows = field?.definition?.rows ?? undefined;
-        this.sharedProps.setPropOverride('rows', item.config, {rows: rows === undefined ? undefined : parseInt(rows)});
+        this.sharedProps.setPropOverride('rows', item.config, { rows: rows === undefined ? undefined : parseInt(rows) });
     }
 
     visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
@@ -888,7 +906,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.sharedPopulateFieldComponentConfig(item.config, field);
 
         const options = this.migrateOptions(field);
-        this.sharedProps.setPropOverride('options', item.config, {options: options});
+        this.sharedProps.setPropOverride('options', item.config, { options: options });
     }
 
     visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
@@ -913,19 +931,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         if (!vocabRef) {
             this.logger.warn(`${this.logName}: CheckboxTree migration missing vocabId/vocabRef at ${JSON.stringify(this.v4FormPath)}.`);
         } else {
-            this.sharedProps.setPropOverride('vocabRef', item.config, {vocabRef});
+            this.sharedProps.setPropOverride('vocabRef', item.config, { vocabRef });
         }
 
         const inlineVocab = this.parseLegacyBooleanFlag(rawDefinition.inlineVocab, undefined, 'inlineVocab');
         if (inlineVocab !== undefined) {
-            this.sharedProps.setPropOverride('inlineVocab', item.config, {inlineVocab});
+            this.sharedProps.setPropOverride('inlineVocab', item.config, { inlineVocab });
         }
         const leafOnly = this.parseLegacyBooleanFlag(rawDefinition.leafOnly, true, 'leafOnly');
-        this.sharedProps.setPropOverride('leafOnly', item.config, {leafOnly});
+        this.sharedProps.setPropOverride('leafOnly', item.config, { leafOnly });
 
         const maxDepth = this.parseLegacyPositiveInteger(rawDefinition.maxDepth, 'maxDepth');
         if (maxDepth !== undefined) {
-            this.sharedProps.setPropOverride('maxDepth', item.config, {maxDepth});
+            this.sharedProps.setPropOverride('maxDepth', item.config, { maxDepth });
         }
 
         if (this.isLegacyAndsVocabField(field)) {
@@ -956,7 +974,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.sharedPopulateFieldComponentConfig(item.config, field);
 
         const options = this.migrateOptions(field);
-        this.sharedProps.setPropOverride('options', item.config, {options: options});
+        this.sharedProps.setPropOverride('options', item.config, { options: options });
     }
 
     visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
@@ -969,6 +987,80 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.populateFormComponent(item);
     }
 
+    /* Typeahead Input */
+
+    visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new TypeaheadInputFieldComponentConfig();
+        this.sharedPopulateFieldComponentConfig(item.config, field);
+
+        const definition = (field?.definition ?? {}) as Record<string, unknown>;
+        const sourceType = this.resolveTypeaheadSourceType(definition);
+        this.sharedProps.setPropOverride("sourceType", item.config, { sourceType });
+
+        if (sourceType === "namedQuery") {
+            const queryId = String(definition.vocabQueryId ?? definition.queryId ?? "").trim();
+            if (queryId) {
+                this.sharedProps.setPropOverride("queryId", item.config, { queryId });
+            } else {
+                this.logger.warn(`${this.logName}: Typeahead migration missing queryId/vocabQueryId at ${JSON.stringify(this.v4FormPath)}.`);
+            }
+            const labelField = this.resolveLegacyLabelField(definition);
+            this.sharedProps.setPropOverride("labelField", item.config, { labelField });
+            const valueField = String(definition.valueFieldName ?? definition.valueField ?? "value").trim() || "value";
+            this.sharedProps.setPropOverride("valueField", item.config, { valueField });
+        } else if (sourceType === "static") {
+            const labelField = this.resolveLegacyLabelField(definition);
+            const valueField = String(definition.valueFieldName ?? definition.valueField ?? "value").trim() || "value";
+            const normalizedOptions = this.normalizeLegacyTypeaheadStaticOptions(definition, labelField, valueField);
+            this.sharedProps.setPropOverride("options", item.config, { options: normalizedOptions });
+            this.sharedProps.setPropOverride("staticOptions", item.config, { staticOptions: normalizedOptions });
+        } else if (sourceType === "vocabulary") {
+            const vocabRef = String(definition.vocabRef ?? definition.vocabId ?? "").trim();
+            if (vocabRef) {
+                this.sharedProps.setPropOverride("vocabRef", item.config, { vocabRef });
+            } else {
+                this.logger.warn(`${this.logName}: Typeahead migration missing vocabRef/vocabId at ${JSON.stringify(this.v4FormPath)}.`);
+            }
+        }
+
+        const allowFreeText = this.parseLegacyTypeaheadBoolean(definition.freeText, false, "freeText");
+        this.sharedProps.setPropOverride("allowFreeText", item.config, { allowFreeText });
+
+        const storeLabelOnly = this.parseLegacyTypeaheadBoolean(definition.storeLabelOnly, true, "storeLabelOnly");
+        const valueMode = storeLabelOnly ? "value" : "optionObject";
+        this.sharedProps.setPropOverride("valueMode", item.config, { valueMode });
+
+        const readOnlyAfterSelect = this.parseLegacyTypeaheadBoolean(definition.disableEditAfterSelect, false, "disableEditAfterSelect");
+        if (readOnlyAfterSelect) {
+            this.sharedProps.setPropOverride("readOnlyAfterSelect", item.config, { readOnlyAfterSelect });
+        }
+
+        this.warnOnDroppedLegacyTypeaheadProperties(definition);
+    }
+
+    visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new TypeaheadInputFieldModelConfig();
+        this.sharedPopulateFieldModelConfig(item.config, field);
+
+        const definition = (field?.definition ?? {}) as Record<string, unknown>;
+        const labelField = this.resolveLegacyLabelField(definition);
+        const storeLabelOnly = this.parseLegacyTypeaheadBoolean(definition.storeLabelOnly, true, "storeLabelOnly");
+        const valueMode = storeLabelOnly ? "value" : "optionObject";
+
+        if (item.config.defaultValue !== undefined) {
+            item.config.defaultValue = this.coerceLegacyTypeaheadValue(item.config.defaultValue, valueMode, labelField);
+        }
+        if (item.config.value !== undefined) {
+            item.config.value = this.coerceLegacyTypeaheadValue(item.config.value, valueMode, labelField);
+        }
+    }
+
+    visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
     /* Radio Input */
 
     visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
@@ -977,7 +1069,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.sharedPopulateFieldComponentConfig(item.config, field);
 
         const options = this.migrateOptions(field);
-        this.sharedProps.setPropOverride('options', item.config, {options: options});
+        this.sharedProps.setPropOverride('options', item.config, { options: options });
     }
 
     visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
@@ -1049,9 +1141,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             // Use the same field, so don't change the lineage path.
             const reusableComponentItemData = {
                 name: "standard_contributor_fields_group",
-                overrides: {replaceName: ""},
-                layout: {class: "DefaultLayout", config: {}},
-                component: {class: "GroupComponent", config: {}},
+                overrides: { replaceName: "" },
+                layout: { class: "DefaultLayout", config: {} },
+                component: { class: "GroupComponent", config: {} },
             };
             const reusableComponentItem = this.sharedProps.sharedConstructFormComponent(reusableComponentItemData);
 
@@ -1074,7 +1166,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         // Set up the reusable form config for ContributorField in the form component.
         if (v4ClassName === "ContributorField") {
             // Use a reusable form config.
-            item.overrides = {reusableFormName: "standard-contributor-fields-group"};
+            item.overrides = { reusableFormName: "standard-contributor-fields-group" };
 
             // ReusableComponent cannot have a layout.
             item.layout = undefined;
@@ -1103,12 +1195,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const v4CompClassName = v4Field?.compClass?.toString() ?? "";
 
         const matched = formConfigV4ToV5Mapping[v4ClassName]?.[v4CompClassName] ?? {};
-        const v4ClassNames = {v4ClassName, v4CompClassName};
+        const v4ClassNames = { v4ClassName, v4CompClassName };
         return postProcessingFormConfigV4ToV5Mapping(v4Field, v4ClassNames, matched);
     }
 
     protected constructFormComponent(field: Record<string, any>, more?: LineagePath): AllFormComponentDefinitionOutlines {
-        let {componentClassName, modelClassName, layoutClassName} = this.mapV4ToV5(field);
+        let { componentClassName, modelClassName, layoutClassName } = this.mapV4ToV5(field);
 
         const name = field?.definition?.name || field?.definition?.id || [componentClassName, ...this.v4FormPath, ...(more ?? [])].join('-');
 
@@ -1121,13 +1213,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             },
         };
         if (modelClassName) {
-            currentData.model = {class: modelClassName, config: {}};
+            currentData.model = { class: modelClassName, config: {} };
         }
         // TODO: Give everything a layout for now.
         if (!layoutClassName) {
             layoutClassName = "DefaultLayout";
         }
-        currentData.layout = {class: layoutClassName, config: {}};
+        currentData.layout = { class: layoutClassName, config: {} };
 
 
         // Set the constraints
@@ -1158,7 +1250,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const formComponentClass = this.formComponentMap?.get(componentClassName);
         if (!componentClassName || !formComponentClass) {
             currentData.component.class = ContentComponentName;
-            currentData.layout = {class: DefaultLayoutName, config: {}};
+            currentData.layout = { class: DefaultLayoutName, config: {} };
             currentData.model = undefined;
             if (!currentData.component.config) {
                 currentData.component.config = {};
@@ -1193,10 +1285,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             item.validators = [];
         }
         if (field?.definition?.required === true) {
-            item.validators.push({class: 'required'});
+            item.validators.push({ class: 'required' });
         }
         if (field?.definition?.maxLength !== undefined) {
-            item.validators.push({class: 'maxLength', config: {maxLength: field?.definition?.maxLength}});
+            item.validators.push({ class: 'maxLength', config: { maxLength: field?.definition?.maxLength } });
         }
         const config = {
             defaultValue: field?.definition?.value ?? field?.definition?.defaultValue,
@@ -1234,7 +1326,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
         // If the top level is an array, assume it is an array of field definitions.
         if (Array.isArray(formConfig)) {
-            formConfig = {fields: formConfig};
+            formConfig = { fields: formConfig };
         }
 
         // If the top level has a 'form' property, assume it is an export in the structure form.forms[formId] = formConfig.
@@ -1378,6 +1470,216 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             this.logger.warn(`${this.logName}: CheckboxTree migration dropped malformed default selection entries.`);
         }
         config.defaultValue = coerced as CheckboxTreeFieldModelConfig['defaultValue'];
+    }
+
+    private resolveTypeaheadSourceType(definition: Record<string, unknown>): "namedQuery" | "vocabulary" | "static" {
+        const legacySourceType = String(definition.sourceType ?? "").trim().toLowerCase();
+        if (legacySourceType === "query" || legacySourceType === "namedquery") {
+            return "namedQuery";
+        }
+        if (legacySourceType === "vocabulary") {
+            return "vocabulary";
+        }
+        if (Array.isArray(definition.options) || Array.isArray(definition.staticOptions)) {
+            return "static";
+        }
+        if (definition.vocabQueryId || definition.queryId) {
+            return "namedQuery";
+        }
+        if (definition.vocabRef || definition.vocabId) {
+            return "vocabulary";
+        }
+        return "namedQuery";
+    }
+
+    private normalizeLegacyTypeaheadStaticOptions(
+        definition: Record<string, unknown>,
+        labelField: string,
+        valueField: string
+    ): Array<{ label: string; value: string }> {
+        const options = this.resolvePreferredLegacyTypeaheadStaticOptions(definition);
+        const normalized = options
+            .map((entry) => this.normalizeLegacyTypeaheadStaticOption(entry, labelField, valueField))
+            .filter((entry): entry is { label: string; value: string } => entry !== null);
+
+        if (options.length > 0 && normalized.length !== options.length) {
+            this.logger.warn(`${this.logName}: Typeahead migration dropped malformed static option entries at ${JSON.stringify(this.v4FormPath)}.`);
+        }
+
+        return normalized;
+    }
+
+    private resolvePreferredLegacyTypeaheadStaticOptions(definition: Record<string, unknown>): unknown[] {
+        const options = Array.isArray(definition.options) ? definition.options : [];
+        const staticOptions = Array.isArray(definition.staticOptions) ? definition.staticOptions : [];
+        if (options.length > 0) {
+            return options;
+        }
+        if (staticOptions.length > 0) {
+            return staticOptions;
+        }
+        return options.length > 0 ? options : staticOptions;
+    }
+
+    private normalizeLegacyTypeaheadStaticOption(
+        entry: unknown,
+        labelField: string,
+        valueField: string
+    ): { label: string; value: string } | null {
+        if (entry === undefined || entry === null) {
+            return null;
+        }
+
+        if (typeof entry === "string" || typeof entry === "number" || typeof entry === "boolean") {
+            const normalized = String(entry).trim();
+            return normalized ? { label: normalized, value: normalized } : null;
+        }
+
+        if (typeof entry !== "object") {
+            return null;
+        }
+
+        const source = entry as Record<string, unknown>;
+        const resolvedLabel = String(
+            source.label
+            ?? source.name
+            ?? source.title
+            ?? source.text
+            ?? source[labelField]
+            ?? source[valueField]
+            ?? source.value
+            ?? ""
+        ).trim();
+        const resolvedValue = String(
+            source.value
+            ?? source[valueField]
+            ?? source.name
+            ?? source[labelField]
+            ?? source.title
+            ?? source.label
+            ?? ""
+        ).trim();
+
+        const label = resolvedLabel || resolvedValue;
+        const value = resolvedValue || resolvedLabel;
+        if (!label && !value) {
+            return null;
+        }
+
+        return { label, value };
+    }
+
+    private resolveLegacyLabelField(definition: Record<string, unknown>): string {
+        const titleFieldName = String(definition.titleFieldName ?? "").trim();
+        if (titleFieldName) {
+            return titleFieldName;
+        }
+        const stringLabelToField = String(definition.stringLabelToField ?? "").trim();
+        if (stringLabelToField) {
+            return stringLabelToField;
+        }
+        const titleFieldArr = Array.isArray(definition.titleFieldArr) ? definition.titleFieldArr : [];
+        const firstTitleField = String(titleFieldArr[0] ?? "").trim();
+        if (firstTitleField) {
+            return firstTitleField;
+        }
+        return "label";
+    }
+
+    private parseLegacyTypeaheadBoolean(rawValue: unknown, defaultValue: boolean, fieldName: string): boolean {
+        if (typeof rawValue === "boolean") {
+            return rawValue;
+        }
+        if (rawValue === undefined || rawValue === null || rawValue === "") {
+            return defaultValue;
+        }
+        if (typeof rawValue === "number") {
+            return rawValue !== 0;
+        }
+        if (typeof rawValue === "string") {
+            const normalized = rawValue.trim().toLowerCase();
+            if (["true", "1", "yes", "on"].includes(normalized)) {
+                return true;
+            }
+            if (["false", "0", "no", "off"].includes(normalized)) {
+                return false;
+            }
+        }
+        this.logger.warn(`${this.logName}: Typeahead migration received malformed '${fieldName}' value, using safe default.`);
+        return defaultValue;
+    }
+
+    private coerceLegacyTypeaheadValue(
+        rawValue: unknown,
+        valueMode: "value" | "optionObject",
+        labelField: string
+    ): TypeaheadInputFieldModelConfig["value"] {
+        if (rawValue === undefined || rawValue === null || rawValue === "") {
+            return null;
+        }
+
+        if (valueMode === "value") {
+            if (typeof rawValue === "string") {
+                return rawValue;
+            }
+            if (typeof rawValue === "object") {
+                const source = rawValue as Record<string, unknown>;
+                const candidate = String(source[labelField] ?? source.title ?? source.label ?? source.value ?? "").trim();
+                if (candidate) {
+                    return candidate;
+                }
+            }
+            this.logger.warn(`${this.logName}: Typeahead migration coerced malformed legacy value to null.`);
+            return null;
+        }
+
+        if (typeof rawValue === "string") {
+            return {
+                label: rawValue,
+                value: rawValue,
+                sourceType: "freeText"
+            };
+        }
+        if (typeof rawValue === "object") {
+            const source = rawValue as Record<string, unknown>;
+            const label = String(source.label ?? source[labelField] ?? source.title ?? source.value ?? "").trim();
+            const value = String(source.value ?? source[labelField] ?? source.label ?? source.title ?? "").trim();
+            if (!label && !value) {
+                this.logger.warn(`${this.logName}: Typeahead migration coerced malformed legacy object value to null.`);
+                return null;
+            }
+            const sourceType = String(source.sourceType ?? "").trim();
+            const normalizedSourceType = ["static", "vocabulary", "namedQuery", "freeText"].includes(sourceType)
+                ? sourceType as "static" | "vocabulary" | "namedQuery" | "freeText"
+                : undefined;
+            return {
+                label: label || value,
+                value: value || label,
+                sourceType: normalizedSourceType
+            };
+        }
+
+        this.logger.warn(`${this.logName}: Typeahead migration coerced malformed legacy value to null.`);
+        return null;
+    }
+
+    private warnOnDroppedLegacyTypeaheadProperties(definition: Record<string, unknown>): void {
+        const droppedProps = [
+            "forceClone",
+            "completerService",
+            "lookupService",
+            "publish",
+            "subscribe",
+            "disableLookupIcon",
+            "searchFields",
+            "fieldNames",
+            "titleFieldDelim"
+        ];
+        for (const key of droppedProps) {
+            if (Object.hasOwn(definition, key) && definition[key] !== undefined && definition[key] !== null && definition[key] !== "") {
+                this.logger.warn(`${this.logName}: Typeahead migration dropped legacy property '${key}' at ${JSON.stringify(this.v4FormPath)}.`);
+            }
+        }
     }
 
     private isLegacyAndsVocabField(field: Record<string, unknown>): boolean {

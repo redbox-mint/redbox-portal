@@ -16,6 +16,7 @@ import {CheckboxInputComponent, CheckboxInputModel} from "./component/checkbox-i
 import {RadioInputComponent, RadioInputModel} from "./component/radio-input.component";
 import {DateInputComponent, DateInputModel} from "./component/date-input.component";
 import {CheckboxTreeComponent, CheckboxTreeModel} from "./component/checkbox-tree.component";
+import {TypeaheadInputComponent, TypeaheadInputModel} from "./component/typeahead-input.component";
 import {FormFieldBaseComponent, FormFieldModel} from "@researchdatabox/portal-ng-common";
 import {
   StaticComponentClassMapGenType,
@@ -23,10 +24,12 @@ import {
   StaticLayoutClassMapGenType, RepeatableModelName, TextAreaModelName, SimpleInputModelName, CheckboxInputModelName,
   DropdownInputModelName, RadioInputModelName, DateInputModelName, GroupFieldModelName,
   CheckboxTreeModelName,
+  TypeaheadInputModelName,
   RepeatableComponentName, SaveButtonComponentName, TextAreaComponentName, ContentComponentName,
   SimpleInputComponentName, ValidationSummaryComponentName, TabContentComponentName, TabComponentName,
   CheckboxInputComponentName, DropdownInputComponentName, RadioInputComponentName, DateInputComponentName,
   CheckboxTreeComponentName,
+  TypeaheadInputComponentName,
   GroupFieldComponentName,
   TabLayoutName, TabContentLayoutName, RepeatableElementLayoutName, DefaultLayoutName, StaticClassMapType,
 } from "@researchdatabox/sails-ng-common";
@@ -52,6 +55,7 @@ export const StaticComponentClassMap: StaticComponentClassMapType = {
   [RadioInputComponentName]: RadioInputComponent,
   [DateInputComponentName]: DateInputComponent,
   [CheckboxTreeComponentName]: CheckboxTreeComponent,
+  [TypeaheadInputComponentName]: TypeaheadInputComponent,
 };
 
 /*
@@ -69,7 +73,8 @@ export const StaticModelClassMap: StaticModelClassMapType = {
   [DropdownInputModelName]: DropdownInputModel,
   [RadioInputModelName]: RadioInputModel,
   [DateInputModelName]: DateInputModel,
-  [CheckboxTreeModelName]: CheckboxTreeModel
+  [CheckboxTreeModelName]: CheckboxTreeModel,
+  [TypeaheadInputModelName]: TypeaheadInputModel
 };
 
 /*

@@ -200,6 +200,100 @@ const formConfig: FormConfigFrame = {
                                     }
                                 },
                                 {
+                                    name: 'lookahead_1',
+                                    layout: {
+                                        class: 'DefaultLayout',
+                                        config: {
+                                            label: 'Lookahead example',
+                                            helpText: 'Type to filter static options in a typeahead field.',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'TypeaheadInputModel',
+                                        config: {
+                                            defaultValue: 'option2',
+                                        }
+                                    },
+                                    component: {
+                                        class: 'TypeaheadInputComponent',
+                                        config: {
+                                            sourceType: 'static',
+                                            staticOptions: [
+                                                { label: 'Option 1', value: 'option1' },
+                                                { label: 'Option 2', value: 'option2' },
+                                                { label: 'Option 3', value: 'option3' },
+                                                { label: 'Another Option', value: 'another-option' },
+                                            ],
+                                            placeholder: 'Start typing to search...',
+                                            minChars: 1,
+                                            debounceMs: 200,
+                                            maxResults: 10,
+                                            allowFreeText: false,
+                                            valueMode: 'value',
+                                        }
+                                    }
+                                },
+                                {
+                                    name: 'lookahead_party_1',
+                                    layout: {
+                                        class: 'DefaultLayout',
+                                        config: {
+                                            label: 'Party lookup',
+                                            helpText: 'Type to search party records via named query.',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'TypeaheadInputModel',
+                                        config: {
+                                            defaultValue: null,
+                                        }
+                                    },
+                                    component: {
+                                        class: 'TypeaheadInputComponent',
+                                        config: {
+                                            sourceType: 'namedQuery',
+                                            queryId: 'party',
+                                            labelField: 'metadata.fullName',
+                                            valueField: 'oid',
+                                            placeholder: 'Start typing a party name...',
+                                            minChars: 1,
+                                            debounceMs: 250,
+                                            maxResults: 25,
+                                            allowFreeText: false,
+                                            valueMode: 'value',
+                                        }
+                                    }
+                                },
+                                {
+                                    name: 'lookahead_vocab_1',
+                                    layout: {
+                                        class: 'DefaultLayout',
+                                        config: {
+                                            label: 'ANZSRC ToA lookup',
+                                            helpText: 'Type to search vocabulary entries from anzsrc-toa.',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'TypeaheadInputModel',
+                                        config: {
+                                            defaultValue: null,
+                                        }
+                                    },
+                                    component: {
+                                        class: 'TypeaheadInputComponent',
+                                        config: {
+                                            sourceType: 'vocabulary',
+                                            vocabRef: 'anzsrc-toa',
+                                            placeholder: 'Start typing a ToA term...',
+                                            minChars: 1,
+                                            debounceMs: 250,
+                                            maxResults: 25,
+                                            allowFreeText: false,
+                                            valueMode: 'value',
+                                        }
+                                    }
+                                },
+                                {
                                     name: 'checkbox_1',
                                     layout: {
                                         class: 'DefaultLayout',

@@ -33,6 +33,7 @@ export interface RecordsService {
   getRecordAudit(params: unknown): Promise<Record<string, unknown>[]>;
   getRelatedRecords(oid: unknown, brand: unknown): Promise<unknown>;
   exportAllPlans(username: unknown, roles: AnyRecord[], brand: unknown, format: unknown, modBefore: unknown, modAfter: unknown, recType: unknown): unknown;
+  bootstrapData(): Promise<void>;
   // Probably to be retired or reimplemented in a different service
   checkRedboxRunning(): Promise<unknown>;
   handleUpdateDataStream(oid: unknown, emptyDatastreamRecord: RecordInput, metadata: AnyRecord): void;

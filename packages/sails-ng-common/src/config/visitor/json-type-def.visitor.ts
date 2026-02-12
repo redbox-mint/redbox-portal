@@ -61,6 +61,11 @@ import {
     DropdownInputFormComponentDefinitionOutline
 } from "../component/dropdown-input.outline";
 import {
+    TypeaheadInputFieldComponentDefinitionOutline,
+    TypeaheadInputFieldModelDefinitionOutline,
+    TypeaheadInputFormComponentDefinitionOutline
+} from "../component/typeahead-input.outline";
+import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline,
     RadioInputFormComponentDefinitionOutline
@@ -89,12 +94,14 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
 
     private jsonTypeDefPath: LineagePath;
     private jsonTypeDef: Record<string, unknown>;
+    private typeaheadValueModesByJsonPath: Map<string, "value" | "optionObject">;
     private formPathHelper: FormPathHelper;
 
     constructor(logger: ILogger) {
         super(logger);
         this.jsonTypeDefPath = [];
         this.jsonTypeDef = {};
+        this.typeaheadValueModesByJsonPath = new Map<string, "value" | "optionObject">();
         this.formPathHelper = new FormPathHelper(logger, this);
     }
 
@@ -106,6 +113,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     start(options: { form: FormConfigOutline }): Record<string, unknown> {
         this.jsonTypeDefPath = [];
         this.jsonTypeDef = {};
+        this.typeaheadValueModesByJsonPath = new Map<string, "value" | "optionObject">();
         this.formPathHelper.reset();
 
         options.form.accept(this);
@@ -306,6 +314,35 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Typeahead Input */
+
+    visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
+        const jsonPathKey = this.jsonTypeDefPath.join("/");
+        this.typeaheadValueModesByJsonPath.set(jsonPathKey, item.config?.valueMode === "optionObject" ? "optionObject" : "value");
+    }
+
+    visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
+        const jsonPathKey = this.jsonTypeDefPath.join("/");
+        const valueMode = this.typeaheadValueModesByJsonPath.get(jsonPathKey) ?? "value";
+        if (valueMode === "optionObject") {
+            _set(this.jsonTypeDef, this.jsonTypeDefPath, {
+                properties: {
+                    label: {type: "string"},
+                    value: {type: "string"}
+                },
+                optionalProperties: {
+                    sourceType: {type: "string"}
+                }
+            });
+            return;
+        }
+        this.setFromModelDefinition(item);
+    }
+
+    visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

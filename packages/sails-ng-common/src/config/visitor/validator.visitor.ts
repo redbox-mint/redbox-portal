@@ -71,6 +71,11 @@ import {
     DropdownInputFormComponentDefinitionOutline
 } from "../component/dropdown-input.outline";
 import {
+    TypeaheadInputFieldComponentDefinitionOutline,
+    TypeaheadInputFieldModelDefinitionOutline,
+    TypeaheadInputFormComponentDefinitionOutline
+} from "../component/typeahead-input.outline";
+import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline,
     RadioInputFormComponentDefinitionOutline
@@ -327,6 +332,67 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Typeahead Input */
+
+    visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
+        const configErrors: FormValidatorSummaryErrors["errors"] = [];
+        const config = item.config;
+        const sourceType = config?.sourceType;
+
+        if (!sourceType || !["static", "vocabulary", "namedQuery"].includes(sourceType)) {
+            configErrors.push({
+                class: "typeaheadSourceType",
+                message: "@validator-error-typeahead-source-type",
+                params: {sourceType}
+            });
+        }
+
+        if (sourceType === "static" && (!Array.isArray(config?.staticOptions) || config.staticOptions.length === 0)) {
+            configErrors.push({
+                class: "typeaheadStaticOptions",
+                message: "@validator-error-typeahead-static-options",
+                params: {sourceType}
+            });
+        }
+        if (sourceType === "vocabulary" && !String(config?.vocabRef ?? "").trim()) {
+            configErrors.push({
+                class: "typeaheadVocabRef",
+                message: "@validator-error-typeahead-vocab-ref",
+                params: {sourceType}
+            });
+        }
+        if (sourceType === "namedQuery" && !String(config?.queryId ?? "").trim()) {
+            configErrors.push({
+                class: "typeaheadQueryId",
+                message: "@validator-error-typeahead-query-id",
+                params: {sourceType}
+            });
+        }
+        if (config?.multiSelect === true) {
+            configErrors.push({
+                class: "typeaheadMultiSelect",
+                message: "@validator-error-typeahead-multi-select-unsupported",
+                params: {multiSelect: true}
+            });
+        }
+
+        if (configErrors.length > 0) {
+            this.validationErrors.push({
+                id: String(this.formPathHelper.formPath.angularComponents?.[this.formPathHelper.formPath.angularComponents.length - 1] ?? ""),
+                message: item?.config?.label ?? "TypeaheadInput configuration",
+                errors: configErrors,
+                lineagePaths: buildLineagePaths(this.formPathHelper.formPath)
+            });
+        }
+    }
+
+    visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
+    }
+
+    visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

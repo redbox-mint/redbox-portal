@@ -695,8 +695,12 @@ export const recordtype: RecordTypeConfig = {
                             parseObject: false,
                             templates: [
                                 {
-                                    field: "metadata.title",
-                                    template: "<%= _.get(record, 'metadata.JOB_TITLE') %>"
+                                    field: "metadata.fullName",
+                                    template: "<%= _.get(record, 'metadata.givenName', '') + ' ' + _.get(record, 'metadata.surname', '') %>"
+                                },
+                                {
+                                    field: "metadata.l_fullName",
+                                    template: "<%= _.toLower(_.get(record, 'metadata.fullName', '')) %>"
                                 }
                             ]
                         }
@@ -711,8 +715,12 @@ export const recordtype: RecordTypeConfig = {
                             parseObject: false,
                             templates: [
                                 {
-                                    field: "metadata.title",
-                                    template: "<%= _.get(record, 'metadata.JOB_TITLE') %>"
+                                    field: "metadata.fullName",
+                                    template: "<%= _.get(record, 'metadata.givenName', '') + ' ' + _.get(record, 'metadata.surname', '') %>"
+                                },
+                                {
+                                    field: "metadata.l_fullName",
+                                    template: "<%= _.toLower(_.get(record, 'metadata.fullName', '')) %>"
                                 }
                             ]
                         }

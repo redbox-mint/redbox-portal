@@ -108,7 +108,7 @@ import { policies, PoliciesConfig } from './policies.config';
 import { session, SessionConfigOrDisabled } from './session.config';
 import { views, ViewsConfig } from './views.config';
 import { routes, RoutesConfig } from './routes.config';
-import { BootstrapFunction } from './bootstrap.config';
+import { BootstrapConfig } from './bootstrap.config';
 // Feature config imports
 import { queue, QueueConfig } from './queue.config';
 import { storage, StorageConfig } from './storage.config';
@@ -213,7 +213,7 @@ export interface SailsConfig {
     session: SessionConfigOrDisabled;
     views: ViewsConfig;
     routes: RoutesConfig;
-    bootstrap: BootstrapFunction;
+    bootstrap: BootstrapConfig;
 
     // Feature configs
     queue: QueueConfig;

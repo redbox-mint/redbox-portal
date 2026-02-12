@@ -11,6 +11,8 @@ export type BootstrapFunction = (done: (err?: Error) => void) => Promise<void> |
 export interface BootstrapConfig {
     /** Bootstrap function that runs before Sails app lifts */
     bootstrap?: BootstrapFunction;
+    /** Base directory used for development/test bootstrap seed data */
+    bootstrapDataPath?: string;
 }
 
 // Note: Default values contain async runtime code.

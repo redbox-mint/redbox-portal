@@ -46,6 +46,7 @@ x-rbportal-service: &rbportal-service
     - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
     - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
     - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+    - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
   depends_on: *rbportal-depends
   expose:
     - "1500"
@@ -73,6 +74,7 @@ services:
       - "../../.tmp/attachments:/attachments"
       - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
       - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
+      - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
   mongodb:
     image: mongo:latest
     pull_policy: 'always'

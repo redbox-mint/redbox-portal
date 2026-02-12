@@ -10,6 +10,7 @@ export interface NamedQueryParam {
     whenUndefined: 'defaultValue' | 'ignore';
     defaultValue?: string;
     format?: 'days' | 'ISODate';
+    template?: string;
 }
 
 export interface NamedQueryDefinition {
@@ -344,6 +345,32 @@ export const namedQuery: NamedQueryConfig = {
             'userType': {
                 type: 'string',
                 path: 'type',
+                whenUndefined: 'ignore'
+            }
+        }
+    },
+    'listParties': {
+        collectionName: 'record',
+        brandIdFieldPath: 'metaMetadata.brandId',
+        resultObjectMapping: {
+            'fullName': '<%= record.metadata.fullName %>',
+            'l_fullName': '<%= record.metadata.l_fullName %>',
+            'email': '<%= record.metadata.email %>',
+            'givenName': '<%= record.metadata.givenName %>',
+            'surname': '<%= record.metadata.surname %>',
+            'orcid': '<%= record.metadata.orcid %>',
+        },
+        mongoQuery: {
+            'metaMetadata.type': 'party',
+            'metadata.l_fullName': null
+        },
+        sort: [{ "metadata.l_text_full_name": "ASC" }],
+        queryParams: {
+            'search': {
+                type: 'string',
+                path: 'metadata.l_fullName',
+                template: '<%= _.toLower(value) %>',
+                queryType: 'contains',
                 whenUndefined: 'ignore'
             }
         }

@@ -72,6 +72,8 @@ export * from "./config/component/date-input.model";
 export * from "./config/component/date-input.outline";
 export * from "./config/component/checkbox-tree.model";
 export * from "./config/component/checkbox-tree.outline";
+export * from "./config/component/typeahead-input.model";
+export * from "./config/component/typeahead-input.outline";
 // validation
 export * from "./validation/helpers";
 export * from "./validation/form.model";
