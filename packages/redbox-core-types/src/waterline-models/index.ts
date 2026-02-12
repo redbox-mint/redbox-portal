@@ -16,6 +16,8 @@ export * from './Role';
 export * from './ThemeConfig';
 export * from './User';
 export * from './UserAudit';
+export * from './Vocabulary';
+export * from './VocabularyEntry';
 export * from './WorkflowStep';
 export * from './WorkspaceApp';
 export * from './WorkspaceAsync';
@@ -40,6 +42,8 @@ import { RoleWLDef } from './Role';
 import { ThemeConfigWLDef } from './ThemeConfig';
 import { UserWLDef } from './User';
 import { UserAuditWLDef } from './UserAudit';
+import { VocabularyWLDef } from './Vocabulary';
+import { VocabularyEntryWLDef } from './VocabularyEntry';
 import { WorkflowStepWLDef } from './WorkflowStep';
 import { WorkspaceAppWLDef } from './WorkspaceApp';
 import { WorkspaceAsyncWLDef } from './WorkspaceAsync';
@@ -67,6 +71,8 @@ export const WaterlineModels = {
   ThemeConfig: ThemeConfigWLDef,
   User: UserWLDef,
   UserAudit: UserAuditWLDef,
+  Vocabulary: VocabularyWLDef,
+  VocabularyEntry: VocabularyEntryWLDef,
   WorkflowStep: WorkflowStepWLDef,
   WorkspaceApp: WorkspaceAppWLDef,
   WorkspaceAsync: WorkspaceAsyncWLDef,

@@ -185,11 +185,12 @@ export class VocabField extends FieldBase<any> {
 
   initLookupData() {
     if (this.sourceType == "vocab") {
+      const availableSourceData = this.findAvailableSourceData(this.sourceData);
       // Hack for creating the intended title...
-      _.forEach(this.sourceData, (data: any) => {
+      _.forEach(availableSourceData, (data: any) => {
         data.title = this.getTitle(data);
       });
-      this.dataService = this.completerService.local(this.sourceData, this.searchFields, 'title');
+      this.dataService = this.completerService.local(availableSourceData, this.searchFields, 'title');
     } else if (this.sourceType == "collection" || this.sourceType == "user") {
       let url = this.lookupService.getCollectionRootUrl(this.vocabId);
       if (this.sourceType == "user") {
@@ -241,6 +242,120 @@ export class VocabField extends FieldBase<any> {
         this.completerLabelField
       );
     }
+  }
+
+  private findAvailableSourceData(sourceData: any): any[] {
+    if (!_.isArray(sourceData)) {
+      return [];
+    }
+    return _.filter(sourceData, (option: any) => this.isOptionAvailable(option));
+  }
+
+  private isOptionAvailable(option: any): boolean {
+    if (!this.isHistoricalOption(option)) {
+      return true;
+    }
+    return this.optionMatchesCurrentValue(option);
+  }
+
+  private isHistoricalOption(option: any): boolean {
+    return _.get(option, 'historical') === true || _.get(option, 'historicalOnly') === true;
+  }
+
+  private optionMatchesCurrentValue(option: any): boolean {
+    if (_.isNil(this.value) || _.isEmpty(this.value)) {
+      return false;
+    }
+
+    const mappedOptionValue = this.getValue(option);
+    if (this.currentValueContainsMappedValue(this.value, mappedOptionValue)) {
+      return true;
+    }
+
+    const optionCandidates = this.collectComparisonValues(option, ['value', 'notation', 'identifier', 'id', 'uri']);
+    if (_.isEmpty(optionCandidates)) {
+      return false;
+    }
+    const currentCandidates = this.collectComparisonValues(this.value);
+    return _.some(optionCandidates, candidate => _.includes(currentCandidates, candidate));
+  }
+
+  private currentValueContainsMappedValue(currentValue: any, mappedValue: any): boolean {
+    if (_.isNil(mappedValue) || _.isEmpty(mappedValue) || _.isNil(currentValue) || _.isEmpty(currentValue)) {
+      return false;
+    }
+
+    if (_.isArray(currentValue)) {
+      return _.some(currentValue, (entry: any) => this.currentValueContainsMappedValue(entry, mappedValue));
+    }
+
+    if (_.isObject(mappedValue) && !_.isArray(mappedValue)) {
+      if (!_.isObject(currentValue) || _.isArray(currentValue)) {
+        return false;
+      }
+      const keys = _.keys(mappedValue).filter((key: string) => !_.isNil(mappedValue[key]) && String(mappedValue[key]).trim() !== '');
+      if (_.isEmpty(keys)) {
+        return false;
+      }
+      return _.every(keys, (key: string) => this.compareFieldValue((currentValue as any)[key], mappedValue[key]));
+    }
+
+    return this.compareFieldValue(currentValue, mappedValue);
+  }
+
+  private compareFieldValue(current: any, expected: any): boolean {
+    if (_.isArray(current)) {
+      return _.some(current, (entry: any) => this.compareFieldValue(entry, expected));
+    }
+
+    const normalizedCurrent = this.normalizeComparisonValue(current);
+    const normalizedExpected = this.normalizeComparisonValue(expected);
+    if (_.isNil(normalizedCurrent) || _.isNil(normalizedExpected)) {
+      return false;
+    }
+
+    return normalizedCurrent === normalizedExpected;
+  }
+
+  private collectComparisonValues(value: any, preferredKeys: string[] = []): string[] {
+    const result = new Set<string>();
+    const visit = (candidate: any): void => {
+      if (_.isNil(candidate)) {
+        return;
+      }
+      if (_.isArray(candidate)) {
+        _.forEach(candidate, visit);
+        return;
+      }
+      if (_.isObject(candidate)) {
+        _.forOwn(candidate, (entryValue: any) => visit(entryValue));
+        return;
+      }
+      const normalized = this.normalizeComparisonValue(candidate);
+      if (!_.isNil(normalized)) {
+        result.add(normalized);
+      }
+    };
+
+    if (_.isObject(value) && !_.isArray(value) && !_.isEmpty(preferredKeys)) {
+      _.forEach(preferredKeys, (key: string) => {
+        const normalized = this.normalizeComparisonValue(_.get(value, key));
+        if (!_.isNil(normalized)) {
+          result.add(normalized);
+        }
+      });
+    }
+
+    visit(value);
+    return Array.from(result);
+  }
+
+  private normalizeComparisonValue(value: any): string | null {
+    if (_.isNil(value) || _.isObject(value)) {
+      return null;
+    }
+    const normalized = String(value).trim();
+    return _.isEmpty(normalized) ? null : normalized;
   }
 
   public getTitle(data: any): string {

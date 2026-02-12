@@ -260,7 +260,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
+            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
       - run:
           name: Setup test directories
           command: |
@@ -400,7 +400,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido
+            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva
       - run:
           name: Install packages
           command: |

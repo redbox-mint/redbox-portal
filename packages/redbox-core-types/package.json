@@ -17,6 +17,7 @@
   "license": "ISC",
   "dependencies": {
     "@researchdatabox/raido-openapi-generated-node": "file:../raido",
+    "@researchdatabox/rva-registry-openapi-generated-node": "file:../rva-registry",
     "@researchdatabox/sails-ng-common": "file:../sails-ng-common",
     "@types/dompurify": "^3.2.0",
     "@types/express": "^4.17.21",

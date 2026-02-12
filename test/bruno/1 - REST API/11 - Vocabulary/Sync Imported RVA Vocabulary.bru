@@ -1,0 +1,34 @@
+meta {
+  name: Sync Imported RVA Vocabulary
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/default/rdmp/api/vocabulary/{{rvaVocabularyId}}/sync
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Sync response includes counters", function () {
+    const jsonData = res.getBody();
+    const data = jsonData?.data || jsonData;
+    expect(data).to.be.an('object');
+    expect(data.created).to.be.a('number');
+    expect(data.updated).to.be.a('number');
+    expect(data.skipped).to.be.a('number');
+  });
+}

@@ -31,6 +31,14 @@ export namespace Services {
   type VocabUserContext = Record<string, unknown> & { additionalInfoFound?: AdditionalInfoRecord[]; additionalAttributes?: Record<string, unknown>; name?: string };
   type MintTriggerOptions = { sourceType?: string; queryString?: string; fieldsToMap?: string[] };
   type ExternalServiceParams = { options: Record<string, unknown>; postBody?: unknown };
+  type ManagedVocabulary = { id: string | number };
+  type ManagedVocabularyEntry = {
+    label?: unknown;
+    value?: unknown;
+    identifier?: unknown;
+    historical?: unknown;
+  };
+  type ManagedVocabOption = { uri: string; notation: string; label: string; historical: boolean };
   /**
    * Vocab related services...
    *
@@ -314,26 +322,79 @@ export namespace Services {
             sails.log.verbose(`Returning cached vocab: ${vocabId}`);
             return of(data);
           }
-          if (sails.config.vocab.nonAnds && sails.config.vocab.nonAnds[vocabId]) {
-            return this.getNonAndsVocab(vocabId);
-          }
-          const url = `${sails.config.vocab.rootUrl}${vocabId}/${sails.config.vocab.conceptUri}`;
-          let items: Array<{ uri: string; notation: string; label: string }> | null = null; // a flat array containing all the entries
-          const rawItems: Array<unknown> = [];
-          return this.getConcepts(url, rawItems).pipe(
-            flatMap(allRawItems => {
-              // we only are interested in notation, label and the uri
-              items = _.map(allRawItems, (rawItem: unknown) => {
-                const rawItemObj = rawItem as Record<string, unknown>;
-                const prefLabel = rawItemObj.prefLabel as { _value?: string } | undefined;
-                return { uri: rawItemObj._about as string, notation: rawItemObj.notation as string, label: prefLabel?._value ?? '' };
-              });
-              CacheService.set(vocabId, items);
-              return of(items);
+          return from(this.getManagedVocabulary(vocabId)).pipe(
+            flatMap((managedVocabulary) => {
+              if (managedVocabulary) {
+                CacheService.set(vocabId, managedVocabulary);
+                return of(managedVocabulary);
+              }
+
+              if (sails.config.vocab.nonAnds && sails.config.vocab.nonAnds[vocabId]) {
+                return this.getNonAndsVocab(vocabId);
+              }
+              const url = `${sails.config.vocab.rootUrl}${vocabId}/${sails.config.vocab.conceptUri}`;
+              let items: Array<{ uri: string; notation: string; label: string }> | null = null; // a flat array containing all the entries
+              const rawItems: Array<unknown> = [];
+              return this.getConcepts(url, rawItems).pipe(
+                flatMap(allRawItems => {
+                  // we only are interested in notation, label and the uri
+                  items = _.map(allRawItems, (rawItem: unknown) => {
+                    const rawItemObj = rawItem as Record<string, unknown>;
+                    const prefLabel = rawItemObj.prefLabel as { _value?: string } | undefined;
+                    return { uri: rawItemObj._about as string, notation: rawItemObj.notation as string, label: prefLabel?._value ?? '' };
+                  });
+                  CacheService.set(vocabId, items);
+                  return of(items);
+                })
+              );
             })
           );
         })
       );
+    }
+
+    private async getManagedVocabulary(vocabId: string): Promise<ManagedVocabOption[] | null> {
+      const vocabularyModel = (global as unknown as { Vocabulary?: { findOne: (criteria: unknown) => Promise<ManagedVocabulary | null> } }).Vocabulary;
+      const vocabularyEntryModel = (global as unknown as { VocabularyEntry?: { find: (criteria: unknown) => { sort: (value: string) => { sort: (value: string) => Promise<ManagedVocabularyEntry[]> } } } }).VocabularyEntry;
+
+      if (!vocabularyModel?.findOne || !vocabularyEntryModel?.find) {
+        return null;
+      }
+
+      const normalizedId = String(vocabId ?? '').trim();
+      if (!normalizedId) {
+        return null;
+      }
+
+      const vocabulary = await vocabularyModel.findOne({
+        or: [{ id: normalizedId }, { slug: normalizedId }, { name: normalizedId }]
+      });
+      if (!vocabulary?.id) {
+        return null;
+      }
+
+      const entries = await vocabularyEntryModel
+        .find({ vocabulary: vocabulary.id })
+        .sort('order ASC')
+        .sort('label ASC');
+
+      return entries.map((entry) => ({
+        uri: String(entry.identifier ?? entry.value ?? ''),
+        notation: String(entry.value ?? ''),
+        label: String(entry.label ?? ''),
+        historical: this.toBoolean(entry.historical)
+      }));
+    }
+
+    private toBoolean(value: unknown): boolean {
+      if (typeof value === 'boolean') {
+        return value;
+      }
+      if (typeof value === 'number') {
+        return value !== 0;
+      }
+      const normalized = String(value ?? '').trim().toLowerCase();
+      return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
     }
 
     // have to do this since ANDS endpoint ignores _pageSize
