@@ -30,6 +30,7 @@ export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig imp
     vocabRef?: string;
     queryId?: string;
     labelField?: string;
+    labelTemplate?: string;
     valueField?: string;
     minChars = 2;
     debounceMs = 250;

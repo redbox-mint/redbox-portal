@@ -1,10 +1,11 @@
-import { Component, DestroyRef, inject, Input } from "@angular/core";
+import { Component, DestroyRef, inject, Injector, Input } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormControl } from "@angular/forms";
 import {
     FormFieldBaseComponent,
     FormFieldCompMapEntry,
-    FormFieldModel
+    FormFieldModel,
+    HandlebarsTemplateService
 } from "@researchdatabox/portal-ng-common";
 import {
     TypeaheadInputComponentName,
@@ -15,6 +16,7 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import { TypeaheadMatch } from "ngx-bootstrap/typeahead";
 import { defer, from, Observable } from "rxjs";
+import { FormComponent } from "../form.component";
 import { TypeaheadDataService } from "../service/typeahead-data.service";
 
 type TypeaheadStatus = "idle" | "loading" | "no-results" | "error" | "misconfigured";
@@ -100,7 +102,12 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     private staticOptions: TypeaheadOption[] = [];
     private cache = new Map<string, TypeaheadOption[]>();
     private programmaticDisplayUpdate = false;
+    private labelTemplate = "";
+    private labelTemplatePath: (string | number)[] = [];
+    private compiledItems?: { evaluate: (key: (string | number)[], context: unknown, extra?: unknown) => unknown };
     private readonly destroyRef = inject(DestroyRef);
+    private readonly injector = inject(Injector);
+    private readonly handlebarsTemplateService = inject(HandlebarsTemplateService);
     private readonly typeaheadDataService = inject(TypeaheadDataService);
 
     public readonly displayControl = new FormControl<string>("");
@@ -109,6 +116,10 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     );
 
     @Input() public override model?: TypeaheadInputModel;
+
+    protected get getFormComponent(): FormComponent {
+        return this.injector.get(FormComponent);
+    }
 
     protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
         super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
@@ -121,6 +132,9 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
         this.queryId = String(cfg.queryId ?? "").trim();
         this.vocabRef = String(cfg.vocabRef ?? "").trim();
         this.labelField = String(cfg.labelField ?? "label").trim() || "label";
+        this.labelTemplate = String(cfg.labelTemplate ?? "").trim();
+        this.labelTemplatePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), "component", "config", "labelTemplate"];
+        this.compiledItems = undefined;
         this.valueField = String(cfg.valueField ?? "value").trim() || "value";
         this.minChars = Number.isInteger(cfg.minChars) && (cfg.minChars ?? 0) >= 0 ? Number(cfg.minChars) : 2;
         this.debounceMs = Number.isInteger(cfg.debounceMs) && (cfg.debounceMs ?? 0) >= 0 ? Number(cfg.debounceMs) : 250;
@@ -146,6 +160,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
         if (!this.validateConfiguration()) {
             return;
         }
+        await this.prepareLabelTemplate();
         await this.resolvePrepopulatedLabel();
     }
 
@@ -260,6 +275,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
                     this.valueField
                 );
             }
+            options = this.applyTemplateLabels(options);
 
             this.searchState = options.length > 0 ? "idle" : "no-results";
             if (this.cacheResults) {
@@ -346,6 +362,48 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     private setModelValue(value: TypeaheadInputModelValueType): void {
         this.model?.setValue(value);
         this.formControl.markAsTouched();
+    }
+
+    private async prepareLabelTemplate(): Promise<void> {
+        if (!this.labelTemplate) {
+            return;
+        }
+        try {
+            this.compiledItems = await this.getFormComponent.getRecordCompiledItems();
+        } catch (error) {
+            this.loggerService.warn(`${this.logName}: Unable to load compiled suggestion label template, using default labels.`, error);
+            this.compiledItems = undefined;
+        }
+    }
+
+    private applyTemplateLabels(options: TypeaheadOption[]): TypeaheadOption[] {
+        if (!this.labelTemplate || !this.compiledItems || this.labelTemplatePath.length === 0) {
+            return options;
+        }
+        return options.map((option) => {
+            const label = this.renderOptionLabel(option);
+            return {...option, label};
+        });
+    }
+
+    private renderOptionLabel(option: TypeaheadOption): string {
+        try {
+            const context = {
+                option,
+                result: option.raw ?? option,
+                raw: option.raw ?? option,
+                label: option.label,
+                value: option.value,
+                sourceType: option.sourceType
+            };
+            const extra = { libraries: this.handlebarsTemplateService.getLibraries() };
+            const rendered = this.compiledItems?.evaluate(this.labelTemplatePath, context, extra);
+            const output = String(rendered ?? "").trim();
+            return output || option.label;
+        } catch (error) {
+            this.loggerService.warn(`${this.logName}: Failed to evaluate typeahead label template.`, error);
+            return option.label;
+        }
     }
 
     private isOptionObjectValue(value: TypeaheadInputModelValueType | undefined): value is { label: string; value: string } {

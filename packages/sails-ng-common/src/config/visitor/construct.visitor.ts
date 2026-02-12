@@ -909,6 +909,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.sharedProps.setPropOverride("vocabRef", item.config, config);
         this.sharedProps.setPropOverride("queryId", item.config, config);
         this.sharedProps.setPropOverride("labelField", item.config, config);
+        this.sharedProps.setPropOverride("labelTemplate", item.config, config);
         this.sharedProps.setPropOverride("valueField", item.config, config);
         this.sharedProps.setPropOverride("minChars", item.config, config);
         this.sharedProps.setPropOverride("debounceMs", item.config, config);

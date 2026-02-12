@@ -315,6 +315,14 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     /* Typeahead Input */
 
     visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
+        const labelTemplate = (item.config?.labelTemplate ?? "").trim();
+        if (labelTemplate) {
+            this.templates?.push({
+                key: [...(this.formPathHelper.formPath.formConfig ?? []), "config", "labelTemplate"],
+                value: labelTemplate,
+                kind: "handlebars"
+            });
+        }
     }
 
     visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {

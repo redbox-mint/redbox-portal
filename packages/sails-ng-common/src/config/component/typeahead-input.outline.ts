@@ -46,6 +46,7 @@ export interface TypeaheadInputFieldComponentConfigFrame extends FieldComponentC
     vocabRef?: string;
     queryId?: string;
     labelField?: string;
+    labelTemplate?: string;
     valueField?: string;
     minChars?: number;
     debounceMs?: number;
