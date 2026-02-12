@@ -518,7 +518,7 @@ export namespace Services {
                       if (err) {
                         sails.log.error("Error updating user:");
                         sails.log.error(err);
-                        return done(err, false, { message: "Error updating file" });
+                        return done(err, false, { message: "Error updating user" });
                       }
                       if (_.isEmpty(user)) {
                         sails.log.error("No user found");
@@ -555,7 +555,7 @@ export namespace Services {
                   if (err) {
                     sails.log.error("Error updating user:");
                     sails.log.error(err);
-                    return done(err, false, { message: "Error updating file" });
+                    return done(err, false, { message: "Error updating user" });
                   }
                   if (_.isEmpty(user)) {
                     sails.log.error("No user found");

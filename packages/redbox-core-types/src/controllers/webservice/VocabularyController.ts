@@ -11,12 +11,6 @@ export namespace Controllers {
       return undefined;
     }
 
-    private resolveBrandingId(req: Sails.Req): string {
-      const brandingNameOrId = BrandingService.getBrandNameFromReq(req);
-      const branding = BrandingService.getBrand(brandingNameOrId);
-      return String(branding?.id ?? brandingNameOrId);
-    }
-
     private parseNumberParam(value: unknown, fallback: number): number {
       if (value === '' || typeof value === 'undefined' || value === null) {
         return fallback;
@@ -152,7 +146,7 @@ export namespace Controllers {
           return this.sendResp(req, res, { status: 400, errors: [new Error('rvaId is required')], headers: this.getNoCacheHeaders() });
         }
         const versionId = req.body?.versionId ? String(req.body.versionId) : undefined;
-        const created = await RvaImportService.importRvaVocabulary(rvaId, versionId, this.resolveBrandingId(req));
+        const created = await RvaImportService.importRvaVocabulary(rvaId, versionId, BrandingService.getBrandFromReq(req).id);
         return this.sendResp(req, res, { data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });

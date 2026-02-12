@@ -45,6 +45,7 @@ export namespace Controllers {
     public getResults(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
 
+      // TODO: Passing the full req object to the service layer is not ideal. We should refactor this to only pass the necessary parameters to avoid tight coupling between the controller and service layers.
       const response = from(ReportsService.getResults(brand, req.param('name'), req, Number(req.param('start')), Number(req.param('rows'))));
       return response.subscribe((responseObject: unknown) => {
         if (responseObject) {
