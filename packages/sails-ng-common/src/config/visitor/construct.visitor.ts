@@ -35,7 +35,7 @@ import {
     SimpleInputFieldComponentDefinitionFrame,
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionFrame,
-    SimpleInputFieldModelDefinitionOutline, SimpleInputFormComponentDefinitionFrame,
+    SimpleInputFieldModelDefinitionOutline,
     SimpleInputFormComponentDefinitionOutline,
     SimpleInputModelName
 } from "../component/simple-input.outline";
@@ -113,7 +113,7 @@ import {
     CheckboxInputFieldComponentDefinitionFrame,
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionFrame,
-    CheckboxInputFieldModelDefinitionOutline, CheckboxInputFormComponentDefinitionFrame,
+    CheckboxInputFieldModelDefinitionOutline,
     CheckboxInputFormComponentDefinitionOutline,
     CheckboxInputModelName
 } from "../component/checkbox-input.outline";
@@ -123,7 +123,7 @@ import {
     RadioInputFieldComponentDefinitionFrame,
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionFrame,
-    RadioInputFieldModelDefinitionOutline, RadioInputFormComponentDefinitionFrame,
+    RadioInputFieldModelDefinitionOutline,
     RadioInputFormComponentDefinitionOutline,
     RadioInputModelName
 } from "../component/radio-input.outline";
@@ -159,8 +159,7 @@ import {
     isTypeFormConfig,
 } from "../form-types.outline";
 import {
-    AllFormComponentDefinitionOutlines, AvailableFormComponentDefinitionFrames,
-    QuestionTreeFormComponentDefinitionFrames, QuestionTreeFormComponentDefinitionOutlines,
+    AllFormComponentDefinitionOutlines,
     ReusableFormDefinitions
 } from "../dictionary.outline";
 import {ILogger} from "../../logger.interface";
@@ -176,7 +175,6 @@ import {
     QuestionTreeModelName
 } from "../component/question-tree.outline";
 import {QuestionTreeFieldComponentConfig, QuestionTreeFieldModelConfig} from "../component/question-tree.model";
-import {ReusableComponentName, ReusableFormComponentDefinitionFrame} from "../component/reusable.outline";
 
 
 /**
@@ -939,10 +937,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.sharedProps.setPropOverride('questions', item.config, configFrame);
 
         // Transform the question tree questions DSL into reusable components.
-        configFrame.componentDefinitions = this.applyQuestionTreeDsl(item);
+        const formComponentName = this.formPathHelper.modelName;
+        configFrame.componentDefinitions = this.formOverride.applyQuestionTreeDsl(formComponentName, item);
 
         // Apply the reusable component overrides.
-        configFrame.componentDefinitions = this.applyQuestionTreeFrames(this.formOverride.applyOverridesReusable(configFrame?.componentDefinitions ?? [], this.reusableFormDefs));
+        configFrame.componentDefinitions = this.formOverride.applyQuestionTreeFrames(
+            this.formOverride.applyOverridesReusable(configFrame?.componentDefinitions ?? [], this.reusableFormDefs)
+        );
 
         // formOverride.applyOverridesReusable(config?.componentDefinitions ?? [], this.reusableFormDefs);
         // Visit the components
@@ -956,7 +957,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             );
 
             // After the construction is done, apply any transforms
-            const itemTransformed = this.applyQuestionTreeOutline(this.formOverride.applyOverrideTransform(formComponent, this.formMode));
+            const itemTransformed = this.formOverride.applyQuestionTreeOutline(
+                this.formOverride.applyOverrideTransform(formComponent, this.formMode)
+            );
 
             // Store the instance on the item
             item.config?.componentDefinitions.push(itemTransformed);
@@ -1146,51 +1149,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     /**
-     * Check whether the current form config path matches the
-     * most recent repeatable element template path.
-     * @protected
-     */
-    protected isMostRecentRepeatableElementTemplate(): boolean {
-        const mostRecent = this.mostRecentRepeatableElementTemplatePath ?? [];
-        const formConfig = this.formPathHelper.formPath.formConfig;
-        if (!mostRecent || mostRecent.length === 0 || !formConfig || formConfig.length === 0) {
-            return false;
-        }
-        // Either array can have 'component', 'model', 'layout' at the end and
-        // still match if the other array is one item shorter.
-        const allowedExtras: LineagePath = ["component", "model", "layout"];
-        if (mostRecent.length === formConfig.length) {
-            return mostRecent.every((value, index) => value === formConfig[index]);
-        } else if (mostRecent.length === formConfig.length - 1) {
-            return allowedExtras.includes(formConfig[formConfig.length - 1]) &&
-                mostRecent.every((value, index) => value === formConfig[index]);
-        } else if (mostRecent.length - 1 === formConfig.length) {
-            return allowedExtras.includes(mostRecent[mostRecent.length - 1]) &&
-                formConfig.every((value, index) => value === mostRecent[index]);
-        }
-        return false;
-    }
-
-    /**
-     * Check whether the current form config path is a descendant (and not a match)
-     * of the most recent repeatable element template path.
-     * @protected
-     */
-    protected isRepeatableElementTemplateDescendant(): boolean {
-        const mostRecentPath = this.mostRecentRepeatableElementTemplatePath ?? [];
-        const formConfigPath = this.formPathHelper.formPath.formConfig;
-        if (!mostRecentPath || mostRecentPath.length === 0 || !formConfigPath || formConfigPath.length === 0) {
-            return false;
-        }
-        // The formConfig path might have ["[component|model|layout]", "config"] at the end (2 additional items),
-        // but only the path up to ["config", "elementTemplate"] is relevant for this check.
-        if ((formConfigPath.length + 2) <= mostRecentPath.length) {
-            return false;
-        }
-        return mostRecentPath.every((value, index) => value === formConfigPath[index]);
-    }
-
-    /**
      * Merge the items' default value into the intermediate values.
      * @param itemName The item name.
      * @param itemDefaultValue The item's default value.
@@ -1245,150 +1203,50 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         return _get(formConfigData, formConfigPath.map(i => i.toString()))
     }
 
+    /* Additional Repeatable */
+
     /**
-     * Create reusable components from the question tree questions DSL.
-     * @param item The question tree component.
-     * @private
+     * Check whether the current form config path matches the
+     * most recent repeatable element template path.
+     * @protected
      */
-    private applyQuestionTreeDsl(item: QuestionTreeFieldComponentDefinitionOutline): QuestionTreeFormComponentDefinitionFrames[] {
-        const outcomes = item.config?.outcomes ?? {};
-        const questions = item.config?.questions ?? [];
-
-        // Prepare question and answer info to assist checking for valid structure
-        const questionIds = questions?.map(question => question.id).filter(i => !!i);
-        const questionAnswerValuesMap = Object.fromEntries(questions?.map(question => [question.id, question.answers.map(answer => answer.value)]));
-
-        const errors: string[] = [];
-        const duplicateQuestionIds = new Set(questionIds.filter((e, i, a) => a.indexOf(e) !== i));
-        if (duplicateQuestionIds.size > 0) {
-            errors.push(`Question ids must be unique, these were not ${Array.from(duplicateQuestionIds).sort().join(', ')}.`);
+    protected isMostRecentRepeatableElementTemplate(): boolean {
+        const mostRecent = this.mostRecentRepeatableElementTemplatePath ?? [];
+        const formConfig = this.formPathHelper.formPath.formConfig;
+        if (!mostRecent || mostRecent.length === 0 || !formConfig || formConfig.length === 0) {
+            return false;
         }
-
-        const result: QuestionTreeFormComponentDefinitionFrames[] = [];
-        questions.forEach((question, questionIndex) => {
-            const id = question.id;
-            const answersMin = question.answersMin;
-            const answersMax = question.answersMax;
-            const answers = question.answers;
-            const rules = question.rules;
-
-            // validate question structure
-            if (!id) {
-                errors.push(`Question ${questionIndex + 1} has no id.`);
-            }
-            if (answersMin < 1 || answersMax < 1 || answersMin > answersMax) {
-                errors.push(`Question ${questionIndex + 1} '${id}' answer min (${answersMin}) must be 1 or greater and less than max (${answersMax}).`);
-            }
-            if (answers.length < 1) {
-                errors.push(`Question ${questionIndex + 1} '${id}' must have at least one answer.`);
-            }
-            if (Object.keys(rules).length === 0) {
-                rules["op"] = "true";
-            }
-
-            // All answer outcome property keys and values must match a defined outcome.
-            answers.forEach((answer, answerIndex) => {
-                const outcome = answer.outcome ?? {};
-                for (const [outcomeKey, outcomeValue] of Object.entries(outcome)) {
-                    if (!(outcomeKey in outcomes)) {
-                        errors.push(`Question ${questionIndex + 1} '${id}' answer ${answerIndex + 1} '${answer.value}' outcome has an unknown key '${outcomeKey}'.`);
-                    }
-                    if (!(outcomeValue in outcomes[outcomeKey])) {
-                        errors.push(`Question ${questionIndex + 1} '${id}' answer ${answerIndex + 1} '${answer.value}' outcome has an unknown value '${outcomeValue}' for key '${outcomeKey}'.`);
-                    }
-                }
-            });
-
-            // build reusable component
-            const hasOneAnswer = answersMax === 1;
-            const componentAnswerOne: QuestionTreeFormComponentDefinitionFrames = {
-                overrides: {reusableFormName: "questiontree-answer-one"},
-                name: "",
-                component: {
-                    class: "ReusableComponent", config: {
-                        componentDefinitions: [
-                            {
-                                name: "questiontree_answer_one",
-                                overrides: {replaceName: id},
-                                layout: {class: "DefaultLayout", config: {label: id}},
-                                component: {class: "RadioInputComponent", config: {options: []}}
-                            }
-                        ]
-                    }
-                }
-            };
-            const componentAnswerMore: QuestionTreeFormComponentDefinitionFrames = {
-                overrides: {reusableFormName: "questiontree-answer-one-more"},
-                name: "",
-                component: {
-                    class: "ReusableComponent", config: {
-                        componentDefinitions: [
-                            {
-                                name: "questiontree_answer_one_more",
-                                overrides: {replaceName: id},
-                                layout: {class: "DefaultLayout", config: {label: id}},
-                                component: {class: "CheckboxInputComponent", config: {options: []}}
-                            }
-                        ]
-                    }
-                }
-            };
-            result.push(hasOneAnswer ? componentAnswerOne : componentAnswerMore);
-
-
-        });
-
-        if (errors.length > 0) {
-            throw new Error(`${this.logName}: Question tree is not valid: ${errors.join(' ')}`);
+        // Either array can have 'component', 'model', 'layout' at the end and
+        // still match if the other array is one item shorter.
+        const allowedExtras: LineagePath = ["component", "model", "layout"];
+        if (mostRecent.length === formConfig.length) {
+            return mostRecent.every((value, index) => value === formConfig[index]);
+        } else if (mostRecent.length === formConfig.length - 1) {
+            return allowedExtras.includes(formConfig[formConfig.length - 1]) &&
+                mostRecent.every((value, index) => value === formConfig[index]);
+        } else if (mostRecent.length - 1 === formConfig.length) {
+            return allowedExtras.includes(mostRecent[mostRecent.length - 1]) &&
+                formConfig.every((value, index) => value === mostRecent[index]);
         }
-
-        return result;
+        return false;
     }
 
     /**
-     * Check that only the allowed form component frames have been used.
-     * @param items The form components after reusable components have been applied.
-     * @private
+     * Check whether the current form config path is a descendant (and not a match)
+     * of the most recent repeatable element template path.
+     * @protected
      */
-    private applyQuestionTreeFrames(items: AvailableFormComponentDefinitionFrames[]): QuestionTreeFormComponentDefinitionFrames[] {
-        const result: QuestionTreeFormComponentDefinitionFrames[] = [];
-        for (const item of items) {
-            if (isTypeFormComponentDefinitionName<SimpleInputFormComponentDefinitionFrame>(item, SimpleInputComponentName)) {
-                result.push(item);
-                continue;
-            }
-            if (isTypeFormComponentDefinitionName<CheckboxInputFormComponentDefinitionFrame>(item, CheckboxInputComponentName)) {
-                result.push(item);
-                continue;
-            }
-            if (isTypeFormComponentDefinitionName<RadioInputFormComponentDefinitionFrame>(item, RadioInputComponentName)) {
-                result.push(item);
-                continue;
-            }
-            if (isTypeFormComponentDefinitionName<ReusableFormComponentDefinitionFrame>(item, ReusableComponentName)) {
-                result.push(item);
-                continue;
-            }
-            throw new Error(`${this.logName}: Invalid form component frame ${item.name} class ${item.component.class} in Question Tree.`);
+    protected isRepeatableElementTemplateDescendant(): boolean {
+        const mostRecentPath = this.mostRecentRepeatableElementTemplatePath ?? [];
+        const formConfigPath = this.formPathHelper.formPath.formConfig;
+        if (!mostRecentPath || mostRecentPath.length === 0 || !formConfigPath || formConfigPath.length === 0) {
+            return false;
         }
-        return result;
-    }
-
-    /**
-     * Check that only the allowed form component outlines have been used.
-     * @param item The form components after the components have been visited and transformed.
-     * @private
-     */
-    private applyQuestionTreeOutline(item: AllFormComponentDefinitionOutlines): QuestionTreeFormComponentDefinitionOutlines {
-        if (isTypeFormComponentDefinitionName<SimpleInputFormComponentDefinitionFrame>(item, SimpleInputComponentName)) {
-            return item;
+        // The formConfig path might have ["[component|model|layout]", "config"] at the end (2 additional items),
+        // but only the path up to ["config", "elementTemplate"] is relevant for this check.
+        if ((formConfigPath.length + 2) <= mostRecentPath.length) {
+            return false;
         }
-        if (isTypeFormComponentDefinitionName<CheckboxInputFormComponentDefinitionFrame>(item, CheckboxInputComponentName)) {
-            return item;
-        }
-        if (isTypeFormComponentDefinitionName<RadioInputFormComponentDefinitionFrame>(item, RadioInputComponentName)) {
-            return item;
-        }
-        throw new Error(`${this.logName}: Invalid form component frame ${item.name} class ${item.component.class} in Question Tree.`);
+        return mostRecentPath.every((value, index) => value === formConfigPath[index]);
     }
 }

@@ -895,32 +895,43 @@ describe("Construct Visitor", async () => {
                     answersMin: 1,
                     answersMax: 2,
                     answers: [{value: "yes"}, {value: "no"}],
-                    rules: {op: "in", q: "question_1", a: ["no"],}
+                    rules: {op: "in", q: "question_1", a: ["no"]}
                 },
                 {
                     id: "question_3",
+                    answersMin: 1,
+                    answersMax: 2,
+                    answers: [{value: "yes"}, {value: "maybe"}, {value: "no"}],
+                    rules: {op: "in", q: "question_2", a: ["yes"]}
+                },
+                {
+                    id: "question_4",
                     answersMin: 1,
                     answersMax: 1,
                     answers: [
                         {
                             value: "yes",
                             label: "@answer-yes",
-                            outcome: {prop1: "value1", prop2: "value2"}
+                            outcome: {prop1: "value1", prop2: "value1"}
                         },
-                        {value: "no", label: "No"},
+                        {
+                            value: "no", label: "No",
+                            outcome: {prop1: "value2", prop2: "value2"}
+                        },
                     ],
                     rules: {
                         op: "or", args: [
                             {
                                 op: "and", args: [
+                                    {op: "in", q: "question_1", a: ["no"]},
                                     {op: "in", q: "question_2", a: ["no"]},
-                                    {op: "in", q: "question_3", a: ["yes", "maybe"]},
                                 ]
                             },
                             {
-                                op: "or", args: [
-                                    {op: "notin", q: "question_2", a: ["yes"]},
-                                    {op: "in", q: "question_2", a: ["no", "maybe"]},
+                                op: "and", args: [
+                                    {op: "only", q: "question_1", a: ["no"]},
+                                    {op: "notin", q: "question_2", a: ["no"]},
+                                    {op: "in", q: "question_3", a: ["no", "maybe"]},
                                 ]
                             }
                         ]
@@ -963,21 +974,48 @@ describe("Construct Visitor", async () => {
                                         name: "question_1",
                                         component: {
                                             class: "RadioInputComponent",
-                                            config: {options: []}
+                                            config: {
+                                                options: [
+                                                    {value: "yes", label: "@questiontree_1-question_1-yes"},
+                                                    {value: "no", label: "@questiontree_1-question_1-no"},
+                                                ]
+                                            }
                                         },
                                     },
                                     {
                                         name: "question_2",
                                         component: {
                                             class: "CheckboxInputComponent",
-                                            config: {options: []}
+                                            config: {
+                                                options: [
+                                                    {value: "yes", label: "@questiontree_1-question_2-yes"},
+                                                    {value: "no", label: "@questiontree_1-question_2-no"},
+                                                ]
+                                            }
                                         },
                                     },
                                     {
                                         name: "question_3",
                                         component: {
+                                            class: "CheckboxInputComponent",
+                                            config: {
+                                                options: [
+                                                    {value: "yes", label: "@questiontree_1-question_3-yes"},
+                                                    {value: "maybe", label: "@questiontree_1-question_3-maybe"},
+                                                    {value: "no", label: "@questiontree_1-question_3-no"}]
+                                            }
+                                        },
+                                    },
+                                    {
+                                        name: "question_4",
+                                        component: {
                                             class: "RadioInputComponent",
-                                            config: {options: []}
+                                            config: {
+                                                options: [
+                                                    {value: "yes", label: "@answer-yes"},
+                                                    {value: "no", label: "No"},
+                                                ]
+                                            }
                                         },
                                     },
                                 ],

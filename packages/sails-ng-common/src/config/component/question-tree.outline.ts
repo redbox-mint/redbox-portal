@@ -209,7 +209,15 @@ export const QuestionTreeComponentName = `QuestionTreeComponent` as const;
 export type QuestionTreeComponentNameType = typeof QuestionTreeComponentName;
 
 export interface QuestionTreeFieldComponentConfigFrame extends FieldComponentConfigFrame {
+    /**
+     * The available outcome keys and values.
+     * Interface only, there is no class for this config property.
+     */
     outcomes: QuestionTreeOutcomes;
+    /**
+     * The question definitions.
+     * Interface only, there is no class for this config property.
+     */
     questions: QuestionTreeQuestion[];
     componentDefinitions: QuestionTreeFormComponentDefinitionFrames[];
 }
