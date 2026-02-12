@@ -265,6 +265,35 @@ const formConfig: FormConfigFrame = {
                                     }
                                 },
                                 {
+                                    name: 'lookahead_vocab_1',
+                                    layout: {
+                                        class: 'DefaultLayout',
+                                        config: {
+                                            label: 'ANZSRC ToA lookup',
+                                            helpText: 'Type to search vocabulary entries from anzsrc-toa.',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'TypeaheadInputModel',
+                                        config: {
+                                            defaultValue: null,
+                                        }
+                                    },
+                                    component: {
+                                        class: 'TypeaheadInputComponent',
+                                        config: {
+                                            sourceType: 'vocabulary',
+                                            vocabRef: 'anzsrc-toa',
+                                            placeholder: 'Start typing a ToA term...',
+                                            minChars: 1,
+                                            debounceMs: 250,
+                                            maxResults: 25,
+                                            allowFreeText: false,
+                                            valueMode: 'value',
+                                        }
+                                    }
+                                },
+                                {
                                     name: 'checkbox_1',
                                     layout: {
                                         class: 'DefaultLayout',
