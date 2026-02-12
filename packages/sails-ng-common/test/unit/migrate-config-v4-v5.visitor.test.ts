@@ -198,4 +198,53 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(modelConfig).to.not.equal(undefined);
         expect(warnings.some((msg) => msg.includes("dropped legacy property 'forceClone'"))).to.equal(true);
     });
+
+    it('maps RepeatableVocabComponent to RepeatableComponent with Typeahead elementTemplate', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "repeatable-vocab-edge",
+                fields: [
+                    {
+                        class: "RepeatableContainer",
+                        compClass: "RepeatableVocabComponent",
+                        definition: {
+                            name: "foaf:fundedBy_foaf:Agent",
+                            label: "@dmpt-foaf:fundedBy_foaf:Agent",
+                            help: "@dmpt-foaf:fundedBy_foaf:Agent-help",
+                            fields: [
+                                {
+                                    class: "VocabField",
+                                    definition: {
+                                        disableEditAfterSelect: false,
+                                        vocabQueryId: "fundingBody",
+                                        sourceType: "query",
+                                        titleFieldArr: ["dc_description"],
+                                        stringLabelToField: "dc_description",
+                                        placeHolder: "@lookup-placeholder-text"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("RepeatableComponent");
+        expect(migratedField.model?.class).to.equal("RepeatableModel");
+
+        const repeatableConfig = migratedField.component.config as Record<string, unknown>;
+        const elementTemplate = repeatableConfig.elementTemplate as Record<string, unknown>;
+        expect(elementTemplate).to.not.equal(undefined);
+        expect(elementTemplate.name).to.equal("");
+        expect((elementTemplate.component as Record<string, unknown>).class).to.equal("TypeaheadInputComponent");
+        expect((elementTemplate.model as Record<string, unknown>).class).to.equal("TypeaheadInputModel");
+
+        const typeaheadConfig = (elementTemplate.component as Record<string, unknown>).config as Record<string, unknown>;
+        expect(typeaheadConfig.sourceType).to.equal("namedQuery");
+        expect(typeaheadConfig.queryId).to.equal("fundingBody");
+        expect(typeaheadConfig.labelField).to.equal("dc_description");
+    });
 });
