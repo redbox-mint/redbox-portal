@@ -6,7 +6,7 @@ Load vocabulary data from JSON files and trigger RVA imports during application 
 
 ### Bootstrap Data Directory
 
-#### [NEW] [bootstrap-data/vocabularies/](bootstrap-data/vocabularies/)
+#### [NEW] [support/resources/development/bootstrap-data/vocabularies/](support/resources/development/bootstrap-data/vocabularies/)
 
 Two kinds of files:
 
@@ -56,7 +56,7 @@ Duplicate entries within a file are caught by the existing `VocabularyEntry` uni
 }
 ```
 
-#### [NEW] [anzsrc-toa.json](bootstrap-data/vocabularies/anzsrc-toa.json)
+#### [NEW] [anzsrc-toa.json](support/resources/development/bootstrap-data/vocabularies/anzsrc-toa.json)
 
 ```json
 {
@@ -73,7 +73,7 @@ Duplicate entries within a file are caught by the existing `VocabularyEntry` uni
 }
 ```
 
-#### [NEW] [rva-imports.json](bootstrap-data/vocabularies/rva-imports.json)
+#### [NEW] [rva-imports.json](support/resources/development/bootstrap-data/vocabularies/rva-imports.json)
 
 ```json
 {
@@ -92,7 +92,7 @@ Duplicate entries within a file are caught by the existing `VocabularyEntry` uni
 
 Add `bootstrapData()` method and `'bootstrapData'` to `_exportedMethods`.
 
-**Path resolution**: The vocabulary directory is resolved as `path.resolve(process.cwd(), 'bootstrap-data/vocabularies')`. This can be overridden via `sails.config.vocab.bootstrapDataPath` for non-standard run contexts (containers, tests).
+**Path resolution**: The vocabulary directory is resolved from `sails.config.bootstrap.bootstrapDataPath` (default `bootstrap-data`) with `/vocabularies` appended.
 
 If the directory does not exist, the method returns immediately with a verbose log — no error.
 

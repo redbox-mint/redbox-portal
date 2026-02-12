@@ -10,7 +10,7 @@ export namespace Services {
   const VALID_TYPES = new Set<VocabType>(['flat', 'tree']);
   const VALID_SOURCES = new Set<VocabSource>(['local', 'rva']);
   const RVA_IMPORTS_FILE = 'rva-imports.json';
-  const DEFAULT_BOOTSTRAP_DATA_PATH = path.resolve(process.cwd(), 'bootstrap-data/vocabularies');
+  const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
   const RVA_IMPORT_TIMEOUT_MS = 30_000;
 
   export type VocabularyEntryInput =
@@ -761,11 +761,8 @@ export namespace Services {
     }
 
     private getBootstrapDataPath(): string {
-      const configuredPath = _.get(sails.config, 'vocab.bootstrapDataPath');
-      if (typeof configuredPath !== 'string' || !configuredPath.trim()) {
-        return DEFAULT_BOOTSTRAP_DATA_PATH;
-      }
-      return path.resolve(configuredPath);
+      const configuredPath = _.get(sails.config, 'bootstrap.bootstrapDataPath', DEFAULT_BOOTSTRAP_DATA_PATH);
+      return path.resolve(String(configuredPath), 'vocabularies');
     }
 
     protected getBootstrapFileOps(): Pick<typeof fs, 'readdir' | 'readFile'> {

@@ -165,6 +165,11 @@ export function preLiftSetup(): void {
 
     sails.config.startupMinute = Math.floor(Date.now() / 60000);
 
+    const configuredBootstrapDataPath = _.get(sails.config, 'bootstrap.bootstrapDataPath');
+    if (typeof configuredBootstrapDataPath !== 'string' || !configuredBootstrapDataPath.trim()) {
+        _.set(sails.config, 'bootstrap.bootstrapDataPath', 'bootstrap-data');
+    }
+
     if (sails.config.environment === "production" || sails.config.ng2.force_bundle) {
         sails.config.ng2.use_bundled = true;
         console.log("Using NG2 Bundled files.......");

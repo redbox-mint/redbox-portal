@@ -23,6 +23,7 @@ x-rbportal-volumes: &rbportal-volumes
   - "./.dev/attachments:/attachments:delegated"
   - "./.dev/publication:/publication:delegated"
   - "./.dev/hooks:/opt/hooks:delegated"
+  - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
 
 x-rbportal-service: &rbportal-service
   environment: *rbportal-env
@@ -53,6 +54,7 @@ services:
       - "./.dev/attachments:/attachments:delegated"
       - "./.dev/publication:/publication:delegated"
       - "./.dev/hooks:/opt/hooks:delegated"
+      - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
   rbportal-build:
     <<: *rbportal-service
     profiles: [build]

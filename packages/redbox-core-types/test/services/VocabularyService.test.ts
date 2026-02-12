@@ -17,7 +17,8 @@ type StubbedSails = {
   log: StubbedLogger;
   config: {
     auth: { defaultBrand: string };
-    vocab?: { bootstrapDataPath?: string; bootstrapRvaImports?: boolean };
+    bootstrap?: { bootstrapDataPath?: string };
+    vocab?: { bootstrapRvaImports?: boolean };
   };
   services: Record<string, unknown>;
 };
