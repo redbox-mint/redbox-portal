@@ -926,14 +926,15 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(currentData, QuestionTreeComponentName)) {
             throw new Error(`Invalid ${QuestionTreeComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
-        const configFrame = currentData?.config ?? {outcomes: {}, questions: [], componentDefinitions: []};
+        const configFrame = currentData?.config ?? {availableOutcomes: [], questions: [], componentDefinitions: []};
 
         // Create the class instance for the config
         item.config = new QuestionTreeFieldComponentConfig();
 
         this.sharedProps.sharedPopulateFieldComponentConfig(item.config, configFrame);
 
-        this.sharedProps.setPropOverride('outcomes', item.config, configFrame);
+        this.sharedProps.setPropOverride('availableOutcomes', item.config, configFrame);
+        this.sharedProps.setPropOverride('availableMeta', item.config, configFrame);
         this.sharedProps.setPropOverride('questions', item.config, configFrame);
 
         // Transform the question tree questions DSL into reusable components.
