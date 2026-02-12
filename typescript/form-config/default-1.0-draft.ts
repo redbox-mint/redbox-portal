@@ -200,6 +200,40 @@ const formConfig: FormConfigFrame = {
                                     }
                                 },
                                 {
+                                    name: 'lookahead_1',
+                                    layout: {
+                                        class: 'DefaultLayout',
+                                        config: {
+                                            label: 'Lookahead example',
+                                            helpText: 'Type to filter static options in a typeahead field.',
+                                        }
+                                    },
+                                    model: {
+                                        class: 'TypeaheadInputModel',
+                                        config: {
+                                            defaultValue: 'option2',
+                                        }
+                                    },
+                                    component: {
+                                        class: 'TypeaheadInputComponent',
+                                        config: {
+                                            sourceType: 'static',
+                                            staticOptions: [
+                                                { label: 'Option 1', value: 'option1' },
+                                                { label: 'Option 2', value: 'option2' },
+                                                { label: 'Option 3', value: 'option3' },
+                                                { label: 'Another Option', value: 'another-option' },
+                                            ],
+                                            placeholder: 'Start typing to search...',
+                                            minChars: 1,
+                                            debounceMs: 200,
+                                            maxResults: 10,
+                                            allowFreeText: false,
+                                            valueMode: 'value',
+                                        }
+                                    }
+                                },
+                                {
                                     name: 'checkbox_1',
                                     layout: {
                                         class: 'DefaultLayout',

@@ -221,6 +221,34 @@ describe("Construct Visitor", async () => {
             const checkboxTreeConfig = actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown> | undefined;
             expect(checkboxTreeConfig?.labelTemplate).to.equal("{{default (split notation '/' -1) notation}} - {{label}}");
         });
+
+        it("should set typeahead namedQuery defaults and cache behaviour", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "contributor_lookup",
+                            component: {
+                                class: "TypeaheadInputComponent",
+                                config: {
+                                    sourceType: "namedQuery",
+                                    queryId: "contributors"
+                                }
+                            },
+                            model: {class: "TypeaheadInputModel", config: {}}
+                        }
+                    ]
+                }
+            });
+            const cfg = actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>;
+            expect(cfg?.sourceType).to.equal("namedQuery");
+            expect(cfg?.labelField).to.equal("label");
+            expect(cfg?.valueField).to.equal("value");
+            expect(cfg?.cacheResults).to.equal(false);
+        });
     });
     describe("with overrides", async () => {
         const cases: {

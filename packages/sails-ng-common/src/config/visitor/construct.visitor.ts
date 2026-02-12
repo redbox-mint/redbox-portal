@@ -106,6 +106,16 @@ import {
 } from "../component/dropdown-input.outline";
 import {DropdownInputFieldComponentConfig, DropdownInputFieldModelConfig} from "../component/dropdown-input.model";
 import {
+    TypeaheadInputComponentName,
+    TypeaheadInputFieldComponentDefinitionFrame,
+    TypeaheadInputFieldComponentDefinitionOutline,
+    TypeaheadInputFieldModelDefinitionFrame,
+    TypeaheadInputFieldModelDefinitionOutline,
+    TypeaheadInputFormComponentDefinitionOutline,
+    TypeaheadInputModelName
+} from "../component/typeahead-input.outline";
+import {TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig} from "../component/typeahead-input.model";
+import {
     CheckboxInputComponentName,
     CheckboxInputFieldComponentDefinitionFrame,
     CheckboxInputFieldComponentDefinitionOutline,
@@ -879,6 +889,82 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
+    /* Typeahead Input */
+
+    visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<TypeaheadInputFieldComponentDefinitionFrame>(currentData, TypeaheadInputComponentName)) {
+            throw new Error(`Invalid ${TypeaheadInputComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+        const config = currentData?.config;
+
+        item.config = new TypeaheadInputFieldComponentConfig();
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.sharedProps.setPropOverride("sourceType", item.config, config);
+        this.sharedProps.setPropOverride("staticOptions", item.config, config);
+        this.sharedProps.setPropOverride("vocabRef", item.config, config);
+        this.sharedProps.setPropOverride("queryId", item.config, config);
+        this.sharedProps.setPropOverride("labelField", item.config, config);
+        this.sharedProps.setPropOverride("valueField", item.config, config);
+        this.sharedProps.setPropOverride("minChars", item.config, config);
+        this.sharedProps.setPropOverride("debounceMs", item.config, config);
+        this.sharedProps.setPropOverride("maxResults", item.config, config);
+        this.sharedProps.setPropOverride("allowFreeText", item.config, config);
+        this.sharedProps.setPropOverride("valueMode", item.config, config);
+        this.sharedProps.setPropOverride("cacheResults", item.config, config);
+        this.sharedProps.setPropOverride("multiSelect", item.config, config);
+        this.sharedProps.setPropOverride("placeholder", item.config, config);
+        this.sharedProps.setPropOverride("readOnlyAfterSelect", item.config, config);
+
+        const sourceType = item.config.sourceType ?? "static";
+        if (sourceType === "namedQuery") {
+            if (!item.config.labelField) {
+                item.config.labelField = "label";
+            }
+            if (!item.config.valueField) {
+                item.config.valueField = "value";
+            }
+            if (config?.cacheResults === undefined) {
+                item.config.cacheResults = false;
+            }
+        } else if (config?.cacheResults === undefined) {
+            item.config.cacheResults = true;
+        }
+
+        const minChars = Number(item.config.minChars);
+        const debounceMs = Number(item.config.debounceMs);
+        const maxResults = Number(item.config.maxResults);
+        if (!Number.isInteger(minChars) || minChars < 0) {
+            item.config.minChars = 2;
+        }
+        if (!Number.isInteger(debounceMs) || debounceMs < 0) {
+            item.config.debounceMs = 250;
+        }
+        if (!Number.isInteger(maxResults) || maxResults <= 0) {
+            item.config.maxResults = 25;
+        }
+
+        item.config.allowFreeText = Boolean(item.config.allowFreeText);
+        item.config.multiSelect = Boolean(item.config.multiSelect);
+    }
+
+    visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<TypeaheadInputFieldModelDefinitionFrame>(currentData, TypeaheadInputModelName)) {
+            throw new Error(`Invalid ${TypeaheadInputModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+
+        item.config = new TypeaheadInputFieldModelConfig();
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item, currentData?.config);
+    }
+
+    visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
         this.populateFormComponent(item);
     }
 

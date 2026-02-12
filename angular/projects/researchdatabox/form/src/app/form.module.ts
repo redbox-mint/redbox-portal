@@ -47,7 +47,9 @@ import { FormComponentEventBus } from './form-state/events/form-component-event-
 import { DateInputComponent } from './component/date-input.component';
 import { CheckboxTreeComponent } from './component/checkbox-tree.component';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
+import { TypeaheadModule } from 'ngx-bootstrap/typeahead';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
+import { TypeaheadInputComponent } from './component/typeahead-input.component';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -69,7 +71,8 @@ import { provideStoreDevtools } from '@ngrx/store-devtools';
     CheckboxInputComponent,
     RadioInputComponent,
     DateInputComponent,
-    CheckboxTreeComponent
+    CheckboxTreeComponent,
+    TypeaheadInputComponent
   ],
   imports: [
     CommonModule,
@@ -78,7 +81,8 @@ import { provideStoreDevtools } from '@ngrx/store-devtools';
     RedboxPortalCoreModule,
     I18NextPipe,
     BrowserAnimationsModule,
-    BsDatepickerModule.forRoot()
+    BsDatepickerModule.forRoot(),
+    TypeaheadModule.forRoot()
   ],
   providers: [
     {

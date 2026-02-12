@@ -70,6 +70,11 @@ import {
     CheckboxTreeFieldModelDefinitionOutline,
     CheckboxTreeFormComponentDefinitionOutline
 } from "../component/checkbox-tree.outline";
+import {
+    TypeaheadInputFieldComponentDefinitionOutline,
+    TypeaheadInputFieldModelDefinitionOutline,
+    TypeaheadInputFormComponentDefinitionOutline
+} from "../component/typeahead-input.outline";
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -207,4 +212,12 @@ export interface FormConfigVisitorOutline {
     visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void;
 
     visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void;
+
+    /* Typeahead Input */
+
+    visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void;
+
+    visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void;
+
+    visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void;
 }

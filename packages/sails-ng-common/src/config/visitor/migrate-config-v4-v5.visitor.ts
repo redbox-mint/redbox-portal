@@ -75,6 +75,14 @@ import {
 } from "../component/dropdown-input.outline";
 import {DropdownInputFieldComponentConfig, DropdownInputFieldModelConfig} from "../component/dropdown-input.model";
 import {
+    TypeaheadInputComponentName,
+    TypeaheadInputFieldComponentDefinitionOutline,
+    TypeaheadInputFieldModelDefinitionOutline,
+    TypeaheadInputFormComponentDefinitionOutline,
+    TypeaheadInputModelName
+} from "../component/typeahead-input.outline";
+import {TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig} from "../component/typeahead-input.model";
+import {
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionOutline,
     CheckboxInputFormComponentDefinitionOutline
@@ -266,6 +274,16 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
         "SelectionFieldComponent": {
             componentClassName: DropdownInputComponentName,
             modelClassName: DropdownInputModelName
+        }
+    },
+    "VocabField": {
+        "": {
+            componentClassName: TypeaheadInputComponentName,
+            modelClassName: TypeaheadInputModelName
+        },
+        "VocabFieldComponent": {
+            componentClassName: TypeaheadInputComponentName,
+            modelClassName: TypeaheadInputModelName
         }
     },
     "DateTime": {
@@ -969,6 +987,74 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.populateFormComponent(item);
     }
 
+    /* Typeahead Input */
+
+    visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new TypeaheadInputFieldComponentConfig();
+        this.sharedPopulateFieldComponentConfig(item.config, field);
+
+        const definition = (field?.definition ?? {}) as Record<string, unknown>;
+        const sourceType = this.resolveTypeaheadSourceType(definition);
+        this.sharedProps.setPropOverride("sourceType", item.config, {sourceType});
+
+        if (sourceType === "namedQuery") {
+            const queryId = String(definition.vocabQueryId ?? definition.queryId ?? "").trim();
+            if (queryId) {
+                this.sharedProps.setPropOverride("queryId", item.config, {queryId});
+            } else {
+                this.logger.warn(`${this.logName}: Typeahead migration missing queryId/vocabQueryId at ${JSON.stringify(this.v4FormPath)}.`);
+            }
+            const labelField = this.resolveLegacyLabelField(definition);
+            this.sharedProps.setPropOverride("labelField", item.config, {labelField});
+            const valueField = String(definition.valueFieldName ?? definition.valueField ?? "value").trim() || "value";
+            this.sharedProps.setPropOverride("valueField", item.config, {valueField});
+        } else if (sourceType === "vocabulary") {
+            const vocabRef = String(definition.vocabRef ?? definition.vocabId ?? "").trim();
+            if (vocabRef) {
+                this.sharedProps.setPropOverride("vocabRef", item.config, {vocabRef});
+            } else {
+                this.logger.warn(`${this.logName}: Typeahead migration missing vocabRef/vocabId at ${JSON.stringify(this.v4FormPath)}.`);
+            }
+        }
+
+        const allowFreeText = this.parseLegacyTypeaheadBoolean(definition.freeText, false, "freeText");
+        this.sharedProps.setPropOverride("allowFreeText", item.config, {allowFreeText});
+
+        const storeLabelOnly = this.parseLegacyTypeaheadBoolean(definition.storeLabelOnly, true, "storeLabelOnly");
+        const valueMode = storeLabelOnly ? "value" : "optionObject";
+        this.sharedProps.setPropOverride("valueMode", item.config, {valueMode});
+
+        const readOnlyAfterSelect = this.parseLegacyTypeaheadBoolean(definition.disableEditAfterSelect, false, "disableEditAfterSelect");
+        if (readOnlyAfterSelect) {
+            this.sharedProps.setPropOverride("readOnlyAfterSelect", item.config, {readOnlyAfterSelect});
+        }
+
+        this.warnOnDroppedLegacyTypeaheadProperties(definition);
+    }
+
+    visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new TypeaheadInputFieldModelConfig();
+        this.sharedPopulateFieldModelConfig(item.config, field);
+
+        const definition = (field?.definition ?? {}) as Record<string, unknown>;
+        const labelField = this.resolveLegacyLabelField(definition);
+        const storeLabelOnly = this.parseLegacyTypeaheadBoolean(definition.storeLabelOnly, true, "storeLabelOnly");
+        const valueMode = storeLabelOnly ? "value" : "optionObject";
+
+        if (item.config.defaultValue !== undefined) {
+            item.config.defaultValue = this.coerceLegacyTypeaheadValue(item.config.defaultValue, valueMode, labelField);
+        }
+        if (item.config.value !== undefined) {
+            item.config.value = this.coerceLegacyTypeaheadValue(item.config.value, valueMode, labelField);
+        }
+    }
+
+    visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
     /* Radio Input */
 
     visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
@@ -1378,6 +1464,139 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             this.logger.warn(`${this.logName}: CheckboxTree migration dropped malformed default selection entries.`);
         }
         config.defaultValue = coerced as CheckboxTreeFieldModelConfig['defaultValue'];
+    }
+
+    private resolveTypeaheadSourceType(definition: Record<string, unknown>): "namedQuery" | "vocabulary" | "static" {
+        const legacySourceType = String(definition.sourceType ?? "").trim().toLowerCase();
+        if (legacySourceType === "query" || legacySourceType === "namedquery") {
+            return "namedQuery";
+        }
+        if (legacySourceType === "vocabulary") {
+            return "vocabulary";
+        }
+        if (Array.isArray(definition.options) || Array.isArray(definition.staticOptions)) {
+            return "static";
+        }
+        if (definition.vocabQueryId || definition.queryId) {
+            return "namedQuery";
+        }
+        if (definition.vocabRef || definition.vocabId) {
+            return "vocabulary";
+        }
+        return "namedQuery";
+    }
+
+    private resolveLegacyLabelField(definition: Record<string, unknown>): string {
+        const titleFieldName = String(definition.titleFieldName ?? "").trim();
+        if (titleFieldName) {
+            return titleFieldName;
+        }
+        const stringLabelToField = String(definition.stringLabelToField ?? "").trim();
+        if (stringLabelToField) {
+            return stringLabelToField;
+        }
+        const titleFieldArr = Array.isArray(definition.titleFieldArr) ? definition.titleFieldArr : [];
+        const firstTitleField = String(titleFieldArr[0] ?? "").trim();
+        if (firstTitleField) {
+            return firstTitleField;
+        }
+        return "label";
+    }
+
+    private parseLegacyTypeaheadBoolean(rawValue: unknown, defaultValue: boolean, fieldName: string): boolean {
+        if (typeof rawValue === "boolean") {
+            return rawValue;
+        }
+        if (rawValue === undefined || rawValue === null || rawValue === "") {
+            return defaultValue;
+        }
+        if (typeof rawValue === "number") {
+            return rawValue !== 0;
+        }
+        if (typeof rawValue === "string") {
+            const normalized = rawValue.trim().toLowerCase();
+            if (["true", "1", "yes", "on"].includes(normalized)) {
+                return true;
+            }
+            if (["false", "0", "no", "off"].includes(normalized)) {
+                return false;
+            }
+        }
+        this.logger.warn(`${this.logName}: Typeahead migration received malformed '${fieldName}' value, using safe default.`);
+        return defaultValue;
+    }
+
+    private coerceLegacyTypeaheadValue(
+        rawValue: unknown,
+        valueMode: "value" | "optionObject",
+        labelField: string
+    ): TypeaheadInputFieldModelConfig["value"] {
+        if (rawValue === undefined || rawValue === null || rawValue === "") {
+            return null;
+        }
+
+        if (valueMode === "value") {
+            if (typeof rawValue === "string") {
+                return rawValue;
+            }
+            if (typeof rawValue === "object") {
+                const source = rawValue as Record<string, unknown>;
+                const candidate = String(source[labelField] ?? source.title ?? source.label ?? source.value ?? "").trim();
+                if (candidate) {
+                    return candidate;
+                }
+            }
+            this.logger.warn(`${this.logName}: Typeahead migration coerced malformed legacy value to null.`);
+            return null;
+        }
+
+        if (typeof rawValue === "string") {
+            return {
+                label: rawValue,
+                value: rawValue,
+                sourceType: "freeText"
+            };
+        }
+        if (typeof rawValue === "object") {
+            const source = rawValue as Record<string, unknown>;
+            const label = String(source.label ?? source[labelField] ?? source.title ?? source.value ?? "").trim();
+            const value = String(source.value ?? source[labelField] ?? source.label ?? source.title ?? "").trim();
+            if (!label && !value) {
+                this.logger.warn(`${this.logName}: Typeahead migration coerced malformed legacy object value to null.`);
+                return null;
+            }
+            const sourceType = String(source.sourceType ?? "").trim();
+            const normalizedSourceType = ["static", "vocabulary", "namedQuery", "freeText"].includes(sourceType)
+                ? sourceType as "static" | "vocabulary" | "namedQuery" | "freeText"
+                : undefined;
+            return {
+                label: label || value,
+                value: value || label,
+                sourceType: normalizedSourceType
+            };
+        }
+
+        this.logger.warn(`${this.logName}: Typeahead migration coerced malformed legacy value to null.`);
+        return null;
+    }
+
+    private warnOnDroppedLegacyTypeaheadProperties(definition: Record<string, unknown>): void {
+        const droppedProps = [
+            "forceClone",
+            "completerService",
+            "lookupService",
+            "publish",
+            "subscribe",
+            "disableLookupIcon",
+            "searchFields",
+            "fieldNames",
+            "titleFieldDelim"
+        ];
+        for (const key of droppedProps) {
+            if (Object.hasOwn(definition, key) && definition[key] !== undefined && definition[key] !== null && definition[key] !== "") {
+                this.logger.warn(`${this.logName}: Typeahead migration dropped legacy property '${key}' at ${JSON.stringify(this.v4FormPath)}.`);
+            }
+        }
     }
 
     private isLegacyAndsVocabField(field: Record<string, unknown>): boolean {

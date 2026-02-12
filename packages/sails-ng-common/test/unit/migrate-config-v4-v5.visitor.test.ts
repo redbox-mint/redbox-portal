@@ -112,7 +112,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
         }
     });
 
-    it('applies checkbox tree migration edge-case fallbacks and coercions', async function () {
+  it('applies checkbox tree migration edge-case fallbacks and coercions', async function () {
         const warnings: string[] = [];
         const testLogger = {
             ...logger,
@@ -153,5 +153,49 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(warnings.some((msg) => msg.includes("invalid 'maxDepth'"))).to.equal(true);
         expect(warnings.some((msg) => msg.includes('malformed regex'))).to.equal(true);
         expect(warnings.some((msg) => msg.includes('coerced non-array default value'))).to.equal(true);
+    });
+
+    it('maps legacy VocabField to TypeaheadInput with value coercion', async function () {
+        const warnings: string[] = [];
+        const testLogger = {
+            ...logger,
+            warn: (message: unknown) => warnings.push(String(message ?? ''))
+        };
+        const visitor = new MigrationV4ToV5FormConfigVisitor(testLogger);
+        const migrated = visitor.start({
+            data: {
+                name: "typeahead-edge",
+                fields: [
+                    {
+                        class: "VocabField",
+                        compClass: "VocabFieldComponent",
+                        definition: {
+                            name: "contributor",
+                            sourceType: "query",
+                            vocabQueryId: "lookup-contributor",
+                            titleFieldName: "displayName",
+                            storeLabelOnly: false,
+                            disableEditAfterSelect: true,
+                            forceClone: true
+                        },
+                        value: "Jane Doe"
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("TypeaheadInputComponent");
+        expect(migratedField.model?.class).to.equal("TypeaheadInputModel");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        expect(componentConfig.sourceType).to.equal("namedQuery");
+        expect(componentConfig.queryId).to.equal("lookup-contributor");
+        expect(componentConfig.labelField).to.equal("displayName");
+        expect(componentConfig.valueMode).to.equal("optionObject");
+        expect(componentConfig.readOnlyAfterSelect).to.equal(true);
+
+        const modelConfig = migratedField.model?.config as Record<string, unknown>;
+        expect(modelConfig).to.not.equal(undefined);
+        expect(warnings.some((msg) => msg.includes("dropped legacy property 'forceClone'"))).to.equal(true);
     });
 });

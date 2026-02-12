@@ -22,6 +22,7 @@ import {DateInputDefaults, DateInputMap} from "./component/date-input.model";
 import {ReusableDefaults, ReusableMap} from "./component/reusable.model";
 import {ReusableComponentName} from "./component/reusable.outline";
 import {CheckboxTreeDefaults, CheckboxTreeMap} from "./component/checkbox-tree.model";
+import {TypeaheadInputDefaults, TypeaheadInputMap} from "./component/typeahead-input.model";
 
 
 /**
@@ -45,6 +46,7 @@ export const AllDefs = [
     ...DateInputMap,
     ...ReusableMap,
     ...CheckboxTreeMap,
+    ...TypeaheadInputMap,
 ] as const;
 
 /**
@@ -68,6 +70,7 @@ const RawDefaults = [
     DateInputDefaults,
     ReusableDefaults,
     CheckboxTreeDefaults,
+    TypeaheadInputDefaults,
 ]
 
 /**
