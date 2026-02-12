@@ -7,14 +7,21 @@ import {
 import {
   AllFormComponentDefinitionOutlines,
   AvailableFormComponentDefinitionFrames,
+  QuestionTreeFormComponentDefinitionFrames,
+  QuestionTreeFormComponentDefinitionOutlines,
   ReusableFormDefinitions,
 } from './dictionary.outline';
 import { TextAreaComponentName, TextAreaFormComponentDefinitionOutline } from './component/text-area.outline';
 import {
   CheckboxInputComponentName,
+  CheckboxInputFormComponentDefinitionFrame,
   CheckboxInputFormComponentDefinitionOutline,
 } from './component/checkbox-input.outline';
-import { RadioInputComponentName, RadioInputFormComponentDefinitionOutline } from './component/radio-input.outline';
+import {
+  RadioInputComponentName,
+  RadioInputFormComponentDefinitionFrame,
+  RadioInputFormComponentDefinitionOutline,
+} from './component/radio-input.outline';
 import { DateInputComponentName, DateInputFormComponentDefinitionOutline } from './component/date-input.outline';
 import { DefaultTransformsType, KnownTransformsType } from './form-override.outline';
 import { cloneDeep as _cloneDeep, merge as _merge } from 'lodash';
@@ -31,6 +38,7 @@ import { isTypeFormComponentDefinitionName, isTypeReusableComponent } from './fo
 import { PropertiesHelper } from './visitor/common.model';
 import { ILogger } from '../logger.interface';
 import { ContentFieldComponentConfig } from './component/content.model';
+import { QuestionTreeFieldComponentDefinitionOutline } from './component/question-tree.outline';
 import { TabFormComponentDefinitionOutline, TabComponentName } from './component/tab.outline';
 import {
   AccordionComponentName,
@@ -57,6 +65,7 @@ import { MapComponentName } from './component/map.outline';
 import { FileUploadComponentName, FileUploadFormComponentDefinitionOutline } from './component/file-upload.outline';
 import { TypeaheadInputModelOptionValue } from './component/typeahead-input.outline';
 import { FormConstraintConfigOutline } from './form-component.outline';
+import { SimpleInputFormComponentDefinitionFrame } from './component/simple-input.outline';
 
 export class FormOverride {
   private propertiesHelper: PropertiesHelper;
@@ -463,6 +472,181 @@ export class FormOverride {
     }
 
     return result;
+  }
+
+  public applyQuestionTreeDsl(
+    name: string | null,
+    item: QuestionTreeFieldComponentDefinitionOutline
+  ): QuestionTreeFormComponentDefinitionFrames[] {
+    const outcomes = item.config?.outcomes ?? {};
+    const questions = item.config?.questions ?? [];
+    const questionAnswerValuesMap = Object.fromEntries(
+      questions?.map(question => [question.id, question.answers.map(answer => answer.value)])
+    );
+
+    const errors: string[] = [];
+    const duplicateQuestionIds = new Set(Object.keys(questionAnswerValuesMap).filter((e, i, a) => a.indexOf(e) !== i));
+    if (duplicateQuestionIds.size > 0) {
+      errors.push(`Question ids must be unique, these were not ${Array.from(duplicateQuestionIds).sort().join(', ')}.`);
+    }
+
+    const result: QuestionTreeFormComponentDefinitionFrames[] = [];
+    questions.forEach((question, questionIndex) => {
+      const id = question.id;
+      const answersMin = question.answersMin;
+      const answersMax = question.answersMax;
+      const answers = question.answers;
+      const rules = question.rules;
+
+      if (!id) {
+        errors.push(`Question ${questionIndex + 1} has no id.`);
+      }
+
+      const msgQ = `Question ${questionIndex + 1} '${id}'`;
+      if (answersMin < 1 || answersMin > answersMax) {
+        errors.push(`${msgQ} answer min (${answersMin}) must be 1 or greater and equal or less than max (${answersMax}).`);
+      }
+      if (answersMax < 1 || answersMin > answersMax || answersMax > answers.length) {
+        errors.push(
+          `${msgQ} answer max (${answersMax}) must be 1 or greater, equal or greater than min (${answersMin}), and equal or less than the number of answers (${answers.length}).`
+        );
+      }
+      if (answers.length < 1) {
+        errors.push(`${msgQ} must have at least one answer.`);
+      }
+      if (Object.keys(rules).length === 0) {
+        rules.op = 'true';
+      }
+
+      answers.forEach((answer, answerIndex) => {
+        const outcome = answer.outcome ?? {};
+        for (const [outcomeKey, outcomeValue] of Object.entries(outcome)) {
+          if (!(outcomeKey in outcomes)) {
+            errors.push(`${msgQ} answer ${answerIndex + 1} '${answer.value}' outcome has an unknown key '${outcomeKey}'.`);
+          }
+          if (!(outcomeValue in outcomes[outcomeKey])) {
+            errors.push(
+              `${msgQ} answer ${answerIndex + 1} '${answer.value}' outcome has an unknown value '${outcomeValue}' for key '${outcomeKey}'.`
+            );
+          }
+        }
+      });
+
+      const checkRules = [rules];
+      while (checkRules.length > 0) {
+        const currentRule = checkRules.shift();
+        if (!currentRule) {
+          continue;
+        }
+        switch (currentRule.op) {
+          case 'true':
+            continue;
+          case 'and':
+          case 'or':
+            checkRules.push(...currentRule.args);
+            break;
+          case 'in':
+          case 'notin':
+          case 'only':
+            if (!(currentRule.q in questionAnswerValuesMap)) {
+              errors.push(`${msgQ} rule op '${currentRule.op}' references an invalid question id '${currentRule.q}'.`);
+            }
+            const questionAnswers = questionAnswerValuesMap[currentRule.q];
+            for (const ruleAnswerValue of currentRule.a) {
+              if (!questionAnswers.includes(ruleAnswerValue)) {
+                errors.push(
+                  `${msgQ} rule op '${currentRule.op}' question '${currentRule.q}' references an invalid answer value '${ruleAnswerValue}'.`
+                );
+              }
+            }
+            break;
+          default:
+            errors.push(`${msgQ} unknown rule ${JSON.stringify(currentRule)}.`);
+            break;
+        }
+      }
+
+      const hasOneAnswer = answersMax === 1;
+      const componentOptions = answers.map(a => ({ value: a.value, label: a.label ?? `@${name}-${id}-${a.value}` }));
+      const componentAnswerOne: QuestionTreeFormComponentDefinitionFrames = {
+        overrides: { reusableFormName: 'questiontree-answer-one' },
+        name: '',
+        component: {
+          class: 'ReusableComponent',
+          config: {
+            componentDefinitions: [
+              {
+                name: 'questiontree_answer_one',
+                overrides: { replaceName: id },
+                layout: { class: 'DefaultLayout', config: { label: id } },
+                component: { class: 'RadioInputComponent', config: { options: componentOptions } },
+              },
+            ],
+          },
+        },
+      };
+      const componentAnswerMore: QuestionTreeFormComponentDefinitionFrames = {
+        overrides: { reusableFormName: 'questiontree-answer-one-more' },
+        name: '',
+        component: {
+          class: 'ReusableComponent',
+          config: {
+            componentDefinitions: [
+              {
+                name: 'questiontree_answer_one_more',
+                overrides: { replaceName: id },
+                layout: { class: 'DefaultLayout', config: { label: id } },
+                component: { class: 'CheckboxInputComponent', config: { options: componentOptions } },
+              },
+            ],
+          },
+        },
+      };
+      result.push(hasOneAnswer ? componentAnswerOne : componentAnswerMore);
+    });
+
+    if (errors.length > 0) {
+      throw new Error(`FormOverride: Question tree is not valid: ${errors.join(' ')}`);
+    }
+
+    return result;
+  }
+
+  public applyQuestionTreeFrames(items: AvailableFormComponentDefinitionFrames[]): QuestionTreeFormComponentDefinitionFrames[] {
+    const result: QuestionTreeFormComponentDefinitionFrames[] = [];
+    for (const item of items) {
+      if (isTypeFormComponentDefinitionName<SimpleInputFormComponentDefinitionFrame>(item, SimpleInputComponentName)) {
+        result.push(item);
+        continue;
+      }
+      if (isTypeFormComponentDefinitionName<CheckboxInputFormComponentDefinitionFrame>(item, CheckboxInputComponentName)) {
+        result.push(item);
+        continue;
+      }
+      if (isTypeFormComponentDefinitionName<RadioInputFormComponentDefinitionFrame>(item, RadioInputComponentName)) {
+        result.push(item);
+        continue;
+      }
+      if (isTypeFormComponentDefinitionName<ReusableFormComponentDefinitionFrame>(item, ReusableComponentName)) {
+        result.push(item);
+        continue;
+      }
+      throw new Error(`FormOverride: Invalid form component frame ${item.name} class ${item.component.class} in Question Tree.`);
+    }
+    return result;
+  }
+
+  public applyQuestionTreeOutline(item: AllFormComponentDefinitionOutlines): QuestionTreeFormComponentDefinitionOutlines {
+    if (isTypeFormComponentDefinitionName<SimpleInputFormComponentDefinitionFrame>(item, SimpleInputComponentName)) {
+      return item;
+    }
+    if (isTypeFormComponentDefinitionName<CheckboxInputFormComponentDefinitionFrame>(item, CheckboxInputComponentName)) {
+      return item;
+    }
+    if (isTypeFormComponentDefinitionName<RadioInputFormComponentDefinitionFrame>(item, RadioInputComponentName)) {
+      return item;
+    }
+    throw new Error(`FormOverride: Invalid form component frame ${item.name} class ${item.component.class} in Question Tree.`);
   }
 
   private resolveReusableViewTemplate(templateKey: string, fallbackTemplate: string): string {
