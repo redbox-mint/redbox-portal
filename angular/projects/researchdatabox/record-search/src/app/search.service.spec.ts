@@ -77,6 +77,9 @@ describe('SearchService', () => {
     const req = httpMock.expectOne(request => {
       return request.url.includes('exactNames=author') && request.url.includes('exact_author=John');
     });
+    expect(req.request.method).toBe('GET');
+    expect(req.request.url).toContain('exactNames=author');
+    expect(req.request.url).toContain('exact_author=John');
     req.flush({ records: [], totalItems: 0, page: 1, facets: [] });
 
     await searchPromise;
@@ -96,6 +99,9 @@ describe('SearchService', () => {
     const req = httpMock.expectOne(request => {
       return request.url.includes('facetNames=category') && request.url.includes('facet_category=science');
     });
+    expect(req.request.method).toBe('GET');
+    expect(req.request.url).toContain('facetNames=category');
+    expect(req.request.url).toContain('facet_category=science');
     req.flush({ records: [], totalItems: 0, page: 1, facets: [] });
 
     await searchPromise;

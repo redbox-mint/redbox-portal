@@ -69,6 +69,9 @@ export class RecordSearchComponent extends BaseComponent {
     });
 
     this.setRecordType(this.record_type);
+    if (!this.params && this.recTypeNames.length > 0) {
+      this.setRecordType(this.recTypeNames[0]);
+    }
 
     if (!_isEmpty(this.queryStr)) {
       this.params.parseQueryStr(this.queryStr);
@@ -103,8 +106,11 @@ export class RecordSearchComponent extends BaseComponent {
     if (e) {
       e.preventDefault();
     }
-    this.params = this.paramMap[recType];
-    this.record_type = recType;
+    const selectedType = this.paramMap[recType] ? recType : this.recTypeNames[0];
+    if (!_isEmpty(selectedType) && this.paramMap[selectedType]) {
+      this.params = this.paramMap[selectedType];
+      this.record_type = selectedType;
+    }
   }
 
   getRecordTypeNames(): string[] {

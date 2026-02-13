@@ -85,7 +85,7 @@
                   plan.dashboardTitle
                 }}</a>
                 @if (plan.hasEditAccess) {
-                  <a class="glyphicon glyphicon-pencil" href="{{ brandingAndPortalUrl }}/record/edit/{{ plan.storage_id }}"></a>
+                  <a class="glyphicon glyphicon-pencil" href="{{ brandingAndPortalUrl }}/record/edit/{{ plan.storage_id }}" tooltip="Edit"></a>
                 }
               </h3>
               <div [innerHtml]="plan.description"></div>

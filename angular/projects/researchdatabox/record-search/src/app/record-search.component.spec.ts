@@ -125,6 +125,18 @@ describe('RecordSearchComponent', () => {
     expect(component.params.recordType).toBe('dataRecord');
   });
 
+  it('setRecordType should fallback to first searchable type when invalid type is provided', async () => {
+    const fixture = TestBed.createComponent(RecordSearchComponent);
+    const component = fixture.componentInstance;
+    component.ngOnInit();
+    await component.waitForInit();
+
+    component.setRecordType('nonexistent');
+
+    expect(component.record_type).toBe('rdmp');
+    expect(component.params.recordType).toBe('rdmp');
+  });
+
   it('resetSearch should clear search state', async () => {
     const fixture = TestBed.createComponent(RecordSearchComponent);
     const component = fixture.componentInstance;
