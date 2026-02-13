@@ -591,8 +591,7 @@ export namespace Services {
     }
   }
 
-  // Backwards-compatible alias while callers migrate to DomSanitizer.
-  export class SvgSanitizer extends DomSanitizer { }
+
 }
 
 
