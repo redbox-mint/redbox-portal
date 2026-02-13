@@ -281,7 +281,7 @@ export interface QuestionTreeFieldComponentDefinitionOutline extends QuestionTre
 
 export const QuestionTreeModelName = `QuestionTreeModel` as const;
 export type QuestionTreeModelNameType = typeof QuestionTreeModelName;
-export type QuestionTreeModelValueType = unknown[];
+export type QuestionTreeModelValueType = Record<string, unknown>;
 
 export interface QuestionTreeFieldModelConfigFrame extends FieldModelConfigFrame<QuestionTreeModelValueType> {
 

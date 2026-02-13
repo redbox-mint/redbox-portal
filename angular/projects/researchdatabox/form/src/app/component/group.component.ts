@@ -5,7 +5,7 @@ import {
   ViewChild,
   ViewContainerRef
 } from '@angular/core';
-import {FormGroup} from "@angular/forms";
+import {AbstractControl, FormGroup} from "@angular/forms";
 import {
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
@@ -13,16 +13,15 @@ import {
 } from "@researchdatabox/portal-ng-common";
 import {
   FormConfigFrame,
-  GroupFieldModelValueType, GroupFieldComponentConfig, GroupFieldModelName, GroupFieldComponentName,
+  GroupFieldModelValueType, GroupFieldModelName, GroupFieldComponentName,
+  isTypeFieldDefinitionName,
+  isTypeWithComponentDefinitions, GroupFieldComponentDefinition,
 } from "@researchdatabox/sails-ng-common";
 import {FormComponentsMap, FormService} from "../form.service";
 import {FormComponent} from "../form.component";
 import {
-  get as _get,
-  set as _set,
   isEmpty as _isEmpty,
   isUndefined as _isUndefined,
-  isNull as _isNull,
 } from "lodash-es";
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
 
@@ -33,22 +32,21 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
   protected override logName = GroupFieldModelName;
   public override formControl?: FormGroup;
 
-  override postCreate(): void {
-    // Don't call the super method, as this model needs a FormGroup, and needs to populate it differently.
-    // super.postCreate();
-
-    // Store the init value. Use the default value if the value is not set.
-    this.initValue = _get(this.fieldConfig, 'config.value');
-
-    // Create the empty FormGroup here, not in the component.
-    // This is different from FormComponent, which has no model.
-    // Creating the FormGroup here allows encapsulating the FormGroup & children in the same way as other components.
-    this.formControl = new FormGroup({});
-    console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value:`, this.initValue);
+  protected override postCreateGetInitValue(): GroupFieldModelValueType {
+    return this.fieldConfig.config?.value ?? {};
   }
 
-  public addItem(name: string, targetModel?: FormFieldModel<unknown>){
-    if (this.formControl && name && targetModel){
+  protected override postCreateGetFormControl(): FormGroup<{ [key: string]: AbstractControl<any> }> {
+    // Create the empty FormGroup here, not in the component.
+    // This is different from FormComponent, which has no model.
+    // Creating the FormGroup here allows encapsulating the FormGroup & children
+    // in the same way as other components.
+    const modelElems: { [key: string]: AbstractControl<any> } = {};
+    return new FormGroup(modelElems);
+  }
+
+  public addItem(name: string, targetModel?: FormFieldModel<unknown>) {
+    if (this.formControl && name && targetModel) {
       this.formControl.addControl(name, targetModel.getFormControl());
     } else {
       throw new Error(`${this.logName}: formControl or name or targetModel are not valid. Cannot add item.`);
@@ -81,13 +79,14 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
   protected get getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);
   }
+
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
     return this.formFieldCompMapEntries
       .map(c => c.component)
       .filter(c => c !== undefined && c !== null);
   }
 
-  public override get formFieldCompMapEntries() : FormFieldCompMapEntry[] {
+  public override get formFieldCompMapEntries(): FormFieldCompMapEntry[] {
     return this.formComponentsMap?.components ?? [];
   }
 
@@ -96,12 +95,23 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
     // Build a form config to store the info needed to build the components.
     const formConfig = this.getFormComponent.formDefMap?.formConfig;
-    const groupComponentDefinitions = (this.formFieldCompMapEntry?.compConfigJson?.component?.config as GroupFieldComponentConfig)?.componentDefinitions ?? [];
     const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
+
+    const componentFormConfig = this.formFieldCompMapEntry?.compConfigJson?.component;
+    if (!isTypeFieldDefinitionName<GroupFieldComponentDefinition>(componentFormConfig, GroupFieldComponentName)) {
+      throw new Error(`Expected a group component, but got ${JSON.stringify(componentFormConfig)}`);
+    }
+
+    const componentConfigFormConfig = componentFormConfig.config;
+    if (!isTypeWithComponentDefinitions(componentConfigFormConfig) || componentConfigFormConfig.componentDefinitions?.length < 1) {
+      throw new Error(`Expected a group component config with at least one componentDefinition, but got ${JSON.stringify(componentConfigFormConfig)}`);
+    }
+
+    const componentDefinitions = componentConfigFormConfig.componentDefinitions;
     this.elementFormConfig = {
       name: `form-config-generated-group-${formComponentName}`,
       // Store the child component definitions.
-      componentDefinitions: groupComponentDefinitions,
+      componentDefinitions: componentDefinitions,
       // Get the default config.
       defaultComponentConfig: formConfig?.defaultComponentConfig,
     };

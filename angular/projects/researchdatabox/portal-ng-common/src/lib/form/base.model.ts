@@ -1,4 +1,4 @@
-import {cloneDeep as _cloneDeep, get as _get} from 'lodash-es';
+import {cloneDeep as _cloneDeep} from 'lodash-es';
 import {AbstractControl, FormControl} from '@angular/forms';
 import {FieldModelDefinitionFrame, FormValidatorConfig, guessType} from "@researchdatabox/sails-ng-common";
 
@@ -25,7 +25,7 @@ export abstract class FormModel<ValueType, DefinitionType extends FieldModelDefi
   /**
    * Custom initialization logic when constructing the model
    */
-  abstract postCreate(): void;
+  protected abstract postCreate(): void;
 }
 
 /**
@@ -47,14 +47,23 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
     super(initConfig);
   }
 
-  public override postCreate(): void {
+  protected override postCreate(): void {
+    this.initValue = this.postCreateGetInitValue();
+    this.formControl = this.postCreateGetFormControl();
+    console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value: ${JSON.stringify(this.initValue)}.`);
+  }
+
+  protected postCreateGetInitValue(): ValueType | undefined {
     // The server processes the form config and combines defaultValue and value into just value.
     // The client should not check defaultValue.
-    this.initValue = this.fieldConfig.config?.value;
+    return this.fieldConfig.config?.value;
+  }
 
-    // create the form model
-    this.formControl = this.initValue === undefined ? new FormControl() : new FormControl<ValueType>(this.initValue);
-    console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value:`, this.initValue);
+  protected postCreateGetFormControl(): AbstractControl<any> {
+    // Create a form control with a type based on the ValueType and init value.
+    return this.initValue === undefined
+      ? new FormControl()
+      : new FormControl<ValueType>(this.initValue);
   }
 
   /**

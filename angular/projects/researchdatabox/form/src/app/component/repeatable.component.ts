@@ -1,19 +1,21 @@
-import { Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef, Injector } from '@angular/core';
-import { FormArray, AbstractControl } from '@angular/forms';
-import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry  } from '@researchdatabox/portal-ng-common';
+import {Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef, Injector} from '@angular/core';
+import {FormArray, AbstractControl} from '@angular/forms';
+import {FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry} from '@researchdatabox/portal-ng-common';
 import {
   FormConfigFrame,
+  isTypeFieldDefinitionName,
   RepeatableComponentName,
   RepeatableElementLayoutName,
   RepeatableFieldComponentConfig,
+  RepeatableFieldComponentDefinition,
   RepeatableModelName
 } from '@researchdatabox/sails-ng-common';
-import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined, isNull as _isNull } from 'lodash-es';
-import { FormService } from '../form.service';
-import { FormComponent } from "../form.component";
+import {isEmpty as _isEmpty, cloneDeep as _cloneDeep, isUndefined as _isUndefined} from 'lodash-es';
+import {FormService} from '../form.service';
+import {FormComponent} from "../form.component";
 import {FormBaseWrapperComponent} from "./base-wrapper.component";
 import {DefaultLayoutComponent} from "./default-layout.component";
-import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '../form-state';
+import {createFormDefinitionChangeRequestEvent, FormComponentEventBus} from '../form-state';
 
 /**
  * Repeatable Form Field Component
@@ -25,14 +27,16 @@ import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '.
 @Component({
   selector: 'redbox-form-repeatable',
   template:
-  `
-    <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-    <ng-container #repeatableContainer></ng-container>
-    @if (isStatusReady() && isVisible) {
-      <button type="button" class="btn btn-md btn-primary" (click)="appendNewElement()" [attr.aria-label]="'Add'">Add</button>
-    }
-    <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
-  `,
+    `
+      <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
+      <ng-container #repeatableContainer></ng-container>
+      @if (isStatusReady() && isVisible) {
+        <button type="button" class="btn btn-md btn-primary" (click)="appendNewElement()" [attr.aria-label]="'Add'">
+          Add
+        </button>
+      }
+      <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
+    `,
   standalone: false
 })
 export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> {
@@ -45,8 +49,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   protected compDefMapEntries: Array<RepeatableElementEntry> = [];
 
-  @ViewChild('repeatableContainer', { read: ViewContainerRef, static: true }) repeatableContainer!: ViewContainerRef;
-  @ViewChild('removeButtonTemplate', { read: TemplateRef<any>, static: false }) removeButtonTemplate!: TemplateRef<any>;
+  @ViewChild('repeatableContainer', {read: ViewContainerRef, static: true}) repeatableContainer!: ViewContainerRef;
+  @ViewChild('removeButtonTemplate', {read: TemplateRef<any>, static: false}) removeButtonTemplate!: TemplateRef<any>;
 
 
   private newElementFormConfig?: FormConfigFrame;
@@ -62,15 +66,23 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       .filter(c => c !== undefined && c !== null);
   }
 
-  public override get formFieldCompMapEntries() : FormFieldCompMapEntry[]  {
+  public override get formFieldCompMapEntries(): FormFieldCompMapEntry[] {
     return this.compDefMapEntries?.map(i => i?.defEntry) ?? [];
   }
 
   protected override async initData() {
     await this.untilViewIsInitialised();
+
     // Prepare the element template
-    const elementTemplate = (this.componentDefinition?.config as RepeatableFieldComponentConfig)?.elementTemplate;
     const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
+
+    const componentFormConfig = this.componentDefinition;
+    if (!isTypeFieldDefinitionName<RepeatableFieldComponentDefinition>(componentFormConfig, RepeatableComponentName)) {
+      throw new Error(`Expected a repeatable component, but got ${JSON.stringify(componentFormConfig)}`);
+    }
+
+    const componentConfigFormConfig = componentFormConfig.config;
+    const elementTemplate = componentConfigFormConfig?.elementTemplate;
     if (!elementTemplate) {
       throw new Error(`${this.logName}: elementTemplate is not defined in the component definition for '${formComponentName}'.`);
     }
@@ -147,12 +159,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     for (let index = 0; index < this.compDefMapEntries.length; index++) {
       const indexStr = index.toString();
       const lineagePath = this.formService.buildLineagePaths(
-      this.formFieldCompMapEntry?.lineagePaths,
-      {
-        angularComponents: [indexStr],
-        dataModel: [indexStr],
-        formConfig: ['component', 'config', 'elementTemplate'],
-      });
+        this.formFieldCompMapEntry?.lineagePaths,
+        {
+          angularComponents: [indexStr],
+          dataModel: [indexStr],
+          formConfig: ['component', 'config', 'elementTemplate'],
+        });
       this.compDefMapEntries[index].defEntry.lineagePaths = lineagePath;
     }
     // Every time the lineage paths are rebuilt, the form definition has essentially changed. Sending an event to notify listeners.
@@ -202,7 +214,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     };
   }
 
-  protected async createElement(elemEntry: RepeatableElementEntry ) {
+  protected async createElement(elemEntry: RepeatableElementEntry) {
     const elemFieldEntry = elemEntry.defEntry;
     // Pushing early so rebuilding the lineage paths will be accurate
     this.compDefMapEntries.push(elemEntry);
@@ -228,7 +240,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   public removeElementFn(elemEntry: RepeatableElementEntry) {
     const that = this;
-    return function() {
+    return function () {
       that.loggerService.debug(`${that.logName}: removeElement called: `, elemEntry.localUniqueId);
       that.loggerService.debug(`${that.logName}: removeElement called, matching elemEntry:`,
         that.compDefMapEntries.find(i => i === elemEntry)
@@ -247,28 +259,23 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 }
 
 
-
-
 export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
   protected override logName = RepeatableModelName;
   public override formControl?: FormArray;
 
-  public override postCreate(): void {
-    // Don't call the super method, as this model needs a FormArray, and needs to populate it differently.
-    // super.postCreate();
-
+  protected override postCreateGetInitValue(): Array<unknown> | undefined {
     // Store the init value. Use an empty array if the value is not set.
-    this.initValue = this.fieldConfig.config?.value ?? [];
-
-    // not setting value yet, this will be done in the component for lazy init
-    const modelElems: AbstractControl[] = [];
-
-    this.formControl = new FormArray(modelElems);
-    console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value:`, this.initValue);
+    return this.fieldConfig.config?.value ?? [];
   }
 
-  public addElement(targetModel?: FormFieldModel<unknown>){
-    if (this.formControl && targetModel){
+  protected override postCreateGetFormControl(): FormArray<AbstractControl<any>> {
+    // not setting value yet, this will be done in the component for lazy init
+    const modelElems: AbstractControl[] = [];
+    return new FormArray(modelElems);
+  }
+
+  public addElement(targetModel?: FormFieldModel<unknown>) {
+    if (this.formControl && targetModel) {
       this.formControl.push(targetModel.getFormControl());
     } else {
       throw new Error(`${this.logName}: formControl or targetModel are not valid. Cannot add element.`);
@@ -289,7 +296,6 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
 }
 
 
-
 /**
  * Used to store the information about a repeatable element in the form, including its model, component, and layout, and other information needed to add or remove it from the form dynamically.
  */
@@ -305,26 +311,27 @@ export interface RepeatableElementEntry {
 @Component({
   selector: 'redbox-form-repeatable-component-layout',
   template: `
-  <ng-container #componentContainer></ng-container>
-  @if (isVisible) {
-    <button type="button" class="col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
-  }
-  <ng-template #afterComponentTemplate>
+    <ng-container #componentContainer></ng-container>
     @if (isVisible) {
-      @let componentValidationList = getFormValidatorComponentErrors;
-      @if (componentValidationList.length > 0) {
-        <div class="invalid-feedback">
-          Field validation errors:
-          <ul>
-            @for (error of componentValidationList; track $index) {
-              <li>{{ error.message | i18next: error.params }}</li>
-            }
-          </ul>
-        </div>
-      }
-      <div class="valid-feedback">The field is valid.</div>
+      <button type="button" class="col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()"
+              [attr.aria-label]="'remove-button-label' | i18next"></button>
     }
-  </ng-template>
+    <ng-template #afterComponentTemplate>
+      @if (isVisible) {
+        @let componentValidationList = getFormValidatorComponentErrors;
+        @if (componentValidationList.length > 0) {
+          <div class="invalid-feedback">
+            Field validation errors:
+            <ul>
+              @for (error of componentValidationList; track $index) {
+                <li>{{ error.message | i18next: error.params }}</li>
+              }
+            </ul>
+          </div>
+        }
+        <div class="valid-feedback">The field is valid.</div>
+      }
+    </ng-template>
   `,
   standalone: false,
 })
