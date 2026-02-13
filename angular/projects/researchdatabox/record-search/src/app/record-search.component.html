@@ -55,9 +55,7 @@
             </button>
           </div>
           @if (searchMsg) {
-            <div class="mt-3 alert alert-{{ searchMsgType }} text-center" id="searchMsg" tabindex="0">
-              <span [innerHtml]="searchMsg"></span>
-            </div>
+            <div class="bg-{{ searchMsgType }} text-center" id="searchMsg" tabindex="0" [innerHtml]="searchMsg"></div>
           }
         </div>
       </div>
@@ -85,7 +83,11 @@
                   plan.dashboardTitle
                 }}</a>
                 @if (plan.hasEditAccess) {
-                  <a class="glyphicon glyphicon-pencil" href="{{ brandingAndPortalUrl }}/record/edit/{{ plan.storage_id }}" tooltip="Edit"></a>
+                  <a
+                    class="glyphicon glyphicon-pencil"
+                    href="{{ brandingAndPortalUrl }}/record/edit/{{ plan.storage_id }}"
+                    tooltip="Edit"
+                  ></a>
                 }
               </h3>
               <div [innerHtml]="plan.description"></div>

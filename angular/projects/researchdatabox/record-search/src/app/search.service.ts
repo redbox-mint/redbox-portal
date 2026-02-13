@@ -51,19 +51,20 @@ export class SearchService extends HttpClientService {
         switch (refiner.type) {
           case 'exact':
             exactSearchNames = `${_isEmpty(exactSearchNames) ? `&exactNames=` : `${exactSearchNames},`}${refiner.name}`;
-            exactSearchValues = `${exactSearchValues}&exact_${refiner.name}=${refiner.value}`;
+            exactSearchValues = `${exactSearchValues}&exact_${refiner.name}=${encodeURIComponent(refiner.value ?? '')}`;
             break;
           case 'facet':
             facetSearchNames = `${_isEmpty(facetSearchNames) ? `&facetNames=` : `${facetSearchNames},`}${refiner.name}`;
             if (!_isEmpty(refiner.activeValue)) {
-              facetSearchValues = `${facetSearchValues}&facet_${refiner.name}=${refiner.activeValue}`;
+              facetSearchValues = `${facetSearchValues}&facet_${refiner.name}=${encodeURIComponent(refiner.activeValue)}`;
             }
             break;
         }
       });
       refinedSearchStr = `${exactSearchNames}${exactSearchValues}${facetSearchNames}${facetSearchValues}`;
     }
-    const url = `${this.brandingAndPortalUrl}/record/search/${params.recordType}/?searchStr=${params.basicSearch}&rows=${params.rows}&page=${params.currentPage}${refinedSearchStr}`;
+    const searchValue = encodeURIComponent(params.basicSearch ?? '');
+    const url = `${this.brandingAndPortalUrl}/record/search/${params.recordType}/?searchStr=${searchValue}&rows=${params.rows}&page=${params.currentPage}${refinedSearchStr}`;
     const result$ = this.http.get(url, this.getHttpOptions()).pipe(map(res => res));
     return await firstValueFrom(result$);
   }

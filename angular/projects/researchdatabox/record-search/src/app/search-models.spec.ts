@@ -190,6 +190,14 @@ describe('RecordSearchParams', () => {
     expect(params.hasActiveRefiners()).toBe(true);
   });
 
+  it('hasActiveRefiners should return true when facet refiner has active value', () => {
+    const refiner = new RecordSearchRefiner({ name: 'facet', type: 'facet' });
+    refiner.activeValue = 'science';
+    params.activeRefiners = [refiner];
+
+    expect(params.hasActiveRefiners()).toBe(true);
+  });
+
   it('setFacetValues should update active refiner values', () => {
     const refiner = new RecordSearchRefiner({ name: 'category', type: 'facet' });
     params.activeRefiners = [refiner];

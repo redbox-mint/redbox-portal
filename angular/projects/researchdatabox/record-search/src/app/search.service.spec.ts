@@ -54,7 +54,7 @@ describe('SearchService', () => {
     const searchPromise = service.search(params);
 
     const req = httpMock.expectOne(request => {
-      return request.url.includes('/record/search/rdmp/') && request.url.includes('searchStr=test query');
+      return request.url.includes('/record/search/rdmp/') && request.url.includes('searchStr=test%20query');
     });
     expect(req.request.method).toBe('GET');
     req.flush({ records: [], totalItems: 0, page: 1, facets: [] });

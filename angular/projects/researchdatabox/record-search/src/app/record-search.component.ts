@@ -1,6 +1,11 @@
-import { Component, ElementRef, Inject } from '@angular/core';
+import { Component, ElementRef, Inject, Input } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
-import { isEmpty as _isEmpty, isUndefined as _isUndefined, forEach as _forEach, toInteger as _toInteger } from 'lodash-es';
+import {
+  isEmpty as _isEmpty,
+  isUndefined as _isUndefined,
+  forEach as _forEach,
+  toInteger as _toInteger,
+} from 'lodash-es';
 
 import { BaseComponent, TranslationService } from '@researchdatabox/portal-ng-common';
 import { SearchService } from './search.service';
@@ -17,9 +22,9 @@ import { RecordSearchParams, RecordSearchRefiner } from './search-models';
   standalone: false,
 })
 export class RecordSearchComponent extends BaseComponent {
-  record_type: string = 'rdmp';
-  search_str: string = '';
-  search_url: string = 'record/search';
+  @Input() record_type: string = 'rdmp';
+  @Input() search_str: string = '';
+  @Input() search_url: string = 'record/search';
 
   plans: any[] | null = null;
   params!: RecordSearchParams;
@@ -52,6 +57,14 @@ export class RecordSearchComponent extends BaseComponent {
   protected override async initComponent(): Promise<void> {
     this.brandingAndPortalUrl = this.searchService.brandingAndPortalUrl;
 
+    if (_isEmpty(this.search_str) && !_isEmpty(this.queryStr)) {
+      const parsedParams = new URLSearchParams(this.queryStr);
+      const queryValue = parsedParams.get('q');
+      if (!_isEmpty(queryValue)) {
+        this.search_str = queryValue ?? '';
+      }
+    }
+
     const typeConfs: any[] = await this.searchService.getAllTypes();
     _forEach(typeConfs, (typeConf: any) => {
       // check if we want this record type showing up in the search UI
@@ -73,8 +86,14 @@ export class RecordSearchComponent extends BaseComponent {
       this.setRecordType(this.recTypeNames[0]);
     }
 
+    if (!_isEmpty(this.search_str)) {
+      this.params.basicSearch = this.search_str;
+    }
+
     if (!_isEmpty(this.queryStr)) {
       this.params.parseQueryStr(this.queryStr);
+      await this.doSearch(null, false);
+    } else if (!_isEmpty(this.search_str)) {
       await this.doSearch(null, false);
     }
 

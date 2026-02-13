@@ -87,9 +87,11 @@ export class RecordSearchParams {
     let refinerValues = '';
     _forEach(this.activeRefiners, (refiner: RecordSearchRefiner) => {
       if (refiner.type === 'facet') {
-        refinerValues = `${refinerValues}&refiner|${refiner.name}=${_isEmpty(refiner.activeValue) ? '' : refiner.activeValue}`;
+        const value = _isEmpty(refiner.activeValue) ? '' : encodeURIComponent(refiner.activeValue);
+        refinerValues = `${refinerValues}&refiner|${refiner.name}=${value}`;
       } else {
-        refinerValues = `${refinerValues}&refiner|${refiner.name}=${_isEmpty(refiner.value) ? '' : refiner.value}`;
+        const value = _isEmpty(refiner.value) ? '' : encodeURIComponent(refiner.value);
+        refinerValues = `${refinerValues}&refiner|${refiner.name}=${value}`;
       }
     });
     return `${searchUrl}?q=${encodeURIComponent(this.basicSearch ?? '')}&type=${this.recordType}${refinerValues}&page=${this.currentPage}`;
@@ -119,7 +121,7 @@ export class RecordSearchParams {
       }
       if (_startsWith(qObj[0], 'refiner|')) {
         const refinerName = qObj[0].split('|')[1];
-        refinerValues[refinerName] = qObj[1] ?? '';
+        refinerValues[refinerName] = decodeURIComponent((qObj[1] ?? '').replace(/\+/gi, ' '));
       }
       if (_startsWith(qObj[0], 'page')) {
         this.currentPage = _toNumber(qObj[1]);
@@ -144,8 +146,11 @@ export class RecordSearchParams {
   hasActiveRefiners(): boolean {
     let hasActive = false;
     _forEach(this.activeRefiners, (refiner: RecordSearchRefiner) => {
-      if (!hasActive && !_isEmpty(refiner.value)) {
-        hasActive = true;
+      if (!hasActive) {
+        const value = refiner.type === 'facet' ? refiner.activeValue : refiner.value;
+        if (!_isEmpty(value)) {
+          hasActive = true;
+        }
       }
     });
     return hasActive;
