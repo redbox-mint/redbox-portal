@@ -1497,8 +1497,12 @@ export namespace Services {
 
     public handleUpdateDataStream(oid: string, origRecord: unknown, metadata: AnyRecord) {
       const fileIdsAdded: string[] = [];
+      const attachmentsDir = sails.config.record.attachments.file?.directory ?? sails.config.record.attachments.stageDir;
+      if (!attachmentsDir) {
+        throw new Error('record.attachments.file.directory is required');
+      }
       return this.datastreamService
-        .updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
+        .updateDatastream(oid, origRecord, metadata, attachmentsDir, fileIdsAdded)
         .pipe(
           concatMap((reqs: unknown) => {
             if (reqs) {

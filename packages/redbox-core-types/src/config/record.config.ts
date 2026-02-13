@@ -41,8 +41,21 @@ export interface RecordSearchConfig {
 }
 
 export interface RecordAttachmentsConfig {
-    stageDir: string;
     path: string;
+    store?: 'file' | 's3';
+    file?: {
+        directory: string;
+    };
+    s3?: {
+        bucket: string;
+        region: string;
+        accessKeyId?: string;
+        secretAccessKey?: string;
+        endpoint?: string;
+        partSize?: number;
+    };
+    /** @deprecated Use file.directory instead. */
+    stageDir?: string;
 }
 
 export interface RecordFormConfig {
@@ -156,8 +169,11 @@ export const record: RecordConfig = {
         maxRecordsPerPage: 1000000
     },
     attachments: {
-        stageDir: '/attachments/staging',
-        path: '/attach'
+        path: '/attach',
+        store: 'file',
+        file: {
+            directory: '/attachments/staging'
+        }
     },
     helpEmail: 'support@redboxresearchdata.com.au'
 };

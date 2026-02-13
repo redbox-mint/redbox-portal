@@ -21,6 +21,8 @@ declare var sails: Sails;
 declare var _;
 declare var Record: Model, DeletedRecord: Model, RecordTypesService, TranslationService, FormsService, RecordAudit;
 
+
+
 export module Services {
   /**
    * Stores ReDBox records in MongoDB.
@@ -805,7 +807,12 @@ export module Services {
       sails.log.verbose(`${this.logHeader} addDatastream() -> Meta: ${fileId}`);
       sails.log.verbose(JSON.stringify(datastream));
       const metadata = _.merge(datastream.metadata, { redboxOid: oid });
-      const fpath = `${sails.config.record.attachments.stageDir}/${fileId}`;
+      const attachmentsConfig = sails.config.record?.attachments ?? {};
+      const attachmentsDir = attachmentsConfig.file?.directory ?? attachmentsConfig.stageDir;
+      if (_.isEmpty(attachmentsDir)) {
+        throw new Error('record.attachments.file.directory (or deprecated stageDir) is not configured');
+      }
+      const fpath = `${attachmentsDir}/${fileId}`;
       const fileName = `${oid}/${fileId}`;
       sails.log.verbose(`${this.logHeader} addDatastream() -> Adding: ${fileName}`);
 
