@@ -62,14 +62,14 @@ const getWindow = () => {
   const globalCache = globalThis as typeof globalThis & {
     window?: WindowLike;
     DOMPurify?: DomPurifyInstance;
-    __svgSanitizerWindow?: WindowLike;
+    __domSanitizerWindow?: WindowLike;
   } & Record<string, unknown>;
   const globalWindow = globalCache.window;
   if (globalWindow && typeof globalWindow.document !== 'undefined') {
     return globalWindow;
   }
 
-  const cacheKey = '__svgSanitizerWindow';
+  const cacheKey = '__domSanitizerWindow';
   if (!globalCache[cacheKey]) {
     const { window } = new JSDOM('', { pretendToBeVisual: true });
     globalCache[cacheKey] = window;
@@ -123,7 +123,7 @@ const instantiateDomPurify = (factoryModule: unknown): DomPurifyInstance | null 
         return instance;
       }
     } catch (error) {
-      sails?.log?.silly?.('SvgSanitizerService:: DOMPurify instantiation attempt failed', error);
+      sails?.log?.silly?.('DomSanitizerService:: DOMPurify instantiation attempt failed', error);
     }
   }
 
@@ -136,7 +136,7 @@ const initialiseDOMPurify = (): DomPurifyInstance => {
     return instanceFromDomPurify;
   }
 
-  throw new Error('SvgSanitizerService: Failed to initialise DOMPurify with hook support');
+  throw new Error('DomSanitizerService: Failed to initialise DOMPurify with hook support');
 };
 
 const DOMPurify = initialiseDOMPurify();
@@ -206,11 +206,11 @@ export namespace Services {
    * - Consider additional application-specific validation
    * - Keep DOMPurify updated for latest security patches
    */
-  export class SvgSanitizer extends coreServices.Core.Service {
+  export class DomSanitizer extends coreServices.Core.Service {
 
     constructor() {
       super();
-      this.logHeader = "SvgSanitizerService::";
+      this.logHeader = "DomSanitizerService::";
     }
 
     getMaxBytes(): number {
@@ -233,7 +233,7 @@ export namespace Services {
         const sanitized = DOMPurify.sanitize(content, config);
         return String(sanitized);
       } catch (error) {
-        sails.log.error(`SvgSanitizerService: Error sanitizing content with profile '${profileName}':`, error);
+        sails.log.error(`DomSanitizerService: Error sanitizing content with profile '${profileName}':`, error);
         throw error;
       }
     }
@@ -254,7 +254,7 @@ export namespace Services {
       const profile = profiles[profileName] || profiles[dompurifyConfig.defaultProfile] || profiles.svg;
 
       if (!profile) {
-        sails.log.error(`SvgSanitizerService: DOMPurify profile '${profileName}' not found and no fallback available`);
+        sails.log.error(`DomSanitizerService: DOMPurify profile '${profileName}' not found and no fallback available`);
         throw new Error(`DOMPurify configuration profile '${profileName}' not found`);
       }
 
@@ -525,12 +525,15 @@ export namespace Services {
       }
     }
   }
+
+  // Backwards-compatible alias while callers migrate to DomSanitizer.
+  export class SvgSanitizer extends DomSanitizer { }
 }
 
 
 export default Services;
-PopulateExportedMethods(Services.SvgSanitizer);
+PopulateExportedMethods(Services.DomSanitizer);
 
 declare global {
-  let SvgSanitizerService: Services.SvgSanitizer;
+  let DomSanitizerService: Services.DomSanitizer;
 }

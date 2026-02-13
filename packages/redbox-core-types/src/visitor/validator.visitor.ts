@@ -383,10 +383,12 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         }
 
 
-
-
-        const sanitized = SvgSanitizerService.sanitizeWithProfile(value, 'html');
-        if (sanitized === value) {
+        const sanitized = DomSanitizerService.sanitizeWithProfile(value, 'html');
+        // TODO: Validating this way that the html/markdown content has been sanitized is likely to be brittle
+        // Initial implementation is to silently sanitize and warn, but may want to change to rejecting the content in future if sanitization issues are common.
+        // This will likely need to hook more into domPurify to be more robust to detect when it is sanitizing content.
+        // When we do this, we should also consider how to best report the issue to the user so they can fix their content - e.g. include details of what is not allowed in the error message.
+        if (this.normalizeHtmlForComparison(sanitized) === this.normalizeHtmlForComparison(value)) {
             return;
         }
 
@@ -485,7 +487,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         this.formPathHelper.acceptFormComponentDefinition(item);
     }
 
-    protected validateFormComponent(itemName: string, value: any, validators?: FormValidatorConfig[], message?: string): FormValidatorSummaryErrors[] {
+    protected validateFormComponent(itemName: string, value: unknown, validators?: FormValidatorConfig[], message?: string): FormValidatorSummaryErrors[] {
         const createFormValidatorFns = this.validatorSupport.createFormValidatorInstancesFromMapping;
 
         const availableValidatorGroups = this.form?.validationGroups ?? {};
@@ -513,22 +515,11 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         return result;
     }
 
-    private getSvgSanitizerService():
-        | { sanitizeWithProfile: (content: string, profileName?: string) => string }
-        | undefined {
-        const globals = globalThis as any;
-        if (globals?.SvgSanitizerService?.sanitizeWithProfile) {
-            return globals.SvgSanitizerService;
-        }
-        if (globals?.global?.SvgSanitizerService?.sanitizeWithProfile) {
-            return globals.global.SvgSanitizerService;
-        }
 
-        const service = globals?.sails?.services?.svgsanitizerservice;
-        if (service?.sanitizeWithProfile) {
-            return service;
-        }
-
-        return undefined;
+    private normalizeHtmlForComparison(value: string): string {
+        return value
+            .replace(/>\s+</g, '><')
+            .replace(/\s+/g, ' ')
+            .trim();
     }
 }

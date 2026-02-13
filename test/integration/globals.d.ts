@@ -37,7 +37,7 @@ declare const RolesService: any;
 
 declare const SassCompilerService: any;
 declare const SolrSearchService: any;
-declare const SvgSanitizerService: any;
+declare const DomSanitizerService: any;
 
 declare const TemplateService: any;
 declare const TriggerService: any;

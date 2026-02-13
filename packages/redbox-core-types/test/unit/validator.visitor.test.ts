@@ -8,10 +8,10 @@ import {
 import { ValidatorFormConfigVisitor } from "../../src/visitor/validator.visitor";
 import { logger } from "./helpers";
 import { formConfigExample1 } from "./example-data";
-import Services from "../../src/services/SvgSanitizerService";
+import Services from "../../src/services/DomSanitizerService";
 import * as _ from "lodash";
 
-const SvgSanitizerService = new Services.SvgSanitizer();
+const DomSanitizerService = new Services.DomSanitizer();
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -19,8 +19,8 @@ import("chai").then(mod => expect = mod.expect);
 describe("Validator Visitor", async () => {
     before(() => {
         (global as any)._ = _;
-        (global as any).SvgSanitizerService = SvgSanitizerService;
-        (globalThis as any).SvgSanitizerService = SvgSanitizerService;
+        (global as any).DomSanitizerService = DomSanitizerService;
+        (globalThis as any).DomSanitizerService = DomSanitizerService;
     });
     it(`should run only expected validators for initial membership none`, async function () {
         const formConfig: FormConfigFrame = {
