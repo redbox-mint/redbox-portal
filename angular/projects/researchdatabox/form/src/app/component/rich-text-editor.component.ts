@@ -1,13 +1,13 @@
-import {Component, Input, OnDestroy} from "@angular/core";
-import {Editor, type AnyExtension} from "@tiptap/core";
-import {Table} from "@tiptap/extension-table";
+import { Component, Input, OnDestroy } from "@angular/core";
+import { Editor, type AnyExtension } from "@tiptap/core";
+import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
-import {Markdown} from "@tiptap/markdown";
+import { Markdown } from "@tiptap/markdown";
 import StarterKit from "@tiptap/starter-kit";
-import {Subscription} from "rxjs";
-import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel} from "@researchdatabox/portal-ng-common";
+import { Subscription } from "rxjs";
+import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   RichTextEditorComponentName,
   RichTextEditorFieldComponentConfig,
@@ -69,8 +69,8 @@ export class RichTextEditorModel extends FormFieldModel<string> {
               [attr.aria-label]="'Raw ' + getSourceLabel() + ' editor'"
               [disabled]="isDisabled"
               (input)="onSourceValueChange(($any($event.target)).value)"></textarea>
-          } @else {
-            <div class="redbox-rich-text-editor-surface" tiptapEditor [editor]="editor!"></div>
+          } @else if (editor) {
+            <div class="redbox-rich-text-editor-surface" tiptapEditor [editor]="editor"></div>
           }
         </div>
       }
@@ -138,7 +138,7 @@ export class RichTextEditorModel extends FormFieldModel<string> {
 export class RichTextEditorComponent extends FormFieldBaseComponent<string> implements OnDestroy {
   protected override logName = RichTextEditorComponentName;
 
-  public editor?: Editor;
+  public editor: Editor | null = null;
   public renderedViewHtml = "";
 
   public outputFormat: RichTextEditorOutputFormatType = "html";
@@ -150,7 +150,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
   public sourceValue = "";
 
   private valueSyncSub?: Subscription;
-  private markdownViewEditor?: Editor;
+  private markdownViewEditor: Editor | null = null;
   private skipNextSync = false;
 
   @Input() public override model?: RichTextEditorModel;
@@ -206,7 +206,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
         chain.toggleItalic().run();
         break;
       case "heading":
-        chain.toggleHeading({level: 2}).run();
+        chain.toggleHeading({ level: 2 }).run();
         break;
       case "link":
         this.toggleLink();
@@ -221,7 +221,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
         chain.toggleBlockquote().run();
         break;
       case "table":
-        chain.insertTable({rows: 3, cols: 3, withHeaderRow: true}).run();
+        chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
         break;
       case "undo":
         chain.undo().run();
@@ -298,46 +298,52 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
   ngOnDestroy(): void {
     this.valueSyncSub?.unsubscribe();
     this.editor?.destroy();
-    this.editor = undefined;
+    this.editor = null;
     this.markdownViewEditor?.destroy();
-    this.markdownViewEditor = undefined;
+    this.markdownViewEditor = null;
   }
 
   private createEditor(initialValue: string): void {
     this.editor?.destroy();
-    this.editor = new Editor({
-      extensions: this.buildExtensions(),
-      contentType: this.outputFormat === "markdown" ? "markdown" : "html",
-      content: initialValue,
-      editable: !this.isReadonly && !this.isDisabled,
-      editorProps: {
-        attributes: {
-          "aria-label": this.placeholder || "Rich text editor",
-          class: "redbox-rich-text-prosemirror",
+    this.editor = null;
+    try {
+      this.editor = new Editor({
+        extensions: this.buildExtensions(),
+        contentType: this.outputFormat === "markdown" ? "markdown" : "html",
+        content: initialValue,
+        editable: !this.isReadonly && !this.isDisabled,
+        editorProps: {
+          attributes: {
+            "aria-label": this.placeholder || "Rich text editor",
+            class: "redbox-rich-text-prosemirror",
+          }
+        },
+        onUpdate: ({ editor }) => {
+          const value = this.getEditorValue(editor);
+          this.renderedViewHtml = this.toViewHtml(value);
+          if (this.skipNextSync) {
+            this.skipNextSync = false;
+            return;
+          }
+          if (value === (this.formControl.value ?? "")) {
+            return;
+          }
+          this.skipNextSync = true;
+          this.formControl.setValue(value);
+          this.formControl.markAsDirty();
+          this.formControl.markAsTouched();
         }
-      },
-      onUpdate: ({editor}) => {
-        const value = this.getEditorValue(editor);
-        this.renderedViewHtml = this.toViewHtml(value);
-        if (this.skipNextSync) {
-          this.skipNextSync = false;
-          return;
-        }
-        if (value === (this.formControl.value ?? "")) {
-          return;
-        }
-        this.skipNextSync = true;
-        this.formControl.setValue(value);
-        this.formControl.markAsDirty();
-        this.formControl.markAsTouched();
-      }
-    });
+      });
+    } catch (error) {
+      this.loggerService.error(`${this.logName}: Failed to create editor instance.`, error);
+      this.editor = null;
+    }
   }
 
   private buildExtensions(): AnyExtension[] {
     const extensions: AnyExtension[] = [
       StarterKit,
-      Table.configure({resizable: true}),
+      Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
       TableCell,
@@ -350,7 +356,12 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
 
   private getEditorValue(editor: Editor): string {
     if (this.outputFormat === "markdown") {
-      return this.normalizeEditorValue(editor.getMarkdown());
+      try {
+        if (typeof (editor as Editor & { getMarkdown?: () => string }).getMarkdown === "function") {
+          return this.normalizeEditorValue((editor as Editor & { getMarkdown: () => string }).getMarkdown());
+        }
+      } catch {
+      }
     }
     return this.normalizeEditorValue(editor.getHTML());
   }
@@ -370,11 +381,14 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     }
     const activeHref = this.editor.getAttributes("link")?.["href"] as string | undefined;
     const enteredHref = globalThis?.prompt?.("Enter URL", activeHref || "https://");
-    if (!enteredHref) {
+    if (enteredHref === null) {
+      return;
+    }
+    if (enteredHref === "") {
       this.editor.chain().focus().unsetLink().run();
       return;
     }
-    this.editor.chain().focus().toggleLink({href: enteredHref}).run();
+    this.editor.chain().focus().toggleLink({ href: enteredHref }).run();
   }
 
   private toViewHtml(value: string): string {
@@ -386,7 +400,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     }
     try {
       const mdEditor = this.getOrCreateMarkdownViewEditor();
-      mdEditor.commands.setContent(value, {contentType: "markdown"});
+      mdEditor.commands.setContent(value, { contentType: "markdown" });
       return mdEditor.getHTML();
     } catch (error) {
       this.loggerService.error(`${this.logName}: Failed to parse markdown for view mode.`, error);

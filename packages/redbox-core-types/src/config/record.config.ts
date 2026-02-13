@@ -65,7 +65,7 @@ export interface RecordConfig {
     attachments: RecordAttachmentsConfig;
     datastreamService?: string;
     helpEmail: string;
-    form: RecordFormConfig;
+    form?: RecordFormConfig;
 }
 
 export const record: RecordConfig = {

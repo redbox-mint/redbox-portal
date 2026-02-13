@@ -1,8 +1,8 @@
-import {TestBed} from "@angular/core/testing";
-import {By} from "@angular/platform-browser";
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
-import {createFormAndWaitForReady, createTestbedModule, type FormComponentProps} from "../helpers.spec";
-import {RichTextEditorComponent} from "./rich-text-editor.component";
+import { TestBed } from "@angular/core/testing";
+import { By } from "@angular/platform-browser";
+import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
+import { createFormAndWaitForReady, createTestbedModule, type FormComponentProps } from "../helpers.spec";
+import { RichTextEditorComponent } from "./rich-text-editor.component";
 
 describe("RichTextEditorComponent", () => {
   const editModeProps: FormComponentProps = {
@@ -13,7 +13,7 @@ describe("RichTextEditorComponent", () => {
     downloadAndCreateOnInit: false,
   };
   beforeEach(async () => {
-    await createTestbedModule({declarations: {"RichTextEditorComponent": RichTextEditorComponent}});
+    await createTestbedModule({ declarations: { "RichTextEditorComponent": RichTextEditorComponent } });
   });
 
   it("should create component", () => {
@@ -45,7 +45,7 @@ describe("RichTextEditorComponent", () => {
       ]
     };
 
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector("script")).toBeNull();
     const content = (compiled.querySelector(".redbox-rich-text-view") as HTMLElement)?.innerHTML ?? "";
@@ -75,7 +75,7 @@ describe("RichTextEditorComponent", () => {
       ]
     };
 
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const content = (compiled.querySelector(".redbox-rich-text-view") as HTMLElement)?.innerHTML ?? "";
     expect(content).toContain("<strong>Bold markdown</strong>");
@@ -104,7 +104,7 @@ describe("RichTextEditorComponent", () => {
       ]
     };
 
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
     (formComponent as any).form.controls.syncField.setValue("<p>After</p>");
     await fixture.whenStable();
     fixture.detectChanges();
@@ -119,12 +119,12 @@ describe("RichTextEditorComponent", () => {
       name: "testing",
       componentDefinitions: [{
         name: "editableField",
-        component: {class: "RichTextEditorComponent"},
-        model: {class: "RichTextEditorModel", config: {value: "<p>Alpha</p>"}}
+        component: { class: "RichTextEditorComponent" },
+        model: { class: "RichTextEditorModel", config: { value: "<p>Alpha</p>" } }
       }]
     };
 
-    const {fixture} = await createFormAndWaitForReady(formConfig, editModeProps);
+    const { fixture } = await createFormAndWaitForReady(formConfig, editModeProps);
     const richTextComponent = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
     richTextComponent.editor?.commands.selectAll();
     richTextComponent.onToolbarAction("bold");
@@ -137,12 +137,12 @@ describe("RichTextEditorComponent", () => {
       name: "testing",
       componentDefinitions: [{
         name: "editableField",
-        component: {class: "RichTextEditorComponent"},
-        model: {class: "RichTextEditorModel", config: {value: "<p>Alpha</p>"}}
+        component: { class: "RichTextEditorComponent" },
+        model: { class: "RichTextEditorModel", config: { value: "<p>Alpha</p>" } }
       }]
     };
 
-    const {fixture} = await createFormAndWaitForReady(formConfig, editModeProps);
+    const { fixture } = await createFormAndWaitForReady(formConfig, editModeProps);
     const compiled = fixture.nativeElement as HTMLElement;
     const sourceToggleButton = compiled.querySelector("[data-source-toggle-button='true']");
     expect(sourceToggleButton).toBeNull();
@@ -155,19 +155,22 @@ describe("RichTextEditorComponent", () => {
         name: "editableField",
         component: {
           class: "RichTextEditorComponent",
-          config: {showSourceToggle: true, outputFormat: "html"}
+          config: { showSourceToggle: true, outputFormat: "html" }
         },
-        model: {class: "RichTextEditorModel", config: {value: "<p>Before</p>"}}
+        model: { class: "RichTextEditorModel", config: { value: "<p>Before</p>" } }
       }]
     };
 
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, editModeProps);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, editModeProps);
     const richTextComponent = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
     const compiled = fixture.nativeElement as HTMLElement;
 
     const toggleButton = compiled.querySelector("[data-source-toggle-button='true']") as HTMLButtonElement | null;
-    expect(toggleButton).toBeDefined();
-    toggleButton?.click();
+    expect(toggleButton).not.toBeNull();
+    if (!toggleButton) {
+      return;
+    }
+    toggleButton.click();
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -190,12 +193,12 @@ describe("RichTextEditorComponent", () => {
       name: "testing",
       componentDefinitions: [{
         name: "editableField",
-        component: {class: "RichTextEditorComponent"},
-        model: {class: "RichTextEditorModel", config: {value: "<p>Before</p>"}}
+        component: { class: "RichTextEditorComponent" },
+        model: { class: "RichTextEditorModel", config: { value: "<p>Before</p>" } }
       }]
     };
 
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, editModeProps);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, editModeProps);
     const richTextComponent = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
     richTextComponent.editor?.commands.setContent("<p>After editor</p>");
     await fixture.whenStable();
@@ -207,12 +210,12 @@ describe("RichTextEditorComponent", () => {
       name: "testing",
       componentDefinitions: [{
         name: "editableField",
-        component: {class: "RichTextEditorComponent"},
-        model: {class: "RichTextEditorModel", config: {value: "<p>Before</p>"}}
+        component: { class: "RichTextEditorComponent" },
+        model: { class: "RichTextEditorModel", config: { value: "<p>Before</p>" } }
       }]
     };
 
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, editModeProps);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, editModeProps);
     const richTextComponent = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
     formComponent.form?.controls["editableField"].setValue("<p>Updated by formControl</p>");
     await fixture.whenStable();
@@ -224,12 +227,12 @@ describe("RichTextEditorComponent", () => {
       name: "testing",
       componentDefinitions: [{
         name: "editableField",
-        component: {class: "RichTextEditorComponent"},
-        model: {class: "RichTextEditorModel", config: {value: "<p>Before</p>"}}
+        component: { class: "RichTextEditorComponent" },
+        model: { class: "RichTextEditorModel", config: { value: "<p>Before</p>" } }
       }]
     };
 
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, editModeProps);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, editModeProps);
     const richTextComponent = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
     const control = formComponent.form?.controls["editableField"];
     expect(control).toBeDefined();

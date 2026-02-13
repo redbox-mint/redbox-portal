@@ -139,6 +139,7 @@ export const ServiceExports = {
   get SassCompilerService() { return getOrCreateService('SassCompilerService', () => new SassCompilerServiceModule.Services.SassCompiler().exports()); },
   get SolrSearchService() { return getOrCreateService('SolrSearchService', () => new SolrSearchServiceModule.Services.SolrSearchService().exports()); },
   get DomSanitizerService() { return getOrCreateService('DomSanitizerService', () => new DomSanitizerServiceModule.Services.DomSanitizer().exports()); },
+  get SvgSanitizerService() { return this.DomSanitizerService; },
   get TemplateService() { return getOrCreateService('TemplateService', () => new TemplateServiceModule.Services.Template().exports()); },
   get TranslationService() { return getOrCreateService('TranslationService', () => new TranslationServiceModule.Services.Translation().exports()); },
   get TriggerService() { return getOrCreateService('TriggerService', () => new TriggerServiceModule.Services.Trigger().exports()); },

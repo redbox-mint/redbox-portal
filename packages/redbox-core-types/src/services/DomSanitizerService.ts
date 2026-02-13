@@ -143,6 +143,37 @@ const DOMPurify = initialiseDOMPurify();
 
 (globalThis as typeof globalThis & { DOMPurify?: DomPurifyInstance }).DOMPurify = DOMPurify;
 
+const createDOMPurifyForCall = (): DomPurifyInstance => {
+  const windowRef = getWindow();
+  const moduleRecord = (typeof domPurify === 'object' || typeof domPurify === 'function')
+    ? (domPurify as unknown as Record<string, unknown>)
+    : null;
+
+  const createDOMPurify =
+    (typeof moduleRecord?.createDOMPurify === 'function' && moduleRecord.createDOMPurify)
+    || (typeof domPurify === 'function' && domPurify)
+    || (typeof moduleRecord?.default === 'function' && moduleRecord.default)
+    || null;
+
+  if (typeof createDOMPurify === 'function') {
+    try {
+      const instance = (createDOMPurify as (window: WindowLike) => unknown)(windowRef);
+      if (isDomPurifyInstance(instance)) {
+        return instance;
+      }
+    } catch (error) {
+      sails?.log?.silly?.('DomSanitizerService:: per-call DOMPurify creation failed, falling back', error);
+    }
+  }
+
+  const fallback = instantiateDomPurify(domPurify);
+  if (fallback) {
+    return fallback;
+  }
+
+  throw new Error('DomSanitizerService: Failed to initialise DOMPurify instance for sanitize call');
+};
+
 export namespace Services {
   /**
    * SVG and DOM sanitization service using DOMPurify.
@@ -361,10 +392,13 @@ export namespace Services {
         errors.push('missing-svg-root');
       }
 
-      // Check for excessive nesting (prevent billion laughs attack)
-      const nestingLevel = (svg.match(/<[^\/][^>]*>/g) || []).length;
-      if (nestingLevel > 1000) {
+      // Check for excessive nesting and element count (resource exhaustion protection)
+      const svgStructure = this.inspectSvgStructure(svg);
+      if (svgStructure.maxDepth > 1000) {
         errors.push('excessive-nesting');
+      }
+      if (svgStructure.totalElements > 100000) {
+        errors.push('excessive-elements');
       }
 
       // Check for suspicious CDATA sections
@@ -459,16 +493,16 @@ export namespace Services {
           }
         };
 
-        DOMPurify.addHook('beforeSanitizeElements', beforeSanitizeElementsHook);
-        DOMPurify.addHook('beforeSanitizeAttributes', beforeSanitizeAttributesHook);
+        const domPurifyForCall = createDOMPurifyForCall();
+        domPurifyForCall.addHook('beforeSanitizeElements', beforeSanitizeElementsHook);
+        domPurifyForCall.addHook('beforeSanitizeAttributes', beforeSanitizeAttributesHook);
 
         let sanitized: unknown;
         try {
-          sanitized = DOMPurify.sanitize(svg, config);
+          sanitized = domPurifyForCall.sanitize(svg, config);
         } finally {
-          // Remove hooks added in this invocation only (LIFO removal)
-          DOMPurify.removeHook('beforeSanitizeAttributes');
-          DOMPurify.removeHook('beforeSanitizeElements');
+          domPurifyForCall.removeHook('beforeSanitizeAttributes');
+          domPurifyForCall.removeHook('beforeSanitizeElements');
         }
 
         // Post-sanitization validation
@@ -523,6 +557,37 @@ export namespace Services {
           info: { originalBytes, sanitizedBytes: 0 }
         };
       }
+    }
+
+    private inspectSvgStructure(svg: string): { maxDepth: number; totalElements: number } {
+      const tagRegex = /<\s*(\/)?\s*([a-zA-Z][\w:.-]*)([^>]*)>/g;
+      let depth = 0;
+      let maxDepth = 0;
+      let totalElements = 0;
+
+      let match: RegExpExecArray | null;
+      while ((match = tagRegex.exec(svg)) !== null) {
+        const isClosingTag = Boolean(match[1]);
+        const trailingSegment = match[3] ?? '';
+        const isSelfClosingTag = /\/\s*$/.test(trailingSegment);
+
+        if (isClosingTag) {
+          depth = Math.max(0, depth - 1);
+          continue;
+        }
+
+        totalElements += 1;
+        depth += 1;
+        if (depth > maxDepth) {
+          maxDepth = depth;
+        }
+
+        if (isSelfClosingTag) {
+          depth = Math.max(0, depth - 1);
+        }
+      }
+
+      return { maxDepth, totalElements };
     }
   }
 

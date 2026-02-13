@@ -63,6 +63,21 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import { get as _get } from "lodash";
 import { FormPathHelper } from "@researchdatabox/sails-ng-common/dist/src/config/visitor/common.model";
+import { ServiceExports } from "../services";
+
+declare const sails: {
+    config?: {
+        record?: {
+            form?: {
+                htmlSanitizationMode?: 'sanitize' | 'reject';
+            }
+        }
+    }
+};
+
+const DomSanitizerService = ServiceExports.DomSanitizerService as {
+    sanitizeWithProfile: (content: string, profileName?: string) => string;
+};
 
 /**
  * Visit each form config component and run its validators.
@@ -427,7 +442,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
-        this.formPathHelper.acceptFormComponentDefinition(item);
+        this.acceptFormComponentDefinition(item);
     }
 
     /* Radio Input */
