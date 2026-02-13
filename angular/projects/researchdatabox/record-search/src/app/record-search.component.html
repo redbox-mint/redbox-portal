@@ -56,7 +56,7 @@
           </div>
           @if (searchMsg) {
             <div class="mt-3 alert alert-{{ searchMsgType }} text-center" id="searchMsg" tabindex="0">
-              {{ searchMsg }}
+              <span [innerHtml]="searchMsg"></span>
             </div>
           }
         </div>

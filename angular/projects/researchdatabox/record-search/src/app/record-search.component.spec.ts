@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
-import { APP_BASE_HREF } from '@angular/common';
+import { APP_BASE_HREF, Location } from '@angular/common';
 import { I18NextModule } from 'angular-i18next';
 import { UtilityService, LoggerService, ConfigService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
@@ -34,7 +34,11 @@ describe('RecordSearchComponent', () => {
 
   beforeEach(async () => {
     configService = getStubConfigService();
-    translationService = getStubTranslationService();
+    translationService = getStubTranslationService({
+      'plan-with-no-title': 'Untitled',
+      'record-search-searching': 'Searching...',
+      'record-search-results': 'Results: ',
+    });
     searchService = getStubSearchService([
       {
         name: 'rdmp',
@@ -124,6 +128,8 @@ describe('RecordSearchComponent', () => {
   it('resetSearch should clear search state', async () => {
     const fixture = TestBed.createComponent(RecordSearchComponent);
     const component = fixture.componentInstance;
+    const location = fixture.debugElement.injector.get(Location);
+    const goSpy = spyOn(location, 'go').and.callThrough();
     component.ngOnInit();
     await component.waitForInit();
 
@@ -135,5 +141,51 @@ describe('RecordSearchComponent', () => {
     expect(component.params.basicSearch).toBeNull();
     expect(component.plans).toBeNull();
     expect(component.searchMsg).toBe('');
+    expect(goSpy).toHaveBeenCalledWith(component.search_url);
+    expect(component.totalItems).toBe(0);
+  });
+
+  it('search should set fallback dashboardTitle when title is missing', async () => {
+    searchService.search = function () {
+      return Promise.resolve({
+        records: [{ storage_id: '1', title: null, dashboardTitle: '' }],
+        totalItems: 1,
+        page: 1,
+        facets: [],
+      });
+    };
+
+    const fixture = TestBed.createComponent(RecordSearchComponent);
+    const component = fixture.componentInstance;
+    component.ngOnInit();
+    await component.waitForInit();
+    component.params.basicSearch = 'test';
+
+    await component.search();
+
+    expect(component.plans?.[0]?.dashboardTitle).toBe('Untitled');
+  });
+
+  it('search should focus search message region after success', async () => {
+    const focusSpy = jasmine.createSpy('focus');
+    spyOn(document, 'getElementById').and.callFake((id: string) => {
+      if (id === 'searchMsg') {
+        return { focus: focusSpy } as any;
+      }
+      if (id === 'loading') {
+        return { classList: { add: jasmine.createSpy('add') } } as any;
+      }
+      return null;
+    });
+
+    const fixture = TestBed.createComponent(RecordSearchComponent);
+    const component = fixture.componentInstance;
+    component.ngOnInit();
+    await component.waitForInit();
+    component.params.basicSearch = 'test';
+
+    await component.search();
+
+    expect(focusSpy).toHaveBeenCalled();
   });
 });

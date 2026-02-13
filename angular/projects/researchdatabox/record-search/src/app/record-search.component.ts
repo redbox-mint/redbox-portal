@@ -1,6 +1,6 @@
 import { Component, ElementRef, Inject } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
-import { isEmpty as _isEmpty, forEach as _forEach, toInteger as _toInteger } from 'lodash-es';
+import { isEmpty as _isEmpty, isUndefined as _isUndefined, forEach as _forEach, toInteger as _toInteger } from 'lodash-es';
 
 import { BaseComponent, TranslationService } from '@researchdatabox/portal-ng-common';
 import { SearchService } from './search.service';
@@ -30,7 +30,6 @@ export class RecordSearchComponent extends BaseComponent {
   paramMap: Record<string, RecordSearchParams> = {};
   recTypeNames: string[] = [];
   totalItems: number = 0;
-  private currentSearchPath: string = '/record/search';
 
   constructor(
     private elm: ElementRef,
@@ -45,11 +44,6 @@ export class RecordSearchComponent extends BaseComponent {
     this.search_url = elm.nativeElement.getAttribute('search_url') || 'record/search';
     const fullUrl = elm.nativeElement.getAttribute('full_url') || '';
     const urlParts = fullUrl.split('?');
-    if (!_isEmpty(urlParts[0])) {
-      this.currentSearchPath = urlParts[0].startsWith('/') ? urlParts[0] : `/${urlParts[0]}`;
-    } else if (typeof window !== 'undefined' && !_isEmpty(window.location.pathname)) {
-      this.currentSearchPath = window.location.pathname;
-    }
     if (!_isEmpty(urlParts[1])) {
       this.queryStr = urlParts[1];
     }
@@ -82,10 +76,16 @@ export class RecordSearchComponent extends BaseComponent {
     }
 
     this.locationService.subscribe((popState: any) => {
-      const queryStr = popState.url.split('?')[1];
-      if (queryStr) {
+      const queryStr = popState?.url?.split('?')[1] ?? '';
+      if (!_isEmpty(queryStr)) {
         this.params.parseQueryStr(queryStr);
         this.doSearch(null, false);
+      } else {
+        this.params.clear();
+        this.plans = null;
+        this.totalItems = 0;
+        this.searchMsg = '';
+        this.searchMsgType = '';
       }
     });
 
@@ -94,7 +94,7 @@ export class RecordSearchComponent extends BaseComponent {
 
   private hideLoadingIndicator(): void {
     const loadingElem: HTMLElement | null = document.getElementById('loading');
-    if (loadingElem) {
+    if (loadingElem?.classList) {
       loadingElem.classList.add('hidden');
     }
   }
@@ -114,12 +114,14 @@ export class RecordSearchComponent extends BaseComponent {
   resetSearch(): void {
     this.params.clear();
     this.plans = null;
-    this.locationService.go(this.currentSearchPath);
+    this.totalItems = 0;
+    this.locationService.go(this.search_url);
     this.searchMsg = '';
+    this.searchMsgType = '';
   }
 
   syncLoc(): void {
-    this.locationService.go(this.params.getHttpQuery(this.currentSearchPath));
+    this.locationService.go(this.params.getHttpQuery(this.search_url));
   }
 
   async search(refinerConfig: RecordSearchRefiner | null = null): Promise<void> {
@@ -134,7 +136,7 @@ export class RecordSearchComponent extends BaseComponent {
       this.isSearching = true;
       this.plans = null;
       this.searchMsgType = 'info';
-      this.searchMsg = this.translationService.t('record-search-searching') ?? 'Searching...';
+      this.searchMsg = `${this.translationService.t('record-search-searching') ?? 'Searching...'} <span class="fa fa-spinner fa-spin" aria-hidden="true"></span>`;
       if (shouldSyncLoc) {
         this.syncLoc();
       }
@@ -146,11 +148,13 @@ export class RecordSearchComponent extends BaseComponent {
         this.searchMsgType = 'success';
         this.searchMsg = `${this.translationService.t('record-search-results') ?? 'Results: '}${this.totalItems}`;
         this.params.setFacetValues(res.facets);
-        this.plans = res.records;
+        this.plans = this.setDashboardTitles(res.records);
+        this.focusSearchMessage();
       } catch (err: any) {
         this.isSearching = false;
         this.searchMsg = err?.message ?? String(err);
         this.searchMsgType = 'danger';
+        this.focusSearchMessage();
       }
     }
   }
@@ -160,5 +164,21 @@ export class RecordSearchComponent extends BaseComponent {
       this.params.currentPage = _toInteger(event.page);
       this.doSearch(null, true);
     }
+  }
+
+  private focusSearchMessage(): void {
+    const searchMsgElem: HTMLElement | null = document.getElementById('searchMsg');
+    if (searchMsgElem) {
+      searchMsgElem.focus();
+    }
+  }
+
+  private setDashboardTitles(records: any[] = []): any[] {
+    const untitled = this.translationService.t('plan-with-no-title') ?? 'Untitled';
+    _forEach(records, (plan: any) => {
+      const hasTitle = !(_isUndefined(plan?.title) || _isEmpty(plan?.title) || _isEmpty(plan?.title?.[0]));
+      plan.dashboardTitle = hasTitle ? plan.title : untitled;
+    });
+    return records;
   }
 }
