@@ -1048,15 +1048,39 @@ export namespace Controllers {
       }
 
       if (method != 'get') {
+        // Wrap res.end to normalize the overloaded call signatures:
+        //   end(cb?), end(chunk, cb?), end(chunk, encoding, cb?)
+        // The TUS server and srvx may call any of these forms.
+        // express-session's res.end wrapper only accepts (chunk, encoding)
+        // and does NOT handle callback arguments — passing a function as
+        // the first arg causes it to be treated as chunk data, crashing
+        // with ERR_INVALID_ARG_TYPE.  Strip callbacks and deliver them
+        // via the 'finish' event instead.
         const originalEnd = res.end.bind(res);
-        res.end = ((chunk?: unknown, encoding?: unknown, callback?: unknown) => {
-          if (typeof chunk === 'function') {
-            return originalEnd(undefined, undefined, chunk as () => void);
+        res.end = ((...args: unknown[]) => {
+          const [first, second, third] = args;
+          if (typeof first === 'function') {
+            // end(cb)
+            res.once('finish', first as () => void);
+            return originalEnd();
           }
-          if (typeof encoding === 'function') {
-            return originalEnd(chunk as never, undefined, encoding as () => void);
+          if (typeof second === 'function') {
+            // end(chunk, cb)
+            res.once('finish', second as () => void);
+            return originalEnd(first as string | Uint8Array);
           }
-          return originalEnd(chunk as never, encoding as never, callback as never);
+          if (typeof third === 'function') {
+            // end(chunk, encoding, cb)
+            res.once('finish', third as () => void);
+            return originalEnd(first as string | Uint8Array, second as BufferEncoding);
+          }
+          if (second !== undefined) {
+            return originalEnd(first as string | Uint8Array, second as BufferEncoding);
+          }
+          if (first !== undefined) {
+            return originalEnd(first as string | Uint8Array);
+          }
+          return originalEnd();
         }) as typeof res.end;
       }
 
