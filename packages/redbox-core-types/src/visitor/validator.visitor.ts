@@ -63,7 +63,7 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import { get as _get } from "lodash";
 import { FormPathHelper } from "@researchdatabox/sails-ng-common/dist/src/config/visitor/common.model";
-import { ServiceExports } from "../services";
+
 
 declare const sails: {
     config?: {
@@ -73,10 +73,6 @@ declare const sails: {
             }
         }
     }
-};
-
-const DomSanitizerService = ServiceExports.DomSanitizerService as {
-    sanitizeWithProfile: (content: string, profileName?: string) => string;
 };
 
 /**
