@@ -767,11 +767,17 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "projects/researchdatabox/form/src/favicon.ico",
-              "projects/researchdatabox/form/src/assets"
+              "projects/researchdatabox/form/src/assets",
+              {
+                "glob": "**/*",
+                "input": "node_modules/leaflet/dist/images",
+                "output": "assets/leaflet"
+              }
             ],
             "styles": [
               "projects/researchdatabox/form/src/styles.scss",
-              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
+              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss",
+              "node_modules/leaflet/dist/leaflet.css"
             ],
             "scripts": [],
             "browser": "projects/researchdatabox/form/src/main.ts"
@@ -831,10 +837,16 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "projects/researchdatabox/form/src/favicon.ico",
-              "projects/researchdatabox/form/src/assets"
+              "projects/researchdatabox/form/src/assets",
+              {
+                "glob": "**/*",
+                "input": "node_modules/leaflet/dist/images",
+                "output": "assets/leaflet"
+              }
             ],
             "styles": [
-              "projects/researchdatabox/form/src/styles.scss"
+              "projects/researchdatabox/form/src/styles.scss",
+              "node_modules/leaflet/dist/leaflet.css"
             ],
             "scripts": []
           }
@@ -1042,11 +1054,13 @@
           }
         }
       }
-    }
-    ,"@researchdatabox/branding": {
+    },
+    "@researchdatabox/branding": {
       "projectType": "application",
       "schematics": {
-        "@schematics/angular:component": { "style": "scss" }
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
       },
       "root": "projects/researchdatabox/branding",
       "sourceRoot": "projects/researchdatabox/branding/src",
@@ -1055,9 +1069,13 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": { "base": "../assets/angular/branding" },
+            "outputPath": {
+              "base": "../assets/angular/branding"
+            },
             "index": "projects/researchdatabox/branding/src/index.html",
-            "polyfills": [ "zone.js" ],
+            "polyfills": [
+              "zone.js"
+            ],
             "tsConfig": "projects/researchdatabox/branding/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -1098,19 +1116,28 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
-            "production": { "buildTarget": "@researchdatabox/branding:build:production" },
-            "development": { "buildTarget": "@researchdatabox/branding:build:development" }
+            "production": {
+              "buildTarget": "@researchdatabox/branding:build:production"
+            },
+            "development": {
+              "buildTarget": "@researchdatabox/branding:build:development"
+            }
           },
           "defaultConfiguration": "development"
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
-          "options": { "buildTarget": "@researchdatabox/branding:build" }
+          "options": {
+            "buildTarget": "@researchdatabox/branding:build"
+          }
         },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "polyfills": [ "zone.js", "zone.js/testing" ],
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
             "karmaConfig": "projects/researchdatabox/branding/karma.conf.js",
             "tsConfig": "projects/researchdatabox/branding/tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
@@ -1125,8 +1152,7 @@
           }
         }
       }
-    }
-    ,
+    },
     "@researchdatabox/translation": {
       "projectType": "application",
       "schematics": {

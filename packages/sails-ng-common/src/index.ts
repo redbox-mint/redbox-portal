@@ -77,6 +77,8 @@ export * from "./config/component/typeahead-input.model";
 export * from "./config/component/typeahead-input.outline";
 export * from "./config/component/rich-text-editor.model";
 export * from "./config/component/rich-text-editor.outline";
+export * from "./config/component/map.model";
+export * from "./config/component/map.outline";
 // validation
 export * from "./validation/helpers";
 export * from "./validation/form.model";

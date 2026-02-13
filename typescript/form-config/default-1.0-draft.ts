@@ -803,6 +803,30 @@ const formConfig: FormConfigFrame = {
                                             //                     }
                                         },
                                         {
+                                            name: 'map_coverage',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'Geographic coverage',
+                                                    helpText: 'Draw or import the geographic coverage area.',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'MapModel',
+                                                config: {
+                                                    defaultValue: { type: 'FeatureCollection', features: [] }
+                                                }
+                                            },
+                                            component: {
+                                                class: 'MapComponent',
+                                                config: {
+                                                    zoom: 4,
+                                                    center: [-24.67, 134.07],
+                                                    enableImport: true,
+                                                }
+                                            }
+                                        },
+                                        {
                                             name: 'repeatable_textfield_1',
                                             model: {
                                                 class: 'RepeatableModel',

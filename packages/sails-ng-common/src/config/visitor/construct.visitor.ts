@@ -104,6 +104,17 @@ import {
     RichTextEditorModelName
 } from "../component/rich-text-editor.outline";
 import {RichTextEditorFieldComponentConfig, RichTextEditorFieldModelConfig} from "../component/rich-text-editor.model";
+import {
+    MapComponentName,
+    MapDrawingMode,
+    MapFieldComponentDefinitionFrame,
+    MapFieldComponentDefinitionOutline,
+    MapFieldModelDefinitionFrame,
+    MapFieldModelDefinitionOutline,
+    MapFormComponentDefinitionOutline,
+    MapModelName
+} from "../component/map.outline";
+import {MapFieldComponentConfig, MapFieldModelConfig} from "../component/map.model";
 import {ContentFieldComponentConfig} from "../component/content.model";
 import {
     DropdownInputComponentName,
@@ -801,6 +812,47 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.populateFormComponent(item);
     }
 
+    /* Map */
+
+    visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<MapFieldComponentDefinitionFrame>(currentData, MapComponentName)) {
+            throw new Error(`Invalid ${MapComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+        const config = currentData?.config;
+
+        item.config = new MapFieldComponentConfig();
+
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.sharedProps.setPropOverride("center", item.config, config);
+        this.sharedProps.setPropOverride("zoom", item.config, config);
+        this.sharedProps.setPropOverride("mapHeight", item.config, config);
+        this.sharedProps.setPropOverride("tileLayers", item.config, config);
+        this.sharedProps.setPropOverride("enabledModes", item.config, config);
+        this.sharedProps.setPropOverride("enableImport", item.config, config);
+        this.sharedProps.setPropOverride("coordinatesHelp", item.config, config);
+
+        item.config.enabledModes = this.sanitizeMapEnabledModes(item.config.enabledModes, "construct");
+    }
+
+    visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<MapFieldModelDefinitionFrame>(currentData, MapModelName)) {
+            throw new Error(`Invalid ${MapModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+
+        item.config = new MapFieldModelConfig();
+
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item, currentData?.config);
+    }
+
+    visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
     /* Default Layout  */
 
     visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
@@ -1346,6 +1398,26 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
                     });
             }
         }
+    }
+
+    private sanitizeMapEnabledModes(rawModes: unknown, source: "construct" | "migrate"): MapDrawingMode[] {
+        const fallback: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "select"];
+        if (!Array.isArray(rawModes)) {
+            return fallback;
+        }
+        const validModes: MapDrawingMode[] = [];
+        const invalidModes: unknown[] = [];
+        for (const mode of rawModes) {
+            if (mode === "point" || mode === "polygon" || mode === "linestring" || mode === "rectangle" || mode === "select") {
+                validModes.push(mode);
+            } else {
+                invalidModes.push(mode);
+            }
+        }
+        if (invalidModes.length > 0) {
+            this.logger.warn(`${this.logName}: Map ${source} dropped unsupported enabledModes values at ${JSON.stringify(this.formPathHelper.formPath.formConfig)}: ${JSON.stringify(invalidModes)}.`);
+        }
+        return validModes;
     }
 
     protected getData() {

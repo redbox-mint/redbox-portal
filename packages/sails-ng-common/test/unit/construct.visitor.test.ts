@@ -249,6 +249,41 @@ describe("Construct Visitor", async () => {
             expect(cfg?.valueField).to.equal("value");
             expect(cfg?.cacheResults).to.equal(false);
         });
+
+        it("should drop unsupported map enabledModes and preserve valid modes", async function () {
+            const warnings: string[] = [];
+            const testLogger = {
+                ...logger,
+                warn: (message: unknown) => warnings.push(String(message ?? ""))
+            };
+            const visitor = new ConstructFormConfigVisitor(testLogger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "map_coverage",
+                            component: {
+                                class: "MapComponent",
+                                config: {
+                                    enabledModes: ["point", "polygon", "bad-mode" as any, "rectangle"]
+                                }
+                            },
+                            model: {
+                                class: "MapModel",
+                                config: {}
+                            }
+                        }
+                    ]
+                }
+            });
+
+            const mapConfig = actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>;
+            const enabledModes = mapConfig?.enabledModes as string[];
+            expect(enabledModes).to.deep.equal(["point", "polygon", "rectangle"]);
+            expect(warnings.some((msg) => msg.includes("Map construct dropped unsupported enabledModes"))).to.equal(true);
+        });
     });
     describe("with overrides", async () => {
         const cases: {

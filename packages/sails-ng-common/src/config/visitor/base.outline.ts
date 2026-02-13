@@ -80,6 +80,11 @@ import {
     RichTextEditorFieldModelDefinitionOutline,
     RichTextEditorFormComponentDefinitionOutline
 } from "../component/rich-text-editor.outline";
+import {
+    MapFieldComponentDefinitionOutline,
+    MapFieldModelDefinitionOutline,
+    MapFormComponentDefinitionOutline
+} from "../component/map.outline";
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -233,4 +238,12 @@ export interface FormConfigVisitorOutline {
     visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void;
 
     visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void;
+
+    /* Map */
+
+    visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void;
+
+    visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void;
+
+    visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void;
 }

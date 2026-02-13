@@ -75,9 +75,11 @@ declare const sails: {
     }
 };
 
-const DomSanitizerService = ServiceExports.DomSanitizerService as {
-    sanitizeWithProfile: (content: string, profileName?: string) => string;
-};
+function getDomSanitizerService(): { sanitizeWithProfile: (content: string, profileName?: string) => string } {
+    return ServiceExports.DomSanitizerService as {
+        sanitizeWithProfile: (content: string, profileName?: string) => string;
+    };
+}
 
 /**
  * Visit each form config component and run its validators.
@@ -398,7 +400,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         }
 
 
-        const sanitized = DomSanitizerService.sanitizeWithProfile(value, 'html');
+        const sanitized = getDomSanitizerService().sanitizeWithProfile(value, 'html');
         // TODO: Validating this way that the html/markdown content has been sanitized is likely to be brittle
         // Initial implementation is to silently sanitize and warn, but may want to change to rejecting the content in future if sanitization issues are common.
         // This will likely need to hook more into domPurify to be more robust to detect when it is sanitizing content.

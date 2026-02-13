@@ -52,6 +52,7 @@ import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { TypeaheadInputComponent } from './component/typeahead-input.component';
 import { RichTextEditorComponent } from './component/rich-text-editor.component';
 import { TiptapEditorDirective } from "ngx-tiptap";
+import { MapComponent } from './component/map.component';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -75,7 +76,8 @@ import { TiptapEditorDirective } from "ngx-tiptap";
     DateInputComponent,
     CheckboxTreeComponent,
     TypeaheadInputComponent,
-    RichTextEditorComponent
+    RichTextEditorComponent,
+    MapComponent
   ],
   imports: [
     CommonModule,

@@ -71,6 +71,11 @@ import {
     RichTextEditorFormComponentDefinitionOutline
 } from "../component/rich-text-editor.outline";
 import {
+    MapFieldComponentDefinitionOutline,
+    MapFieldModelDefinitionOutline,
+    MapFormComponentDefinitionOutline
+} from "../component/map.outline";
+import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline,
     RadioInputFormComponentDefinitionOutline
@@ -361,6 +366,21 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Map */
+
+    visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
+    }
+
+    visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
+        _set(this.jsonTypeDef, this.jsonTypeDefPath, {
+            type: "object"
+        });
+    }
+
+    visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 
