@@ -6,7 +6,12 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "TS_NODE_PROJECT=test/tsconfig.json mocha",
-    "build": "tsc"
+    "build": "tsc",
+    "lint": "eslint src/ test/",
+    "lint:fix": "eslint src/ test/ --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
+    "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json"
   },
   "author": "",
   "license": "ISC",
@@ -75,6 +80,7 @@
     "wkt-parser-helper": "^5.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.27.0",
     "@jsonjoy.com/json-pointer": "^17.63.0",
     "@tsconfig/node24": "^24.0.1",
     "@types/bcryptjs": "^2.4.6",
@@ -102,8 +108,10 @@
     "mocha": "^10.2.0",
     "mocha-junit-reporter": "2.2.1",
     "nyc": "^17.1.0",
+    "prettier": "^3.5.3",
     "sinon": "^17.0.1",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript-eslint": "^8.32.1"
   },
   "nyc": {
     "all": true,

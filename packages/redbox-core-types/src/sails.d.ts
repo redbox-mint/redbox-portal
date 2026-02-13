@@ -1,2 +1,2 @@
-// Re-exported from sails.ts so consumers continue resolving the ambient types.
-export {};
+declare var sails: Sails.Application;
+declare var RedboxJavaStorageService: unknown;

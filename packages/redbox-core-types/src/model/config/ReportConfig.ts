@@ -1,10 +1,10 @@
 export class ReportConfig {
-    title: string
-    reportSource: ReportSource = ReportSource.solr
-    databaseQuery: ReportDatabaseQueryConfig
-    solrQuery: ReportSolrQueryConfig
-    filter: ReportFilterConfig[]
-    columns: ReportColumnConfig[]
+    title: string = '';
+  reportSource?: ReportSource = ReportSource.solr;
+    databaseQuery: ReportDatabaseQueryConfig | null = null;
+    solrQuery: ReportSolrQueryConfig | null = null;
+    filter: ReportFilterConfig[] = [];
+    columns: ReportColumnConfig[] = [];
   }
 
   export enum ReportSource {
@@ -18,11 +18,11 @@ export class ReportConfig {
   }
   
   export class ReportDatabaseQueryConfig {
-    queryName: string
+    queryName: string = '';
   }
   
   export class ReportSolrQueryConfig {
-    baseQuery: string
+    baseQuery: string = '';
     searchCore: string = "default";
   }
   
@@ -30,30 +30,30 @@ export class ReportConfig {
   
   
   class ReportFilterDatabaseDateConfig {
-    fromProperty:string
-    toProperty:string
+    fromProperty: string = '';
+    toProperty: string = '';
   }
   class ReportFilterConfig {
-    paramName: string
-    type: ReportFilterType
-    property: string
-    messsage: string
-    database: ReportFilterDatabaseDateConfig
+    paramName: string = '';
+    type: ReportFilterType = ReportFilterType.text;
+    property: string = '';
+    messsage: string = '';
+    database: ReportFilterDatabaseDateConfig | null = null;
   }
   
   class ReportColumnConfig {
-    label: string
-    property: string
-    hide: boolean
-    exportTemplate: string
-    template: string
+    label: string = '';
+    property: string = '';
+    hide: boolean = false;
+    exportTemplate: string = '';
+    template: string = '';
   }
   
   export class ReportResult {
-    total: number;
-    pageNum: number;
-    recordPerPage: number;
-    records: any[];
-    success: boolean;
+    total: number = 0;
+    pageNum: number = 0;
+    recordPerPage: number = 0;
+    records: Record<string, unknown>[] = [];
+    success: boolean = false;
   
   }

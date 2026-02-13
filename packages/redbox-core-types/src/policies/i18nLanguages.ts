@@ -1,8 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
+import * as BrandingServiceModule from '../services/BrandingService';
+import * as I18nEntriesServiceModule from '../services/I18nEntriesService';
 
-declare const sails: any;
-declare const BrandingService: any;
-declare const I18nEntriesService: any;
+declare const BrandingService: {
+    getBrandFromReq(req: Sails.Req): string;
+    getBrand(name: string): ReturnType<BrandingServiceModule.Services.Branding['getBrand']>;
+};
+declare const I18nEntriesService: I18nEntriesServiceModule.Services.I18nEntries;
 
 interface LanguageInfo {
     code: string;
@@ -14,7 +17,7 @@ interface LanguageInfo {
  *
  * Adds available languages for the current branding to template context.
  */
-export async function i18nLanguages(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function i18nLanguages(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): Promise<void> {
     try {
         const brandingName = BrandingService.getBrandFromReq(req);
         const branding = BrandingService.getBrand(brandingName);
@@ -23,8 +26,8 @@ export async function i18nLanguages(req: Request, res: Response, next: NextFunct
             const bundles = await I18nEntriesService.listBundles(branding);
             // Filter to only enabled languages and create objects with code and displayName
             const availableLanguages: LanguageInfo[] = bundles
-                .filter((bundle: any) => bundle.enabled !== false && bundle.locale !== 'cimode')
-                .map((bundle: any) => ({
+                .filter((bundle) => bundle.enabled !== false && bundle.locale !== 'cimode')
+                .map((bundle) => ({
                     code: bundle.locale,
                     displayName: bundle.displayName || bundle.locale
                 }));
@@ -44,11 +47,13 @@ export async function i18nLanguages(req: Request, res: Response, next: NextFunct
                     displayName: displayName
                 });
             }
-            (res as any).options.locals = (res as any).options.locals || {};
-            (res as any).options.locals.availableLanguages = availableLanguages;
+            const resOpts = res as unknown as { options: { locals: Record<string, unknown> } };
+            if (!resOpts.options) (resOpts as unknown as { options: unknown }).options = { locals: {} };
+            if (!resOpts.options.locals) resOpts.options.locals = {};
+            resOpts.options.locals.availableLanguages = availableLanguages;
         }
-    } catch (e: any) {
-        sails.log.warn('[i18nLanguages policy] Error fetching languages:', e?.message || e);
+    } catch (e: unknown) {
+        sails.log.warn('[i18nLanguages policy] Error fetching languages:', e instanceof Error ? e.message : e);
         // Fallback
         res.locals = res.locals || {};
         res.locals.availableLanguages = [{ code: 'en', displayName: 'English' }];

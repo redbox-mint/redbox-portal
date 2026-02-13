@@ -703,7 +703,7 @@ describe('FigshareService', function() {
       const files = await service.getArticleFileList(config, '123', false);
 
       expect(files).to.have.length(3);
-      expect(files.map(f => f.id)).to.deep.equal([1, 2, 3]);
+      expect(files.map((f: any) => f.id)).to.deep.equal([1, 2, 3]);
       expect(requestStub.calledTwice).to.be.true;
     });
 

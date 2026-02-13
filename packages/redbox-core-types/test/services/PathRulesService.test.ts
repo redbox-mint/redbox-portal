@@ -19,7 +19,7 @@ describe('PathRulesService', function() {
     
     setupServiceTestGlobals(mockSails);
     
-    const mockDeferred = (result) => ({
+    const mockDeferred = (result: unknown) => ({
       exec: sinon.stub().yields(null, result)
     });
 
@@ -89,10 +89,10 @@ describe('PathRulesService', function() {
       
       (global as any).PathRule.find = findStub;
       
-      const createDeferred = (data) => ({
+      const createDeferred = (data: unknown) => ({
         exec: sinon.stub().yields(null, data)
       });
-      (global as any).PathRule.create.callsFake((data) => createDeferred(data));
+      (global as any).PathRule.create.callsFake((data: unknown) => createDeferred(data));
       
       const result = await new Promise((resolve, reject) => {
         service.bootstrap(null, []).subscribe(resolve, reject);
@@ -126,21 +126,21 @@ describe('PathRulesService', function() {
 
     it('should return matching rules for brand', function() {
       const brand = { id: 'brand1' };
-      const rules = service.getRulesFromPath('/admin/dashboard', brand);
+      const rules = service.getRulesFromPath('/admin/dashboard', brand as any);
       expect(rules).to.have.length(1);
-      expect(rules[0].id).to.equal('1');
+      expect((rules as any[])[0].id).to.equal('1');
     });
     
     it('should not return matching rules for other brand', function() {
       const brand = { id: 'brand1' };
-      const rules = service.getRulesFromPath('/other/foo', brand);
+      const rules = service.getRulesFromPath('/other/foo', brand as any);
       // Rule 3 matches path but wrong brand
       expect(rules).to.be.null;
     });
 
     it('should return null if no match', function() {
       const brand = { id: 'brand1' };
-      const rules = service.getRulesFromPath('/nomatch', brand);
+      const rules = service.getRulesFromPath('/nomatch', brand as any);
       expect(rules).to.be.null;
     });
   });

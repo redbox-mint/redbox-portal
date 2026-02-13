@@ -17,9 +17,10 @@ export interface I18nNextInitConfig {
     supportedLngs: string[];
     preload: string[];
     debug: boolean;
-    fallbackLng: string;
+    fallbackLng: string | string[];
     lowerCaseLng: boolean;
     initImmediate: boolean;
+    load?: 'all' | 'currentOnly' | 'languageOnly';
     skipOnVariables: boolean;
     returnEmptyString: boolean;
     ns: string[];

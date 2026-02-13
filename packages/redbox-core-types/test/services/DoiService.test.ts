@@ -200,7 +200,7 @@ describe('DoiService', function() {
 
   describe('doiResponseToRBValidationError (private)', function() {
     it('should map status codes to error messages', function() {
-      const check = (status, code) => {
+      const check = (status: number, code: string) => {
         const err = (service as any).doiResponseToRBValidationError(status);
         expect(err.displayErrors[0].code).to.equal(code);
       };

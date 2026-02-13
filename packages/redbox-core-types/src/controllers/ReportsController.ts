@@ -2,11 +2,8 @@ import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
 import { from } from 'rxjs';
 
-declare var sails: any;
-declare var BrandingService: any;
-declare var ReportsService: any;
 
-export module Controllers {
+export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
@@ -18,7 +15,7 @@ export module Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
         'render'
     ];
 
@@ -32,11 +29,11 @@ export module Controllers {
 
     }
 
-    public render(req, res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+    public render(req: Sails.Req, res: Sails.Res) {
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding as string);
 
       from(ReportsService.findAllReportsForBrand(brand)).subscribe(reports => {
-        req.options.locals["reports"] = reports;
+        (req.options!.locals as globalThis.Record<string, unknown>)["reports"] = reports;
         return this.sendView(req, res, 'admin/reports');
       });
     }

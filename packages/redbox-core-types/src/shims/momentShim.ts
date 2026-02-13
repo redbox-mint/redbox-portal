@@ -24,7 +24,7 @@ export function mapMomentToLuxonFormat(fmt: string): string {
         .replace(/A/g, 'a');
 }
 
-function toDateTime(input: any): DateTime {
+function toDateTime(input: Date | number | string): DateTime {
     if (input instanceof Date) return DateTime.fromJSDate(input);
     if (typeof input === 'number') return DateTime.fromMillis(input);
     if (typeof input === 'string') {
@@ -38,9 +38,9 @@ function toDateTime(input: any): DateTime {
     return DateTime.invalid('Unparsable date');
 }
 
-export function momentShim(input?: any) {
-    let dt = input ? toDateTime(input) : DateTime.local();
-    const api: any = {
+export function momentShim(input?: Date | number | string) {
+    const dt = input ? toDateTime(input) : DateTime.local();
+    const api: { format(fmt?: string): string | null } = {
         format(fmt?: string) {
             if (!dt.isValid) return '';
             if (!fmt) return dt.toISO();

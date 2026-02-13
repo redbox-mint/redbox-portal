@@ -1,5 +1,4 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, toWaterlineModelDef } from '../decorators';
 
 @Entity('cacheentry')
@@ -29,5 +28,5 @@ export interface CacheEntryWaterlineModel extends Sails.Model<CacheEntryAttribut
 }
 
 declare global {
-  var CacheEntry: CacheEntryWaterlineModel;
+  const CacheEntry: CacheEntryWaterlineModel;
 }

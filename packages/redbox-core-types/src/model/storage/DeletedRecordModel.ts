@@ -1,6 +1,6 @@
 import {RecordModel} from './RecordModel';
-interface DeletedRecordModel {
+export interface DeletedRecordModel {
     redboxOid: string;
     deletedRecordMetadata: RecordModel;
     dateDeleted: string;
-  }
+}

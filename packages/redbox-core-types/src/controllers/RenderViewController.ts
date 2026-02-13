@@ -1,10 +1,10 @@
 import { Controllers as controllers } from '../CoreController';
 
-export module Controllers {
+export namespace Controllers {
 
   export class RenderView extends controllers.Core.Controller {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'render'
     ];
 
@@ -14,12 +14,13 @@ export module Controllers {
      * @param req
      * @param res
      */
-    public render(req, res) {
-      const view = req.options.locals.view;
+    public render(req: Sails.Req, res: Sails.Res) {
+      const locals = req.options!.locals as globalThis.Record<string, unknown>;
+      const view = locals.view as string | null;
       if (view != null) {
         this.sendView(req, res, view);
       } else {
-        res.notFound(req.options.locals, "404");
+        res.notFound(locals, "404");
       }
     }
   }

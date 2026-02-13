@@ -17,17 +17,22 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { zip, of } from 'rxjs';
+import { zip, of, Observable } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
-import { Sails, Model } from "sails";
 
-declare var sails: Sails;
-declare var WorkspaceType: Model;
-declare var _this;
-declare var _;
 
-export module Services {
+type BrandingLike = { id: string };
+type WorkspaceTypeConfig = {
+  name: string;
+  label: string;
+  subtitle?: string;
+  description?: string;
+  logo?: string;
+  externallyProvisioned?: boolean;
+};
+
+export namespace Services {
   /**
    * WorkflowSteps related functions...
    *
@@ -36,31 +41,31 @@ export module Services {
    */
   export class WorkspaceTypes extends services.Core.Service {
 
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'bootstrap',
       'create',
       'get',
       'getOne'
     ];
 
-    public bootstrap = (defBrand) => {
-      return super.getObservable(WorkspaceType.destroy({ branding: defBrand.id })).pipe(flatMap(whatever => {
-        const obsArr = [];
+    public bootstrap = (defBrand: BrandingLike) => {
+      return super.getObservable(WorkspaceType.destroy({ branding: defBrand.id })).pipe(flatMap(() => {
+        const obsArr: Array<Observable<unknown>> = [];
         sails.log.debug('WorkspaceTypes::Bootstrap');
         sails.log.debug(sails.config.workspacetype);
-        let workspaceTypes = [];
+        const workspaceTypes: string[] = [];
         if (!_.isEmpty(sails.config.workspacetype)) {
           sails.log.verbose("Bootstrapping workspace type definitions... ");
-          _.forOwn(sails.config.workspacetype, (config, workspaceType) => {
+          _.forOwn(sails.config.workspacetype, (config: WorkspaceTypeConfig, workspaceType: string) => {
             workspaceTypes.push(workspaceType);
-            var obs = this.create(defBrand, config);
+            const obs = this.create(defBrand, config);
             obsArr.push(obs);
           });
         }
         // check if we have services to bootstrap...
         if (!_.isEmpty(sails.config.workspacetype_services) && _.isArray(sails.config.workspacetype_services)) {
           _.each(sails.config.workspacetype_services, (wservice: string) => {
-            obsArr.push(sails.services[wservice]['bootstrap']());
+            obsArr.push(sails.services[wservice]['bootstrap']() as Observable<unknown>);
           });
         }
         if (_.isEmpty(obsArr)) {
@@ -72,8 +77,8 @@ export module Services {
       }));
     }
 
-    public create(brand, workspaceType) {
-      return super.getObservable(
+    public create(brand: BrandingLike, workspaceType: WorkspaceTypeConfig): Observable<Record<string, unknown>> {
+      return super.getObservable<Record<string, unknown>>(
         WorkspaceType.create({
           name: workspaceType['name'],
           label: workspaceType['label'],
@@ -86,12 +91,16 @@ export module Services {
       )
     }
 
-    public get(brand) {
-      return super.getObservable(WorkspaceType.find({ branding: brand.id }));
+    public get(brand: BrandingLike): Observable<Record<string, unknown>[]> {
+      return super.getObservable<Record<string, unknown>[]>(WorkspaceType.find({ branding: brand.id }));
     }
 
-    public getOne(brand, name) {
-      return super.getObservable(WorkspaceType.findOne({ branding: brand.id, name: name }));
+    public getOne(brand: BrandingLike, name: string): Observable<Record<string, unknown> | null> {
+      return super.getObservable<Record<string, unknown> | null>(WorkspaceType.findOne({ branding: brand.id, name: name }));
     }
   }
+}
+
+declare global {
+  let WorkspaceTypesService: Services.WorkspaceTypes;
 }

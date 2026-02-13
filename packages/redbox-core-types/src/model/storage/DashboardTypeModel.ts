@@ -3,6 +3,6 @@ export interface DashboardTypeModel {
     key: string;
     name: string;
     branding: BrandingModel;
-    formatRules: any;
+    formatRules: Record<string, unknown>;
     searchable: boolean;
   }

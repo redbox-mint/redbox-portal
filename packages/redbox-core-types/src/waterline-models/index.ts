@@ -11,7 +11,7 @@ export * from './I18nTranslation';
 export * from './NamedQuery';
 export * from './PathRule';
 export * from './RecordType';
-export * from './Report';
+export * from './RBReport';
 export * from './Role';
 export * from './ThemeConfig';
 export * from './User';
@@ -35,7 +35,7 @@ import { I18nTranslationWLDef } from './I18nTranslation';
 import { NamedQueryWLDef } from './NamedQuery';
 import { PathRuleWLDef } from './PathRule';
 import { RecordTypeWLDef } from './RecordType';
-import { ReportWLDef } from './Report';
+import { ReportWLDef } from './RBReport';
 import { RoleWLDef } from './Role';
 import { ThemeConfigWLDef } from './ThemeConfig';
 import { UserWLDef } from './User';
@@ -62,7 +62,7 @@ export const WaterlineModels = {
   NamedQuery: NamedQueryWLDef,
   PathRule: PathRuleWLDef,
   RecordType: RecordTypeWLDef,
-  Report: ReportWLDef,
+  RBReport: ReportWLDef,
   Role: RoleWLDef,
   ThemeConfig: ThemeConfigWLDef,
   User: UserWLDef,

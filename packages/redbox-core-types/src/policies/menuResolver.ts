@@ -1,7 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
-
-declare const sails: any;
-declare const NavigationService: any;
+declare const NavigationService: {
+    resolveMenu(req: Sails.Req): Promise<unknown>;
+    resolveHomePanels(req: Sails.Req): Promise<unknown>;
+    resolveAdminSidebar(req: Sails.Req): Promise<unknown>;
+};
 
 /**
  * MenuResolver Policy
@@ -11,7 +12,7 @@ declare const NavigationService: any;
  * and before rendering any layouts that include the menu, researcher home page, or
  * admin sidebar.
  */
-export async function menuResolver(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function menuResolver(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): Promise<void> {
     try {
         // NavigationService handles all the brand-aware config resolution,
         // auth filtering, role checks, translation, and URL building
@@ -26,14 +27,15 @@ export async function menuResolver(req: Request, res: Response, next: NextFuncti
         res.locals.adminSidebar = resolvedAdminSidebar;
 
         // Also set in req.options.locals for controllers that use it
-        if ((req as any).options) {
-            (req as any).options.locals = (req as any).options.locals || {};
-            (req as any).options.locals.menu = resolvedMenu;
-            (req as any).options.locals.homePanels = resolvedHomePanels;
-            (req as any).options.locals.adminSidebar = resolvedAdminSidebar;
+        if (req.options) {
+            const locals = (req.options.locals ?? {}) as Record<string, unknown>;
+            locals.menu = resolvedMenu;
+            locals.homePanels = resolvedHomePanels;
+            locals.adminSidebar = resolvedAdminSidebar;
+            req.options.locals = locals;
         }
-    } catch (e: any) {
-        sails.log.warn('[menuResolver policy] Error resolving navigation:', e?.message || e);
+    } catch (e: unknown) {
+        sails.log.warn('[menuResolver policy] Error resolving navigation:', e instanceof Error ? e.message : e);
         // Provide empty structures on error so templates don't break
         const emptyMenu = { items: [], showSearch: true };
         const emptyHomePanels = { panels: [] };
@@ -47,11 +49,12 @@ export async function menuResolver(req: Request, res: Response, next: NextFuncti
         res.locals.homePanels = emptyHomePanels;
         res.locals.adminSidebar = emptyAdminSidebar;
 
-        if ((req as any).options) {
-            (req as any).options.locals = (req as any).options.locals || {};
-            (req as any).options.locals.menu = emptyMenu;
-            (req as any).options.locals.homePanels = emptyHomePanels;
-            (req as any).options.locals.adminSidebar = emptyAdminSidebar;
+        if (req.options) {
+            const locals = (req.options.locals ?? {}) as Record<string, unknown>;
+            locals.menu = emptyMenu;
+            locals.homePanels = emptyHomePanels;
+            locals.adminSidebar = emptyAdminSidebar;
+            req.options.locals = locals;
         }
     }
 

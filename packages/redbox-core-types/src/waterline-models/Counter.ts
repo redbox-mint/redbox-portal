@@ -1,5 +1,4 @@
 /// <reference path="../sails.ts" />
-import { JsonMap } from './types';
 import { Entity, Attr, BelongsTo, toWaterlineModelDef } from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
 
@@ -30,5 +29,5 @@ export interface CounterWaterlineModel extends Sails.Model<CounterAttributes> {
 }
 
 declare global {
-  var Counter: CounterWaterlineModel;
+  const Counter: CounterWaterlineModel;
 }

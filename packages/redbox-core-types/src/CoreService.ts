@@ -1,13 +1,15 @@
-import { from, bindNodeCallback, bindCallback, Observable } from 'rxjs';
+import { bindNodeCallback, bindCallback, Observable } from 'rxjs';
 
 
-declare var sails: Sails.Application;
 // changed to a manual lodash load instead of relying on Sails global object
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
-import * as  _ from 'lodash';
+import * as _ from 'lodash';
 import { ILogger } from './Logger';
 
-export module Services.Core {
+// Type alias for query objects used with RxJS bindings
+type QueryObject = object;
+
+export namespace Services.Core {
   export class Service {
     /**
      * Exported methods. Must be overridden by the child to add custom methods.
@@ -23,10 +25,10 @@ export module Services.Core {
       'convertToType'
     ];
 
-    protected logHeader: string;
+    protected logHeader: string = '';
 
     // Namespaced logger for services
-    private _logger: ILogger;
+    private _logger: ILogger | null = null;
 
     /**
      * Get a namespaced logger for this service class.
@@ -34,12 +36,12 @@ export module Services.Core {
      * Falls back to sails.log if pino namespaced logging is not available.
      */
     protected get logger(): ILogger {
-      if (typeof sails !== 'undefined' && !this._logger && sails.config?.log?.createNamespaceLogger && sails.config?.log?.customLogger) {
+      if (typeof sails !== 'undefined' && this._logger === null && sails.config?.log?.createNamespaceLogger && sails.config?.log?.customLogger) {
         const serviceName = this.constructor.name + 'Service';
         this._logger = sails.config.log.createNamespaceLogger(serviceName, sails.config.log.customLogger);
       }
       // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
-      if (this._logger) {
+      if (this._logger !== null) {
         return this._logger;
       }
       
@@ -67,9 +69,9 @@ export module Services.Core {
     /**
      * Registers a Sails hook handler if Sails is available.
      */
-    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: any[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: any[]) => void | Promise<void>): boolean {
+    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: unknown[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean;
+    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean {
       if (typeof sails === 'undefined') {
         return false;
       }
@@ -88,26 +90,30 @@ export module Services.Core {
     }
     /**
     * Returns an RxJS Observable wrapped nice and tidy for your subscribing pleasure
+    * @param q The query object with an exec or similar method
+    * @param method The method to call on q (default: 'exec')
+    * @param type The binding type: 'node' for node-style callbacks, otherwise regular callbacks
     */
-    protected getObservable(q, method = 'exec', type = 'node'): Observable<any> {
-      if (type == 'node')
-        return bindNodeCallback(q[method].bind(q))();
-      else
-        return bindCallback(q[method].bind(q))();
+    protected getObservable<T = unknown>(q: QueryObject, method: string = 'exec', type: string = 'node'): Observable<T> {
+      const fn = (q as Record<string, (...args: unknown[]) => unknown>)[method];
+      if (type == 'node') {
+        return bindNodeCallback(fn.bind(q))() as Observable<T>;
+      }
+      return bindCallback(fn.bind(q))() as Observable<T>;
     }
 
     /**
     * Wrapper for straightforward query, no chaining..
     */
-    protected exec(q, successFn, errorFn) {
+    protected exec(q: QueryObject, successFn: (value: unknown) => void, errorFn: (error: unknown) => void): void {
       this.getObservable(q).subscribe(successFn, errorFn);
     }
 
     constructor() {
-      this.processDynamicImports().then(result => {
+      this.processDynamicImports().then(() => {
         this.logger.verbose("Dynamic imports imported");
         this.onDynamicImportsCompleted();
-      })
+      });
     }
 
     /**
@@ -141,8 +147,8 @@ export module Services.Core {
      *
      * @returns {*}
      */
-    public exports(): any {
-      let exportedMethods: any = {};
+    public exports(): Record<string, unknown> {
+      const exportedMethods: Record<string, unknown> = {};
       if (process.env["sails_redbox__mochaTesting"] === "true") {
         const allProperties = [
           ...Object.getOwnPropertyNames(Object.getPrototypeOf(this)), // Prototype methods
@@ -152,36 +158,42 @@ export module Services.Core {
 
         const uniqueProperties = Array.from(new Set(allProperties));
         uniqueProperties.forEach((property) => {
-          const value = (this as any)[property];
+          const value = (this as Record<string, unknown>)[property];
 
           // Check if the property is a function
           if (typeof value === "function" && property !== "constructor") {
-            exportedMethods[property] = value.bind(this); // Bind the method to maintain `this` context
+            exportedMethods[property] = (value as (...args: unknown[]) => unknown).bind(this); // Bind the method to maintain `this` context
           }
 
         });
         this.logger.error("Exported Methods for Mocha Testing: ", exportedMethods);
       } else {
         // Merge default array and custom array from child.
-        let methods: any = this._defaultExportedMethods.concat(this._exportedMethods);
+        const methods = this._defaultExportedMethods.concat(this._exportedMethods);
+        const service = this as Record<string, unknown>;
 
 
         for (let i = 0; i < methods.length; i++) {
+          const methodName = methods[i];
+          const member = service[methodName];
           // Check if the method exists.
-          if (typeof this[methods[i]] !== 'undefined') {
+          if (typeof member !== 'undefined') {
             // Check that the method shouldn't be private. (Exception for _config, which is a sails config)
-            if (methods[i][0] !== '_' || methods[i] === '_config') {
+            if (methodName[0] !== '_' || methodName === '_config') {
 
-              if (_.isFunction(this[methods[i]])) {
-                exportedMethods[methods[i]] = this[methods[i]].bind(this);
+              if (_.isFunction(member)) {
+                exportedMethods[methodName] = (member as (...args: unknown[]) => unknown).bind(this);
               } else {
-                exportedMethods[methods[i]] = this[methods[i]];
+                exportedMethods[methodName] = member;
               }
             } else {
-              this.logger.error(`The service method "${methods[i]}" is not public and cannot be exported from ${this.constructor?.name}`);
+              this.logger.error(`The service method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`);
             }
           } else {
-            this.logger.error(`The service method "${methods[i]}" does not exist on ${this.constructor?.name}`);
+            // _config is optional for Sails services, so we don't log an error if it's missing.
+            if (methodName !== '_config') {
+              this.logger.error(`The service method "${methodName}" does not exist on ${this.constructor?.name}`);
+            }
           }
         }
       }
@@ -198,10 +210,13 @@ export module Services.Core {
      * @param  user The user that triggered the hook, optional.
      * @return {"true"|"false"} "true" if the condition passed, otherwise "false".
      */
-    protected metTriggerCondition(oid, record, options, user?) {
-      const triggerCondition = _.get(options, "triggerCondition", "");
-      const forceRun = _.get(options, "forceRun", false);
+    protected metTriggerCondition(oid: string, record: Record<string, unknown>, options: Record<string, unknown>, user?: Record<string, unknown> | null): string {
+      const triggerCondition = _.get(options, "triggerCondition", "") as string;
+      const forceRun = _.get(options, "forceRun", false) as boolean;
       const variables = {
+        record: record,
+        oid: oid,
+        user: user || null,
         imports: {
           record: record,
           oid: oid,
@@ -223,9 +238,9 @@ export module Services.Core {
       }
     }
 
-    protected sleep(ms) {
+    protected sleep(ms: number): Promise<void> {
       return new Promise(resolve => {
-        setTimeout(resolve, ms)
+        setTimeout(resolve, ms);
       });
     }
     /**
@@ -241,7 +256,7 @@ export module Services.Core {
      * @param appendMappingToSource
      * @returns
      */
-    public convertToType<Type>(source: any, dest: any, mapping: { [key: string]: string } | undefined, appendMappingToSource: boolean = false): Type {
+    public convertToType<Type>(source: Record<string, unknown>, dest: Record<string, unknown>, mapping: { [key: string]: string } | undefined, appendMappingToSource: boolean = false): Type {
       let fields = _.mapValues(dest, (val, key) => {
         return key;
       });

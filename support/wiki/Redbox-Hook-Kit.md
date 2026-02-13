@@ -124,6 +124,8 @@ Package versions match ReDBox Portal releases. For example, version `4.5.1` is c
 | Command | Description |
 |---|---|
 | `npx @researchdatabox/redbox-hook-kit init` | Initialize a new ReDBox hook project with TypeScript setup |
+| `npx @researchdatabox/redbox-hook-kit migrate-form-config --input <legacy.js> --output <migrated.ts>` | Migrate a legacy v4 JS form config file to v5 TS format |
+| `npx @researchdatabox/redbox-hook-kit completion <shell>` | Output shell completion script for `bash`, `zsh`, `fish`, and `powershell` |
 | `npx @researchdatabox/redbox-hook-kit help` | Show CLI help and usage information |
 
 ## See Also

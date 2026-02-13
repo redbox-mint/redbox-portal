@@ -6,9 +6,12 @@
     "declaration": true,
     "declarationMap": true,
     "outDir": "./dist",
-    "strict": false
+    "strict": true,
+    "allowUmdGlobalAccess": true,
+    "types": ["node", "lodash"]
   },
   "include": [
-    "src/**/*"
+    "src/**/*.ts",
+    "src/**/*.d.ts"
   ]
 }

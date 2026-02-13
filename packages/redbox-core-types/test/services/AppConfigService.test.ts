@@ -12,7 +12,7 @@ describe('AppConfigService', function() {
     mockSails = createMockSails();
     setupServiceTestGlobals(mockSails);
     
-    const mockDeferred = (result) => {
+    const mockDeferred = (result: unknown) => {
       const p: any = Promise.resolve(result);
       p.exec = sinon.stub().yields(null, result);
       return p;
@@ -21,7 +21,7 @@ describe('AppConfigService', function() {
     (global as any).AppConfig = {
       find: sinon.stub().callsFake(() => mockDeferred([])),
       findOne: sinon.stub().callsFake(() => mockDeferred(null)),
-      create: sinon.stub().callsFake((data) => mockDeferred({ configData: {}, ...data })),
+      create: sinon.stub().callsFake((data: Record<string, unknown>) => mockDeferred({ configData: {}, ...data })),
       updateOne: sinon.stub().returns({ set: sinon.stub().callsFake(() => mockDeferred({ configData: {} })) })
     };
 
@@ -31,7 +31,7 @@ describe('AppConfigService', function() {
     };
 
     sinon.stub(ConfigModels, 'getConfigKeys').returns([]);
-    sinon.stub(ConfigModels, 'getModelInfo').returns({ class: class MockModel {} });
+    sinon.stub(ConfigModels, 'getModelInfo').returns({ modelName: 'MockModel', class: class MockModel {} });
 
     service = new Services.AppConfigs();
     service.brandingAppConfigMap = {};
@@ -66,7 +66,7 @@ describe('AppConfigService', function() {
     });
 
     it('should throw if config exists', async function() {
-      const mockDeferred = (result) => {
+      const mockDeferred = (result: unknown) => {
         const p: any = Promise.resolve(result);
         p.exec = sinon.stub().yields(null, result);
         return p;
@@ -76,10 +76,9 @@ describe('AppConfigService', function() {
       try {
         await service.createConfig('default', 'key', '{}');
         expect.fail('Should have thrown');
-      } catch (e) {
-        expect(e.message).to.contain('already exists');
+      } catch (e: unknown) {
+        expect(e instanceof Error ? e.message : String(e)).to.contain('already exists');
       }
     });
   });
 });
-
