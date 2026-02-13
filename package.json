@@ -67,7 +67,6 @@
     "doc-ng2": "npm -g install @compodoc/compodoc &&  npm -g install ejs-cli aglio &&  compodoc -p angular/tsconfig.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs &&  ejs-cli views/default/default/apidocsapib.ejs -O '{\"portal\":\"rdmp\",\"branding\":\"default\",\"baseUrl\":\"https://demo.redboxresearchdata.com.au\"}' > apidocs.apib && aglio -i apidocs.apib -o rest-api.html && mv rest-api.html support/docs/generated/ng2/additional-documentation/",
     "compile:sails": "npm install --no-save --ignore-scripts --strict-peer-deps && ./node_modules/.bin/tsc",
     "compile:ng-apps": "./support/development/compileDevAngular.sh",
-    "compile:ng-legacy": "./support/development/compileDevAngularLegacy.sh",
     "compile:ng": "npm run compile:ng-apps && npm run compile:ng-legacy",
     "compile:core": "cd packages/redbox-core-types && npm install --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
     "compile:all": "npm install --no-save --ignore-scripts --strict-peer-deps && npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails && npm run compile:ng && npm run webpack",
