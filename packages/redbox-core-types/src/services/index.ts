@@ -32,7 +32,7 @@ import * as ReportsServiceModule from './ReportsService';
 import * as RolesServiceModule from './RolesService';
 import * as SassCompilerServiceModule from './SassCompilerService';
 import * as SolrSearchServiceModule from './SolrSearchService';
-import * as SvgSanitizerServiceModule from './SvgSanitizerService';
+import * as DomSanitizerServiceModule from './DomSanitizerService';
 import * as TemplateServiceModule from './TemplateService';
 import * as TranslationServiceModule from './TranslationService';
 import * as TriggerServiceModule from './TriggerService';
@@ -75,7 +75,7 @@ export { ReportsServiceModule as ReportsService };
 export { RolesServiceModule as RolesService };
 export { SassCompilerServiceModule as SassCompilerService };
 export { SolrSearchServiceModule as SolrSearchService };
-export { SvgSanitizerServiceModule as SvgSanitizerService };
+export { DomSanitizerServiceModule as DomSanitizerService };
 export { TemplateServiceModule as TemplateService };
 export { TranslationServiceModule as TranslationService };
 export { TriggerServiceModule as TriggerService };
@@ -137,7 +137,7 @@ export const ServiceExports = {
   get RolesService() { return getOrCreateService('RolesService', () => new RolesServiceModule.Services.Roles().exports()); },
   get SassCompilerService() { return getOrCreateService('SassCompilerService', () => new SassCompilerServiceModule.Services.SassCompiler().exports()); },
   get SolrSearchService() { return getOrCreateService('SolrSearchService', () => new SolrSearchServiceModule.Services.SolrSearchService().exports()); },
-  get SvgSanitizerService() { return getOrCreateService('SvgSanitizerService', () => new SvgSanitizerServiceModule.Services.SvgSanitizer().exports()); },
+  get DomSanitizerService() { return getOrCreateService('DomSanitizerService', () => new DomSanitizerServiceModule.Services.DomSanitizer().exports()); },
   get TemplateService() { return getOrCreateService('TemplateService', () => new TemplateServiceModule.Services.Template().exports()); },
   get TranslationService() { return getOrCreateService('TranslationService', () => new TranslationServiceModule.Services.Translation().exports()); },
   get TriggerService() { return getOrCreateService('TriggerService', () => new TriggerServiceModule.Services.Trigger().exports()); },

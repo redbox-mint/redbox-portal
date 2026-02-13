@@ -112,6 +112,34 @@ describe("Migrate v4 to v5 Visitor", async () => {
         }
     });
 
+    it("maps MarkdownTextArea to RichTextEditor with markdown output format", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "rich-text-migration",
+                fields: [
+                    {
+                        class: "MarkdownTextArea",
+                        compClass: "MarkdownTextAreaComponent",
+                        definition: {
+                            name: "description",
+                            label: "Description",
+                            rows: "6"
+                        }
+                    }
+                ]
+            }
+        });
+
+        expect((migrated.componentDefinitions ?? []).length).to.be.greaterThan(0);
+        const field = (migrated.componentDefinitions ?? []).find(
+            (component) => component?.name === "description"
+        ) ?? migrated.componentDefinitions[0];
+        expect(field.component.class).to.equal("RichTextEditorComponent");
+        expect(field.model?.class).to.equal("RichTextEditorModel");
+        expect((field.component.config as Record<string, unknown>)?.outputFormat).to.equal("markdown");
+    });
+
     it('applies checkbox tree migration edge-case fallbacks and coercions', async function () {
         const warnings: string[] = [];
         const testLogger = {

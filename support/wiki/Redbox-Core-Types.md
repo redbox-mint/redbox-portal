@@ -121,7 +121,7 @@ export module Services {
 | **Configuration** | `ConfigService`, `AppConfigService`, `BrandingService`, `BrandingLogoService` | Runtime configuration |
 | **Templates & I18n** | `TemplateService`, `TranslationService`, `I18nEntriesService` | Templating and internationalization |
 | **Reports** | `ReportsService`, `DashboardTypesService` | Reporting and dashboards |
-| **Utilities** | `ViewUtilsService`, `PathRulesService`, `SvgSanitizerService`, `ContrastService`, `SassCompilerService` | Helper utilities |
+| **Utilities** | `ViewUtilsService`, `PathRulesService`, `DomSanitizerService`, `ContrastService`, `SassCompilerService` | Helper utilities |
 | **Background Jobs** | `AgendaQueueService`, `AsynchsService` | Job queue and async processing |
 | **Navigation** | `NavigationService` | Menu and navigation |
 | **Vocabularies** | `VocabService` | Controlled vocabularies |
@@ -172,7 +172,7 @@ Services are instantiated via `new ServiceClass().exports()` which provides meth
 | `RolesService` | User role management |
 | `SassCompilerService` | SASS/SCSS compilation |
 | `SolrSearchService` | Solr search integration |
-| `SvgSanitizerService` | SVG sanitization |
+| `DomSanitizerService` | SVG sanitization |
 | `TemplateService` | EJS template rendering |
 | `TranslationService` | Multi-language support |
 | `TriggerService` | Workflow trigger execution |

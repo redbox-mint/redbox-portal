@@ -33,6 +33,7 @@ export * from "./config/names/naming-helpers";
 // config/visitor
 export * from "./config/visitor/base.outline";
 export * from "./config/visitor/base.model";
+export * from "./config/visitor/common.model";
 export * from "./config/visitor/client.visitor";
 export * from "./config/visitor/construct.visitor";
 export * from "./config/visitor/data-value.visitor";
@@ -74,6 +75,8 @@ export * from "./config/component/checkbox-tree.model";
 export * from "./config/component/checkbox-tree.outline";
 export * from "./config/component/typeahead-input.model";
 export * from "./config/component/typeahead-input.outline";
+export * from "./config/component/rich-text-editor.model";
+export * from "./config/component/rich-text-editor.outline";
 // validation
 export * from "./validation/helpers";
 export * from "./validation/form.model";

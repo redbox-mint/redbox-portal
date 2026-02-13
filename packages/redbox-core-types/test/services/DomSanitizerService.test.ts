@@ -2,9 +2,9 @@ import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
-describe('SvgSanitizerService', function() {
+describe('DomSanitizerService', function() {
   let mockSails: any;
-  let SvgSanitizerService: any;
+  let DomSanitizerService: any;
 
   beforeEach(function() {
     mockSails = createMockSails({
@@ -46,8 +46,8 @@ describe('SvgSanitizerService', function() {
     setupServiceTestGlobals(mockSails);
 
     // Import after mocks are set up
-    const { Services } = require('../../src/services/SvgSanitizerService');
-    SvgSanitizerService = new Services.SvgSanitizer();
+    const { Services } = require('../../src/services/DomSanitizerService');
+    DomSanitizerService = new Services.DomSanitizer();
   });
 
   afterEach(function() {
@@ -59,7 +59,7 @@ describe('SvgSanitizerService', function() {
     it('should sanitize a valid simple SVG', function() {
       const svg = '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="red"/></svg>';
       
-      const result = SvgSanitizerService.sanitize(svg);
+      const result = DomSanitizerService.sanitize(svg);
       
       expect(result).to.have.property('safe', true);
       expect(result).to.have.property('sanitized');
@@ -69,7 +69,7 @@ describe('SvgSanitizerService', function() {
     });
 
     it('should reject non-string input', function() {
-      const result = SvgSanitizerService.sanitize(null as any);
+      const result = DomSanitizerService.sanitize(null as any);
       
       expect(result.safe).to.be.false;
       expect(result.errors).to.include('not-a-string');
@@ -78,7 +78,7 @@ describe('SvgSanitizerService', function() {
     it('should reject SVG that is too large', function() {
       const largeSvg = '<svg>' + 'x'.repeat(2000000) + '</svg>';
       
-      const result = SvgSanitizerService.sanitize(largeSvg);
+      const result = DomSanitizerService.sanitize(largeSvg);
       
       expect(result.safe).to.be.false;
       expect(result.errors).to.include('too-large');
@@ -87,7 +87,7 @@ describe('SvgSanitizerService', function() {
     it('should detect missing svg root element', function() {
       const html = '<div>Not an SVG</div>';
       
-      const result = SvgSanitizerService.sanitize(html);
+      const result = DomSanitizerService.sanitize(html);
       
       expect(result.errors).to.include('missing-svg-root');
     });
@@ -95,7 +95,7 @@ describe('SvgSanitizerService', function() {
     it('should remove script elements', function() {
       const svg = '<svg><script>alert("xss")</script><circle cx="50" cy="50" r="40"/></svg>';
       
-      const result = SvgSanitizerService.sanitize(svg);
+      const result = DomSanitizerService.sanitize(svg);
       
       expect(result.errors).to.include('script-element');
       expect(result.sanitized).not.to.include('script');
@@ -105,7 +105,7 @@ describe('SvgSanitizerService', function() {
     it('should detect foreignObject elements', function() {
       const svg = '<svg><foreignObject><body><script>alert("xss")</script></body></foreignObject></svg>';
       
-      const result = SvgSanitizerService.sanitize(svg);
+      const result = DomSanitizerService.sanitize(svg);
       
       expect(result.errors).to.include('foreign-object');
     });
@@ -113,7 +113,7 @@ describe('SvgSanitizerService', function() {
     it('should detect javascript protocol in href', function() {
       const svg = '<svg><a href="javascript:alert(1)"><circle cx="50" cy="50" r="40"/></a></svg>';
       
-      const result = SvgSanitizerService.sanitize(svg);
+      const result = DomSanitizerService.sanitize(svg);
       
       expect(result.errors).to.include('javascript-protocol');
     });
@@ -121,7 +121,7 @@ describe('SvgSanitizerService', function() {
     it('should detect data URLs', function() {
       const svg = '<svg><image href="data:image/svg+xml,<svg onload=alert(1)>"/></svg>';
       
-      const result = SvgSanitizerService.sanitize(svg);
+      const result = DomSanitizerService.sanitize(svg);
       
       expect(result.errors).to.include('data-url-embed');
     });
@@ -129,7 +129,7 @@ describe('SvgSanitizerService', function() {
     it('should detect CDATA sections', function() {
       const svg = '<svg><![CDATA[ some content ]]></svg>';
       
-      const result = SvgSanitizerService.sanitize(svg);
+      const result = DomSanitizerService.sanitize(svg);
       
       expect(result.errors).to.include('cdata-section');
     });
@@ -137,7 +137,7 @@ describe('SvgSanitizerService', function() {
     it('should detect control characters', function() {
       const svg = '<svg>\x00\x01</svg>';
       
-      const result = SvgSanitizerService.sanitize(svg);
+      const result = DomSanitizerService.sanitize(svg);
       
       expect(result.errors).to.include('contains-control-characters');
     });
@@ -145,7 +145,7 @@ describe('SvgSanitizerService', function() {
     it('should provide size info in result', function() {
       const svg = '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg>';
       
-      const result = SvgSanitizerService.sanitize(svg);
+      const result = DomSanitizerService.sanitize(svg);
       
       expect(result.info).to.have.property('originalBytes');
       expect(result.info).to.have.property('sanitizedBytes');
@@ -157,7 +157,7 @@ describe('SvgSanitizerService', function() {
     it('should sanitize content with html profile', function() {
       const html = '<p><b>Bold</b> and <script>evil</script></p>';
       
-      const result = SvgSanitizerService.sanitizeWithProfile(html, 'html');
+      const result = DomSanitizerService.sanitizeWithProfile(html, 'html');
       
       expect(result).to.include('<p>');
       expect(result).to.include('<b>');
@@ -165,14 +165,14 @@ describe('SvgSanitizerService', function() {
     });
 
     it('should throw for non-string input', function() {
-      expect(() => SvgSanitizerService.sanitizeWithProfile(123 as any, 'html')).to.throw('Content must be a string');
+      expect(() => DomSanitizerService.sanitizeWithProfile(123 as any, 'html')).to.throw('Content must be a string');
     });
 
     it('should use default profile when specified profile not found', function() {
       const svg = '<svg><circle cx="50" cy="50" r="40"/></svg>';
       
       // Should not throw, will fall back to default profile
-      const result = SvgSanitizerService.sanitizeWithProfile(svg, 'nonexistent-profile');
+      const result = DomSanitizerService.sanitizeWithProfile(svg, 'nonexistent-profile');
       
       expect(result).to.be.a('string');
     });
@@ -180,7 +180,7 @@ describe('SvgSanitizerService', function() {
 
   describe('getMaxBytes', function() {
     it('should return configured max bytes', function() {
-      const maxBytes = SvgSanitizerService.getMaxBytes();
+      const maxBytes = DomSanitizerService.getMaxBytes();
       
       expect(maxBytes).to.equal(1048576);
     });
@@ -188,7 +188,7 @@ describe('SvgSanitizerService', function() {
     it('should return default when not configured', function() {
       delete mockSails.config.record.form.svgMaxBytes;
       
-      const maxBytes = SvgSanitizerService.getMaxBytes();
+      const maxBytes = DomSanitizerService.getMaxBytes();
       
       expect(maxBytes).to.equal(1048576); // Default 1MB
     });
@@ -198,7 +198,7 @@ describe('SvgSanitizerService', function() {
     it('should handle vbscript protocol', function() {
       const svg = '<svg><a href="vbscript:msgbox(1)"><circle/></a></svg>';
       
-      const result = SvgSanitizerService.sanitize(svg);
+      const result = DomSanitizerService.sanitize(svg);
       
       expect(result.errors).to.include('vbscript-protocol');
     });
@@ -206,7 +206,7 @@ describe('SvgSanitizerService', function() {
     it('should detect external references', function() {
       const svg = '<svg><image href="https://evil.com/tracker.gif"/></svg>';
       
-      const result = SvgSanitizerService.sanitize(svg);
+      const result = DomSanitizerService.sanitize(svg);
       
       expect(result.errors).to.include('external-ref');
     });
@@ -214,7 +214,7 @@ describe('SvgSanitizerService', function() {
     it('should handle xlink:href attributes', function() {
       const svg = '<svg><use xlink:href="javascript:alert(1)"/></svg>';
       
-      const result = SvgSanitizerService.sanitize(svg);
+      const result = DomSanitizerService.sanitize(svg);
       
       expect(result.errors).to.include('javascript-protocol');
     });
@@ -230,7 +230,7 @@ describe('SvgSanitizerService', function() {
       }
       nestedSvg += '</svg>';
       
-      const result = SvgSanitizerService.sanitize(nestedSvg);
+      const result = DomSanitizerService.sanitize(nestedSvg);
       
       expect(result.errors).to.include('excessive-nesting');
     });

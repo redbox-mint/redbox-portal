@@ -18,7 +18,7 @@ describe('BrandingLogoService', function() {
       update: sinon.stub()
     };
 
-    (global as any).SvgSanitizerService = {
+    (global as any).DomSanitizerService = {
       sanitize: sinon.stub()
     };
 
@@ -28,7 +28,7 @@ describe('BrandingLogoService', function() {
   afterEach(function() {
     cleanupServiceTestGlobals();
     delete (global as any).BrandingConfig;
-    delete (global as any).SvgSanitizerService;
+    delete (global as any).DomSanitizerService;
     sinon.restore();
   });
 
@@ -52,7 +52,7 @@ describe('BrandingLogoService', function() {
     });
 
     it('should sanitize svg', async function() {
-      (global as any).SvgSanitizerService.sanitize.resolves({ safe: true, sanitized: '<svg>safe</svg>', warnings: [] });
+      (global as any).DomSanitizerService.sanitize.resolves({ safe: true, sanitized: '<svg>safe</svg>', warnings: [] });
       const result = await service.sanitizeAndValidate(Buffer.from('<svg>bad</svg>'), 'image/svg+xml');
       expect(result.ok).to.be.true;
       expect(result.sanitizedBuffer!.toString()).to.equal('<svg>safe</svg>');

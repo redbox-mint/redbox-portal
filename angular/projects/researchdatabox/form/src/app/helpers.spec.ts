@@ -1,6 +1,6 @@
 // import {ComponentHarness, ContentContainerComponentHarness} from "@angular/cdk/testing";
-import {TestBed} from "@angular/core/testing";
-import {FormComponent} from "./form.component";
+import { TestBed } from "@angular/core/testing";
+import { FormComponent } from "./form.component";
 import {
   ConfigService,
   getStubConfigService,
@@ -10,25 +10,26 @@ import {
   TranslationService,
   UtilityService
 } from '@researchdatabox/portal-ng-common';
-import {ReactiveFormsModule} from "@angular/forms";
-import {APP_BASE_HREF, CommonModule} from "@angular/common";
-import {BrowserModule, Title} from "@angular/platform-browser";
-import {I18NextPipe, provideI18Next} from "angular-i18next";
-import {FormService} from "./form.service";
-import {FormConfigFrame, formValidatorsSharedDefinitions} from "@researchdatabox/sails-ng-common";
-import {DefaultLayoutComponent} from "./component/default-layout.component";
-import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
-import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
+import { ReactiveFormsModule } from "@angular/forms";
+import { APP_BASE_HREF, CommonModule } from "@angular/common";
+import { BrowserModule, Title } from "@angular/platform-browser";
+import { I18NextPipe, provideI18Next } from "angular-i18next";
+import { FormService } from "./form.service";
+import { FormConfigFrame, formValidatorsSharedDefinitions } from "@researchdatabox/sails-ng-common";
+import { DefaultLayoutComponent } from "./component/default-layout.component";
+import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
+import { FormBaseWrapperDirective } from "./component/base-wrapper.directive";
 import { provideHttpClient } from "@angular/common/http";
-import {provideHttpClientTesting} from "@angular/common/http/testing";
+import { provideHttpClientTesting } from "@angular/common/http/testing";
 import { provideFormFeature } from './form-state/providers';
 import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
+import { TiptapEditorDirective } from "ngx-tiptap";
 
 // provide to test the same way as provided to browser
-(window as any).redboxClientScript = {formValidatorDefinitions: formValidatorsSharedDefinitions};
+(window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
 
 export interface FormComponentProps {
   oid: string;
@@ -125,13 +126,14 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "ReactiveFormsModule": ReactiveFormsModule,
       "RedboxPortalCoreModule": RedboxPortalCoreModule,
       "I18NextPipe": I18NextPipe,
+      "TiptapEditorDirective": TiptapEditorDirective,
     }, testConfig.imports ?? {}),
     providers: await createTestBedModuleConfig({
-      "APP_BASE_HREF": {provide: APP_BASE_HREF, useValue: 'http://localhost'},
+      "APP_BASE_HREF": { provide: APP_BASE_HREF, useValue: 'http://localhost' },
       "LoggerService": LoggerService,
       "UtilityService": UtilityService,
-      "TranslationService": {provide: TranslationService, useValue: translationService},
-      "ConfigService": {provide: ConfigService, useValue: configService},
+      "TranslationService": { provide: TranslationService, useValue: translationService },
+      "ConfigService": { provide: ConfigService, useValue: configService },
       "Title": Title,
       "FormService": FormService,
       "provideI18Next": provideI18Next(),

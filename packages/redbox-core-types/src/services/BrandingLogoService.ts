@@ -9,7 +9,7 @@ import { GridFSBucket, Db } from 'mongodb';
  * - putLogo({branding, portal, fileBuf, contentType}) -> GridFS path `${branding}/${portal}/images/logo.(ext)`
  */
 
-declare const SvgSanitizerService: {
+declare const DomSanitizerService: {
   sanitize: (svg: string) => {
     safe: boolean;
     sanitized: string;
@@ -136,7 +136,7 @@ export namespace Services {
       if (this.isSvg(fileBuf, contentType)) {
         // Sanitize SVG using existing service
         const svg = fileBuf.toString('utf8');
-        const result = await SvgSanitizerService.sanitize(svg);
+        const result = await DomSanitizerService.sanitize(svg);
         if (!result.safe) {
           errors.push(...result.errors.map((e: string) => 'svg-' + e));
         }
