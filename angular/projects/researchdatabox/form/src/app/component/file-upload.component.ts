@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, Injector, Input, OnDestroy, ViewChild, inject } from "@angular/core";
+import { AfterViewInit, Component, Injector, Input, OnDestroy, inject } from "@angular/core";
 import { ConfigService, FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
     FileUploadAttachmentValue,
@@ -44,7 +44,6 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
     protected override logName = FileUploadComponentName;
 
     @Input() public override model?: FileUploadModel;
-    @ViewChild("dashboardHost", { static: false }) private dashboardHost?: ElementRef<HTMLDivElement>;
 
     public uppyDashboardNote = "Maximum upload size: 1 Gb per file";
     public allowUploadWithoutSave = false;
@@ -52,6 +51,11 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
     public enabledSources: FileUploadSourceType[] = [];
     public companionUrl?: string;
     public tusHeaders: Record<string, string> = {};
+    public attachmentText = "Add attachment(s)";
+    public attachmentTextDisabled = "Save your record to attach files";
+    public locationHeader = "Location";
+    public notesHeader = "Notes";
+    public notesEnabled = true;
 
     private uppy?: any;
     private saveSuccessSub?: Subscription;
@@ -67,12 +71,18 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
     protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
         super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
         const cfg = (this.componentDefinition?.config as FileUploadFieldComponentConfigOutline) ?? new FileUploadFieldComponentConfig();
+        const cfgRecord = cfg as FileUploadFieldComponentConfigOutline & Record<string, unknown>;
         this.uppyDashboardNote = String(cfg.uppyDashboardNote ?? "Maximum upload size: 1 Gb per file");
         this.allowUploadWithoutSave = cfg.allowUploadWithoutSave ?? false;
         this.restrictions = cfg.restrictions;
         this.enabledSources = this.normalizedEnabledSources(cfg.enabledSources);
         this.companionUrl = String(cfg.companionUrl ?? "").trim() || undefined;
         this.tusHeaders = (cfg.tusHeaders ?? {}) as Record<string, string>;
+        this.attachmentText = String(cfgRecord["attachmentText"] ?? "Add attachment(s)");
+        this.attachmentTextDisabled = String(cfgRecord["attachmentTextDisabled"] ?? "Save your record to attach files");
+        this.locationHeader = String(cfgRecord["locationHeader"] ?? "Location");
+        this.notesHeader = String(cfgRecord["notesHeader"] ?? "Notes");
+        this.notesEnabled = cfgRecord["notesEnabled"] !== false;
     }
 
     override ngAfterViewInit(): void {
@@ -110,6 +120,24 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         this.formControl.markAsTouched();
     }
 
+    public updateAttachmentNotes(index: number, notes: string): void {
+        if (!this.isEditMode() || this.isDisabled || this.isReadonly) {
+            return;
+        }
+        const current = this.attachments;
+        if (index < 0 || index >= current.length) {
+            return;
+        }
+        const updated = [...current];
+        updated[index] = {
+            ...updated[index],
+            notes: String(notes ?? "") || undefined
+        };
+        this.formControl.setValue(updated);
+        this.formControl.markAsDirty();
+        this.formControl.markAsTouched();
+    }
+
     public getLocationLink(attachment: FileUploadAttachmentValue): string {
         const location = String(attachment?.location ?? "").trim();
         if (!location) {
@@ -123,6 +151,25 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
 
     public isEditMode(): boolean {
         return this.getFormComponent.editMode() && !this.isReadonly;
+    }
+
+    public get attachmentButtonText(): string {
+        return this.isUploadBlockedByMissingOid() ? this.attachmentTextDisabled : this.attachmentText;
+    }
+
+    public isAttachmentButtonDisabled(): boolean {
+        return !this.isUploadEnabled();
+    }
+
+    public openModal(): void {
+        if (!this.isUploadEnabled()) {
+            return;
+        }
+        if (!this.uppy) {
+            this.initialiseUppy();
+        }
+        const dashboardPlugin = this.uppy?.getPlugin("Dashboard") as { openModal?: () => void } | undefined;
+        dashboardPlugin?.openModal?.();
     }
 
     private onSaveSuccess(event: FormSaveSuccessEvent): void {
@@ -162,7 +209,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
     }
 
     private initialiseUppy(): void {
-        if (this.uppy || !this.dashboardHost?.nativeElement || !this.isEditMode()) {
+        if (this.uppy || !this.isEditMode()) {
             return;
         }
         if (this.isUploadBlockedByMissingOid()) {
@@ -179,9 +226,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         });
 
         this.uppy.use(deps.DashboardPlugin as any, {
-            inline: true,
-            target: this.dashboardHost.nativeElement,
-            hideUploadButton: false,
+            inline: false,
             hideProgressAfterFinish: true,
             proudlyDisplayPoweredByUppy: false,
             note: this.uppyDashboardNote,
