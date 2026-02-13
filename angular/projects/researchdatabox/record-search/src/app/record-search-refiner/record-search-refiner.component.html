@@ -1,0 +1,40 @@
+<div class="panel panel-default panel-search-refine">
+  <div class="panel-heading">
+    <h3 class="panel-title">
+      {{ refinerConfig.title | i18next }}
+    </h3>
+  </div>
+  <div class="panel-body">
+    @if (refinerConfig.typeLabel) {
+      <div>{{ refinerConfig.typeLabel | i18next }}</div>
+    }
+    @if (refinerConfig.type === 'exact') {
+      <div class="input-group">
+        <input [(ngModel)]="refinerConfig.value" class="form-control" (keyup.enter)="applyFilter($event)" />
+        <span class="input-group-btn">
+          <button
+            [disabled]="isSearching || !hasValue()"
+            class="btn btn-primary"
+            type="button"
+            (click)="applyFilter($event)"
+          >
+            {{ 'search-refine-apply-filter' | i18next }}
+          </button>
+        </span>
+      </div>
+    }
+    @if (refinerConfig.type === 'facet') {
+      <div class="input-group">
+        @for (facetValue of refinerConfig.value; track facetValue.value) {
+          @if (facetValue.count > 0 && facetValue.value) {
+            <div>
+              <a href="" (click)="applyFilter($event, facetValue.value)"
+                >{{ facetValue.value }} ({{ facetValue.count }})</a
+              >
+            </div>
+          }
+        }
+      </div>
+    }
+  </div>
+</div>
