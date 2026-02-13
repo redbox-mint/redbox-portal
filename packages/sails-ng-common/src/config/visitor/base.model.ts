@@ -1,6 +1,6 @@
 
-import {FormConfigOutline} from "../form-config.outline";
-import { FormConfigVisitorOutline} from "./base.outline";
+import { FormConfigOutline } from "../form-config.outline";
+import { FormConfigVisitorOutline } from "./base.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -44,7 +44,7 @@ import {
     TextAreaFieldModelDefinitionOutline,
     TextAreaFormComponentDefinitionOutline,
 } from "../component/text-area.outline";
-import {DefaultFieldLayoutDefinitionOutline,} from "../component/default-layout.outline";
+import { DefaultFieldLayoutDefinitionOutline, } from "../component/default-layout.outline";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionOutline,
@@ -65,7 +65,7 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {ILogger} from "../../logger.interface";
+import { ILogger } from "../../logger.interface";
 import {
     ReusableFieldComponentDefinitionOutline,
     ReusableFormComponentDefinitionOutline
@@ -90,6 +90,11 @@ import {
     MapFieldModelDefinitionOutline,
     MapFormComponentDefinitionOutline
 } from "../component/map.outline";
+import {
+    FileUploadFieldComponentDefinitionOutline,
+    FileUploadFieldModelDefinitionOutline,
+    FileUploadFormComponentDefinitionOutline
+} from "../component/file-upload.outline";
 
 
 /**
@@ -291,11 +296,11 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
     /* Reusable */
 
-    visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void{
+    visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void {
         this.notImplemented();
     }
 
-    visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void{
+    visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void {
         this.notImplemented();
     }
 
@@ -352,6 +357,20 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     }
 
     visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    /* File Upload */
+
+    visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
         this.notImplemented();
     }
 

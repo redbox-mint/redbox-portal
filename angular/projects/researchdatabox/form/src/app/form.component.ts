@@ -40,7 +40,7 @@ import {
   JSONataQuerySource,
   FormValidatorSummaryErrors
 } from '@researchdatabox/sails-ng-common';
-import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
+import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { createFormDefinitionChangedEvent, createFormDefinitionReadyEvent, createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
@@ -66,11 +66,11 @@ import { FormComponentValueChangeEventConsumer } from './form-state/events/';
  *
  */
 @Component({
-    selector: 'redbox-form',
-    templateUrl: './form.component.html',
-    styleUrls: ['./form.component.scss'],
-    providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
-    standalone: false
+  selector: 'redbox-form',
+  templateUrl: './form.component.html',
+  styleUrls: ['./form.component.scss'],
+  providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
+  standalone: false
 })
 export class FormComponent extends BaseComponent implements OnDestroy {
   private logName = "FormComponent";
@@ -129,7 +129,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   /**
    * The module paths for dynamic imports
    */
-  modulePaths:string[] = [];
+  modulePaths: string[] = [];
 
   /**
    * The form status signal - sourced from the facade (R16.4)
@@ -177,13 +177,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   /**
    * Debug info structure
    */
-  formDebugInfo:DebugInfo = {
-      name: "",
-      class: 'FormComponent',
-      status: FormStatus.INIT,
-      componentsLoaded: false,
-      isReady: false,
-      children: []
+  formDebugInfo: DebugInfo = {
+    name: "",
+    class: 'FormComponent',
+    status: FormStatus.INIT,
+    componentsLoaded: false,
+    isReady: false,
+    children: []
   };
   /**
    * The JSONata query source for component definitions
@@ -222,13 +222,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.downloadAndCreateOnInit.set(elementRef.nativeElement.getAttribute('downloadAndCreateOnInit') === 'true');
     }
 
-    this.appName = `Form::${this.trimmedParams.recordType()}::${this.trimmedParams.formName()} ${ this.trimmedParams.oid() ? ' - ' + this.trimmedParams.oid() : ''}`.trim();
+    this.appName = `Form::${this.trimmedParams.recordType()}::${this.trimmedParams.formName()} ${this.trimmedParams.oid() ? ' - ' + this.trimmedParams.oid() : ''}`.trim();
     this.loggerService.debug(`'${this.logName}' waiting for '${this.trimmedParams.formName()}' deps to init...`);
 
     this.initEffects();
   }
 
-  protected get getFormService(){
+  protected get getFormService() {
     return this.formService;
   }
 
@@ -271,7 +271,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (!compContainerRef) {
       throw new Error(`${this.logName}: No component container found. Cannot load components.`);
     }
-    for (const componentDefEntry of this.componentDefArr){
+    for (const componentDefEntry of this.componentDefArr) {
       const componentRef = compContainerRef.createComponent(FormBaseWrapperComponent);
       componentRef.instance.defaultComponentConfig = this.formDefMap?.formConfig?.defaultComponentConfig;
       componentRef.changeDetectorRef.detectChanges();
@@ -572,9 +572,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }
           if (response?.success) {
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
+            if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
+              this.oid.set(String(response?.oid));
+            }
             // Emit success event
             this.eventBus.publish(
-              createFormSaveSuccessEvent({ savedData: currentFormValue })
+              createFormSaveSuccessEvent({
+                savedData: currentFormValue,
+                oid: !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid(),
+                response
+              })
             );
           } else {
             this.loggerService.warn(`${this.logName}: Form submission failed:`, response);

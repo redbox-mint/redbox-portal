@@ -1,0 +1,22 @@
+meta {
+  name: Get companion root
+  type: http
+  seq: 3.5
+}
+
+get {
+  url: {{host}}/companion/dropbox/list/root
+  body: none
+  auth: none
+}
+
+tests {
+  test("Companion Dropbox API route is reachable", function () {
+    expect(res.getStatus()).to.not.equal(404);
+  });
+
+  test("Companion Dropbox API returns expected status family", function () {
+    const status = res.getStatus();
+    expect([200, 204, 400, 401, 403, 429, 500]).to.include(status);
+  });
+}

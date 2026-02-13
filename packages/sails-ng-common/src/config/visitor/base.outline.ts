@@ -85,6 +85,11 @@ import {
     MapFieldModelDefinitionOutline,
     MapFormComponentDefinitionOutline
 } from "../component/map.outline";
+import {
+    FileUploadFieldComponentDefinitionOutline,
+    FileUploadFieldModelDefinitionOutline,
+    FileUploadFormComponentDefinitionOutline
+} from "../component/file-upload.outline";
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -246,4 +251,12 @@ export interface FormConfigVisitorOutline {
     visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void;
 
     visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void;
+
+    /* File Upload */
+
+    visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void;
+
+    visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void;
+
+    visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void;
 }

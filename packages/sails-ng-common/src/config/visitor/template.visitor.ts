@@ -1,6 +1,6 @@
-import {FormConfigVisitor} from "./base.model";
-import {FormConfigOutline} from "../form-config.outline";
-import {TemplateCompileInput} from "../../template.outline";
+import { FormConfigVisitor } from "./base.model";
+import { FormConfigOutline } from "../form-config.outline";
+import { TemplateCompileInput } from "../../template.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -44,7 +44,7 @@ import {
     TextAreaFieldModelDefinitionOutline,
     TextAreaFormComponentDefinitionOutline
 } from "../component/text-area.outline";
-import {DefaultFieldLayoutDefinitionOutline} from "../component/default-layout.outline";
+import { DefaultFieldLayoutDefinitionOutline } from "../component/default-layout.outline";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionOutline,
@@ -76,6 +76,11 @@ import {
     MapFormComponentDefinitionOutline
 } from "../component/map.outline";
 import {
+    FileUploadFieldComponentDefinitionOutline,
+    FileUploadFieldModelDefinitionOutline,
+    FileUploadFormComponentDefinitionOutline
+} from "../component/file-upload.outline";
+import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline,
     RadioInputFormComponentDefinitionOutline
@@ -85,9 +90,9 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {FormComponentDefinitionOutline, FormExpressionsConfigFrame} from "../form-component.outline";
-import {ILogger} from "../../logger.interface";
-import {FormPathHelper} from "./common.model";
+import { FormComponentDefinitionOutline, FormExpressionsConfigFrame } from "../form-component.outline";
+import { ILogger } from "../../logger.interface";
+import { FormPathHelper } from "./common.model";
 
 
 /**
@@ -363,6 +368,18 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* File Upload */
+
+    visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
+    }
+
+    visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
+    }
+
+    visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

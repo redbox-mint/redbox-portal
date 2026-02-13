@@ -1,25 +1,26 @@
-import {SimpleInputModel, SimpleInputComponent} from "./component/simple-input.component";
+import { SimpleInputModel, SimpleInputComponent } from "./component/simple-input.component";
 import {
   RepeatableComponent,
   RepeatableComponentModel,
   RepeatableElementLayoutComponent
 } from "./component/repeatable.component";
-import {DefaultLayoutComponent} from "./component/default-layout.component";
-import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";
-import {GroupFieldModel, GroupFieldComponent} from "./component/group.component";
-import {ContentComponent} from "./component/content.component";
-import {TabComponent, TabComponentLayout, TabContentComponent} from "./component/tab.component";
-import {SaveButtonComponent} from "./component/save-button.component";
-import {TextAreaComponent, TextAreaModel} from "./component/text-area.component";
-import {DropdownInputComponent, DropdownInputModel} from "./component/dropdown-input.component";
-import {CheckboxInputComponent, CheckboxInputModel} from "./component/checkbox-input.component";
-import {RadioInputComponent, RadioInputModel} from "./component/radio-input.component";
-import {DateInputComponent, DateInputModel} from "./component/date-input.component";
-import {CheckboxTreeComponent, CheckboxTreeModel} from "./component/checkbox-tree.component";
-import {TypeaheadInputComponent, TypeaheadInputModel} from "./component/typeahead-input.component";
-import {RichTextEditorComponent, RichTextEditorModel} from "./component/rich-text-editor.component";
-import {MapComponent, MapModel} from "./component/map.component";
-import {FormFieldBaseComponent, FormFieldModel} from "@researchdatabox/portal-ng-common";
+import { DefaultLayoutComponent } from "./component/default-layout.component";
+import { ValidationSummaryFieldComponent } from "./component/validation-summary.component";
+import { GroupFieldModel, GroupFieldComponent } from "./component/group.component";
+import { ContentComponent } from "./component/content.component";
+import { TabComponent, TabComponentLayout, TabContentComponent } from "./component/tab.component";
+import { SaveButtonComponent } from "./component/save-button.component";
+import { TextAreaComponent, TextAreaModel } from "./component/text-area.component";
+import { DropdownInputComponent, DropdownInputModel } from "./component/dropdown-input.component";
+import { CheckboxInputComponent, CheckboxInputModel } from "./component/checkbox-input.component";
+import { RadioInputComponent, RadioInputModel } from "./component/radio-input.component";
+import { DateInputComponent, DateInputModel } from "./component/date-input.component";
+import { CheckboxTreeComponent, CheckboxTreeModel } from "./component/checkbox-tree.component";
+import { TypeaheadInputComponent, TypeaheadInputModel } from "./component/typeahead-input.component";
+import { RichTextEditorComponent, RichTextEditorModel } from "./component/rich-text-editor.component";
+import { MapComponent, MapModel } from "./component/map.component";
+import { FileUploadComponent, FileUploadModel } from "./component/file-upload.component";
+import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   StaticComponentClassMapGenType,
   StaticModelClassMapGenType,
@@ -29,6 +30,7 @@ import {
   TypeaheadInputModelName,
   RichTextEditorModelName,
   MapModelName,
+  FileUploadModelName,
   RepeatableComponentName, SaveButtonComponentName, TextAreaComponentName, ContentComponentName,
   SimpleInputComponentName, ValidationSummaryComponentName, TabContentComponentName, TabComponentName,
   CheckboxInputComponentName, DropdownInputComponentName, RadioInputComponentName, DateInputComponentName,
@@ -36,6 +38,7 @@ import {
   TypeaheadInputComponentName,
   RichTextEditorComponentName,
   MapComponentName,
+  FileUploadComponentName,
   GroupFieldComponentName,
   TabLayoutName, TabContentLayoutName, RepeatableElementLayoutName, DefaultLayoutName, StaticClassMapType,
 } from "@researchdatabox/sails-ng-common";
@@ -64,6 +67,7 @@ export const StaticComponentClassMap: StaticComponentClassMapType = {
   [TypeaheadInputComponentName]: TypeaheadInputComponent,
   [RichTextEditorComponentName]: RichTextEditorComponent,
   [MapComponentName]: MapComponent,
+  [FileUploadComponentName]: FileUploadComponent,
 };
 
 /*
@@ -84,7 +88,8 @@ export const StaticModelClassMap: StaticModelClassMapType = {
   [CheckboxTreeModelName]: CheckboxTreeModel,
   [TypeaheadInputModelName]: TypeaheadInputModel,
   [RichTextEditorModelName]: RichTextEditorModel,
-  [MapModelName]: MapModel
+  [MapModelName]: MapModel,
+  [FileUploadModelName]: FileUploadModel
 };
 
 /*
@@ -92,7 +97,7 @@ export const StaticModelClassMap: StaticModelClassMapType = {
  */
 
 export type StaticLayoutClassMapType = StaticLayoutClassMapGenType<typeof FormFieldBaseComponent<unknown> | null>;
-export type AllLayoutClassMapType = StaticClassMapType<string,typeof FormFieldBaseComponent<unknown> | null>;
+export type AllLayoutClassMapType = StaticClassMapType<string, typeof FormFieldBaseComponent<unknown> | null>;
 export const StaticLayoutClassMap: StaticLayoutClassMapType = {
   [DefaultLayoutName]: DefaultLayoutComponent,
   [RepeatableElementLayoutName]: RepeatableElementLayoutComponent,

@@ -26,15 +26,15 @@ import { FormComponent } from './form.component';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { FormService } from './form.service';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './component/repeatable.component';
-import {ValidationSummaryFieldComponent} from "./component/validation-summary.component";
-import {I18NextPipe, provideI18Next} from "angular-i18next";
-import {GroupFieldComponent} from "./component/group.component";
-import {DefaultLayoutComponent} from "./component/default-layout.component";
-import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
-import {FormBaseWrapperDirective} from "./component/base-wrapper.directive";
+import { ValidationSummaryFieldComponent } from "./component/validation-summary.component";
+import { I18NextPipe, provideI18Next } from "angular-i18next";
+import { GroupFieldComponent } from "./component/group.component";
+import { DefaultLayoutComponent } from "./component/default-layout.component";
+import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
+import { FormBaseWrapperDirective } from "./component/base-wrapper.directive";
 import { ContentComponent } from './component/content.component';
 import { SaveButtonComponent } from './component/save-button.component';
-import {TabComponent, TabComponentLayout, TabContentComponent} from "./component/tab.component";
+import { TabComponent, TabComponentLayout, TabContentComponent } from "./component/tab.component";
 import { TextAreaComponent } from './component/text-area.component';
 import { DropdownInputComponent } from './component/dropdown-input.component';
 import { CheckboxInputComponent } from './component/checkbox-input.component';
@@ -53,6 +53,7 @@ import { TypeaheadInputComponent } from './component/typeahead-input.component';
 import { RichTextEditorComponent } from './component/rich-text-editor.component';
 import { TiptapEditorDirective } from "ngx-tiptap";
 import { MapComponent } from './component/map.component';
+import { FileUploadComponent } from './component/file-upload.component';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -77,7 +78,8 @@ import { MapComponent } from './component/map.component';
     CheckboxTreeComponent,
     TypeaheadInputComponent,
     RichTextEditorComponent,
-    MapComponent
+    MapComponent,
+    FileUploadComponent
   ],
   imports: [
     CommonModule,

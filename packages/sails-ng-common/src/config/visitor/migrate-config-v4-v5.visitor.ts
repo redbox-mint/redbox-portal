@@ -139,7 +139,15 @@ import {
     MapModelName,
     MapTileLayerConfig
 } from "../component/map.outline";
-import {MapFieldComponentConfig, MapFieldModelConfig} from "../component/map.model";
+import { MapFieldComponentConfig, MapFieldModelConfig } from "../component/map.model";
+import {
+    FileUploadComponentName,
+    FileUploadFieldComponentDefinitionOutline,
+    FileUploadFieldModelDefinitionOutline,
+    FileUploadFormComponentDefinitionOutline,
+    FileUploadModelName
+} from "../component/file-upload.outline";
+import { FileUploadFieldComponentConfig, FileUploadFieldModelConfig } from "../component/file-upload.model";
 
 
 import { FieldModelConfigFrame } from "../field-model.outline";
@@ -365,6 +373,30 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
         "MapComponent": {
             componentClassName: MapComponentName,
             modelClassName: MapModelName
+        }
+    },
+    "RelatedFileUpload": {
+        "": {
+            componentClassName: FileUploadComponentName,
+            modelClassName: FileUploadModelName
+        },
+        "RelatedFileUploadComponent": {
+            componentClassName: FileUploadComponentName,
+            modelClassName: FileUploadModelName
+        },
+        "RelatedFileComponent": {
+            componentClassName: FileUploadComponentName,
+            modelClassName: FileUploadModelName
+        }
+    },
+    "DataLocation": {
+        "": {
+            componentClassName: FileUploadComponentName,
+            modelClassName: FileUploadModelName
+        },
+        "DataLocationComponent": {
+            componentClassName: FileUploadComponentName,
+            modelClassName: FileUploadModelName
         }
     },
 };
@@ -954,21 +986,21 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
         const center = this.extractLegacyMapCenter(leafletOptions);
         if (center) {
-            this.sharedProps.setPropOverride("center", item.config, {center});
+            this.sharedProps.setPropOverride("center", item.config, { center });
         }
         const zoom = this.extractLegacyMapZoom(leafletOptions);
         if (zoom !== undefined) {
-            this.sharedProps.setPropOverride("zoom", item.config, {zoom});
+            this.sharedProps.setPropOverride("zoom", item.config, { zoom });
         }
 
         const tileLayers = this.extractLegacyMapTileLayers(rawDefinition);
         if (tileLayers.length > 0) {
-            this.sharedProps.setPropOverride("tileLayers", item.config, {tileLayers});
+            this.sharedProps.setPropOverride("tileLayers", item.config, { tileLayers });
         }
 
         const enabledModes = this.extractLegacyMapEnabledModes(drawOptions);
         if (enabledModes.length > 0) {
-            this.sharedProps.setPropOverride("enabledModes", item.config, {enabledModes});
+            this.sharedProps.setPropOverride("enabledModes", item.config, { enabledModes });
         }
     }
 
@@ -980,6 +1012,51 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
 
     visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
+    /* File Upload */
+
+    visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new FileUploadFieldComponentConfig();
+        this.sharedPopulateFieldComponentConfig(item.config, field);
+
+        const restrictions = this.readObject(field?.definition?.restrictions);
+        if (restrictions) {
+            this.sharedProps.setPropOverride("restrictions", item.config, { restrictions });
+        }
+
+        const uppyDashboardNote = field?.definition?.uppyDashboardNote;
+        if (uppyDashboardNote) {
+            this.sharedProps.setPropOverride("uppyDashboardNote", item.config, { uppyDashboardNote });
+        }
+
+        const notesEnabled = field?.definition?.notesEnabled;
+        if (typeof notesEnabled === "boolean") {
+            const metadataFields = notesEnabled ? [
+                {
+                    id: "notes",
+                    name: "Notes",
+                    placeholder: "Notes about this file."
+                }
+            ] : [];
+            this.sharedProps.setPropOverride("restrictions", item.config, {
+                restrictions: {
+                    ...(item.config.restrictions ?? {}),
+                    metadataFields
+                }
+            });
+        }
+    }
+
+    visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new FileUploadFieldModelConfig();
+        this.sharedPopulateFieldModelConfig(item.config, field);
+    }
+
+    visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
         this.populateFormComponent(item);
     }
 
@@ -1647,13 +1724,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const draw = this.readObject(drawOptions.draw);
         const enabledModes: MapDrawingMode[] = [];
 
-        const modeMap: Array<{key: string; mode: MapDrawingMode}> = [
-            {key: "marker", mode: "point"},
-            {key: "polygon", mode: "polygon"},
-            {key: "polyline", mode: "linestring"},
-            {key: "rectangle", mode: "rectangle"}
+        const modeMap: Array<{ key: string; mode: MapDrawingMode }> = [
+            { key: "marker", mode: "point" },
+            { key: "polygon", mode: "polygon" },
+            { key: "polyline", mode: "linestring" },
+            { key: "rectangle", mode: "rectangle" }
         ];
-        for (const {key, mode} of modeMap) {
+        for (const { key, mode } of modeMap) {
             const rawModeConfig = draw[key];
             if (rawModeConfig === false) {
                 continue;

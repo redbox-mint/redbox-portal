@@ -120,6 +120,8 @@ export interface FormSaveExecuteEvent extends FormComponentEventBase {
 export interface FormSaveSuccessEvent extends FormComponentEventBase {
   readonly type: 'form.save.success';
   readonly savedData?: any;
+  readonly oid?: string;
+  readonly response?: any;
 }
 
 /**

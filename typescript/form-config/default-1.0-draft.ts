@@ -827,6 +827,31 @@ const formConfig: FormConfigFrame = {
                                             }
                                         },
                                         {
+                                            name: 'file_upload_1',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'File upload',
+                                                    helpText: 'Attach one or more files to this record.',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'FileUploadModel',
+                                                config: {
+                                                    defaultValue: []
+                                                }
+                                            },
+                                            component: {
+                                                class: 'FileUploadComponent',
+                                                config: {
+                                                    allowUploadWithoutSave: true,
+                                                    companionUrl: '/companion',
+                                                    enabledSources: ['dropbox', 'googleDrive', 'onedrive'],
+                                                    uppyDashboardNote: 'Maximum upload size: 1 Gb per file',
+                                                }
+                                            }
+                                        },
+                                        {
                                             name: 'repeatable_textfield_1',
                                             model: {
                                                 class: 'RepeatableModel',
