@@ -70,6 +70,10 @@ import {
     ReusableFieldComponentDefinitionOutline,
     ReusableFormComponentDefinitionOutline
 } from "../component/reusable.outline";
+import {
+    QuestionTreeFieldComponentDefinitionOutline,
+    QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline
+} from "../component/question-tree.outline";
 
 
 /**
@@ -276,6 +280,20 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     }
 
     visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void{
+        this.notImplemented();
+    }
+
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
         this.notImplemented();
     }
 

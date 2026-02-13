@@ -78,6 +78,10 @@ import {FormPathHelper} from "./common.model";
 import {isTypeWithComponentDefinitions} from "../form-types.outline";
 import {JsonTypeDefSchemaFormConfigVisitor} from "./json-type-def.visitor";
 import {guessType} from "../helpers";
+import {
+    QuestionTreeFieldComponentDefinitionOutline,
+    QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline
+} from "../component/question-tree.outline";
 
 /**
  * Visit each form config class type and build the form config for the client-side.
@@ -424,6 +428,21 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+        this.acceptCheckConstraintsCurrentPath(item);
+        this.processFormComponentDefinition(item);
+    }
+
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+        this.processFieldComponentDefinition(item);
+    }
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+        this.processFieldModelDefinition(item);
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
         this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }

@@ -15,7 +15,7 @@ import {FormComponentDefinition} from "../form-component.model";
 
 /*
  * The Reusable classes are only used in the visitor that migrates v4 form config to v5 form config.
- * The reusable form config placeholder is replaced with the  form config classes in the construct visitor.
+ * The reusable form config placeholder is replaced with the form config classes in the construct visitor.
  */
 
 

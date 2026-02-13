@@ -441,7 +441,7 @@ describe("Validator", async () => {
         }[] =
             [
                 {
-                    title: "",
+                    title: "enable validator with no group when enabledGroups is empty array",
                     args: {
                         availableGroups: {
                             all: {

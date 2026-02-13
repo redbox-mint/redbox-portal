@@ -1,9 +1,10 @@
 import {
     ConstructFormConfigVisitor,
     FormConfig,
-    FormConfigFrame, FormModesConfig, ReusableFormDefinitions,
+    FormConfigFrame, FormModesConfig,
+    QuestionTreeMeta, QuestionTreeOutcome, QuestionTreeQuestion, ReusableFormDefinitions,
 } from "../../src";
-import {formConfigExample2, reusableDefinitionsExample1} from "./example-data";
+import {formConfigExample2, reusableFormDefinitionsExample1} from "./example-data";
 import {logger} from "./helpers";
 
 let expect: Chai.ExpectStatic;
@@ -136,7 +137,7 @@ describe("Construct Visitor", async () => {
                                         name: "",
                                         model: {
                                             class: 'GroupModel',
-                                            config: { }
+                                            config: {}
                                         },
                                         component: {
                                             class: 'GroupComponent',
@@ -209,7 +210,7 @@ describe("Construct Visitor", async () => {
             {
                 title: "expand reusable form config to standard form config in view mode",
                 args: {
-                    reusableFormDefs: reusableDefinitionsExample1,
+                    reusableFormDefs: reusableFormDefinitionsExample1,
                     formConfig: formConfigExample2,
                     formMode: "view",
                 },
@@ -236,7 +237,7 @@ describe("Construct Visitor", async () => {
             {
                 title: "expand reusable form config to standard form config in edit mode",
                 args: {
-                    reusableFormDefs: reusableDefinitionsExample1,
+                    reusableFormDefs: reusableFormDefinitionsExample1,
                     formConfig: formConfigExample2,
                     formMode: "edit",
                 },
@@ -316,7 +317,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1
                 });
             };
             expect(errorFunc).to.throw(Error, `Repeatable element template overrides must result in exactly one item, got 3`);
@@ -342,7 +343,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1
                 });
             };
             expect(errorFunc).to.throw(Error, "Set the repeatable elementTemplate new item default using 'elementTemplate.model.config.newEntryValue', not 'elementTemplate.model.config.defaultValue', set the repeatable default in 'repeatable.model.config.defaultValue'");
@@ -381,7 +382,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1
                 });
             };
             expect(errorFunc).to.throw(Error, "Set the repeatable elementTemplate descendant component new item default using 'elementTemplate.model.config.newEntryValue', set the repeatable default in 'repeatable.model.config.defaultValue', not the descendant components");
@@ -410,7 +411,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1
                 });
             };
             expect(errorFunc).to.throw(Error, "Could not find class for form component class name 'NotAClass'");
@@ -438,7 +439,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1
                 });
             };
             expect(errorFunc).to.throw(Error);
@@ -468,7 +469,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1
                 });
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
@@ -500,7 +501,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1
                 });
             };
             expect(errorFunc1).to.throw(Error, "Invalid usage of reusable form config. Component class 'ReusableComponent' must be 'ReusableComponent' and reusableFormName");
@@ -529,7 +530,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1
                 });
             };
             expect(errorFunc2).to.throw(Error, "Invalid usage of reusable form config. Component class 'TextAreaComponent' must be 'ReusableComponent' and reusableFormName");
@@ -561,7 +562,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1
                 });
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
@@ -602,7 +603,7 @@ describe("Construct Visitor", async () => {
                                     }
                                 }
                             ]
-                        }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                        }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1
                     });
                 }
             ;
@@ -637,7 +638,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1
                 });
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
@@ -665,7 +666,7 @@ describe("Construct Visitor", async () => {
                     ]
                 },
                 formMode: "edit",
-                reusableFormDefs: reusableDefinitionsExample1,
+                reusableFormDefs: reusableFormDefinitionsExample1,
                 record: {content1: "some value"}
             });
             const expected: FormConfigFrame = {
@@ -731,7 +732,7 @@ describe("Construct Visitor", async () => {
                     ]
                 },
                 formMode: "view",
-                reusableFormDefs: reusableDefinitionsExample1,
+                reusableFormDefs: reusableFormDefinitionsExample1,
                 record: {component_1: ['option3'], component_2: ['option2', 'option3']}
             });
             const expected = {
@@ -754,7 +755,7 @@ describe("Construct Visitor", async () => {
                         component: {
                             class: 'ContentComponent',
                             config: {
-                                content: [{label: 'Option 2', value: 'option2'},{label: 'Option 3', value: 'option3'}],
+                                content: [{label: 'Option 2', value: 'option2'}, {label: 'Option 3', value: 'option3'}],
                                 template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
                             }
                         },
@@ -769,7 +770,7 @@ describe("Construct Visitor", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = visitor.start({
                 formMode: "view",
-                reusableFormDefs: reusableDefinitionsExample1,
+                reusableFormDefs: reusableFormDefinitionsExample1,
                 data: {
                     name: "form",
                     componentDefinitions: [
@@ -864,6 +865,167 @@ describe("Construct Visitor", async () => {
                                 value: {component_1: ["text_1", "text_2"]},
                             }
                         }
+                    }
+                ]
+            };
+            expect(actual).to.containSubset(expected);
+        });
+    });
+    describe("question tree", async () => {
+        it("should build the expected form config", async () => {
+            const availableOutcomes: QuestionTreeOutcome[] = [
+                {value: "value1", label: "@outcomes-value1"},
+                {value: "value2", label: "@outcomes-value2"},
+            ];
+            const availableMeta: QuestionTreeMeta = {
+                prop2: {
+                    value1: "@outcomes-prop2-value1",
+                    value2: "@outcomes-prop2-value2",
+                },
+            };
+            const questions: QuestionTreeQuestion[] = [
+                {
+                    id: "question_1",
+                    answersMin: 1,
+                    answersMax: 1,
+                    answers: [{value: "yes"}, {value: "no"}],
+                    rules: {op: "true"},
+                },
+                {
+                    id: "question_2",
+                    answersMin: 1,
+                    answersMax: 2,
+                    answers: [{value: "yes"}, {value: "no"}],
+                    rules: {op: "in", q: "question_1", a: ["no"]}
+                },
+                {
+                    id: "question_3",
+                    answersMin: 1,
+                    answersMax: 2,
+                    answers: [{value: "yes"}, {value: "maybe"}, {value: "no"}],
+                    rules: {op: "in", q: "question_2", a: ["yes"]}
+                },
+                {
+                    id: "question_4",
+                    answersMin: 1,
+                    answersMax: 1,
+                    answers: [
+                        {
+                            value: "yes",
+                            label: "@answer-yes",
+                            outcome: "value1",
+                            meta: {prop2: "value2"},
+                        },
+                        {
+                            value: "no", label: "No",
+                            outcome: "value2",
+                            meta: {prop2: "value2"},
+                        },
+                    ],
+                    rules: {
+                        op: "or", args: [
+                            {
+                                op: "and", args: [
+                                    {op: "in", q: "question_1", a: ["no"]},
+                                    {op: "in", q: "question_2", a: ["no"]},
+                                ]
+                            },
+                            {
+                                op: "and", args: [
+                                    {op: "only", q: "question_1", a: ["no"]},
+                                    {op: "notin", q: "question_2", a: ["no"]},
+                                    {op: "in", q: "question_3", a: ["no", "maybe"]},
+                                ]
+                            }
+                        ]
+                    },
+                }
+            ];
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "edit",
+                reusableFormDefs: reusableFormDefinitionsExample1,
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "questiontree_1",
+                            component: {
+                                class: "QuestionTreeComponent",
+                                config: {
+                                    availableOutcomes,
+                                    availableMeta,
+                                    questions,
+                                    componentDefinitions: [],
+                                }
+                            },
+                        }
+                    ]
+                },
+            });
+            const expected: FormConfigFrame = {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "questiontree_1",
+                        component: {
+                            class: "QuestionTreeComponent",
+                            config: {
+                                availableOutcomes,
+                                availableMeta,
+                                questions,
+                                componentDefinitions: [
+                                    {
+                                        name: "question_1",
+                                        component: {
+                                            class: "RadioInputComponent",
+                                            config: {
+                                                options: [
+                                                    {value: "yes", label: "@questiontree_1-question_1-yes"},
+                                                    {value: "no", label: "@questiontree_1-question_1-no"},
+                                                ]
+                                            }
+                                        },
+                                    },
+                                    {
+                                        name: "question_2",
+                                        component: {
+                                            class: "CheckboxInputComponent",
+                                            config: {
+                                                options: [
+                                                    {value: "yes", label: "@questiontree_1-question_2-yes"},
+                                                    {value: "no", label: "@questiontree_1-question_2-no"},
+                                                ]
+                                            }
+                                        },
+                                    },
+                                    {
+                                        name: "question_3",
+                                        component: {
+                                            class: "CheckboxInputComponent",
+                                            config: {
+                                                options: [
+                                                    {value: "yes", label: "@questiontree_1-question_3-yes"},
+                                                    {value: "maybe", label: "@questiontree_1-question_3-maybe"},
+                                                    {value: "no", label: "@questiontree_1-question_3-no"}]
+                                            }
+                                        },
+                                    },
+                                    {
+                                        name: "question_4",
+                                        component: {
+                                            class: "RadioInputComponent",
+                                            config: {
+                                                options: [
+                                                    {value: "yes", label: "@answer-yes"},
+                                                    {value: "no", label: "No"},
+                                                ]
+                                            }
+                                        },
+                                    },
+                                ],
+                            }
+                        },
                     }
                 ]
             };

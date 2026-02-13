@@ -21,6 +21,7 @@ import {RadioInputDefaults, RadioInputMap} from "./component/radio-input.model";
 import {DateInputDefaults, DateInputMap} from "./component/date-input.model";
 import {ReusableDefaults, ReusableMap} from "./component/reusable.model";
 import {ReusableComponentName} from "./component/reusable.outline";
+import {QuestionTreeDefaults, QuestionTreeMap} from "./component/question-tree.model";
 
 
 /**
@@ -43,6 +44,7 @@ export const AllDefs = [
     ...RadioInputMap,
     ...DateInputMap,
     ...ReusableMap,
+    ...QuestionTreeMap,
 ] as const;
 
 /**
@@ -65,6 +67,7 @@ const RawDefaults = [
     RadioInputDefaults,
     DateInputDefaults,
     ReusableDefaults,
+    QuestionTreeDefaults,
 ]
 
 /**
