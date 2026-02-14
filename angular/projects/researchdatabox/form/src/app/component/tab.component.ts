@@ -52,7 +52,7 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
     if (!component || !isTypeFieldDefinitionName<TabFieldComponentDefinitionFrame>(component, component.class)) {
       throw new Error(`Invalid tabConfig ${JSON.stringify(component)}`);
     }
-    return component?.config || {tabs:[]};
+    return component?.config || { tabs: [] };
   }
 
   protected get tabInstance(): TabComponent | null {
@@ -98,10 +98,10 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
     }
     try {
       if (!this.initialSelectionDone &&
-          this.tabInstance &&
-          this.tabInstance.tabs.length > 0 &&
-          this.tabInstance.wrapperRefs.length === this.tabInstance.tabs.length &&
-          this.tabInstance.selectedTabId) {
+        this.tabInstance &&
+        this.tabInstance.tabs.length > 0 &&
+        this.tabInstance.wrapperRefs.length === this.tabInstance.tabs.length &&
+        this.tabInstance.selectedTabId) {
         const tabId = this.tabInstance.selectedTabId;
         this.selectTab(tabId);
         this.initialSelectionDone = true;
@@ -135,7 +135,7 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
  */
 @Component({
   selector: 'redbox-form-tab',
-  template:`
+  template: `
     <ng-container #tabsContainer />
 `,
   standalone: false
@@ -152,7 +152,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   public override componentDefinition?: TabFieldComponentDefinitionFrame;
 
   protected get tabConfig(): TabFieldComponentConfigFrame {
-    return this.componentDefinition?.config || {tabs: []};
+    return this.componentDefinition?.config || { tabs: [] };
   }
 
   protected override async initData() {
@@ -301,7 +301,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     return this.componentInstances;
   }
 
-  public override get formFieldCompMapEntries() : FormFieldCompMapEntry[] {
+  public override get formFieldCompMapEntries(): FormFieldCompMapEntry[] {
     return this.componentFormMapEntries;
   }
 
@@ -329,7 +329,7 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
   protected override logName = TabContentComponentName;
   public override componentDefinition?: TabContentFieldComponentDefinitionFrame;
   tab?: TabContentFormComponentDefinitionFrame;
-   @ViewChild('componentContainer', {
+  @ViewChild('componentContainer', {
     read: ViewContainerRef,
     static: false
   })
@@ -398,7 +398,7 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
     return this.componentInstances;
   }
 
-  public override get formFieldCompMapEntries() : FormFieldCompMapEntry[]  {
+  public override get formFieldCompMapEntries(): FormFieldCompMapEntry[] {
     return this.formDefMap?.components || [];
   }
 
