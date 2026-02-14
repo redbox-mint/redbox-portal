@@ -106,25 +106,34 @@ export class RecordSearchParams {
       return activeRefiner.name === refiner.name;
     });
     if (existingRefiner) {
-      existingRefiner.value = refiner.value;
+      existingRefiner.setCurrentValue(refiner.type === 'facet' ? refiner.activeValue : refiner.value);
     } else {
       this.activeRefiners.push(refiner);
     }
   }
 
   parseQueryStr(queryStr: string): void {
+    const normalizedQuery = String(queryStr ?? '').replace(/^\?/, '');
     const refinerValues: Record<string, string> = {};
-    _forEach(queryStr.split('&'), (q: string) => {
+    const decodeQueryValue = (rawValue: string): string => {
+      return decodeURIComponent(String(rawValue ?? '').replace(/\+/gi, ' '));
+    };
+    _forEach(normalizedQuery.split('&'), (q: string) => {
+      if (!q) {
+        return;
+      }
       const qObj = q.split('=');
-      if (_startsWith(qObj[0], 'q')) {
-        this.basicSearch = decodeURIComponent((qObj[1] ?? '').replace(/\+/gi, ' '));
+      const key = qObj[0] ?? '';
+      const value = qObj.length > 1 ? qObj.slice(1).join('=') : '';
+      if (key === 'q') {
+        this.basicSearch = decodeQueryValue(value);
       }
-      if (_startsWith(qObj[0], 'refiner|')) {
-        const refinerName = qObj[0].split('|')[1];
-        refinerValues[refinerName] = decodeURIComponent((qObj[1] ?? '').replace(/\+/gi, ' '));
+      if (_startsWith(key, 'refiner|')) {
+        const refinerName = key.split('|')[1];
+        refinerValues[refinerName] = decodeQueryValue(value);
       }
-      if (_startsWith(qObj[0], 'page')) {
-        this.currentPage = _toNumber(qObj[1]);
+      if (key === 'page') {
+        this.currentPage = _toNumber(value);
       }
     });
     _forOwn(refinerValues, (value: string, name: string) => {

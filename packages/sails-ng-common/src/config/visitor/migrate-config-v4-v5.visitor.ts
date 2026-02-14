@@ -542,8 +542,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         case true:
           item.enabledValidationGroups = ['none'];
           break;
-        default:
         case false:
+        default:
           item.enabledValidationGroups = ['all'];
           break;
       }
@@ -811,9 +811,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const config = new GroupFieldComponentConfig();
     item.config = config;
     this.sharedPopulateFieldComponentConfig(item.config, field);
-    this.logger.info(
-      `${this.logName}: visitGroupFieldComponentDefinition field ${JSON.stringify(field)} item ${JSON.stringify(item)}`
-    );
+    this.logger.debug(`${this.logName}: visitGroupFieldComponentDefinition for '${String(field?.definition?.name ?? field?.definition?.id ?? '')}'.`);
 
     const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
     // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
@@ -986,11 +984,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     item.config = new TextAreaFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
 
-    const cols = field?.definition?.cols ?? field?.definition?.columns ?? undefined;
-    this.sharedProps.setPropOverride('cols', item.config, { cols: cols === undefined ? undefined : parseInt(cols) });
+    const colsRaw = field?.definition?.cols ?? field?.definition?.columns ?? undefined;
+    const colsParsed = colsRaw === undefined ? undefined : Number.parseInt(String(colsRaw), 10);
+    const cols = colsParsed !== undefined && Number.isFinite(colsParsed) ? colsParsed : undefined;
+    this.sharedProps.setPropOverride('cols', item.config, { cols });
 
-    const rows = field?.definition?.rows ?? undefined;
-    this.sharedProps.setPropOverride('rows', item.config, { rows: rows === undefined ? undefined : parseInt(rows) });
+    const rowsRaw = field?.definition?.rows ?? undefined;
+    const rowsParsed = rowsRaw === undefined ? undefined : Number.parseInt(String(rowsRaw), 10);
+    const rows = rowsParsed !== undefined && Number.isFinite(rowsParsed) ? rowsParsed : undefined;
+    this.sharedProps.setPropOverride('rows', item.config, { rows });
   }
 
   visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
@@ -1089,12 +1091,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     if (typeof notesEnabled === 'boolean') {
       const metadataFields = notesEnabled
         ? [
-            {
-              id: 'notes',
-              name: 'Notes',
-              placeholder: 'Notes about this file.',
-            },
-          ]
+          {
+            id: 'notes',
+            name: 'Notes',
+            placeholder: 'Notes about this file.',
+          },
+        ]
         : [];
       this.sharedProps.setPropOverride('restrictions', item.config, {
         restrictions: {
@@ -1555,9 +1557,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       !path || path.length < 1
         ? data
         : _get(
-            data,
-            path.map(i => i.toString())
-          );
+          data,
+          path.map(i => i.toString())
+        );
 
     // this.logger.info(JSON.stringify({path, result}));
     return result;
@@ -1924,13 +1926,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const source = entry as Record<string, unknown>;
     const resolvedLabel = String(
       source.label ??
-        source.name ??
-        source.title ??
-        source.text ??
-        source[labelField] ??
-        source[valueField] ??
-        source.value ??
-        ''
+      source.name ??
+      source.title ??
+      source.text ??
+      source[labelField] ??
+      source[valueField] ??
+      source.value ??
+      ''
     ).trim();
     const resolvedValue = String(
       source.value ?? source[valueField] ?? source.name ?? source[labelField] ?? source.title ?? source.label ?? ''

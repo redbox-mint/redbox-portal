@@ -1499,7 +1499,7 @@ export namespace Services {
       const fileIdsAdded: string[] = [];
       const attachmentsDir = sails.config.record.attachments.file?.directory ?? sails.config.record.attachments.stageDir;
       if (!attachmentsDir) {
-        throw new Error('record.attachments.file.directory is required');
+        throw new Error('Attachment directory is required: configure record.attachments.file.directory or record.attachments.stageDir.');
       }
       return this.datastreamService
         .updateDatastream(oid, origRecord, metadata, attachmentsDir, fileIdsAdded)

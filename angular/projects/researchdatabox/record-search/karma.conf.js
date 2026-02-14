@@ -1,4 +1,6 @@
 module.exports = function (config) {
+  const isCI = process.env.CI === 'true';
+
   config.set({
     basePath: './',
     frameworks: ['jasmine', '@angular-devkit/build-angular'],
@@ -26,7 +28,7 @@ module.exports = function (config) {
     junitReporter: {
       outputDir: require('path').join(__dirname, '../../../../.tmp/junit/frontend-record-search'),
     },
-    reporters: ['progress', 'kjhtml', 'junit'],
+    reporters: ['progress', 'kjhtml', 'junit', 'coverage'],
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
@@ -41,8 +43,8 @@ module.exports = function (config) {
         flags: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
       },
     },
-    browsers: ['Chrome'],
-    singleRun: false,
+    browsers: isCI ? ['ChromeHeadlessNoSandbox'] : ['Chrome'],
+    singleRun: isCI,
     restartOnFileChange: true,
   });
 };

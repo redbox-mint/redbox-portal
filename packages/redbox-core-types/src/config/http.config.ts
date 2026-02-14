@@ -28,6 +28,7 @@ declare const sails: {
             uploadUrls?: string[];
             server?: Record<string, unknown>;
             providerOptions?: Record<string, unknown>;
+            corsOrigins?: true | string[];
             metrics?: boolean;
             debug?: boolean;
             i18n?: Record<string, unknown>;
@@ -148,6 +149,11 @@ export const http: HttpConfig = {
                 return next();
             }
 
+            const companionSecret = String(companionConfig.secret ?? '').trim();
+            if (!companionSecret || companionSecret.length < 32) {
+                return next(new Error('Companion is enabled but companion.secret is missing or too short. Configure a secret with at least 32 characters.'));
+            }
+
             const route = String(companionConfig.route ?? '/companion').trim();
             const normalizedRoute = route.startsWith('/') ? route : `/${route}`;
             const requestPath = (req.originalUrl ?? req.url).split('?')[0];
@@ -156,22 +162,45 @@ export const http: HttpConfig = {
             }
 
             if (!_lazyCompanionMiddleware || _lazyCompanionMountPath !== normalizedRoute) {
+                const companionFilePath = String(companionConfig.filePath ?? '/tmp/companion').trim();
+                try {
+                    fs.mkdirSync(companionFilePath, { recursive: true });
+                    fs.accessSync(companionFilePath, fs.constants.R_OK | fs.constants.W_OK);
+                } catch (err: unknown) {
+                    if (err instanceof Error) {
+                        return next(new Error(`Companion filePath "${companionFilePath}" is not accessible: ${err.message}`));
+                    }
+                    return next(new Error(`Companion filePath "${companionFilePath}" is not accessible.`));
+                }
+
                 const companionModule = require('@uppy/companion');
                 const appFactory = companionModule?.app || companionModule?.companion?.app;
                 if (typeof appFactory !== 'function') {
+                    console.warn('Companion is enabled but companion module app export is not a function; skipping companion middleware initialization.');
                     return next();
                 }
 
-                _lazyCompanionMiddleware = appFactory({
+                const companionAppResult = appFactory({
                     providerOptions: companionConfig.providerOptions || {},
-                    filePath: companionConfig.filePath,
-                    secret: companionConfig.secret,
+                    filePath: companionFilePath,
+                    secret: companionSecret,
                     uploadUrls: companionConfig.uploadUrls || [],
                     server: companionConfig.server || {},
+                    corsOrigins: companionConfig.corsOrigins ?? true,
                     metrics: companionConfig.metrics || false,
                     debug: companionConfig.debug || false,
                     i18n: companionConfig.i18n || undefined
                 });
+
+                const companionMiddleware = typeof companionAppResult === 'function'
+                    ? companionAppResult
+                    : companionAppResult?.app;
+                if (typeof companionMiddleware !== 'function') {
+                    console.warn('Companion initialization did not return a callable middleware app; skipping companion middleware initialization.');
+                    return next();
+                }
+
+                _lazyCompanionMiddleware = companionMiddleware;
                 _lazyCompanionMountPath = normalizedRoute;
                 _lazyCompanionSocketWired = false;
             }
@@ -192,6 +221,12 @@ export const http: HttpConfig = {
 
             const originalUrl = req.url;
             const originalOriginalUrl = req.originalUrl;
+            const restoreUrls = () => {
+                req.url = originalUrl;
+                if (typeof originalOriginalUrl === 'string') {
+                    req.originalUrl = originalOriginalUrl;
+                }
+            };
             if (req.url.startsWith(_lazyCompanionMountPath)) {
                 req.url = req.url.substring(_lazyCompanionMountPath.length) || '/';
             }
@@ -199,16 +234,21 @@ export const http: HttpConfig = {
                 req.originalUrl = req.originalUrl.substring(_lazyCompanionMountPath.length) || '/';
             }
 
-            return _lazyCompanionMiddleware(req, res, (err?: unknown) => {
-                req.url = originalUrl;
-                if (typeof originalOriginalUrl === 'string') {
-                    req.originalUrl = originalOriginalUrl;
+            try {
+                return _lazyCompanionMiddleware(req, res, (err?: unknown) => {
+                    restoreUrls();
+                    if (err) {
+                        return next(err as Error);
+                    }
+                    return next();
+                });
+            } catch (err: unknown) {
+                restoreUrls();
+                if (err instanceof Error) {
+                    return next(err);
                 }
-                if (err) {
-                    return next(err as Error);
-                }
-                return next();
-            });
+                return next(new Error(String(err ?? 'Unknown companion middleware error')));
+            }
         },
 
         brandingAndPortalAwareStaticRouter: function (req: Request, res: Response, next: NextFunction) {

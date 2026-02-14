@@ -39,7 +39,11 @@
                 data-bs-toggle="dropdown"
                 aria-haspopup="true"
                 aria-expanded="false"
-              ></button>
+                aria-label="Toggle dropdown"
+              >
+                <span class="caret" aria-hidden="true"></span>
+                <span class="sr-only">Toggle dropdown</span>
+              </button>
               <ul class="dropdown-menu dropdown-menu-right">
                 @for (recTypeName of getRecordTypeNames(); track recTypeName) {
                   <li>
@@ -55,7 +59,12 @@
             </button>
           </div>
           @if (searchMsg) {
-            <div class="bg-{{ searchMsgType }} text-center" id="searchMsg" tabindex="0" [innerHtml]="searchMsg"></div>
+            <div class="bg-{{ searchMsgType }} text-center" id="searchMsg" tabindex="0" [innerText]="searchMsg"></div>
+            @if (isSearching) {
+              <div class="text-center" aria-live="polite">
+                <span class="fa fa-spinner fa-spin" aria-hidden="true"></span>
+              </div>
+            }
           }
         </div>
       </div>
@@ -79,18 +88,19 @@
           <div class="panel panel-default">
             <div class="panel-body">
               <h3>
-                <a href="{{ brandingAndPortalUrl }}/record/view/{{ plan.storage_id }}" target="_blank">{{
+                <a href="{{ brandingAndPortalUrl }}/record/view/{{ plan.storage_id }}" target="_blank" rel="noopener noreferrer">{{
                   plan.dashboardTitle
                 }}</a>
                 @if (plan.hasEditAccess) {
                   <a
                     class="glyphicon glyphicon-pencil"
                     href="{{ brandingAndPortalUrl }}/record/edit/{{ plan.storage_id }}"
+                    aria-label="Edit record"
                     tooltip="Edit"
                   ></a>
                 }
               </h3>
-              <div [innerHtml]="plan.description"></div>
+              <div [innerHtml]="getSafeDescription(plan)"></div>
             </div>
           </div>
         }

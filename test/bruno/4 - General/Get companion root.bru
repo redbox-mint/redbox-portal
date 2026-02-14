@@ -17,6 +17,6 @@ tests {
 
   test("Companion Dropbox API returns expected status family", function () {
     const status = res.getStatus();
-    expect([200, 204, 400, 401, 403, 429, 500]).to.include(status);
+    expect([200, 204, 400, 401, 403, 429]).to.include(status);
   });
 }

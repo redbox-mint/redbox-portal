@@ -927,20 +927,29 @@ export namespace Controllers {
       let datastore: DataStore;
       if (storeType === 's3') {
         const { S3Store } = require('@tus/s3-store') as { S3Store: new (config: unknown) => DataStore };
+        const s3Config = attachConfig.s3;
+        const accessKeyId = s3Config?.accessKeyId;
+        const secretAccessKey = s3Config?.secretAccessKey;
+        if ((accessKeyId && !secretAccessKey) || (!accessKeyId && secretAccessKey)) {
+          throw new Error('Invalid record.attachments.s3 credentials: accessKeyId and secretAccessKey must both be provided when using static credentials.');
+        }
         datastore = new S3Store({
-          partSize: attachConfig.s3!.partSize ?? 8 * 1024 * 1024,
+          partSize: s3Config?.partSize ?? 8 * 1024 * 1024,
           s3ClientConfig: {
-            bucket: attachConfig.s3!.bucket,
-            region: attachConfig.s3!.region,
-            credentials: attachConfig.s3!.accessKeyId ? {
-              accessKeyId: attachConfig.s3!.accessKeyId,
-              secretAccessKey: attachConfig.s3!.secretAccessKey!,
+            bucket: s3Config?.bucket,
+            region: s3Config?.region,
+            credentials: accessKeyId && secretAccessKey ? {
+              accessKeyId,
+              secretAccessKey,
             } : undefined,
-            endpoint: attachConfig.s3!.endpoint,
+            endpoint: s3Config?.endpoint,
           },
         });
       } else {
-        const targetDir = attachConfig.file?.directory ?? attachConfig.stageDir!;
+        const targetDir = attachConfig.file?.directory ?? attachConfig.stageDir;
+        if (!targetDir) {
+          throw new Error('Missing attachment directory configuration: set record.attachments.file.directory or record.attachments.stageDir before starting upload handlers (bootstrap() should initialize this).');
+        }
         if (!fs.existsSync(targetDir)) {
           fs.mkdirSync(targetDir, { recursive: true });
         }

@@ -1,4 +1,4 @@
-import { get as _get, cloneDeep as _cloneDeep, map as _map } from 'lodash';
+import { get as _get, set as _set, cloneDeep as _cloneDeep, map as _map } from 'lodash';
 import { FormConfigOutline } from '../form-config.outline';
 import {
   SimpleInputFieldComponentDefinitionOutline,
@@ -736,6 +736,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
             // Allow the value to be undefined - set an empty object.
             if (currentValue === undefined) {
               currentValue = {};
+              if (path.length > 0) {
+                _set(value as object, path, currentValue);
+              } else {
+                value = currentValue;
+              }
               currentValueType = 'object';
             }
             if (currentValueType !== 'object') {

@@ -56,6 +56,7 @@ import { RichTextEditorComponent } from './component/rich-text-editor.component'
 import { TiptapEditorDirective } from 'ngx-tiptap';
 import { MapComponent } from './component/map.component';
 import { FileUploadComponent } from './component/file-upload.component';
+import { A11yModule } from '@angular/cdk/a11y';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -95,6 +96,7 @@ import { FileUploadComponent } from './component/file-upload.component';
     TiptapEditorDirective,
     BsDatepickerModule.forRoot(),
     TypeaheadModule.forRoot(),
+    A11yModule,
   ],
   providers: [
     {
@@ -115,4 +117,4 @@ import { FileUploadComponent } from './component/file-upload.component';
   bootstrap: [FormComponent],
   exports: [],
 })
-export class FormModule {}
+export class FormModule { }

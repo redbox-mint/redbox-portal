@@ -157,7 +157,7 @@ function toClassDefMap<T>(items: { kind: string; def: T; class: string }[]): Map
 }
 
 const VisitorComponentDefs = AllDefs.filter(i => i.kind === FieldComponentDefinitionKind);
-const VisitorComponentClassNames = ComponentDefs.map(i => i.class);
+const VisitorComponentClassNames = VisitorComponentDefs.map(i => i.class);
 const VisitorComponentDefItems = VisitorComponentDefs.map(i => i.def);
 type VisitorComponentDefItemsType = (typeof VisitorComponentDefItems)[number];
 export type VisitorComponentClassNamesType = (typeof VisitorComponentClassNames)[number];

@@ -24,18 +24,27 @@ import { FormStateFacade } from '../form-state';
     }
 
     @if (showConfirmDialog) {
-      <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5)">
+      <div
+        class="modal fade show d-block"
+        tabindex="-1"
+        role="dialog"
+        [attr.aria-labelledby]="confirmationTitleId"
+        [attr.aria-describedby]="confirmationMessageId"
+        aria-modal="true"
+        style="background-color: rgba(0,0,0,0.5)"
+        (keydown.escape)="hideConfirmDialog()"
+      >
         <div class="modal-dialog" role="document">
-          <div class="modal-content">
+          <div class="modal-content" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
             <div class="modal-header">
-              <h5 class="modal-title">{{ confirmationTitle }}</h5>
+              <h5 class="modal-title" [id]="confirmationTitleId">{{ confirmationTitle }}</h5>
               <button type="button" class="btn-close" (click)="hideConfirmDialog()" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              <p>{{ confirmationMessage }}</p>
+              <p [id]="confirmationMessageId">{{ confirmationMessage }}</p>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="hideConfirmDialog()">
+              <button type="button" class="btn btn-secondary" (click)="hideConfirmDialog()" cdkFocusInitial>
                 {{ cancelButtonMessage }}
               </button>
               <button type="button" class="btn btn-primary" (click)="doCancel()">{{ confirmButtonMessage }}</button>
@@ -48,11 +57,15 @@ import { FormStateFacade } from '../form-state';
   standalone: false,
 })
 export class CancelButtonComponent extends FormFieldBaseComponent<undefined> {
+  private static dialogSequence = 0;
   public override logName = CancelButtonComponentName;
   protected override formComponent: FormComponent = inject(FormComponent);
   public override componentDefinition?: CancelButtonFieldComponentDefinitionOutline;
   private location: Location = inject(Location);
   protected formStateFacade = inject(FormStateFacade);
+  private readonly dialogId = ++CancelButtonComponent.dialogSequence;
+  public readonly confirmationTitleId = `cancel-confirm-title-${this.dialogId}`;
+  public readonly confirmationMessageId = `cancel-confirm-message-${this.dialogId}`;
 
   showConfirmDialog = false;
 
