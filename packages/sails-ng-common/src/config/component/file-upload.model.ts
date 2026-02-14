@@ -23,8 +23,6 @@ import {
     FileUploadSourceType
 } from "./file-upload.outline";
 
-const DefaultFileUploadValue: FileUploadModelValueType = [];
-
 /* File Upload Component */
 
 export class FileUploadFieldComponentConfig extends FieldComponentConfig implements FileUploadFieldComponentConfigOutline {
@@ -56,10 +54,11 @@ export class FileUploadFieldComponentDefinition extends FieldComponentDefinition
 /* File Upload Model */
 
 export class FileUploadFieldModelConfig extends FieldModelConfig<FileUploadModelValueType> implements FileUploadFieldModelConfigOutline {
-    defaultValue: FileUploadAttachmentValue[] = DefaultFileUploadValue;
+    defaultValue: FileUploadAttachmentValue[];
 
     constructor() {
         super();
+        this.defaultValue = [];
     }
 }
 

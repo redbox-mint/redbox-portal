@@ -74,7 +74,7 @@ export class SearchService extends HttpClientService {
    */
   public async getAllTypes(): Promise<any> {
     const url = `${this.brandingAndPortalUrl}/record/type`;
-    const result$ = this.http.get(url).pipe(map(res => res));
+    const result$ = this.http.get(url, this.getHttpOptions());
     return await firstValueFrom(result$);
   }
 

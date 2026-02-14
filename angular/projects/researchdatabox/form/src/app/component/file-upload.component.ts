@@ -182,9 +182,11 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         const current = currentFromControl.length > 0
             ? currentFromControl
             : this.normalizeAttachments(this.model?.getValue());
+        const oidPathSegment = `/record/${pendingOid}/`;
+        const finalOidPathSegment = `/record/${finalOid}/`;
         const rewritten = current.map((item) => {
-            const nextLocation = String(item.location ?? "").replace(`/record/${pendingOid}/`, `/record/${finalOid}/`);
-            const nextUploadUrl = String(item.uploadUrl ?? "").replace(`/record/${pendingOid}/`, `/record/${finalOid}/`);
+            const nextLocation = String(item.location ?? "").split(oidPathSegment).join(finalOidPathSegment);
+            const nextUploadUrl = String(item.uploadUrl ?? "").split(oidPathSegment).join(finalOidPathSegment);
             return {
                 ...item,
                 location: nextLocation,
@@ -412,7 +414,9 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
             if (tusPlugin?.opts) {
                 tusPlugin.opts["headers"] = headers;
             }
-        }).catch(() => undefined);
+        }).catch((err: unknown) => {
+            console.error('ensureTusHeadersContainCsrf: failed to load config for CSRF token', err);
+        });
     }
 
     private getUppyDependencies(): UppyDependencies {

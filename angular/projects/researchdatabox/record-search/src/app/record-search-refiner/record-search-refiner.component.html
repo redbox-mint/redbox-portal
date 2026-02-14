@@ -28,7 +28,7 @@
         @for (facetValue of refinerConfig.value; track facetValue.value) {
           @if (facetValue.count > 0 && facetValue.value) {
             <div>
-              <a href="" (click)="applyFilter($event, facetValue.value)"
+              <a (click)="applyFilter($event, facetValue.value)"
                 >{{ facetValue.value }} ({{ facetValue.count }})</a
               >
             </div>
