@@ -386,6 +386,11 @@ export class FormService extends HttpClientService {
       }
       groupMap[fieldName] = compEntry;
 
+      // const includeInFormControlMap = this.shouldIncludeInFormControlMap(compEntry);
+      // if (!includeInFormControlMap) {
+      //   continue;
+      // }
+
       // Populate the map of name to form control.
       if (compEntry.model) {
         const model = compEntry.model;
@@ -410,6 +415,17 @@ export class FormService extends HttpClientService {
     compMap.completeGroupMap = groupMap;
     compMap.withFormControl = groupWithFormControl;
     return compMap;
+  }
+
+  public shouldIncludeInFormControlMap(compEntry: FormFieldCompMapEntry | null | undefined): boolean {
+    if (!compEntry) {
+      return false;
+    }
+
+    const modelDisabled = compEntry.compConfigJson?.model?.config?.disabled === true;
+    const componentDisabled = compEntry.compConfigJson?.component?.config?.disabled === true;
+    const layoutDisabled = compEntry.compConfigJson?.layout?.config?.disabled === true;
+    return !(modelDisabled || componentDisabled || layoutDisabled);
   }
 
   /**

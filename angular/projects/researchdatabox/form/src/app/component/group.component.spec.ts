@@ -206,5 +206,48 @@ describe('GroupFieldComponent', () => {
     // assert
     const groupModel = fixture.componentInstance.componentDefArr[0].model;
     expect(groupModel?.formControl?.disabled).toBe(true);
+    expect(formComponent.form?.contains('disabled_group') ?? false).toBe(false);
+  });
+
+  it('should not register disabled child controls in parent group form control', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_disabled_child',
+      componentDefinitions: [
+        {
+          name: 'parent_group',
+          model: {
+            class: 'NeverModel',
+            config: {
+              value: {},
+            }
+          },
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'disabled_child_text',
+                  model: {
+                    class: 'SimpleInputModel',
+                    config: {
+                      value: 'child value',
+                      disabled: true,
+                    }
+                  },
+                  component: {
+                    class: 'SimpleInputComponent'
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+
+    const groupModel = fixture.componentInstance.componentDefArr[0].model;
+    expect(groupModel?.formControl?.get('disabled_child_text')).toBeNull();
   });
 });

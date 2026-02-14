@@ -2,7 +2,15 @@
 @if (componentDefArr.length > 0 && formDefMap?.formConfig?.debugValue) {
   <div class="alert alert-secondary" role="alert">
     <h4>Form Values Debug</h4>
-    <pre [innerHtml]="form?.value | json"></pre>
+    <div class="mb-2">
+      <button type="button" class="btn btn-sm me-2" [class.btn-primary]="!debugUseRawValues()" [class.btn-outline-primary]="debugUseRawValues()" (click)="debugUseRawValues.set(false)">
+        Actual (`form.value`)
+      </button>
+      <button type="button" class="btn btn-sm" [class.btn-primary]="debugUseRawValues()" [class.btn-outline-primary]="!debugUseRawValues()" (click)="debugUseRawValues.set(true)">
+        Raw (`form.getRawValue()`)
+      </button>
+    </div>
+    <pre [innerHtml]="(debugUseRawValues() ? debugRawFormValues() : debugFormValues()) | json"></pre>
   </div>
   <div class="alert alert-secondary" role="alert">
     <h4>Form Components Debug</h4>

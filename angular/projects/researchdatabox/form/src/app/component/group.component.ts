@@ -140,7 +140,8 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
       // Populate the component model if it has one.
       const hasModel = this.model?.formControl && compInstance?.model;
-      if (hasModel) {
+      const includeInFormControlMap = this.formService.shouldIncludeInFormControlMap(elemFieldEntry);
+      if (hasModel && includeInFormControlMap) {
         const elemVal = elemVals?.[key];
         if (compInstance?.model && !_isUndefined(elemVal)) {
           compInstance.model.setValue(elemVal);
@@ -152,7 +153,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
       // Set the lineage path and reference to the wrapper component.
       if (elemFieldEntry) {
-        const dataModel = hasModel ? [key] : [];
+        const dataModel = hasModel && includeInFormControlMap ? [key] : [];
         elemFieldEntry.lineagePaths = this.formService.buildLineagePaths(
           this.formFieldCompMapEntry?.lineagePaths,
           {
