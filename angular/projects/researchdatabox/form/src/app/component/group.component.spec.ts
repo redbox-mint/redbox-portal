@@ -216,7 +216,7 @@ describe('GroupFieldComponent', () => {
         {
           name: 'parent_group',
           model: {
-            class: 'NeverModel',
+            class: 'GroupModel',
             config: {
               value: {},
             }
