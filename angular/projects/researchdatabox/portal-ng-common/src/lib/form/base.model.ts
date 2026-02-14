@@ -1,6 +1,6 @@
-import {cloneDeep as _cloneDeep, get as _get} from 'lodash-es';
-import {AbstractControl, FormControl} from '@angular/forms';
-import {FieldModelDefinitionFrame, FormValidatorConfig, guessType} from "@researchdatabox/sails-ng-common";
+import { cloneDeep as _cloneDeep } from 'lodash-es';
+import { AbstractControl, FormControl } from '@angular/forms';
+import { FieldModelDefinitionFrame, FormValidatorConfig, guessType } from "@researchdatabox/sails-ng-common";
 
 /**
  * Core model for form elements.
@@ -54,6 +54,9 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
 
     // create the form model
     this.formControl = this.initValue === undefined ? new FormControl() : new FormControl<ValueType>(this.initValue);
+    if (this.fieldConfig.config?.disabled) {
+      this.formControl.disable();
+    }
     console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value:`, this.initValue);
   }
 
@@ -105,7 +108,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
    * @param value the value to set
    */
   public setValueDontEmitEvent(value: ValueType): void {
-    this.formControl?.setValue(value, {emitEvent: false});
+    this.formControl?.setValue(value, { emitEvent: false });
   }
 
   /**

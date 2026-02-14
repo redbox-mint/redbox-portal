@@ -1,9 +1,9 @@
 
-import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
-import {SimpleInputComponent} from './simple-input.component';
-import {GroupFieldComponent} from "./group.component";
-import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {TestBed} from "@angular/core/testing";
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { SimpleInputComponent } from './simple-input.component';
+import { GroupFieldComponent } from "./group.component";
+import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
+import { TestBed } from "@angular/core/testing";
 
 
 describe('GroupFieldComponent', () => {
@@ -141,7 +141,7 @@ describe('GroupFieldComponent', () => {
     };
 
     // act
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
 
     // assert
     // Ensure all expected html elements were created.
@@ -163,4 +163,48 @@ describe('GroupFieldComponent', () => {
     });
   });
 
+  it('should disable the form control if disabled is true in config', async () => {
+    // arrange
+    const formConfig: FormConfigFrame = {
+      name: 'testing_disabled',
+      componentDefinitions: [
+        {
+          name: 'disabled_group',
+          model: {
+            class: 'GroupModel',
+            config: {
+              disabled: true,
+              value: {},
+            }
+          },
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'child_text',
+                  model: {
+                    class: 'SimpleInputModel',
+                    config: {
+                      value: 'child value'
+                    }
+                  },
+                  component: {
+                    class: 'SimpleInputComponent'
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    // act
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+
+    // assert
+    const groupModel = fixture.componentInstance.componentDefArr[0].model;
+    expect(groupModel?.formControl?.disabled).toBe(true);
+  });
 });

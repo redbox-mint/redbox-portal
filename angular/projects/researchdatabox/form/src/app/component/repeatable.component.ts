@@ -1,6 +1,6 @@
 import { Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef, Injector } from '@angular/core';
 import { FormArray, AbstractControl } from '@angular/forms';
-import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry  } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
   FormConfigFrame,
   RepeatableComponentName,
@@ -8,11 +8,11 @@ import {
   RepeatableFieldComponentConfig,
   RepeatableModelName
 } from '@researchdatabox/sails-ng-common';
-import { set as _set, isEmpty as _isEmpty, cloneDeep as _cloneDeep, get as _get, isUndefined as _isUndefined, isNull as _isNull } from 'lodash-es';
+import { isEmpty as _isEmpty, cloneDeep as _cloneDeep, isUndefined as _isUndefined } from 'lodash-es';
 import { FormService } from '../form.service';
 import { FormComponent } from "../form.component";
-import {FormBaseWrapperComponent} from "./base-wrapper.component";
-import {DefaultLayoutComponent} from "./default-layout.component";
+import { FormBaseWrapperComponent } from "./base-wrapper.component";
+import { DefaultLayoutComponent } from "./default-layout.component";
 import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '../form-state';
 
 /**
@@ -25,7 +25,7 @@ import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '.
 @Component({
   selector: 'redbox-form-repeatable',
   template:
-  `
+    `
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
     <ng-container #repeatableContainer></ng-container>
     @if (isStatusReady() && isVisible) {
@@ -62,7 +62,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       .filter(c => c !== undefined && c !== null);
   }
 
-  public override get formFieldCompMapEntries() : FormFieldCompMapEntry[]  {
+  public override get formFieldCompMapEntries(): FormFieldCompMapEntry[] {
     return this.compDefMapEntries?.map(i => i?.defEntry) ?? [];
   }
 
@@ -79,7 +79,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     this.newElementFormConfig = {
       name: `form-config-generated-repeatable-${formComponentName}`,
       // Add an empty name to satisfy the FormConfig, the name will be replaced with a generated name.
-      componentDefinitions: [{...elementTemplate, name: ""}],
+      componentDefinitions: [{ ...elementTemplate, name: "" }],
       // TODO: Get the default config?
       // defaultComponentConfig: this.getFormComponent.formDefMap?.formConfig?.defaultComponentConfig,
     };
@@ -91,7 +91,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         formConfig: ['component', 'config', 'elementTemplate'],
       }
     );
-    let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig, parentLineagePaths);
+    const formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig, parentLineagePaths);
 
     if (_isEmpty(formComponentsMap)) {
       throw new Error(`${this.logName}: No components found in the formComponentsMap for '${formComponentName}'.`);
@@ -147,12 +147,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     for (let index = 0; index < this.compDefMapEntries.length; index++) {
       const indexStr = index.toString();
       const lineagePath = this.formService.buildLineagePaths(
-      this.formFieldCompMapEntry?.lineagePaths,
-      {
-        angularComponents: [indexStr],
-        dataModel: [indexStr],
-        formConfig: ['component', 'config', 'elementTemplate'],
-      });
+        this.formFieldCompMapEntry?.lineagePaths,
+        {
+          angularComponents: [indexStr],
+          dataModel: [indexStr],
+          formConfig: ['component', 'config', 'elementTemplate'],
+        });
       this.compDefMapEntries[index].defEntry.lineagePaths = lineagePath;
     }
     // Every time the lineage paths are rebuilt, the form definition has essentially changed. Sending an event to notify listeners.
@@ -202,7 +202,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     };
   }
 
-  protected async createElement(elemEntry: RepeatableElementEntry ) {
+  protected async createElement(elemEntry: RepeatableElementEntry) {
     const elemFieldEntry = elemEntry.defEntry;
     // Pushing early so rebuilding the lineage paths will be accurate
     this.compDefMapEntries.push(elemEntry);
@@ -228,7 +228,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   public removeElementFn(elemEntry: RepeatableElementEntry) {
     const that = this;
-    return function() {
+    return function () {
       that.loggerService.debug(`${that.logName}: removeElement called: `, elemEntry.localUniqueId);
       that.loggerService.debug(`${that.logName}: removeElement called, matching elemEntry:`,
         that.compDefMapEntries.find(i => i === elemEntry)
@@ -264,12 +264,19 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
     const modelElems: AbstractControl[] = [];
 
     this.formControl = new FormArray(modelElems);
+    if (this.fieldConfig.config?.disabled) {
+      this.formControl.disable();
+    }
     console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value:`, this.initValue);
   }
 
-  public addElement(targetModel?: FormFieldModel<unknown>){
-    if (this.formControl && targetModel){
-      this.formControl.push(targetModel.getFormControl());
+  public addElement(targetModel?: FormFieldModel<unknown>) {
+    const control = targetModel?.getFormControl();
+    if (this.formControl && control) {
+      if (this.formControl.disabled && control.enabled) {
+        control.disable();
+      }
+      this.formControl.push(control);
     } else {
       throw new Error(`${this.logName}: formControl or targetModel are not valid. Cannot add element.`);
     }

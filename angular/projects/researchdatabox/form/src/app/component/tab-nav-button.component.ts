@@ -104,6 +104,14 @@ export class TabNavButtonComponent extends FormFieldBaseComponent<undefined> imp
         const result = this.tabComponent.selectTab(tabId);
         if (result.changed) {
           this.currentTabIndex.set(newIndex);
+          // Replicate legacy behaviour where the viewport scrolls so the user can see the top of the tab
+          const nativeElement = this.tabComponent?.formFieldCompMapEntry?.componentRef?.location.nativeElement;
+          if (nativeElement) {
+            nativeElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+            });
+          }
         } else {
           this.loggerService.warn(`${this.logName}: Tab selection did not change for tabId: ${tabId}`);
         }
