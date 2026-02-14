@@ -251,12 +251,50 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     }
 
     this.selectedTabId = tabId;
-    if (tab.component?.config) {
-      tab.component.config.selected = true;
-    }
+    this.tabs.forEach((currentTab) => {
+      if (currentTab.component?.config) {
+        currentTab.component.config.selected = currentTab.name === tabId;
+      }
+    });
+    this.applyTabPaneClasses(wrapperInst);
     selectionResult.changed = true;
     selectionResult.selectedWrapper = wrapperInst.instance;
     return selectionResult;
+  }
+
+  private applyTabPaneClasses(selectedWrapperRef: ComponentRef<FormBaseWrapperComponent<unknown>>): void {
+    const paneCssClasses = this.getPaneCssClasses();
+
+    this.wrapperRefs.forEach((wrapperRef) => {
+      const isSelected = wrapperRef === selectedWrapperRef;
+      if (paneCssClasses) {
+        wrapperRef.instance.hostBindingCssClasses = isSelected
+          ? `${paneCssClasses.tabPaneCssClass} ${paneCssClasses.tabPaneActiveCssClass}`.trim()
+          : paneCssClasses.tabPaneCssClass;
+      } else {
+        const existingClasses = `${wrapperRef.instance.hostBindingCssClasses || ''}`
+          .split(' ')
+          .map((cssClass) => cssClass.trim())
+          .filter((cssClass) => cssClass.length > 0 && !['active', 'show', 'd-none'].includes(cssClass));
+        const nextClasses = isSelected
+          ? [...existingClasses, 'active', 'show']
+          : [...existingClasses, 'd-none'];
+        wrapperRef.instance.hostBindingCssClasses = nextClasses.join(' ').trim();
+      }
+      wrapperRef.changeDetectorRef.detectChanges();
+    });
+  }
+
+  private getPaneCssClasses(): { tabPaneCssClass: string; tabPaneActiveCssClass: string } | null {
+    const layoutRef = this.formFieldCompMapEntry?.layoutRef;
+    const layoutConfig = (layoutRef?.instance as TabComponentLayout | undefined)?.componentDefinition?.config;
+    if (!layoutConfig) {
+      return null;
+    }
+    return {
+      tabPaneCssClass: layoutConfig.tabPaneCssClass || '',
+      tabPaneActiveCssClass: layoutConfig.tabPaneActiveCssClass || '',
+    };
   }
 
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
