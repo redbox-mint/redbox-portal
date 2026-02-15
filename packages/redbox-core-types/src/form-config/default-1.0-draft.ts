@@ -184,7 +184,7 @@ const formConfig: FormConfigFrame = {
                                     model: {
                                         class: 'DropdownInputModel',
                                         config: {
-                                            defaultValue: 'Dropdown hello world!!!',
+                                            defaultValue: 'option2',
                                         }
                                     },
                                     component: {
@@ -279,7 +279,7 @@ const formConfig: FormConfigFrame = {
                                                 { label: 'Option 2', value: 'option2' },
                                                 { label: 'Option 3', value: 'option3' },
                                             ],
-                                            tooltip: 'Checkbox tooltip'
+                                            tooltip: 'Radio tooltip'
                                         }
                                     }
                                 },

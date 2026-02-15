@@ -12,6 +12,7 @@
 import { lastValueFrom, Observable } from 'rxjs';
 import type { BrandingAwareFunction } from './config';
 import type { LoDashStatic } from 'lodash';
+import { BrandingModel } from './model';
 
 declare const sails: Sails.Application;
 declare const _: LoDashStatic;
@@ -67,12 +68,15 @@ export async function coreBootstrap(): Promise<void> {
     const workflowSteps = await sails.services.workflowstepsservice.bootstrap(recordsTypes);
     sails.log.verbose("Workflowsteps service, bootstrapped.");
 
+    const defaultBranding = sails.services.brandingservice.getDefault() as BrandingModel;
+    const defaultBrandingId = String(defaultBranding?.id ?? '');
+
     if (_.isArray(workflowSteps)) {
         for (const workflowStep of workflowSteps) {
-            await sails.services.formsservice.bootstrap(workflowStep);
+            await sails.services.formsservice.bootstrap(workflowStep, defaultBrandingId);
         }
     } else {
-        await sails.services.formsservice.bootstrap(workflowSteps);
+        await sails.services.formsservice.bootstrap(workflowSteps, defaultBrandingId);
     }
 
     sails.log.verbose("Forms service, bootstrapped.");

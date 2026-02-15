@@ -106,8 +106,10 @@ export namespace Services {
 
             // get the original record's form config
             const formName = changed?.metaMetadata?.['form'];
+            const defaultBrandId = String(BrandingService.getDefault()?.id ?? '');
+            const brandId = String(changed?.metaMetadata?.['brandId'] ?? defaultBrandId);
             const isEditMode = formMode === "edit";
-            const formRecord = await firstValueFrom(FormsService.getFormByName(String(formName ?? ""), isEditMode));
+            const formRecord = await firstValueFrom(FormsService.getFormByName(String(formName ?? ""), isEditMode, brandId));
             const formConfig = formRecord?.configuration;
             if (!formConfig) {
                 throw new Error(`Form configuration not found for form: ${formName}`);
@@ -479,8 +481,10 @@ export namespace Services {
             const formMode = "edit";
             const isEditMode = formMode === "edit";
 
+            const defaultBrandId = String(BrandingService.getDefault()?.id ?? '');
+            const brandId = String(record?.metaMetadata?.['brandId'] ?? defaultBrandId);
             // get the record's form config
-            const formRecord = await firstValueFrom(FormsService.getFormByName(String(formName ?? ""), isEditMode));
+            const formRecord = await firstValueFrom(FormsService.getFormByName(String(formName ?? ""), isEditMode, brandId));
             const formConfig = formRecord?.configuration;
             if (!formConfig) {
                 throw new Error(`Form configuration not found for form: ${formName}`);

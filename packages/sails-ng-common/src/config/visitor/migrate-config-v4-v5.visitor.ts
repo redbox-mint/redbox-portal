@@ -381,7 +381,6 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             skipValidationOnSave: false,
             type: "",
             viewCssClasses: "",
-            workflowStep: "",
         };
         this.v5FormConfig = new FormConfig();
         this.v4FormPath = [];
@@ -420,7 +419,6 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         // Convert properties from v4 to v5.
 
         // TODO: form.customAngularApp?
-        // TODO: form.workflowStep?
         // TODO: form.requiredFieldIndicator?
         // TODO: form.messages?
         // TODO: form.attachmentFields?

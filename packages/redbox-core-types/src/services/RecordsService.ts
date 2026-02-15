@@ -459,7 +459,7 @@ export namespace Services {
           return updateResponse;
         }
       }
-
+      // Note: Start of potential dead code: attachments processing will be addressed later and through a parallel PR 
       sails.log.verbose(`RecordService - updateMeta - origRecord.metadata.dataLocations ` + JSON.stringify(origRecordObj.metadata?.dataLocations));
       sails.log.verbose(`RecordService - updateMeta - record.metadata.dataLocations ` + JSON.stringify(recordObj.metadata?.dataLocations));
       updateResponse = await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {})) as StorageServiceResponse;
@@ -485,6 +485,7 @@ export namespace Services {
           });
         });
       }
+      // End of potential dead code
 
       // unsetting the ID just to be safe
       _.unset(recordObj, 'id');

@@ -71,15 +71,17 @@ export namespace Services {
       'buildClientFormConfig',
     ];
 
-    public async bootstrap(workflowStep: WorkflowStepLike): Promise<unknown> {
+    public async bootstrap(workflowStep: WorkflowStepLike, brandingId: string): Promise<unknown> {
       sails.log.verbose(`Bootstrapping form for workflow step: ${workflowStep.id} with form config: ${workflowStep.config.form}`);
       let form = await Form.find({
-        workflowStep: workflowStep.id
+        name: workflowStep.config.form,
+        branding: brandingId
       })
       if (sails.config.appmode.bootstrapAlways) {
         this.logger.verbose(`Destroying existing form definitions: ${workflowStep.config.form}`);
         await Form.destroyOne({
-          name: workflowStep.config.form
+          name: workflowStep.config.form,
+          branding: brandingId
         })
         form = null;
       }
@@ -108,7 +110,8 @@ export namespace Services {
       }
       // check now if the form already exists, if it does, ignore...
       const existingFormDef = await Form.find({
-        name: formName
+        name: formName,
+        branding: brandingId
       }) as unknown as FormAttributes[];
       const existCheck: { formName: string | null; existingFormDef: FormAttributes[] } = {
         formName: formName,
@@ -164,7 +167,7 @@ export namespace Services {
 
         const formObj = {
           name: formName,
-          workflowStep: workflowStep.id,
+          branding: brandingId,
           configuration: formConfig,
         };
 
@@ -174,10 +177,10 @@ export namespace Services {
       }
 
       if (result) {
-        this.logger.verbose(`Updating workflowstep ${result.workflowStep} to: ${result.id}`);
-        // update the workflow step...
+        this.logger.verbose(`Updating workflowstep ${workflowStep.id} to form: ${result.id}`);
+        // update the workflow step to reference the form
         return await WorkflowStep.update({
-          id: result.workflowStep
+          id: workflowStep.id
         }).set({
           form: result.id
         });
@@ -199,15 +202,21 @@ export namespace Services {
       }
     }
 
-    public listForms = (): Observable<FormAttributes[]> => {
-      return super.getObservable<FormAttributes[]>(Form.find({}));
+    public listForms = (brandingId?: string): Observable<FormAttributes[]> => {
+      const query: Record<string, unknown> = {};
+      if (brandingId) {
+        query.branding = brandingId;
+      }
+      return super.getObservable<FormAttributes[]>(Form.find(query));
     }
 
 
-    public getFormByName = (formName: string, editMode: boolean): Observable<FormAttributes | null> => {
-      return super.getObservable<FormAttributes | null>(Form.findOne({
-        name: formName
-      })).pipe(flatMap(form => {
+    public getFormByName = (formName: string, editMode: boolean, brandingId?: string): Observable<FormAttributes | null> => {
+      const query: Record<string, unknown> = { name: formName };
+      if (brandingId) {
+        query.branding = brandingId;
+      }
+      return super.getObservable<FormAttributes | null>(Form.findOne(query)).pipe(flatMap(form => {
         if (form) {
           // TODO: setFormEditMode is currently a no-op; legacy 'fields' property has been
           // replaced by componentDefinitions in FormConfigFrame
@@ -225,9 +234,11 @@ export namespace Services {
       if (formName == 'generated-view-only') {
         const generatedConfig = await this.generateFormFromSchema(branding, recordType, currentRec);
         // Wrap the generated FormConfigFrame into a FormAttributes structure
+        const defaultBrandingId = String(BrandingService.getDefault()?.id ?? '');
         return {
           id: '',
           name: 'generated-view-only',
+          branding: String(branding?.id ?? defaultBrandingId),
           configuration: generatedConfig as FormConfigFrame,
         };
       } else {
@@ -235,7 +246,9 @@ export namespace Services {
         if (!formName) {
           return null;
         }
-        return await firstValueFrom(this.getFormByName(formName, editMode));
+        const defaultBrandingId = String(BrandingService.getDefault()?.id ?? '');
+        const brandingId = String(branding?.id ?? defaultBrandingId);
+        return await firstValueFrom(this.getFormByName(formName, editMode, brandingId || undefined));
       }
     }
 
@@ -256,7 +269,8 @@ export namespace Services {
         flatMap(workflowStep => {
           if (workflowStep?.starting == true) {
             return super.getObservable<FormAttributes | null>(Form.findOne({
-              name: workflowStep.config.form
+              name: workflowStep.config.form,
+              branding: branding.id
             }));
           }
           return of(null);

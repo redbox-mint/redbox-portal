@@ -231,7 +231,7 @@ export namespace Controllers {
           });
         });
       } else if (extFormName != '') {
-        FormsService.getFormByName(extFormName, true).subscribe(form => {
+        FormsService.getFormByName(extFormName, true, String(brand.id)).subscribe(form => {
           if (!form) {
             return this.sendResp(req, res, {
               status: 404,
@@ -256,7 +256,7 @@ export namespace Controllers {
       } else {
         from(this.recordsService.getMeta(oid)).pipe(flatMap(record => {
           const formName = record.metaMetadata.form;
-          return FormsService.getFormByName(formName, true);
+          return FormsService.getFormByName(formName, true, String(brand.id));
         })).subscribe(form => {
           if (!form) {
             return this.sendResp(req, res, {

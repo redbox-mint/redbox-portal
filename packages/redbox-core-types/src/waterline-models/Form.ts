@@ -1,21 +1,22 @@
 /// <reference path="../sails.ts" />
 import { Entity, Attr, BelongsTo, toWaterlineModelDef } from '../decorators';
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
+import { BrandingConfigAttributes } from './BrandingConfig';
 
 
 @Entity('form')
 export class FormClass {
-  @Attr({ type: 'string', required: true, unique: true })
+  @Attr({ type: 'string', required: true })
   public name!: string;
+
+  @BelongsTo('brandingconfig', { required: true })
+  public branding!: string | number;
 
   // @Attr({ type: 'json' })
   // public customAngularApp?: Record<string, unknown>;
 
   // @Attr({ type: 'json' })
   // public fields?: Record<string, unknown>;
-
-  @BelongsTo('workflowStep')
-  public workflowStep?: string | number;
 
   // @Attr({ type: 'string' })
   // public type?: string;
@@ -62,7 +63,7 @@ export const FormWLDef = toWaterlineModelDef(FormClass);
 
 export interface FormAttributes extends Sails.WaterlineAttributes {
   name: string;
-  workflowStep?: string | number;
+  branding: string | number | BrandingConfigAttributes;
   configuration?: FormConfigFrame;
 }
 

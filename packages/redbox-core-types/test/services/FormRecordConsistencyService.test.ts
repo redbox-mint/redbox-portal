@@ -25,6 +25,10 @@ describe('FormRecordConsistencyService', function() {
 
     setupServiceTestGlobals(mockSails);
 
+    (global as any).BrandingService = {
+      getDefault: sinon.stub().returns({ id: 'default-brand' }),
+      getBrand: sinon.stub().returns({ id: 'default-brand' }),
+    };
     (global as any).RecordsService = {
       getMeta: sinon.stub()
     };
@@ -39,6 +43,7 @@ describe('FormRecordConsistencyService', function() {
 
   afterEach(function() {
     cleanupServiceTestGlobals();
+    delete (global as any).BrandingService;
     delete (global as any).RecordsService;
     delete (global as any).FormsService;
     sinon.restore();
