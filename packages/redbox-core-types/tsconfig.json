@@ -10,8 +10,6 @@
     "allowUmdGlobalAccess": true,
     "types": ["node", "lodash"]
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.d.ts"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "exclude": ["dist/**/*.ts", "dist/**/*.d.ts"]
 }

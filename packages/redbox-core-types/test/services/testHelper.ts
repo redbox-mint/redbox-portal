@@ -15,17 +15,12 @@ export function createMockSails(overrides: any = {}): any {
       auth: {
         defaultBrand: 'default',
         defaultPortal: 'portal',
-        roles: [
-          { name: 'Admin' },
-          { name: 'Maintainer' },
-          { name: 'Researcher' },
-          { name: 'Guest' }
-        ]
+        roles: [{ name: 'Admin' }, { name: 'Maintainer' }, { name: 'Researcher' }, { name: 'Guest' }],
       },
       http: {
-        rootContext: ''
+        rootContext: '',
       },
-      appUrl: 'http://localhost:1500'
+      appUrl: 'http://localhost:1500',
     },
     log: {
       verbose: sinon.stub(),
@@ -33,10 +28,10 @@ export function createMockSails(overrides: any = {}): any {
       info: sinon.stub(),
       warn: sinon.stub(),
       error: sinon.stub(),
-      trace: sinon.stub()
+      trace: sinon.stub(),
     },
     services: {},
-    on: sinon.stub() // Add sails.on for event handlers
+    on: sinon.stub(), // Add sails.on for event handlers
   };
 
   return { ...defaultSails, ...overrides };
@@ -55,7 +50,7 @@ export function toObservable(value: any) {
  */
 export function createQueryObject(result: any, error: any = null): any {
   const queryObj = {
-    exec: function(callback: (err: any, result: any) => void) {
+    exec: function (callback: (err: any, result: any) => void) {
       if (error) {
         callback(error, null);
       } else {
@@ -63,7 +58,7 @@ export function createQueryObject(result: any, error: any = null): any {
       }
     },
     // Make it Thenable so await works
-    then: function(onFulfilled: any, onRejected: any) {
+    then: function (onFulfilled: any, onRejected: any) {
       if (error) {
         if (onRejected) onRejected(error);
         return Promise.reject(error);
@@ -79,7 +74,7 @@ export function createQueryObject(result: any, error: any = null): any {
     limit: sinon.stub().returnsThis(),
     skip: sinon.stub().returnsThis(),
     set: sinon.stub().returnsThis(),
-    meta: sinon.stub().returnsThis()
+    meta: sinon.stub().returnsThis(),
   };
   return queryObj;
 }
@@ -94,14 +89,14 @@ export function createMockModel(name: string): any {
     findOne: sinon.stub().returns(createQueryObject(null)),
     create: sinon.stub().returns(createQueryObject({})),
     update: sinon.stub().returns(createQueryObject([])),
-    destroy: sinon.stub().returns(createQueryObject([]))
+    destroy: sinon.stub().returns(createQueryObject([])),
   };
 }
 
 /**
  * Helper to configure a model method to return specific data.
  * Use this instead of .resolves() for model methods.
- * 
+ *
  * Example:
  *   configureModelMethod(mockModel.find, [{ id: 1 }]);
  *   configureModelMethod(mockModel.findOne, { id: 1 });
@@ -124,4 +119,5 @@ export function setupServiceTestGlobals(mockSails?: any): void {
  */
 export function cleanupServiceTestGlobals(): void {
   delete (global as any).sails;
+  delete (global as any).StorageManagerService;
 }
