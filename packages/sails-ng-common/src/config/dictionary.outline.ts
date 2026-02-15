@@ -16,6 +16,7 @@ import {
 } from './component/tab-content.outline';
 import { TabTypes } from './component/tab.outline';
 import { DefaultLayoutTypes } from './component/default-layout.outline';
+import { InlineLayoutTypes } from './component/inline-layout.outline';
 
 import {
   FieldLayoutDefinitionFrameKindType,
@@ -42,6 +43,7 @@ import { TabNavButtonTypes } from './component/tab-nav-button.outline';
  */
 export type AllTypes =
   | DefaultLayoutTypes
+  | InlineLayoutTypes
   | RepeatableTypes
   | GroupTypes
   | SaveButtonTypes

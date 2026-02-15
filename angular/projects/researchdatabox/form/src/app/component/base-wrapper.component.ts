@@ -135,7 +135,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Set the host binding CSS classes for the wrapper element.
     const wrapperCssClasses = this.formFieldCompMapEntry.compConfigJson?.component?.config?.wrapperCssClasses;
-    if ( wrapperCssClasses !== undefined && typeof wrapperCssClasses === 'string') {
+    if (!omitLayout && wrapperCssClasses !== undefined && typeof wrapperCssClasses === 'string') {
       this.hostBindingCssClasses = wrapperCssClasses;
     }
 

@@ -46,6 +46,12 @@ import {
   DefaultLayoutName,
 } from '../component/default-layout.outline';
 import { DefaultFieldLayoutConfig } from '../component/default-layout.model';
+import {
+  InlineFieldLayoutDefinitionFrame,
+  InlineFieldLayoutDefinitionOutline,
+  InlineLayoutName,
+} from '../component/inline-layout.outline';
+import { InlineFieldLayoutConfig } from '../component/inline-layout.model';
 import { FormExpressionsConfig } from '../form-component.model';
 import {
   FormComponentDefinitionFrame,
@@ -1059,6 +1065,19 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     // Create the class instance for the config
     item.config = new DefaultFieldLayoutConfig();
 
+    this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
+  }
+
+  visitInlineFieldLayoutDefinition(item: InlineFieldLayoutDefinitionOutline): void {
+    // Get the current raw data for constructing the class instance.
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<InlineFieldLayoutDefinitionFrame>(currentData, InlineLayoutName)) {
+      throw new Error(
+        `Invalid ${InlineLayoutName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+
+    item.config = new InlineFieldLayoutConfig();
     this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
   }
 
