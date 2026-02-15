@@ -86,6 +86,7 @@ export namespace Services {
     // Map of instantiated disks, keyed by disk name
     private _disks: Map<string, IDisk> = new Map();
     private _bootstrapped: boolean = false;
+    private _bootstrapPromise: Promise<void> | null = null;
     private _initRegistered: boolean = false;
 
     public override init(): void {
@@ -104,11 +105,16 @@ export namespace Services {
     }
 
     protected override async processDynamicImports(): Promise<void> {
-      const flydriveModule: unknown = await import('flydrive');
-      if (isFlydriveModule(flydriveModule)) {
-        this._DiskConstructor = flydriveModule.Disk;
-      } else {
-        this.logger.verbose(`${this.logHeader} Flydrive module missing Disk export`);
+      try {
+        const flydriveModule: unknown = await import('flydrive');
+        if (isFlydriveModule(flydriveModule)) {
+          this._DiskConstructor = flydriveModule.Disk;
+        } else {
+          this.logger.verbose(`${this.logHeader} Flydrive module missing Disk export`);
+        }
+      } catch (err) {
+        this._DiskConstructor = null;
+        this.logger.error(`${this.logHeader} Failed to import flydrive module`, err);
       }
       // Use variables for subpath imports to prevent TypeScript from trying to resolve
       // them at compile-time (flydrive uses package.json exports which require moduleResolution: nodenext)
@@ -142,8 +148,23 @@ export namespace Services {
         return;
       }
 
-      const rawStorageConfig = (sails.config.storage || {}) as StorageConfig;
-      const storageConfig: StorageConfig = {
+      if (this._bootstrapPromise) {
+        await this._bootstrapPromise;
+        return;
+      }
+
+      this._bootstrapPromise = this.performBootstrap();
+      try {
+        await this._bootstrapPromise;
+      } catch (err) {
+        this._bootstrapPromise = null;
+        throw err;
+      }
+    }
+
+    private getMergedStorageConfig(): StorageConfig {
+      const rawStorageConfig = (sails.config?.storage || {}) as StorageConfig;
+      return {
         ...defaultStorageConfig,
         ...rawStorageConfig,
         disks:
@@ -151,6 +172,14 @@ export namespace Services {
             ? rawStorageConfig.disks
             : defaultStorageConfig.disks,
       };
+    }
+
+    private async performBootstrap(): Promise<void> {
+      if (this._bootstrapped) {
+        return;
+      }
+
+      const storageConfig = this.getMergedStorageConfig();
 
       if (!storageConfig.disks || Object.keys(storageConfig.disks).length === 0) {
         throw new Error('StorageManagerService: no disks configured in storage.disks and no defaults available');
@@ -238,7 +267,8 @@ export namespace Services {
      * Get the staging disk (where TUS uploads land).
      */
     public stagingDisk(): IDisk {
-      const stagingName = sails.config.storage.stagingDisk ?? 'staging';
+      const mergedStorage = this.getMergedStorageConfig();
+      const stagingName = mergedStorage.stagingDisk ?? 'staging';
       return this.disk(stagingName);
     }
 
@@ -246,7 +276,8 @@ export namespace Services {
      * Get the primary disk (permanent file storage).
      */
     public primaryDisk(): IDisk {
-      const primaryName = sails.config.storage.primaryDisk ?? 'primary';
+      const mergedStorage = this.getMergedStorageConfig();
+      const primaryName = mergedStorage.primaryDisk ?? 'primary';
       return this.disk(primaryName);
     }
 

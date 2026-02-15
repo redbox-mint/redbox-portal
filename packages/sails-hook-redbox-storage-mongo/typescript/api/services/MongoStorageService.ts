@@ -793,7 +793,16 @@ export module Services {
     }
 
     public updateDatastream(oid: string, record, newMetadata, fileRoot, fileIdsAdded): any {
-      const stagingDisk = fileRoot as StorageManagerServiceTypes.Services.IDisk;
+      let stagingDisk: StorageManagerServiceTypes.Services.IDisk;
+      if (typeof fileRoot === 'string') {
+        stagingDisk = StorageManagerService.disk(fileRoot);
+      } else if (fileRoot && typeof fileRoot.getStream === 'function') {
+        stagingDisk = fileRoot as StorageManagerServiceTypes.Services.IDisk;
+      } else {
+        throw new Error(
+          `${this.logHeader} updateDatastream requires fileRoot to be a disk name or an IDisk instance with getStream()`
+        );
+      }
       // loop thru the attachment fields and determine if we need to add or remove
       return FormsService.getFormByName(record.metaMetadata.form, true).pipe(
         mergeMap(form => {
@@ -862,10 +871,8 @@ export module Services {
       const metadata = _.merge(datastream.metadata, { redboxOid: oid });
       const fileName = `${oid}/${fileId}`;
       sails.log.verbose(`${this.logHeader} addDatastream() -> Adding: ${fileName}`);
-      if (!stagingDisk) {
-        throw new Error('MongoStorageService.addDatastream requires a staging disk');
-      }
-      const readable = await stagingDisk.getStream(fileId);
+      const effectiveStagingDisk = stagingDisk ?? StorageManagerService.stagingDisk();
+      const readable = await effectiveStagingDisk.getStream(fileId);
       await this.streamFileToBucket(readable, fileName, metadata);
       sails.log.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${fileName}`);
     }

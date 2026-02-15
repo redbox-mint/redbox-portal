@@ -107,6 +107,7 @@ export namespace Services {
             typedRecord.metaMetadata.attachmentFields = safeForm.attachmentFields;
 
             for (const attField of safeForm.attachmentFields) {
+              const perFieldFileIdsAdded: Datastream[] = [];
               const oldAttachments = this.getAttachments(typedRecord.metadata, attField);
               const newAttachments = this.getAttachments(typedNewMetadata, attField);
               const removeIds: Datastream[] = [];
@@ -121,11 +122,13 @@ export namespace Services {
               const toAdd = this.diffAttachments(newAttachments, oldAttachments);
               for (const addAtt of toAdd) {
                 if (this.isAttachment(addAtt)) {
-                  fileIdsAdded.push(new Datastream(addAtt));
+                  perFieldFileIdsAdded.push(new Datastream(addAtt));
                 }
               }
 
-              reqs.push(this.addAndRemoveDatastreams(oid, fileIdsAdded, removeIds, stagingDisk));
+              fileIdsAdded.push(...perFieldFileIdsAdded);
+
+              reqs.push(this.addAndRemoveDatastreams(oid, perFieldFileIdsAdded, removeIds, stagingDisk));
             }
 
             return of(reqs);
