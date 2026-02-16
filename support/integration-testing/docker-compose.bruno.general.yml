@@ -18,7 +18,6 @@ x-bruno-service: &bruno-service
     - '../../test/bruno/bruno-helpers.js:/opt/bruno-tests/bruno-helpers.js'
     - '../../support/integration-testing/run-bruno-general.sh:/opt/bruno-tests/run-bruno-general.sh'
     - '../../test/bruno/validate-bruno-files.js:/opt/bruno-tests/validate-bruno-files.js'
-    - '../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno'
   working_dir: /opt/bruno-tests
   stop_grace_period: 30m
   networks:

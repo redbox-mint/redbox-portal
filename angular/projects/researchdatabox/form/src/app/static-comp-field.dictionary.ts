@@ -1,47 +1,71 @@
-import { SimpleInputModel, SimpleInputComponent } from "./component/simple-input.component";
+import { SimpleInputModel, SimpleInputComponent } from './component/simple-input.component';
 import {
   RepeatableComponent,
   RepeatableComponentModel,
-  RepeatableElementLayoutComponent
-} from "./component/repeatable.component";
-import { DefaultLayoutComponent } from "./component/default-layout.component";
-import { ValidationSummaryFieldComponent } from "./component/validation-summary.component";
-import { GroupFieldModel, GroupFieldComponent } from "./component/group.component";
-import { ContentComponent } from "./component/content.component";
-import { TabComponent, TabComponentLayout, TabContentComponent } from "./component/tab.component";
-import { SaveButtonComponent } from "./component/save-button.component";
-import { TextAreaComponent, TextAreaModel } from "./component/text-area.component";
-import { DropdownInputComponent, DropdownInputModel } from "./component/dropdown-input.component";
-import { CheckboxInputComponent, CheckboxInputModel } from "./component/checkbox-input.component";
-import { RadioInputComponent, RadioInputModel } from "./component/radio-input.component";
-import { DateInputComponent, DateInputModel } from "./component/date-input.component";
-import { CheckboxTreeComponent, CheckboxTreeModel } from "./component/checkbox-tree.component";
-import { TypeaheadInputComponent, TypeaheadInputModel } from "./component/typeahead-input.component";
-import { RichTextEditorComponent, RichTextEditorModel } from "./component/rich-text-editor.component";
-import { MapComponent, MapModel } from "./component/map.component";
-import { FileUploadComponent, FileUploadModel } from "./component/file-upload.component";
-import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
+  RepeatableElementLayoutComponent,
+} from './component/repeatable.component';
+import { DefaultLayoutComponent } from './component/default-layout.component';
+import { ValidationSummaryFieldComponent } from './component/validation-summary.component';
+import { GroupFieldModel, GroupFieldComponent } from './component/group.component';
+import { ContentComponent } from './component/content.component';
+import { TabComponent, TabComponentLayout, TabContentComponent } from './component/tab.component';
+import { SaveButtonComponent } from './component/save-button.component';
+import { CancelButtonComponent } from './component/cancel-button.component';
+import { TabNavButtonComponent } from './component/tab-nav-button.component';
+import { TextAreaComponent, TextAreaModel } from './component/text-area.component';
+import { DropdownInputComponent, DropdownInputModel } from './component/dropdown-input.component';
+import { CheckboxInputComponent, CheckboxInputModel } from './component/checkbox-input.component';
+import { RadioInputComponent, RadioInputModel } from './component/radio-input.component';
+import { DateInputComponent, DateInputModel } from './component/date-input.component';
+import { CheckboxTreeComponent, CheckboxTreeModel } from './component/checkbox-tree.component';
+import { TypeaheadInputComponent, TypeaheadInputModel } from './component/typeahead-input.component';
+import { RichTextEditorComponent, RichTextEditorModel } from './component/rich-text-editor.component';
+import { MapComponent, MapModel } from './component/map.component';
+import { FileUploadComponent, FileUploadModel } from './component/file-upload.component';
+import { FormFieldBaseComponent, FormFieldModel } from '@researchdatabox/portal-ng-common';
 import {
   StaticComponentClassMapGenType,
   StaticModelClassMapGenType,
-  StaticLayoutClassMapGenType, RepeatableModelName, TextAreaModelName, SimpleInputModelName, CheckboxInputModelName,
-  DropdownInputModelName, RadioInputModelName, DateInputModelName, GroupFieldModelName,
+  StaticLayoutClassMapGenType,
+  RepeatableModelName,
+  TextAreaModelName,
+  SimpleInputModelName,
+  CheckboxInputModelName,
+  DropdownInputModelName,
+  RadioInputModelName,
+  DateInputModelName,
+  GroupFieldModelName,
   CheckboxTreeModelName,
   TypeaheadInputModelName,
   RichTextEditorModelName,
   MapModelName,
   FileUploadModelName,
-  RepeatableComponentName, SaveButtonComponentName, TextAreaComponentName, ContentComponentName,
-  SimpleInputComponentName, ValidationSummaryComponentName, TabContentComponentName, TabComponentName,
-  CheckboxInputComponentName, DropdownInputComponentName, RadioInputComponentName, DateInputComponentName,
+  RepeatableComponentName,
+  SaveButtonComponentName,
+  TextAreaComponentName,
+  ContentComponentName,
+  SimpleInputComponentName,
+  ValidationSummaryComponentName,
+  TabContentComponentName,
+  TabComponentName,
+  CheckboxInputComponentName,
+  DropdownInputComponentName,
+  RadioInputComponentName,
+  DateInputComponentName,
   CheckboxTreeComponentName,
   TypeaheadInputComponentName,
   RichTextEditorComponentName,
   MapComponentName,
   FileUploadComponentName,
+  CancelButtonComponentName,
+  TabNavButtonComponentName,
   GroupFieldComponentName,
-  TabLayoutName, TabContentLayoutName, RepeatableElementLayoutName, DefaultLayoutName, StaticClassMapType,
-} from "@researchdatabox/sails-ng-common";
+  TabLayoutName,
+  TabContentLayoutName,
+  RepeatableElementLayoutName,
+  DefaultLayoutName,
+  StaticClassMapType,
+} from '@researchdatabox/sails-ng-common';
 
 /*
  * The Component classes.
@@ -68,6 +92,8 @@ export const StaticComponentClassMap: StaticComponentClassMapType = {
   [RichTextEditorComponentName]: RichTextEditorComponent,
   [MapComponentName]: MapComponent,
   [FileUploadComponentName]: FileUploadComponent,
+  [CancelButtonComponentName]: CancelButtonComponent,
+  [TabNavButtonComponentName]: TabNavButtonComponent,
 };
 
 /*
@@ -89,7 +115,7 @@ export const StaticModelClassMap: StaticModelClassMapType = {
   [TypeaheadInputModelName]: TypeaheadInputModel,
   [RichTextEditorModelName]: RichTextEditorModel,
   [MapModelName]: MapModel,
-  [FileUploadModelName]: FileUploadModel
+  [FileUploadModelName]: FileUploadModel,
 };
 
 /*
@@ -103,5 +129,5 @@ export const StaticLayoutClassMap: StaticLayoutClassMapType = {
   [RepeatableElementLayoutName]: RepeatableElementLayoutComponent,
   // The tab content layout is only used in the form config, it is not an angular component.
   [TabContentLayoutName]: null,
-  [TabLayoutName]: TabComponentLayout
+  [TabLayoutName]: TabComponentLayout,
 };

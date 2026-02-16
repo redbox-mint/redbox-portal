@@ -1,5 +1,7 @@
-import { Component, ElementRef, Inject, Input } from '@angular/core';
+import { Component, ElementRef, Inject, Input, OnDestroy, SecurityContext } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
+import { DomSanitizer } from '@angular/platform-browser';
+import { SubscriptionLike } from 'rxjs';
 import {
   isEmpty as _isEmpty,
   isUndefined as _isUndefined,
@@ -21,13 +23,13 @@ import { RecordSearchParams, RecordSearchRefiner } from './search-models';
   providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
   standalone: false,
 })
-export class RecordSearchComponent extends BaseComponent {
+export class RecordSearchComponent extends BaseComponent implements OnDestroy {
   @Input() record_type: string = 'rdmp';
   @Input() search_str: string = '';
   @Input() search_url: string = 'record/search';
 
   plans: any[] | null = null;
-  params!: RecordSearchParams;
+  params: RecordSearchParams;
   isSearching: boolean = false;
   searchMsgType: string = '';
   searchMsg: string = '';
@@ -35,12 +37,14 @@ export class RecordSearchComponent extends BaseComponent {
   paramMap: Record<string, RecordSearchParams> = {};
   recTypeNames: string[] = [];
   totalItems: number = 0;
+  private locationSubscription: SubscriptionLike | null = null;
 
   constructor(
     private elm: ElementRef,
     @Inject(Location) private locationService: Location,
     @Inject(SearchService) public searchService: SearchService,
-    @Inject(TranslationService) public translationService: TranslationService
+    @Inject(TranslationService) public translationService: TranslationService,
+    @Inject(DomSanitizer) private sanitizer: DomSanitizer
   ) {
     super();
     this.initDependencies = [translationService, searchService];
@@ -52,6 +56,7 @@ export class RecordSearchComponent extends BaseComponent {
     if (!_isEmpty(urlParts[1])) {
       this.queryStr = urlParts[1];
     }
+    this.params = this.createDefaultParams();
   }
 
   protected override async initComponent(): Promise<void> {
@@ -97,11 +102,16 @@ export class RecordSearchComponent extends BaseComponent {
       await this.doSearch(null, false);
     }
 
-    this.locationService.subscribe((popState: any) => {
+    this.locationSubscription = this.locationService.subscribe((popState: any) => {
       const queryStr = popState?.url?.split('?')[1] ?? '';
       if (!_isEmpty(queryStr)) {
         this.params.parseQueryStr(queryStr);
-        this.doSearch(null, false);
+        void this.doSearch(null, false).catch((error: unknown) => {
+          this.isSearching = false;
+          this.searchMsg = this.asErrorMessage(error);
+          this.searchMsgType = 'danger';
+          this.focusSearchMessage();
+        });
       } else {
         this.params.clear();
         this.plans = null;
@@ -129,6 +139,8 @@ export class RecordSearchComponent extends BaseComponent {
     if (!_isEmpty(selectedType) && this.paramMap[selectedType]) {
       this.params = this.paramMap[selectedType];
       this.record_type = selectedType;
+    } else {
+      this.params = this.createDefaultParams();
     }
   }
 
@@ -161,7 +173,7 @@ export class RecordSearchComponent extends BaseComponent {
       this.isSearching = true;
       this.plans = null;
       this.searchMsgType = 'info';
-      this.searchMsg = `${this.translationService.t('record-search-searching') ?? 'Searching...'} <span class="fa fa-spinner fa-spin" aria-hidden="true"></span>`;
+      this.searchMsg = this.translationService.t('record-search-searching') ?? 'Searching...';
       if (shouldSyncLoc) {
         this.syncLoc();
       }
@@ -177,18 +189,35 @@ export class RecordSearchComponent extends BaseComponent {
         this.focusSearchMessage();
       } catch (err: any) {
         this.isSearching = false;
-        this.searchMsg = err?.message ?? String(err);
+        this.searchMsg = this.asErrorMessage(err);
         this.searchMsgType = 'danger';
         this.focusSearchMessage();
       }
     }
   }
 
-  pageChanged(event: any): void {
+  async pageChanged(event: any): Promise<void> {
     if (!_isEmpty(this.params.basicSearch) && this.params.currentPage !== _toInteger(event.page)) {
       this.params.currentPage = _toInteger(event.page);
-      this.doSearch(null, true);
+      try {
+        await this.doSearch(null, true);
+      } catch (error: unknown) {
+        this.isSearching = false;
+        this.searchMsg = this.asErrorMessage(error);
+        this.searchMsgType = 'danger';
+        this.focusSearchMessage();
+      }
     }
+  }
+
+  ngOnDestroy(): void {
+    this.locationSubscription?.unsubscribe();
+    this.locationSubscription = null;
+  }
+
+  getSafeDescription(plan: any): string {
+    const description = String(plan?.description ?? '');
+    return this.sanitizer.sanitize(SecurityContext.HTML, description) ?? '';
   }
 
   private focusSearchMessage(): void {
@@ -205,5 +234,16 @@ export class RecordSearchComponent extends BaseComponent {
       plan.dashboardTitle = hasTitle ? plan.title : untitled;
     });
     return records;
+  }
+
+  private createDefaultParams(): RecordSearchParams {
+    return new RecordSearchParams(this.record_type || '');
+  }
+
+  private asErrorMessage(error: unknown): string {
+    if (error && typeof error === 'object' && 'message' in error) {
+      return String((error as { message?: unknown }).message ?? '');
+    }
+    return String(error ?? '');
   }
 }

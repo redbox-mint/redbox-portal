@@ -212,7 +212,7 @@ describe("Construct Visitor", async () => {
                                     labelTemplate: "{{default (split notation '/' -1) notation}} - {{label}}"
                                 }
                             },
-                            model: { class: "CheckboxTreeModel", config: {} }
+                            model: {class: "CheckboxTreeModel", config: {}}
                         }
                     ]
                 }
@@ -238,7 +238,7 @@ describe("Construct Visitor", async () => {
                                     queryId: "contributors"
                                 }
                             },
-                            model: { class: "TypeaheadInputModel", config: {} }
+                            model: {class: "TypeaheadInputModel", config: {}}
                         }
                     ]
                 }

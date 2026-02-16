@@ -1,262 +1,282 @@
 import {
-    SimpleInputFieldComponentDefinitionOutline,
-    SimpleInputFieldModelDefinitionOutline,
-    SimpleInputFormComponentDefinitionOutline,
-} from "../component/simple-input.outline";
+  SimpleInputFieldComponentDefinitionOutline,
+  SimpleInputFieldModelDefinitionOutline,
+  SimpleInputFormComponentDefinitionOutline,
+} from '../component/simple-input.outline';
 import {
-    ContentFieldComponentDefinitionOutline,
-    ContentFormComponentDefinitionOutline,
-} from "../component/content.outline";
+  ContentFieldComponentDefinitionOutline,
+  ContentFormComponentDefinitionOutline,
+} from '../component/content.outline';
 import {
-    RepeatableElementFieldLayoutDefinitionOutline,
-    RepeatableFieldComponentDefinitionOutline,
-    RepeatableFieldModelDefinitionOutline,
-    RepeatableFormComponentDefinitionOutline,
-} from "../component/repeatable.outline";
+  RepeatableElementFieldLayoutDefinitionOutline,
+  RepeatableFieldComponentDefinitionOutline,
+  RepeatableFieldModelDefinitionOutline,
+  RepeatableFormComponentDefinitionOutline,
+} from '../component/repeatable.outline';
 import {
-    ValidationSummaryFieldComponentDefinitionOutline,
-    ValidationSummaryFormComponentDefinitionOutline,
-} from "../component/validation-summary.outline";
+  ValidationSummaryFieldComponentDefinitionOutline,
+  ValidationSummaryFormComponentDefinitionOutline,
+} from '../component/validation-summary.outline';
 import {
-    GroupFieldComponentDefinitionOutline,
-    GroupFieldModelDefinitionOutline,
-    GroupFormComponentDefinitionOutline,
-} from "../component/group.outline";
+  GroupFieldComponentDefinitionOutline,
+  GroupFieldModelDefinitionOutline,
+  GroupFormComponentDefinitionOutline,
+} from '../component/group.outline';
 import {
-    TabFieldComponentDefinitionOutline,
-    TabFieldLayoutDefinitionOutline,
-    TabFormComponentDefinitionOutline,
-} from "../component/tab.outline";
+  TabFieldComponentDefinitionOutline,
+  TabFieldLayoutDefinitionOutline,
+  TabFormComponentDefinitionOutline,
+} from '../component/tab.outline';
 import {
-    TabContentFieldComponentDefinitionOutline,
-    TabContentFieldLayoutDefinitionOutline,
-    TabContentFormComponentDefinitionOutline,
-} from "../component/tab-content.outline";
+  TabContentFieldComponentDefinitionOutline,
+  TabContentFieldLayoutDefinitionOutline,
+  TabContentFormComponentDefinitionOutline,
+} from '../component/tab-content.outline';
 import {
-    SaveButtonFieldComponentDefinitionOutline,
-    SaveButtonFormComponentDefinitionOutline,
-} from "../component/save-button.outline";
+  SaveButtonFieldComponentDefinitionOutline,
+  SaveButtonFormComponentDefinitionOutline,
+} from '../component/save-button.outline';
 import {
-    TextAreaFieldComponentDefinitionOutline,
-    TextAreaFieldModelDefinitionOutline,
-    TextAreaFormComponentDefinitionOutline,
-} from "../component/text-area.outline";
+  CancelButtonFieldComponentDefinitionOutline,
+  CancelButtonFormComponentDefinitionOutline,
+} from '../component/cancel-button.outline';
 import {
-    DefaultFieldLayoutDefinitionOutline,
-} from "../component/default-layout.outline";
+  TabNavButtonFieldComponentDefinitionOutline,
+  TabNavButtonFormComponentDefinitionOutline,
+} from '../component/tab-nav-button.outline';
 import {
-    CheckboxInputFieldComponentDefinitionOutline,
-    CheckboxInputFieldModelDefinitionOutline, CheckboxInputFormComponentDefinitionOutline
-} from "../component/checkbox-input.outline";
+  TextAreaFieldComponentDefinitionOutline,
+  TextAreaFieldModelDefinitionOutline,
+  TextAreaFormComponentDefinitionOutline,
+} from '../component/text-area.outline';
+import { DefaultFieldLayoutDefinitionOutline } from '../component/default-layout.outline';
 import {
-    DropdownInputFieldComponentDefinitionOutline,
-    DropdownInputFieldModelDefinitionOutline, DropdownInputFormComponentDefinitionOutline
-} from "../component/dropdown-input.outline";
+  CheckboxInputFieldComponentDefinitionOutline,
+  CheckboxInputFieldModelDefinitionOutline,
+  CheckboxInputFormComponentDefinitionOutline,
+} from '../component/checkbox-input.outline';
 import {
-    RadioInputFieldComponentDefinitionOutline,
-    RadioInputFieldModelDefinitionOutline, RadioInputFormComponentDefinitionOutline
-} from "../component/radio-input.outline";
+  DropdownInputFieldComponentDefinitionOutline,
+  DropdownInputFieldModelDefinitionOutline,
+  DropdownInputFormComponentDefinitionOutline,
+} from '../component/dropdown-input.outline';
 import {
-    DateInputFieldComponentDefinitionOutline,
-    DateInputFieldModelDefinitionOutline,
-    DateInputFormComponentDefinitionOutline
-} from "../component/date-input.outline";
+  RadioInputFieldComponentDefinitionOutline,
+  RadioInputFieldModelDefinitionOutline,
+  RadioInputFormComponentDefinitionOutline,
+} from '../component/radio-input.outline';
 import {
-    ReusableFieldComponentDefinitionOutline,
-    ReusableFormComponentDefinitionOutline
-} from "../component/reusable.outline";
+  DateInputFieldComponentDefinitionOutline,
+  DateInputFieldModelDefinitionOutline,
+  DateInputFormComponentDefinitionOutline,
+} from '../component/date-input.outline';
 import {
-    CheckboxTreeFieldComponentDefinitionOutline,
-    CheckboxTreeFieldModelDefinitionOutline,
-    CheckboxTreeFormComponentDefinitionOutline
-} from "../component/checkbox-tree.outline";
+  ReusableFieldComponentDefinitionOutline,
+  ReusableFormComponentDefinitionOutline,
+} from '../component/reusable.outline';
 import {
-    TypeaheadInputFieldComponentDefinitionOutline,
-    TypeaheadInputFieldModelDefinitionOutline,
-    TypeaheadInputFormComponentDefinitionOutline
-} from "../component/typeahead-input.outline";
+  CheckboxTreeFieldComponentDefinitionOutline,
+  CheckboxTreeFieldModelDefinitionOutline,
+  CheckboxTreeFormComponentDefinitionOutline,
+} from '../component/checkbox-tree.outline';
 import {
-    RichTextEditorFieldComponentDefinitionOutline,
-    RichTextEditorFieldModelDefinitionOutline,
-    RichTextEditorFormComponentDefinitionOutline
-} from "../component/rich-text-editor.outline";
+  TypeaheadInputFieldComponentDefinitionOutline,
+  TypeaheadInputFieldModelDefinitionOutline,
+  TypeaheadInputFormComponentDefinitionOutline,
+} from '../component/typeahead-input.outline';
 import {
-    MapFieldComponentDefinitionOutline,
-    MapFieldModelDefinitionOutline,
-    MapFormComponentDefinitionOutline
-} from "../component/map.outline";
+  RichTextEditorFieldComponentDefinitionOutline,
+  RichTextEditorFieldModelDefinitionOutline,
+  RichTextEditorFormComponentDefinitionOutline,
+} from '../component/rich-text-editor.outline';
 import {
-    FileUploadFieldComponentDefinitionOutline,
-    FileUploadFieldModelDefinitionOutline,
-    FileUploadFormComponentDefinitionOutline
-} from "../component/file-upload.outline";
+  MapFieldComponentDefinitionOutline,
+  MapFieldModelDefinitionOutline,
+  MapFormComponentDefinitionOutline,
+} from '../component/map.outline';
+import {
+  FileUploadFieldComponentDefinitionOutline,
+  FileUploadFieldModelDefinitionOutline,
+  FileUploadFormComponentDefinitionOutline,
+} from '../component/file-upload.outline';
 
 /**
  * Interface for classes that can be visited by a visitor.
  */
 export interface CanVisit {
-    /**
-     * Accept a visitor to this form field definition.
-     */
-    accept(visitor: FormConfigVisitorOutline): void;
+  /**
+   * Accept a visitor to this form field definition.
+   */
+  accept(visitor: FormConfigVisitorOutline): void;
 }
-
 
 /**
  * Visitors must implement this structure.
  */
 export interface FormConfigVisitorOutline {
-    visitFormConfig(item: CanVisit): void;
+  visitFormConfig(item: CanVisit): void;
 
-    /* SimpleInput */
+  /* SimpleInput */
 
-    visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void;
+  visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void;
 
-    visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void;
+  visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void;
 
-    visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void;
+  visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void;
 
-    /* Content */
+  /* Content */
 
-    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
+  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
 
-    visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void;
+  visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void;
 
-    /* Repeatable  */
+  /* Repeatable  */
 
-    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
+  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
 
-    visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void;
+  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void;
 
-    visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void;
+  visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void;
 
-    visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void;
+  visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void;
 
-    visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void;
+  visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void;
 
-    /* Validation Summary */
+  /* Validation Summary */
 
-    visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void;
+  visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void;
 
-    visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void;
+  visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void;
 
-    /* Group */
+  /* Group */
 
-    visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void;
+  visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void;
 
-    visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void;
+  visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void;
 
-    visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void;
+  visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void;
 
-    /* Tab  */
+  /* Tab  */
 
-    visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void;
+  visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void;
 
-    visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void;
+  visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void;
 
-    visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void;
+  visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void;
 
-    /*  Tab Content */
+  /*  Tab Content */
 
-    visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void;
+  visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void;
 
-    visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void;
+  visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void;
 
-    visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void;
+  visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void;
 
-    /* Save Button  */
+  /* Save Button  */
 
-    visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void;
+  visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void;
 
-    visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void;
+  visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void;
 
-    /* Text Area */
+  /* Cancel Button  */
 
-    visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void;
+  visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): void;
 
-    visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void;
+  visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void;
 
-    visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void;
+  /* Tab Nav Button  */
 
-    /* Default Layout  */
+  visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): void;
 
-    visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void;
+  visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void;
 
-    /* Checkbox Input */
+  /* Text Area */
 
-    visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void;
+  visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void;
 
-    visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void;
+  visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void;
 
-    visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void;
+  visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void;
 
-    /* Dropdown Input */
+  /* Default Layout  */
 
-    visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void;
+  visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void;
 
-    visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void;
+  /* Checkbox Input */
 
-    visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void;
+  visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void;
 
-    /* Radio Input */
+  visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void;
 
-    visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void;
+  visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void;
 
-    visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void;
+  /* Dropdown Input */
 
-    visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void;
+  visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void;
 
-    /* Date Input */
+  visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void;
 
-    visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void;
+  visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void;
 
-    visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void;
+  /* Radio Input */
 
-    visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void;
+  visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void;
 
-    /* Reusable */
+  visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void;
 
-    visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void;
+  visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void;
 
-    visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void;
+  /* Date Input */
 
-    /* Checkbox Tree */
+  visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void;
 
-    visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void;
+  visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void;
 
-    visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void;
+  visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void;
 
-    visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void;
+  /* Reusable */
 
-    /* Typeahead Input */
+  visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void;
 
-    visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void;
+  visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void;
 
-    visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void;
+  /* Checkbox Tree */
 
-    visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void;
+  visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void;
 
-    /* Rich Text Editor */
+  visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void;
 
-    visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void;
+  visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void;
 
-    visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void;
+  /* Typeahead Input */
 
-    visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void;
+  visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void;
 
-    /* Map */
+  visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void;
 
-    visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void;
+  visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void;
 
-    visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void;
+  /* Rich Text Editor */
 
-    visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void;
+  visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void;
 
-    /* File Upload */
+  visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void;
 
-    visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void;
+  visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void;
 
-    visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void;
+  /* Map */
 
-    visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void;
+  visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void;
+
+  visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void;
+
+  visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void;
+
+  /* File Upload */
+
+  visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void;
+
+  visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void;
+
+  visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void;
 }

@@ -14,10 +14,11 @@ export class RecordSearchRefinerComponent {
 
   applyFilter(event: Event, refinerValue: any = null): void {
     event.preventDefault();
-    if (this.hasValue()) {
-      this.refinerConfig.activeValue = refinerValue;
-      this.onApplyFilter.emit(this.refinerConfig);
+    if (this.isSearching || !this.hasValue()) {
+      return;
     }
+    this.refinerConfig.activeValue = refinerValue;
+    this.onApplyFilter.emit(this.refinerConfig);
   }
 
   hasValue(): boolean {

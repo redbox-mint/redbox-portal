@@ -582,7 +582,7 @@ export namespace Controllers {
       if (!attachmentsDir) {
         return this.sendResp(req, res, {
           status: 500,
-          displayErrors: [{ detail: 'record.attachments.file.directory is required' }]
+          displayErrors: [{ detail: 'Attachment directory is required: configure record.attachments.file.directory or record.attachments.stageDir.' }]
         });
       }
       (req as unknown as { file: (field: string) => { upload: (...args: unknown[]) => void } }).file('attachmentFields').upload({
