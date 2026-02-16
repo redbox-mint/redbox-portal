@@ -467,3 +467,4 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(migrated.attachmentFields?.length).to.equal(2);
     });
 });
+
