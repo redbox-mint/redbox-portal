@@ -1,4 +1,4 @@
-<% if (sails.config.enableNewForm) { %>
+
   <!-- Next Gen Form enabled -->
   <!-- TODO: Restore use of `appSelector` -->
   <% let appName = 'form' %>
@@ -20,37 +20,6 @@
   <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/main<%=CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
     type="module"></script>
   <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%=CacheService.getNgAppFileHash(appName, 'styles', '-')%>.css">
-<% } else { %>
-  <!-- Legacy Form  -->
-  <div class="row" id="loading" alt="<%= TranslationService.t('loading-alt-text') %>">
-    <div class="col-xs-1">
-    </div>
-    <div class="col-xs-10">
-      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
-    </div>
-    <div class="col-xs-1">
-    </div>
-  </div>
-  <<%= appSelector %> oid="<%= oid %>" rdmp="<%= rdmp %>" editMode="true" recordType="<%= recordType %>"
-    branding="<%= typeof branding == 'undefined'? data.branding : branding %>"
-    portal="<%= typeof portal == 'undefined'? data.portal : portal %>" formName="<%= formName %>" ></<%= appSelector %>>
-  <%
 
-  var currentMinute = sails.config.startupMinute;
-  %>
-  <script type="text/javascript" src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/vocab_widget_v2.js?ts=<%= currentMinute %>"></script>
-  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/inline.bundle.js?ts=<%= currentMinute %>"></script>
-  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
-  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/scripts.bundle.js?ts=<%= currentMinute %>"></script>
-  <% if (sails.config.angularDev) { %>
-  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/vendor.bundle.js?ts=<%= currentMinute %>"></script>
-  <% } %>
-  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/main.bundle.js?ts=<%= currentMinute %>"></script>
-  <% if (sails.config.angularDev) { %>
-    <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/styles.bundle.js?ts=<%= currentMinute %>"></script>
-  <% } else { %>
-    <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/styles.bundle.css?ts=<%= currentMinute %>">
-  <% } %>
-<% } %>
 <!-- app js and css bundle -->
 <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/index.bundle.js"></script>

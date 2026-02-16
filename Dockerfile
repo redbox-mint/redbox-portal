@@ -47,9 +47,6 @@ RUN npx tsc --project tsconfig.json
 RUN chmod +x support/build/compileProductionAngular.sh \
  && support/build/compileProductionAngular.sh
 
-RUN chmod +x support/build/compileProductionAngularLegacy.sh \
- && support/build/compileProductionAngularLegacy.sh
-
 RUN npm run webpack
 
 RUN chmod +x support/build/api-descriptors/generateAPIDescriptors.sh \
