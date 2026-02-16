@@ -867,6 +867,7 @@ const formConfig: FormConfigFrame = {
       }
     }
   ],
-  "debugValue": true
+  "debugValue": true,
+  "attachmentFields": []
 };
 module.exports = formConfig;
