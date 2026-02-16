@@ -2306,7 +2306,7 @@ const formConfig: FormConfigFrame = {
                         "allowModes": []
                       },
                       "component": {
-                        "class": "ContentComponent",
+                        "class": "FileUploadComponent",
                         "config": {
                           "readonly": false,
                           "visible": true,
@@ -2314,7 +2314,21 @@ const formConfig: FormConfigFrame = {
                           "label": "dataLocations",
                           "disabled": false,
                           "autofocus": false,
-                          "content": "Not yet implemented in v5: v4ClassName \"DataLocation\" v4CompClassName \"DataLocationComponent\" v4Name \"dataLocations\". At path '[\"fields\",\"3\",\"definition\",\"fields\",\"4\",\"definition\",\"fields\",\"1\"]'."
+                          "restrictions": {
+                            "maxFileSize": 1073741824,
+                            "minNumberOfFiles": 1,
+                            "maxNumberOfFiles": 50
+                          },
+                          "enabledSources": [],
+                          "allowUploadWithoutSave": false,
+                          "uppyDashboardNote": "@dataLocations-uploader-note"
+                        }
+                      },
+                      "model": {
+                        "class": "FileUploadModel",
+                        "config": {
+                          "defaultValue": [],
+                          "validators": []
                         }
                       },
                       "layout": {
@@ -2549,6 +2563,7 @@ const formConfig: FormConfigFrame = {
           "readonly": false,
           "visible": true,
           "editMode": true,
+          "hostCssClasses": "d-flex gap-3",
           "disabled": false,
           "autofocus": false,
           "componentDefinitions": [
@@ -2561,47 +2576,16 @@ const formConfig: FormConfigFrame = {
                 "allowModes": []
               },
               "component": {
-                "class": "SaveButtonComponent",
-                "config": {
-                  "readonly": false,
-                  "visible": true,
-                  "editMode": true,
-                  "disabled": false,
-                  "autofocus": false
-                }
-              },
-              "layout": {
-                "class": "DefaultLayout",
+                "class": "TabNavButtonComponent",
                 "config": {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
                   "disabled": false,
                   "autofocus": false,
-                  "labelRequiredStr": "*",
-                  "cssClassesMap": {},
-                  "helpTextVisibleOnInit": false,
-                  "helpTextVisible": false
-                }
-              }
-            },
-            {
-              "name": "-fields-4-definition-fields-1",
-              "constraints": {
-                "authorization": {
-                  "allowRoles": []
-                },
-                "allowModes": []
-              },
-              "component": {
-                "class": "ContentComponent",
-                "config": {
-                  "readonly": false,
-                  "visible": true,
-                  "editMode": true,
-                  "disabled": false,
-                  "autofocus": false,
-                  "content": "Not yet implemented in v5: v4ClassName \"Spacer\" v4CompClassName \"\" v4Name undefined. At path '[\"fields\",\"4\",\"definition\",\"fields\",\"1\"]'."
+                  "prevLabel": "@tab-nav-previous",
+                  "nextLabel": "@tab-nav-next",
+                  "targetTabContainerId": "mainTab"
                 }
               },
               "layout": {
@@ -2644,7 +2628,6 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
-                  "label": "@save-button",
                   "disabled": false,
                   "autofocus": false,
                   "labelRequiredStr": "*",
@@ -2679,7 +2662,6 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
-                  "label": "@save-and-close-button",
                   "disabled": false,
                   "autofocus": false,
                   "labelRequiredStr": "*",
@@ -2690,7 +2672,7 @@ const formConfig: FormConfigFrame = {
               }
             },
             {
-              "name": "SaveButtonComponent-fields-4-definition-fields-4",
+              "name": "CancelButtonComponent-fields-4-definition-fields-4",
               "constraints": {
                 "authorization": {
                   "allowRoles": []
@@ -2698,7 +2680,7 @@ const formConfig: FormConfigFrame = {
                 "allowModes": []
               },
               "component": {
-                "class": "SaveButtonComponent",
+                "class": "CancelButtonComponent",
                 "config": {
                   "readonly": false,
                   "visible": true,
@@ -2714,7 +2696,6 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
-                  "label": "@close-button",
                   "disabled": false,
                   "autofocus": false,
                   "labelRequiredStr": "*",
@@ -2730,7 +2711,8 @@ const formConfig: FormConfigFrame = {
       "model": {
         "class": "GroupModel",
         "config": {
-          "validators": []
+          "validators": [],
+          "disabled": true
         }
       },
       "layout": {
@@ -2873,6 +2855,9 @@ const formConfig: FormConfigFrame = {
       }
     }
   ],
-  "debugValue": true
+  "debugValue": true,
+  "attachmentFields": [
+    "dataLocations"
+  ]
 };
 module.exports = formConfig;
