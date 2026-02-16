@@ -94,6 +94,16 @@ import {
     TextAreaModelName
 } from "../component/text-area.outline";
 import {TextAreaFieldComponentConfig, TextAreaFieldModelConfig} from "../component/text-area.model";
+import {
+    RichTextEditorComponentName,
+    RichTextEditorFieldComponentDefinitionFrame,
+    RichTextEditorFieldComponentDefinitionOutline,
+    RichTextEditorFieldModelDefinitionFrame,
+    RichTextEditorFieldModelDefinitionOutline,
+    RichTextEditorFormComponentDefinitionOutline,
+    RichTextEditorModelName
+} from "../component/rich-text-editor.outline";
+import {RichTextEditorFieldComponentConfig, RichTextEditorFieldModelConfig} from "../component/rich-text-editor.model";
 import {ContentFieldComponentConfig} from "../component/content.model";
 import {
     DropdownInputComponentName,
@@ -751,6 +761,43 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
+    /* Rich Text Editor */
+
+    visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void {
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<RichTextEditorFieldComponentDefinitionFrame>(currentData, RichTextEditorComponentName)) {
+            throw new Error(`Invalid ${RichTextEditorComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+        const config = currentData?.config;
+
+        item.config = new RichTextEditorFieldComponentConfig();
+
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.sharedProps.setPropOverride('outputFormat', item.config, config);
+        this.sharedProps.setPropOverride('showSourceToggle', item.config, config);
+        this.sharedProps.setPropOverride('toolbar', item.config, config);
+        this.sharedProps.setPropOverride('minHeight', item.config, config);
+        this.sharedProps.setPropOverride('placeholder', item.config, config);
+    }
+
+    visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<RichTextEditorFieldModelDefinitionFrame>(currentData, RichTextEditorModelName)) {
+            throw new Error(`Invalid ${RichTextEditorModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+
+        item.config = new RichTextEditorFieldModelConfig();
+
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item, currentData?.config);
+    }
+
+    visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
         this.populateFormComponent(item);
     }
 

@@ -45,6 +45,10 @@ export interface RecordAttachmentsConfig {
     path: string;
 }
 
+export interface RecordFormConfig {
+    htmlSanitizationMode: 'sanitize' | 'reject';
+}
+
 export interface RecordConfig {
     auditing: RecordAuditingConfig;
     baseUrl: RecordBaseUrlConfig;
@@ -61,6 +65,7 @@ export interface RecordConfig {
     attachments: RecordAttachmentsConfig;
     datastreamService?: string;
     helpEmail: string;
+    form?: RecordFormConfig;
 }
 
 export const record: RecordConfig = {
@@ -75,6 +80,9 @@ export const record: RecordConfig = {
     maxUploadSize: 1073741824,
     mongodbDisk: '/attachments',
     diskSpaceThreshold: 10737418240,
+    form: {
+        htmlSanitizationMode: 'sanitize'
+    },
     api: {
         create: { method: 'post', url: "/api/v1/object/$packageType" },
         search: { method: 'get', url: "/api/v1/search" },

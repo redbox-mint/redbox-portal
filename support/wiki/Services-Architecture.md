@@ -161,7 +161,7 @@ export const ServiceExports = {
 |---|---|
 | `ViewUtilsService` | View helper utilities |
 | `PathRulesService` | URL path rule resolution |
-| `SvgSanitizerService` | SVG content sanitization |
+| `DomSanitizerService` | SVG content sanitization |
 | `ContrastService` | Color contrast calculations |
 | `SassCompilerService` | SASS/SCSS compilation |
 | `VocabService` | Controlled vocabulary lookups |

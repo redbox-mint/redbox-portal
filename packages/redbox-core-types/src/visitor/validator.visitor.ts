@@ -1,99 +1,79 @@
-import { FormConfigVisitor } from "./base.model";
 import {
+    FormConfigVisitor,
     FormValidatorConfig,
     FormValidatorControl,
     FormValidatorDefinition,
     FormValidatorSummaryErrors,
-    SimpleServerFormValidatorControl
-} from "../../validation/form.model";
-import { FormConfigOutline } from "../form-config.outline";
-import { ILogger } from "../../logger.interface";
-import {
+    SimpleServerFormValidatorControl,
+    FormConfigOutline,
+    ILogger,
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
-    SimpleInputFormComponentDefinitionOutline
-} from "../component/simple-input.outline";
-import { guessType } from "../helpers";
-import { FormComponentDefinitionOutline } from "../form-component.outline";
-import { ValidatorsSupport } from "../../validation/validators-support";
-import {
+    SimpleInputFormComponentDefinitionOutline,
+    guessType,
+    FormComponentDefinitionOutline,
+    ValidatorsSupport,
     ContentFieldComponentDefinitionOutline,
-    ContentFormComponentDefinitionOutline
-} from "../component/content.outline";
-import {
-    RepeatableElementFieldLayoutDefinitionOutline,
+    ContentFormComponentDefinitionOutline,
     RepeatableFieldComponentDefinitionOutline,
     RepeatableFieldModelDefinitionOutline,
-    RepeatableFormComponentDefinitionOutline
-} from "../component/repeatable.outline";
-import {
+    RepeatableElementFieldLayoutDefinitionOutline,
+    RepeatableFormComponentDefinitionOutline,
     ValidationSummaryFieldComponentDefinitionOutline,
-    ValidationSummaryFormComponentDefinitionOutline
-} from "../component/validation-summary.outline";
-import {
+    ValidationSummaryFormComponentDefinitionOutline,
     GroupFieldComponentDefinitionOutline,
     GroupFieldModelDefinitionOutline,
-    GroupFormComponentDefinitionOutline
-} from "../component/group.outline";
-import {
+    GroupFormComponentDefinitionOutline,
     TabFieldComponentDefinitionOutline,
     TabFieldLayoutDefinitionOutline,
-    TabFormComponentDefinitionOutline
-} from "../component/tab.outline";
-import {
+    TabFormComponentDefinitionOutline,
     TabContentFieldComponentDefinitionOutline,
     TabContentFieldLayoutDefinitionOutline,
-    TabContentFormComponentDefinitionOutline
-} from "../component/tab-content.outline";
-import {
+    TabContentFormComponentDefinitionOutline,
     SaveButtonFieldComponentDefinitionOutline,
-    SaveButtonFormComponentDefinitionOutline
-} from "../component/save-button.outline";
-import {
+    SaveButtonFormComponentDefinitionOutline,
     TextAreaFieldComponentDefinitionOutline,
     TextAreaFieldModelDefinitionOutline,
-    TextAreaFormComponentDefinitionOutline
-} from "../component/text-area.outline";
-import { DefaultFieldLayoutDefinitionOutline } from "../component/default-layout.outline";
-import {
+    TextAreaFormComponentDefinitionOutline,
+    DefaultFieldLayoutDefinitionOutline,
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionOutline,
-    CheckboxInputFormComponentDefinitionOutline
-} from "../component/checkbox-input.outline";
-import {
+    CheckboxInputFormComponentDefinitionOutline,
     CheckboxTreeFieldComponentDefinitionOutline,
     CheckboxTreeFieldModelDefinitionOutline,
-    CheckboxTreeFormComponentDefinitionOutline
-} from "../component/checkbox-tree.outline";
-import {
+    CheckboxTreeFormComponentDefinitionOutline,
     DropdownInputFieldComponentDefinitionOutline,
     DropdownInputFieldModelDefinitionOutline,
-    DropdownInputFormComponentDefinitionOutline
-} from "../component/dropdown-input.outline";
-import {
+    DropdownInputFormComponentDefinitionOutline,
     TypeaheadInputFieldComponentDefinitionOutline,
     TypeaheadInputFieldModelDefinitionOutline,
-    TypeaheadInputFormComponentDefinitionOutline
-} from "../component/typeahead-input.outline";
-import {
+    TypeaheadInputFormComponentDefinitionOutline,
     RichTextEditorFieldComponentDefinitionOutline,
     RichTextEditorFieldModelDefinitionOutline,
-    RichTextEditorFormComponentDefinitionOutline
-} from "../component/rich-text-editor.outline";
-import {
+    RichTextEditorFormComponentDefinitionOutline,
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline,
-    RadioInputFormComponentDefinitionOutline
-} from "../component/radio-input.outline";
-import {
+    RadioInputFormComponentDefinitionOutline,
     DateInputFieldComponentDefinitionOutline,
     DateInputFieldModelDefinitionOutline,
-    DateInputFormComponentDefinitionOutline
-} from "../component/date-input.outline";
-import { FormConfig } from "../form-config.model";
-import { FormPathHelper } from "./common.model";
-import { DataValueFormConfigVisitor } from "./data-value.visitor";
-import { buildLineagePaths } from "../names/naming-helpers";
+    DateInputFormComponentDefinitionOutline,
+    FormConfig,
+    DataValueFormConfigVisitor,
+    buildLineagePaths
+} from "@researchdatabox/sails-ng-common";
+import { get as _get } from "lodash";
+import { FormPathHelper } from "@researchdatabox/sails-ng-common/dist/src/config/visitor/common.model";
+
+
+declare const sails: {
+    config?: {
+        record?: {
+            form?: {
+                htmlSanitizationMode?: 'sanitize' | 'reject';
+            }
+        }
+    }
+};
 
 /**
  * Visit each form config component and run its validators.
@@ -397,6 +377,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
     }
 
+
     visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
@@ -407,6 +388,53 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
+        const value = item?.config?.value;
+        if (typeof value !== 'string' || !value) {
+            return;
+        }
+
+
+        const sanitized = DomSanitizerService.sanitizeWithProfile(value, 'html');
+        // TODO: Validating this way that the html/markdown content has been sanitized is likely to be brittle
+        // Initial implementation is to silently sanitize and warn, but may want to change to rejecting the content in future if sanitization issues are common.
+        // This will likely need to hook more into domPurify to be more robust to detect when it is sanitizing content.
+        // When we do this, we should also consider how to best report the issue to the user so they can fix their content - e.g. include details of what is not allowed in the error message.
+        if (this.normalizeHtmlForComparison(sanitized) === this.normalizeHtmlForComparison(value)) {
+            return;
+        }
+
+        const mode = sails?.config?.record?.form?.htmlSanitizationMode ?? 'sanitize';
+
+        const componentName = String(this.formPathHelper.formPath.angularComponents?.[this.formPathHelper.formPath.angularComponents.length - 1] ?? "Rich text content");
+
+        if (mode === 'reject') {
+            // Report validation error, do NOT mutate
+            this.validationErrors.push({
+                id: componentName,
+                message: componentName,
+                errors: [{
+                    class: "htmlUnsafe",
+                    message: "@validator-error-html-unsafe",
+                    params: { actual: value }
+                }],
+                lineagePaths: buildLineagePaths(this.formPathHelper.formPath)
+            });
+        } else {
+            // Default: sanitize in-place, report as warning
+            if (item.config) {
+                item.config.value = sanitized;
+            }
+            this.validationErrors.push({
+                id: componentName,
+                message: componentName,
+                errors: [{
+                    class: "htmlSanitized",
+                    message: "@validator-warning-html-sanitized",
+                    params: {}
+                }],
+                lineagePaths: buildLineagePaths(this.formPathHelper.formPath)
+            });
+        }
     }
 
     visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
@@ -470,7 +498,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         this.formPathHelper.acceptFormComponentDefinition(item);
     }
 
-    protected validateFormComponent(itemName: string, value: any, validators?: FormValidatorConfig[], message?: string): FormValidatorSummaryErrors[] {
+    protected validateFormComponent(itemName: string, value: unknown, validators?: FormValidatorConfig[], message?: string): FormValidatorSummaryErrors[] {
         const createFormValidatorFns = this.validatorSupport.createFormValidatorInstancesFromMapping;
 
         const availableValidatorGroups = this.form?.validationGroups ?? {};
@@ -496,5 +524,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         }
 
         return result;
+    }
+
+
+    private normalizeHtmlForComparison(value: string): string {
+        return value
+            .replace(/>\s+</g, '><')
+            .replace(/\s+/g, ' ')
+            .trim();
     }
 }

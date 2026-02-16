@@ -30,6 +30,7 @@ import { DateInputTypes } from "./component/date-input.outline";
 import { ReusableTypes } from "./component/reusable.outline";
 import { CheckboxTreeTypes } from "./component/checkbox-tree.outline";
 import { TypeaheadInputTypes } from "./component/typeahead-input.outline";
+import { RichTextEditorTypes } from "./component/rich-text-editor.outline";
 
 
 /**
@@ -53,6 +54,7 @@ export type AllTypes = DefaultLayoutTypes
     | ReusableTypes
     | CheckboxTreeTypes
     | TypeaheadInputTypes
+    | RichTextEditorTypes
     ;
 
 

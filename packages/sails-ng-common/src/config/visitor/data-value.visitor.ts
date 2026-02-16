@@ -1,6 +1,6 @@
-import {FormConfigVisitor} from "./base.model";
-import {FormConfigOutline} from "../form-config.outline";
-import {set as _set} from "lodash";
+import { FormConfigVisitor } from "./base.model";
+import { FormConfigOutline } from "../form-config.outline";
+import { set as _set } from "lodash";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -44,7 +44,7 @@ import {
     TextAreaFieldModelDefinitionOutline,
     TextAreaFormComponentDefinitionOutline
 } from "../component/text-area.outline";
-import {DefaultFieldLayoutDefinitionOutline} from "../component/default-layout.outline";
+import { DefaultFieldLayoutDefinitionOutline } from "../component/default-layout.outline";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionOutline,
@@ -66,6 +66,11 @@ import {
     TypeaheadInputFormComponentDefinitionOutline
 } from "../component/typeahead-input.outline";
 import {
+    RichTextEditorFieldComponentDefinitionOutline,
+    RichTextEditorFieldModelDefinitionOutline,
+    RichTextEditorFormComponentDefinitionOutline
+} from "../component/rich-text-editor.outline";
+import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline,
     RadioInputFormComponentDefinitionOutline
@@ -75,11 +80,11 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {FormComponentDefinitionOutline} from "../form-component.outline";
-import {FieldModelDefinitionFrame} from "../field-model.outline";
-import {ILogger} from "../../logger.interface";
-import {FormConfig} from "../form-config.model";
-import {FormPathHelper} from "./common.model";
+import { FormComponentDefinitionOutline } from "../form-component.outline";
+import { FieldModelDefinitionFrame } from "../field-model.outline";
+import { ILogger } from "../../logger.interface";
+import { FormConfig } from "../form-config.model";
+import { FormPathHelper } from "./common.model";
 
 /**
  * Visit each form config component and extract the value for each field.
@@ -319,6 +324,19 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Rich Text Editor */
+
+    visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void {
+    }
+
+    visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
+        this.setFromModelDefinition(item);
+    }
+
+    visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

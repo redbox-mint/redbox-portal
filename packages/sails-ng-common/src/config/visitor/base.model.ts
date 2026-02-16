@@ -80,6 +80,11 @@ import {
     TypeaheadInputFieldModelDefinitionOutline,
     TypeaheadInputFormComponentDefinitionOutline
 } from "../component/typeahead-input.outline";
+import {
+    RichTextEditorFieldComponentDefinitionOutline,
+    RichTextEditorFieldModelDefinitionOutline,
+    RichTextEditorFormComponentDefinitionOutline
+} from "../component/rich-text-editor.outline";
 
 
 /**
@@ -314,6 +319,48 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     }
 
     visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    /* Checkbox Tree */
+
+    visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    /* Typeahead Input */
+
+    visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    /* Rich Text Editor */
+
+    visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
+        this.notImplemented();
+    }
+
+    visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
         this.notImplemented();
     }
 

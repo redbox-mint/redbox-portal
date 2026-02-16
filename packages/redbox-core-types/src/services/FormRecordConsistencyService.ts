@@ -23,9 +23,10 @@ import {
     guessType, FormValidatorSummaryErrors,
     FormConfigFrame, DataValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
     TemplateFormConfigVisitor, TemplateCompileInput, ConstructFormConfigVisitor, FormModesConfig,
-    ValidatorFormConfigVisitor, ReusableFormDefinitions
+    ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
 import {firstValueFrom} from "rxjs";
+import { ValidatorFormConfigVisitor } from "../visitor/validator.visitor";
 
 
 

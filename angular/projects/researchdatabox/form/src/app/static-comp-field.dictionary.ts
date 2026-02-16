@@ -17,6 +17,7 @@ import { RadioInputComponent, RadioInputModel } from "./component/radio-input.co
 import { DateInputComponent, DateInputModel } from "./component/date-input.component";
 import { CheckboxTreeComponent, CheckboxTreeModel } from "./component/checkbox-tree.component";
 import { TypeaheadInputComponent, TypeaheadInputModel } from "./component/typeahead-input.component";
+import { RichTextEditorComponent, RichTextEditorModel } from "./component/rich-text-editor.component";
 import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   StaticComponentClassMapGenType,
@@ -25,11 +26,13 @@ import {
   DropdownInputModelName, RadioInputModelName, DateInputModelName, GroupFieldModelName,
   CheckboxTreeModelName,
   TypeaheadInputModelName,
+  RichTextEditorModelName,
   RepeatableComponentName, SaveButtonComponentName, TextAreaComponentName, ContentComponentName,
   SimpleInputComponentName, ValidationSummaryComponentName, TabContentComponentName, TabComponentName,
   CheckboxInputComponentName, DropdownInputComponentName, RadioInputComponentName, DateInputComponentName,
   CheckboxTreeComponentName,
   TypeaheadInputComponentName,
+  RichTextEditorComponentName,
   GroupFieldComponentName,
   TabLayoutName, TabContentLayoutName, RepeatableElementLayoutName, DefaultLayoutName, StaticClassMapType,
 } from "@researchdatabox/sails-ng-common";
@@ -56,6 +59,7 @@ export const StaticComponentClassMap: StaticComponentClassMapType = {
   [DateInputComponentName]: DateInputComponent,
   [CheckboxTreeComponentName]: CheckboxTreeComponent,
   [TypeaheadInputComponentName]: TypeaheadInputComponent,
+  [RichTextEditorComponentName]: RichTextEditorComponent,
 };
 
 /*
@@ -74,7 +78,8 @@ export const StaticModelClassMap: StaticModelClassMapType = {
   [RadioInputModelName]: RadioInputModel,
   [DateInputModelName]: DateInputModel,
   [CheckboxTreeModelName]: CheckboxTreeModel,
-  [TypeaheadInputModelName]: TypeaheadInputModel
+  [TypeaheadInputModelName]: TypeaheadInputModel,
+  [RichTextEditorModelName]: RichTextEditorModel
 };
 
 /*

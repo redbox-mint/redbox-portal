@@ -1,6 +1,89 @@
-import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
+import { FormConfigFrame, ReusableFormDefinitions } from "@researchdatabox/sails-ng-common";
 
-const formConfig: FormConfigFrame = {
+
+export const reusableDefinitionsExample1: ReusableFormDefinitions = {
+    // definition of a reusable form config - standard component definitions
+    // The standard people field
+    "standard-contributor-field": [
+        {
+            name: "name",
+            component: { class: "SimpleInputComponent", config: { type: "text" } }
+        },
+        {
+            name: "email",
+            component: { class: "SimpleInputComponent", config: { type: "text" } }
+        },
+        {
+            name: "orcid",
+            component: {
+                class: "GroupComponent",
+                config: {
+                    componentDefinitions: [
+                        {
+                            name: "example1",
+                            component: { class: "SimpleInputComponent", config: { type: "text" } },
+                        }
+                    ]
+                }
+            }
+        },
+    ],
+    // TODO: The standard people fields - ci, data manager, supervisor, contributor.
+    // definition of a reusable form config that refers to another reusable form config
+    // the component definition can be either a standard component def or the 'reusableName' format
+    "standard-people-fields": [
+        {
+            // this element in the array is replaced by the 3 items in the "standard-contributor-field" array
+            overrides: { reusableFormName: "standard-contributor-field" },
+            // Name does not matter, this array element will be replaced
+            name: "",
+            component: {
+                class: "ReusableComponent",
+                config: {
+                    componentDefinitions: [
+                        {
+                            // for the item in the array that matches the match name, change the name to replace
+                            // merge all other properties, preferring the definitions here
+                            overrides: { replaceName: "contributor_ci_name" },
+                            name: "name",
+                            component: { class: "SimpleInputComponent", config: { type: "tel" } },
+                        },
+                        {
+                            // refer to the item without changing it
+                            // this is useful for referring to an item that has nested components that will be changed
+                            name: "orcid",
+                            component: {
+                                class: "GroupComponent",
+                                config: {
+                                    componentDefinitions: [
+                                        {
+                                            overrides: { replaceName: "orcid_nested_example1" },
+                                            name: "example1",
+                                            component: { class: "ContentComponent", config: {} },
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                        // the 'email' item in the reusable definition array is copied with no changes
+                    ]
+                }
+            },
+        },
+        {
+            // this element is used as-is
+            name: "contributor_data_manager",
+            component: { class: "SimpleInputComponent", config: { type: "text" } }
+        }
+    ],
+    // TODO: The standard project info fields: title, description, keywords, SEO codes, FOR codes
+    "standard-project-info-fields": [],
+};
+
+/**
+ * A general form config with examples of most of the component types and nested components.
+ */
+export const formConfigExample1: FormConfigFrame = {
     name: "default-1.0-draft",
     type: "rdmp",
     debugValue: true,
@@ -9,6 +92,11 @@ const formConfig: FormConfigFrame = {
         defaultComponentCssClasses: 'row',
     },
     editCssClasses: "redbox-form form",
+    // Validators that operate on multiple fields.
+    validators: [
+        { class: 'different-values', config: { controlNames: ['text_1_event', 'text_2'] } },
+    ],
+    // Groups of validators that can be enabled and disabled together.
     validationGroups: {
         all: {
             description: "Validate all fields with validators.",
@@ -27,49 +115,6 @@ const formConfig: FormConfigFrame = {
             initialMembership: "all",
         },
     },
-
-    // Validators that operate on multiple fields.
-    validators: [
-        { class: 'different-values', config: { controlNames: ['text_1_event', 'text_2'] } },
-    ],
-    // operations: [
-    //   // sample operations...that can be referenced by expressions
-    //   {
-    //     class: "script",// or "valueEquals", "valueInList", "hasKey" etc.
-    //     config: {
-    //         name: "runSomeOperationThatNeedsTheEntireFormData", // the unique name of the operation
-    //         template: "<%  %>" 
-    //     }
-    //   },
-    //   {
-    //     class: "valueEquals",
-    //     config: {
-    //         name: "setVisibilityByValueEquals",
-    //         config: {
-    //         }
-    //     }
-    //   },
-    //   {
-    //     class: "valueMatches",
-    //     config: {
-    //         name: "setVisibilityByValueMatches",
-    //         config: {
-    //         }
-    //     }
-    //   },
-    // ],
-    // // Operations that will run every time form data changes
-    // expressions: [
-    //     {
-    //         name: "runSomeOperationThatNeedsTheEntireFormData",
-    //         description: '',
-    //         config: {
-    //             template: ``,
-    //             condition: ``,
-    //             // target: ``
-    //         }
-    //     }
-    // ],
     componentDefinitions: [
         {
             name: 'main_tab',
@@ -107,36 +152,10 @@ const formConfig: FormConfigFrame = {
                                                 class: 'ContentComponent',
                                                 config: {
                                                     content: 'My first text block component!!!',
-                                                    template: '<h3>content default value content: {{content}}</h3>'
+                                                    template: '<h3>{{content}}</h3>'
                                                 }
-                                            },
+                                            }
                                         },
-                                        // {
-                                        //     name: 'debug_checkbox',
-                                        //     layout: {
-                                        //         class: 'DefaultLayout',
-                                        //         config: {
-                                        //             label: 'Debug Checkbox',
-                                        //             helpText: 'Checkbox some help text - single selection mode',
-                                        //         }
-                                        //     },
-                                        //     model: {
-                                        //         class: 'CheckboxInputModel',
-                                        //         config: {
-                                        //             defaultValue: 'debugging',
-                                        //         }
-                                        //     },
-                                        //     component: {
-                                        //         class: 'CheckboxInputComponent',
-                                        //         config: {
-                                        //             options: [
-                                        //                 { label: 'Debug', value: 'debugging' }
-                                        //             ],
-                                        //             tooltip: 'Checkbox tooltip',
-                                        //             multipleValues: false
-                                        //         }
-                                        //     }
-                                        // },
                                         {
                                             name: 'textarea_1',
                                             layout: {
@@ -158,66 +177,6 @@ const formConfig: FormConfigFrame = {
                                                     rows: 7,
                                                     cols: 80,
                                                     tooltip: 'Textarea tooltip'
-                                                }
-                                            },
-                                            // expressions: [
-                                            //     {
-                                            //         name: "setVisibilityByValueScript",
-                                            //         config: {
-                                            //             sources: [
-                                            //                 "tab1.text_1_event/value",
-                                            //                 "tab1.text_1_event/metadata"
-                                            //             ]
-                                            //         }   
-                                            //     }
-                                            // ]
-                                        },
-                                        {
-                                            name: 'rich_text_1',
-                                            layout: {
-                                                class: 'DefaultLayout',
-                                                config: {
-                                                    label: 'Rich text editor',
-                                                    helpText: 'Use the rich text editor to format content.',
-                                                }
-                                            },
-                                            model: {
-                                                class: 'RichTextEditorModel',
-                                                config: {
-                                                    defaultValue: '<p><strong>Rich text test content</strong></p><p>Try headings, lists, links, and tables.</p>',
-                                                }
-                                            },
-                                            component: {
-                                                class: 'RichTextEditorComponent',
-                                                config: {
-                                                    outputFormat: 'html',
-                                                    minHeight: '240px',
-                                                    placeholder: 'Start writing formatted content...',
-                                                }
-                                            }
-                                        },
-                                        {
-                                            name: 'rich_text_markdown_1',
-                                            layout: {
-                                                class: 'DefaultLayout',
-                                                config: {
-                                                    label: 'Rich text editor (Markdown output)',
-                                                    helpText: 'Stores Markdown while keeping rich text editing.',
-                                                }
-                                            },
-                                            model: {
-                                                class: 'RichTextEditorModel',
-                                                config: {
-                                                    defaultValue: '## Markdown heading\n\nThis is **bold** and this is *italic*.',
-                                                }
-                                            },
-                                            component: {
-                                                class: 'RichTextEditorComponent',
-                                                config: {
-                                                    outputFormat: 'markdown',
-                                                    minHeight: '240px',
-                                                    showSourceToggle: true,
-                                                    placeholder: 'Start writing markdown-backed rich text...',
                                                 }
                                             }
                                         },
@@ -245,100 +204,6 @@ const formConfig: FormConfigFrame = {
                                                         { label: 'Option 3', value: 'option3' },
                                                     ],
                                                     tooltip: 'Dropdown tooltip'
-                                                }
-                                            }
-                                        },
-                                        {
-                                            name: 'lookahead_1',
-                                            layout: {
-                                                class: 'DefaultLayout',
-                                                config: {
-                                                    label: 'Lookahead example',
-                                                    helpText: 'Type to filter static options in a typeahead field.',
-                                                }
-                                            },
-                                            model: {
-                                                class: 'TypeaheadInputModel',
-                                                config: {
-                                                    defaultValue: 'option2',
-                                                }
-                                            },
-                                            component: {
-                                                class: 'TypeaheadInputComponent',
-                                                config: {
-                                                    sourceType: 'static',
-                                                    staticOptions: [
-                                                        { label: 'Option 1', value: 'option1' },
-                                                        { label: 'Option 2', value: 'option2' },
-                                                        { label: 'Option 3', value: 'option3' },
-                                                        { label: 'Another Option', value: 'another-option' },
-                                                    ],
-                                                    placeholder: 'Start typing to search...',
-                                                    minChars: 1,
-                                                    debounceMs: 200,
-                                                    maxResults: 10,
-                                                    allowFreeText: false,
-                                                    valueMode: 'value',
-                                                }
-                                            }
-                                        },
-                                        {
-                                            name: 'lookahead_party_1',
-                                            layout: {
-                                                class: 'DefaultLayout',
-                                                config: {
-                                                    label: 'Party lookup',
-                                                    helpText: 'Type to search party records via named query.',
-                                                }
-                                            },
-                                            model: {
-                                                class: 'TypeaheadInputModel',
-                                                config: {
-                                                    defaultValue: null,
-                                                }
-                                            },
-                                            component: {
-                                                class: 'TypeaheadInputComponent',
-                                                config: {
-                                                    sourceType: 'namedQuery',
-                                                    queryId: 'party',
-                                                    labelField: 'metadata.fullName',
-                                                    valueField: 'oid',
-                                                    placeholder: 'Start typing a party name...',
-                                                    minChars: 1,
-                                                    debounceMs: 250,
-                                                    maxResults: 25,
-                                                    allowFreeText: false,
-                                                    valueMode: 'value',
-                                                }
-                                            }
-                                        },
-                                        {
-                                            name: 'lookahead_vocab_1',
-                                            layout: {
-                                                class: 'DefaultLayout',
-                                                config: {
-                                                    label: 'ANZSRC ToA lookup',
-                                                    helpText: 'Type to search vocabulary entries from anzsrc-toa.',
-                                                }
-                                            },
-                                            model: {
-                                                class: 'TypeaheadInputModel',
-                                                config: {
-                                                    defaultValue: null,
-                                                }
-                                            },
-                                            component: {
-                                                class: 'TypeaheadInputComponent',
-                                                config: {
-                                                    sourceType: 'vocabulary',
-                                                    vocabRef: 'anzsrc-toa',
-                                                    placeholder: 'Start typing a ToA term...',
-                                                    minChars: 1,
-                                                    debounceMs: 250,
-                                                    maxResults: 25,
-                                                    allowFreeText: false,
-                                                    valueMode: 'value',
                                                 }
                                             }
                                         },
@@ -431,29 +296,17 @@ const formConfig: FormConfigFrame = {
                                             layout: {
                                                 class: 'DefaultLayout',
                                                 config: {
-                                                    label: 'Date1',
-                                                    helpText: 'Date1 some help text',
+                                                    label: 'Date some label',
+                                                    helpText: 'Date some help text',
                                                 }
                                             },
                                             model: {
                                                 class: 'DateInputModel',
-                                                config: {
-                                                }
+                                                config: {}
                                             },
                                             component: {
                                                 class: 'DateInputComponent'
-                                            },
-                                            expressions: [
-                                                {
-                                                    name: "listenToRadio1Change",
-                                                    config: {
-                                                        template: `value = "option2"`,
-                                                        conditionKind: 'jsonpointer',
-                                                        condition: `/main_tab/tab_1/radio_1::field.value.changed`,
-                                                        target: `layout.visible`
-                                                    }
-                                                }
-                                            ]
+                                            }
                                         },
                                         {
                                             name: 'date_2',
@@ -466,8 +319,7 @@ const formConfig: FormConfigFrame = {
                                             },
                                             model: {
                                                 class: 'DateInputModel',
-                                                config: {
-                                                }
+                                                config: {}
                                             },
                                             component: {
                                                 class: 'DateInputComponent',
@@ -478,13 +330,6 @@ const formConfig: FormConfigFrame = {
                                         },
                                         {
                                             name: 'text_1_event',
-                                            layout: {
-                                                class: 'DefaultLayout',
-                                                config: {
-                                                    label: 'TextField1 emitting events',
-                                                    helpText: 'This is a help text',
-                                                }
-                                            },
                                             model: {
                                                 class: 'SimpleInputModel',
                                                 config: {
@@ -503,7 +348,7 @@ const formConfig: FormConfigFrame = {
                                             layout: {
                                                 class: 'DefaultLayout',
                                                 config: {
-                                                    label: 'TextField2 with expression listening to text_1_event',
+                                                    label: 'TextField with default wrapper defined',
                                                     helpText: 'This is a help text',
                                                 }
                                             },
@@ -519,36 +364,7 @@ const formConfig: FormConfigFrame = {
                                             },
                                             component: {
                                                 class: 'SimpleInputComponent'
-                                            },
-                                            expressions: [
-                                                {
-                                                    name: "listenToText1Event",
-                                                    config: {
-                                                        template: `value & "__suffix"`,
-                                                        conditionKind: 'jsonpointer',
-                                                        condition: `/main_tab/tab_1/text_1_event::field.value.changed`,
-                                                        target: `model.value`
-                                                    }
-                                                },
-                                                {
-                                                    name: "listenToText1Event2",
-                                                    config: {
-                                                        template: `formData.text_2 & "__hasJSONata"`,
-                                                        conditionKind: 'jsonata',
-                                                        condition: `$contains($lowercase(formData.text_1_event), "jsonata")`,
-                                                        target: `model.value`
-                                                    }
-                                                },
-                                                {
-                                                    name: "listenToRepeatable1",
-                                                    config: {
-                                                        conditionKind: 'jsonata_query',
-                                                        condition: `$count(**[name="repeatable_textfield_1"].children) >= 2`,
-                                                        template: `formData.text_2 & "__repeatableMoreThan2"`,
-                                                        target: `model.value`
-                                                    }
-                                                }
-                                            ]
+                                            }
                                         },
                                         {
                                             name: 'text_7',
@@ -569,8 +385,7 @@ const formConfig: FormConfigFrame = {
                                                             config: {
                                                                 pattern: /prefix.*/,
                                                                 description: "must start with prefix"
-                                                            },
-                                                            groups: { include: ['minimumCreate'] },
+                                                            }
                                                         },
                                                         {
                                                             class: 'minLength',
@@ -631,9 +446,15 @@ const formConfig: FormConfigFrame = {
                                                     type: 'text'
                                                 }
                                             },
-                                            // expressions: [
-
-                                            // ]
+                                            //                     expressions: {
+                                            //                         'component.visible': {
+                                            //                             template: `<% if(_.isEmpty(_.get(model,'text_2_event',''))) {
+                                            //     return false;
+                                            //   } else {
+                                            //     return true;
+                                            //   } %>`
+                                            //                         }
+                                            //                     }
                                         },
                                         {
                                             name: 'text_3_event',
@@ -779,6 +600,16 @@ const formConfig: FormConfigFrame = {
                                                                                 class: 'SimpleInputModel',
                                                                                 config: {
                                                                                     defaultValue: 'hello world 5!',
+                                                                                    validators: [
+                                                                                        { class: 'required' },
+                                                                                        {
+                                                                                            class: 'pattern',
+                                                                                            config: {
+                                                                                                pattern: /prefix.*/,
+                                                                                                description: "must start with prefix"
+                                                                                            }
+                                                                                        },
+                                                                                    ]
                                                                                 }
                                                                             },
                                                                             component: {
@@ -814,7 +645,7 @@ const formConfig: FormConfigFrame = {
                                                 class: 'RepeatableComponent',
                                                 config: {
                                                     elementTemplate: {
-                                                        name: null,
+                                                        name: "",
                                                         model: {
                                                             class: 'SimpleInputModel',
                                                             config: {
@@ -889,7 +720,7 @@ const formConfig: FormConfigFrame = {
                 class: 'RepeatableComponent',
                 config: {
                     elementTemplate: {
-                        name: null,
+                        name: "",
                         // first group component
                         model: {
                             class: 'GroupModel',
@@ -911,8 +742,7 @@ const formConfig: FormConfigFrame = {
                                                     {
                                                         class: 'minLength',
                                                         message: "@validator-error-custom-text_3",
-                                                        config: { minLength: 3 },
-                                                        groups: { exclude: ['transitionDraftToSubmitted'] },
+                                                        config: { minLength: 3 }
                                                     }
                                                 ]
                                             }
@@ -924,6 +754,7 @@ const formConfig: FormConfigFrame = {
                                             }
                                         }
                                     },
+
                                 ]
                             }
                         },
@@ -950,7 +781,6 @@ const formConfig: FormConfigFrame = {
                 class: 'SaveButtonComponent',
                 config: {
                     label: 'Save',
-                    labelSaving: 'Saving...',
                 }
             }
         },
@@ -958,21 +788,53 @@ const formConfig: FormConfigFrame = {
             name: 'validation_summary_1',
             component: { class: "ValidationSummaryComponent" }
         },
-        // {
-        //   module: 'custom',
-        //   component: {
-        //     class: 'FormCustomComponent',
-        //   },
-        //   model: {
-        //     class: 'FormCustomFieldModel',
-        //     config: {
-        //       name: 'project_name',
-        //       label: 'Project Name',
-        //       type: 'text',
-        //       defaultValue: 'hello world!'
-        //     }
-        //   }
-        // }
     ]
 };
-module.exports = formConfig;
+
+/**
+ * Form config example that uses reusable form config.
+ */
+export const formConfigExample2: FormConfigFrame = {
+    name: "default-1.0-draft",
+    type: "rdmp",
+    debugValue: true,
+    domElementType: 'form',
+    defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+    },
+    editCssClasses: "redbox-form form",
+    // Validators that operate on multiple fields.
+    validators: [
+        { class: 'different-values', config: { controlNames: ['text_1_event', 'text_2'] } },
+    ],
+    componentDefinitions: [
+        {
+            overrides: { reusableFormName: "standard-people-fields" },
+            name: "",
+            component: {
+                class: "ReusableComponent",
+                config: {
+                    componentDefinitions: [
+                        {
+                            // change only the name of the component
+                            // note that the 'name' used here must be the name after previous reusable form config process is done, not the original name
+                            overrides: {
+                                replaceName: "contributor_data_manager2",
+                                formModeClasses: { "view": { component: "SimpleInputComponent" } }
+                            },
+                            name: "contributor_data_manager",
+                            component: { class: "SimpleInputComponent", config: {} }
+                        },
+                        {
+                            // change only the name of the component injected into the reusable form config (nested reusable form config!)
+                            overrides: { replaceName: "contributor_data_manager_email" },
+                            name: "email",
+                            component: { class: "SimpleInputComponent", config: {} }
+                        }
+                        // other two elements 'contributor_ci_name' and 'contributor_ci_orcid' included unchanged
+                    ]
+                }
+            }
+        }
+    ]
+}

@@ -1,6 +1,6 @@
-import {FormConfigVisitor} from "./base.model";
-import {FormConfigOutline} from "../form-config.outline";
-import {TemplateCompileInput} from "../../template.outline";
+import { FormConfigVisitor } from "./base.model";
+import { FormConfigOutline } from "../form-config.outline";
+import { TemplateCompileInput } from "../../template.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -44,7 +44,7 @@ import {
     TextAreaFieldModelDefinitionOutline,
     TextAreaFormComponentDefinitionOutline
 } from "../component/text-area.outline";
-import {DefaultFieldLayoutDefinitionOutline} from "../component/default-layout.outline";
+import { DefaultFieldLayoutDefinitionOutline } from "../component/default-layout.outline";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionOutline,
@@ -66,6 +66,11 @@ import {
     TypeaheadInputFormComponentDefinitionOutline
 } from "../component/typeahead-input.outline";
 import {
+    RichTextEditorFieldComponentDefinitionOutline,
+    RichTextEditorFieldModelDefinitionOutline,
+    RichTextEditorFormComponentDefinitionOutline
+} from "../component/rich-text-editor.outline";
+import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline,
     RadioInputFormComponentDefinitionOutline
@@ -75,9 +80,9 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {FormComponentDefinitionOutline, FormExpressionsConfigFrame} from "../form-component.outline";
-import {ILogger} from "../../logger.interface";
-import {FormPathHelper} from "./common.model";
+import { FormComponentDefinitionOutline, FormExpressionsConfigFrame } from "../form-component.outline";
+import { ILogger } from "../../logger.interface";
+import { FormPathHelper } from "./common.model";
 
 
 /**
@@ -329,6 +334,18 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Rich Text Editor */
+
+    visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void {
+    }
+
+    visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
+    }
+
+    visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 
