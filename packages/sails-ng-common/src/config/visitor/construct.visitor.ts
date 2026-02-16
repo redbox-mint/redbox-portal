@@ -137,6 +137,16 @@ import {
 } from "../component/typeahead-input.outline";
 import { TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig } from "../component/typeahead-input.model";
 import {
+    TypeaheadInputComponentName,
+    TypeaheadInputFieldComponentDefinitionFrame,
+    TypeaheadInputFieldComponentDefinitionOutline,
+    TypeaheadInputFieldModelDefinitionFrame,
+    TypeaheadInputFieldModelDefinitionOutline,
+    TypeaheadInputFormComponentDefinitionOutline,
+    TypeaheadInputModelName
+} from "../component/typeahead-input.outline";
+import { TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig } from "../component/typeahead-input.model";
+import {
     CheckboxInputComponentName,
     CheckboxInputFieldComponentDefinitionFrame,
     CheckboxInputFieldComponentDefinitionOutline,
@@ -146,6 +156,16 @@ import {
     CheckboxInputModelName
 } from "../component/checkbox-input.outline";
 import { CheckboxInputFieldComponentConfig, CheckboxInputFieldModelConfig } from "../component/checkbox-input.model";
+import {
+    CheckboxTreeComponentName,
+    CheckboxTreeFieldComponentDefinitionFrame,
+    CheckboxTreeFieldComponentDefinitionOutline,
+    CheckboxTreeFieldModelDefinitionFrame,
+    CheckboxTreeFieldModelDefinitionOutline,
+    CheckboxTreeFormComponentDefinitionOutline,
+    CheckboxTreeModelName
+} from "../component/checkbox-tree.outline";
+import { CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig } from "../component/checkbox-tree.model";
 import {
     CheckboxTreeComponentName,
     CheckboxTreeFieldComponentDefinitionFrame,

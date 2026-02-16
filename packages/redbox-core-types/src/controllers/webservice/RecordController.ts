@@ -578,8 +578,15 @@ export namespace Controllers {
     public async addDataStreams(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
       const self = this;
+      const attachmentsDir = sails.config.record.attachments.file?.directory ?? sails.config.record.attachments.stageDir;
+      if (!attachmentsDir) {
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: 'record.attachments.file.directory is required' }]
+        });
+      }
       (req as unknown as { file: (field: string) => { upload: (...args: unknown[]) => void } }).file('attachmentFields').upload({
-        dirname: `${sails.config.record.attachments.stageDir}`,
+        dirname: `${attachmentsDir}`,
         maxBytes: 104857600,
         saveAs: function (__newFileStream: unknown, next: (err?: Error, value?: string) => void) {
           sails.log.verbose('Generating files....');
@@ -596,13 +603,13 @@ export namespace Controllers {
         if (error) {
           return self.sendResp(req, res, {
             errors: [self.asError(error)],
-            displayErrors: [{ detail: `There was a problem adding datastream(s) to: ${sails.config.record.attachments.stageDir}` }]
+            displayErrors: [{ detail: `There was a problem adding datastream(s) to: ${attachmentsDir}` }]
           });
         }
         sails.log.verbose(UploadedFileMetadata);
         sails.log.verbose('Succesfully uploaded all file metadata. Sending locations downstream....');
         const fileIds: Datastream[] = (UploadedFileMetadata as globalThis.Record<string, unknown>[]).map(function (nextDescriptor) {
-          return new Datastream({ fileId: path.relative(sails.config.record.attachments.stageDir, nextDescriptor.fd as string), name: nextDescriptor.filename as string, mimeType: nextDescriptor.type as string, size: nextDescriptor.size as number });
+          return new Datastream({ fileId: path.relative(attachmentsDir, nextDescriptor.fd as string), name: nextDescriptor.filename as string, mimeType: nextDescriptor.type as string, size: nextDescriptor.size as number });
         });
         sails.log.verbose('files to send upstream are:');
         sails.log.verbose(_.toString(fileIds));

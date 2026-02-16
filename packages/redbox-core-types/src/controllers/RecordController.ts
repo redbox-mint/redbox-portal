@@ -36,12 +36,22 @@ import {
   RoleModel,
 } from '../index';
 import { DateTime } from 'luxon';
-import * as tus from 'tus-node-server';
+import { Server as TusServer, EVENTS } from '@tus/server';
+import type { Upload } from '@tus/server';
+import type { DataStore } from '@tus/server';
+import { FileStore } from '@tus/file-store';
 import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 
 type AnyRecord = Record<string, unknown>;
+
+interface TusRequestExtension {
+  _tusBaseUrl?: string;
+  _tusOriginalUrl?: string;
+}
+
+type HeaderValue = string | number | ReadonlyArray<string>;
 
 
 /**
@@ -116,7 +126,24 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() { }
+    public bootstrap() {
+      const attachConfig = sails.config.record.attachments;
+      const storeType = attachConfig.store ?? 'file';
+
+      if (storeType === 'file') {
+        const targetDir = attachConfig.file?.directory ?? attachConfig.stageDir;
+        if (!targetDir) {
+          throw new Error('record.attachments.file.directory is required when store is "file"');
+        }
+        if (attachConfig.stageDir && !attachConfig.file?.directory) {
+          sails.log.warn('DEPRECATED: record.attachments.stageDir - use record.attachments.file.directory instead');
+        }
+      } else if (storeType === 's3') {
+        if (!attachConfig.s3?.bucket || !attachConfig.s3?.region) {
+          throw new Error('record.attachments.s3.bucket and s3.region are required when store is "s3"');
+        }
+      }
+    }
 
     private getErrorMessage(error: unknown): string {
       if (error instanceof Error) {
@@ -887,32 +914,59 @@ export namespace Controllers {
       });
     }
 
-    protected tusServer: tus.Server | null = null;
+    protected tusServer: TusServer | null = null;
 
     protected initTusServer() {
-      if (!this.tusServer) {
-        const tusServerOptions = {
-          path: sails.config.record.attachments.path
-        }
-        this.tusServer = new tus.Server(tusServerOptions);
-
-        const targetDir = sails.config.record.attachments.stageDir;
-        if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir);
-        }
-        // path below is appended to the 'Location' header, so it must match the routes for this controller if you want to keep your sanity
-        this.tusServer.datastore = new tus.FileStore({
-          directory: targetDir
-        });
-        this.tusServer.on(tus.EVENTS.EVENT_UPLOAD_COMPLETE, (event: unknown) => {
-          sails.log.verbose(`::: File uploaded to staging:`);
-          sails.log.verbose(JSON.stringify(event));
-        });
-        this.tusServer.on(tus.EVENTS.EVENT_FILE_CREATED, (event: unknown) => {
-          sails.log.verbose(`::: File created:`);
-          sails.log.verbose(JSON.stringify(event));
-        });
+      if (this.tusServer) {
+        return;
       }
+
+      const attachConfig = sails.config.record.attachments;
+      const storeType = attachConfig.store ?? 'file';
+
+      let datastore: DataStore;
+      if (storeType === 's3') {
+        const { S3Store } = require('@tus/s3-store') as { S3Store: new (config: unknown) => DataStore };
+        datastore = new S3Store({
+          partSize: attachConfig.s3!.partSize ?? 8 * 1024 * 1024,
+          s3ClientConfig: {
+            bucket: attachConfig.s3!.bucket,
+            region: attachConfig.s3!.region,
+            credentials: attachConfig.s3!.accessKeyId ? {
+              accessKeyId: attachConfig.s3!.accessKeyId,
+              secretAccessKey: attachConfig.s3!.secretAccessKey!,
+            } : undefined,
+            endpoint: attachConfig.s3!.endpoint,
+          },
+        });
+      } else {
+        const targetDir = attachConfig.file?.directory ?? attachConfig.stageDir!;
+        if (!fs.existsSync(targetDir)) {
+          fs.mkdirSync(targetDir, { recursive: true });
+        }
+        datastore = new FileStore({ directory: targetDir });
+      }
+
+      this.tusServer = new TusServer({
+        path: attachConfig.path,
+        datastore,
+        respectForwardedHeaders: true,
+        disableTerminationForFinishedUploads: true,
+        generateUrl(req, { host, path, id }) {
+          const tusReq = req as unknown as TusRequestExtension;
+          const baseUrl = (tusReq._tusBaseUrl ?? '').replace(/\/+$/, '');
+          const cleanPath = path.startsWith('/') ? path : `/${path}`;
+          // Preserve historical behavior expected by integration clients/tests (scheme-relative URL).
+          return `//${host}${baseUrl}${cleanPath}/${id}`;
+        },
+      });
+
+      this.tusServer.on(EVENTS.POST_FINISH, (_req, _res, upload: Upload) => {
+        sails.log.verbose(`::: TUS upload completed: id=${upload.id}, size=${upload.size}`);
+      });
+      this.tusServer.on(EVENTS.POST_CREATE, (_req, _res, upload: Upload) => {
+        sails.log.verbose(`::: TUS upload created: id=${upload.id}`);
+      });
     }
 
     protected getTusMetadata(req: Sails.Req, field: string): string {
@@ -924,6 +978,47 @@ export namespace Controllers {
       return Buffer.from(entries[field], 'base64').toString('ascii');
     }
 
+    protected normalizeTusLocationHeader(locationHeader: HeaderValue, requestHost: string, prefix: string): string {
+      const firstValue = Array.isArray(locationHeader) ? locationHeader[0] : locationHeader;
+      const rawLocation = typeof firstValue === 'string' ? firstValue.trim() : String(firstValue);
+      const cleanPrefix = prefix.replace(/\/+$/, '');
+      const host = requestHost.trim().replace(/\/+$/, '');
+
+      const ensurePrefix = (pathname: string): string => {
+        if (pathname.startsWith(`${cleanPrefix}/attach/`)) {
+          return pathname;
+        }
+        if (pathname.startsWith('/attach/')) {
+          return `${cleanPrefix}${pathname}`;
+        }
+        return pathname;
+      };
+
+      if (/^https?:\/\//i.test(rawLocation)) {
+        const parsed = new URL(rawLocation);
+        const normalizedPath = ensurePrefix(parsed.pathname);
+        return `//${parsed.host}${normalizedPath}${parsed.search}`;
+      }
+
+      if (rawLocation.startsWith('//')) {
+        const parsed = new URL(`http:${rawLocation}`);
+        const normalizedPath = ensurePrefix(parsed.pathname);
+        return `//${parsed.host}${normalizedPath}${parsed.search}`;
+      }
+
+      if (rawLocation.startsWith('/')) {
+        const normalizedPath = ensurePrefix(rawLocation);
+        return host ? `//${host}${normalizedPath}` : normalizedPath;
+      }
+
+      if (rawLocation.startsWith('attach/')) {
+        const normalizedPath = ensurePrefix(`/${rawLocation}`);
+        return host ? `//${host}${normalizedPath}` : normalizedPath;
+      }
+
+      return rawLocation;
+    }
+
     public async doAttachment(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
@@ -931,11 +1026,64 @@ export namespace Controllers {
       sails.log.verbose(`Have attach Id: ${attachId}`);
       this.initTusServer();
       const method = _.toLower(req.method);
-      if (method == 'post') {
-        req.baseUrl = `${BrandingService.getBrandAndPortalPath(req)}/record/${oid}`
-      } else {
-        req.baseUrl = '';
+
+      const prefix = `${BrandingService.getBrandAndPortalPath(req)}/record/${oid}`;
+      const tusReq = req as unknown as TusRequestExtension;
+      tusReq._tusOriginalUrl = req.url;
+      tusReq._tusBaseUrl = prefix;
+      if (req.url.startsWith(prefix)) {
+        req.url = req.url.slice(prefix.length);
       }
+
+      if (method == 'post') {
+        const originalSetHeader = res.setHeader.bind(res);
+        const requestHost = String(req.headers.host ?? '');
+        res.setHeader = ((name: string, value: HeaderValue) => {
+          if (_.toLower(name) == 'location') {
+            const normalizedLocation = this.normalizeTusLocationHeader(value, requestHost, prefix);
+            return originalSetHeader(name, normalizedLocation);
+          }
+          return originalSetHeader(name, value);
+        }) as typeof res.setHeader;
+      }
+
+      if (method != 'get') {
+        // Wrap res.end to normalize the overloaded call signatures:
+        //   end(cb?), end(chunk, cb?), end(chunk, encoding, cb?)
+        // The TUS server and srvx may call any of these forms.
+        // express-session's res.end wrapper only accepts (chunk, encoding)
+        // and does NOT handle callback arguments — passing a function as
+        // the first arg causes it to be treated as chunk data, crashing
+        // with ERR_INVALID_ARG_TYPE.  Strip callbacks and deliver them
+        // via the 'finish' event instead.
+        const originalEnd = res.end.bind(res);
+        res.end = ((...args: unknown[]) => {
+          const [first, second, third] = args;
+          if (typeof first === 'function') {
+            // end(cb)
+            res.once('finish', first as () => void);
+            return originalEnd();
+          }
+          if (typeof second === 'function') {
+            // end(chunk, cb)
+            res.once('finish', second as () => void);
+            return originalEnd(first as string | Uint8Array);
+          }
+          if (typeof third === 'function') {
+            // end(chunk, encoding, cb)
+            res.once('finish', third as () => void);
+            return originalEnd(first as string | Uint8Array, second as BufferEncoding);
+          }
+          if (second !== undefined) {
+            return originalEnd(first as string | Uint8Array, second as BufferEncoding);
+          }
+          if (first !== undefined) {
+            return originalEnd(first as string | Uint8Array);
+          }
+          return originalEnd();
+        }) as typeof res.end;
+      }
+
       if (oid == "pending-oid") {
         this.tusServer!.handle(req, res);
         return;
@@ -1012,9 +1160,10 @@ export namespace Controllers {
           return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
         }
         sails.log.verbose(req.headers);
-        const uploadFileSize = req.headers['Upload-Length'];
+        const uploadFileSize = req.headers['upload-length'];
         const diskSpaceThreshold = sails.config.record.diskSpaceThreshold;
-        if (!_.isUndefined(uploadFileSize) && !_.isUndefined(diskSpaceThreshold)) {
+        const storeType = sails.config.record.attachments.store ?? 'file';
+        if (storeType === 'file' && !_.isUndefined(uploadFileSize) && !_.isUndefined(diskSpaceThreshold)) {
           const diskSpace = await checkDiskSpace(sails.config.record.mongodbDisk);
           //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
           const thresholdAppliedFileSize = _.toInteger(uploadFileSize) + diskSpaceThreshold;
