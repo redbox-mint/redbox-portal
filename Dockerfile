@@ -33,12 +33,15 @@ RUN npm ci \
  && (cd packages/redbox-core-types && npm ci) \
  && (cd packages/sails-ng-common && npm ci) \
  && (cd packages/raido && npm ci) \
+ && (cd packages/rva-registry && npm ci) \
  && (cd packages/sails-hook-redbox-storage-mongo && npm ci)
 
 RUN cd packages/raido && npm run build
+RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
 RUN cd packages/redbox-core-types && npx tsc -p tsconfig.json
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
+
 RUN npx tsc --project tsconfig.json
 
 RUN chmod +x support/build/compileProductionAngular.sh \
@@ -58,6 +61,7 @@ RUN npm prune --omit=dev \
     packages/redbox-core-types/node_modules \
     packages/sails-ng-common/node_modules \
     packages/raido/node_modules \
+    packages/rva-registry/node_modules \
     angular/node_modules \
     angular-legacy/node_modules \
     support/build/api-descriptors/node_modules

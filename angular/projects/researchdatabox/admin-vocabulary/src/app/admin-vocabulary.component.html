@@ -1,0 +1,121 @@
+<div class="container-fluid py-3" *ngIf="isReady">
+  <div class="row align-items-end mb-3">
+    <div class="col-md-8">
+    </div>
+    <div class="col-md-4 mt-3 mt-md-0">
+      <div class="d-flex justify-content-md-end flex-wrap">
+        <span class="badge badge-light mr-2 mb-2 p-2">{{ 'admin-vocabulary-count-total' | i18next: { count:
+          totalVocabularies } }}</span>
+        <span class="badge badge-light mr-2 mb-2 p-2">{{ 'admin-vocabulary-count-local' | i18next: { count:
+          localVocabularies } }}</span>
+        <span class="badge badge-light mb-2 p-2">{{ 'admin-vocabulary-count-rva' | i18next: { count: rvaVocabularies }
+          }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+      <div class="d-flex flex-wrap mb-2 mb-md-0 vocab-action-group" role="group"
+        [attr.aria-label]="'admin-vocabulary-actions-aria-label' | i18next">
+        <button class="btn btn-primary vocab-action-button" type="button" (click)="newVocabulary()">{{
+          'admin-vocabulary-create-button' | i18next }}</button>
+        <button class="btn btn-info vocab-action-button" type="button" (click)="showImport()">{{
+          'admin-vocabulary-import-from-rva-button' | i18next }}</button>
+      </div>
+      <small class="text-muted">{{ 'admin-vocabulary-row-help' | i18next }}</small>
+    </div>
+  </div>
+
+  <div *ngIf="message" class="alert alert-success" role="status">{{ message }}</div>
+  <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
+
+  <vocab-list [vocabularies]="vocabularies" [selectedId]="selectedVocabulary?.id || null"
+    [totalCount]="totalVocabularyCount" [pageSize]="listLimit" [offset]="listOffset" [query]="listQuery"
+    (queryChanged)="onListQueryChanged($event)" (pageChanged)="onListPageChanged($event)"
+    (selected)="openVocabulary($event)" (deleted)="deleteVocabulary($event)"></vocab-list>
+</div>
+
+<div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="vocabModalTitle"
+  *ngIf="isEditModalOpen">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title h4-header" id="vocabModalTitle">{{ selectedVocabulary?.id ?
+          ('admin-vocabulary-edit-title' | i18next) : ('admin-vocabulary-create-title' | i18next) }}</span>
+        <button type="button" class="btn-close" [attr.aria-label]="'admin-vocabulary-close' | i18next"
+          (click)="closeEditModal()" cdkFocusInitial></button>
+      </div>
+      <div class="modal-body">
+        <vocab-detail [draft]="draft" [selectedVocabularyId]="selectedVocabulary?.id || null"></vocab-detail>
+      </div>
+      <div class="modal-footer">
+        <div *ngIf="syncStatusMessage" class="alert w-100 mb-2" [ngClass]="{
+            'alert-info': syncStatusVariant === 'info',
+            'alert-success': syncStatusVariant === 'success',
+            'alert-warning': syncStatusVariant === 'warning',
+            'alert-danger': syncStatusVariant === 'danger'
+          }" [attr.role]="syncStatusVariant === 'danger' ? 'alert' : 'status'" aria-live="polite">
+          <div class="d-flex flex-wrap justify-content-between align-items-center">
+            <span>{{ syncStatusMessage }}</span>
+            <div class="btn-group ml-2 mt-2 mt-sm-0" role="group" *ngIf="isSyncConfirmationOpen">
+              <button type="button" class="btn btn-secondary" (click)="cancelSyncConfirmation()"
+                [disabled]="isSyncInProgress">
+                {{ 'admin-vocabulary-keep-local-changes' | i18next }}
+              </button>
+              <button type="button" class="btn btn-warning" (click)="confirmSyncSelected()"
+                [disabled]="isSyncInProgress">
+                <span *ngIf="isSyncInProgress" class="spinner-border spinner-border-sm mr-2" role="status"
+                  aria-hidden="true"></span>
+                {{ isSyncInProgress ? ('admin-vocabulary-syncing' | i18next) : ('admin-vocabulary-replace-and-sync' |
+                i18next) }}
+              </button>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-success" (click)="save()" [disabled]="!canSave || isSyncInProgress">{{
+          'admin-vocabulary-save' | i18next }}</button>
+        <button *ngIf="!isSyncConfirmationOpen" type="button" class="btn btn-warning" (click)="syncSelected()"
+          [disabled]="!canSyncSelected">
+          {{ 'admin-vocabulary-sync-rva' | i18next }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="closeEditModal()" [disabled]="isSyncInProgress">{{
+          'admin-vocabulary-cancel' | i18next }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" *ngIf="isEditModalOpen" aria-hidden="true"></div>
+
+<div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="importModalTitle"
+  *ngIf="isImportModalOpen">
+  <div class="modal-dialog modal-lg" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title h4-header" id="importModalTitle">{{ 'admin-vocabulary-import-from-rva-title' | i18next
+          }}</span>
+        <button type="button" class="btn-close" [attr.aria-label]="'admin-vocabulary-close' | i18next"
+          (click)="closeImportModal()" cdkFocusInitial></button>
+      </div>
+      <div class="modal-body">
+        <rva-import #importForm (importRequested)="importRva($event)"></rva-import>
+        <div *ngIf="importStatusMessage" class="alert mt-3 mb-0" [ngClass]="{
+            'alert-info': importStatusVariant === 'info',
+            'alert-success': importStatusVariant === 'success',
+            'alert-danger': importStatusVariant === 'danger'
+          }" [attr.role]="importStatusVariant === 'danger' ? 'alert' : 'status'" aria-live="polite">
+          {{ importStatusMessage }}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeImportModal()" [disabled]="isImportInProgress">{{
+          'admin-vocabulary-cancel' | i18next }}</button>
+        <button type="button" class="btn btn-primary" (click)="importForm.runImport()"
+          [disabled]="!importForm.canImport || isImportInProgress">
+          {{ isImportInProgress ? ('admin-vocabulary-importing' | i18next) : ('admin-vocabulary-import' | i18next) }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" *ngIf="isImportModalOpen" aria-hidden="true"></div>

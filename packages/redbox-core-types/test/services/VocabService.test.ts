@@ -104,6 +104,8 @@ describe('VocabService', function() {
     delete (global as any).CacheService;
     delete (global as any).AsynchsService;
     delete (global as any).NamedQueryService;
+    delete (global as any).Vocabulary;
+    delete (global as any).VocabularyEntry;
     sinon.restore();
   });
 
@@ -112,6 +114,39 @@ describe('VocabService', function() {
       VocabService.bootstrap().subscribe({
         next: (result: any) => {
           expect(result).to.be.null;
+          done();
+        },
+        error: done
+      });
+    });
+  });
+
+  describe('getVocab', function() {
+    it('returns managed vocabulary entries and preserves historical flag', function(done) {
+      (global as any).Vocabulary = {
+        findOne: sinon.stub().resolves({ id: 'v1' })
+      };
+      (global as any).VocabularyEntry = {
+        find: sinon.stub().returns({
+          sort: sinon.stub().returns({
+            sort: sinon.stub().resolves([
+              { label: 'Legacy value', value: 'legacy-value', historical: true }
+            ])
+          })
+        })
+      };
+
+      VocabService.getVocab('managed-vocab').subscribe({
+        next: (result: any) => {
+          expect(result).to.deep.equal([
+            {
+              uri: 'legacy-value',
+              notation: 'legacy-value',
+              label: 'Legacy value',
+              historical: true
+            }
+          ]);
+          expect((global as any).CacheService.set.calledOnce).to.be.true;
           done();
         },
         error: done

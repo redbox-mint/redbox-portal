@@ -16,6 +16,18 @@ let translationService: any;
 let recordData: any;
 let recordTypes: any;
 
+function toStartOfDayIso(date: Date): string {
+  const normalized = new Date(date.getTime());
+  normalized.setHours(0, 0, 0, 0);
+  return normalized.toISOString();
+}
+
+function toEndOfDayIso(date: Date): string {
+  const normalized = new Date(date.getTime());
+  normalized.setHours(23, 59, 59, 999);
+  return normalized.toISOString();
+}
+
 export function i18AppInit() {
   return () => i18next
   .init({
@@ -96,9 +108,8 @@ describe('ExportComponent', () => {
     // test with modified after set
     let dateNow = DateTime.local();
     dateNow = dateNow.startOf('day');
-    const dateEnd = dateNow.endOf('day');
-    const dateEndStr = dateEnd.toFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-    const dateNowStr = dateNow.toFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    const dateNowStr = toStartOfDayIso(dateNow.toJSDate());
+    const dateEndStr = toEndOfDayIso(dateNow.toJSDate());
     app.modAfter = dateNow.toJSDate();
     app.download();
     generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=&after=${dateNowStr}&recType=rdmp`;
