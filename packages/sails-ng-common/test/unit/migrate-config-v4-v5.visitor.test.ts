@@ -1,7 +1,7 @@
-import {MigrationV4ToV5FormConfigVisitor} from "../../src/config/visitor/migrate-config-v4-v5.visitor";
+import { MigrationV4ToV5FormConfigVisitor } from "../../src/config/visitor/migrate-config-v4-v5.visitor";
 import fs from "fs";
 import path from "path";
-import {logger} from "./helpers";
+import { logger } from "./helpers";
 import {
     ClientFormConfigVisitor,
     ConstructFormConfigVisitor, formValidatorsSharedDefinitions, ReusableFormDefinitions,
@@ -16,37 +16,37 @@ const reusableFormDefinitions: ReusableFormDefinitions = {
     "standard-contributor-fields": [
         {
             name: "name",
-            component: {class: "SimpleInputComponent", config: {type: "text", hostCssClasses: ""}},
-            model: {class: "SimpleInputModel", config: {}},
-            layout: {class: "DefaultLayout", config: {label: "Name", hostCssClasses: "col-md-4 mb-3"}},
+            component: { class: "SimpleInputComponent", config: { type: "text", hostCssClasses: "" } },
+            model: { class: "SimpleInputModel", config: {} },
+            layout: { class: "DefaultLayout", config: { label: "Name", hostCssClasses: "col-md-4 mb-3" } },
         },
         {
             name: "email",
-            component: {class: "SimpleInputComponent", config: {type: "text", hostCssClasses: ""}},
-            model: {class: "SimpleInputModel", config: {validators: [{class: "email"}]}},
-            layout: {class: "DefaultLayout", config: {label: "Email", hostCssClasses: "col-md-4 mb-3"}},
+            component: { class: "SimpleInputComponent", config: { type: "text", hostCssClasses: "" } },
+            model: { class: "SimpleInputModel", config: { validators: [{ class: "email" }] } },
+            layout: { class: "DefaultLayout", config: { label: "Email", hostCssClasses: "col-md-4 mb-3" } },
         },
         {
             name: "orcid",
-            component: {class: "SimpleInputComponent", config: {type: "text", hostCssClasses: ""}},
-            model: {class: "SimpleInputModel", config: {validators: [{class: "orcid"}]}},
-            layout: {class: "DefaultLayout", config: {label: "ORCID", hostCssClasses: "col-md-4 mb-3"}},
+            component: { class: "SimpleInputComponent", config: { type: "text", hostCssClasses: "" } },
+            model: { class: "SimpleInputModel", config: { validators: [{ class: "orcid" }] } },
+            layout: { class: "DefaultLayout", config: { label: "ORCID", hostCssClasses: "col-md-4 mb-3" } },
         },
     ],
     "standard-contributor-fields-group": [
         {
             name: "standard_contributor_fields_group",
-            layout: {class: "DefaultLayout", config: {label: "Standard Contributor"}},
-            model: {class: "GroupModel", config: {}},
+            layout: { class: "DefaultLayout", config: { label: "Standard Contributor" } },
+            model: { class: "GroupModel", config: {} },
             component: {
                 class: "GroupComponent",
                 config: {
                     hostCssClasses: "row g-3",
                     componentDefinitions: [
                         {
-                            overrides: {reusableFormName: "standard-contributor-fields"},
+                            overrides: { reusableFormName: "standard-contributor-fields" },
                             name: "standard_contributor_fields_reusable",
-                            component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+                            component: { class: "ReusableComponent", config: { componentDefinitions: [] } },
                         },
                     ],
                 },
@@ -61,7 +61,7 @@ async function migrateV4ToV5(v4InputFile: string, v5OutputFile: string) {
     let formConfig = require(v4InputFile);
 
     const migrateVisitor = new MigrationV4ToV5FormConfigVisitor(logger);
-    const actual = migrateVisitor.start({data: formConfig});
+    const actual = migrateVisitor.start({ data: formConfig });
 
     const tsContent = `
 import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
@@ -153,5 +153,139 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(warnings.some((msg) => msg.includes("invalid 'maxDepth'"))).to.equal(true);
         expect(warnings.some((msg) => msg.includes('malformed regex'))).to.equal(true);
         expect(warnings.some((msg) => msg.includes('coerced non-array default value'))).to.equal(true);
+    });
+
+    it('maps legacy VocabField to TypeaheadInput with value coercion', async function () {
+        const warnings: string[] = [];
+        const testLogger = {
+            ...logger,
+            warn: (message: unknown) => warnings.push(String(message ?? ''))
+        };
+        const visitor = new MigrationV4ToV5FormConfigVisitor(testLogger);
+        const migrated = visitor.start({
+            data: {
+                name: "typeahead-edge",
+                fields: [
+                    {
+                        class: "VocabField",
+                        compClass: "VocabFieldComponent",
+                        definition: {
+                            name: "contributor",
+                            sourceType: "query",
+                            vocabQueryId: "lookup-contributor",
+                            titleFieldName: "displayName",
+                            storeLabelOnly: false,
+                            disableEditAfterSelect: true,
+                            forceClone: true
+                        },
+                        value: "Jane Doe"
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("TypeaheadInputComponent");
+        expect(migratedField.model?.class).to.equal("TypeaheadInputModel");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        expect(componentConfig.sourceType).to.equal("namedQuery");
+        expect(componentConfig.queryId).to.equal("lookup-contributor");
+        expect(componentConfig.labelField).to.equal("displayName");
+        expect(componentConfig.valueMode).to.equal("optionObject");
+        expect(componentConfig.readOnlyAfterSelect).to.equal(true);
+
+        const modelConfig = migratedField.model?.config as Record<string, unknown>;
+        expect(modelConfig).to.not.equal(undefined);
+        expect(warnings.some((msg) => msg.includes("dropped legacy property 'forceClone'"))).to.equal(true);
+    });
+
+    it('migrates static typeahead options and prefers legacy options over staticOptions', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "typeahead-static-options",
+                fields: [
+                    {
+                        class: "VocabField",
+                        compClass: "VocabFieldComponent",
+                        definition: {
+                            name: "contributorRole",
+                            sourceType: "static",
+                            titleFieldName: "name",
+                            valueFieldName: "id",
+                            options: [
+                                "Researcher",
+                                { name: "Data steward", id: "steward" },
+                                { label: "Librarian", value: "librarian" }
+                            ],
+                            staticOptions: [
+                                { label: "Should not be used", value: "ignore" }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("TypeaheadInputComponent");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        expect(componentConfig.sourceType).to.equal("static");
+
+        const staticOptions = componentConfig.staticOptions as Array<Record<string, unknown>>;
+        expect(staticOptions).to.deep.equal([
+            { label: "Researcher", value: "Researcher" },
+            { label: "Data steward", value: "steward" },
+            { label: "Librarian", value: "librarian" }
+        ]);
+    });
+
+    it('maps RepeatableVocabComponent to RepeatableComponent with Typeahead elementTemplate', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "repeatable-vocab-edge",
+                fields: [
+                    {
+                        class: "RepeatableContainer",
+                        compClass: "RepeatableVocabComponent",
+                        definition: {
+                            name: "foaf:fundedBy_foaf:Agent",
+                            label: "@dmpt-foaf:fundedBy_foaf:Agent",
+                            help: "@dmpt-foaf:fundedBy_foaf:Agent-help",
+                            fields: [
+                                {
+                                    class: "VocabField",
+                                    definition: {
+                                        disableEditAfterSelect: false,
+                                        vocabQueryId: "fundingBody",
+                                        sourceType: "query",
+                                        titleFieldArr: ["dc_description"],
+                                        stringLabelToField: "dc_description",
+                                        placeHolder: "@lookup-placeholder-text"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("RepeatableComponent");
+        expect(migratedField.model?.class).to.equal("RepeatableModel");
+
+        const repeatableConfig = migratedField.component.config as Record<string, unknown>;
+        const elementTemplate = repeatableConfig.elementTemplate as Record<string, unknown>;
+        expect(elementTemplate).to.not.equal(undefined);
+        expect(elementTemplate.name).to.equal("");
+        expect((elementTemplate.component as Record<string, unknown>).class).to.equal("TypeaheadInputComponent");
+        expect((elementTemplate.model as Record<string, unknown>).class).to.equal("TypeaheadInputModel");
+
+        const typeaheadConfig = (elementTemplate.component as Record<string, unknown>).config as Record<string, unknown>;
+        expect(typeaheadConfig.sourceType).to.equal("namedQuery");
+        expect(typeaheadConfig.queryId).to.equal("fundingBody");
+        expect(typeaheadConfig.labelField).to.equal("dc_description");
     });
 });

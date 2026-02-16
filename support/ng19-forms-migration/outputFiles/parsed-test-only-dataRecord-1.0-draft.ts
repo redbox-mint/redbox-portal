@@ -1,5 +1,5 @@
 
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 const formConfig: FormConfigFrame = {
   "name": "dataRecord-1.0-draft",
   "type": "dataRecord",
@@ -541,14 +541,29 @@ const formConfig: FormConfigFrame = {
                               "allowModes": []
                             },
                             "component": {
-                              "class": "ContentComponent",
+                              "class": "TypeaheadInputComponent",
                               "config": {
                                 "readonly": false,
                                 "visible": true,
                                 "editMode": true,
                                 "disabled": false,
                                 "autofocus": false,
-                                "content": "Not yet implemented in v5: v4ClassName \"VocabField\" v4CompClassName \"\" v4Name undefined. At path '[\"fields\",\"3\",\"definition\",\"fields\",\"0\",\"definition\",\"fields\",\"5\",\"definition\",\"fields\",\"0\"]'."
+                                "sourceType": "vocabulary",
+                                "staticOptions": [],
+                                "vocabRef": "Funding Bodies",
+                                "minChars": 2,
+                                "debounceMs": 250,
+                                "maxResults": 25,
+                                "allowFreeText": false,
+                                "valueMode": "value",
+                                "cacheResults": true,
+                                "multiSelect": false
+                              }
+                            },
+                            "model": {
+                              "class": "TypeaheadInputModel",
+                              "config": {
+                                "validators": []
                               }
                             },
                             "layout": {
@@ -658,14 +673,29 @@ const formConfig: FormConfigFrame = {
                               "allowModes": []
                             },
                             "component": {
-                              "class": "ContentComponent",
+                              "class": "TypeaheadInputComponent",
                               "config": {
                                 "readonly": false,
                                 "visible": true,
                                 "editMode": true,
                                 "disabled": false,
                                 "autofocus": false,
-                                "content": "Not yet implemented in v5: v4ClassName \"VocabField\" v4CompClassName \"\" v4Name undefined. At path '[\"fields\",\"3\",\"definition\",\"fields\",\"0\",\"definition\",\"fields\",\"7\",\"definition\",\"fields\",\"0\"]'."
+                                "sourceType": "vocabulary",
+                                "staticOptions": [],
+                                "vocabRef": "Research Activities",
+                                "minChars": 2,
+                                "debounceMs": 250,
+                                "maxResults": 25,
+                                "allowFreeText": false,
+                                "valueMode": "value",
+                                "cacheResults": true,
+                                "multiSelect": false
+                              }
+                            },
+                            "model": {
+                              "class": "TypeaheadInputModel",
+                              "config": {
+                                "validators": []
                               }
                             },
                             "layout": {
@@ -726,7 +756,9 @@ const formConfig: FormConfigFrame = {
                           "disabled": false,
                           "autofocus": false,
                           "vocabRef": "anzsrc-2020-for",
-                          "treeData": []
+                          "treeData": [],
+                          "leafOnly": true,
+                          "labelTemplate": "{{default (split notation \"/\" -1) notation}} - {{label}}"
                         }
                       },
                       "model": {
@@ -770,7 +802,9 @@ const formConfig: FormConfigFrame = {
                           "disabled": false,
                           "autofocus": false,
                           "vocabRef": "anzsrc-2020-seo",
-                          "treeData": []
+                          "treeData": [],
+                          "leafOnly": true,
+                          "labelTemplate": "{{default (split notation \"/\" -1) notation}} - {{label}}"
                         }
                       },
                       "model": {

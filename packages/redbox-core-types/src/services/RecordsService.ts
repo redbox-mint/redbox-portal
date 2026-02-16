@@ -39,6 +39,8 @@ import { RecordTypeModel } from '../model/storage/RecordTypeModel';
 import { BrandingModel } from '../model/storage/BrandingModel';
 
 import axios from 'axios';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 const luceneEscapeQueryModule = require("lucene-escape-query") as Record<string, unknown> | ((value: string) => string);
 const luceneEscapeQuery: (value: string) => string =
   typeof luceneEscapeQueryModule === 'function'
@@ -61,11 +63,13 @@ import {
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
   type RecordTypeLike = Partial<RecordTypeModel> & AnyRecord;
+  type BootstrapRecordMetadata = Record<string, unknown>;
   type RecordWithMeta = AnyRecord & {
     metaMetadata?: AnyRecord;
     metadata?: AnyRecord;
     authorization?: AnyRecord;
   };
+  const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
   /**
    * Records related functions...
    *
@@ -118,10 +122,139 @@ export namespace Services {
       return error instanceof Error ? error : new Error(String(error));
     }
 
+
+
+    private getBootstrapDataPath(): string {
+      const configuredPath = _.get(sails.config, 'bootstrap.bootstrapDataPath', DEFAULT_BOOTSTRAP_DATA_PATH);
+      return path.resolve(String(configuredPath), 'records');
+    }
+
+    private getRecordTypeFromFileName(fileName: string): string {
+      return path.basename(fileName, path.extname(fileName)).trim();
+    }
+
+    private getBootstrapOid(recordType: string, index: number, metadata: BootstrapRecordMetadata): string {
+      const inputOid = typeof metadata.redboxOid === 'string' ? metadata.redboxOid.trim() : '';
+      if (inputOid) {
+        return inputOid;
+      }
+      const safeRecordType = recordType.replace(/[^a-zA-Z0-9_-]/g, '-');
+      return `bootstrap-${safeRecordType}-${index + 1}`;
+    }
+
+    public async bootstrapData(): Promise<void> {
+      this.getStorageService(this);
+      const bootstrapPath = this.getBootstrapDataPath();
+      let fileNames: string[] = [];
+
+      try {
+        const fileEntries = await fs.readdir(bootstrapPath, { withFileTypes: true });
+        fileNames = fileEntries
+          .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+          .map((entry) => entry.name)
+          .sort((a, b) => a.localeCompare(b));
+      } catch (error) {
+        const ioError = error as NodeJS.ErrnoException;
+        if (ioError.code === 'ENOENT') {
+          sails.log.verbose(`Records bootstrap data path not found: ${bootstrapPath}`);
+          return;
+        }
+        sails.log.error(`Failed to read records bootstrap data path: ${bootstrapPath}`, error);
+        return;
+      }
+
+      const defaultBrand = BrandingService.getDefault();
+      if (!defaultBrand) {
+        sails.log.error('Unable to resolve default branding for records bootstrap data');
+        return;
+      }
+
+      const bootstrapUser = { username: 'bootstrap-data' };
+      for (const fileName of fileNames) {
+        const recordType = this.getRecordTypeFromFileName(fileName);
+        if (!recordType) {
+          sails.log.error(`Skipping records bootstrap file with invalid record type name: ${fileName}`);
+          continue;
+        }
+        let recordTypeModel: unknown = null;
+        try {
+          recordTypeModel = await firstValueFrom(RecordTypesService.get(defaultBrand, recordType));
+        } catch (error) {
+          sails.log.warn(`Record type lookup failed for '${recordType}', using bootstrap-safe create path.`);
+        }
+        if (!recordTypeModel) {
+          sails.log.warn(`No configured record type found for '${recordType}', using bootstrap-safe create path.`);
+        }
+
+        const filePath = path.join(bootstrapPath, fileName);
+        let parsed: unknown;
+        try {
+          const content = await fs.readFile(filePath, 'utf8');
+          parsed = JSON.parse(content);
+        } catch (error) {
+          sails.log.error(`Failed to read records bootstrap file: ${fileName}`, error);
+          continue;
+        }
+
+        if (!Array.isArray(parsed)) {
+          sails.log.error(`Skipping records bootstrap file with invalid format (expected array): ${fileName}`);
+          continue;
+        }
+
+        for (let index = 0; index < parsed.length; index++) {
+          const metadata = parsed[index] as BootstrapRecordMetadata;
+          if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+            sails.log.error(`Skipping invalid record metadata entry at index ${index} in ${fileName}`);
+            continue;
+          }
+
+          const redboxOid = this.getBootstrapOid(recordType, index, metadata);
+          const bootstrapSeedId = `${recordType}:${index + 1}`;
+          const metadataWithSeed = {
+            ...metadata,
+            bootstrapSeedId
+          };
+          try {
+            const existing = await Record.findOne({
+              or: [
+                { redboxOid },
+                { 'metadata.bootstrapSeedId': bootstrapSeedId }
+              ]
+            }).meta({ enableExperimentalDeepTargets: true });
+
+            if (existing) {
+              sails.log.verbose(`Skipping existing records bootstrap entry: ${redboxOid}`);
+              continue;
+            }
+
+            const createResponse = await this.create(
+              defaultBrand,
+              {
+                redboxOid,
+                metadata: metadataWithSeed,
+                metaMetadata: { type: recordType }
+              },
+              recordTypeModel,
+              bootstrapUser,
+              true,
+              true
+            );
+            if (createResponse?.isSuccessful?.()) {
+              sails.log.verbose(`Created records bootstrap entry: ${redboxOid}`);
+            } else {
+              sails.log.error(`Failed to create records bootstrap entry: ${redboxOid}`);
+            }
+          } catch (error) {
+            sails.log.error(`Failed to create records bootstrap entry: ${redboxOid}`, error);
+          }
+        }
+      }
+    }
+
     public override init() {
       const that = this;
       this.registerSailsHook('after', ['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
-        that.getStorageService(that);
+
         that.getDatastreamService(that);
         that.searchService = sails.services[sails.config.search.serviceName] as unknown as SearchService;
         that.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
@@ -174,6 +307,7 @@ export namespace Services {
       'triggerPostSaveTriggers',
       'triggerPostSaveSyncTriggers',
       'checkRedboxRunning',
+      'bootstrapData',
       'getAttachments',
       'appendToRecord',
       'removeFromRecord',
@@ -226,6 +360,42 @@ export namespace Services {
       const recordTypeObj = recordType as RecordTypeLike;
       let recordObj = this.normalizeRecord(record);
       const userObj = user as AnyRecord;
+      const recordTypeName = String(recordTypeObj?.name ?? _.get(recordObj, 'metaMetadata.type', '')).trim();
+
+      // Bootstrap-safe path when no configured RecordType/workflow exists.
+      if (!recordTypeObj?.name) {
+        if (!this.storageService || typeof this.storageService.create !== 'function') {
+          throw new Error('RecordsService storageService is not initialized');
+        }
+        const meta = (recordObj.metaMetadata ?? {}) as AnyRecord;
+        const nowIso = String(DateTime.local().toISO());
+        meta.brandId = meta.brandId ?? String(brandObj?.id ?? '');
+        meta.type = meta.type ?? recordTypeName;
+        meta.createdBy = meta.createdBy ?? String(userObj?.username ?? 'unknown');
+        meta.createdOn = meta.createdOn ?? nowIso;
+        meta.lastSaveDate = meta.lastSaveDate ?? nowIso;
+        recordObj.metaMetadata = meta;
+
+        const authorization = (recordObj.authorization ?? {}) as AnyRecord;
+        authorization.view = authorization.view ?? [];
+        authorization.edit = authorization.edit ?? [];
+        authorization.viewRoles = authorization.viewRoles ?? [];
+        authorization.editRoles = authorization.editRoles ?? [];
+        recordObj.authorization = authorization;
+        recordObj.authorization_view = recordObj.authorization_view ?? authorization.view;
+        recordObj.authorization_edit = recordObj.authorization_edit ?? authorization.edit;
+        recordObj.authorization_viewRoles = recordObj.authorization_viewRoles ?? authorization.viewRoles;
+        recordObj.authorization_editRoles = recordObj.authorization_editRoles ?? authorization.editRoles;
+
+        const createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
+        if (createResponse.isSuccessful()) {
+          if (this.searchService && typeof this.searchService.index === 'function') {
+            this.searchService.index(createResponse['oid'], recordObj);
+          }
+          await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created)
+        }
+        return createResponse;
+      }
 
       let wfStep = await firstValueFrom(WorkflowStepsService.getFirst(recordTypeObj));
       const formName = String(_.get(wfStep, 'config.form', ''));

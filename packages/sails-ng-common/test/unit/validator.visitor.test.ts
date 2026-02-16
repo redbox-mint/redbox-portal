@@ -423,4 +423,37 @@ describe("Validator Visitor", async () => {
         });
         expect(actual).to.eql(expected);
     });
+
+    it("should report typeahead configuration errors for unsupported/invalid config", async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            data: {
+                name: "typeahead-validator",
+                componentDefinitions: [
+                    {
+                        name: "lookup",
+                        component: {
+                            class: "TypeaheadInputComponent",
+                            config: {
+                                sourceType: "namedQuery",
+                                multiSelect: true
+                            }
+                        },
+                        model: {class: "TypeaheadInputModel", config: {defaultValue: null}}
+                    }
+                ]
+            },
+            formMode: "edit"
+        });
+
+        const visitor = new ValidatorFormConfigVisitor(logger);
+        const actual = visitor.start({
+            form: constructed,
+            enabledValidationGroups: ["all"],
+            validatorDefinitions: formValidatorsSharedDefinitions
+        });
+        const classNames = actual.flatMap((entry) => entry.errors.map((err) => err.class));
+        expect(classNames).to.contain("typeaheadQueryId");
+        expect(classNames).to.contain("typeaheadMultiSelect");
+    });
 });

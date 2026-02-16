@@ -1,0 +1,84 @@
+{
+  "staticSource": {
+    "name": "typeahead-static",
+    "componentDefinitions": [
+      {
+        "name": "person_lookup",
+        "component": {
+          "class": "TypeaheadInputComponent",
+          "config": {
+            "sourceType": "static",
+            "staticOptions": [
+              { "label": "Jane Doe", "value": "jane-doe" },
+              { "label": "John Smith", "value": "john-smith" }
+            ],
+            "minChars": 1
+          }
+        },
+        "model": { "class": "TypeaheadInputModel", "config": {} }
+      }
+    ]
+  },
+  "vocabularySource": {
+    "name": "typeahead-vocabulary",
+    "componentDefinitions": [
+      {
+        "name": "access_rights",
+        "component": {
+          "class": "TypeaheadInputComponent",
+          "config": {
+            "sourceType": "vocabulary",
+            "vocabRef": "access-rights",
+            "valueMode": "value",
+            "allowFreeText": false
+          }
+        },
+        "model": { "class": "TypeaheadInputModel", "config": {} }
+      }
+    ]
+  },
+  "namedQuerySource": {
+    "name": "typeahead-query",
+    "componentDefinitions": [
+      {
+        "name": "contributor_lookup",
+        "component": {
+          "class": "TypeaheadInputComponent",
+          "config": {
+            "sourceType": "namedQuery",
+            "queryId": "contributors",
+            "labelField": "person.display.label",
+            "valueField": "person.id",
+            "maxResults": 20
+          }
+        },
+        "model": { "class": "TypeaheadInputModel", "config": {} }
+      }
+    ]
+  },
+  "freeTextOptionObject": {
+    "name": "typeahead-free-text",
+    "componentDefinitions": [
+      {
+        "name": "keywords_lookup",
+        "component": {
+          "class": "TypeaheadInputComponent",
+          "config": {
+            "sourceType": "static",
+            "allowFreeText": true,
+            "valueMode": "optionObject",
+            "staticOptions": [
+              { "label": "Open data", "value": "open-data" }
+            ]
+          }
+        },
+        "model": {
+          "class": "TypeaheadInputModel",
+          "config": {
+            "value": { "label": "Open data", "value": "open-data", "sourceType": "static" }
+          }
+        }
+      }
+    ]
+  }
+}

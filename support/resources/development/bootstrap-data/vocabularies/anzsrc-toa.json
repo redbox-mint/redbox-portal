@@ -1,0 +1,12 @@
+{
+  "name": "ANZSRC Type of Activity",
+  "slug": "anzsrc-toa",
+  "description": "ANZSRC Type of Activity classification",
+  "type": "flat",
+  "entries": [
+    { "label": "Pure basic research", "value": "pure", "order": 0 },
+    { "label": "Strategic basic research", "value": "strategic", "order": 1 },
+    { "label": "Applied research", "value": "applied", "order": 2 },
+    { "label": "Experimental development", "value": "experimental", "order": 3 }
+  ]
+}

@@ -166,6 +166,20 @@ npx @researchdatabox/redbox-hook-kit migrate-form-config \
   --output /path/to/migrated-form.ts
 ```
 
+### `generate form-component`
+
+Generate end-to-end scaffold for a new form component in Angular and `sails-ng-common`.
+
+```bash
+npx @researchdatabox/redbox-hook-kit generate form-component my-widget --app form
+```
+
+Optional Angular service scaffold:
+
+```bash
+npx @researchdatabox/redbox-hook-kit generate form-component my-widget --app form --with-service
+```
+
 ### `help`
 
 Show CLI help and usage information.
