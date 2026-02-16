@@ -110,7 +110,7 @@
     "nyc": "^17.1.0",
     "pino-test": "^1.1.0",
     "prettier": "^3.8.1",
-    "sass-loader": "^16.0.5",
+    "sass-loader": "^16.0.7",
     "supertest": "^7.1.4",
     "typescript-eslint": "^8.54.0"
   },

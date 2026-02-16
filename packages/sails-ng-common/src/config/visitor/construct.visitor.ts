@@ -1,5 +1,7 @@
 import { cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith, set as _set } from "lodash";
 import { FormConfig } from "../form-config.model";
+import { cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith, set as _set } from "lodash";
+import { FormConfig } from "../form-config.model";
 
 import { FormConfigVisitor } from "./base.model";
 import { FormConfigFrame, FormConfigOutline } from "../form-config.outline";

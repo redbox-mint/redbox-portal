@@ -1,6 +1,9 @@
 import { cloneDeep as _cloneDeep, get as _get } from "lodash";
 import { FormConfig } from "../form-config.model";
 import { FormConfigOutline } from "../form-config.outline";
+import { cloneDeep as _cloneDeep, get as _get } from "lodash";
+import { FormConfig } from "../form-config.model";
+import { FormConfigOutline } from "../form-config.outline";
 import {
     GroupFieldComponentDefinitionOutline,
     GroupFieldComponentName,
