@@ -62,6 +62,10 @@ export interface RecordFormConfig {
     htmlSanitizationMode: 'sanitize' | 'reject';
 }
 
+export interface RecordFormConfig {
+    htmlSanitizationMode: 'sanitize' | 'reject';
+}
+
 export interface RecordConfig {
     auditing: RecordAuditingConfig;
     baseUrl: RecordBaseUrlConfig;

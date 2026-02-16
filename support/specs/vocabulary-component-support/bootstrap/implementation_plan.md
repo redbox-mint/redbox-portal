@@ -10,10 +10,10 @@ Load vocabulary data from JSON files and trigger RVA imports during application 
 
 Two kinds of files:
 
-| File type | Purpose |
-|-----------|---------|
-| `*.json` (except `rva-imports.json`) | Local vocabulary loaded via `VocabularyService.create()` |
-| `rva-imports.json` | RVA vocabulary IDs to import via `RvaImportService.importRvaVocabulary()` |
+| File type                            | Purpose                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------- |
+| `*.json` (except `rva-imports.json`) | Local vocabulary loaded via `VocabularyService.create()`                  |
+| `rva-imports.json`                   | RVA vocabulary IDs to import via `RvaImportService.importRvaVocabulary()` |
 
 #### Local Vocabulary JSON Schema
 
@@ -25,19 +25,20 @@ Unknown top-level fields are silently ignored (forward compatibility).
 
 ```jsonc
 {
-  "name": "ANZSRC Type of Activity",    // required
-  "slug": "anzsrc-toa",                 // required — uniqueness key
-  "description": "...",                 // optional
-  "type": "flat",                       // optional, "flat" | "tree", default "flat"
-  "entries": [                          // optional
+  "name": "ANZSRC Type of Activity", // required
+  "slug": "anzsrc-toa", // required — uniqueness key
+  "description": "...", // optional
+  "type": "flat", // optional, "flat" | "tree", default "flat"
+  "entries": [
+    // optional
     {
-      "label": "Pure basic research",   // required per entry
-      "value": "pure",                  // required per entry
-      "identifier": "...",             // optional
-      "order": 0,                      // optional, default positional index
-      "historical": false              // optional, default false
-    }
-  ]
+      "label": "Pure basic research", // required per entry
+      "value": "pure", // required per entry
+      "identifier": "...", // optional
+      "order": 0, // optional, default positional index
+      "historical": false, // optional, default false
+    },
+  ],
 }
 ```
 
@@ -50,9 +51,9 @@ Duplicate entries within a file are caught by the existing `VocabularyEntry` uni
 ```jsonc
 {
   "imports": [
-    { "rvaId": "316" },                           // required
-    { "rvaId": "317", "versionId": "72" }          // versionId optional
-  ]
+    { "rvaId": "316" }, // required
+    { "rvaId": "317", "versionId": "72" }, // versionId optional
+  ],
 }
 ```
 
@@ -77,10 +78,7 @@ Duplicate entries within a file are caught by the existing `VocabularyEntry` uni
 
 ```json
 {
-  "imports": [
-    { "rvaId": "316" },
-    { "rvaId": "317" }
-  ]
+  "imports": [{ "rvaId": "316" }, { "rvaId": "317" }]
 }
 ```
 
@@ -99,6 +97,7 @@ If the directory does not exist, the method returns immediately with a verbose l
 **Processing order**: Files are sorted alphabetically by filename before processing, ensuring deterministic order across OS/filesystem differences.
 
 **Algorithm per local vocab file**:
+
 1. Parse JSON — on failure, `sails.log.error` with filename and error, continue
 2. Validate `name` and `slug` are non-empty strings — on failure, log error, continue
 3. Resolve branding to default brand via `sails.services.brandingservice.getDefault()`
@@ -107,6 +106,7 @@ If the directory does not exist, the method returns immediately with a verbose l
 6. On success, `sails.log.verbose('Created vocabulary ...')`
 
 **Algorithm for `rva-imports.json`**:
+
 1. Gated by `sails.config.vocab.bootstrapRvaImports !== false` (defaults to enabled)
 2. For each entry, `Vocabulary.findOne({ rvaSourceKey: 'rva:<rvaId>' })` — skip if found
 3. Call `RvaImportService.importRvaVocabulary(rvaId, versionId?, defaultBranding)` with a 30s timeout per import
@@ -138,17 +138,17 @@ Call after the existing vocab bootstrap (line 80):
 
 Add `describe('bootstrapData')` block with stubbed `fs`, `Vocabulary`, and `RvaImportService`:
 
-| Test case | Assertion |
-|-----------|-----------|
-| Directory missing | No errors, no creates |
+| Test case                             | Assertion                                                 |
+| ------------------------------------- | --------------------------------------------------------- |
+| Directory missing                     | No errors, no creates                                     |
 | Valid local JSON, vocab doesn't exist | `create()` called with correct payload + default branding |
-| Valid local JSON, vocab exists | `create()` not called |
-| Malformed JSON | `sails.log.error` called, other files still processed |
-| Missing `name` or `slug` | `sails.log.error`, skipped |
-| RVA import, vocab doesn't exist | `importRvaVocabulary()` called |
-| RVA import, vocab exists | `importRvaVocabulary()` not called |
-| RVA imports disabled via config | `importRvaVocabulary()` not called |
-| Multiple files | Processed in sorted order |
+| Valid local JSON, vocab exists        | `create()` not called                                     |
+| Malformed JSON                        | `sails.log.error` called, other files still processed     |
+| Missing `name` or `slug`              | `sails.log.error`, skipped                                |
+| RVA import, vocab doesn't exist       | `importRvaVocabulary()` called                            |
+| RVA import, vocab exists              | `importRvaVocabulary()` not called                        |
+| RVA imports disabled via config       | `importRvaVocabulary()` not called                        |
+| Multiple files                        | Processed in sorted order                                 |
 
 ```bash
 cd packages/redbox-core-types && npm test
@@ -163,6 +163,7 @@ Mocha integration test against the live database.
 **RVA mocking strategy**: The integration test stubs `RvaImportService.importRvaVocabulary` with a sinon stub that creates a minimal local vocabulary record (same shape as a real import) instead of calling the live RVA API. This avoids CI flakiness from network dependencies while still exercising the full bootstrap flow.
 
 Test cases:
+
 1. First call creates ANZSRC TOA vocab with 4 entries + 2 RVA vocabs (stubbed)
 2. Second call is idempotent — no new records created
 3. Cleanup in `after` hook destroys all created vocabularies and entries

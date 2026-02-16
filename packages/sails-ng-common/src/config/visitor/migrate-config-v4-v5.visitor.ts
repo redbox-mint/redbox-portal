@@ -139,7 +139,7 @@ import {
     MapModelName,
     MapTileLayerConfig
 } from "../component/map.outline";
-import {MapFieldComponentConfig, MapFieldModelConfig} from "../component/map.model";
+import { MapFieldComponentConfig, MapFieldModelConfig } from "../component/map.model";
 
 
 import { FieldModelConfigFrame } from "../field-model.outline";
@@ -954,21 +954,21 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
         const center = this.extractLegacyMapCenter(leafletOptions);
         if (center) {
-            this.sharedProps.setPropOverride("center", item.config, {center});
+            this.sharedProps.setPropOverride("center", item.config, { center });
         }
         const zoom = this.extractLegacyMapZoom(leafletOptions);
         if (zoom !== undefined) {
-            this.sharedProps.setPropOverride("zoom", item.config, {zoom});
+            this.sharedProps.setPropOverride("zoom", item.config, { zoom });
         }
 
         const tileLayers = this.extractLegacyMapTileLayers(rawDefinition);
         if (tileLayers.length > 0) {
-            this.sharedProps.setPropOverride("tileLayers", item.config, {tileLayers});
+            this.sharedProps.setPropOverride("tileLayers", item.config, { tileLayers });
         }
 
         const enabledModes = this.extractLegacyMapEnabledModes(drawOptions);
         if (enabledModes.length > 0) {
-            this.sharedProps.setPropOverride("enabledModes", item.config, {enabledModes});
+            this.sharedProps.setPropOverride("enabledModes", item.config, { enabledModes });
         }
     }
 
@@ -1647,13 +1647,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const draw = this.readObject(drawOptions.draw);
         const enabledModes: MapDrawingMode[] = [];
 
-        const modeMap: Array<{key: string; mode: MapDrawingMode}> = [
-            {key: "marker", mode: "point"},
-            {key: "polygon", mode: "polygon"},
-            {key: "polyline", mode: "linestring"},
-            {key: "rectangle", mode: "rectangle"}
+        const modeMap: Array<{ key: string; mode: MapDrawingMode }> = [
+            { key: "marker", mode: "point" },
+            { key: "polygon", mode: "polygon" },
+            { key: "polyline", mode: "linestring" },
+            { key: "rectangle", mode: "rectangle" }
         ];
-        for (const {key, mode} of modeMap) {
+        for (const { key, mode } of modeMap) {
             const rawModeConfig = draw[key];
             if (rawModeConfig === false) {
                 continue;
