@@ -26,6 +26,20 @@ interface UppySuccessResponse {
     };
     [key: string]: unknown;
 }
+
+interface CsrfConfigShape {
+    csrfToken?: unknown;
+}
+
+interface CompanionAuthProvider {
+    login: (args: unknown) => Promise<unknown>;
+    setAuthToken: (token: string) => Promise<unknown> | unknown;
+    __redboxAuthFallbackInstalled?: boolean;
+}
+
+interface UppyProviderPlugin {
+    provider?: CompanionAuthProvider;
+}
 import { Subscription } from "rxjs";
 import { FormComponent } from "../form.component";
 import { FormComponentEventBus, FormSaveSuccessEvent } from "../form-state/events";
@@ -410,7 +424,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         }
         const cfg = this.configService.getConfig();
         if (cfg && typeof cfg.then !== "function") {
-            return String((cfg as any)?.csrfToken ?? "").trim();
+            return String(this.readCsrfToken(cfg) ?? "").trim();
         }
         return "";
     }
@@ -423,8 +437,8 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         if (!cfgPromise || typeof cfgPromise.then !== "function") {
             return;
         }
-        cfgPromise.then((cfg: any) => {
-            const token = String(cfg?.csrfToken ?? this.configService.csrfToken ?? "").trim();
+        cfgPromise.then((cfg: unknown) => {
+            const token = String(this.readCsrfToken(cfg) ?? this.configService.csrfToken ?? "").trim();
             if (!token || !this.uppy) {
                 return;
             }
@@ -443,8 +457,11 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         if (!this.uppy) {
             return;
         }
-        const plugin = this.uppy.getPlugin(pluginId) as any;
-        const provider = plugin?.provider as any;
+        const plugin = this.uppy.getPlugin(pluginId);
+        if (!this.isProviderPlugin(plugin)) {
+            return;
+        }
+        const provider = plugin.provider;
         if (!provider || typeof provider.login !== "function" || typeof provider.setAuthToken !== "function") {
             return;
         }
@@ -469,6 +486,17 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
             }
         };
         provider.__redboxAuthFallbackInstalled = true;
+    }
+
+    private readCsrfToken(config: unknown): string | undefined {
+        if (!config || typeof config !== "object") {
+            return undefined;
+        }
+        return String((config as CsrfConfigShape).csrfToken ?? "").trim() || undefined;
+    }
+
+    private isProviderPlugin(plugin: unknown): plugin is UppyProviderPlugin {
+        return !!plugin && typeof plugin === "object" && "provider" in plugin;
     }
 
     private findCompanionToken(tokenStorageKeys: string[], cookieNames: string[]): string | undefined {
