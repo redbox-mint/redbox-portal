@@ -65,7 +65,7 @@ export const csp: ContentSecurityPolicyConfig = {
         'default-src': ["'self'"],
         'script-src': ["'self'"],
         'worker-src': ["'self'"],
-        'img-src': ["'self'"],
+        'img-src': ["'self'", 'https://*.tile.openstreetmap.org'],
         'connect-src': ["'self'"],
         'media-src': ["'self'"],
         'frame-src': ["'self'"],

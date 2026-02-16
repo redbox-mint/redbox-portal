@@ -81,6 +81,12 @@ import {
     RichTextEditorFormComponentDefinitionOutline
 } from "../component/rich-text-editor.outline";
 import {
+    MapDrawingMode,
+    MapFieldComponentDefinitionOutline,
+    MapFieldModelDefinitionOutline,
+    MapFormComponentDefinitionOutline
+} from "../component/map.outline";
+import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline,
     RadioInputFormComponentDefinitionOutline
@@ -410,6 +416,37 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Map */
+
+    visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
+        const configErrors: FormValidatorSummaryErrors["errors"] = [];
+        const enabledModes = Array.isArray(item.config?.enabledModes) ? item.config?.enabledModes : [];
+        const validModes: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "select"];
+        const invalidModes = enabledModes.filter((mode) => !validModes.includes(mode));
+        if (invalidModes.length > 0) {
+            configErrors.push({
+                class: "mapEnabledModes",
+                message: "@validator-error-map-enabled-modes",
+                params: { invalidModes }
+            });
+        }
+        if (configErrors.length > 0) {
+            this.validationErrors.push({
+                id: String(this.formPathHelper.formPath.angularComponents?.[this.formPathHelper.formPath.angularComponents.length - 1] ?? ""),
+                message: item?.config?.label ?? "MapComponent configuration",
+                errors: configErrors,
+                lineagePaths: buildLineagePaths(this.formPathHelper.formPath)
+            });
+        }
+    }
+
+    visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
+    }
+
+    visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

@@ -1,8 +1,8 @@
-import {cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith, set as _set} from "lodash";
-import {FormConfig} from "../form-config.model";
+import { cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith, set as _set } from "lodash";
+import { FormConfig } from "../form-config.model";
 
-import {FormConfigVisitor} from "./base.model";
-import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
+import { FormConfigVisitor } from "./base.model";
+import { FormConfigFrame, FormConfigOutline } from "../form-config.outline";
 import {
     GroupFieldComponentDefinitionFrame,
     GroupFieldComponentDefinitionOutline,
@@ -29,7 +29,7 @@ import {
     RepeatableFieldComponentConfig,
     RepeatableFieldModelConfig
 } from "../component/repeatable.model";
-import {GroupFieldComponentConfig, GroupFieldModelConfig} from "../component/group.model";
+import { GroupFieldComponentConfig, GroupFieldModelConfig } from "../component/group.model";
 import {
     SimpleInputComponentName,
     SimpleInputFieldComponentDefinitionFrame,
@@ -39,14 +39,14 @@ import {
     SimpleInputFormComponentDefinitionOutline,
     SimpleInputModelName
 } from "../component/simple-input.outline";
-import {SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig} from "../component/simple-input.model";
+import { SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig } from "../component/simple-input.model";
 import {
     DefaultFieldLayoutDefinitionFrame,
     DefaultFieldLayoutDefinitionOutline,
     DefaultLayoutName
 } from "../component/default-layout.outline";
-import {DefaultFieldLayoutConfig} from "../component/default-layout.model";
-import {FormExpressionsConfig} from "../form-component.model";
+import { DefaultFieldLayoutConfig } from "../component/default-layout.model";
+import { FormExpressionsConfig } from "../form-component.model";
 import {
     FormComponentDefinitionFrame,
     FormComponentDefinitionOutline,
@@ -68,7 +68,7 @@ import {
     TabFormComponentDefinitionOutline,
     TabLayoutName
 } from "../component/tab.outline";
-import {TabFieldComponentConfig, TabFieldLayoutConfig} from "../component/tab.model";
+import { TabFieldComponentConfig, TabFieldLayoutConfig } from "../component/tab.model";
 import {
     TabContentComponentName,
     TabContentFieldComponentDefinitionFrame,
@@ -93,7 +93,7 @@ import {
     TextAreaFormComponentDefinitionOutline,
     TextAreaModelName
 } from "../component/text-area.outline";
-import {TextAreaFieldComponentConfig, TextAreaFieldModelConfig} from "../component/text-area.model";
+import { TextAreaFieldComponentConfig, TextAreaFieldModelConfig } from "../component/text-area.model";
 import {
     RichTextEditorComponentName,
     RichTextEditorFieldComponentDefinitionFrame,
@@ -103,8 +103,19 @@ import {
     RichTextEditorFormComponentDefinitionOutline,
     RichTextEditorModelName
 } from "../component/rich-text-editor.outline";
-import {RichTextEditorFieldComponentConfig, RichTextEditorFieldModelConfig} from "../component/rich-text-editor.model";
-import {ContentFieldComponentConfig} from "../component/content.model";
+import { RichTextEditorFieldComponentConfig, RichTextEditorFieldModelConfig } from "../component/rich-text-editor.model";
+import {
+    MapComponentName,
+    MapDrawingMode,
+    MapFieldComponentDefinitionFrame,
+    MapFieldComponentDefinitionOutline,
+    MapFieldModelDefinitionFrame,
+    MapFieldModelDefinitionOutline,
+    MapFormComponentDefinitionOutline,
+    MapModelName
+} from "../component/map.outline";
+import { MapFieldComponentConfig, MapFieldModelConfig } from "../component/map.model";
+import { ContentFieldComponentConfig } from "../component/content.model";
 import {
     DropdownInputComponentName,
     DropdownInputFieldComponentDefinitionFrame,
@@ -114,7 +125,7 @@ import {
     DropdownInputFormComponentDefinitionOutline,
     DropdownInputModelName
 } from "../component/dropdown-input.outline";
-import {DropdownInputFieldComponentConfig, DropdownInputFieldModelConfig} from "../component/dropdown-input.model";
+import { DropdownInputFieldComponentConfig, DropdownInputFieldModelConfig } from "../component/dropdown-input.model";
 import {
     TypeaheadInputComponentName,
     TypeaheadInputFieldComponentDefinitionFrame,
@@ -124,7 +135,7 @@ import {
     TypeaheadInputFormComponentDefinitionOutline,
     TypeaheadInputModelName
 } from "../component/typeahead-input.outline";
-import {TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig} from "../component/typeahead-input.model";
+import { TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig } from "../component/typeahead-input.model";
 import {
     CheckboxInputComponentName,
     CheckboxInputFieldComponentDefinitionFrame,
@@ -134,7 +145,7 @@ import {
     CheckboxInputFormComponentDefinitionOutline,
     CheckboxInputModelName
 } from "../component/checkbox-input.outline";
-import {CheckboxInputFieldComponentConfig, CheckboxInputFieldModelConfig} from "../component/checkbox-input.model";
+import { CheckboxInputFieldComponentConfig, CheckboxInputFieldModelConfig } from "../component/checkbox-input.model";
 import {
     CheckboxTreeComponentName,
     CheckboxTreeFieldComponentDefinitionFrame,
@@ -144,7 +155,7 @@ import {
     CheckboxTreeFormComponentDefinitionOutline,
     CheckboxTreeModelName
 } from "../component/checkbox-tree.outline";
-import {CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig} from "../component/checkbox-tree.model";
+import { CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig } from "../component/checkbox-tree.model";
 import {
     RadioInputComponentName,
     RadioInputFieldComponentDefinitionFrame,
@@ -154,7 +165,7 @@ import {
     RadioInputFormComponentDefinitionOutline,
     RadioInputModelName
 } from "../component/radio-input.outline";
-import {RadioInputFieldComponentConfig, RadioInputFieldModelConfig} from "../component/radio-input.model";
+import { RadioInputFieldComponentConfig, RadioInputFieldModelConfig } from "../component/radio-input.model";
 import {
     DateInputComponentName,
     DateInputFieldComponentDefinitionFrame,
@@ -164,34 +175,34 @@ import {
     DateInputFormComponentDefinitionOutline,
     DateInputModelName
 } from "../component/date-input.outline";
-import {DateInputFieldComponentConfig, DateInputFieldModelConfig} from "../component/date-input.model";
+import { DateInputFieldComponentConfig, DateInputFieldModelConfig } from "../component/date-input.model";
 import {
     SaveButtonComponentName,
     SaveButtonFieldComponentDefinitionFrame,
     SaveButtonFieldComponentDefinitionOutline,
     SaveButtonFormComponentDefinitionOutline
 } from "../component/save-button.outline";
-import {SaveButtonFieldComponentConfig} from "../component/save-button.model";
+import { SaveButtonFieldComponentConfig } from "../component/save-button.model";
 import {
     ValidationSummaryComponentName,
     ValidationSummaryFieldComponentDefinitionFrame,
     ValidationSummaryFieldComponentDefinitionOutline,
     ValidationSummaryFormComponentDefinitionOutline
 } from "../component/validation-summary.outline";
-import {ValidationSummaryFieldComponentConfig} from "../component/validation-summary.model";
+import { ValidationSummaryFieldComponentConfig } from "../component/validation-summary.model";
 import {
     isTypeFieldDefinitionName,
     isTypeFormComponentDefinition,
     isTypeFormComponentDefinitionName,
     isTypeFormConfig,
 } from "../form-types.outline";
-import {AllFormComponentDefinitionOutlines, ReusableFormDefinitions} from "../dictionary.outline";
-import {ILogger} from "../../logger.interface";
-import {FormModesConfig} from "../shared.outline";
-import {FieldModelConfigFrame, FieldModelDefinitionOutline} from "../field-model.outline";
-import {FormOverride} from "../form-override.model";
-import {FormPathHelper, PropertiesHelper} from "./common.model";
-import {LineagePath} from "../names/naming-helpers";
+import { AllFormComponentDefinitionOutlines, ReusableFormDefinitions } from "../dictionary.outline";
+import { ILogger } from "../../logger.interface";
+import { FormModesConfig } from "../shared.outline";
+import { FieldModelConfigFrame, FieldModelDefinitionOutline } from "../field-model.outline";
+import { FormOverride } from "../form-override.model";
+import { FormPathHelper, PropertiesHelper } from "./common.model";
+import { LineagePath } from "../names/naming-helpers";
 
 
 /**
@@ -233,7 +244,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         this.mostRecentRepeatableElementTemplatePath = null;
 
-        this.data = {name: "", componentDefinitions: []};
+        this.data = { name: "", componentDefinitions: [] };
 
         this.reusableFormDefs = {};
 
@@ -253,11 +264,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
      * @param options.record The record metadata values. Set to undefined or null to use the form default values.
      */
     start(options: {
-              data: FormConfigFrame;
-              reusableFormDefs?: ReusableFormDefinitions;
-              formMode?: FormModesConfig;
-              record?: Record<string, unknown> | null;
-          }
+        data: FormConfigFrame;
+        reusableFormDefs?: ReusableFormDefinitions;
+        formMode?: FormModesConfig;
+        record?: Record<string, unknown> | null;
+    }
     ): FormConfigOutline {
         this.data = _cloneDeep(options.data);
         this.reusableFormDefs = options.reusableFormDefs ?? {};
@@ -432,7 +443,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // The element template name must be falsy.
         // It is also allowed for a ReusableComponent to have a replaceName that is falsy.
         const elementTemplateName = frame.elementTemplate?.name;
-        const elementTemplateClass  = frame.elementTemplate?.component?.class;
+        const elementTemplateClass = frame.elementTemplate?.component?.class;
         const elementTemplateReplaceName = frame.elementTemplate?.overrides?.replaceName;
         const nameIsFalsy = !elementTemplateName;
         const nameWillBeTransformedToFalsy = elementTemplateReplaceName === null || elementTemplateReplaceName === "";
@@ -526,7 +537,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         if (!isTypeFieldDefinitionName<GroupFieldComponentDefinitionFrame>(currentData, GroupFieldComponentName)) {
             throw new Error(`Invalid ${GroupFieldComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
-        const frame = currentData?.config ?? {componentDefinitions: []};
+        const frame = currentData?.config ?? { componentDefinitions: [] };
 
         // Create the class instance for the config
         item.config = new GroupFieldComponentConfig();
@@ -580,7 +591,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         if (!isTypeFieldDefinitionName<TabFieldComponentDefinitionFrame>(currentData, TabComponentName)) {
             throw new Error(`Invalid ${TabComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
-        const frame = currentData?.config ?? {tabs: []};
+        const frame = currentData?.config ?? { tabs: [] };
 
         // Create the class instance for the config
         item.config = new TabFieldComponentConfig();
@@ -651,7 +662,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         if (!isTypeFieldDefinitionName<TabContentFieldComponentDefinitionFrame>(currentData, TabContentComponentName)) {
             throw new Error(`Invalid ${TabContentComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
         }
-        const config = currentData?.config ?? {componentDefinitions: []};
+        const config = currentData?.config ?? { componentDefinitions: [] };
 
         // Create the class instance for the config
         item.config = new TabContentFieldComponentConfig();
@@ -798,6 +809,47 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
+    /* Map */
+
+    visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<MapFieldComponentDefinitionFrame>(currentData, MapComponentName)) {
+            throw new Error(`Invalid ${MapComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+        const config = currentData?.config;
+
+        item.config = new MapFieldComponentConfig();
+
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.sharedProps.setPropOverride("center", item.config, config);
+        this.sharedProps.setPropOverride("zoom", item.config, config);
+        this.sharedProps.setPropOverride("mapHeight", item.config, config);
+        this.sharedProps.setPropOverride("tileLayers", item.config, config);
+        this.sharedProps.setPropOverride("enabledModes", item.config, config);
+        this.sharedProps.setPropOverride("enableImport", item.config, config);
+        this.sharedProps.setPropOverride("coordinatesHelp", item.config, config);
+
+        item.config.enabledModes = this.sanitizeMapEnabledModes(item.config.enabledModes, "construct");
+    }
+
+    visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<MapFieldModelDefinitionFrame>(currentData, MapModelName)) {
+            throw new Error(`Invalid ${MapModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+
+        item.config = new MapFieldModelConfig();
+
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item, currentData?.config);
+    }
+
+    visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
         this.populateFormComponent(item);
     }
 
@@ -1346,6 +1398,26 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
                     });
             }
         }
+    }
+
+    private sanitizeMapEnabledModes(rawModes: unknown, source: "construct" | "migrate"): MapDrawingMode[] {
+        const fallback: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "select"];
+        if (!Array.isArray(rawModes)) {
+            return fallback;
+        }
+        const validModes: MapDrawingMode[] = [];
+        const invalidModes: unknown[] = [];
+        for (const mode of rawModes) {
+            if (mode === "point" || mode === "polygon" || mode === "linestring" || mode === "rectangle" || mode === "select") {
+                validModes.push(mode);
+            } else {
+                invalidModes.push(mode);
+            }
+        }
+        if (invalidModes.length > 0) {
+            this.logger.warn(`${this.logName}: Map ${source} dropped unsupported enabledModes values at ${JSON.stringify(this.formPathHelper.formPath.formConfig)}: ${JSON.stringify(invalidModes)}.`);
+        }
+        return validModes;
     }
 
     protected getData() {

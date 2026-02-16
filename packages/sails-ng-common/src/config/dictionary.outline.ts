@@ -31,6 +31,7 @@ import { ReusableTypes } from "./component/reusable.outline";
 import { CheckboxTreeTypes } from "./component/checkbox-tree.outline";
 import { TypeaheadInputTypes } from "./component/typeahead-input.outline";
 import { RichTextEditorTypes } from "./component/rich-text-editor.outline";
+import { MapTypes } from "./component/map.outline";
 
 
 /**
@@ -55,6 +56,7 @@ export type AllTypes = DefaultLayoutTypes
     | CheckboxTreeTypes
     | TypeaheadInputTypes
     | RichTextEditorTypes
+    | MapTypes
     ;
 
 

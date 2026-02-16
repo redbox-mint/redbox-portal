@@ -24,6 +24,7 @@ import { ReusableComponentName } from "./component/reusable.outline";
 import { CheckboxTreeDefaults, CheckboxTreeMap } from "./component/checkbox-tree.model";
 import { TypeaheadInputDefaults, TypeaheadInputMap } from "./component/typeahead-input.model";
 import { RichTextEditorDefaults, RichTextEditorMap } from "./component/rich-text-editor.model";
+import { MapDefaults, MapMap } from "./component/map.model";
 
 
 /**
@@ -49,6 +50,7 @@ export const AllDefs = [
     ...CheckboxTreeMap,
     ...TypeaheadInputMap,
     ...RichTextEditorMap,
+    ...MapMap,
 ] as const;
 
 /**
@@ -74,6 +76,7 @@ const RawDefaults = [
     CheckboxTreeDefaults,
     TypeaheadInputDefaults,
     RichTextEditorDefaults,
+    MapDefaults,
 ]
 
 /**

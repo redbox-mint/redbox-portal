@@ -316,4 +316,49 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(typeaheadConfig.queryId).to.equal("fundingBody");
         expect(typeaheadConfig.labelField).to.equal("dc_description");
     });
+
+    it("maps legacy MapField to MapComponent and normalizes config/value", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "map-migration",
+                fields: [
+                    {
+                        class: "MapField",
+                        compClass: "MapComponent",
+                        definition: {
+                            name: "map_coverage",
+                            leafletOptions: {
+                                center: [-24.67, 134.07],
+                                zoom: 5
+                            },
+                            drawOptions: {
+                                draw: {
+                                    marker: {},
+                                    polygon: {},
+                                    polyline: false,
+                                    rectangle: {}
+                                },
+                                edit: {}
+                            }
+                        },
+                        value: {}
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("MapComponent");
+        expect(migratedField.model?.class).to.equal("MapModel");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        expect(componentConfig.center).to.deep.equal([-24.67, 134.07]);
+        expect(componentConfig.zoom).to.equal(5);
+        expect(componentConfig.enabledModes).to.deep.equal(["point", "polygon", "rectangle", "select"]);
+        const modelConfig = migratedField.model?.config as Record<string, unknown>;
+        expect(modelConfig.defaultValue).to.deep.equal({
+            type: "FeatureCollection",
+            features: []
+        });
+    });
 });

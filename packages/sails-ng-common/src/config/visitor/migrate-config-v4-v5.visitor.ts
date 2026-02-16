@@ -129,6 +129,17 @@ import {
     CheckboxTreeModelName
 } from "../component/checkbox-tree.outline";
 import { CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig } from "../component/checkbox-tree.model";
+import {
+    MapComponentName,
+    MapDrawingMode,
+    MapFieldModelConfigOutline,
+    MapFieldComponentDefinitionOutline,
+    MapFieldModelDefinitionOutline,
+    MapFormComponentDefinitionOutline,
+    MapModelName,
+    MapTileLayerConfig
+} from "../component/map.outline";
+import { MapFieldComponentConfig, MapFieldModelConfig } from "../component/map.model";
 
 
 import { FieldModelConfigFrame } from "../field-model.outline";
@@ -345,6 +356,16 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
             componentClassName: CheckboxTreeComponentName,
             modelClassName: CheckboxTreeModelName
         },
+    },
+    "MapField": {
+        "": {
+            componentClassName: MapComponentName,
+            modelClassName: MapModelName
+        },
+        "MapComponent": {
+            componentClassName: MapComponentName,
+            modelClassName: MapModelName
+        }
     },
 };
 
@@ -917,6 +938,48 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
+    /* Map */
+
+    visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new MapFieldComponentConfig();
+        this.sharedPopulateFieldComponentConfig(item.config, field);
+
+        const rawDefinition = (field?.definition ?? {}) as Record<string, unknown>;
+        const leafletOptions = this.readObject(rawDefinition.leafletOptions);
+        const drawOptions = this.readObject(rawDefinition.drawOptions);
+
+        const center = this.extractLegacyMapCenter(leafletOptions);
+        if (center) {
+            this.sharedProps.setPropOverride("center", item.config, { center });
+        }
+        const zoom = this.extractLegacyMapZoom(leafletOptions);
+        if (zoom !== undefined) {
+            this.sharedProps.setPropOverride("zoom", item.config, { zoom });
+        }
+
+        const tileLayers = this.extractLegacyMapTileLayers(rawDefinition);
+        if (tileLayers.length > 0) {
+            this.sharedProps.setPropOverride("tileLayers", item.config, { tileLayers });
+        }
+
+        const enabledModes = this.extractLegacyMapEnabledModes(drawOptions);
+        if (enabledModes.length > 0) {
+            this.sharedProps.setPropOverride("enabledModes", item.config, { enabledModes });
+        }
+    }
+
+    visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new MapFieldModelConfig();
+        this.sharedPopulateFieldModelConfig(item.config, field);
+        this.coerceMapFeatureCollection(item.config);
+    }
+
+    visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
         this.populateFormComponent(item);
     }
 
@@ -1500,6 +1563,121 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             this.logger.warn(`${this.logName}: CheckboxTree migration dropped malformed default selection entries.`);
         }
         config.defaultValue = coerced as CheckboxTreeFieldModelConfig['defaultValue'];
+    }
+
+    private coerceMapFeatureCollection(config: MapFieldModelConfigOutline): void {
+        const emptyCollection = {
+            type: "FeatureCollection",
+            features: []
+        } as MapFieldModelConfig["defaultValue"];
+
+        const normalize = (value: unknown): MapFieldModelConfig["defaultValue"] => {
+            if (!value || typeof value !== "object") {
+                return emptyCollection;
+            }
+            const source = value as Record<string, unknown>;
+            const type = String(source.type ?? "");
+            if (type !== "FeatureCollection") {
+                return emptyCollection;
+            }
+            const features = Array.isArray(source.features) ? source.features : [];
+            return {
+                type: "FeatureCollection",
+                features: features as MapFieldModelConfig["defaultValue"]["features"]
+            };
+        };
+
+        config.defaultValue = normalize(config.defaultValue);
+        if (config.value !== undefined) {
+            config.value = normalize(config.value);
+        }
+    }
+
+    private extractLegacyMapCenter(leafletOptions: Record<string, unknown>): [number, number] | undefined {
+        const center = leafletOptions.center;
+        if (Array.isArray(center) && center.length >= 2) {
+            const lat = Number(center[0]);
+            const lng = Number(center[1]);
+            if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                return [lat, lng];
+            }
+        }
+        if (center && typeof center === "object") {
+            const centerObj = center as Record<string, unknown>;
+            const lat = Number(centerObj.lat);
+            const lng = Number(centerObj.lng ?? centerObj.lon);
+            if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                return [lat, lng];
+            }
+        }
+        return undefined;
+    }
+
+    private extractLegacyMapZoom(leafletOptions: Record<string, unknown>): number | undefined {
+        const zoom = Number(leafletOptions.zoom);
+        if (Number.isFinite(zoom)) {
+            return zoom;
+        }
+        return undefined;
+    }
+
+    private extractLegacyMapTileLayers(definition: Record<string, unknown>): MapTileLayerConfig[] {
+        const layersControl = this.readObject(definition.layersControl);
+        const baseLayers = this.readObject(layersControl.baseLayers);
+        const tileLayers: MapTileLayerConfig[] = [];
+        for (const [name, layerValue] of Object.entries(baseLayers)) {
+            if (!layerValue || typeof layerValue !== "object") {
+                continue;
+            }
+            const layer = layerValue as Record<string, unknown>;
+            const url = String(layer._url ?? "");
+            if (!url) {
+                continue;
+            }
+            tileLayers.push({
+                name,
+                url,
+                options: this.readObject(layer.options)
+            });
+        }
+        return tileLayers;
+    }
+
+    private extractLegacyMapEnabledModes(drawOptions: Record<string, unknown>): MapDrawingMode[] {
+        const draw = this.readObject(drawOptions.draw);
+        const enabledModes: MapDrawingMode[] = [];
+
+        const modeMap: Array<{ key: string; mode: MapDrawingMode }> = [
+            { key: "marker", mode: "point" },
+            { key: "polygon", mode: "polygon" },
+            { key: "polyline", mode: "linestring" },
+            { key: "rectangle", mode: "rectangle" }
+        ];
+        for (const { key, mode } of modeMap) {
+            const rawModeConfig = draw[key];
+            if (rawModeConfig === false) {
+                continue;
+            }
+            enabledModes.push(mode);
+        }
+
+        const hasLegacyEditConfig = Object.prototype.hasOwnProperty.call(drawOptions, "edit");
+        if (hasLegacyEditConfig && drawOptions.edit !== false) {
+            enabledModes.push("select");
+        }
+
+        const deduped = [...new Set(enabledModes)];
+        const invalidModes = deduped.filter((mode) => !["point", "polygon", "linestring", "rectangle", "select"].includes(mode));
+        if (invalidModes.length > 0) {
+            this.logger.warn(`${this.logName}: Map migration dropped unsupported enabledModes values at ${JSON.stringify(this.v4FormPath)}: ${JSON.stringify(invalidModes)}.`);
+        }
+        return deduped.filter((mode): mode is MapDrawingMode => (
+            mode === "point" || mode === "polygon" || mode === "linestring" || mode === "rectangle" || mode === "select"
+        ));
+    }
+
+    private readObject(input: unknown): Record<string, unknown> {
+        return (input && typeof input === "object" && !Array.isArray(input)) ? (input as Record<string, unknown>) : {};
     }
 
     private resolveTypeaheadSourceType(definition: Record<string, unknown>): "namedQuery" | "vocabulary" | "static" {
