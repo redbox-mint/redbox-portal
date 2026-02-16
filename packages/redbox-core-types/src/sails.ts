@@ -72,9 +72,12 @@ declare global {
 			};
 			// Action lookup method
 			getActions(): { [actionName: string]: unknown };
-            on(event: string, cb: (...args: unknown[]) => void): void;
-            emit(event: string, ...args: unknown[]): void;
-		}		export interface Hook {
+			on(event: string, cb: (...args: unknown[]) => void): void;
+			emit(event: string, ...args: unknown[]): void;
+			getDatastore(name?: string): Datastore;
+		}
+
+		export interface Hook {
 			initialize: (cb: () => void) => void;
 			routes: {
 				before: { [key: string]: unknown };
@@ -84,17 +87,32 @@ declare global {
 			defaults?: { [key: string]: unknown };
 		}
 
+		export interface Datastore {
+			manager: {
+				collection: (name: string) => {
+					createIndex: (spec: object) => Promise<unknown>;
+					find: (filter: object) => {
+						forEach: (cb: (doc: globalThis.Record<string, unknown>) => void | Promise<void>) => Promise<void> | void;
+					};
+					insertOne: (doc: globalThis.Record<string, unknown>) => Promise<unknown>;
+					deleteOne: (filter: object) => Promise<unknown>;
+				};
+			};
+			transaction?<T>(work: (connection: Connection) => Promise<T>): Promise<T>;
+		}
+
+		export type Connection = unknown;
+
 		export interface Model<T> {
 			attributes: object;
 
-			create(params: object): WaterlinePromise<QueryResult>;
-			create(params: Array<object>): WaterlinePromise<QueryResult>;
-			create(params: object, cb: (err: Error, created: QueryResult) => void): void;
-			create(params: Array<object>, cb: (err: Error, created: Array<QueryResult>) => void): void;
+			create(params: object): WaterlinePromise<T>;
+			create(params: Array<object>): WaterlinePromise<T[]>;
+			create(params: object, cb: (err: Error, created: T) => void): void;
+			create(params: Array<object>, cb: (err: Error, created: T[]) => void): void;
 
 			find(): QueryBuilder;
 			find(params: object): QueryBuilder;
-			find(params: object): WaterlinePromise<Array<QueryResult>>;
 
 			findOne(criteria: object): WaterlinePromise<T>;
 			findOne(criteria: object, cb: (err: Error, found: T) => void): void;
@@ -113,44 +131,44 @@ declare global {
 			count(criteria: string, cb: (err: Error, found: number) => void): void;
 			count(criteria: number, cb: (err: Error, found: number) => void): void;
 
-			destroy(criteria: object): WaterlinePromise<Array<Record>>;
-			destroy(criteria: Array<object>): WaterlinePromise<Array<Record>>;
-			destroy(criteria: string): WaterlinePromise<Array<Record>>;
-			destroy(criteria: number): WaterlinePromise<Array<Record>>;
+			destroy(criteria: object): WaterlinePromise<T[]>;
+			destroy(criteria: Array<object>): WaterlinePromise<T[]>;
+			destroy(criteria: string): WaterlinePromise<T[]>;
+			destroy(criteria: number): WaterlinePromise<T[]>;
 
-			destroy(criteria: object, cb: (err: Error, deleted: Array<Record>) => void): void;
-			destroy(criteria: Array<object>, cb: (err: Error, deleted: Array<Record>) => void): void;
-			destroy(criteria: string, cb: (err: Error, deleted: Array<Record>) => void): void;
-			destroy(criteria: number, cb: (err: Error, deleted: Array<Record>) => void): void;
+			destroy(criteria: object, cb: (err: Error, deleted: T[]) => void): void;
+			destroy(criteria: Array<object>, cb: (err: Error, deleted: T[]) => void): void;
+			destroy(criteria: string, cb: (err: Error, deleted: T[]) => void): void;
+			destroy(criteria: number, cb: (err: Error, deleted: T[]) => void): void;
 
 			destroyOne(criteria: object): WaterlinePromise<T>;
 			destroyOne(criteria: string): WaterlinePromise<T>;
 			destroyOne(criteria: number): WaterlinePromise<T>;
 
-			update(criteria: object, changes: object): WaterlinePromise<Array<QueryResult>>;
-			update(criteria: Array<object>, changes: object): WaterlinePromise<Array<QueryResult>>;
-			update(criteria: string, changes: object): WaterlinePromise<Array<QueryResult>>;
-			update(criteria: number, changes: object): WaterlinePromise<Array<QueryResult>>;
+			update(criteria: object, changes: object): WaterlinePromise<T[]>;
+			update(criteria: Array<object>, changes: object): WaterlinePromise<T[]>;
+			update(criteria: string, changes: object): WaterlinePromise<T[]>;
+			update(criteria: number, changes: object): WaterlinePromise<T[]>;
 
-			update(criteria: object, changes: Array<object>): WaterlinePromise<Array<QueryResult>>;
-			update(criteria: Array<object>, changes: Array<object>): WaterlinePromise<Array<QueryResult>>;
-			update(criteria: string, changes: Array<object>): WaterlinePromise<Array<QueryResult>>;
-			update(criteria: number, changes: Array<object>): WaterlinePromise<Array<QueryResult>>;
+			update(criteria: object, changes: Array<object>): WaterlinePromise<T[]>;
+			update(criteria: Array<object>, changes: Array<object>): WaterlinePromise<T[]>;
+			update(criteria: string, changes: Array<object>): WaterlinePromise<T[]>;
+			update(criteria: number, changes: Array<object>): WaterlinePromise<T[]>;
 
-			update(criteria: object, changes: Array<object>, cb: (err: Error, updated: Array<QueryResult>) => void): void;
-			update(criteria: Array<object>, changes: Array<object>, cb: (err: Error, updated: Array<QueryResult>) => void): void;
-			update(criteria: string, changes: Array<object>, cb: (err: Error, updated: Array<QueryResult>) => void): void;
-			update(criteria: number, changes: Array<object>, cb: (err: Error, updated: Array<QueryResult>) => void): void;
+			update(criteria: object, changes: Array<object>, cb: (err: Error, updated: T[]) => void): void;
+			update(criteria: Array<object>, changes: Array<object>, cb: (err: Error, updated: T[]) => void): void;
+			update(criteria: string, changes: Array<object>, cb: (err: Error, updated: T[]) => void): void;
+			update(criteria: number, changes: Array<object>, cb: (err: Error, updated: T[]) => void): void;
 
 			// Overload for update without changes (chainable with .set())
-			update(criteria: object): WaterlinePromise<Array<QueryResult>>;
+			update(criteria: object): WaterlinePromise<T[]>;
 
-			updateOne(criteria: object, changes: object): WaterlinePromise<T>;
-			updateOne(criteria: object): WaterlinePromise<T>;
-			updateOne(criteria: string, changes: object): WaterlinePromise<T>;
-			updateOne(criteria: string): WaterlinePromise<T>;
-			updateOne(criteria: number, changes: object): WaterlinePromise<T>;
-			updateOne(criteria: number): WaterlinePromise<T>;
+			updateOne(criteria: object, changes: object): WaterlinePromise<T | null>;
+			updateOne(criteria: object): WaterlinePromise<T | null>;
+			updateOne(criteria: string, changes: object): WaterlinePromise<T | null>;
+			updateOne(criteria: string): WaterlinePromise<T | null>;
+			updateOne(criteria: number, changes: object): WaterlinePromise<T | null>;
+			updateOne(criteria: number): WaterlinePromise<T | null>;
 
 			query(sqlQuery: string, cb: (err: Error, results: Array<Record>) => void): void;
 			native(cb: (err: Error, collection: Model<T>) => void): void;
@@ -168,12 +186,7 @@ declare global {
 			addToCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
 			replaceCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
 			removeFromCollection(id: string | number, association: string): { members: (ids: (string | number)[]) => WaterlinePromise<unknown> };
-            getDatastore(): { manager: { collection: (name: string) => {
-              createIndex: (spec: object) => Promise<unknown>;
-              find: (filter: object) => { forEach: (cb: (doc: globalThis.Record<string, unknown>) => void | Promise<void>) => Promise<void> | void };
-              insertOne: (doc: globalThis.Record<string, unknown>) => Promise<unknown>;
-              deleteOne: (filter: object) => Promise<unknown>;
-            } } };
+			getDatastore(): Datastore;
 		}
 
 		export interface WaterlineAttributes {
@@ -183,7 +196,8 @@ declare global {
 		export interface NextFunction extends express.NextFunction { }
 
 		export interface Req extends express.Request {
-			options?: globalThis.Record<string, unknown>;
+			options?: any;
+			session: express.Request['session'];
 			user?: globalThis.Record<string, unknown>;
 			query: { [key: string]: string | undefined };
 			param(name: string, defaultValue?: string): string;
@@ -191,8 +205,17 @@ declare global {
 			[key: string]: unknown;
 		}
 
+		// TODO: We have some places where Req.param expects a non nullable string, and some places where it can be undefined or null. 
+		// We should standardize this to avoid confusion and refactor accordingly.
+		export interface ReqParamProvider {
+			param(name: string, defaultValue?: string): string | undefined | null;
+			params?: globalThis.Record<string, unknown>;
+			body?: globalThis.Record<string, unknown>;
+			session?: express.Request['session'];
+		}
+
 		// Sails.js Response interface - uses intersection type to add Sails-specific methods
-		 
+
 		export interface Res extends Omit<express.Response, 'badRequest'> {
 			attachement(filename: string): void;
 
@@ -212,6 +235,8 @@ declare global {
 			exec(cb: (err: Error, results: T) => void): void;
 			set(values: object): WaterlinePromise<T>;
 			meta(options: object): WaterlinePromise<T>;
+			fetch(): WaterlinePromise<T>;
+			usingConnection(connection: Connection): WaterlinePromise<T>;
 
 			populate(association: string): QueryBuilder;
 			populate(association: string, filter: object): QueryBuilder;
@@ -233,6 +258,7 @@ declare global {
 			exec(cb: (error: Error | null, results: Array<QueryResult>) => void): void;
 			set(values: object): QueryBuilder;
 			meta(options: object): QueryBuilder;
+			usingConnection(connection: Connection): QueryBuilder;
 
 			where(condition: object): QueryBuilder;
 

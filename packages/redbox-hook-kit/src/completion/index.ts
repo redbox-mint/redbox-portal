@@ -9,7 +9,7 @@ type CompletionSpec = {
 function getCompletionSpec(): CompletionSpec {
   const globalOptions = ['--root', '--core-types-root', '--angular-root', '--dry-run', '-h', '--help', '-V', '--version'];
   const topLevelCommands = ['init', 'generate', 'g', 'install-skills', 'skills', 'migrate-form-config', 'completion', 'help'];
-  const generateCommands = ['controller', 'service', 'method', 'angular-app', 'angular-service', 'form-field', 'model'];
+  const generateCommands = ['controller', 'service', 'method', 'angular-app', 'angular-service', 'form-component', 'form-field', 'model'];
 
   const commandOptions: Record<string, string[]> = {
     'migrate-form-config': ['-i', '--input', '-o', '--output'],
@@ -22,6 +22,7 @@ function getCompletionSpec(): CompletionSpec {
     'generate method': ['--file', '--method', '--route', '--http', '--auth', '--nav', '--lang'],
     'generate angular-app': ['--ejs-view', '--auth'],
     'generate angular-service': ['--app', '--methods'],
+    'generate form-component': ['--app', '--with-service'],
     'generate form-field': ['--type'],
     'generate model': ['--identity', '--attrs', '--belongs-to', '--has-many']
   };
@@ -147,6 +148,8 @@ function generateFishCompletion(): string {
   lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from angular-app" -l auth -r');
   lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from angular-service" -l app -r');
   lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from angular-service" -l methods -r');
+  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from form-component" -l app -r');
+  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from form-component" -l with-service');
   lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from form-field" -l type -r');
   lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from model" -l identity -r');
   lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from model" -l attrs -r');
@@ -186,6 +189,7 @@ Register-ArgumentCompleter -Native -CommandName redbox-hook-kit -ScriptBlock {
       'method' { @('--file','--method','--route','--http','--auth','--nav','--lang') }
       'angular-app' { @('--ejs-view','--auth') }
       'angular-service' { @('--app','--methods') }
+      'form-component' { @('--app','--with-service') }
       'form-field' { @('--type') }
       'model' { @('--identity','--attrs','--belongs-to','--has-many') }
       default { @() }

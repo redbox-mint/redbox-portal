@@ -73,14 +73,6 @@ export const webpack: WebpackConfig = {
                         {
                             from: './node_modules/jquery/dist/jquery.min.js',
                             to: './default/default/js/'
-                        },
-                        {
-                            from: './angular-legacy/node_modules/bootstrap-datepicker/js/bootstrap-datepicker.js',
-                            to: './default/default/js/'
-                        },
-                        {
-                            from: './angular-legacy/node_modules/bootstrap-timepicker/js/bootstrap-timepicker.js',
-                            to: './default/default/js/'
                         }
                     ],
                 }),

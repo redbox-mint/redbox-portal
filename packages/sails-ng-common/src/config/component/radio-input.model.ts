@@ -23,6 +23,8 @@ import {
 
 export class RadioInputFieldComponentConfig extends FieldComponentConfig implements RadioInputFieldComponentConfigOutline {
     options: RadioOption[] = [];
+    vocabRef?: string;
+    inlineVocab?: boolean;
 
     constructor() {
         super();

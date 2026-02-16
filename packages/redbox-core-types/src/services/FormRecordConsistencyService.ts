@@ -23,9 +23,10 @@ import {
     guessType, FormValidatorSummaryErrors,
     FormConfigFrame, DataValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
     TemplateFormConfigVisitor, TemplateCompileInput, ConstructFormConfigVisitor, FormModesConfig,
-    ValidatorFormConfigVisitor, ReusableFormDefinitions
+    ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
 import {firstValueFrom} from "rxjs";
+import { ValidatorFormConfigVisitor } from "../visitor/validator.visitor";
 
 
 
@@ -112,7 +113,7 @@ export namespace Services {
             // build the client form config
             const userRoles: string[] | undefined = undefined;
             const recordMetadata = original?.metadata;
-            const clientFormConfig = FormsService.buildClientFormConfig(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs);
+            const clientFormConfig = await FormsService.buildClientFormConfig(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs);
 
             // merge the original and changed records using the client form config to know which changes to include
             return this.mergeRecordClientFormConfig(original as unknown as BasicRedboxRecord, changed, clientFormConfig, formMode, reusableFormDefs);
@@ -507,14 +508,14 @@ export namespace Services {
          * @param recordMetadata The record metadata.
          * @param reusableFormDefs The reusable form definitions.
          */
-        public extractRawTemplates(
+        public async extractRawTemplates(
           item: FormConfigFrame,
           formMode: FormModesConfig,
           userRoles?: string[],
           recordMetadata?: Record<string, unknown> | null,
           reusableFormDefs?: ReusableFormDefinitions
-        ): TemplateCompileInput[] {
-          const form = FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata, reusableFormDefs);
+        ): Promise<TemplateCompileInput[]> {
+          const form = await FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata, reusableFormDefs);
           const visitor = new TemplateFormConfigVisitor(this.logger);
           return visitor.start({form});
         }

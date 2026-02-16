@@ -1,8 +1,9 @@
-import {TestBed} from '@angular/core/testing';
-import {FormComponent} from './form.component';
-import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
-import {SimpleInputComponent} from './component/simple-input.component';
-import {createFormAndWaitForReady, createTestbedModule} from "./helpers.spec";
+import { TestBed } from '@angular/core/testing';
+import { FormComponent } from './form.component';
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { SimpleInputComponent } from './component/simple-input.component';
+import { GroupFieldComponent } from './component/group.component';
+import { createFormAndWaitForReady, createTestbedModule } from "./helpers.spec";
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { createFormSaveExecuteEvent } from './form-state/events/form-component-event.types';
 
@@ -11,7 +12,8 @@ describe('FormComponent', () => {
     await createTestbedModule(
       {
         declarations: {
-          "SimpleInputComponent": SimpleInputComponent
+          "SimpleInputComponent": SimpleInputComponent,
+          "GroupFieldComponent": GroupFieldComponent,
         }
       });
   });
@@ -45,7 +47,7 @@ describe('FormComponent', () => {
         }
       ]
     };
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
 
     // Now run your expectations
     const compiled = fixture.nativeElement as HTMLElement;
@@ -118,7 +120,51 @@ describe('FormComponent', () => {
     const { formComponent } = await createFormAndWaitForReady(formConfig);
     const submitSpy = spyOn(formComponent, 'saveForm').and.stub();
     await formComponent.saveForm(true, 'legacy-step', ["none"]);
-    expect(submitSpy).toHaveBeenCalledWith(true, 'legacy-step',  ["none"]);
+    expect(submitSpy).toHaveBeenCalledWith(true, 'legacy-step', ["none"]);
+  });
+
+  it('omits disabled controls from Form Values Debug data', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'debug-filter-disabled',
+      debugValue: true,
+      componentDefinitions: [
+        {
+          name: 'enabled_text',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'enabled value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        },
+        {
+          name: 'disabled_group',
+          model: {
+            class: 'GroupModel',
+            config: {
+              disabled: true,
+              value: {}
+            }
+          },
+          component: {
+            class: 'GroupComponent',
+            config: {
+              disabled: true,
+              componentDefinitions: []
+            }
+          }
+        }
+      ]
+    };
+
+    const { formComponent } = await createFormAndWaitForReady(formConfig);
+    const debugValues = formComponent.getDebugFormValue();
+
+    expect(debugValues['enabled_text']).toBe('enabled value');
+    expect(debugValues['disabled_group']).toBeUndefined();
   });
 
 });

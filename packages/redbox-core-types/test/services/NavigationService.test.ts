@@ -2,11 +2,11 @@ import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
-describe('NavigationService', function() {
+describe('NavigationService', function () {
   let mockSails: any;
   let NavigationService: any;
 
-  beforeEach(function() {
+  beforeEach(function () {
     mockSails = createMockSails({
       config: {
         appPath: '/app',
@@ -48,7 +48,7 @@ describe('NavigationService', function() {
 
     // Mock dependent services
     (global as any).BrandingService = {
-      getBrandFromReq: sinon.stub().returns('default'),
+      getBrandNameFromReq: sinon.stub().returns('default'),
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandAndPortalPath: sinon.stub().returns('/default/portal')
     };
@@ -67,7 +67,7 @@ describe('NavigationService', function() {
     NavigationService = new Services.Navigation();
   });
 
-  afterEach(function() {
+  afterEach(function () {
     cleanupServiceTestGlobals();
     delete (global as any).BrandingService;
     delete (global as any).RolesService;
@@ -76,36 +76,36 @@ describe('NavigationService', function() {
     sinon.restore();
   });
 
-  describe('getDefaultMenuConfig', function() {
-    it('should return the default menu configuration', function() {
+  describe('getDefaultMenuConfig', function () {
+    it('should return the default menu configuration', function () {
       const config = NavigationService.getDefaultMenuConfig();
-      
+
       expect(config).to.have.property('items');
       expect(config).to.have.property('showSearch');
       expect(config.items).to.be.an('array');
     });
   });
 
-  describe('getDefaultHomePanelConfig', function() {
-    it('should return the default home panel configuration', function() {
+  describe('getDefaultHomePanelConfig', function () {
+    it('should return the default home panel configuration', function () {
       const config = NavigationService.getDefaultHomePanelConfig();
-      
+
       expect(config).to.have.property('panels');
       expect(config.panels).to.be.an('array');
     });
   });
 
-  describe('getDefaultAdminSidebarConfig', function() {
-    it('should return the default admin sidebar configuration', function() {
+  describe('getDefaultAdminSidebarConfig', function () {
+    it('should return the default admin sidebar configuration', function () {
       const config = NavigationService.getDefaultAdminSidebarConfig();
-      
+
       expect(config).to.have.property('sections');
       expect(config.sections).to.be.an('array');
     });
   });
 
-  describe('resolveMenu', function() {
-    it('should resolve menu for authenticated user', async function() {
+  describe('resolveMenu', function () {
+    it('should resolve menu for authenticated user', async function () {
       const mockReq = {
         isAuthenticated: sinon.stub().returns(true),
         user: { id: 'user-1', roles: ['Admin'] },
@@ -114,12 +114,12 @@ describe('NavigationService', function() {
       };
 
       const result = await NavigationService.resolveMenu(mockReq);
-      
+
       expect(result).to.have.property('items');
       expect(result).to.have.property('showSearch');
     });
 
-    it('should resolve menu for unauthenticated user', async function() {
+    it('should resolve menu for unauthenticated user', async function () {
       const mockReq = {
         isAuthenticated: sinon.stub().returns(false),
         user: null,
@@ -128,15 +128,15 @@ describe('NavigationService', function() {
       };
 
       const result = await NavigationService.resolveMenu(mockReq);
-      
+
       expect(result).to.have.property('items');
       expect(result.items).to.be.an('array');
     });
 
-    it('should return empty items on error', async function() {
+    it('should return empty items on error', async function () {
       // Force an error by breaking the BrandingService
-      (global as any).BrandingService.getBrandFromReq = sinon.stub().throws(new Error('Test error'));
-      
+      (global as any).BrandingService.getBrandNameFromReq = sinon.stub().throws(new Error('Test error'));
+
       const mockReq = {
         isAuthenticated: sinon.stub().returns(false),
         user: null,
@@ -145,14 +145,14 @@ describe('NavigationService', function() {
       };
 
       const result = await NavigationService.resolveMenu(mockReq);
-      
+
       expect(result.items).to.be.an('array');
       expect(result.items).to.have.lengthOf(0);
     });
   });
 
-  describe('resolveHomePanels', function() {
-    it('should resolve home panels for authenticated user', async function() {
+  describe('resolveHomePanels', function () {
+    it('should resolve home panels for authenticated user', async function () {
       const mockReq = {
         isAuthenticated: sinon.stub().returns(true),
         user: { id: 'user-1', roles: ['Admin'] },
@@ -161,17 +161,17 @@ describe('NavigationService', function() {
       };
 
       const result = await NavigationService.resolveHomePanels(mockReq);
-      
+
       expect(result).to.have.property('panels');
       expect(result.panels).to.be.an('array');
     });
 
-    it('should return empty panels on error', async function() {
+    it('should return empty panels on error', async function () {
       // Stub console.error to suppress expected error output
       const consoleErrorStub = sinon.stub(console, 'error');
-      
-      (global as any).BrandingService.getBrandFromReq = sinon.stub().throws(new Error('Test error'));
-      
+
+      (global as any).BrandingService.getBrandNameFromReq = sinon.stub().throws(new Error('Test error'));
+
       const mockReq = {
         isAuthenticated: sinon.stub().returns(false),
         user: null,
@@ -181,7 +181,7 @@ describe('NavigationService', function() {
 
       try {
         const result = await NavigationService.resolveHomePanels(mockReq);
-        
+
         expect(result.panels).to.be.an('array');
         expect(result.panels).to.have.lengthOf(0);
         expect(consoleErrorStub.calledWithMatch(/Error resolving home panels/)).to.be.true;
@@ -191,8 +191,8 @@ describe('NavigationService', function() {
     });
   });
 
-  describe('resolveAdminSidebar', function() {
-    it('should resolve admin sidebar for authenticated admin user', async function() {
+  describe('resolveAdminSidebar', function () {
+    it('should resolve admin sidebar for authenticated admin user', async function () {
       const mockReq = {
         isAuthenticated: sinon.stub().returns(true),
         user: { id: 'user-1', roles: ['Admin'] },
@@ -201,7 +201,7 @@ describe('NavigationService', function() {
       };
 
       const result = await NavigationService.resolveAdminSidebar(mockReq);
-      
+
       expect(result).to.have.property('header');
       expect(result).to.have.property('sections');
       expect(result).to.have.property('footerLinks');
@@ -209,9 +209,9 @@ describe('NavigationService', function() {
       expect(result.header).to.have.property('iconClass');
     });
 
-    it('should return minimal sidebar on error', async function() {
-      (global as any).BrandingService.getBrandFromReq = sinon.stub().throws(new Error('Test error'));
-      
+    it('should return minimal sidebar on error', async function () {
+      (global as any).BrandingService.getBrandNameFromReq = sinon.stub().throws(new Error('Test error'));
+
       const mockReq = {
         isAuthenticated: sinon.stub().returns(false),
         user: null,
@@ -220,14 +220,14 @@ describe('NavigationService', function() {
       };
 
       const result = await NavigationService.resolveAdminSidebar(mockReq);
-      
+
       expect(result.header.title).to.equal('Admin');
       expect(result.sections).to.be.an('array');
     });
   });
 
-  describe('exports', function() {
-    it('should export all public methods', function() {
+  describe('exports', function () {
+    it('should export all public methods', function () {
       const exported = NavigationService.exports();
 
       expect(exported).to.have.property('resolveMenu');

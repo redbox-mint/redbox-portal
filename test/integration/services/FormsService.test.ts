@@ -128,7 +128,7 @@ describe('The FormsService', function () {
     });
 
     describe("build client form config", function () {
-        it('should use the record data in the form edit mode', function (done) {
+        it('should use the record data in the form edit mode', async function () {
             const formConfig: FormConfigFrame = {
                 name: "basic-form",
                 type: "rdmp",
@@ -225,16 +225,15 @@ describe('The FormsService', function () {
                 text_2: "record text_2 value"
             };
             const original = JSON.stringify(formConfig);
-            const result = FormsService.buildClientFormConfig(formConfig, "edit", null, recordMetadata);
+            const result = await FormsService.buildClientFormConfig(formConfig, "edit", null, recordMetadata);
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);
 
             // confirm the client form config looks as expected
             expect(result).to.eql(expected);
-            done();
         });
-        it('should use the record data in the form view mode', function (done) {
+        it('should use the record data in the form view mode', async function () {
             const formConfig: FormConfigFrame = {
                 name: "basic-form",
                 type: "rdmp",
@@ -449,17 +448,16 @@ describe('The FormsService', function () {
             };
 
             const original = JSON.stringify(formConfig);
-            const result = FormsService.buildClientFormConfig(formConfig, "view", null, recordMetadata);
+            const result = await FormsService.buildClientFormConfig(formConfig, "view", null, recordMetadata);
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);
 
             // confirm the client form config looks as expected
             expect(result).to.eql(expected);
-            done();
         });
 
-        it('should build the expected config', function (done) {
+        it('should build the expected config', async function () {
             const formConfig: FormConfigFrame = {
                 name: "basic-form",
                 type: "rdmp",
@@ -553,16 +551,15 @@ describe('The FormsService', function () {
                 ]
             };
             const original = JSON.stringify(formConfig);
-            const result = FormsService.buildClientFormConfig(formConfig, "edit");
+            const result = await FormsService.buildClientFormConfig(formConfig, "edit");
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);
 
             // confirm the client form config looks as expected
             expect(result).to.eql(expected);
-            done();
         });
-        it('should remove the component because the user does not have the required roles', function (done) {
+        it('should remove the component because the user does not have the required roles', async function () {
             const formConfig: FormConfigFrame = {
                 name: "remove-item-constraint-roles",
                 type: "rdmp",
@@ -641,16 +638,15 @@ describe('The FormsService', function () {
                 ]
             };
             const original = JSON.stringify(formConfig);
-            const result = FormsService.buildClientFormConfig(formConfig, "edit");
+            const result = await FormsService.buildClientFormConfig(formConfig, "edit");
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);
 
             // confirm the client form config looks as expected
             expect(result).to.eql(expected);
-            done();
         });
-        it('should remove the component because the client does not have the required mode', function (done) {
+        it('should remove the component because the client does not have the required mode', async function () {
             const formConfig: FormConfigFrame = {
                 name: "remove-item-constraint-mode",
                 type: "rdmp",
@@ -741,16 +737,15 @@ describe('The FormsService', function () {
                 ]
             };
             const original = JSON.stringify(formConfig);
-            const result = FormsService.buildClientFormConfig(formConfig, "view");
+            const result = await FormsService.buildClientFormConfig(formConfig, "view");
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);
 
             // confirm the client form config looks as expected
             expect(result).to.eql(expected);
-            done();
         });
-        it('should remove the components nested in repeatable and group components when the constraints are not met', function (done) {
+        it('should remove the components nested in repeatable and group components when the constraints are not met', async function () {
             const formConfig: FormConfigFrame = {
                 name: "remove-items-constrains-nested",
                 type: "rdmp",
@@ -965,14 +960,13 @@ describe('The FormsService', function () {
                 ]
             };
             const original = JSON.stringify(formConfig);
-            const result = FormsService.buildClientFormConfig(formConfig, "view");
+            const result = await FormsService.buildClientFormConfig(formConfig, "view");
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);
 
             // confirm the client form config looks as expected
             expect(result).to.eql(expected);
-            done();
         });
     });
 });

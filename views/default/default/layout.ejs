@@ -121,7 +121,7 @@
 <% } %>
 
 <%
-  var brandingName = BrandingService.getBrandFromReq(req);
+  var brandingName = BrandingService.getBrandNameFromReq(req);
   var portalName = BrandingService.getPortalFromReq(req);
   var systemMessageConfig = sails.config.brandingAware(brandingName).systemMessage || {};
   // We use FNV-1a hash to generate a short, value-based identifier for the system message content.

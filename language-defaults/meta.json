@@ -3622,5 +3622,73 @@
 		"branding-reset-draft-button": {
 			"category": "branding",
 			"description": "Text for reset draft button"
+		},
+		"@rich-text-editor-source-toggle-rich-text": {
+			"category": "rich-text-editor",
+			"description": "Rich text label for source toggle button when source mode is active"
+		},
+		"@rich-text-editor-source-toggle-markdown": {
+			"category": "rich-text-editor",
+			"description": "Markdown label for source toggle button"
+		},
+		"@rich-text-editor-source-toggle-html": {
+			"category": "rich-text-editor",
+			"description": "HTML label for source toggle button"
+		},
+		"@rich-text-editor-toolbar-heading": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for heading action"
+		},
+		"@rich-text-editor-toolbar-bold": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for bold action"
+		},
+		"@rich-text-editor-toolbar-italic": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for italic action"
+		},
+		"@rich-text-editor-toolbar-link": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for link action"
+		},
+		"@rich-text-editor-toolbar-bullet-list": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for bullet list action"
+		},
+		"@rich-text-editor-toolbar-ordered-list": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for ordered list action"
+		},
+		"@rich-text-editor-toolbar-blockquote": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for blockquote action"
+		},
+		"@rich-text-editor-toolbar-table": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for insert table action"
+		},
+		"@rich-text-editor-toolbar-undo": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for undo action"
+		},
+		"@rich-text-editor-toolbar-redo": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for redo action"
+		},
+		"@rich-text-editor-toolbar-table-add-row": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for add row action"
+		},
+		"@rich-text-editor-toolbar-table-add-column": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for add column action"
+		},
+		"@rich-text-editor-toolbar-table-remove-row": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for remove row action"
+		},
+		"@rich-text-editor-toolbar-table-remove-column": {
+			"category": "rich-text-editor",
+			"description": "Toolbar label for remove column action"
 		}
 }

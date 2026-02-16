@@ -97,3 +97,7 @@ export * from './services';
 // Controllers
 export { ControllerExports, WebserviceControllerExports, ControllerNames, WebserviceControllerNames } from './controllers';
 export * from './controllers';
+
+// Visitors
+export * from './visitor/vocab-inline.visitor';
+

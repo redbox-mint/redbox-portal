@@ -1,75 +1,108 @@
-import {FormConfigVisitor} from "./base.model";
-import {FormConfigOutline} from "../form-config.outline";
-import {set as _set} from "lodash";
+import { FormConfigVisitor } from './base.model';
+import { FormConfigOutline } from '../form-config.outline';
+import { set as _set } from 'lodash';
 import {
-    SimpleInputFieldComponentDefinitionOutline,
-    SimpleInputFieldModelDefinitionOutline,
-    SimpleInputFormComponentDefinitionOutline
-} from "../component/simple-input.outline";
+  SimpleInputFieldComponentDefinitionOutline,
+  SimpleInputFieldModelDefinitionOutline,
+  SimpleInputFormComponentDefinitionOutline,
+} from '../component/simple-input.outline';
 import {
-    ContentFieldComponentDefinitionOutline,
-    ContentFormComponentDefinitionOutline
-} from "../component/content.outline";
+  ContentFieldComponentDefinitionOutline,
+  ContentFormComponentDefinitionOutline,
+} from '../component/content.outline';
 import {
-    RepeatableElementFieldLayoutDefinitionOutline,
-    RepeatableFieldComponentDefinitionOutline,
-    RepeatableFieldModelDefinitionOutline,
-    RepeatableFormComponentDefinitionOutline,
-} from "../component/repeatable.outline";
+  RepeatableElementFieldLayoutDefinitionOutline,
+  RepeatableFieldComponentDefinitionOutline,
+  RepeatableFieldModelDefinitionOutline,
+  RepeatableFormComponentDefinitionOutline,
+} from '../component/repeatable.outline';
 import {
-    ValidationSummaryFieldComponentDefinitionOutline,
-    ValidationSummaryFormComponentDefinitionOutline
-} from "../component/validation-summary.outline";
+  ValidationSummaryFieldComponentDefinitionOutline,
+  ValidationSummaryFormComponentDefinitionOutline,
+} from '../component/validation-summary.outline';
 import {
-    GroupFieldComponentDefinitionOutline,
-    GroupFieldModelDefinitionOutline,
-    GroupFormComponentDefinitionOutline
-} from "../component/group.outline";
+  GroupFieldComponentDefinitionOutline,
+  GroupFieldModelDefinitionOutline,
+  GroupFormComponentDefinitionOutline,
+} from '../component/group.outline';
 import {
-    TabFieldComponentDefinitionOutline,
-    TabFieldLayoutDefinitionOutline,
-    TabFormComponentDefinitionOutline
-} from "../component/tab.outline";
+  TabFieldComponentDefinitionOutline,
+  TabFieldLayoutDefinitionOutline,
+  TabFormComponentDefinitionOutline,
+} from '../component/tab.outline';
 import {
-    TabContentFieldComponentDefinitionOutline,
-    TabContentFieldLayoutDefinitionOutline,
-    TabContentFormComponentDefinitionOutline
-} from "../component/tab-content.outline";
+  TabContentFieldComponentDefinitionOutline,
+  TabContentFieldLayoutDefinitionOutline,
+  TabContentFormComponentDefinitionOutline,
+} from '../component/tab-content.outline';
 import {
-    SaveButtonFieldComponentDefinitionOutline,
-    SaveButtonFormComponentDefinitionOutline
-} from "../component/save-button.outline";
+  SaveButtonFieldComponentDefinitionOutline,
+  SaveButtonFormComponentDefinitionOutline,
+} from '../component/save-button.outline';
 import {
-    TextAreaFieldComponentDefinitionOutline,
-    TextAreaFieldModelDefinitionOutline,
-    TextAreaFormComponentDefinitionOutline
-} from "../component/text-area.outline";
-import {DefaultFieldLayoutDefinitionOutline} from "../component/default-layout.outline";
+  CancelButtonFieldComponentDefinitionOutline,
+  CancelButtonFormComponentDefinitionOutline,
+} from '../component/cancel-button.outline';
 import {
-    CheckboxInputFieldComponentDefinitionOutline,
-    CheckboxInputFieldModelDefinitionOutline,
-    CheckboxInputFormComponentDefinitionOutline
-} from "../component/checkbox-input.outline";
+  TabNavButtonFieldComponentDefinitionOutline,
+  TabNavButtonFormComponentDefinitionOutline,
+} from '../component/tab-nav-button.outline';
 import {
-    DropdownInputFieldComponentDefinitionOutline,
-    DropdownInputFieldModelDefinitionOutline,
-    DropdownInputFormComponentDefinitionOutline
-} from "../component/dropdown-input.outline";
+  TextAreaFieldComponentDefinitionOutline,
+  TextAreaFieldModelDefinitionOutline,
+  TextAreaFormComponentDefinitionOutline,
+} from '../component/text-area.outline';
+import { DefaultFieldLayoutDefinitionOutline } from '../component/default-layout.outline';
 import {
-    RadioInputFieldComponentDefinitionOutline,
-    RadioInputFieldModelDefinitionOutline,
-    RadioInputFormComponentDefinitionOutline
-} from "../component/radio-input.outline";
+  CheckboxInputFieldComponentDefinitionOutline,
+  CheckboxInputFieldModelDefinitionOutline,
+  CheckboxInputFormComponentDefinitionOutline,
+} from '../component/checkbox-input.outline';
 import {
-    DateInputFieldComponentDefinitionOutline,
-    DateInputFieldModelDefinitionOutline,
-    DateInputFormComponentDefinitionOutline
-} from "../component/date-input.outline";
-import {FormComponentDefinitionOutline} from "../form-component.outline";
-import {FieldModelDefinitionFrame} from "../field-model.outline";
-import {ILogger} from "../../logger.interface";
-import {FormConfig} from "../form-config.model";
-import {FormPathHelper} from "./common.model";
+  CheckboxTreeFieldComponentDefinitionOutline,
+  CheckboxTreeFieldModelDefinitionOutline,
+  CheckboxTreeFormComponentDefinitionOutline,
+} from '../component/checkbox-tree.outline';
+import {
+  DropdownInputFieldComponentDefinitionOutline,
+  DropdownInputFieldModelDefinitionOutline,
+  DropdownInputFormComponentDefinitionOutline,
+} from '../component/dropdown-input.outline';
+import {
+  TypeaheadInputFieldComponentDefinitionOutline,
+  TypeaheadInputFieldModelDefinitionOutline,
+  TypeaheadInputFormComponentDefinitionOutline,
+} from '../component/typeahead-input.outline';
+import {
+  RichTextEditorFieldComponentDefinitionOutline,
+  RichTextEditorFieldModelDefinitionOutline,
+  RichTextEditorFormComponentDefinitionOutline,
+} from '../component/rich-text-editor.outline';
+import {
+  MapFieldComponentDefinitionOutline,
+  MapFieldModelDefinitionOutline,
+  MapFormComponentDefinitionOutline,
+} from '../component/map.outline';
+import {
+  FileUploadFieldComponentDefinitionOutline,
+  FileUploadFieldModelDefinitionOutline,
+  FileUploadFormComponentDefinitionOutline,
+} from '../component/file-upload.outline';
+import {
+  RadioInputFieldComponentDefinitionOutline,
+  RadioInputFieldModelDefinitionOutline,
+  RadioInputFormComponentDefinitionOutline,
+} from '../component/radio-input.outline';
+import {
+  DateInputFieldComponentDefinitionOutline,
+  DateInputFieldModelDefinitionOutline,
+  DateInputFormComponentDefinitionOutline,
+} from '../component/date-input.outline';
+import { FormComponentDefinitionOutline } from '../form-component.outline';
+import { FieldModelDefinitionFrame } from '../field-model.outline';
+import { ILogger } from '../../logger.interface';
+import { FormConfig } from '../form-config.model';
+import { FormPathHelper } from './common.model';
 import {
     QuestionTreeFieldComponentDefinitionOutline,
     QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline
@@ -83,238 +116,301 @@ import {
  * Each component definition is a property, where the key is the name and the value is the model value.
  */
 export class DataValueFormConfigVisitor extends FormConfigVisitor {
-    protected override logName = "DataValueFormConfigVisitor";
+  protected override logName = 'DataValueFormConfigVisitor';
 
-    private dataValues: Record<string, unknown>;
+  private dataValues: Record<string, unknown>;
 
-    private formConfig: FormConfigOutline;
+  private formConfig: FormConfigOutline;
 
-    private formPathHelper: FormPathHelper;
+  private formPathHelper: FormPathHelper;
 
-    constructor(logger: ILogger) {
-        super(logger);
+  constructor(logger: ILogger) {
+    super(logger);
 
-        this.dataValues = {};
+    this.dataValues = {};
 
-        this.formConfig = new FormConfig();
+    this.formConfig = new FormConfig();
 
-        this.formPathHelper = new FormPathHelper(logger, this);
-    }
+    this.formPathHelper = new FormPathHelper(logger, this);
+  }
 
-    /**
-     * Start the visitor.
-     * @param options Configure the visitor.
-     * @param options.form The constructed form.
-     */
-    start(options: { form: FormConfigOutline }): Record<string, unknown> {
-        this.formPathHelper.reset();
+  /**
+   * Start the visitor.
+   * @param options Configure the visitor.
+   * @param options.form The constructed form.
+   */
+  start(options: { form: FormConfigOutline }): Record<string, unknown> {
+    this.formPathHelper.reset();
 
-        this.dataValues = {};
+    this.dataValues = {};
 
-        this.formConfig = options.form;
-        this.formConfig.accept(this);
+    this.formConfig = options.form;
+    this.formConfig.accept(this);
 
-        return this.dataValues;
-    }
+    return this.dataValues;
+  }
 
-    /* Form Config */
+  /* Form Config */
 
-    visitFormConfig(item: FormConfigOutline): void {
-        (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-            // Visit children
-            this.formPathHelper.acceptFormPath(
-                componentDefinition,
-                this.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index),
-            );
-        });
-    }
+  visitFormConfig(item: FormConfigOutline): void {
+    (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+      // Visit children
+      this.formPathHelper.acceptFormPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index)
+      );
+    });
+  }
 
-    /* SimpleInput */
+  /* SimpleInput */
 
-    visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void {
-    }
+  visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void {}
 
-    visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
-    }
+  visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
 
-    visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
+  visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
-    /* Content */
+  /* Content */
 
-    visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
-    }
+  visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {}
 
-    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
+  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
-    /* Repeatable  */
+  /* Repeatable  */
 
-    visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-        // The value in the elementTemplate is the value for *new* items,
-        // no new array elements are created as part of the data value visitor.
-        // So, don't process the element template.
-    }
+  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
+    // The value in the elementTemplate is the value for *new* items,
+    // no new array elements are created as part of the data value visitor.
+    // So, don't process the element template.
+  }
 
-    visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
-    }
+  visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
 
-    visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
-    }
+  visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {}
 
-    visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
+  visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
-    /* Validation Summary */
+  /* Validation Summary */
 
-    visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void {
-    }
+  visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void {}
 
-    visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
+  visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
-    /* Group */
+  /* Group */
 
-    visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
-        (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-            // Visit children
-            this.formPathHelper.acceptFormPath(
-                componentDefinition,
-                this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(componentDefinition, index),
-            );
-        });
-    }
+  visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
+    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+      // Visit children
+      this.formPathHelper.acceptFormPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(componentDefinition, index)
+      );
+    });
+  }
 
-    visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
-    }
+  visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
 
-    visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
+  visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
-    /* Tab  */
+  /* Tab  */
 
-    visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
-        (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
-            // Visit children
-            this.formPathHelper.acceptFormPath(
-                componentDefinition,
-                this.formPathHelper.lineagePathsForTabFieldComponentDefinition(componentDefinition, index),
-            );
-        });
-    }
+  visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
+    (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
+      // Visit children
+      this.formPathHelper.acceptFormPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForTabFieldComponentDefinition(componentDefinition, index)
+      );
+    });
+  }
 
-    visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {
-    }
+  visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {}
 
-    visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
+  visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
-    /*  Tab Content */
+  /*  Tab Content */
 
-    visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
-        (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-            // Visit children
-            this.formPathHelper.acceptFormPath(
-                componentDefinition,
-                this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index),
-            );
-        });
-    }
+  visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
+    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+      // Visit children
+      this.formPathHelper.acceptFormPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index)
+      );
+    });
+  }
 
-    visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
-    }
+  visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {}
 
-    visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
+  visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
-    /* Save Button  */
+  /* Save Button  */
 
-    visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void {
-    }
+  visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void {}
 
-    visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
+  visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
-    /* Text Area */
+  /* Cancel Button  */
 
-    visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {
-    }
+  visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): void {}
 
-    visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
-    }
+  visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
-    visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
+  /* Tab Nav Button  */
 
-    /* Default Layout  */
+  visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): void {}
 
-    visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
-    }
+  visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
-    /* Checkbox Input */
+  /* Text Area */
 
-    visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {
-    }
+  visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {}
 
-    visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
-    }
+  visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
 
-    visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
+  visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
-    /* Dropdown Input */
+  /* Default Layout  */
 
-    visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void {
-    }
+  visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {}
 
-    visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
-    }
+  /* Checkbox Input */
 
-    visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
+  visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {}
 
-    /* Radio Input */
+  visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
 
-    visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
-    }
+  visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
-    visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
-    }
+  /* Checkbox Tree */
 
-    visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
+  visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {}
 
-    /* Date Input */
+  visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
 
-    visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void {
-    }
+  visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
-    visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
-    }
+  /* Dropdown Input */
 
-    visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
+  visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void {}
+
+  visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
+
+  visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  /* Typeahead Input */
+
+  visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {}
+
+  visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
+
+  visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  /* Rich Text Editor */
+
+  visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void {}
+
+  visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
+
+  visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  /* Map */
+
+  visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {}
+
+  visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
+
+  visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  /* File Upload */
+
+  visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {}
+
+  visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
+
+  visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  /* Radio Input */
+
+  visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {}
+
+  visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
+
+  visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  /* Date Input */
+
+  visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void {}
+
+  visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
+
+  visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
 
     /* Question Tree */
 
@@ -329,27 +425,27 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
         this.acceptFormComponentDefinition(item);
     }
 
-    /* Shared */
+  /* Shared */
 
-    /**
-     * Set the value for the form component when visiting the model definition.
-     *
-     * Some components might have data values in other places (e.g. ContentComponent component.config.content).
-     * This is currently not included in the built data value structure.
-     *
-     * There may be future uses cases for extracting data values from places other than the model.config.value.
-     *
-     * @param item The field model definition.
-     * @protected
-     */
-    protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
-        const dataModelPath = this.formPathHelper.formPath.dataModel;
-        if (item?.config?.value !== undefined) {
-            _set(this.dataValues, dataModelPath, item?.config?.value);
-        }
+  /**
+   * Set the value for the form component when visiting the model definition.
+   *
+   * Some components might have data values in other places (e.g. ContentComponent component.config.content).
+   * This is currently not included in the built data value structure.
+   *
+   * There may be future uses cases for extracting data values from places other than the model.config.value.
+   *
+   * @param item The field model definition.
+   * @protected
+   */
+  protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
+    const dataModelPath = this.formPathHelper.formPath.dataModel;
+    if (item?.config?.value !== undefined) {
+      _set(this.dataValues, dataModelPath, item?.config?.value);
     }
+  }
 
-    protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
-        this.formPathHelper.acceptFormComponentDefinition(item);
-    }
+  protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
+    this.formPathHelper.acceptFormComponentDefinition(item);
+  }
 }

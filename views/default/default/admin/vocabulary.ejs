@@ -1,0 +1,16 @@
+<% let appName = 'admin-vocabulary'; %>
+<div class="row admin-layout">
+  <div class="col-md-3 col-lg-2">
+    <%- include('layout/sidebar.ejs') %>
+  </div>
+  <div class="col-md-9 col-lg-10 admin-main-content">
+    <admin-vocabulary <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+      <div class="col-xs-12">
+        <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+      </div>
+    </admin-vocabulary>
+  </div>
+</div>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/polyfills<%= CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js" type="module"></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/main<%= CacheService.getNgAppFileHash(appName, 'main', '-') %>.js" type="module"></script>
+<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%= CacheService.getNgAppFileHash(appName, 'styles', '-') %>.css">

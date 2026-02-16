@@ -1,0 +1,30 @@
+meta {
+  name: Get Form Vocabulary by Slug
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/default/rdmp/vocab/anzsrc-2020-for
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Response contains expected vocabulary fields", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property('data');
+      expect(jsonData.data).to.have.property('id');
+      expect(jsonData.data).to.have.property('name');
+      expect(jsonData.data).to.have.property('slug');
+  });
+}

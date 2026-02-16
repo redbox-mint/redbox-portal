@@ -1,8 +1,8 @@
-import {FormValidatorConfig, FormValidationGroups} from "../validation/form.model";
-import {AvailableFormComponentDefinitionFrames, AvailableFormComponentDefinitionOutlines} from "./dictionary.outline";
-import {CanVisit} from "./visitor/base.outline";
-import {KeyValueStringNested, KeyValueStringProperty} from "./shared.outline";
-import {FormExpressionsConfigOutline} from "./form-component.outline";
+import { FormValidatorConfig, FormValidationGroups } from "../validation/form.model";
+import { AvailableFormComponentDefinitionFrames, AvailableFormComponentDefinitionOutlines } from "./dictionary.outline";
+import { CanVisit } from "./visitor/base.outline";
+import { KeyValueStringNested, KeyValueStringProperty } from "./shared.outline";
+import { FormExpressionsConfigOutline } from "./form-component.outline";
 
 
 /**
@@ -82,6 +82,11 @@ export interface FormConfigFrame {
      * A record with string keys and expression template values for defining expressions.
      */
     expressions?: FormExpressionsConfigOutline[];
+    /**
+     * The list of fields that are attachments.
+     * This is automatically populated by the form config visitor.
+     */
+    attachmentFields?: string[];
 }
 
 export interface FormConfigOutline extends FormConfigFrame, CanVisit {

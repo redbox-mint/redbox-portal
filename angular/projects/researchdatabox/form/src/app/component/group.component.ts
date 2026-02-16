@@ -5,7 +5,7 @@ import {
   ViewChild,
   ViewContainerRef
 } from '@angular/core';
-import {AbstractControl, FormGroup} from "@angular/forms";
+import { AbstractControl, FormGroup} from "@angular/forms";
 import {
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
@@ -17,13 +17,14 @@ import {
   isTypeFieldDefinitionName,
   isTypeWithComponentDefinitions, GroupFieldComponentDefinition,
 } from "@researchdatabox/sails-ng-common";
-import {FormComponentsMap, FormService} from "../form.service";
-import {FormComponent} from "../form.component";
+import { FormComponentsMap, FormService } from "../form.service";
+import { FormComponent } from "../form.component";
 import {
+  get as _get,
   isEmpty as _isEmpty,
   isUndefined as _isUndefined,
 } from "lodash-es";
-import {FormBaseWrapperComponent} from "./base-wrapper.component";
+import { FormBaseWrapperComponent } from "./base-wrapper.component";
 
 /**
  * The model for the Group Component.
@@ -39,15 +40,23 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
   protected override postCreateGetFormControl(): FormGroup<{ [key: string]: AbstractControl<any> }> {
     // Create the empty FormGroup here, not in the component.
     // This is different from FormComponent, which has no model.
-    // Creating the FormGroup here allows encapsulating the FormGroup & children
+    // Creating the FormGroup here allows encapsulating the FormGroup & children in the same way as other components.
     // in the same way as other components.
     const modelElems: { [key: string]: AbstractControl<any> } = {};
-    return new FormGroup(modelElems);
+    const formControl = new FormGroup(modelElems);
+    if (this.fieldConfig.config?.disabled) {
+      formControl.disable();
+    }
+    return formControl;
   }
 
   public addItem(name: string, targetModel?: FormFieldModel<unknown>) {
-    if (this.formControl && name && targetModel) {
-      this.formControl.addControl(name, targetModel.getFormControl());
+    const control = targetModel?.getFormControl();
+    if (this.formControl && name && control) {
+      if (this.formControl.disabled && control.enabled) {
+        control.disable();
+      }
+      this.formControl.addControl(name, control);
     } else {
       throw new Error(`${this.logName}: formControl or name or targetModel are not valid. Cannot add item.`);
     }
@@ -71,7 +80,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
   private injector = inject(Injector);
   protected formComponentsMap?: FormComponentsMap;
 
-  @ViewChild('componentContainer', {read: ViewContainerRef, static: true})
+  @ViewChild('componentContainer', { read: ViewContainerRef, static: true })
   private componentContainer!: ViewContainerRef;
 
   private elementFormConfig?: FormConfigFrame;
@@ -136,7 +145,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     // Create the form group fields from the form components map.
     const elemVals = this.model.initValue ?? {};
     const formGroupMap = this.formService.groupComponentsByName(this.formComponentsMap);
-    for (const key of Object.keys(formGroupMap.withFormControl ?? {})) {
+    for (const key of Object.keys(formGroupMap.completeGroupMap ?? {})) {
       // Create the wrapper component.
       const wrapperRef = this.componentContainer.createComponent(FormBaseWrapperComponent<unknown>);
       wrapperRef.instance.defaultComponentConfig = this.elementFormConfig?.defaultComponentConfig;
@@ -145,19 +154,20 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
       // Populate the component model if it has one.
       const hasModel = this.model?.formControl && compInstance?.model;
-      if (hasModel) {
+      const includeInFormControlMap = this.formService.shouldIncludeInFormControlMap(elemFieldEntry);
+      if (hasModel && includeInFormControlMap) {
         const elemVal = elemVals?.[key];
         if (compInstance?.model && !_isUndefined(elemVal)) {
           compInstance.model.setValue(elemVal);
         }
         this.model.addItem(key, compInstance.model);
       } else {
-        this.loggerService.warn(`${this.logName}: model or formControl for '${key}' is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`);
+        this.loggerService.debug(`${this.logName}: component for '${key}' does not have a model or formControl, skipping addItem.`);
       }
 
       // Set the lineage path and reference to the wrapper component.
       if (elemFieldEntry) {
-        const dataModel = hasModel ? [key] : [];
+        const dataModel = hasModel && includeInFormControlMap ? [key] : [];
         elemFieldEntry.lineagePaths = this.formService.buildLineagePaths(
           this.formFieldCompMapEntry?.lineagePaths,
           {

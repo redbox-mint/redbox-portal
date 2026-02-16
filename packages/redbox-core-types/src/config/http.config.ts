@@ -20,6 +20,19 @@ declare const sails: {
     config: {
         appPath: string;
         passport: PassportStatic; // The passport instance configured by UsersService
+        companion?: {
+            enabled?: boolean;
+            route?: string;
+            secret?: string;
+            filePath?: string;
+            uploadUrls?: string[];
+            server?: Record<string, unknown>;
+            providerOptions?: Record<string, unknown>;
+            corsOrigins?: true | string[];
+            metrics?: boolean;
+            debug?: boolean;
+            i18n?: Record<string, unknown>;
+        };
         session: {
             cookie?: {
                 maxAge?: number;
@@ -29,6 +42,11 @@ declare const sails: {
             cacheControl: {
                 noCache: string[];
             };
+        };
+    };
+    hooks?: {
+        http?: {
+            server?: unknown;
         };
     };
 };
@@ -64,6 +82,7 @@ export interface HttpMiddlewareConfig {
     brandingAndPortalAwareStaticRouter?: MiddlewareFunction;
     translate?: MiddlewareFunction;
     myBodyParser?: MiddlewareFunction;
+    companion?: MiddlewareFunction;
     poweredBy?: MiddlewareFunction;
     redirectNoCacheHeaders?: MiddlewareFunction;
     cacheControl?: MiddlewareFunction;
@@ -98,6 +117,9 @@ export interface HttpConfig {
 // (Using a module-level variable instead of global._redboxSessionMiddleware for cleaner scope,
 //  but since this module is cached by Node, it works similarly)
 let _lazyRedboxSessionMiddleware: RequestHandler | null = null;
+let _lazyCompanionMiddleware: RequestHandler | null = null;
+let _lazyCompanionMountPath = '/companion';
+let _lazyCompanionSocketWired = false;
 
 export const http: HttpConfig = {
     rootContext: '',
@@ -119,6 +141,114 @@ export const http: HttpConfig = {
         },
         passportSession: function (req: Request, res: Response, next: NextFunction) {
             return sails.config.passport.session()(req, res, next);
+        },
+
+        companion: function (req: Request, res: Response, next: NextFunction) {
+            const companionConfig = sails.config.companion;
+            if (!companionConfig?.enabled) {
+                return next();
+            }
+
+            const companionSecret = String(companionConfig.secret ?? '').trim();
+            if (!companionSecret || companionSecret.length < 32) {
+                return next(new Error('Companion is enabled but companion.secret is missing or too short. Configure a secret with at least 32 characters.'));
+            }
+
+            const route = String(companionConfig.route ?? '/companion').trim();
+            const normalizedRoute = route.startsWith('/') ? route : `/${route}`;
+            const requestPath = (req.originalUrl ?? req.url).split('?')[0];
+            if (requestPath !== normalizedRoute && !requestPath.startsWith(`${normalizedRoute}/`)) {
+                return next();
+            }
+
+            if (!_lazyCompanionMiddleware || _lazyCompanionMountPath !== normalizedRoute) {
+                const companionFilePath = String(companionConfig.filePath ?? '/tmp/companion').trim();
+                try {
+                    fs.mkdirSync(companionFilePath, { recursive: true });
+                    fs.accessSync(companionFilePath, fs.constants.R_OK | fs.constants.W_OK);
+                } catch (err: unknown) {
+                    if (err instanceof Error) {
+                        return next(new Error(`Companion filePath "${companionFilePath}" is not accessible: ${err.message}`));
+                    }
+                    return next(new Error(`Companion filePath "${companionFilePath}" is not accessible.`));
+                }
+
+                const companionModule = require('@uppy/companion');
+                const appFactory = companionModule?.app || companionModule?.companion?.app;
+                if (typeof appFactory !== 'function') {
+                    console.warn('Companion is enabled but companion module app export is not a function; skipping companion middleware initialization.');
+                    return next();
+                }
+
+                const companionAppResult = appFactory({
+                    providerOptions: companionConfig.providerOptions || {},
+                    filePath: companionFilePath,
+                    secret: companionSecret,
+                    uploadUrls: companionConfig.uploadUrls || [],
+                    server: companionConfig.server || {},
+                    corsOrigins: companionConfig.corsOrigins ?? true,
+                    metrics: companionConfig.metrics || false,
+                    debug: companionConfig.debug || false,
+                    i18n: companionConfig.i18n || undefined
+                });
+
+                const companionMiddleware = typeof companionAppResult === 'function'
+                    ? companionAppResult
+                    : companionAppResult?.app;
+                if (typeof companionMiddleware !== 'function') {
+                    console.warn('Companion initialization did not return a callable middleware app; skipping companion middleware initialization.');
+                    return next();
+                }
+
+                _lazyCompanionMiddleware = companionMiddleware;
+                _lazyCompanionMountPath = normalizedRoute;
+                _lazyCompanionSocketWired = false;
+            }
+
+            if (!_lazyCompanionSocketWired) {
+                const companionModule = require('@uppy/companion');
+                const socketFactory = companionModule?.socket || companionModule?.companion?.socket;
+                const httpServer = sails?.hooks?.http?.server;
+                if (typeof socketFactory === 'function' && httpServer) {
+                    socketFactory(httpServer);
+                }
+                _lazyCompanionSocketWired = true;
+            }
+
+            if (!_lazyCompanionMiddleware) {
+                return next();
+            }
+
+            const originalUrl = req.url;
+            const originalOriginalUrl = req.originalUrl;
+            const restoreUrls = () => {
+                req.url = originalUrl;
+                if (typeof originalOriginalUrl === 'string') {
+                    req.originalUrl = originalOriginalUrl;
+                }
+            };
+            if (req.url.startsWith(_lazyCompanionMountPath)) {
+                req.url = req.url.substring(_lazyCompanionMountPath.length) || '/';
+            }
+            if (typeof req.originalUrl === 'string' && req.originalUrl.startsWith(_lazyCompanionMountPath)) {
+                req.originalUrl = req.originalUrl.substring(_lazyCompanionMountPath.length) || '/';
+            }
+
+            try {
+                return _lazyCompanionMiddleware(req, res, (err?: unknown) => {
+                    restoreUrls();
+                    if (err) {
+                        return next(err as Error);
+                    }
+                    return next();
+                });
+            } catch (err: unknown) {
+                restoreUrls();
+                if (err instanceof Error) {
+                    return next(err);
+                }
+                return next(new Error(String(err ?? 'Unknown companion middleware error')));
+            }
         },
 
         brandingAndPortalAwareStaticRouter: function (req: Request, res: Response, next: NextFunction) {
@@ -189,6 +319,7 @@ export const http: HttpConfig = {
             'redboxSession',
             'passportInit',
             'passportSession',
+            'companion',
             'myBodyParser',
             'handleBodyParserError',
             'compress',

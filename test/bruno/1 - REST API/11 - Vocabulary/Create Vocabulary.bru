@@ -1,0 +1,42 @@
+meta {
+  name: Create Vocabulary
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/default/rdmp/api/vocabulary
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "name": "Bruno Vocabulary",
+    "type": "flat",
+    "source": "local",
+    "entries": [
+      {
+        "label": "One",
+        "value": "one"
+      }
+    ]
+  }
+}
+
+tests {
+  test("Status code is 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("Set vocabulary id for subsequent requests", function () {
+    const jsonData = res.getBody();
+    const vocabularyId = jsonData?.data?.id || jsonData?.id;
+    expect(vocabularyId).to.be.a('string');
+    bru.setEnvVar("vocabularyId", vocabularyId);
+  });
+}

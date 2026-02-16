@@ -48,7 +48,7 @@ export namespace Controllers {
       try {
         const configKey = req.param('configKey')
 
-        const brandName: string = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
+        const brandName: string = BrandingService.getBrandNameFromReq(req);
         const brand: BrandingModel = BrandingService.getBrand(brandName);
 
         await AppConfigService.createOrUpdateConfig(brand, configKey, req.body)
@@ -70,7 +70,7 @@ export namespace Controllers {
       try {
         const configKey = req.param('configKey')
 
-        const brandName: string = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
+        const brandName: string = BrandingService.getBrandNameFromReq(req);
 
         const brand: BrandingModel = BrandingService.getBrand(brandName);
 

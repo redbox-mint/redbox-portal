@@ -1,46 +1,54 @@
 import {
-    RepeatableElementFieldLayoutDefinitionFrame, RepeatableElementFieldLayoutDefinitionOutline,
-    RepeatableTypes,
-} from "./component/repeatable.outline";
-import {GroupTypes} from "./component/group.outline";
-import {SaveButtonTypes} from "./component/save-button.outline";
-import {TextAreaTypes} from "./component/text-area.outline";
-import {ContentTypes} from "./component/content.outline";
+  RepeatableElementFieldLayoutDefinitionFrame,
+  RepeatableElementFieldLayoutDefinitionOutline,
+  RepeatableTypes,
+} from './component/repeatable.outline';
+import { GroupTypes } from './component/group.outline';
+import { SaveButtonTypes } from './component/save-button.outline';
+import { TextAreaTypes } from './component/text-area.outline';
+import { ContentTypes } from './component/content.outline';
 import {
     SimpleInputFormComponentDefinitionFrame,
     SimpleInputFormComponentDefinitionOutline,
     SimpleInputTypes
-} from "./component/simple-input.outline";
-import {ValidationSummaryTypes} from "./component/validation-summary.outline";
+} from './component/simple-input.outline';
+import { ValidationSummaryTypes } from './component/validation-summary.outline';
 import {
-    TabContentFormComponentDefinitionOutline,
-    TabContentFormComponentDefinitionFrame,
-    TabContentTypes,
-} from "./component/tab-content.outline";
-import {TabTypes} from "./component/tab.outline";
-import {DefaultLayoutTypes} from "./component/default-layout.outline";
+  TabContentFormComponentDefinitionOutline,
+  TabContentFormComponentDefinitionFrame,
+  TabContentTypes,
+} from './component/tab-content.outline';
+import { TabTypes } from './component/tab.outline';
+import { DefaultLayoutTypes } from './component/default-layout.outline';import { InlineLayoutTypes } from './component/inline-layout.outline';
 import {
-    FieldLayoutDefinitionFrameKindType,
-    FieldLayoutDefinitionKindType,
-    FormComponentDefinitionFrameKindType,
-    FormComponentDefinitionKindType
-} from "./shared.outline";
+  FieldLayoutDefinitionFrameKindType,
+  FieldLayoutDefinitionKindType,
+  FormComponentDefinitionFrameKindType,
+  FormComponentDefinitionKindType,
+} from './shared.outline';
+import { CheckboxInputTypes } from './component/checkbox-input.outline';
+import { DropdownInputTypes } from './component/dropdown-input.outline';
+import { RadioInputTypes } from './component/radio-input.outline';
+import { DateInputTypes } from './component/date-input.outline';
+import { ReusableTypes } from './component/reusable.outline';
+import { CheckboxTreeTypes } from './component/checkbox-tree.outline';
+import { TypeaheadInputTypes } from './component/typeahead-input.outline';
+import { RichTextEditorTypes } from './component/rich-text-editor.outline';
+import { MapTypes } from './component/map.outline';
+import { FileUploadTypes } from './component/file-upload.outline';
+import { CancelButtonTypes } from './component/cancel-button.outline';
+import { TabNavButtonTypes } from './component/tab-nav-button.outline';
 import {
-    CheckboxInputFormComponentDefinitionFrame,
-    CheckboxInputFormComponentDefinitionOutline,
-    CheckboxInputTypes
+  CheckboxInputFormComponentDefinitionFrame,
+  CheckboxInputFormComponentDefinitionOutline,
 } from "./component/checkbox-input.outline";
-import {DropdownInputTypes} from "./component/dropdown-input.outline";
 import {
-    RadioInputFormComponentDefinitionFrame,
-    RadioInputFormComponentDefinitionOutline,
-    RadioInputTypes
+  RadioInputFormComponentDefinitionFrame,
+  RadioInputFormComponentDefinitionOutline,
 } from "./component/radio-input.outline";
-import {DateInputTypes} from "./component/date-input.outline";
 import {
-    ReusableFormComponentDefinitionFrame,
-    ReusableFormComponentDefinitionOutline,
-    ReusableTypes
+  ReusableFormComponentDefinitionFrame,
+  ReusableFormComponentDefinitionOutline
 } from "./component/reusable.outline";
 import {QuestionTreeTypes} from "./component/question-tree.outline";
 
@@ -49,23 +57,32 @@ import {QuestionTreeTypes} from "./component/question-tree.outline";
  * The static type union of all available interfaces that provides typing for the object literal and schema.
  * Other convenience mappings are built from this.
  */
-export type AllTypes = DefaultLayoutTypes
-    | RepeatableTypes
-    | GroupTypes
-    | SaveButtonTypes
-    | TextAreaTypes
-    | ContentTypes
-    | SimpleInputTypes
-    | ValidationSummaryTypes
-    | TabContentTypes
-    | TabTypes
-    | CheckboxInputTypes
-    | DropdownInputTypes
-    | RadioInputTypes
-    | DateInputTypes
-    | ReusableTypes
-    | QuestionTreeTypes
-    ;
+export type AllTypes =
+  | DefaultLayoutTypes
+  | InlineLayoutTypes
+  | RepeatableTypes
+  | GroupTypes
+  | SaveButtonTypes
+  | CancelButtonTypes
+  | TabNavButtonTypes
+  | TextAreaTypes
+  | ContentTypes
+  | SimpleInputTypes
+  | ValidationSummaryTypes
+  | TabContentTypes
+  | TabTypes
+  | CheckboxInputTypes
+  | DropdownInputTypes
+  | RadioInputTypes
+  | DateInputTypes
+  | ReusableTypes
+  | CheckboxTreeTypes
+  | TypeaheadInputTypes
+  | RichTextEditorTypes
+  | MapTypes
+  | FileUploadTypes
+  | QuestionTreeTypes
+  ;
 
 
 /*
@@ -90,37 +107,64 @@ export type AllTypes = DefaultLayoutTypes
 /**
  * The form component definition frames available for use in any list of form components.
  */
-export type AvailableFormComponentDefinitionFrames = Exclude<Extract<AllTypes, {
-    kind: FormComponentDefinitionFrameKindType
-}>, TabContentFormComponentDefinitionFrame>['class'];
+export type AvailableFormComponentDefinitionFrames = Exclude<
+  Extract<
+    AllTypes,
+    {
+      kind: FormComponentDefinitionFrameKindType;
+    }
+  >,
+  TabContentFormComponentDefinitionFrame
+>['class'];
 
 /**
  * All form component definition outlines.
  */
-export type AllFormComponentDefinitionOutlines = Extract<AllTypes, {
-    kind: FormComponentDefinitionKindType
-}>['class'];
+export type AllFormComponentDefinitionOutlines = Extract<
+  AllTypes,
+  {
+    kind: FormComponentDefinitionKindType;
+  }
+>['class'];
 
 /**
  * The form component definition outlines available for use in any list of form components.
  */
-export type AvailableFormComponentDefinitionOutlines = Exclude<Extract<AllTypes, {
-    kind: FormComponentDefinitionKindType
-}>, TabContentFormComponentDefinitionOutline>['class'];
+export type AvailableFormComponentDefinitionOutlines = Exclude<
+  Extract<
+    AllTypes,
+    {
+      kind: FormComponentDefinitionKindType;
+    }
+  >,
+  TabContentFormComponentDefinitionOutline
+>['class'];
 
 /**
  * The field layout definition outlines available for use by any form component.
  */
-export type AvailableFieldLayoutDefinitionOutlines = Exclude<Extract<AllTypes, {
-    kind: FieldLayoutDefinitionKindType
-}>, RepeatableElementFieldLayoutDefinitionFrame>['class'];
+export type AvailableFieldLayoutDefinitionOutlines = Exclude<
+  Extract<
+    AllTypes,
+    {
+      kind: FieldLayoutDefinitionKindType;
+    }
+  >,
+  RepeatableElementFieldLayoutDefinitionFrame
+>['class'];
 
 /**
  * The field layout definition frames available for use by any form component.
  */
-export type AvailableFieldLayoutDefinitionFrames = Exclude<Extract<AllTypes, {
-    kind: FieldLayoutDefinitionFrameKindType
-}>, RepeatableElementFieldLayoutDefinitionOutline>['class'];
+export type AvailableFieldLayoutDefinitionFrames = Exclude<
+  Extract<
+    AllTypes,
+    {
+      kind: FieldLayoutDefinitionFrameKindType;
+    }
+  >,
+  RepeatableElementFieldLayoutDefinitionOutline
+>['class'];
 
 /**
  * The type for a mapping of reusable form config name to form config definition.

@@ -91,7 +91,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     this.newElementFormConfig = {
       name: `form-config-generated-repeatable-${formComponentName}`,
       // Add an empty name to satisfy the FormConfig, the name will be replaced with a generated name.
-      componentDefinitions: [{...elementTemplate, name: ""}],
+      componentDefinitions: [{ ...elementTemplate, name: "" }],
       // TODO: Get the default config?
       // defaultComponentConfig: this.getFormComponent.formDefMap?.formConfig?.defaultComponentConfig,
     };
@@ -103,7 +103,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         formConfig: ['component', 'config', 'elementTemplate'],
       }
     );
-    let formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig, parentLineagePaths);
+    const formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig, parentLineagePaths);
 
     if (_isEmpty(formComponentsMap)) {
       throw new Error(`${this.logName}: No components found in the formComponentsMap for '${formComponentName}'.`);
@@ -271,12 +271,20 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
   protected override postCreateGetFormControl(): FormArray<AbstractControl<any>> {
     // not setting value yet, this will be done in the component for lazy init
     const modelElems: AbstractControl[] = [];
-    return new FormArray(modelElems);
+    const formControl = new FormArray(modelElems);
+    if (this.fieldConfig.config?.disabled) {
+      formControl.disable();
+    }
+    return formControl;
   }
 
   public addElement(targetModel?: FormFieldModel<unknown>) {
-    if (this.formControl && targetModel) {
-      this.formControl.push(targetModel.getFormControl());
+    const control = targetModel?.getFormControl();
+    if (this.formControl && control) {
+      if (this.formControl.disabled && control.enabled) {
+        control.disable();
+      }
+      this.formControl.push(control);
     } else {
       throw new Error(`${this.logName}: formControl or targetModel are not valid. Cannot add element.`);
     }

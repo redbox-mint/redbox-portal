@@ -1,382 +1,873 @@
-import { FormConfig } from "@researchdatabox/sails-ng-common";
-    import { formValidatorsSharedDefinitions } from "../config/validators";
 
-    const formConfig: FormConfig = {
-        name: "modularFormConfigFile",
-        componentDefinitions: [
-  {
-    "name": "",
-    "component": {
-      "class": "ContentComponent",
-      "config": {
-        "contentType": "h3",
-        "content": "@dataPublication-citation-tab-heading"
-      }
+import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+const formConfig: FormConfigFrame = {
+  "name": "v4FormConfig",
+  "enabledValidationGroups": [
+    "all"
+  ],
+  "validators": [],
+  "validationGroups": {
+    "all": {
+      "description": "Validate all fields with validators.",
+      "initialMembership": "all"
+    },
+    "none": {
+      "description": "Validate none of the fields.",
+      "initialMembership": "none"
     }
   },
-  {
-    "name": "citation_doi",
-    "layout": {
-      "class": "DefaultLayoutComponent",
-      "config": {
-        "label": "@dataPublication-citation-identifier",
-        "helpText": ""
-      }
-    },
-    "component": {
-      "class": "SimpleInputComponent",
-      "config": {
-        "type": "text"
-      }
-    },
-    "model": {
-      "class": "SimpleInputModel",
-      "config": {
-        "defaultValue": ""
-      }
-    }
-  },
-  {
-    "name": "citation_doi",
-    "layout": {
-      "class": "DefaultLayoutComponent",
-      "config": {
-        "label": "@dataPublication-citation-identifier",
-        "helpText": ""
-      }
-    },
-    "component": {
-      "class": "SimpleInputComponent",
-      "config": {
-        "type": "text"
-      }
-    },
-    "model": {
-      "class": "SimpleInputModel",
-      "config": {
-        "defaultValue": ""
-      }
-    }
-  },
-  {
-    "class": "Unparsable Component: SelectionField"
-  },
-  {
-    "name": "finalIdentifiers",
-    "layout": {
-      "class": "DefaultLayoutComponent",
-      "config": {
-        "label": "@dataPublication-identifiers",
-        "helpText": "@dataPublication-identifiers-help"
-      }
-    },
-    "component": {
-      "class": "SimpleInputComponent",
-      "config": {}
-    },
-    "model": {
-      "class": "SimpleInputModel",
-      "config": {
-        "defaultValue": ""
-      }
-    },
-    "unparsable": {
-      "subscribe": {
-        "dataRecordGetter": {
-          "onValueUpdate": [
-            {
-              "action": "utilityService.getPropertyFromObject",
-              "field": "finalidentifiers"
-            }
-          ]
-        }
-      }
-    },
-    "componentDefinitions": [
-      {
-        "name": "",
-        "layout": {
-          "class": "DefaultLayoutComponent",
-          "config": {
-            "label": "",
-            "helpText": ""
-          }
+  "componentDefinitions": [
+    {
+      "name": "citation",
+      "constraints": {
+        "authorization": {
+          "allowRoles": []
         },
-        "component": {
-          "class": "SimpleInputComponent",
-          "config": {
-            "type": "text"
-          }
-        },
-        "model": {
-          "class": "SimpleInputModel",
-          "config": {
-            "defaultValue": ""
-          }
-        }
-      }
-    ]
-  },
-  {
-    "name": "citation_title",
-    "layout": {
-      "class": "DefaultLayoutComponent",
-      "config": {
-        "label": "@dataPublication-citation-title",
-        "helpText": "@dataPublication-citation-title-help"
-      }
-    },
-    "component": {
-      "class": "SimpleInputComponent",
-      "config": {
-        "type": "text"
-      }
-    },
-    "model": {
-      "class": "SimpleInputModel",
-      "config": {
-        "defaultValue": ""
-      }
-    },
-    "unparsable": {
-      "disabledExpression": "<%= _.isEmpty(relatedRecordId) %>"
-    }
-  },
-  {
-    "component": {
-      "class": "RepeatableComponent",
-      "config": {}
-    },
-    "model": {
-      "class": "RepeatableComponentModel",
-      "config": {
-        "defaultValue": ""
-      }
-    },
-    "unparsable": {
-      "subscribe": {
-        "dataRecordGetter": {
-          "onValueUpdate": [
+        "allowModes": []
+      },
+      "component": {
+        "class": "GroupComponent",
+        "config": {
+          "readonly": false,
+          "visible": true,
+          "editMode": true,
+          "label": "@dataPublication-citation-tab",
+          "disabled": false,
+          "autofocus": false,
+          "componentDefinitions": [
             {
-              "action": "utilityService.getPropertyFromObjectConcat",
-              "field": [
-                "contributor_ci",
-                "contributor_data_manager",
-                "contributors",
-                "contributor_supervisor"
-              ]
+              "name": "ContentComponent-fields-0-definition-fields-0",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": []
+              },
+              "component": {
+                "class": "ContentComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "disabled": false,
+                  "autofocus": false,
+                  "template": "<span role=\"heading\" aria-level=\"3\">{{content}}</span>",
+                  "content": "@dataPublication-citation-tab-heading"
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "citation_doi",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": [
+                    "Admin",
+                    "Librarians"
+                  ]
+                },
+                "allowModes": [
+                  "edit"
+                ]
+              },
+              "component": {
+                "class": "SimpleInputComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-identifier",
+                  "disabled": false,
+                  "autofocus": false,
+                  "type": "text"
+                }
+              },
+              "model": {
+                "class": "SimpleInputModel",
+                "config": {
+                  "validators": []
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-identifier",
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "citation_doi",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": [
+                  "view"
+                ]
+              },
+              "component": {
+                "class": "SimpleInputComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-identifier",
+                  "disabled": false,
+                  "autofocus": false,
+                  "type": "text"
+                }
+              },
+              "model": {
+                "class": "SimpleInputModel",
+                "config": {
+                  "validators": []
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-identifier",
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "requestIdentifier",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": [
+                  "edit"
+                ]
+              },
+              "component": {
+                "class": "CheckboxInputComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "requestIdentifier",
+                  "disabled": false,
+                  "autofocus": false,
+                  "options": [
+                    {
+                      "label": "@dataPublication-citation-request-identifier",
+                      "value": "request"
+                    }
+                  ]
+                }
+              },
+              "model": {
+                "class": "CheckboxInputModel",
+                "config": {
+                  "validators": []
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "finalIdentifiers",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": []
+              },
+              "component": {
+                "class": "RepeatableComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-identifiers",
+                  "disabled": false,
+                  "autofocus": false,
+                  "elementTemplate": {
+                    "name": "",
+                    "constraints": {
+                      "authorization": {
+                        "allowRoles": []
+                      },
+                      "allowModes": []
+                    },
+                    "component": {
+                      "class": "SimpleInputComponent",
+                      "config": {
+                        "readonly": false,
+                        "visible": true,
+                        "editMode": true,
+                        "disabled": false,
+                        "autofocus": false,
+                        "type": "text"
+                      }
+                    },
+                    "model": {
+                      "class": "SimpleInputModel",
+                      "config": {
+                        "validators": []
+                      }
+                    },
+                    "layout": {
+                      "class": "DefaultLayout",
+                      "config": {
+                        "readonly": false,
+                        "visible": true,
+                        "editMode": true,
+                        "disabled": false,
+                        "autofocus": false,
+                        "labelRequiredStr": "*",
+                        "cssClassesMap": {},
+                        "helpTextVisibleOnInit": false,
+                        "helpTextVisible": false
+                      }
+                    }
+                  }
+                }
+              },
+              "model": {
+                "class": "RepeatableModel",
+                "config": {
+                  "validators": []
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-identifiers",
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "helpText": "@dataPublication-identifiers-help",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "citation_title",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": []
+              },
+              "component": {
+                "class": "SimpleInputComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-title",
+                  "disabled": false,
+                  "autofocus": false,
+                  "type": "text"
+                }
+              },
+              "model": {
+                "class": "SimpleInputModel",
+                "config": {
+                  "validators": [
+                    {
+                      "class": "required"
+                    }
+                  ]
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-title",
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "helpText": "@dataPublication-citation-title-help",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "creators",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": []
+              },
+              "component": {
+                "class": "RepeatableComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "creators",
+                  "disabled": false,
+                  "autofocus": false,
+                  "elementTemplate": {
+                    "name": "",
+                    "constraints": {
+                      "authorization": {
+                        "allowRoles": []
+                      },
+                      "allowModes": []
+                    },
+                    "overrides": {
+                      "reusableFormName": "standard-contributor-fields-group"
+                    },
+                    "component": {
+                      "class": "ReusableComponent",
+                      "config": {
+                        "readonly": false,
+                        "visible": true,
+                        "editMode": true,
+                        "label": "@dataPublication-creators",
+                        "disabled": false,
+                        "autofocus": false,
+                        "componentDefinitions": [
+                          {
+                            "name": "standard_contributor_fields_group",
+                            "constraints": {
+                              "authorization": {
+                                "allowRoles": []
+                              },
+                              "allowModes": []
+                            },
+                            "overrides": {
+                              "replaceName": ""
+                            },
+                            "component": {
+                              "class": "GroupComponent",
+                              "config": {
+                                "readonly": false,
+                                "visible": true,
+                                "editMode": true,
+                                "label": "@dataPublication-creators",
+                                "disabled": false,
+                                "autofocus": false,
+                                "componentDefinitions": []
+                              }
+                            },
+                            "model": {
+                              "class": "GroupModel",
+                              "config": {
+                                "validators": []
+                              }
+                            },
+                            "layout": {
+                              "class": "DefaultLayout",
+                              "config": {
+                                "readonly": false,
+                                "visible": true,
+                                "editMode": true,
+                                "label": "@dataPublication-creators",
+                                "disabled": false,
+                                "autofocus": false,
+                                "labelRequiredStr": "*",
+                                "helpText": "@dataPublication-creators-help",
+                                "cssClassesMap": {},
+                                "helpTextVisibleOnInit": false,
+                                "helpTextVisible": false
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              "model": {
+                "class": "RepeatableModel",
+                "config": {
+                  "validators": []
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "citation_publisher",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": []
+              },
+              "component": {
+                "class": "SimpleInputComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-publisher",
+                  "disabled": false,
+                  "autofocus": false,
+                  "type": "text"
+                }
+              },
+              "model": {
+                "class": "SimpleInputModel",
+                "config": {
+                  "defaultValue": "@dataPublication-citation-publisher-default",
+                  "validators": [
+                    {
+                      "class": "required"
+                    }
+                  ]
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-publisher",
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "helpText": "@dataPublication-citation-publisher-help",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "citation_url",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": []
+              },
+              "component": {
+                "class": "ContentComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-url",
+                  "disabled": false,
+                  "autofocus": false,
+                  "content": "Not yet implemented in v5: v4ClassName \"LinkValueComponent\" v4CompClassName \"\" v4Name \"citation_url\". At path '[\"fields\",\"0\",\"definition\",\"fields\",\"8\"]'."
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-url",
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "helpText": "@dataPublication-citation-url-help",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "citation_publication_date",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": []
+              },
+              "component": {
+                "class": "DateInputComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-publication-date",
+                  "disabled": false,
+                  "autofocus": false,
+                  "placeholder": "",
+                  "dateFormat": "DD/MM/YYYY",
+                  "showWeekNumbers": false,
+                  "containerClass": "theme-dark-blue",
+                  "enableTimePicker": false,
+                  "bsFullConfig": null
+                }
+              },
+              "model": {
+                "class": "DateInputModel",
+                "config": {
+                  "validators": []
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-publication-date",
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "helpText": "@dataPublication-citation-publication-datel-help",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "citation_generated",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": []
+              },
+              "component": {
+                "class": "SimpleInputComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-generated-label",
+                  "disabled": false,
+                  "autofocus": false,
+                  "type": "text"
+                }
+              },
+              "model": {
+                "class": "SimpleInputModel",
+                "config": {
+                  "validators": []
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "@dataPublication-citation-generated-label",
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "dataowner_name",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": []
+              },
+              "component": {
+                "class": "SimpleInputComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "dataowner_name",
+                  "disabled": false,
+                  "autofocus": false,
+                  "type": "hidden"
+                }
+              },
+              "model": {
+                "class": "SimpleInputModel",
+                "config": {
+                  "validators": []
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "dataowner_email",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": []
+              },
+              "component": {
+                "class": "SimpleInputComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "dataowner_email",
+                  "disabled": false,
+                  "autofocus": false,
+                  "type": "hidden"
+                }
+              },
+              "model": {
+                "class": "SimpleInputModel",
+                "config": {
+                  "validators": []
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "contributor_ci",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": []
+              },
+              "component": {
+                "class": "SimpleInputComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "contributor_ci",
+                  "disabled": false,
+                  "autofocus": false,
+                  "type": "hidden"
+                }
+              },
+              "model": {
+                "class": "SimpleInputModel",
+                "config": {
+                  "validators": []
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "contributor_data_manager",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": []
+              },
+              "component": {
+                "class": "SimpleInputComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "contributor_data_manager",
+                  "disabled": false,
+                  "autofocus": false,
+                  "type": "hidden"
+                }
+              },
+              "model": {
+                "class": "SimpleInputModel",
+                "config": {
+                  "validators": []
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
+            },
+            {
+              "name": "contributor_supervisor",
+              "constraints": {
+                "authorization": {
+                  "allowRoles": []
+                },
+                "allowModes": []
+              },
+              "component": {
+                "class": "SimpleInputComponent",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "label": "contributor_supervisor",
+                  "disabled": false,
+                  "autofocus": false,
+                  "type": "hidden"
+                }
+              },
+              "model": {
+                "class": "SimpleInputModel",
+                "config": {
+                  "validators": []
+                }
+              },
+              "layout": {
+                "class": "DefaultLayout",
+                "config": {
+                  "readonly": false,
+                  "visible": true,
+                  "editMode": true,
+                  "disabled": false,
+                  "autofocus": false,
+                  "labelRequiredStr": "*",
+                  "cssClassesMap": {},
+                  "helpTextVisibleOnInit": false,
+                  "helpTextVisible": false
+                }
+              }
             }
           ]
         }
       },
-      "disabledExpression": "<%= _.isEmpty(relatedRecordId) %>"
+      "model": {
+        "class": "GroupModel",
+        "config": {
+          "validators": []
+        }
+      },
+      "layout": {
+        "class": "DefaultLayout",
+        "config": {
+          "readonly": false,
+          "visible": true,
+          "editMode": true,
+          "label": "@dataPublication-citation-tab",
+          "disabled": false,
+          "autofocus": false,
+          "labelRequiredStr": "*",
+          "cssClassesMap": {},
+          "helpTextVisibleOnInit": false,
+          "helpTextVisible": false
+        }
+      }
     },
-    "componentDefinitions": [
-      {
-        "name": "",
-        "layout": {
-          "class": "DefaultLayoutComponent",
-          "config": {
-            "label": "@dataPublication-creators",
-            "helpText": "@dataPublication-creators-help"
-          }
+    {
+      "name": "validation_summary",
+      "constraints": {
+        "authorization": {
+          "allowRoles": []
         },
-        "component": {
-          "class": "GroupComponent",
-          "config": {}
-        },
-        "model": {
-          "class": "GroupModel",
-          "config": {
-            "defaultValue": ""
-          }
-        },
-        "unparsable": {
-          "publish": {
-            "onValueUpdate": {
-              "modelEventSource": "valueChanges"
-            }
-          }
-        }
-      }
-    ]
-  },
-  {
-    "name": "citation_publisher",
-    "layout": {
-      "class": "DefaultLayoutComponent",
-      "config": {
-        "label": "@dataPublication-citation-publisher",
-        "helpText": "@dataPublication-citation-publisher-help"
-      }
-    },
-    "component": {
-      "class": "SimpleInputComponent",
-      "config": {
-        "type": "text"
-      }
-    },
-    "model": {
-      "class": "SimpleInputModel",
-      "config": {
-        "defaultValue": "@dataPublication-citation-publisher-default"
-      }
-    },
-    "unparsable": {
-      "disabledExpression": "<%= _.isEmpty(relatedRecordId) %>"
-    }
-  },
-  {
-    "class": "Unparsable Component: LinkValueComponent"
-  },
-  {
-    "name": "citation_publication_date",
-    "layout": {
-      "class": "DefaultLayoutComponent",
-      "config": {
-        "label": "@dataPublication-citation-publication-date",
-        "helpText": "@dataPublication-citation-publication-datel-help"
-      }
-    },
-    "component": {
-      "class": "DateTimeComponent",
-      "config": {}
-    },
-    "unparsable": {
-      "disabledExpression": "<%= _.isEmpty(relatedRecordId) %>"
-    }
-  },
-  {
-    "name": "citation_generated",
-    "layout": {
-      "class": "DefaultLayoutComponent",
-      "config": {
-        "label": "@dataPublication-citation-generated-label",
-        "helpText": ""
-      }
-    },
-    "component": {
-      "class": "SimpleInputComponent",
-      "config": {
-        "type": "text"
-      }
-    },
-    "model": {
-      "class": "SimpleInputModel",
-      "config": {
-        "defaultValue": ""
-      }
-    },
-    "unparsable": {
-      "subscribe": {
-        "form": {
-          "onValueChange": [
-            {
-              "action": "utilityService.runTemplate",
-              "template": "<%= _.join(_.map(_.filter(_.get(data, \"creators\"), (c) => {return !_.isEmpty(c.family_name) || !_.isEmpty(c.given_name)}), (c)=> {return !_.isEmpty(c.family_name) || !_.isEmpty(c.given_name) ? ((c.family_name ? c.family_name : \"\") + \", \" + (c.given_name ? c.given_name : \"\")) : \"\" }), \"; \") + (_.get(data, \"citation_publication_date\",\"\") == \"\"  ? \" : \" : \" (\"+ moment(_.get(data, \"citation_publication_date\")).format(\"YYYY\") + \"): \") + _.get(data, \"citation_title\") + \". \" + (_.get(data, \"citation_publisher\",\"\") == \"\"? \"\":  _.get(data, \"citation_publisher\",\"\") + \". \") + (_.get(data, \"citation_doi\", \"\") == \"\" ? (_.get(data, \"requestIdentifier\", []).length > 0? \"{ID_WILL_BE_HERE}\" : \"\") : \"https://doi.org/\" + _.get(data, \"citation_doi\")) %>"
-            }
-          ]
-        }
+        "allowModes": []
+      },
+      "component": {
+        "class": "ValidationSummaryComponent"
       }
     }
-  },
-  {
-    "name": "dataowner_name",
-    "component": {
-      "class": "HiddenValueComponent",
-      "config": {}
-    },
-    "unparsable": {
-      "subscribe": {
-        "dataRecordGetter": {
-          "onValueUpdate": [
-            {
-              "action": "utilityService.getPropertyFromObject",
-              "field": "dataowner_name"
-            }
-          ]
-        }
-      }
-    }
-  },
-  {
-    "name": "dataowner_email",
-    "component": {
-      "class": "HiddenValueComponent",
-      "config": {}
-    },
-    "unparsable": {
-      "subscribe": {
-        "dataRecordGetter": {
-          "onValueUpdate": [
-            {
-              "action": "utilityService.getPropertyFromObject",
-              "field": "dataowner_email"
-            }
-          ]
-        }
-      }
-    }
-  },
-  {
-    "name": "contributor_ci",
-    "component": {
-      "class": "HiddenValueComponent",
-      "config": {}
-    },
-    "unparsable": {
-      "subscribe": {
-        "dataRecordGetter": {
-          "onValueUpdate": [
-            {
-              "action": "utilityService.getPropertyFromObject",
-              "field": "contributor_ci"
-            }
-          ]
-        }
-      }
-    }
-  },
-  {
-    "name": "contributor_data_manager",
-    "component": {
-      "class": "HiddenValueComponent",
-      "config": {}
-    },
-    "unparsable": {
-      "subscribe": {
-        "dataRecordGetter": {
-          "onValueUpdate": [
-            {
-              "action": "utilityService.getPropertyFromObject",
-              "field": "contributor_data_manager"
-            }
-          ]
-        }
-      }
-    }
-  },
-  {
-    "name": "contributor_supervisor",
-    "component": {
-      "class": "HiddenValueComponent",
-      "config": {}
-    },
-    "unparsable": {
-      "subscribe": {
-        "dataRecordGetter": {
-          "onValueUpdate": [
-            {
-              "action": "utilityService.getPropertyFromObject",
-              "field": "contributor_supervisor"
-            }
-          ]
-        }
-      }
-    }
-  }
-]
-    };
-
-    module.exports = formConfig;
-    
+  ],
+  "debugValue": true,
+  "attachmentFields": []
+};
+module.exports = formConfig;
