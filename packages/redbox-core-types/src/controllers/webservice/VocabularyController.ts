@@ -86,7 +86,8 @@ export namespace Controllers {
         const created = await VocabularyService.create(payload);
         return this.sendResp(req, res, { status: 201, data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        const detail = this.asError(error).message;
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -96,7 +97,8 @@ export namespace Controllers {
         const updated = await VocabularyService.update(id, req.body as Partial<VocabularyServiceModule.VocabularyInput>);
         return this.sendResp(req, res, { data: updated, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        const detail = this.asError(error).message;
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -125,7 +127,8 @@ export namespace Controllers {
         const updated = await VocabularyService.reorderEntries(id, normalized);
         return this.sendResp(req, res, { data: { updated }, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        const detail = this.asError(error).message;
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -135,7 +138,8 @@ export namespace Controllers {
         await VocabularyService.delete(id);
         return this.sendResp(req, res, { status: 204, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        const detail = this.asError(error).message;
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -149,7 +153,8 @@ export namespace Controllers {
         const created = await RvaImportService.importRvaVocabulary(rvaId, versionId, BrandingService.getBrandFromReq(req).id);
         return this.sendResp(req, res, { data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        const detail = this.asError(error).message;
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -160,7 +165,8 @@ export namespace Controllers {
         const result = await RvaImportService.syncRvaVocabulary(id, versionId);
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 400, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        const detail = this.asError(error).message;
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
   }
