@@ -1620,6 +1620,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         formConfig = {};
       }
     }
+    return formConfig;
+  }
 
     // Set the form config name if there isn't one.
     if (!formConfig.name) {
