@@ -63,7 +63,7 @@ describe('appConfigService', function () {
     const branding = BrandingService.getBrand(brandName);
     const configKey = 'systemMessage';
     const configData = await appConfigService.getAppConfigByBrandAndKey(branding.id, configKey);
-    expect(configData.message).to.eq('')
+    expect(configData.message ?? '').to.eq('')
   });
 
 

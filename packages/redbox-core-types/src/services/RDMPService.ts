@@ -394,7 +394,10 @@ export namespace Services {
           _.remove(userEmails, (email: string) => {
             return email == userObj['email'];
           });
-          userList.push(userObj['username'] as string);
+          const resolvedUsername = _.trim(String(userObj['username'] ?? userObj['name'] ?? ''));
+          if (!_.isEmpty(resolvedUsername)) {
+            userList.push(resolvedUsername);
+          }
         }
       });
     }
@@ -525,7 +528,7 @@ export namespace Services {
         return this.assignContributorRecordPermissions(
           oid, record, recordCreatorPermissions,
           editContributorEmails, editContributorObs,
-          viewContributorEmails, viewContributorObs, 
+          viewContributorEmails, viewContributorObs,
           user
         );
       }
@@ -544,7 +547,7 @@ export namespace Services {
      * @private
      */
     private assignContributorRecordPermissions(
-oid: string, record: RecordWithMeta, recordCreatorPermissions: unknown, editContributorEmails: string[], editContributorObs: Array<Observable<unknown>>, viewContributorEmails: string[], viewContributorObs: Array<Observable<unknown>>, user?: UserLike) {
+      oid: string, record: RecordWithMeta, recordCreatorPermissions: unknown, editContributorEmails: string[], editContributorObs: Array<Observable<unknown>>, viewContributorEmails: string[], viewContributorObs: Array<Observable<unknown>>, user?: UserLike) {
       const auth = (record.authorization ?? {}) as AnyRecord;
       record.authorization = auth;
       const createdBy = record.metaMetadata?.createdBy ?? user?.username;
