@@ -75,6 +75,11 @@ import {
     MapFormComponentDefinitionOutline
 } from "../component/map.outline";
 import {
+    FileUploadFieldComponentDefinitionOutline,
+    FileUploadFieldModelDefinitionOutline,
+    FileUploadFormComponentDefinitionOutline
+} from "../component/file-upload.outline";
+import {
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline,
     RadioInputFormComponentDefinitionOutline
@@ -474,6 +479,21 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
+        this.acceptCheckConstraintsCurrentPath(item);
+        this.processFormComponentDefinition(item);
+    }
+
+    /* File Upload */
+
+    visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
+        this.processFieldComponentDefinition(item);
+    }
+
+    visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
+        this.processFieldModelDefinition(item);
+    }
+
+    visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
         this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
     }

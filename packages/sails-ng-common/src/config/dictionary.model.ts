@@ -25,6 +25,7 @@ import { CheckboxTreeDefaults, CheckboxTreeMap } from "./component/checkbox-tree
 import { TypeaheadInputDefaults, TypeaheadInputMap } from "./component/typeahead-input.model";
 import { RichTextEditorDefaults, RichTextEditorMap } from "./component/rich-text-editor.model";
 import { MapDefaults, MapMap } from "./component/map.model";
+import { FileUploadDefaults, FileUploadMap } from "./component/file-upload.model";
 
 
 /**
@@ -51,6 +52,7 @@ export const AllDefs = [
     ...TypeaheadInputMap,
     ...RichTextEditorMap,
     ...MapMap,
+    ...FileUploadMap,
 ] as const;
 
 /**
@@ -77,6 +79,7 @@ const RawDefaults = [
     TypeaheadInputDefaults,
     RichTextEditorDefaults,
     MapDefaults,
+    FileUploadDefaults,
 ]
 
 /**

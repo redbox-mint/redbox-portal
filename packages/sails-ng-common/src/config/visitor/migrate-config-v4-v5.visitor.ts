@@ -1,6 +1,9 @@
 import { cloneDeep as _cloneDeep, get as _get } from "lodash";
 import { FormConfig } from "../form-config.model";
 import { FormConfigOutline } from "../form-config.outline";
+import { cloneDeep as _cloneDeep, get as _get } from "lodash";
+import { FormConfig } from "../form-config.model";
+import { FormConfigOutline } from "../form-config.outline";
 import {
     GroupFieldComponentDefinitionOutline,
     GroupFieldComponentName,
@@ -140,6 +143,14 @@ import {
     MapTileLayerConfig
 } from "../component/map.outline";
 import { MapFieldComponentConfig, MapFieldModelConfig } from "../component/map.model";
+import {
+    FileUploadComponentName,
+    FileUploadFieldComponentDefinitionOutline,
+    FileUploadFieldModelDefinitionOutline,
+    FileUploadFormComponentDefinitionOutline,
+    FileUploadModelName
+} from "../component/file-upload.outline";
+import { FileUploadFieldComponentConfig, FileUploadFieldModelConfig } from "../component/file-upload.model";
 
 
 import { FieldModelConfigFrame } from "../field-model.outline";
@@ -365,6 +376,30 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
         "MapComponent": {
             componentClassName: MapComponentName,
             modelClassName: MapModelName
+        }
+    },
+    "RelatedFileUpload": {
+        "": {
+            componentClassName: FileUploadComponentName,
+            modelClassName: FileUploadModelName
+        },
+        "RelatedFileUploadComponent": {
+            componentClassName: FileUploadComponentName,
+            modelClassName: FileUploadModelName
+        },
+        "RelatedFileComponent": {
+            componentClassName: FileUploadComponentName,
+            modelClassName: FileUploadModelName
+        }
+    },
+    "DataLocation": {
+        "": {
+            componentClassName: FileUploadComponentName,
+            modelClassName: FileUploadModelName
+        },
+        "DataLocationComponent": {
+            componentClassName: FileUploadComponentName,
+            modelClassName: FileUploadModelName
         }
     },
 };
@@ -980,6 +1015,51 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
 
     visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
+    /* File Upload */
+
+    visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new FileUploadFieldComponentConfig();
+        this.sharedPopulateFieldComponentConfig(item.config, field);
+
+        const restrictions = this.readObject(field?.definition?.restrictions);
+        if (restrictions) {
+            this.sharedProps.setPropOverride("restrictions", item.config, { restrictions });
+        }
+
+        const uppyDashboardNote = field?.definition?.uppyDashboardNote;
+        if (uppyDashboardNote) {
+            this.sharedProps.setPropOverride("uppyDashboardNote", item.config, { uppyDashboardNote });
+        }
+
+        const notesEnabled = field?.definition?.notesEnabled;
+        if (typeof notesEnabled === "boolean") {
+            const metadataFields = notesEnabled ? [
+                {
+                    id: "notes",
+                    name: "Notes",
+                    placeholder: "Notes about this file."
+                }
+            ] : [];
+            this.sharedProps.setPropOverride("restrictions", item.config, {
+                restrictions: {
+                    ...(item.config.restrictions ?? {}),
+                    metadataFields
+                }
+            });
+        }
+    }
+
+    visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new FileUploadFieldModelConfig();
+        this.sharedPopulateFieldModelConfig(item.config, field);
+    }
+
+    visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
         this.populateFormComponent(item);
     }
 

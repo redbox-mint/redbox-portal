@@ -1,4 +1,5 @@
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
+import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 
 const formConfig: FormConfigFrame = {
     name: "default-1.0-draft",
@@ -823,6 +824,31 @@ const formConfig: FormConfigFrame = {
                                                     zoom: 4,
                                                     center: [-24.67, 134.07],
                                                     enableImport: true,
+                                                }
+                                            }
+                                        },
+                                        {
+                                            name: 'file_upload_1',
+                                            layout: {
+                                                class: 'DefaultLayout',
+                                                config: {
+                                                    label: 'File upload',
+                                                    helpText: 'Attach one or more files to this record.',
+                                                }
+                                            },
+                                            model: {
+                                                class: 'FileUploadModel',
+                                                config: {
+                                                    defaultValue: []
+                                                }
+                                            },
+                                            component: {
+                                                class: 'FileUploadComponent',
+                                                config: {
+                                                    allowUploadWithoutSave: true,
+                                                    companionUrl: '/companion',
+                                                    enabledSources: ['dropbox', 'googleDrive', 'onedrive'],
+                                                    uppyDashboardNote: 'Maximum upload size: 1 Gb per file',
                                                 }
                                             }
                                         },

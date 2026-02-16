@@ -1,5 +1,7 @@
 import { cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith, set as _set } from "lodash";
 import { FormConfig } from "../form-config.model";
+import { cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith, set as _set } from "lodash";
+import { FormConfig } from "../form-config.model";
 
 import { FormConfigVisitor } from "./base.model";
 import { FormConfigFrame, FormConfigOutline } from "../form-config.outline";
@@ -115,6 +117,16 @@ import {
     MapModelName
 } from "../component/map.outline";
 import { MapFieldComponentConfig, MapFieldModelConfig } from "../component/map.model";
+import {
+    FileUploadComponentName,
+    FileUploadFieldComponentDefinitionFrame,
+    FileUploadFieldComponentDefinitionOutline,
+    FileUploadFieldModelDefinitionFrame,
+    FileUploadFieldModelDefinitionOutline,
+    FileUploadFormComponentDefinitionOutline,
+    FileUploadModelName
+} from "../component/file-upload.outline";
+import { FileUploadFieldComponentConfig, FileUploadFieldModelConfig } from "../component/file-upload.model";
 import { ContentFieldComponentConfig } from "../component/content.model";
 import {
     DropdownInputComponentName,
@@ -137,16 +149,6 @@ import {
 } from "../component/typeahead-input.outline";
 import { TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig } from "../component/typeahead-input.model";
 import {
-    TypeaheadInputComponentName,
-    TypeaheadInputFieldComponentDefinitionFrame,
-    TypeaheadInputFieldComponentDefinitionOutline,
-    TypeaheadInputFieldModelDefinitionFrame,
-    TypeaheadInputFieldModelDefinitionOutline,
-    TypeaheadInputFormComponentDefinitionOutline,
-    TypeaheadInputModelName
-} from "../component/typeahead-input.outline";
-import { TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig } from "../component/typeahead-input.model";
-import {
     CheckboxInputComponentName,
     CheckboxInputFieldComponentDefinitionFrame,
     CheckboxInputFieldComponentDefinitionOutline,
@@ -156,16 +158,6 @@ import {
     CheckboxInputModelName
 } from "../component/checkbox-input.outline";
 import { CheckboxInputFieldComponentConfig, CheckboxInputFieldModelConfig } from "../component/checkbox-input.model";
-import {
-    CheckboxTreeComponentName,
-    CheckboxTreeFieldComponentDefinitionFrame,
-    CheckboxTreeFieldComponentDefinitionOutline,
-    CheckboxTreeFieldModelDefinitionFrame,
-    CheckboxTreeFieldModelDefinitionOutline,
-    CheckboxTreeFormComponentDefinitionOutline,
-    CheckboxTreeModelName
-} from "../component/checkbox-tree.outline";
-import { CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig } from "../component/checkbox-tree.model";
 import {
     CheckboxTreeComponentName,
     CheckboxTreeFieldComponentDefinitionFrame,
@@ -870,6 +862,44 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
+    /* File Upload */
+
+    visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<FileUploadFieldComponentDefinitionFrame>(currentData, FileUploadComponentName)) {
+            throw new Error(`Invalid ${FileUploadComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+        const config = currentData?.config;
+
+        item.config = new FileUploadFieldComponentConfig();
+
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+        this.sharedProps.setPropOverride("restrictions", item.config, config);
+        this.sharedProps.setPropOverride("enabledSources", item.config, config);
+        this.sharedProps.setPropOverride("companionUrl", item.config, config);
+        this.sharedProps.setPropOverride("allowUploadWithoutSave", item.config, config);
+        this.sharedProps.setPropOverride("uppyDashboardNote", item.config, config);
+        this.sharedProps.setPropOverride("tusHeaders", item.config, config);
+    }
+
+    visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<FileUploadFieldModelDefinitionFrame>(currentData, FileUploadModelName)) {
+            throw new Error(`Invalid ${FileUploadModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+
+        item.config = new FileUploadFieldModelConfig();
+
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item, currentData?.config);
+    }
+
+    visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
         this.populateFormComponent(item);
     }
 

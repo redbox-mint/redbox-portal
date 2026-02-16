@@ -129,5 +129,31 @@ module.exports = {
     email: {
       disabled: true
     }
+  },
+  companion: {
+    enabled: process.env.UPPY_COMPANION_ENABLED === 'true',
+    route: '/companion',
+    secret: process.env.UPPY_COMPANION_SECRET || '',
+    filePath: process.env.UPPY_COMPANION_FILE_PATH || '/tmp/companion',
+    uploadUrls: (process.env.UPPY_COMPANION_UPLOAD_URLS || '').split(',').map((v) => v.trim()).filter(Boolean),
+    server: {
+      host: process.env.UPPY_COMPANION_HOST || '',
+      protocol: process.env.UPPY_COMPANION_PROTOCOL || 'http',
+      path: process.env.UPPY_COMPANION_PATH || '/companion'
+    },
+    providerOptions: {
+      dropbox: {
+        key: process.env.UPPY_DROPBOX_KEY || '',
+        secret: process.env.UPPY_DROPBOX_SECRET || ''
+      },
+      google: {
+        key: process.env.UPPY_GOOGLE_KEY || '',
+        secret: process.env.UPPY_GOOGLE_SECRET || ''
+      },
+      onedrive: {
+        key: process.env.UPPY_ONEDRIVE_KEY || '',
+        secret: process.env.UPPY_ONEDRIVE_SECRET || ''
+      }
+    }
   }
 };

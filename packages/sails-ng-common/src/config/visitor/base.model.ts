@@ -90,6 +90,11 @@ import {
     MapFieldModelDefinitionOutline,
     MapFormComponentDefinitionOutline
 } from "../component/map.outline";
+import {
+    FileUploadFieldComponentDefinitionOutline,
+    FileUploadFieldModelDefinitionOutline,
+    FileUploadFormComponentDefinitionOutline
+} from "../component/file-upload.outline";
 
 
 /**
@@ -355,59 +360,17 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
         this.notImplemented();
     }
 
-    /* Checkbox Tree */
+    /* File Upload */
 
-    visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {
+    visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
         this.notImplemented();
     }
 
-    visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
+    visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
         this.notImplemented();
     }
 
-    visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    /* Typeahead Input */
-
-    visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    /* Rich Text Editor */
-
-    visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    /* Map */
-
-    visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
+    visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
         this.notImplemented();
     }
 

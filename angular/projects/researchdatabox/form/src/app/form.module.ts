@@ -53,6 +53,7 @@ import { TypeaheadInputComponent } from './component/typeahead-input.component';
 import { RichTextEditorComponent } from './component/rich-text-editor.component';
 import { TiptapEditorDirective } from "ngx-tiptap";
 import { MapComponent } from './component/map.component';
+import { FileUploadComponent } from './component/file-upload.component';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
@@ -77,7 +78,8 @@ import { MapComponent } from './component/map.component';
     CheckboxTreeComponent,
     TypeaheadInputComponent,
     RichTextEditorComponent,
-    MapComponent
+    MapComponent,
+    FileUploadComponent
   ],
   imports: [
     CommonModule,

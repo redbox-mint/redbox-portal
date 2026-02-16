@@ -1,0 +1,79 @@
+@if (isVisible) {
+  <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
+
+  @if (attachments.length > 0) {
+    <div class="table-responsive rb-file-upload-list mt-2">
+      <table class="table table-bordered table-striped table-hover mb-0">
+        <thead>
+          <tr>
+            <th width="40%">{{ locationHeader }}</th>
+            @if (notesEnabled) {
+              <th width="20%">{{ notesHeader }}</th>
+            }
+            @if (isEditMode()) {
+              <th width="5%"><span [hidden]="true">Action</span></th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (attachment of attachments; track $index) {
+            <tr>
+              <td>
+                @if (attachment.pending) {
+                  <span>{{ attachment.name }}</span>
+                } @else {
+                  <a [href]="getLocationLink(attachment)" target="_blank" rel="noopener noreferrer">{{ attachment.name }}</a>
+                }
+              </td>
+              @if (notesEnabled) {
+                <td>
+                  @if (isEditMode()) {
+                    <input
+                      type="text"
+                      class="form-control"
+                      [value]="attachment.notes ?? ''"
+                      [attr.aria-label]="notesHeader"
+                      [readonly]="isDisabled || isReadonly"
+                      (input)="updateAttachmentNotes($index, $any($event.target).value)"
+                    />
+                  } @else {
+                    <span>{{ attachment.notes }}</span>
+                  }
+                </td>
+              }
+              @if (isEditMode()) {
+                <td>
+                  <button
+                    type="button"
+                    class="fa fa-minus-circle btn text-20 btn-danger"
+                    [attr.aria-label]="'Remove attachment'"
+                    (click)="removeAttachment($index)"
+                    [disabled]="isDisabled || isReadonly"
+                  ></button>
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (isEditMode()) {
+    <div class="row padding-bottom-10 mt-2">
+      <div class="col-sm-6">
+        <button
+          type="button"
+          class="btn btn-info UppyModalOpenerBtn"
+          [class.disabled]="isAttachmentButtonDisabled()"
+          [disabled]="isAttachmentButtonDisabled()"
+          (click)="openModal()"
+        >
+          {{ attachmentButtonText }}
+        </button>
+      </div>
+    </div>
+  }
+
+  <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
+}

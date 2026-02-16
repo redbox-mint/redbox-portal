@@ -19,6 +19,7 @@ import { CheckboxTreeComponent, CheckboxTreeModel } from "./component/checkbox-t
 import { TypeaheadInputComponent, TypeaheadInputModel } from "./component/typeahead-input.component";
 import { RichTextEditorComponent, RichTextEditorModel } from "./component/rich-text-editor.component";
 import { MapComponent, MapModel } from "./component/map.component";
+import { FileUploadComponent, FileUploadModel } from "./component/file-upload.component";
 import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   StaticComponentClassMapGenType,
@@ -29,6 +30,7 @@ import {
   TypeaheadInputModelName,
   RichTextEditorModelName,
   MapModelName,
+  FileUploadModelName,
   RepeatableComponentName, SaveButtonComponentName, TextAreaComponentName, ContentComponentName,
   SimpleInputComponentName, ValidationSummaryComponentName, TabContentComponentName, TabComponentName,
   CheckboxInputComponentName, DropdownInputComponentName, RadioInputComponentName, DateInputComponentName,
@@ -36,6 +38,7 @@ import {
   TypeaheadInputComponentName,
   RichTextEditorComponentName,
   MapComponentName,
+  FileUploadComponentName,
   GroupFieldComponentName,
   TabLayoutName, TabContentLayoutName, RepeatableElementLayoutName, DefaultLayoutName, StaticClassMapType,
 } from "@researchdatabox/sails-ng-common";
@@ -64,6 +67,7 @@ export const StaticComponentClassMap: StaticComponentClassMapType = {
   [TypeaheadInputComponentName]: TypeaheadInputComponent,
   [RichTextEditorComponentName]: RichTextEditorComponent,
   [MapComponentName]: MapComponent,
+  [FileUploadComponentName]: FileUploadComponent,
 };
 
 /*
@@ -84,7 +88,8 @@ export const StaticModelClassMap: StaticModelClassMapType = {
   [CheckboxTreeModelName]: CheckboxTreeModel,
   [TypeaheadInputModelName]: TypeaheadInputModel,
   [RichTextEditorModelName]: RichTextEditorModel,
-  [MapModelName]: MapModel
+  [MapModelName]: MapModel,
+  [FileUploadModelName]: FileUploadModel
 };
 
 /*
