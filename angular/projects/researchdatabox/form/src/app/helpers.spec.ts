@@ -17,6 +17,7 @@ import { I18NextPipe, provideI18Next } from "angular-i18next";
 import { FormService } from "./form.service";
 import { FormConfigFrame, formValidatorsSharedDefinitions } from "@researchdatabox/sails-ng-common";
 import { DefaultLayoutComponent } from "./component/default-layout.component";
+import { InlineLayoutComponent } from "./component/inline-layout.component";
 import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
 import { FormBaseWrapperDirective } from "./component/base-wrapper.directive";
 import { provideHttpClient } from "@angular/common/http";
@@ -116,6 +117,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
   await TestBed.configureTestingModule({
     declarations: await createTestBedModuleConfig({
       "DefaultLayoutComponent": DefaultLayoutComponent,
+      "InlineLayoutComponent": InlineLayoutComponent,
       "FormBaseWrapperComponent": FormBaseWrapperComponent,
       "FormBaseWrapperDirective": FormBaseWrapperDirective,
       "FormComponent": FormComponent,

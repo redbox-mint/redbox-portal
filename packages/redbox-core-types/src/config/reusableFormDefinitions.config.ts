@@ -19,21 +19,39 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
     "standard-contributor-fields": [
         {
             name: "name",
-            component: {class: "SimpleInputComponent", config: {type: "text", hostCssClasses: ""}},
+            component: {
+                class: "SimpleInputComponent",
+                config: {type: "text", hostCssClasses: "flex-grow-1 d-block", wrapperCssClasses: "col-md-4 mb-3"}
+            },
             model: {class: "SimpleInputModel", config: {}},
-            layout: {class: "DefaultLayout", config: {label: "Name", hostCssClasses: "col-md-4 mb-3"}},
+            layout: {
+                class: "InlineLayout",
+                config: {label: "Name", hostCssClasses: "d-flex align-items-center gap-2"}
+            },
         },
         {
             name: "email",
-            component: {class: "SimpleInputComponent", config: {type: "text", hostCssClasses: ""}},
+            component: {
+                class: "SimpleInputComponent",
+                config: {type: "text", hostCssClasses: "flex-grow-1 d-block", wrapperCssClasses: "col-md-4 mb-3"}
+            },
             model: {class: "SimpleInputModel", config: {validators: [{class: "email"}]}},
-            layout: {class: "DefaultLayout", config: {label: "Email", hostCssClasses: "col-md-4 mb-3"}},
+            layout: {
+                class: "InlineLayout",
+                config: {label: "Email", hostCssClasses: "d-flex align-items-center gap-2"}
+            },
         },
         {
             name: "orcid",
-            component: {class: "SimpleInputComponent", config: {type: "text", hostCssClasses: ""}},
+            component: {
+                class: "SimpleInputComponent",
+                config: {type: "text", hostCssClasses: "flex-grow-1 d-block", wrapperCssClasses: "col-md-4 mb-3"}
+            },
             model: {class: "SimpleInputModel", config: {validators: [{class: "orcid"}]}},
-            layout: {class: "DefaultLayout", config: {label: "ORCID", hostCssClasses: "col-md-4 mb-3"}},
+            layout: {
+                class: "InlineLayout",
+                config: {label: "ORCID", hostCssClasses: "d-flex align-items-center gap-2"}
+            },
         },
     ],
 

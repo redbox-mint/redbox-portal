@@ -48,9 +48,6 @@ show_step 'Build angular apps.'
 sudo rm -r ../portal-ng-form-custom || true
 npm run compile:ng-apps
 
-show_step 'Build angular legacy apps.'
-npm run compile:ng-legacy
-
 show_step 'Compile frontend assets.'
 npm run webpack
 
