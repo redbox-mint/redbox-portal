@@ -1,13 +1,13 @@
-import { DOCUMENT } from '@angular/common';
 import { Component, inject, Injector, Input } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent } from "@researchdatabox/portal-ng-common";
 import { FormComponent } from "../form.component";
 import {
   FormValidatorComponentErrors,
   FormValidatorSummaryErrors,
   ValidationSummaryComponentName,
 } from "@researchdatabox/sails-ng-common";
-import { TabComponent } from './tab.component';
+import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
+import { createLineageFieldFocusRequestEvent } from '../form-state/events/form-component-event.types';
 
 
 @Component({
@@ -85,15 +85,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   @Input() public override model?: never;
 
   private _injector = inject(Injector);
-  private readonly doc = inject(DOCUMENT);
-  private readonly focusableSelector = [
-    'input:not([type="hidden"]):not([disabled])',
-    'select:not([disabled])',
-    'textarea:not([disabled])',
-    'button:not([disabled])',
-    'a[href]:not([disabled])',
-    '[tabindex]:not([tabindex="-1"])',
-  ].join(',');
+  private readonly eventBus = inject(FormComponentEventBus);
 
   get allValidationErrorsDisplay(): FormValidatorSummaryErrors[] {
     return this.getFormComponent?.getValidationErrors() ?? [];
@@ -105,92 +97,27 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
 
   public onValidationSummaryClick(event: MouseEvent, summary: FormValidatorSummaryErrors): void {
     event.preventDefault();
-    void this.revealAndFocusValidationTarget(summary);
-  }
-
-  private async revealAndFocusValidationTarget(summary: FormValidatorSummaryErrors): Promise<void> {
-    this.revealTabParents(summary.lineagePaths?.angularComponents ?? []);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    this.focusValidationTarget(summary);
-  }
-
-  private revealTabParents(angularPath: Array<string | number>): void {
-    if (angularPath.length < 2) {
+    const lineagePath = summary.lineagePaths?.angularComponents ?? [];
+    if (lineagePath.length === 0) {
       return;
     }
-    for (let index = 0; index < angularPath.length - 1; index++) {
-      const containerName = String(angularPath[index]);
-      const targetTabId = String(angularPath[index + 1]);
-      const candidate = this.findComponentEntryByName(containerName);
-      if (candidate?.component instanceof TabComponent) {
-        candidate.component.selectTab(targetTabId);
-      }
-    }
-  }
-
-  private focusValidationTarget(summary: FormValidatorSummaryErrors): void {
-    const linkedElement = summary.id ? this.doc.getElementById(summary.id) : null;
-    if (linkedElement instanceof HTMLElement) {
-      this.scrollAndFocus(linkedElement);
-      return;
-    }
-
-    const entry = this.findComponentEntryFromLineage(summary.lineagePaths?.angularComponents ?? []);
-    const targetElement =
-      entry?.componentRef?.location?.nativeElement ??
-      entry?.layoutRef?.location?.nativeElement;
-    if (targetElement instanceof HTMLElement) {
-      const focusable = this.findFocusableElement(targetElement) ?? targetElement;
-      this.scrollAndFocus(focusable);
-    }
-  }
-
-  private scrollAndFocus(element: HTMLElement): void {
-    element.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center'
-    });
-    if (typeof element.focus === 'function') {
-      element.focus({ preventScroll: true });
-    }
-  }
-
-  private findFocusableElement(parent: HTMLElement): HTMLElement | null {
-    const focusable = parent.querySelector(this.focusableSelector);
-    return focusable instanceof HTMLElement ? focusable : null;
-  }
-
-  private findComponentEntryFromLineage(angularPath: Array<string | number>): FormFieldCompMapEntry | undefined {
-    let currentEntries = this.getFormComponent?.componentDefArr ?? [];
-    let currentEntry: FormFieldCompMapEntry | undefined;
-
-    for (const segment of angularPath) {
-      const segmentName = String(segment);
-      currentEntry = currentEntries.find((entry) => entry.compConfigJson?.name === segmentName);
-      if (!currentEntry) {
-        return undefined;
-      }
-      currentEntries = currentEntry.component?.formFieldCompMapEntries ?? [];
-    }
-
-    return currentEntry;
-  }
-
-  private findComponentEntryByName(name: string, entries: FormFieldCompMapEntry[] = this.getFormComponent?.componentDefArr ?? []): FormFieldCompMapEntry | undefined {
-    for (const entry of entries) {
-      if (entry.compConfigJson?.name === name) {
-        return entry;
-      }
-      const childEntry = this.findComponentEntryByName(name, entry.component?.formFieldCompMapEntries ?? []);
-      if (childEntry) {
-        return childEntry;
-      }
-    }
-    return undefined;
+    this.eventBus.publish(
+      createLineageFieldFocusRequestEvent({
+        fieldId: summary.id ?? String(lineagePath[lineagePath.length - 1]),
+        targetElementId: summary.id ?? undefined,
+        lineagePath,
+        requestId: this.buildFocusRequestId(),
+        source: 'validation-summary',
+        sourceId: this.getFormComponent.eventScopeId
+      })
+    );
   }
 
   private get getFormComponent(): FormComponent {
     return this._injector.get(FormComponent);
   }
 
+  private buildFocusRequestId(): string {
+    return `validation-summary-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
 }

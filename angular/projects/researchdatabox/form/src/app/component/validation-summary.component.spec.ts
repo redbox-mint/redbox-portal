@@ -4,6 +4,9 @@ import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { SimpleInputComponent } from "./simple-input.component";
 import { TabComponent } from './tab.component';
+import { RepeatableComponent, RepeatableElementLayoutComponent } from './repeatable.component';
+import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
+import { FormComponentEventType } from '../form-state/events/form-component-event.types';
 
 describe('ValidationSummaryFieldComponent', () => {
   beforeEach(async () => {
@@ -11,6 +14,8 @@ describe('ValidationSummaryFieldComponent', () => {
       declarations: {
         "ValidationSummaryFieldComponent": ValidationSummaryFieldComponent,
         "SimpleInputComponent": SimpleInputComponent,
+        "RepeatableComponent": RepeatableComponent,
+        "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
       }
     });
   });
@@ -172,6 +177,57 @@ describe('ValidationSummaryFieldComponent', () => {
     expect(firstTrackKey).toEqual(secondTrackKey);
   });
 
+  it('should publish field focus request event when clicking a validation summary link', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: '',
+              validators: [{ class: 'required' }]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        },
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+      ]
+    };
+
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const publishSpy = spyOn(eventBus, 'publish').and.callThrough();
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    const link = nativeEl.querySelector('a[data-validation-summary-id="form-item-id-text-1-event"]') as HTMLAnchorElement | null;
+
+    expect(link).toBeTruthy();
+    link?.click();
+
+    expect(publishSpy).toHaveBeenCalled();
+    const focusRequest = publishSpy.calls.allArgs()
+      .map(args => args[0] as any)
+      .find((event) => event.type === FormComponentEventType.FIELD_FOCUS_REQUEST);
+    expect(focusRequest).toBeTruthy();
+    expect(focusRequest.fieldId).toBe('form-item-id-text-1-event');
+    expect(focusRequest.targetElementId).toBe('form-item-id-text-1-event');
+    expect(focusRequest.lineagePath).toEqual(['text_1_event']);
+    expect(focusRequest.source).toBe('validation-summary');
+    expect(focusRequest.sourceId).toBe(formComponent.eventScopeId);
+  });
+
   it('should reveal hidden tab and focus field when clicking a validation summary link', async () => {
     // arrange
     const formConfig: FormConfigFrame = {
@@ -269,6 +325,122 @@ describe('ValidationSummaryFieldComponent', () => {
     const inputInTab2 = nativeEl.querySelector('#tab2-tab-content input[type="text"]') as HTMLInputElement | null;
     expect(inputInTab2).toBeTruthy();
     expect(document.activeElement).toBe(inputInTab2);
+  });
+
+  it('should reveal hidden tab and focus repeatable field when clicking a validation summary link', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'main_tab',
+          component: {
+            class: 'TabComponent',
+            config: {
+              tabs: [
+                {
+                  name: 'tab1',
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      selected: true,
+                      componentDefinitions: [
+                        {
+                          name: 'textfield_1',
+                          model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                              value: 'Tab one'
+                            }
+                          },
+                          component: {
+                            class: 'SimpleInputComponent'
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  name: 'tab2',
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      selected: false,
+                      componentDefinitions: [
+                        {
+                          name: 'repeatable_textfield_1',
+                          model: {
+                            class: 'RepeatableModel',
+                            config: {
+                              value: ['']
+                            }
+                          },
+                          component: {
+                            class: 'RepeatableComponent',
+                            config: {
+                              elementTemplate: {
+                                name: '',
+                                model: {
+                                  class: 'SimpleInputModel',
+                                  config: {
+                                    value: '',
+                                    validators: [
+                                      { class: 'required' }
+                                    ]
+                                  }
+                                },
+                                component: {
+                                  class: 'SimpleInputComponent'
+                                }
+                              }
+                            }
+                          },
+                          layout: {
+                            class: 'DefaultLayout',
+                            config: {
+                              label: 'Repeatable TextField with default wrapper defined'
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            } as TabFieldComponentConfigFrame
+          },
+          layout: {
+            class: 'TabLayout'
+          }
+        },
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    const mainTab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
+    expect(mainTab.activeTabId).toBe('tab1');
+
+    const link = nativeEl.querySelector('a[data-validation-summary-id^="form-item-id-repeatable-textfield-1-"]') as HTMLAnchorElement | null;
+    expect(link).toBeTruthy();
+    link?.click();
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mainTab.activeTabId).toBe('tab2');
+    const repeatableInput = nativeEl.querySelector('#tab2-tab-content input[type="text"]') as HTMLInputElement | null;
+    expect(repeatableInput).toBeTruthy();
+    expect(document.activeElement).toBe(repeatableInput);
   });
 
 });
