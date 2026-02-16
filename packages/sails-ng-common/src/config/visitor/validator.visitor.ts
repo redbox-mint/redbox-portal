@@ -1,4 +1,4 @@
-import {FormConfigVisitor} from "./base.model";
+import { FormConfigVisitor } from "./base.model";
 import {
     FormValidatorConfig,
     FormValidatorControl,
@@ -6,16 +6,16 @@ import {
     FormValidatorSummaryErrors,
     SimpleServerFormValidatorControl
 } from "../../validation/form.model";
-import {FormConfigOutline} from "../form-config.outline";
-import {ILogger} from "../../logger.interface";
+import { FormConfigOutline } from "../form-config.outline";
+import { ILogger } from "../../logger.interface";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
     SimpleInputFormComponentDefinitionOutline
 } from "../component/simple-input.outline";
-import {guessType} from "../helpers";
-import {FormComponentDefinitionOutline} from "../form-component.outline";
-import {ValidatorsSupport} from "../../validation/validators-support";
+import { guessType } from "../helpers";
+import { FormComponentDefinitionOutline } from "../form-component.outline";
+import { ValidatorsSupport } from "../../validation/validators-support";
 import {
     ContentFieldComponentDefinitionOutline,
     ContentFormComponentDefinitionOutline
@@ -54,7 +54,7 @@ import {
     TextAreaFieldModelDefinitionOutline,
     TextAreaFormComponentDefinitionOutline
 } from "../component/text-area.outline";
-import {DefaultFieldLayoutDefinitionOutline} from "../component/default-layout.outline";
+import { DefaultFieldLayoutDefinitionOutline } from "../component/default-layout.outline";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionOutline,
@@ -90,10 +90,10 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {FormConfig} from "../form-config.model";
-import {FormPathHelper} from "./common.model";
-import {DataValueFormConfigVisitor} from "./data-value.visitor";
-import {buildLineagePaths} from "../names/naming-helpers";
+import { FormConfig } from "../form-config.model";
+import { FormPathHelper } from "./common.model";
+import { DataValueFormConfigVisitor } from "./data-value.visitor";
+import { buildLineagePaths } from "../names/naming-helpers";
 
 /**
  * Visit each form config component and run its validators.
@@ -137,10 +137,10 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
      * @param options.validatorDefinitions The validation definitions to make available.
      */
     start(options: {
-              form: FormConfigOutline;
-              enabledValidationGroups?: string[];
-              validatorDefinitions?: FormValidatorDefinition[];
-          }
+        form: FormConfigOutline;
+        enabledValidationGroups?: string[];
+        validatorDefinitions?: FormValidatorDefinition[];
+    }
     ): FormValidatorSummaryErrors[] {
         this.formPathHelper.reset();
 
@@ -171,7 +171,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         // Run form-level validators using the full form data model.
         // There are various reasons a validator is at form level, e.g. they involve more than one field.
         const dataValueVisitor = new DataValueFormConfigVisitor(this.logger);
-        const value = dataValueVisitor.start({form: item});
+        const value = dataValueVisitor.start({ form: item });
         const itemName = item?.name ?? "";
         this.validationErrors.push(...this.validateFormComponent(itemName, value, item?.validators));
     }
@@ -351,7 +351,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
             configErrors.push({
                 class: "typeaheadSourceType",
                 message: "@validator-error-typeahead-source-type",
-                params: {sourceType}
+                params: { sourceType }
             });
         }
 
@@ -359,28 +359,28 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
             configErrors.push({
                 class: "typeaheadStaticOptions",
                 message: "@validator-error-typeahead-static-options",
-                params: {sourceType}
+                params: { sourceType }
             });
         }
         if (sourceType === "vocabulary" && !String(config?.vocabRef ?? "").trim()) {
             configErrors.push({
                 class: "typeaheadVocabRef",
                 message: "@validator-error-typeahead-vocab-ref",
-                params: {sourceType}
+                params: { sourceType }
             });
         }
         if (sourceType === "namedQuery" && !String(config?.queryId ?? "").trim()) {
             configErrors.push({
                 class: "typeaheadQueryId",
                 message: "@validator-error-typeahead-query-id",
-                params: {sourceType}
+                params: { sourceType }
             });
         }
         if (config?.multiSelect === true) {
             configErrors.push({
                 class: "typeaheadMultiSelect",
                 message: "@validator-error-typeahead-multi-select-unsupported",
-                params: {multiSelect: true}
+                params: { multiSelect: true }
             });
         }
 

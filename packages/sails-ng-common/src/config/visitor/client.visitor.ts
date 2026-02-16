@@ -1,5 +1,5 @@
-import {get as _get, cloneDeep as _cloneDeep, map as _map} from 'lodash';
-import {FormConfigOutline} from "../form-config.outline";
+import { get as _get, cloneDeep as _cloneDeep, map as _map } from 'lodash';
+import { FormConfigOutline } from "../form-config.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -43,7 +43,7 @@ import {
     TextAreaFieldModelDefinitionOutline,
     TextAreaFormComponentDefinitionOutline
 } from "../component/text-area.outline";
-import {DefaultFieldLayoutDefinitionOutline} from "../component/default-layout.outline";
+import { DefaultFieldLayoutDefinitionOutline } from "../component/default-layout.outline";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionOutline,
@@ -79,20 +79,20 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {FormConstraintConfig} from "../form-component.model";
-import {AvailableFormComponentDefinitionOutlines} from "../dictionary.outline";
-import {FormComponentDefinitionOutline} from "../form-component.outline";
-import {FieldComponentDefinitionOutline} from "../field-component.outline";
-import {FieldModelDefinitionOutline} from "../field-model.outline";
-import {FieldLayoutDefinitionOutline} from "../field-layout.outline";
-import {ILogger} from "../../logger.interface";
-import {FormConfig} from "../form-config.model";
-import {FormConfigVisitor} from "./base.model";
-import {FormModesConfig} from "../shared.outline";
-import {FormPathHelper} from "./common.model";
-import {isTypeWithComponentDefinitions} from "../form-types.outline";
-import {JsonTypeDefSchemaFormConfigVisitor} from "./json-type-def.visitor";
-import {guessType} from "../helpers";
+import { FormConstraintConfig } from "../form-component.model";
+import { AvailableFormComponentDefinitionOutlines } from "../dictionary.outline";
+import { FormComponentDefinitionOutline } from "../form-component.outline";
+import { FieldComponentDefinitionOutline } from "../field-component.outline";
+import { FieldModelDefinitionOutline } from "../field-model.outline";
+import { FieldLayoutDefinitionOutline } from "../field-layout.outline";
+import { ILogger } from "../../logger.interface";
+import { FormConfig } from "../form-config.model";
+import { FormConfigVisitor } from "./base.model";
+import { FormModesConfig } from "../shared.outline";
+import { FormPathHelper } from "./common.model";
+import { isTypeWithComponentDefinitions } from "../form-types.outline";
+import { JsonTypeDefSchemaFormConfigVisitor } from "./json-type-def.visitor";
+import { guessType } from "../helpers";
 
 /**
  * Visit each form config class type and build the form config for the client-side.
@@ -627,10 +627,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         const schemaVisitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
         const elementTemplateFormConfig = new FormConfig();
         elementTemplateFormConfig.componentDefinitions = _cloneDeep(elementTemplateCompConfig.componentDefinitions);
-        const elementTemplateSchema = schemaVisitor.start({form: elementTemplateFormConfig});
+        const elementTemplateSchema = schemaVisitor.start({ form: elementTemplateFormConfig });
 
         // Remove any data model items that are not present in the schema.
-        const toProcess = [{path: [], schema: elementTemplateSchema}];
+        const toProcess = [{ path: [], schema: elementTemplateSchema }];
 
         const itemValue = item.model?.config?.value;
         (itemValue ?? []).forEach(value => this.updateRepeatableDataModel(toProcess, value));

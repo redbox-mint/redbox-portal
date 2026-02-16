@@ -5,25 +5,25 @@ import {
     FormComponentDefinitionKind,
 } from "./shared.outline";
 
-import {DefaultLayoutDefaults, DefaultLayoutMap} from "./component/default-layout.model";
-import {RepeatableDefaults, RepeatableMap} from "./component/repeatable.model";
-import {GroupDefaults, GroupMap,} from "./component/group.model";
-import {SaveButtonDefaults, SaveButtonMap} from "./component/save-button.model";
-import {TextAreaDefaults, TextAreaMap} from "./component/text-area.model";
-import {ContentDefaults, ContentMap} from "./component/content.model";
-import {SimpleInputDefaults, SimpleInputMap} from "./component/simple-input.model";
-import {ValidationSummaryDefaults, ValidationSummaryMap} from "./component/validation-summary.model";
-import {TabContentDefaults, TabContentMap} from "./component/tab-content.model";
-import {TabDefaults, TabMap} from "./component/tab.model";
-import {CheckboxInputDefaults, CheckboxInputMap} from "./component/checkbox-input.model";
-import {DropdownInputDefaults, DropdownInputMap} from "./component/dropdown-input.model";
-import {RadioInputDefaults, RadioInputMap} from "./component/radio-input.model";
-import {DateInputDefaults, DateInputMap} from "./component/date-input.model";
-import {ReusableDefaults, ReusableMap} from "./component/reusable.model";
-import {ReusableComponentName} from "./component/reusable.outline";
-import {CheckboxTreeDefaults, CheckboxTreeMap} from "./component/checkbox-tree.model";
-import {TypeaheadInputDefaults, TypeaheadInputMap} from "./component/typeahead-input.model";
-import {RichTextEditorDefaults, RichTextEditorMap} from "./component/rich-text-editor.model";
+import { DefaultLayoutDefaults, DefaultLayoutMap } from "./component/default-layout.model";
+import { RepeatableDefaults, RepeatableMap } from "./component/repeatable.model";
+import { GroupDefaults, GroupMap, } from "./component/group.model";
+import { SaveButtonDefaults, SaveButtonMap } from "./component/save-button.model";
+import { TextAreaDefaults, TextAreaMap } from "./component/text-area.model";
+import { ContentDefaults, ContentMap } from "./component/content.model";
+import { SimpleInputDefaults, SimpleInputMap } from "./component/simple-input.model";
+import { ValidationSummaryDefaults, ValidationSummaryMap } from "./component/validation-summary.model";
+import { TabContentDefaults, TabContentMap } from "./component/tab-content.model";
+import { TabDefaults, TabMap } from "./component/tab.model";
+import { CheckboxInputDefaults, CheckboxInputMap } from "./component/checkbox-input.model";
+import { DropdownInputDefaults, DropdownInputMap } from "./component/dropdown-input.model";
+import { RadioInputDefaults, RadioInputMap } from "./component/radio-input.model";
+import { DateInputDefaults, DateInputMap } from "./component/date-input.model";
+import { ReusableDefaults, ReusableMap } from "./component/reusable.model";
+import { ReusableComponentName } from "./component/reusable.outline";
+import { CheckboxTreeDefaults, CheckboxTreeMap } from "./component/checkbox-tree.model";
+import { TypeaheadInputDefaults, TypeaheadInputMap } from "./component/typeahead-input.model";
+import { RichTextEditorDefaults, RichTextEditorMap } from "./component/rich-text-editor.model";
 
 
 /**

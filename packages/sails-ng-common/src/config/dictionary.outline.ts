@@ -2,19 +2,19 @@ import {
     RepeatableElementFieldLayoutDefinitionFrame, RepeatableElementFieldLayoutDefinitionOutline,
     RepeatableTypes,
 } from "./component/repeatable.outline";
-import {GroupTypes} from "./component/group.outline";
-import {SaveButtonTypes} from "./component/save-button.outline";
-import {TextAreaTypes} from "./component/text-area.outline";
-import {ContentTypes} from "./component/content.outline";
-import {SimpleInputTypes} from "./component/simple-input.outline";
-import {ValidationSummaryTypes} from "./component/validation-summary.outline";
+import { GroupTypes } from "./component/group.outline";
+import { SaveButtonTypes } from "./component/save-button.outline";
+import { TextAreaTypes } from "./component/text-area.outline";
+import { ContentTypes } from "./component/content.outline";
+import { SimpleInputTypes } from "./component/simple-input.outline";
+import { ValidationSummaryTypes } from "./component/validation-summary.outline";
 import {
     TabContentFormComponentDefinitionOutline,
     TabContentFormComponentDefinitionFrame,
     TabContentTypes,
 } from "./component/tab-content.outline";
-import {TabTypes} from "./component/tab.outline";
-import {DefaultLayoutTypes} from "./component/default-layout.outline";
+import { TabTypes } from "./component/tab.outline";
+import { DefaultLayoutTypes } from "./component/default-layout.outline";
 
 
 import {
@@ -23,14 +23,14 @@ import {
     FormComponentDefinitionFrameKindType,
     FormComponentDefinitionKindType
 } from "./shared.outline";
-import {CheckboxInputTypes} from "./component/checkbox-input.outline";
-import {DropdownInputTypes} from "./component/dropdown-input.outline";
-import {RadioInputTypes} from "./component/radio-input.outline";
-import {DateInputTypes} from "./component/date-input.outline";
-import {ReusableTypes} from "./component/reusable.outline";
-import {CheckboxTreeTypes} from "./component/checkbox-tree.outline";
-import {TypeaheadInputTypes} from "./component/typeahead-input.outline";
-import {RichTextEditorTypes} from "./component/rich-text-editor.outline";
+import { CheckboxInputTypes } from "./component/checkbox-input.outline";
+import { DropdownInputTypes } from "./component/dropdown-input.outline";
+import { RadioInputTypes } from "./component/radio-input.outline";
+import { DateInputTypes } from "./component/date-input.outline";
+import { ReusableTypes } from "./component/reusable.outline";
+import { CheckboxTreeTypes } from "./component/checkbox-tree.outline";
+import { TypeaheadInputTypes } from "./component/typeahead-input.outline";
+import { RichTextEditorTypes } from "./component/rich-text-editor.outline";
 
 
 /**
