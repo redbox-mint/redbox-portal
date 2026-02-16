@@ -412,5 +412,41 @@ describe("Migrate v4 to v5 Visitor", async () => {
         const modelConfig = migratedField.model?.config as Record<string, unknown>;
         expect(modelConfig.disabled).to.be.true;
     });
+    it("populates attachmentFields from FileUpload components", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "attachment-fields-migration",
+                fields: [
+                    {
+                        class: "DataLocation",
+                        compClass: "DataLocationComponent",
+                        definition: {
+                            name: "dataLocations"
+                        }
+                    },
+                    {
+                        class: "RelatedFileUpload",
+                        compClass: "RelatedFileUploadComponent",
+                        definition: {
+                            name: "attachments"
+                        }
+                    },
+                    {
+                        class: "TextField",
+                        definition: {
+                            name: "title"
+                        }
+                    }
+                ]
+            }
+        });
+
+        expect(migrated.attachmentFields).to.be.an("array");
+        expect(migrated.attachmentFields).to.include("dataLocations");
+        expect(migrated.attachmentFields).to.include("attachments");
+        expect(migrated.attachmentFields).to.not.include("title");
+        expect(migrated.attachmentFields?.length).to.equal(2);
+    });
 });
 

@@ -140,7 +140,7 @@ export namespace Services {
           viewCssClasses: formConfig.viewCssClasses as FormConfigFrame['viewCssClasses'],
           editCssClasses: formConfig.editCssClasses as FormConfigFrame['editCssClasses'],
           skipValidationOnSave: formConfig.skipValidationOnSave,
-          attachmentFields: formConfig.attachmentFields,
+          attachmentFields: formConfig.attachmentFields as string[],
           customAngularApp: formConfig.customAngularApp || null,
 
           // new fields

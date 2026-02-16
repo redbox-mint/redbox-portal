@@ -775,7 +775,8 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
           // break;
           case 'type':
             // TODO: do the json type def type names match the guessType names?
-            if (currentValueType !== schemaValue) {
+            // Allow null values
+            if (currentValueType !== schemaValue && currentValueType !== 'null') {
               throw new Error(`${errMsg1} ${schemaValue}, ${errMsg2} ${JSON.stringify(currentValue)}`);
             }
             // Nothing else to do.

@@ -179,6 +179,7 @@ import {
   ReusableFormComponentDefinitionOutline,
 } from '../component/reusable.outline';
 import { ReusableFieldComponentConfig } from '../component/reusable.model';
+import { AttachmentFieldsVisitor } from './attachment-fields.visitor';
 
 interface V4ClassNames {
   v4ClassName: string;
@@ -516,6 +517,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.formPathHelper.reset();
 
     this.v5FormConfig.accept(this);
+
+    const attachmentVisitor = new AttachmentFieldsVisitor(this.logger);
+    attachmentVisitor.start(this.v5FormConfig);
+
     return this.v5FormConfig;
   }
 

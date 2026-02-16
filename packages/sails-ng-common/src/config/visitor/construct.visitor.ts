@@ -340,6 +340,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('defaultLayoutComponent', item, currentData);
     this.sharedProps.setPropOverride('debugValue', item, currentData);
     this.sharedProps.setPropOverride('expressions', item, currentData);
+    this.sharedProps.setPropOverride('attachmentFields', item, currentData);
     // Ensure the default validation groups are present.
     if (!item.validationGroups) {
       item.validationGroups = {};
@@ -487,7 +488,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (!nameIsFalsy && !nameWillBeTransformedToFalsy) {
       this.logger.error(
         `Repeatable element template must have a 'falsy' name: elementTemplateName '${JSON.stringify(elementTemplateName)}' ` +
-          `elementTemplateClass ${JSON.stringify(elementTemplateClass)} elementTemplateReplaceName ${JSON.stringify(elementTemplateReplaceName)}`
+        `elementTemplateClass ${JSON.stringify(elementTemplateClass)} elementTemplateReplaceName ${JSON.stringify(elementTemplateReplaceName)}`
       );
       throw new Error(
         `Repeatable element template must have a 'falsy' name, got ${JSON.stringify(frame.elementTemplate?.name)} at ${JSON.stringify(currentFormConfigPath)}.`
@@ -1449,7 +1450,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (item?.config?.value !== undefined || config?.value !== undefined) {
       throw new Error(
         `${this.logName}: Use 'model.config.defaultValue' in form config ` +
-          `instead of 'model.config.value' - item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
+        `instead of 'model.config.value' - item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
     }
 
@@ -1464,8 +1465,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (!isElementTemplate && (item.config.newEntryValue !== undefined || config?.newEntryValue !== undefined)) {
       throw new Error(
         `${this.logName}: Only repeatable elementTemplates can define 'model.config.newEntryValue', ` +
-          `use 'model.config.defaultValue' in other places ` +
-          `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
+        `use 'model.config.defaultValue' in other places ` +
+        `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
     }
 
@@ -1473,9 +1474,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (isElementTemplate && (item.config.defaultValue !== undefined || config?.defaultValue !== undefined)) {
       throw new Error(
         `${this.logName}: Set the repeatable elementTemplate new item default ` +
-          `using 'elementTemplate.model.config.newEntryValue', not 'elementTemplate.model.config.defaultValue', ` +
-          `set the repeatable default in 'repeatable.model.config.defaultValue' ` +
-          `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
+        `using 'elementTemplate.model.config.newEntryValue', not 'elementTemplate.model.config.defaultValue', ` +
+        `set the repeatable default in 'repeatable.model.config.defaultValue' ` +
+        `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
     }
 
@@ -1483,10 +1484,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (isElementTemplateDescendant && (item.config.defaultValue !== undefined || config?.defaultValue !== undefined)) {
       throw new Error(
         `${this.logName}: Set the repeatable elementTemplate descendant component new item default ` +
-          `using 'elementTemplate.model.config.newEntryValue', ` +
-          `set the repeatable default in 'repeatable.model.config.defaultValue', ` +
-          `not the descendant components ` +
-          `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
+        `using 'elementTemplate.model.config.newEntryValue', ` +
+        `set the repeatable default in 'repeatable.model.config.defaultValue', ` +
+        `not the descendant components ` +
+        `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
     }
 
@@ -1605,7 +1606,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (isElementTemplate || isElementTemplateDescendant) {
       throw new Error(
         `${this.logName}: Cannot merge default values for a repeatable elementTemplate or descendants ` +
-          `- itemName: ${JSON.stringify(itemName)} itemDefaultValue: ${JSON.stringify(itemDefaultValue)}`
+        `- itemName: ${JSON.stringify(itemName)} itemDefaultValue: ${JSON.stringify(itemDefaultValue)}`
       );
     }
 

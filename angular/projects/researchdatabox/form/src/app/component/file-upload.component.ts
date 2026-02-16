@@ -9,12 +9,23 @@ import {
     FileUploadModelValueType,
     FileUploadSourceType
 } from "@researchdatabox/sails-ng-common";
-import Uppy from "@uppy/core";
+import Uppy, { UppyFile } from "@uppy/core";
 import Dashboard from "@uppy/dashboard";
 import Tus from "@uppy/tus";
 import Dropbox from "@uppy/dropbox";
 import GoogleDrive from "@uppy/google-drive";
 import OneDrive from "@uppy/onedrive";
+
+type UppyMeta = Record<string, unknown>;
+type UppyBody = Record<string, unknown>;
+
+interface UppySuccessResponse {
+    uploadURL?: string;
+    body?: {
+        uploadURL?: string;
+    };
+    [key: string]: unknown;
+}
 import { Subscription } from "rxjs";
 import { FormComponent } from "../form.component";
 import { FormComponentEventBus, FormSaveSuccessEvent } from "../form-state/events";
@@ -26,12 +37,16 @@ export class FileUploadModel extends FormFieldModel<FileUploadModelValueType> {
 }
 
 interface UppyDependencies {
-    UppyCtor: any;
-    DashboardPlugin: any;
-    TusPlugin: any;
-    DropboxPlugin: any;
-    GoogleDrivePlugin: any;
-    OneDrivePlugin: any;
+    UppyCtor: typeof Uppy;
+    DashboardPlugin: typeof Dashboard;
+    TusPlugin: typeof Tus;
+    DropboxPlugin: typeof Dropbox;
+    GoogleDrivePlugin: typeof GoogleDrive;
+    OneDrivePlugin: typeof OneDrive;
+}
+
+interface TusPlugin extends Tus<UppyMeta, UppyBody> {
+    setOptions(options: unknown): void;
 }
 
 @Component({
@@ -57,7 +72,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
     public notesHeader = "Notes";
     public notesEnabled = true;
 
-    private uppy?: any;
+    private uppy?: Uppy<UppyMeta, UppyBody>;
     private saveSuccessSub?: Subscription;
 
     private readonly injector = inject(Injector);
@@ -146,6 +161,10 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         if (/^https?:\/\//i.test(location)) {
             return location;
         }
+        const base = String(this.getFormComponent.recordService.brandingAndPortalUrl ?? "").trim();
+        if (base) {
+            return `${base}${location.startsWith("/") ? "" : "/"}${location}`;
+        }
         return `${window.location.origin}${location.startsWith("/") ? "" : "/"}${location}`;
     }
 
@@ -168,8 +187,8 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         if (!this.uppy) {
             this.initialiseUppy();
         }
-        const dashboardPlugin = this.uppy?.getPlugin("Dashboard") as { openModal?: () => void } | undefined;
-        dashboardPlugin?.openModal?.();
+        const dashboardPlugin = this.uppy?.getPlugin("Dashboard") as Dashboard<UppyMeta, UppyBody>;
+        dashboardPlugin?.openModal();
     }
 
     private onSaveSuccess(event: FormSaveSuccessEvent): void {
@@ -200,7 +219,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
 
         if (this.uppy) {
             const endpoint = this.buildTusEndpoint(finalOid);
-            const tusPlugin = this.uppy.getPlugin("Tus") as { setOptions?: (opts: Record<string, unknown>) => void; opts?: Record<string, unknown> } | undefined;
+            const tusPlugin = this.uppy.getPlugin("Tus") as TusPlugin;
             tusPlugin?.setOptions?.({ endpoint });
             if (tusPlugin?.opts) {
                 tusPlugin.opts["endpoint"] = endpoint;
@@ -227,7 +246,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
             restrictions: this.restrictions
         });
 
-        this.uppy.use(deps.DashboardPlugin as any, {
+        this.uppy.use(deps.DashboardPlugin, {
             inline: false,
             hideProgressAfterFinish: true,
             proudlyDisplayPoweredByUppy: false,
@@ -237,7 +256,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
             ]
         });
 
-        this.uppy.use(deps.TusPlugin as any, {
+        this.uppy.use(deps.TusPlugin, {
             endpoint,
             headers: this.buildTusHeaders()
         });
@@ -245,17 +264,17 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
 
         if (this.companionUrl) {
             if (this.enabledSources.includes("dropbox")) {
-                this.uppy.use(deps.DropboxPlugin as any, { companionUrl: this.companionUrl });
+                this.uppy.use(deps.DropboxPlugin, { companionUrl: this.companionUrl });
             }
             if (this.enabledSources.includes("googleDrive")) {
-                this.uppy.use(deps.GoogleDrivePlugin as any, { companionUrl: this.companionUrl });
+                this.uppy.use(deps.GoogleDrivePlugin, { companionUrl: this.companionUrl });
             }
             if (this.enabledSources.includes("onedrive")) {
-                this.uppy.use(deps.OneDrivePlugin as any, { companionUrl: this.companionUrl });
+                this.uppy.use(deps.OneDrivePlugin, { companionUrl: this.companionUrl });
             }
         }
 
-        this.uppy.on("upload-success", (file: any, response: any) => {
+        this.uppy.on("upload-success", (file: UppyFile<UppyMeta, UppyBody> | undefined, response: UppySuccessResponse) => {
             const uploadUrl = this.resolveUploadUrl(response);
             const fileId = this.extractFileId(uploadUrl);
             const oidForUpload = this.resolveOidForUpload();
@@ -267,8 +286,8 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
                 fileId,
                 name: String(file?.meta?.name ?? file?.name ?? ""),
                 mimeType: String(file?.type ?? "") || undefined,
-                notes: String(file?.meta?.notes ?? "") || undefined,
-                size: Number.isFinite(file?.size) ? Number(file.size) : undefined
+                notes: String(file?.meta?.["notes"] ?? "") || undefined,
+                size: file?.size && Number.isFinite(file.size) ? Number(file.size) : undefined
             };
             const updated = [...this.attachments, attachment];
             this.formControl.setValue(updated);
@@ -281,7 +300,6 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         if (!this.uppy) {
             return;
         }
-        this.uppy.close?.();
         this.uppy.destroy?.();
         this.uppy = undefined;
     }
@@ -296,11 +314,11 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
     }
 
     private buildTusEndpoint(oid: string): string {
-        const base = String((this.getFormComponent as any)?.recordService?.brandingAndPortalUrl ?? "").trim();
+        const base = String(this.getFormComponent.recordService.brandingAndPortalUrl ?? "").trim();
         return `${base}/record/${oid}/attach`;
     }
 
-    private resolveUploadUrl(response: any): string {
+    private resolveUploadUrl(response: UppySuccessResponse): string {
         const responseUrl = response?.uploadURL ?? response?.body?.uploadURL ?? "";
         return String(responseUrl ?? "").trim();
     }
@@ -384,11 +402,11 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
     }
 
     private resolveImmediateCsrfToken(): string {
-        const directToken = String((this.configService as any)?.csrfToken ?? "").trim();
+        const directToken = String(this.configService.csrfToken ?? "").trim();
         if (directToken) {
             return directToken;
         }
-        const cfg = (this.configService as any)?.getConfig?.();
+        const cfg = this.configService.getConfig();
         if (cfg && typeof cfg.then !== "function") {
             return String((cfg as any)?.csrfToken ?? "").trim();
         }
@@ -399,17 +417,17 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         if (this.tusHeaders["X-CSRF-Token"]) {
             return;
         }
-        const cfgPromise = (this.configService as any)?.getConfig?.();
+        const cfgPromise = this.configService.getConfig();
         if (!cfgPromise || typeof cfgPromise.then !== "function") {
             return;
         }
         cfgPromise.then((cfg: any) => {
-            const token = String(cfg?.csrfToken ?? (this.configService as any)?.csrfToken ?? "").trim();
+            const token = String(cfg?.csrfToken ?? this.configService.csrfToken ?? "").trim();
             if (!token || !this.uppy) {
                 return;
             }
             const headers = this.buildTusHeaders(token);
-            const tusPlugin = this.uppy.getPlugin("Tus") as { setOptions?: (opts: Record<string, unknown>) => void; opts?: Record<string, unknown> } | undefined;
+            const tusPlugin = this.uppy.getPlugin("Tus") as TusPlugin;
             tusPlugin?.setOptions?.({ headers });
             if (tusPlugin?.opts) {
                 tusPlugin.opts["headers"] = headers;

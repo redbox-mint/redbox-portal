@@ -8,7 +8,7 @@ import { FormComponentEventBus, createFormSaveSuccessEvent } from "../form-state
 class FakeUppy {
     public plugins: Record<string, any> = {};
     public handlers: Record<string, Function[]> = {};
-    public close = jasmine.createSpy("close");
+    public destroy = jasmine.createSpy("destroy");
 
     use(plugin: any, options: any): this {
         const pluginName = String(plugin?.name ?? "");
@@ -263,6 +263,41 @@ describe("FileUploadComponent", () => {
 
         const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "", editMode: true } as any);
         fixture.destroy();
-        expect(fakeUppy.close).toHaveBeenCalled();
+        expect(fakeUppy.destroy).toHaveBeenCalled();
+    });
+
+    it("getLocationLink includes branding and portal paths", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "attachments",
+                    component: {
+                        class: "FileUploadComponent",
+                        config: {}
+                    },
+                    model: {
+                        class: "FileUploadModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: "oid-123", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(FileUploadComponent)).componentInstance as FileUploadComponent;
+
+        // Mock brandingAndPortalUrl on the recordService of the FormComponent
+        (formComponent.recordService as any).brandingAndPortalUrl = "http://mock.com/branding/portal";
+
+        const attachment = {
+            location: "/record/oid-123/attach/file-abc",
+            name: "test.txt"
+        };
+
+        const link = component.getLocationLink(attachment as any);
+        expect(link).toBe("http://mock.com/branding/portal/record/oid-123/attach/file-abc");
     });
 });
