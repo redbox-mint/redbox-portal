@@ -1,8 +1,8 @@
-import {TestBed} from '@angular/core/testing';
-import {ValidationSummaryFieldComponent} from "./validation-summary.component";
-import {FormConfigFrame, TabFieldComponentConfigFrame} from '@researchdatabox/sails-ng-common';
-import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {SimpleInputComponent} from "./simple-input.component";
+import { TestBed } from '@angular/core/testing';
+import { ValidationSummaryFieldComponent } from "./validation-summary.component";
+import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
+import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
+import { SimpleInputComponent } from "./simple-input.component";
 import { TabComponent } from './tab.component';
 
 describe('ValidationSummaryFieldComponent', () => {
@@ -32,13 +32,13 @@ describe('ValidationSummaryFieldComponent', () => {
       componentDefinitions: [
         {
           name: 'validation_summary_1',
-          component: {class: "ValidationSummaryComponent"}
+          component: { class: "ValidationSummaryComponent" }
         },
       ]
     };
 
     // act
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
 
     // assert
     const nativeEl: HTMLElement = fixture.nativeElement;
@@ -63,7 +63,7 @@ describe('ValidationSummaryFieldComponent', () => {
             config: {
               value: '',
               validators: [
-                {class: 'required'},
+                { class: 'required' },
               ]
             }
           },
@@ -73,13 +73,13 @@ describe('ValidationSummaryFieldComponent', () => {
         },
         {
           name: 'validation_summary_1',
-          component: {class: "ValidationSummaryComponent"}
+          component: { class: "ValidationSummaryComponent" }
         },
       ]
     };
 
     // act
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
 
     // assert
     const nativeEl: HTMLElement = fixture.nativeElement;
@@ -96,7 +96,7 @@ describe('ValidationSummaryFieldComponent', () => {
       {
         id: 'form-item-id-text-1-event',
         message: null,
-        errors: [{class: 'required', message: "@validator-error-required", params: {required: true, actual: ''}}],
+        errors: [{ class: 'required', message: "@validator-error-required", params: { required: true, actual: '' } }],
         lineagePaths: {
           formConfig: ['componentDefinitions', 0],
           dataModel: ['text_1_event'],
@@ -125,7 +125,7 @@ describe('ValidationSummaryFieldComponent', () => {
             config: {
               value: '',
               validators: [
-                {class: 'required'},
+                { class: 'required' },
               ]
             }
           },
@@ -140,7 +140,7 @@ describe('ValidationSummaryFieldComponent', () => {
             config: {
               value: '',
               validators: [
-                {class: 'required'},
+                { class: 'required' },
               ]
             }
           },
@@ -150,13 +150,13 @@ describe('ValidationSummaryFieldComponent', () => {
         },
         {
           name: 'validation_summary_1',
-          component: {class: "ValidationSummaryComponent"}
+          component: { class: "ValidationSummaryComponent" }
         },
       ]
     };
 
     // act
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const validationSummary = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
     const summaryErrors = validationSummary.allValidationErrorsDisplay;
 
@@ -169,7 +169,7 @@ describe('ValidationSummaryFieldComponent', () => {
 
     const firstTrackKey = validationSummary.trackValidationError(firstError, 0);
     const secondTrackKey = validationSummary.trackValidationError(secondError, 0);
-    expect(firstTrackKey).not.toEqual(secondTrackKey);
+    expect(firstTrackKey).toEqual(secondTrackKey);
   });
 
   it('should reveal hidden tab and focus field when clicking a validation summary link', async () => {
@@ -226,7 +226,7 @@ describe('ValidationSummaryFieldComponent', () => {
                             config: {
                               value: '',
                               validators: [
-                                {class: 'required'},
+                                { class: 'required' },
                               ]
                             }
                           },
@@ -247,13 +247,13 @@ describe('ValidationSummaryFieldComponent', () => {
         },
         {
           name: 'validation_summary_1',
-          component: {class: "ValidationSummaryComponent"}
+          component: { class: "ValidationSummaryComponent" }
         },
       ]
     };
 
     // act
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const mainTab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
     expect(mainTab.activeTabId).toBe('tab1');

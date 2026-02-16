@@ -45,8 +45,10 @@ import { TabComponent } from './tab.component';
                 }
                 <ul class="validation-summary-errors mb-0">
                   @for (error of summary.errors; track trackValidationError(error, $index)) {
-                    <li [attr.data-validation-error-class]="error.class"
-                        [attr.data-validation-error-message]="error.message">{{ error.message | i18next: error.params }}</li>
+                    @if (error.message) {
+                      <li [attr.data-validation-error-class]="error.class"
+                          [attr.data-validation-error-message]="error.message">{{ error.message | i18next: error.params }}</li>
+                    }
                   }
                 </ul>
               </li>
@@ -73,7 +75,6 @@ import { TabComponent } from './tab.component';
 })
 export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<string> {
   protected override logName = ValidationSummaryComponentName;
-  private errorSummaryIndexMap = new WeakMap<FormValidatorComponentErrors, number>();
 
   /**
    * The model associated with this component.
@@ -95,19 +96,11 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   ].join(',');
 
   get allValidationErrorsDisplay(): FormValidatorSummaryErrors[] {
-    const validationErrors = this.getFormComponent?.getValidationErrors() ?? [];
-    const nextMap = new WeakMap<FormValidatorComponentErrors, number>();
-    validationErrors.forEach((summary, summaryIndex) => {
-      summary.errors.forEach((error) => {
-        nextMap.set(error, summaryIndex);
-      });
-    });
-    this.errorSummaryIndexMap = nextMap;
-    return validationErrors;
+    return this.getFormComponent?.getValidationErrors() ?? [];
   }
 
   public trackValidationError(error: FormValidatorComponentErrors, errorIndex: number): string {
-    return `${this.errorSummaryIndexMap.get(error) ?? -1}-${error.class}-${error.message}-${errorIndex}`;
+    return `${error.class}-${error.message}-${errorIndex}`;
   }
 
   public onValidationSummaryClick(event: MouseEvent, summary: FormValidatorSummaryErrors): void {
