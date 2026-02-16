@@ -105,6 +105,14 @@ import {
     ValidationSummaryFormComponentDefinitionOutline
 } from "../component/validation-summary.outline";
 import {ValidationSummaryFieldComponentConfig} from "../component/validation-summary.model";
+import {
+    CheckboxTreeComponentName,
+    CheckboxTreeFieldComponentDefinitionOutline,
+    CheckboxTreeFieldModelDefinitionOutline,
+    CheckboxTreeFormComponentDefinitionOutline,
+    CheckboxTreeModelName
+} from "../component/checkbox-tree.outline";
+import {CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig} from "../component/checkbox-tree.model";
 
 
 import {FieldModelConfigFrame} from "../field-model.outline";
@@ -303,7 +311,19 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
             componentClassName: ReusableComponentName,
         },
     },
+    "ANDSVocab": {
+        "": {
+            componentClassName: CheckboxTreeComponentName,
+            modelClassName: CheckboxTreeModelName
+        },
+        "ANDSVocabComponent": {
+            componentClassName: CheckboxTreeComponentName,
+            modelClassName: CheckboxTreeModelName
+        },
+    },
 };
+
+const andsVocabDefaultLabelTemplate = "{{default (split notation \"/\" -1) notation}} - {{label}}";
 
 /**
  * Post-processing after mapping v4 to v5 class names.
@@ -881,6 +901,53 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.populateFormComponent(item);
     }
 
+    /* Checkbox Tree */
+
+    visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new CheckboxTreeFieldComponentConfig();
+        this.sharedPopulateFieldComponentConfig(item.config, field);
+
+        const rawDefinition = (field?.definition ?? {}) as Record<string, unknown>;
+        const vocabRef = String(rawDefinition.vocabRef ?? rawDefinition.vocabId ?? '').trim();
+        if (!vocabRef) {
+            this.logger.warn(`${this.logName}: CheckboxTree migration missing vocabId/vocabRef at ${JSON.stringify(this.v4FormPath)}.`);
+        } else {
+            this.sharedProps.setPropOverride('vocabRef', item.config, {vocabRef});
+        }
+
+        const inlineVocab = this.parseLegacyBooleanFlag(rawDefinition.inlineVocab, undefined, 'inlineVocab');
+        if (inlineVocab !== undefined) {
+            this.sharedProps.setPropOverride('inlineVocab', item.config, {inlineVocab});
+        }
+        const leafOnly = this.parseLegacyBooleanFlag(rawDefinition.leafOnly, true, 'leafOnly');
+        this.sharedProps.setPropOverride('leafOnly', item.config, {leafOnly});
+
+        const maxDepth = this.parseLegacyPositiveInteger(rawDefinition.maxDepth, 'maxDepth');
+        if (maxDepth !== undefined) {
+            this.sharedProps.setPropOverride('maxDepth', item.config, {maxDepth});
+        }
+
+        if (this.isLegacyAndsVocabField(field)) {
+            this.sharedProps.setPropOverride("labelTemplate", item.config, {
+                labelTemplate: andsVocabDefaultLabelTemplate
+            });
+        }
+
+        this.warnOnMalformedLegacyRegex(rawDefinition);
+    }
+
+    visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new CheckboxTreeFieldModelConfig();
+        this.sharedPopulateFieldModelConfig(item.config, field);
+        this.coerceCheckboxTreeDefaultValue(item.config);
+    }
+
+    visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
     /* Dropdown Input */
 
     visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void {
@@ -1223,5 +1290,99 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             return false;
         }
         return mostRecentPath.every((value, index) => value === formConfigPath[index]);
+    }
+
+    private parseLegacyBooleanFlag(rawValue: unknown, defaultValue: boolean | undefined, fieldName: string): boolean | undefined {
+        if (typeof rawValue === 'boolean') {
+            return rawValue;
+        }
+        if (rawValue === undefined || rawValue === null || rawValue === '') {
+            return defaultValue;
+        }
+        if (typeof rawValue === 'number') {
+            return rawValue !== 0;
+        }
+        if (typeof rawValue === 'string') {
+            const normalized = rawValue.trim().toLowerCase();
+            if (['true', '1', 'yes', 'on'].includes(normalized)) {
+                return true;
+            }
+            if (['false', '0', 'no', 'off'].includes(normalized)) {
+                return false;
+            }
+        }
+        this.logger.warn(`${this.logName}: CheckboxTree migration received malformed '${fieldName}' value, using safe default.`);
+        return defaultValue;
+    }
+
+    private parseLegacyPositiveInteger(rawValue: unknown, fieldName: string): number | undefined {
+        if (rawValue === undefined || rawValue === null || rawValue === '') {
+            return undefined;
+        }
+        const parsed = Number.parseInt(String(rawValue), 10);
+        if (Number.isInteger(parsed) && parsed > 0) {
+            return parsed;
+        }
+        this.logger.warn(`${this.logName}: CheckboxTree migration received invalid '${fieldName}' value, ignoring it.`);
+        return undefined;
+    }
+
+    private warnOnMalformedLegacyRegex(definition: Record<string, unknown>): void {
+        for (const key of ['regex', 'pattern', 'leafRegex']) {
+            if (!Object.hasOwn(definition, key)) {
+                continue;
+            }
+            const rawValue = definition[key];
+            if (rawValue === undefined || rawValue === null || rawValue === '') {
+                continue;
+            }
+            if (rawValue instanceof RegExp) {
+                continue;
+            }
+            if (typeof rawValue === 'string') {
+                try {
+                    // Validate regex string syntax to avoid carrying malformed values into v5 config.
+                    new RegExp(rawValue);
+                    continue;
+                } catch {
+                    this.logger.warn(`${this.logName}: CheckboxTree migration found malformed regex in '${key}', using defaults.`);
+                    continue;
+                }
+            }
+            this.logger.warn(`${this.logName}: CheckboxTree migration found unsupported regex value in '${key}', using defaults.`);
+        }
+    }
+
+    private coerceCheckboxTreeDefaultValue(config: CheckboxTreeFieldModelConfig): void {
+        const rawDefaultValue = config.defaultValue;
+        if (rawDefaultValue === undefined || rawDefaultValue === null) {
+            return;
+        }
+        if (!Array.isArray(rawDefaultValue)) {
+            config.defaultValue = [];
+            this.logger.warn(`${this.logName}: CheckboxTree migration coerced non-array default value to empty selection array.`);
+            return;
+        }
+
+        const coerced = (rawDefaultValue as unknown[]).filter((item) => {
+            if (!item || typeof item !== 'object') {
+                return false;
+            }
+            const notation = String((item as { notation?: unknown }).notation ?? '').trim();
+            const label = String((item as { label?: unknown }).label ?? '').trim();
+            const name = String((item as { name?: unknown }).name ?? '').trim();
+            return Boolean(notation && label && name);
+        });
+
+        if (coerced.length !== rawDefaultValue.length) {
+            this.logger.warn(`${this.logName}: CheckboxTree migration dropped malformed default selection entries.`);
+        }
+        config.defaultValue = coerced as CheckboxTreeFieldModelConfig['defaultValue'];
+    }
+
+    private isLegacyAndsVocabField(field: Record<string, unknown>): boolean {
+        const v4Class = String(field?.class ?? '').trim();
+        const v4CompClass = String(field?.compClass ?? '').trim();
+        return v4Class === "ANDSVocab" || v4CompClass === "ANDSVocabComponent";
     }
 }

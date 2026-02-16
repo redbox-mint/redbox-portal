@@ -51,6 +51,31 @@ describe("Template Visitor", async () => {
                     kind: "jsonata", value: "<% if(_.isEmpty(_.get(model,'text_3_event'"
                 },
             ],
+        },
+        {
+            title: "extract checkbox tree label template",
+            args: {
+                name: "test",
+                componentDefinitions: [
+                    {
+                        name: "anzsrc",
+                        component: {
+                            class: "CheckboxTreeComponent",
+                            config: {
+                                labelTemplate: "{{notation}} - {{label}}"
+                            }
+                        },
+                        model: { class: "CheckboxTreeModel", config: {} }
+                    }
+                ]
+            },
+            expected: [
+                {
+                    key: ["componentDefinitions", "0", "component", "config", "labelTemplate"],
+                    kind: "handlebars",
+                    value: "{{notation}} - {{label}}"
+                }
+            ]
         }
     ];
     cases.forEach(({title, args, expected}) => {

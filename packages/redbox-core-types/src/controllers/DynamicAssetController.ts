@@ -109,7 +109,7 @@ export namespace Controllers {
           recordMetadata = record?.metadata ?? {};
           form = await FormsService.getForm(brand, "", editMode, "", record);
         }
-        const entries: TemplateCompileInput[] = FormRecordConsistencyService.extractRawTemplates(form as FormConfigFrame, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
+        const entries: TemplateCompileInput[] = await FormRecordConsistencyService.extractRawTemplates(form as FormConfigFrame, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
         return this.sendResp(req, res, {

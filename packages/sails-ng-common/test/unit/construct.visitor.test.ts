@@ -195,6 +195,32 @@ describe("Construct Visitor", async () => {
                 expect(actual).to.containSubset(expected);
             });
         });
+
+        it("should retain checkbox tree labelTemplate config", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "anzsrc",
+                            component: {
+                                class: "CheckboxTreeComponent",
+                                config: {
+                                    vocabRef: "anzsrc-2020-for",
+                                    labelTemplate: "{{default (split notation '/' -1) notation}} - {{label}}"
+                                }
+                            },
+                            model: {class: "CheckboxTreeModel", config: {}}
+                        }
+                    ]
+                }
+            });
+
+            const checkboxTreeConfig = actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown> | undefined;
+            expect(checkboxTreeConfig?.labelTemplate).to.equal("{{default (split notation '/' -1) notation}} - {{label}}");
+        });
     });
     describe("with overrides", async () => {
         const cases: {

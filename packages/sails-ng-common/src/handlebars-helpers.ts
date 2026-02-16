@@ -296,6 +296,43 @@ export const handlebarsHelperDefinitions = {
     },
 
     /**
+     * Return part of a string using slice semantics.
+     *
+     * @example {{substring notation 0 6}}
+     */
+    substring: function (value: unknown, start: number, end?: number): string {
+        const text = String(value ?? '');
+        const from = Number(start);
+        const to = end === undefined || end === null ? undefined : Number(end);
+        // Use slice semantics so negative offsets work (e.g. -1 for last char, -6 for trailing code).
+        // String.prototype.substring() clamps negatives to 0 and cannot express this.
+        return text.slice(Number.isNaN(from) ? 0 : from, Number.isNaN(to as number) ? undefined : to);
+    },
+
+    /**
+     * Split a string into parts, or return one part if index is provided.
+     * Supports negative index values, where -1 is the last part.
+     *
+     * @example {{split notation "/" -1}}
+     */
+    split: function (value: unknown, separator: string, index?: number): unknown {
+        const text = String(value ?? '');
+        const parts = text.split(String(separator ?? ''));
+        if (index === undefined || index === null) {
+            return parts;
+        }
+        const parsedIndex = Number(index);
+        if (Number.isNaN(parsedIndex)) {
+            return '';
+        }
+        const normalizedIndex = parsedIndex < 0 ? parts.length + parsedIndex : parsedIndex;
+        if (normalizedIndex < 0 || normalizedIndex >= parts.length) {
+            return '';
+        }
+        return parts[normalizedIndex];
+    },
+
+    /**
      * Concatenate strings.
      * Note: The last argument is the Handlebars options hash, which is removed.
      * 

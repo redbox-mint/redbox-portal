@@ -107,6 +107,51 @@ describe("Migrate v4 to v5 Visitor", async () => {
             const v5OutputFile = `${outputFiles}/parsed-${v5InputFile}`;
             const actual = await migrateV4ToV5(fullPath, v5OutputFile);
             expect(actual).to.not.be.empty;
+            const serialised = JSON.stringify(actual);
+            expect(serialised).to.not.contain('v4ClassName "ANDSVocab"');
         }
+    });
+
+    it('applies checkbox tree migration edge-case fallbacks and coercions', async function () {
+        const warnings: string[] = [];
+        const testLogger = {
+            ...logger,
+            warn: (message: unknown) => warnings.push(String(message ?? ''))
+        };
+        const visitor = new MigrationV4ToV5FormConfigVisitor(testLogger);
+        const migrated = visitor.start({
+            data: {
+                name: 'checkbox-tree-edge',
+                fields: [
+                    {
+                        class: 'ANDSVocab',
+                        compClass: 'ANDSVocabComponent',
+                        definition: {
+                            name: 'dc:subject_anzsrc:for',
+                            leafOnly: 'definitely',
+                            maxDepth: 'not-a-number',
+                            regex: '[',
+                            value: { bad: 'shape' }
+                        }
+                    }
+                ]
+            }
+        });
+        expect(migrated.componentDefinitions).to.have.length.greaterThan(0);
+        const migratedField = migrated.componentDefinitions[0];
+        const migratedFieldConfig = migratedField.component.config as Record<string, unknown> | undefined;
+        expect(migratedField.component.class).to.equal('CheckboxTreeComponent');
+        expect(migratedFieldConfig?.vocabRef).to.equal(undefined);
+        expect(migratedFieldConfig?.leafOnly).to.equal(true);
+        expect(migratedFieldConfig?.maxDepth).to.equal(undefined);
+        expect(migratedFieldConfig?.labelTemplate).to.equal("{{default (split notation \"/\" -1) notation}} - {{label}}");
+        expect(migratedField.model?.class).to.equal('CheckboxTreeModel');
+        expect(Array.isArray(migratedField.model?.config?.defaultValue)).to.equal(true);
+        expect((migratedField.model?.config?.defaultValue as unknown[]).length).to.equal(0);
+        expect(warnings.some((msg) => msg.includes('missing vocabId/vocabRef'))).to.equal(true);
+        expect(warnings.some((msg) => msg.includes("malformed 'leafOnly'"))).to.equal(true);
+        expect(warnings.some((msg) => msg.includes("invalid 'maxDepth'"))).to.equal(true);
+        expect(warnings.some((msg) => msg.includes('malformed regex'))).to.equal(true);
+        expect(warnings.some((msg) => msg.includes('coerced non-array default value'))).to.equal(true);
     });
 });

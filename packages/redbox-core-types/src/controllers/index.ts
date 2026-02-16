@@ -23,6 +23,7 @@ import * as VocabControllerModule from './VocabController';
 import * as VocabularyControllerModule from './VocabularyController';
 import * as WorkspaceAsyncControllerModule from './WorkspaceAsyncController';
 import * as WorkspaceTypesControllerModule from './WorkspaceTypesController';
+import * as FormVocabularyControllerModule from './FormVocabularyController';
 
 // Webservice controller imports
 import * as WSAdminControllerModule from './webservice/AdminController';
@@ -67,6 +68,7 @@ export const ControllerExports: Record<string, unknown> = {
     get VocabularyController() { return getOrCreate('VocabularyController', () => new VocabularyControllerModule.Controllers.Vocabulary().exports()); },
     get WorkspaceAsyncController() { return getOrCreate('WorkspaceAsyncController', () => new WorkspaceAsyncControllerModule.Controllers.WorkspaceAsync().exports()); },
     get WorkspaceTypesController() { return getOrCreate('WorkspaceTypesController', () => new WorkspaceTypesControllerModule.Controllers.WorkspaceTypes().exports()); },
+    get FormVocabularyController() { return getOrCreate('FormVocabularyController', () => new FormVocabularyControllerModule.Controllers.FormVocabulary().exports()); },
 };
 
 // Webservice Controllers export (separate object, not prefixed)
@@ -96,6 +98,7 @@ export const ControllerNames = [
     'DynamicAssetController',
     'EmailController',
     'ExportController',
+    'FormVocabularyController',
     'RecordAuditController',
     'RecordController',
     'RenderViewController',

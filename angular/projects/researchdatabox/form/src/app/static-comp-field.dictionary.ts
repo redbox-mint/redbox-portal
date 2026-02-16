@@ -15,15 +15,18 @@ import {DropdownInputComponent, DropdownInputModel} from "./component/dropdown-i
 import {CheckboxInputComponent, CheckboxInputModel} from "./component/checkbox-input.component";
 import {RadioInputComponent, RadioInputModel} from "./component/radio-input.component";
 import {DateInputComponent, DateInputModel} from "./component/date-input.component";
+import {CheckboxTreeComponent, CheckboxTreeModel} from "./component/checkbox-tree.component";
 import {FormFieldBaseComponent, FormFieldModel} from "@researchdatabox/portal-ng-common";
 import {
   StaticComponentClassMapGenType,
   StaticModelClassMapGenType,
   StaticLayoutClassMapGenType, RepeatableModelName, TextAreaModelName, SimpleInputModelName, CheckboxInputModelName,
   DropdownInputModelName, RadioInputModelName, DateInputModelName, GroupFieldModelName,
+  CheckboxTreeModelName,
   RepeatableComponentName, SaveButtonComponentName, TextAreaComponentName, ContentComponentName,
   SimpleInputComponentName, ValidationSummaryComponentName, TabContentComponentName, TabComponentName,
   CheckboxInputComponentName, DropdownInputComponentName, RadioInputComponentName, DateInputComponentName,
+  CheckboxTreeComponentName,
   GroupFieldComponentName,
   TabLayoutName, TabContentLayoutName, RepeatableElementLayoutName, DefaultLayoutName, StaticClassMapType,
 } from "@researchdatabox/sails-ng-common";
@@ -48,6 +51,7 @@ export const StaticComponentClassMap: StaticComponentClassMapType = {
   [DropdownInputComponentName]: DropdownInputComponent,
   [RadioInputComponentName]: RadioInputComponent,
   [DateInputComponentName]: DateInputComponent,
+  [CheckboxTreeComponentName]: CheckboxTreeComponent,
 };
 
 /*
@@ -64,7 +68,8 @@ export const StaticModelClassMap: StaticModelClassMapType = {
   [CheckboxInputModelName]: CheckboxInputModel,
   [DropdownInputModelName]: DropdownInputModel,
   [RadioInputModelName]: RadioInputModel,
-  [DateInputModelName]: DateInputModel
+  [DateInputModelName]: DateInputModel,
+  [CheckboxTreeModelName]: CheckboxTreeModel
 };
 
 /*
