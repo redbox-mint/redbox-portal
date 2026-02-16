@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:24.12.0-bullseye AS base
+FROM node:24.13.0-bullseye AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -66,7 +66,7 @@ RUN npm prune --omit=dev \
     angular-legacy/node_modules \
     support/build/api-descriptors/node_modules
 
-FROM node:24.12.0-bullseye-slim AS runtime
+FROM node:24.13.0-bullseye-slim AS runtime
 
 ENV NODE_ENV=production
 ENV TZ=Australia/Brisbane
@@ -90,6 +90,7 @@ COPY --from=builder --chown=node:node /opt/redbox-portal/assets ./assets
 COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
 COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config
 COPY --from=builder --chown=node:node /opt/redbox-portal/form-config ./form-config
+COPY --from=builder --chown=node:node /opt/redbox-portal/bootstrap-data ./bootstrap-data
 COPY --from=builder --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages ./packages
 COPY --from=builder --chown=node:node /opt/redbox-portal/views ./views

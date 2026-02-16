@@ -1,5 +1,5 @@
 
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 const formConfig: FormConfigFrame = {
   "name": "dataRecord-1.0-draft",
   "type": "dataRecord",

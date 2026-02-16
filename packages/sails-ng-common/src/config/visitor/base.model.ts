@@ -1,6 +1,6 @@
 
-import {FormConfigOutline} from "../form-config.outline";
-import { FormConfigVisitorOutline} from "./base.outline";
+import { FormConfigOutline } from "../form-config.outline";
+import { FormConfigVisitorOutline } from "./base.outline";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -44,7 +44,7 @@ import {
     TextAreaFieldModelDefinitionOutline,
     TextAreaFormComponentDefinitionOutline,
 } from "../component/text-area.outline";
-import {DefaultFieldLayoutDefinitionOutline,} from "../component/default-layout.outline";
+import { DefaultFieldLayoutDefinitionOutline, } from "../component/default-layout.outline";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionOutline,
@@ -65,7 +65,7 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {ILogger} from "../../logger.interface";
+import { ILogger } from "../../logger.interface";
 import {
     ReusableFieldComponentDefinitionOutline,
     ReusableFormComponentDefinitionOutline
@@ -281,11 +281,11 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
     /* Reusable */
 
-    visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void{
+    visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void {
         this.notImplemented();
     }
 
-    visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void{
+    visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void {
         this.notImplemented();
     }
 
