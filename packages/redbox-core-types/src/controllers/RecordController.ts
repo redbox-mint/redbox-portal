@@ -1163,10 +1163,13 @@ export namespace Controllers {
           }
         }
       } else {
-        const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec as AnyRecord));
-        if (!hasEditAccess) {
-          sails.log.error("Error: edit error no permissions in do attachment.");
-          return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+        const companionAttachmentUploadAuthorized = (req as Sails.Req & { companionAttachmentUploadAuthorized?: boolean }).companionAttachmentUploadAuthorized === true;
+        if (!companionAttachmentUploadAuthorized) {
+          const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec as AnyRecord));
+          if (!hasEditAccess) {
+            sails.log.error("Error: edit error no permissions in do attachment.");
+            return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+          }
         }
         sails.log.verbose(req.headers);
         const uploadFileSize = req.headers['upload-length'];

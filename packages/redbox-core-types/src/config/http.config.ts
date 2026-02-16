@@ -245,12 +245,14 @@ export const http: HttpConfig = {
                 const configuredCorsOrigins = companionConfig.corsOrigins;
                 const defaultCorsOrigin = String((sails.config as { appUrl?: unknown }).appUrl ?? '').trim();
                 const corsOrigins = configuredCorsOrigins ?? (defaultCorsOrigin || true);
-                const bearerToken = String(companionConfig.bearerToken ?? '').trim();
                 const companionUploadHeaders: Record<string, string> = {
                     ...(companionConfig.uploadHeaders || {}),
                 };
-                if (bearerToken) {
-                    companionUploadHeaders.Authorization = `Bearer ${bearerToken}`;
+                const uploadSecretHeader = String(companionConfig.attachmentSecretHeader ?? 'x-companion-secret')
+                    .trim() || 'x-companion-secret';
+                const uploadSecret = String(companionConfig.attachmentSecret ?? companionConfig.secret ?? '').trim();
+                if (uploadSecret) {
+                    companionUploadHeaders[uploadSecretHeader] = uploadSecret;
                 }
 
                 const companionAppResult = appFactory({

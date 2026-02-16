@@ -1,0 +1,9 @@
+- [ ] Fix fly-drive-storage design issues <!-- id: 0 -->
+  - [ ] Update `StorageManagerService.ts` to declare global `StorageManagerService` <!-- id: 2 -->
+  - [ ] Update `StorageManagerService` to support configurable visibility <!-- id: 1 -->
+  - [ ] Refactor `StandardDatastreamService.ts` to use global `StorageManagerService` <!-- id: 3 -->
+- [ ] Refactor `DatastreamService` interface <!-- id: 4 -->
+  - [ ] Update `DatastreamService.ts` interface signature <!-- id: 5 -->
+  - [ ] Update `StandardDatastreamService.ts` to implement new signature <!-- id: 6 -->
+  - [ ] Update `MongoStorageService.ts` to implement new signature <!-- id: 7 -->
+  - [ ] Update `RecordsService.ts` to pass `stagingDisk` <!-- id: 8 -->

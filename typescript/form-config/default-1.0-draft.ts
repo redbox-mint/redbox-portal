@@ -8,6 +8,7 @@ const formConfig: FormConfigFrame = {
   defaultComponentConfig: {
     defaultComponentCssClasses: 'row',
   },
+  attachmentFields: ["file_upload_1"],
   editCssClasses: 'redbox-form form',
   validationGroups: {
     all: {

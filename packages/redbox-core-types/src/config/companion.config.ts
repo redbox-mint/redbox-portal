@@ -27,6 +27,9 @@ export interface CompanionConfig {
     route: string;
     secret: string;
     bearerToken: string;
+    attachmentSecret: string;
+    attachmentSecretHeader: string;
+    attachmentLocalOnly: boolean;
     filePath: string;
     uploadUrls: string[];
     tusDeferredUploadLength: boolean;
@@ -44,6 +47,9 @@ export const companion: CompanionConfig = {
     route: '/companion',
     secret: process.env.UPPY_COMPANION_SECRET || '',
     bearerToken: process.env.UPPY_COMPANION_BEARER_TOKEN || '',
+    attachmentSecret: process.env.UPPY_COMPANION_ATTACHMENT_SECRET || process.env.UPPY_COMPANION_SECRET || '',
+    attachmentSecretHeader: process.env.UPPY_COMPANION_ATTACHMENT_SECRET_HEADER || 'x-companion-secret',
+    attachmentLocalOnly: process.env.UPPY_COMPANION_ATTACHMENT_LOCAL_ONLY !== 'false',
     filePath: process.env.UPPY_COMPANION_FILE_PATH || '/tmp/companion',
     uploadUrls: (process.env.UPPY_COMPANION_UPLOAD_URLS || '')
         .split(',')
