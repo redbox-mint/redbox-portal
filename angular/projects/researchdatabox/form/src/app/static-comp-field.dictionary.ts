@@ -73,7 +73,7 @@ import {
 
 export type StaticComponentClassMapType = StaticComponentClassMapGenType<typeof FormFieldBaseComponent<unknown>>;
 export type AllComponentClassMapType = StaticClassMapType<string, typeof FormFieldBaseComponent<unknown>>;
-export const StaticComponentClassMap: StaticComponentClassMapType = {
+export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [RepeatableComponentName]: RepeatableComponent,
   [GroupFieldComponentName]: GroupFieldComponent,
   [SaveButtonComponentName]: SaveButtonComponent,
@@ -94,7 +94,7 @@ export const StaticComponentClassMap: StaticComponentClassMapType = {
   [FileUploadComponentName]: FileUploadComponent,
   [CancelButtonComponentName]: CancelButtonComponent,
   [TabNavButtonComponentName]: TabNavButtonComponent,
-};
+});
 
 /*
  * The Model classes.
@@ -102,7 +102,7 @@ export const StaticComponentClassMap: StaticComponentClassMapType = {
 
 export type StaticModelClassMapType = StaticModelClassMapGenType<typeof FormFieldModel<unknown>>;
 export type AllModelClassMapType = StaticClassMapType<string, typeof FormFieldModel<unknown>>;
-export const StaticModelClassMap: StaticModelClassMapType = {
+export const getStaticModelClassMap = (): StaticModelClassMapType => ({
   [RepeatableModelName]: RepeatableComponentModel,
   [GroupFieldModelName]: GroupFieldModel,
   [TextAreaModelName]: TextAreaModel,
@@ -116,7 +116,7 @@ export const StaticModelClassMap: StaticModelClassMapType = {
   [RichTextEditorModelName]: RichTextEditorModel,
   [MapModelName]: MapModel,
   [FileUploadModelName]: FileUploadModel,
-};
+});
 
 /*
  * The Layout classes.
@@ -124,10 +124,11 @@ export const StaticModelClassMap: StaticModelClassMapType = {
 
 export type StaticLayoutClassMapType = StaticLayoutClassMapGenType<typeof FormFieldBaseComponent<unknown> | null>;
 export type AllLayoutClassMapType = StaticClassMapType<string, typeof FormFieldBaseComponent<unknown> | null>;
-export const StaticLayoutClassMap: StaticLayoutClassMapType = {
+export const getStaticLayoutClassMap = (): StaticLayoutClassMapType => ({
   [DefaultLayoutName]: DefaultLayoutComponent,
   [RepeatableElementLayoutName]: RepeatableElementLayoutComponent,
   // The tab content layout is only used in the form config, it is not an angular component.
   [TabContentLayoutName]: null,
   [TabLayoutName]: TabComponentLayout,
-};
+});
+

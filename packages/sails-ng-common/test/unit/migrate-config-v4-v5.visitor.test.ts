@@ -361,4 +361,56 @@ describe("Migrate v4 to v5 Visitor", async () => {
             features: []
         });
     });
+
+    it("migrates ButtonBarContainer as expected", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "button-bar-migration",
+                fields: [
+                    {
+                        class: "ButtonBarContainer",
+                        compClass: "ButtonBarContainerComponent",
+                        definition: {
+                            name: "buttons",
+                            fields: [
+                                {
+                                    class: "SaveButton",
+                                    definition: { name: "save" }
+                                },
+                                {
+                                    class: "Spacer",
+                                    definition: { name: "spacer" }
+                                },
+                                {
+                                    class: "CancelButton",
+                                    definition: { name: "cancel" }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        expect(migrated.componentDefinitions).to.have.length.greaterThan(0);
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("GroupComponent");
+        expect(migratedField.model?.class).to.equal("GroupModel");
+
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        expect(componentConfig.hostCssClasses).to.equal("d-flex gap-3");
+
+        const childComponents = componentConfig.componentDefinitions as any[];
+        expect(childComponents).to.have.length(2);
+        expect(childComponents[0].name).to.equal("save");
+        expect(childComponents[0].layout?.config?.label).to.be.undefined;
+        expect(childComponents[1].name).to.equal("cancel");
+        expect(childComponents[1].layout?.config?.label).to.be.undefined;
+        expect(childComponents.find(c => c.name === "spacer")).to.be.undefined;
+
+        const modelConfig = migratedField.model?.config as Record<string, unknown>;
+        expect(modelConfig.disabled).to.be.true;
+    });
 });
+

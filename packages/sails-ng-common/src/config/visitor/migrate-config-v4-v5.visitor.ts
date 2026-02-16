@@ -432,7 +432,7 @@ function postProcessingFormConfigV4ToV5Mapping(
 
   let v5ComponentClassName = v5ClassNames.componentClassName || '';
   let v5ModelClassName = v5ClassNames.modelClassName || '';
-  let v5LayoutClassName = v5ClassNames.layoutClassName || '';
+  const v5LayoutClassName = v5ClassNames.layoutClassName || '';
 
   // Some components need special processing.
 
@@ -476,6 +476,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   private v4FormPath: LineagePath;
   private formPathHelper: FormPathHelper;
   private sharedProps: PropertiesHelper;
+
+  private isInsideButtonBarContainer: boolean = false;
 
   constructor(logger: ILogger) {
     super(logger);
@@ -611,7 +613,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     // Content component is used to display info about missing component mappings.
     // Provide a message for not yet implemented fields.
-    let { componentClassName, modelClassName, layoutClassName } = this.mapV4ToV5(field);
+    const { componentClassName, modelClassName, layoutClassName } = this.mapV4ToV5(field);
     if (!componentClassName) {
       const v4ClassName = field?.class?.toString() ?? '';
       const v4CompClassName = field?.compClass?.toString() ?? '';
@@ -811,14 +813,24 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const config = new GroupFieldComponentConfig();
     item.config = config;
     this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    if (field?.class === 'ButtonBarContainer' || field?.compClass === 'ButtonBarContainerComponent') {
+      config.hostCssClasses = 'd-flex gap-3';
+      this.isInsideButtonBarContainer = true;
+    }
+
     this.logger.debug(`${this.logName}: visitGroupFieldComponentDefinition for '${String(field?.definition?.name ?? field?.definition?.id ?? '')}'.`);
 
     const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
     // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
-    fields.forEach((field, index) => {
+    fields.forEach((childField, index) => {
+      if (childField?.class === 'Spacer' || childField?.compClass === 'SpacerComponent') {
+        return;
+      }
+
       const v4FormPathMore = ['definition', 'fields', index.toString()];
       // Create the instance from the v4 config
-      const formComponent = this.constructFormComponent(field, v4FormPathMore);
+      const formComponent = this.constructFormComponent(childField, v4FormPathMore);
 
       // Visit children
       this.acceptV4FormConfigPath(
@@ -830,12 +842,20 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       // Store the instance on the item
       config.componentDefinitions.push(formComponent);
     });
+
+    if (field?.class === 'ButtonBarContainer' || field?.compClass === 'ButtonBarContainerComponent') {
+      this.isInsideButtonBarContainer = false;
+    }
   }
 
   visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
     const field = this.getV4Data();
     item.config = new GroupFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
+
+    if (field?.class === 'ButtonBarContainer' || field?.compClass === 'ButtonBarContainerComponent') {
+      item.config.disabled = true;
+    }
   }
 
   visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
@@ -1543,7 +1563,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, field?: any) {
     const config = {
-      label: field?.definition?.label,
+      label: this.isInsideButtonBarContainer ? undefined : field?.definition?.label,
       helpText: field?.definition?.help,
     };
     this.sharedProps.sharedPopulateFieldLayoutConfig(item, config);
@@ -1595,6 +1615,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         formConfig = {};
       }
     }
+    return formConfig;
+  }
 
     // Set the form config name if there isn't one.
     if (!formConfig.name) {

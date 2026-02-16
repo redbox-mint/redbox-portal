@@ -17,13 +17,13 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Inject, Injectable, WritableSignal} from '@angular/core';
-import {AbstractControl, FormControl} from '@angular/forms';
-import {isEmpty as _isEmpty,  merge as _merge, set as _set, toNumber as _toNumber, isFinite as _isFinite } from 'lodash-es';
+import { Inject, Injectable, WritableSignal } from '@angular/core';
+import { AbstractControl, FormControl } from '@angular/forms';
+import { isEmpty as _isEmpty, merge as _merge, set as _set, toNumber as _toNumber, isFinite as _isFinite } from 'lodash-es';
 import {
-  StaticComponentClassMap,
-  StaticModelClassMap,
-  StaticLayoutClassMap,
+  getStaticComponentClassMap,
+  getStaticModelClassMap,
+  getStaticLayoutClassMap,
   AllComponentClassMapType,
   AllModelClassMapType,
   AllLayoutClassMapType,
@@ -39,7 +39,7 @@ import {
   UtilityService,
   JSONataClientQuerySourceProperty
 } from '@researchdatabox/portal-ng-common';
-import {PortalNgFormCustomService} from '@researchdatabox/portal-ng-form-custom';
+import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 import {
   FormFieldComponentStatus,
   FormComponentDefinitionFrame,
@@ -56,9 +56,9 @@ import {
   FormModesConfig, KindNameDefaultsMap, FieldModelDefinitionKind,
   FormComponentDefinitionKind, KindNameDefaultsMapType,
 } from '@researchdatabox/sails-ng-common';
-import {HttpClient} from "@angular/common/http";
-import {APP_BASE_HREF} from "@angular/common";
-import {firstValueFrom} from "rxjs";
+import { HttpClient } from "@angular/common/http";
+import { APP_BASE_HREF } from "@angular/common";
+import { firstValueFrom } from "rxjs";
 
 
 // redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
@@ -97,20 +97,20 @@ export class FormService extends HttpClientService {
     @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
     @Inject(ConfigService) protected override configService: ConfigService,
-    ) {
+  ) {
     super(http, rootContext, utilityService, configService)
     // start with the static version, will dynamically merge any custom components later
-    _merge(this.modelClassMap, StaticModelClassMap);
+    _merge(this.modelClassMap, getStaticModelClassMap());
     this.loggerService.debug(`${this.logName}: Static component classes:`,
       Object.fromEntries(Object.entries(this.compClassMap).map(([key, value]) => [key, value.name]))
     );
 
-    _merge(this.compClassMap, StaticComponentClassMap);
+    _merge(this.compClassMap, getStaticComponentClassMap());
     this.loggerService.debug(`${this.logName}: Static model classes:`,
       Object.fromEntries(Object.entries(this.modelClassMap).map(([key, value]) => [key, value.name]))
     );
 
-    _merge(this.layoutClassMap, StaticLayoutClassMap);
+    _merge(this.layoutClassMap, getStaticLayoutClassMap());
     this.loggerService.debug(`${this.logName}: Static layout classes:`,
       Object.fromEntries(Object.entries(this.layoutClassMap).map(([key, value]) => [key, value?.constructor?.name]))
     );
@@ -130,7 +130,7 @@ export class FormService extends HttpClientService {
     (this.requestOptions['headers'] as Record<string, string>)['X-ReDBox-Api-Version'] = '2.0';
 
     this.enableCsrfHeader();
-    _merge(this.requestOptions, {context: this.httpContext});
+    _merge(this.requestOptions, { context: this.httpContext });
     return this;
   }
 
@@ -144,11 +144,11 @@ export class FormService extends HttpClientService {
    * Returns:
    *  array of form fields containing the corresponding component information, ready for rendering.
    */
-  public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths:string[]): Promise<FormComponentsMap> {
+  public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths: string[]): Promise<FormComponentsMap> {
     // Get the form config from the server.
     // Includes the integrated model data (in componentDefinition.model.config.value) for rendering the form.
     const formConfig = await this.getFormConfig(oid, recordType, editMode, formName);
-    if (!formConfig){
+    if (!formConfig) {
       throw new Error("Form config from server was empty.");
     }
 
@@ -202,7 +202,7 @@ export class FormService extends HttpClientService {
    * @param componentDefinitions The config for the components.
    * @param parentLineagePaths The linage paths of the parent item.
    */
-  public async resolveFormComponentClasses(componentDefinitions:  FormComponentDefinitionFrame[], parentLineagePaths: LineagePaths): Promise<FormFieldCompMapEntry[]> {
+  public async resolveFormComponentClasses(componentDefinitions: FormComponentDefinitionFrame[], parentLineagePaths: LineagePaths): Promise<FormFieldCompMapEntry[]> {
     const fieldArr: FormFieldCompMapEntry[] = [];
     const compDefInfo = componentDefinitions?.map(i => `'${i?.name}':${i?.component?.class}`) ?? [];
     this.loggerService.info(`${this.logName}: resolving ${componentDefinitions?.length ?? 0} component definitions ${compDefInfo.join(',')}`);
@@ -321,7 +321,7 @@ export class FormService extends HttpClientService {
     return fieldArr;
   }
 
-  public createFormFieldModelInstances(components:FormFieldCompMapEntry[]): void {
+  public createFormFieldModelInstances(components: FormFieldCompMapEntry[]): void {
     const names = components?.map(i => i?.compConfigJson?.name) ?? [];
     this.loggerService.debug(`${this.logName}: create form field model instances from ${components?.length ?? 0} components ${names.join(',')}.`);
     for (let compEntry of components) {
@@ -386,6 +386,11 @@ export class FormService extends HttpClientService {
       }
       groupMap[fieldName] = compEntry;
 
+      // const includeInFormControlMap = this.shouldIncludeInFormControlMap(compEntry);
+      // if (!includeInFormControlMap) {
+      //   continue;
+      // }
+
       // Populate the map of name to form control.
       if (compEntry.model) {
         const model = compEntry.model;
@@ -412,6 +417,17 @@ export class FormService extends HttpClientService {
     return compMap;
   }
 
+  public shouldIncludeInFormControlMap(compEntry: FormFieldCompMapEntry | null | undefined): boolean {
+    if (!compEntry) {
+      return false;
+    }
+
+    const modelDisabled = compEntry.compConfigJson?.model?.config?.disabled === true;
+    const componentDisabled = compEntry.compConfigJson?.component?.config?.disabled === true;
+    const layoutDisabled = compEntry.compConfigJson?.layout?.config?.disabled === true;
+    return !(modelDisabled || componentDisabled || layoutDisabled);
+  }
+
   /**
    * Get the flat array of validation errors for the given component and all child components.
    * @param mapEntry Gather the validation errors for this component.
@@ -426,7 +442,7 @@ export class FormService extends HttpClientService {
     }
 
     // Get form component id and label.
-    const {id, labelMessage} = this.componentIdLabel(mapEntry.compConfigJson);
+    const { id, labelMessage } = this.componentIdLabel(mapEntry.compConfigJson);
 
     // Get the validation errors from the form control.
     const formControl = mapEntry.model?.formControl;
@@ -434,7 +450,7 @@ export class FormService extends HttpClientService {
     if (formControl && lineagePaths) {
       const errors = this.getFormValidatorComponentErrors(formControl);
       if (errors.length > 0) {
-        result.push({id, message: labelMessage, errors, lineagePaths});
+        result.push({ id, message: labelMessage, errors, lineagePaths });
       }
     }
 
@@ -475,7 +491,7 @@ export class FormService extends HttpClientService {
     const labelMessage = componentDef?.layout?.config?.label || null;
 
     // build the result
-    return {id: id, labelMessage: labelMessage};
+    return { id: id, labelMessage: labelMessage };
   }
 
   /**
@@ -503,7 +519,7 @@ export class FormService extends HttpClientService {
       if (componentsLoaded()) {
         status.set(FormStatus.READY);
         this.loggerService.debug(`${this.logName}: All components for ${name} are ready. Form is ready to be used. ${readyMsg}`);
-      } else{
+      } else {
         const namesNotReady = componentsNotReady?.map(i => i?.compConfigJson?.name) ?? [];
         const waitingMsg = `Component '${name}' is waiting for ${componentsNotReady.length} child components ${namesNotReady.join(',')} to be ready.`;
         this.loggerService.debug(`${this.logName}: ${waitingMsg} ${readyMsg}`);
@@ -525,7 +541,7 @@ export class FormService extends HttpClientService {
   public setValidators(
     formControl?: AbstractControl | null,
     validators?: FormValidatorConfig[] | null,
-    enabledGroups?: string[]| null,
+    enabledGroups?: string[] | null,
   ): void {
     if (!formControl) {
       this.loggerService.warn(`${this.logName}: Cannot set validators because formControl is falsy.`);
@@ -581,7 +597,7 @@ export class FormService extends HttpClientService {
       url.searchParams.set('formName', formName?.toString());
     }
 
-    const result = await firstValueFrom(this.http.get<{data: FormConfigFrame}>(url.href, this.requestOptions));
+    const result = await firstValueFrom(this.http.get<{ data: FormConfigFrame }>(url.href, this.requestOptions));
     this.loggerService.info(`Get form fields from url: ${url}`, result);
     return result?.data;
   }
@@ -603,7 +619,7 @@ export class FormService extends HttpClientService {
       : new URL(`${this.brandingAndPortalUrl}/record/default/${recordType}`);
     url.searchParams.set('ts', ts);
 
-    const result = await firstValueFrom(this.http.get<{data: Record<string, unknown>}>(url.href, this.requestOptions));
+    const result = await firstValueFrom(this.http.get<{ data: Record<string, unknown> }>(url.href, this.requestOptions));
     this.loggerService.info(`Get model data from url: ${url}`, result);
     return result?.['data'] ?? {};
   }
@@ -652,7 +668,7 @@ export class FormService extends HttpClientService {
     if (oid) {
       path.push(oid?.toString());
     }
-    const params = formMode === "edit" ? {edit: "true"} : undefined;
+    const params = formMode === "edit" ? { edit: "true" } : undefined;
     const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params);
     // TODO add a type for the result -  {evaluate: function(key, context, extra)}
     return result;
@@ -664,7 +680,7 @@ export class FormService extends HttpClientService {
    * @param base The base paths.
    * @param more The relative paths to append.
    */
-  public buildLineagePaths(base?: LineagePaths, more?: LineagePaths) : LineagePaths {
+  public buildLineagePaths(base?: LineagePaths, more?: LineagePaths): LineagePaths {
     // Delegate to shared helper to keep existing FormService API intact.
     return buildLineagePathsHelper(base, more);
   }

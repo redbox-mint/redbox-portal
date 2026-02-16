@@ -157,6 +157,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   debugFormComponents = signal<Record<string, unknown>>({});
   /**
+    * Form values debug map (actual payload)
+   */
+  debugFormValues = signal<Record<string, unknown>>({});
+  /**
+   * Raw form values debug map (includes disabled controls)
+   */
+  debugRawFormValues = signal<Record<string, unknown>>({});
+  /**
+   * Toggle for using raw form values in debug panel
+   */
+  debugUseRawValues = signal<boolean>(false);
+  /**
    * Reference container for dynamic components injection
    */
   @ViewChild('componentsContainer', { read: ViewContainerRef, static: false }) componentsContainer!: ViewContainerRef | undefined;
@@ -391,11 +403,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.subMaps['formValueChangesSub']?.unsubscribe();
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
         this.debugFormComponents.set(this.getDebugInfo());
+        this.debugFormValues.set(this.getDebugFormValue());
+        this.debugRawFormValues.set(this.getDebugRawFormValue());
       });
     }
     // set the initial signal values...
     this.formGroupStatus.set(this.dataStatus);
     this.debugFormComponents.set(this.getDebugInfo());
+    this.debugFormValues.set(this.getDebugFormValue());
+    this.debugRawFormValues.set(this.getDebugRawFormValue());
     // TODO: Placeholder for form-level expressions handling
     // Init the change event consumer
     // if (this.formDefMap?.formConfig.expressions){
@@ -494,6 +510,26 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.formDebugInfo;
   }
 
+  public getDebugFormValue(): Record<string, unknown> {
+    return this.getPersistedFormValue();
+  }
+
+  public getDebugRawFormValue(): Record<string, unknown> {
+    return structuredClone((this.form?.getRawValue?.() ?? {}) as Record<string, unknown>);
+  }
+
+  private getPersistedFormValue(): Record<string, unknown> {
+    const formValue = structuredClone((this.form?.value ?? {}) as Record<string, unknown>);
+    const groupMap = this.formDefMap?.completeGroupMap ?? {};
+    for (const [name, compEntry] of Object.entries(groupMap)) {
+      const includeByConfig = this.formService.shouldIncludeInFormControlMap(compEntry);
+      if (!includeByConfig) {
+        delete formValue[name];
+      }
+    }
+    return formValue;
+  }
+
 
   private getComponentDebugInfo(formFieldCompMapEntry: FormFieldCompMapEntry): DebugInfo {
     const componentEntry = formFieldCompMapEntry;
@@ -560,7 +596,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
         try {
           let response: RecordActionResult;
-          const currentFormValue = structuredClone(this.form.value);
+          const currentFormValue = this.getPersistedFormValue();
           // Mark form as pristine as we cloned the data already
           this.form.markAsPristine();
           if (_isEmpty(this.trimmedParams.oid())) {

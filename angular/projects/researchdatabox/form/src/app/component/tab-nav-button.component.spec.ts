@@ -116,6 +116,25 @@ describe('TabNavButtonComponent', () => {
     expect(`${tab2Wrapper?.instance.hostBindingCssClasses || ''}`).not.toContain('active');
   });
 
+  it('should scroll to the top of the tab when clicking next', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true } as any);
+    const mainTabDef = formComponent.getComponentDefByName('main_tab');
+    const mainTab = mainTabDef?.component as TabComponent;
+
+    const nativeElement = mainTab.formFieldCompMapEntry?.componentRef?.location.nativeElement;
+    const scrollSpy = spyOn(nativeElement, 'scrollIntoView');
+
+    const navHost = fixture.nativeElement.querySelector('redbox-form-tab-nav-button');
+    const buttons = navHost.querySelectorAll('button');
+    const prevButton = buttons[0] as HTMLButtonElement;
+    prevButton.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(mainTab.selectedTabId).toBe('tab1');
+    expect(scrollSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+  });
+
   it('should disable buttons when target tab container is missing', async () => {
     const tabNavConfig = formConfig.componentDefinitions[1]?.component?.config as Record<string, unknown> | undefined;
     if (tabNavConfig) {
