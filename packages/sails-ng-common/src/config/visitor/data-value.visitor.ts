@@ -1,6 +1,6 @@
-import {FormConfigVisitor} from "./base.model";
-import {FormConfigOutline} from "../form-config.outline";
-import {set as _set} from "lodash";
+import { FormConfigVisitor } from "./base.model";
+import { FormConfigOutline } from "../form-config.outline";
+import { set as _set } from "lodash";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -44,7 +44,7 @@ import {
     TextAreaFieldModelDefinitionOutline,
     TextAreaFormComponentDefinitionOutline
 } from "../component/text-area.outline";
-import {DefaultFieldLayoutDefinitionOutline} from "../component/default-layout.outline";
+import { DefaultFieldLayoutDefinitionOutline } from "../component/default-layout.outline";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionOutline,
@@ -85,11 +85,11 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {FormComponentDefinitionOutline} from "../form-component.outline";
-import {FieldModelDefinitionFrame} from "../field-model.outline";
-import {ILogger} from "../../logger.interface";
-import {FormConfig} from "../form-config.model";
-import {FormPathHelper} from "./common.model";
+import { FormComponentDefinitionOutline } from "../form-component.outline";
+import { FieldModelDefinitionFrame } from "../field-model.outline";
+import { ILogger } from "../../logger.interface";
+import { FormConfig } from "../form-config.model";
+import { FormPathHelper } from "./common.model";
 
 /**
  * Visit each form config component and extract the value for each field.

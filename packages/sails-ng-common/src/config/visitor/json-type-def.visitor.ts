@@ -1,6 +1,6 @@
-import {FormConfigVisitor} from "./base.model";
-import {FormConfigOutline} from "../form-config.outline";
-import {set as _set} from "lodash";
+import { FormConfigVisitor } from "./base.model";
+import { FormConfigOutline } from "../form-config.outline";
+import { set as _set } from "lodash";
 import {
     SimpleInputFieldComponentDefinitionOutline,
     SimpleInputFieldModelDefinitionOutline,
@@ -44,7 +44,7 @@ import {
     TextAreaFieldModelDefinitionOutline,
     TextAreaFormComponentDefinitionOutline
 } from "../component/text-area.outline";
-import {DefaultFieldLayoutDefinitionOutline} from "../component/default-layout.outline";
+import { DefaultFieldLayoutDefinitionOutline } from "../component/default-layout.outline";
 import {
     CheckboxInputFieldComponentDefinitionOutline,
     CheckboxInputFieldModelDefinitionOutline,
@@ -85,13 +85,13 @@ import {
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline
 } from "../component/date-input.outline";
-import {guessType} from "../helpers";
-import {FieldModelDefinitionFrame} from "../field-model.outline";
-import {FormComponentDefinitionOutline} from "../form-component.outline";
-import {ILogger} from "../../logger.interface";
-import {CanVisit} from "./base.outline";
-import {FormPathHelper} from "./common.model";
-import {LineagePath, LineagePathsPartial} from "../names/naming-helpers";
+import { guessType } from "../helpers";
+import { FieldModelDefinitionFrame } from "../field-model.outline";
+import { FormComponentDefinitionOutline } from "../form-component.outline";
+import { ILogger } from "../../logger.interface";
+import { CanVisit } from "./base.outline";
+import { FormPathHelper } from "./common.model";
+import { LineagePath, LineagePathsPartial } from "../names/naming-helpers";
 
 
 /**
@@ -340,11 +340,11 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
         if (valueMode === "optionObject") {
             _set(this.jsonTypeDef, this.jsonTypeDefPath, {
                 properties: {
-                    label: {type: "string"},
-                    value: {type: "string"}
+                    label: { type: "string" },
+                    value: { type: "string" }
                 },
                 optionalProperties: {
-                    sourceType: {type: "string"}
+                    sourceType: { type: "string" }
                 }
             });
             return;
@@ -430,7 +430,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
             }
         }
         // type: https://jsontypedef.com/docs/jtd-in-5-minutes/#type-schemas
-        _set(this.jsonTypeDef, this.jsonTypeDefPath, {type: guessedType});
+        _set(this.jsonTypeDef, this.jsonTypeDefPath, { type: guessedType });
     }
 
     /**
@@ -441,12 +441,12 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
         const jsonTypeDefPathKeys = item.model && item.name ? [item.name] : [];
 
-        this.acceptJsonTypeDefPath(item.component, {formConfig: ['component']}, jsonTypeDefPathKeys);
+        this.acceptJsonTypeDefPath(item.component, { formConfig: ['component'] }, jsonTypeDefPathKeys);
         if (item.model) {
-            this.acceptJsonTypeDefPath(item.model, {formConfig: ['model']}, jsonTypeDefPathKeys);
+            this.acceptJsonTypeDefPath(item.model, { formConfig: ['model'] }, jsonTypeDefPathKeys);
         }
         if (item.layout) {
-            this.acceptJsonTypeDefPath(item.layout, {formConfig: ['layout']}, jsonTypeDefPathKeys);
+            this.acceptJsonTypeDefPath(item.layout, { formConfig: ['layout'] }, jsonTypeDefPathKeys);
         }
     }
 
