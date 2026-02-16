@@ -2,7 +2,11 @@ import { DOCUMENT } from '@angular/common';
 import { Component, inject, Injector, Input } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 import { FormComponent } from "../form.component";
-import { FormValidatorSummaryErrors, ValidationSummaryComponentName } from "@researchdatabox/sails-ng-common";
+import {
+  FormValidatorComponentErrors,
+  FormValidatorSummaryErrors,
+  ValidationSummaryComponentName,
+} from "@researchdatabox/sails-ng-common";
 import { TabComponent } from './tab.component';
 
 
@@ -19,7 +23,7 @@ import { TabComponent } from './tab.component';
       <div class="alert alert-danger mt-3" role="alert">
         <p class="mb-2">{{ '@dmpt-form-validation-fail-prefix' | i18next }}</p>
         <ul class="validation-summary-list mb-0">
-          @for (summary of validationList; track summary.id ?? summary.message ?? $index; let summaryIndex = $index) {
+          @for (summary of validationList; track summary.id ?? summary.message ?? $index) {
             @if (summary.errors.length > 0) {
               <li class="validation-summary-item">
                 @if (summary.id && summary.message) {
@@ -40,7 +44,7 @@ import { TabComponent } from './tab.component';
                         [attr.data-validation-summary-message]="summary.message">{{ "@validator-label-default" | i18next }}</span>
                 }
                 <ul class="validation-summary-errors mb-0">
-                  @for (error of summary.errors; track (summary.id ?? summary.message ?? summaryIndex) + '-' + (error.id ?? error.class ?? 'err') + '-' + $index) {
+                  @for (error of summary.errors; track trackValidationError(error, $index)) {
                     <li [attr.data-validation-error-class]="error.class"
                         [attr.data-validation-error-message]="error.message">{{ error.message | i18next: error.params }}</li>
                   }
@@ -69,6 +73,7 @@ import { TabComponent } from './tab.component';
 })
 export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<string> {
   protected override logName = ValidationSummaryComponentName;
+  private errorSummaryIndexMap = new WeakMap<FormValidatorComponentErrors, number>();
 
   /**
    * The model associated with this component.
@@ -90,7 +95,19 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   ].join(',');
 
   get allValidationErrorsDisplay(): FormValidatorSummaryErrors[] {
-    return this.getFormComponent?.getValidationErrors() ?? [];
+    const validationErrors = this.getFormComponent?.getValidationErrors() ?? [];
+    const nextMap = new WeakMap<FormValidatorComponentErrors, number>();
+    validationErrors.forEach((summary, summaryIndex) => {
+      summary.errors.forEach((error) => {
+        nextMap.set(error, summaryIndex);
+      });
+    });
+    this.errorSummaryIndexMap = nextMap;
+    return validationErrors;
+  }
+
+  public trackValidationError(error: FormValidatorComponentErrors, errorIndex: number): string {
+    return `${this.errorSummaryIndexMap.get(error) ?? -1}-${error.class}-${error.message}-${errorIndex}`;
   }
 
   public onValidationSummaryClick(event: MouseEvent, summary: FormValidatorSummaryErrors): void {

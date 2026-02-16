@@ -107,6 +107,71 @@ describe('ValidationSummaryFieldComponent', () => {
     ]);
   });
 
+  it('should produce unique error track keys across summaries for matching errors', async () => {
+    // arrange
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: '',
+              validators: [
+                {class: 'required'},
+              ]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        },
+        {
+          name: 'text_2_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: '',
+              validators: [
+                {class: 'required'},
+              ]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        },
+        {
+          name: 'validation_summary_1',
+          component: {class: "ValidationSummaryComponent"}
+        },
+      ]
+    };
+
+    // act
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const validationSummary = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
+    const summaryErrors = validationSummary.allValidationErrorsDisplay;
+
+    // assert
+    expect(summaryErrors.length).toBe(2);
+    const firstError = summaryErrors[0].errors[0];
+    const secondError = summaryErrors[1].errors[0];
+    expect(firstError.class).toBe(secondError.class);
+    expect(firstError.message).toBe(secondError.message);
+
+    const firstTrackKey = validationSummary.trackValidationError(firstError, 0);
+    const secondTrackKey = validationSummary.trackValidationError(secondError, 0);
+    expect(firstTrackKey).not.toEqual(secondTrackKey);
+  });
+
   it('should reveal hidden tab and focus field when clicking a validation summary link', async () => {
     // arrange
     const formConfig: FormConfigFrame = {
