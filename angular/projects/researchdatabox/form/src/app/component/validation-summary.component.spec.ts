@@ -1,8 +1,9 @@
 import {TestBed} from '@angular/core/testing';
 import {ValidationSummaryFieldComponent} from "./validation-summary.component";
-import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame, TabFieldComponentConfigFrame} from '@researchdatabox/sails-ng-common';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {SimpleInputComponent} from "./simple-input.component";
+import { TabComponent } from './tab.component';
 
 describe('ValidationSummaryFieldComponent', () => {
   beforeEach(async () => {
@@ -82,10 +83,12 @@ describe('ValidationSummaryFieldComponent', () => {
 
     // assert
     const nativeEl: HTMLElement = fixture.nativeElement;
-    console.log(nativeEl);
     const el = nativeEl.querySelector('div.alert-danger');
-    expect(el?.innerHTML).toContain('<a data-validation-summary-id="form-item-id-text-1-event" href="#form-item-id-text-1-event">form-item-id-text-1-event</a>:');
-    expect(el?.innerHTML).toContain('<span data-validation-error-class="required" data-validation-error-message="@validator-error-required"> 1)  </span>');
+    const link = el?.querySelector('a[data-validation-summary-id="form-item-id-text-1-event"]');
+    const errorItem = el?.querySelector('li[data-validation-error-class="required"][data-validation-error-message="@validator-error-required"]');
+    expect(link).toBeTruthy();
+    expect(link?.textContent).toContain('form-item-id-text-1-event');
+    expect(errorItem).toBeTruthy();
 
     // Ensure the expected failures have the expected lineage paths.
     const validationSummary = fixture.componentInstance.componentDefArr[1].component as ValidationSummaryFieldComponent;
@@ -102,6 +105,105 @@ describe('ValidationSummaryFieldComponent', () => {
         }
       }
     ]);
+  });
+
+  it('should reveal hidden tab and focus field when clicking a validation summary link', async () => {
+    // arrange
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'main_tab',
+          component: {
+            class: 'TabComponent',
+            config: {
+              tabs: [
+                {
+                  name: 'tab1',
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      selected: true,
+                      componentDefinitions: [
+                        {
+                          name: 'textfield_1',
+                          model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                              value: 'Tab one'
+                            }
+                          },
+                          component: {
+                            class: 'SimpleInputComponent'
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  name: 'tab2',
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      selected: false,
+                      componentDefinitions: [
+                        {
+                          name: 'textfield_2',
+                          model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                              value: '',
+                              validators: [
+                                {class: 'required'},
+                              ]
+                            }
+                          },
+                          component: {
+                            class: 'SimpleInputComponent'
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            } as TabFieldComponentConfigFrame
+          },
+          layout: {
+            class: 'TabLayout'
+          }
+        },
+        {
+          name: 'validation_summary_1',
+          component: {class: "ValidationSummaryComponent"}
+        },
+      ]
+    };
+
+    // act
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    const mainTab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
+    expect(mainTab.activeTabId).toBe('tab1');
+
+    const link = nativeEl.querySelector('a[data-validation-summary-id="form-item-id-textfield-2"]') as HTMLAnchorElement | null;
+    expect(link).toBeTruthy();
+    link?.click();
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // assert
+    expect(mainTab.activeTabId).toBe('tab2');
+    const inputInTab2 = nativeEl.querySelector('#tab2-tab-content input[type="text"]') as HTMLInputElement | null;
+    expect(inputInTab2).toBeTruthy();
+    expect(document.activeElement).toBe(inputInTab2);
   });
 
 });
