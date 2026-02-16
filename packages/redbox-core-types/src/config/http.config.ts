@@ -14,25 +14,14 @@ const skipper = require('skipper');
 
 import { redboxSession as redboxSessionMiddleware } from '../middleware/redboxSession';
 import { redboxSession as redboxSessionConfigValue } from './redboxSession.config';
+import type { CompanionConfig } from './companion.config';
 
 // Declare Sails and its config structure
 declare const sails: {
     config: {
         appPath: string;
         passport: PassportStatic; // The passport instance configured by UsersService
-        companion?: {
-            enabled?: boolean;
-            route?: string;
-            secret?: string;
-            filePath?: string;
-            uploadUrls?: string[];
-            server?: Record<string, unknown>;
-            providerOptions?: Record<string, unknown>;
-            corsOrigins?: true | string[];
-            metrics?: boolean;
-            debug?: boolean;
-            i18n?: Record<string, unknown>;
-        };
+        companion?: CompanionConfig;
         session: {
             cookie?: {
                 maxAge?: number;
@@ -121,6 +110,29 @@ let _lazyCompanionMiddleware: RequestHandler | null = null;
 let _lazyCompanionMountPath = '/companion';
 let _lazyCompanionSocketWired = false;
 
+const getCookieValue = (cookieHeader: string | undefined, cookieName: string): string | undefined => {
+    if (!cookieHeader) {
+        return undefined;
+    }
+    const segments = cookieHeader.split(';');
+    for (const rawSegment of segments) {
+        const segment = rawSegment.trim();
+        if (!segment.startsWith(`${cookieName}=`)) {
+            continue;
+        }
+        const encodedValue = segment.substring(cookieName.length + 1).trim();
+        if (!encodedValue) {
+            return undefined;
+        }
+        try {
+            return decodeURIComponent(encodedValue);
+        } catch (_err) {
+            return encodedValue;
+        }
+    }
+    return undefined;
+};
+
 export const http: HttpConfig = {
     rootContext: '',
 
@@ -160,6 +172,47 @@ export const http: HttpConfig = {
             if (requestPath !== normalizedRoute && !requestPath.startsWith(`${normalizedRoute}/`)) {
                 return next();
             }
+            const relativePath = requestPath.substring(normalizedRoute.length);
+            const relativePathParts = relativePath.split('/').filter(Boolean);
+            const hasAuthTokenHeader = typeof req.headers?.['uppy-auth-token'] === 'string'
+                && req.headers['uppy-auth-token'].trim().length > 0;
+            const hasAuthTokenQuery = typeof req.query?.uppyAuthToken === 'string'
+                && req.query.uppyAuthToken.trim().length > 0;
+            if (!hasAuthTokenHeader && !hasAuthTokenQuery && relativePathParts.length > 0) {
+                const providerName = relativePathParts[0];
+                const cookieHeader = req.headers?.cookie;
+                const cookieToken = getCookieValue(cookieHeader, `uppyAuthToken--${providerName}`)
+                    || (providerName === 'drive'
+                        ? getCookieValue(cookieHeader, 'uppyAuthToken--googledrive')
+                        : undefined);
+                if (cookieToken) {
+                    req.headers['uppy-auth-token'] = cookieToken;
+                    if (req.query && typeof req.query === 'object') {
+                        (req.query as Record<string, unknown>).uppyAuthToken = cookieToken;
+                    }
+                    console.debug(`Companion auth token restored from cookie for provider "${providerName}".`);
+                }
+            }
+            const isSendTokenPath = relativePathParts.length === 2 && relativePathParts[1] === 'send-token';
+            if (isSendTokenPath) {
+                const appUrl = String((sails.config as { appUrl?: unknown }).appUrl ?? '').trim();
+                if (appUrl) {
+                    let targetOrigin = appUrl;
+                    try {
+                        targetOrigin = new URL(appUrl).origin;
+                    } catch (_err) {
+                        // Keep configured appUrl as-is if URL parsing fails.
+                    }
+                    const originPayload = JSON.stringify(targetOrigin);
+                    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+                    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                    res.setHeader('Pragma', 'no-cache');
+                    res.setHeader('Expires', '0');
+                    return res.send(
+                        `<!DOCTYPE html><html><head><meta charset="utf-8" /><script>(function(){'use strict';var origin=${originPayload};var provider=${JSON.stringify(relativePathParts[0] ?? '')};var query=new URLSearchParams(window.location.search);var hashRaw=window.location.hash&&window.location.hash.charAt(0)==='#'?window.location.hash.slice(1):'';var hash=new URLSearchParams(hashRaw);var token=(query.get('uppyAuthToken')||hash.get('uppyAuthToken')||'').trim();if(!token){window.location.replace(origin);return;}if(provider){var storageKey='companion-'+provider+'-auth-token';var cookieName='uppyAuthToken--'+provider;if(provider==='drive'){storageKey='companion-GoogleDrive-auth-token';cookieName='uppyAuthToken--googledrive';}if(provider==='onedrive'){storageKey='companion-OneDrive-auth-token';}try{window.localStorage.setItem(storageKey,token);}catch(_e){}document.cookie=cookieName+'='+encodeURIComponent(token)+'; Path=/; Max-Age=34560000; SameSite=Lax';}var data={token:token};var openerRef=null;try{openerRef=window.opener||null;}catch(_e){}if(!openerRef){window.location.replace(origin);return;}var attempts=0;var send=function(){attempts+=1;try{openerRef.postMessage(data,origin);}catch(_e){}if(attempts<5){setTimeout(send,150);return;}setTimeout(function(){try{window.close();}catch(_e){}},300);};send();})();</script></head><body>Completing sign in...</body></html>`
+                    );
+                }
+            }
 
             if (!_lazyCompanionMiddleware || _lazyCompanionMountPath !== normalizedRoute) {
                 const companionFilePath = String(companionConfig.filePath ?? '/tmp/companion').trim();
@@ -180,13 +233,35 @@ export const http: HttpConfig = {
                     return next();
                 }
 
+                const providerOptions = { ...(companionConfig.providerOptions || {}) } as Record<string, unknown>;
+                if ('google' in providerOptions) {
+                    if (!('drive' in providerOptions)) {
+                        providerOptions.drive = providerOptions.google;
+                    }
+                    delete providerOptions.google;
+                    console.warn('Companion config key "providerOptions.google" is deprecated and has been remapped to "providerOptions.drive". Update your config to use "drive".');
+                }
+
+                const configuredCorsOrigins = companionConfig.corsOrigins;
+                const defaultCorsOrigin = String((sails.config as { appUrl?: unknown }).appUrl ?? '').trim();
+                const corsOrigins = configuredCorsOrigins ?? (defaultCorsOrigin || true);
+                const bearerToken = String(companionConfig.bearerToken ?? '').trim();
+                const companionUploadHeaders: Record<string, string> = {
+                    ...(companionConfig.uploadHeaders || {}),
+                };
+                if (bearerToken) {
+                    companionUploadHeaders.Authorization = `Bearer ${bearerToken}`;
+                }
+
                 const companionAppResult = appFactory({
-                    providerOptions: companionConfig.providerOptions || {},
+                    providerOptions,
                     filePath: companionFilePath,
                     secret: companionSecret,
                     uploadUrls: companionConfig.uploadUrls || [],
+                    tusDeferredUploadLength: companionConfig.tusDeferredUploadLength ?? true,
+                    uploadHeaders: companionUploadHeaders,
                     server: companionConfig.server || {},
-                    corsOrigins: companionConfig.corsOrigins ?? true,
+                    corsOrigins,
                     metrics: companionConfig.metrics || false,
                     debug: companionConfig.debug || false,
                     i18n: companionConfig.i18n || undefined
@@ -230,9 +305,8 @@ export const http: HttpConfig = {
             if (req.url.startsWith(_lazyCompanionMountPath)) {
                 req.url = req.url.substring(_lazyCompanionMountPath.length) || '/';
             }
-            if (typeof req.originalUrl === 'string' && req.originalUrl.startsWith(_lazyCompanionMountPath)) {
-                req.originalUrl = req.originalUrl.substring(_lazyCompanionMountPath.length) || '/';
-            }
+            // Keep originalUrl intact so Grant's prefix matching (which uses originalUrl)
+            // still sees the configured server.path (e.g. /companion/connect/*).
 
             try {
                 return _lazyCompanionMiddleware(req, res, (err?: unknown) => {
@@ -402,6 +476,9 @@ export const http: HttpConfig = {
             if (!_.isEmpty(expiresHeaderVal) && expiresHeaderVal) {
                 res.set('Expires', expiresHeaderVal);
             }
+            // Required for OAuth popup flows (e.g. Uppy Companion providers)
+            // so window.opener/window.closed checks are not blocked by COOP.
+            res.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
             res.set('Pragma', 'no-cache');
             return next();
         }

@@ -134,8 +134,10 @@ module.exports = {
     enabled: process.env.UPPY_COMPANION_ENABLED === 'true',
     route: '/companion',
     secret: process.env.UPPY_COMPANION_SECRET || '',
+    bearerToken: process.env.UPPY_COMPANION_BEARER_TOKEN || '',
     filePath: process.env.UPPY_COMPANION_FILE_PATH || '/tmp/companion',
     uploadUrls: (process.env.UPPY_COMPANION_UPLOAD_URLS || '').split(',').map((v) => v.trim()).filter(Boolean),
+    tusDeferredUploadLength: process.env.UPPY_COMPANION_TUS_DEFERRED_UPLOAD_LENGTH !== 'false',
     server: {
       host: process.env.UPPY_COMPANION_HOST || '',
       protocol: process.env.UPPY_COMPANION_PROTOCOL || 'http',
@@ -146,7 +148,7 @@ module.exports = {
         key: process.env.UPPY_DROPBOX_KEY || '',
         secret: process.env.UPPY_DROPBOX_SECRET || ''
       },
-      google: {
+      drive: {
         key: process.env.UPPY_GOOGLE_KEY || '',
         secret: process.env.UPPY_GOOGLE_SECRET || ''
       },

@@ -42,7 +42,6 @@ const publicTranslationPolicies: PolicyName[] = [
 ];
 
 const noCachePlusCspNoncePolicy: PolicyName[] = ['noCache', 'contentSecurityPolicy'];
-
 export const policies: PoliciesConfig = {
     UserController: {
         '*': noCachePlusDefaultPolicies,
@@ -54,6 +53,12 @@ export const policies: PoliciesConfig = {
     },
     RenderViewController: {
         'render': noCachePlusDefaultPolicies
+    },
+    RecordController: {
+        '*': noCachePlusDefaultPolicies,
+        // Attach endpoint remains protected by checkAuth.
+        // Companion remote uploads are authorized via a server-side shared-secret header.
+        'doAttachment': noCachePlusDefaultPolicies
     },
     'webservice/RecordController': {
         '*': noCachePlusDefaultPolicies
