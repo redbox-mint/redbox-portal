@@ -20,8 +20,11 @@ tests {
   });
   test("Has expected content", function () {
     var body = res.getBody();
-    // console.log(body);
-    expect(body).to.have.property("defaultForm");
-    expect(body.defaultForm).to.eql("default-1.0-draft");
+    expect(body).to.have.property("baseUrl");
+    expect(body).to.have.property("branding");
+    expect(body).to.have.property("portal");
+    expect(body).to.have.property("i18NextOpts");
+    expect(body.branding).to.eql("default");
+    expect(body.portal).to.eql("rdmp");
   });
 }
