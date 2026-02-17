@@ -1,5 +1,5 @@
 import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector, HostBinding } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldCompMapEntry, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   FormConfigFrame, guessType, isTypeFieldDefinitionName, isTypeFormComponentDefinitionName,
   TabComponentName,
@@ -34,7 +34,7 @@ import { DefaultLayoutComponent } from './default-layout.component';
                   role="tab"
                   [attr.aria-selected]="tabInstance && tab.name == tabInstance.selectedTabId"
                   [attr.aria-controls]="tab.name + '-tab-content'"
-                  [innerHTML]="tab.layout?.config?.buttonLabel" (click)="selectTab(tab.name)">
+                  [innerHTML]="translateLabel(tab.layout?.config?.buttonLabel)" (click)="selectTab(tab.name)">
           </button>
         }
       }
@@ -46,6 +46,7 @@ import { DefaultLayoutComponent } from './default-layout.component';
 export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
   protected override logName = TabLayoutName;
   public override componentDefinition?: TabFieldLayoutDefinitionFrame;
+  private readonly translationService = inject(TranslationService);
 
   protected get tabConfig(): TabFieldComponentConfigFrame {
     const component = this.formFieldCompMapEntry?.compConfigJson?.component;
@@ -124,6 +125,18 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
         selectionResult.selectedWrapper.hostBindingCssClasses = `${this.componentDefinition?.config?.tabPaneCssClass} ${this.componentDefinition?.config?.tabPaneActiveCssClass}`;
       }
     }
+  }
+
+  protected translateLabel(label?: string): string {
+    if (!label) {
+      return '';
+    }
+    const translated = this.translationService.t(label);
+    if (translated === undefined || translated === null || translated === '') {
+      return label;
+    }
+    const value = typeof translated === 'string' ? translated : String(translated);
+    return value === 'undefined' ? label : value;
   }
 }
 
@@ -425,5 +438,3 @@ export interface TabSelectionResult {
   wrappers: FormBaseWrapperComponent<unknown>[] | null;
   errorType: TabSelectionErrorType;
 }
-
-
