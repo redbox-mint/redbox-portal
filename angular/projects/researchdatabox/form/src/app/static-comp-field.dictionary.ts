@@ -122,7 +122,7 @@ export const getStaticModelClassMap = (): StaticModelClassMapType => ({
   [MapModelName]: MapModel,
   [FileUploadModelName]: FileUploadModel,
   [QuestionTreeModelName]: QuestionTreeModel,
-};
+});
 
 /*
  * The Layout classes.
