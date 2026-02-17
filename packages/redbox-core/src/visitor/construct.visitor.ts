@@ -226,6 +226,16 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { DateInputFieldComponentConfig, DateInputFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import {
+  QuestionTreeComponentName,
+  QuestionTreeFieldComponentDefinitionFrame,
+  QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFieldModelDefinitionFrame,
+  QuestionTreeFieldModelDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
+  QuestionTreeModelName,
+} from '@researchdatabox/sails-ng-common';
+import { QuestionTreeFieldComponentConfig, QuestionTreeFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
   SaveButtonComponentName,
   SaveButtonFieldComponentDefinitionFrame,
   SaveButtonFieldComponentDefinitionOutline,
@@ -1589,6 +1599,63 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Question Tree */
+
+  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(currentData, QuestionTreeComponentName)) {
+      throw new Error(
+        `Invalid ${QuestionTreeComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const configFrame = currentData?.config ?? { availableOutcomes: [], questions: [], componentDefinitions: [] };
+
+    item.config = new QuestionTreeFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, configFrame);
+    this.sharedProps.setPropOverride('availableOutcomes', item.config, configFrame);
+    this.sharedProps.setPropOverride('availableMeta', item.config, configFrame);
+    this.sharedProps.setPropOverride('questions', item.config, configFrame);
+
+    configFrame.componentDefinitions = this.formOverride.applyQuestionTreeDsl(
+      this.formPathHelper.modelName,
+      this.formPathHelper.formPath,
+      item
+    );
+    configFrame.componentDefinitions = this.formOverride.applyQuestionTreeFrames(
+      this.formOverride.applyOverridesReusable(configFrame?.componentDefinitions ?? [], this.reusableFormDefs)
+    );
+
+    configFrame.componentDefinitions.forEach((componentDefinition, index) => {
+      const formComponent = this.constructFormComponent(componentDefinition);
+      this.formPathHelper.acceptFormPath(
+        formComponent,
+        this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, index)
+      );
+
+      const itemTransformed = this.formOverride.applyQuestionTreeOutline(
+        this.formOverride.applyOverrideTransform(formComponent, this.formMode)
+      );
+      item.config?.componentDefinitions.push(itemTransformed);
+    });
+  }
+
+  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<QuestionTreeFieldModelDefinitionFrame>(currentData, QuestionTreeModelName)) {
+      throw new Error(
+        `Invalid ${QuestionTreeModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+
+    item.config = new QuestionTreeFieldModelConfig();
+    this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+    this.setModelValue(item, currentData?.config);
+  }
+
+  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
   }
 

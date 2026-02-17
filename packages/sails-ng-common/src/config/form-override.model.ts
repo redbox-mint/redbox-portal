@@ -73,9 +73,10 @@ import { RichTextEditorComponentName, RichTextEditorFormComponentDefinitionOutli
 import { MapComponentName } from './component/map.outline';
 import { FileUploadComponentName, FileUploadFormComponentDefinitionOutline } from './component/file-upload.outline';
 import { TypeaheadInputModelOptionValue } from './component/typeahead-input.outline';
-import { FormConstraintConfigOutline } from './form-component.outline';
+import { FormConstraintConfigOutline, FormExpressionsConfigFrame } from './form-component.outline';
 import { SimpleInputFormComponentDefinitionFrame } from './component/simple-input.outline';
 import { guessType } from './helpers';
+import { LineagePaths } from './names/naming-helpers';
 
 export class FormOverride {
   private propertiesHelper: PropertiesHelper;
@@ -486,6 +487,7 @@ export class FormOverride {
 
   public applyQuestionTreeDsl(
     name: string | null,
+    lineagePath: LineagePaths,
     item: QuestionTreeFieldComponentDefinitionOutline
   ): QuestionTreeFormComponentDefinitionFrames[] {
     const availableOutcomeValues = (item.config?.availableOutcomes ?? []).map(i => i.value);
@@ -586,6 +588,25 @@ export class FormOverride {
         }
       }
 
+      const ruleExpression = this.questionTreeRuleToExpression(lineagePath, rules);
+      const isVisible = ruleExpression === 'true';
+      if (!lineagePath.angularComponentsJsonPointer) {
+        throw new Error(`FormOverride: Did not provide lineage path JSON pointer ${JSON.stringify({ name, lineagePath, item })}`);
+      }
+      const expressions: FormExpressionsConfigFrame[] | undefined = isVisible
+        ? undefined
+        : [
+            {
+              name: `${id}-questiontree`,
+              config: {
+                template: ruleExpression,
+                conditionKind: 'jsonpointer',
+                condition: `${lineagePath.angularComponentsJsonPointer}::field.value.changed`,
+                target: `layout.visible`,
+              },
+            },
+          ];
+
       const hasOneAnswer = answersMax === 1;
       const componentOptions = answers.map(a => ({ value: a.value, label: a.label ?? `@${name}-${id}-${a.value}` }));
       const componentAnswerOne: QuestionTreeFormComponentDefinitionFrames = {
@@ -598,8 +619,9 @@ export class FormOverride {
               {
                 name: 'questiontree_answer_one',
                 overrides: { replaceName: id },
-                layout: { class: 'DefaultLayout', config: { label: id } },
+                layout: { class: 'DefaultLayout', config: { label: id, visible: isVisible } },
                 component: { class: 'RadioInputComponent', config: { options: componentOptions } },
+                expressions: expressions,
               },
             ],
           },
@@ -615,8 +637,9 @@ export class FormOverride {
               {
                 name: 'questiontree_answer_one_more',
                 overrides: { replaceName: id },
-                layout: { class: 'DefaultLayout', config: { label: id } },
+                layout: { class: 'DefaultLayout', config: { label: id, visible: isVisible } },
                 component: { class: 'CheckboxInputComponent', config: { options: componentOptions } },
+                expressions: expressions,
               },
             ],
           },
@@ -630,6 +653,59 @@ export class FormOverride {
     }
 
     return result;
+  }
+
+  private toFieldReference(value: unknown): string {
+    const fieldRaw = value?.toString()?.normalize('NFKC') ?? '';
+    const fieldReference = [...fieldRaw].map(char => {
+      const codePoint = char.codePointAt(0);
+      if (codePoint === undefined) {
+        return '';
+      }
+      if (codePoint >= 48 && codePoint <= 57) {
+        return char;
+      }
+      if (codePoint >= 65 && codePoint <= 90) {
+        return char;
+      }
+      if (codePoint >= 97 && codePoint <= 122) {
+        return char;
+      }
+      if ([58, 64, 45, 46, 95].includes(codePoint)) {
+        return char;
+      }
+      return '_';
+    });
+    return fieldReference.join('');
+  }
+
+  private questionTreeRuleToExpression(lineagePath: LineagePaths, rule: QuestionTreeQuestionRules): string {
+    switch (rule.op) {
+      case 'true':
+        return 'true';
+      case 'and':
+        return rule.args.map(arg => `(${this.questionTreeRuleToExpression(lineagePath, arg)})`).join(' and ');
+      case 'or':
+        return rule.args.map(arg => `(${this.questionTreeRuleToExpression(lineagePath, arg)})`).join(' or ');
+      case 'in':
+      case 'notin':
+      case 'only':
+        const path = [...lineagePath.angularComponents, rule.q];
+        const pathFieldRefs = path.map(i => this.toFieldReference(i));
+        const identifierString = pathFieldRefs.map(i => `\`${i}\``).join('.');
+        const values = (Array.isArray(rule.a) ? rule.a : [rule.a]).map(i => this.toFieldReference(i));
+        const valueString = JSON.stringify(values);
+        if (rule.op === 'in') {
+          return `$count(${identifierString}[][$ in ${valueString}]) > 0`;
+        } else if (rule.op === 'only') {
+          return `${identifierString}[] = ${valueString}`;
+        } else if (rule.op === 'notin') {
+          return `$count(${identifierString}[][$not($ in ${valueString})]) = $count(${identifierString})`;
+        }
+        throw new Error(`FormOverride unknown rule ${JSON.stringify(rule)}.`);
+      default:
+        throw new Error(`FormOverride unknown rule ${JSON.stringify(rule)}.`);
+    }
   }
 
   public applyQuestionTreeFrames(items: AvailableFormComponentDefinitionFrames[]): QuestionTreeFormComponentDefinitionFrames[] {
