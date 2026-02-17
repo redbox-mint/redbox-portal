@@ -453,6 +453,7 @@
 	"user-profile-edit": "Edit Profile",
 	"@dmpt-select:Empty": "Please select",
 	"@dmpt-form-validation-fail-prefix": "Not all mandatory fields have been completed. Please complete ",
+	"@dmpt-form-validation-summary-header": "Please fix the following errors before continuing",
 	"@dmpt-form-validation-fail-suffix": "",
 	"@dmpt-form-saving": "Saving, please wait...",
 	"@dmpt-form-save-success": "Saved successfully.",
