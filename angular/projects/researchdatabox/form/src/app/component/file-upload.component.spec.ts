@@ -141,7 +141,7 @@ describe("FileUploadComponent", () => {
                 notes: "uploaded in test"
             }
         }, {
-            uploadURL: "http://localhost/default/rdmp/companion/record/pending-oid/attach/file-123"
+            uploadURL: "http://localhost/default/rdmp/record/pending-oid/attach/file-123"
         });
 
         await fixture.whenStable();
@@ -185,6 +185,65 @@ describe("FileUploadComponent", () => {
         expect(headers["X-CSRF-Token"]).toBe("testCsrfValue");
     });
 
+    it("uses non-companion endpoint for local uploads", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "attachments",
+                    component: {
+                        class: "FileUploadComponent",
+                        config: {
+                            allowUploadWithoutSave: true
+                        }
+                    },
+                    model: {
+                        class: "FileUploadModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        await createFormAndWaitForReady(formConfig, { oid: "", editMode: true } as any);
+        fakeUppy.emit("upload", "upload-local-1", [{ id: "local-1", isRemote: false }]);
+
+        const endpoint = String(fakeUppy.plugins["Tus"]?.opts?.endpoint ?? "");
+        expect(endpoint).toContain("/record/pending-oid/attach");
+        expect(endpoint).not.toContain("/companion/record/");
+    });
+
+    it("uses companion endpoint for remote provider uploads", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "attachments",
+                    component: {
+                        class: "FileUploadComponent",
+                        config: {
+                            allowUploadWithoutSave: true
+                        }
+                    },
+                    model: {
+                        class: "FileUploadModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        await createFormAndWaitForReady(formConfig, { oid: "", editMode: true } as any);
+        fakeUppy.emit("upload", "upload-remote-1", [{ id: "remote-1", isRemote: true }]);
+
+        const endpoint = String(fakeUppy.plugins["Tus"]?.opts?.endpoint ?? "");
+        expect(endpoint).toContain("/companion/record/pending-oid/attach");
+    });
+
     it("rebinds pending attachment urls when save succeeds with final oid", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",
@@ -204,8 +263,8 @@ describe("FileUploadComponent", () => {
                                 {
                                     type: "attachment",
                                     pending: true,
-                                    location: "/default/rdmp/companion/record/pending-oid/attach/file-123",
-                                    uploadUrl: "http://localhost/default/rdmp/companion/record/pending-oid/attach/file-123",
+                                    location: "/default/rdmp/record/pending-oid/attach/file-123",
+                                    uploadUrl: "http://localhost/default/rdmp/record/pending-oid/attach/file-123",
                                     fileId: "file-123",
                                     name: "test.csv"
                                 }
@@ -224,8 +283,8 @@ describe("FileUploadComponent", () => {
             {
                 type: "attachment",
                 pending: true,
-                location: "/default/rdmp/companion/record/pending-oid/attach/file-123",
-                uploadUrl: "http://localhost/default/rdmp/companion/record/pending-oid/attach/file-123",
+                location: "/default/rdmp/record/pending-oid/attach/file-123",
+                uploadUrl: "http://localhost/default/rdmp/record/pending-oid/attach/file-123",
                 fileId: "file-123",
                 name: "test.csv"
             }

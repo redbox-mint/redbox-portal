@@ -233,7 +233,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
 
         if (this.uppy) {
             const endpoint = this.buildTusEndpoint(finalOid);
-            const tusPlugin = this.uppy.getPlugin("Tus") as TusPlugin;
+            const tusPlugin = this.uppy.getPlugin("Tus") as unknown as TusPlugin;
             tusPlugin?.setOptions?.({ endpoint });
             if (tusPlugin?.opts) {
                 tusPlugin.opts["endpoint"] = endpoint;
@@ -275,6 +275,10 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
             headers: this.buildTusHeaders()
         });
         this.ensureTusHeadersContainCsrf();
+
+        this.uppy.on("upload", (_uploadID: string, files: UppyFile<UppyMeta, UppyBody>[]) => {
+            this.configureTusEndpointForUpload(files);
+        });
 
         if (this.companionUrl) {
             if (this.enabledSources.includes("dropbox")) {
@@ -329,9 +333,26 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         return this.getFormComponent.trimmedParams.oid() || (this.allowUploadWithoutSave ? pendingOid : "");
     }
 
-    private buildTusEndpoint(oid: string): string {
+    private buildTusEndpoint(oid: string, useCompanionRoute = false): string {
         const base = String(this.getFormComponent.recordService.brandingAndPortalUrl ?? "").trim();
-        return `${base}/companion/record/${oid}/attach`;
+        if (useCompanionRoute) {
+            return `${base}/companion/record/${oid}/attach`;
+        }
+        return `${base}/record/${oid}/attach`;
+    }
+
+    private configureTusEndpointForUpload(files?: UppyFile<UppyMeta, UppyBody>[]): void {
+        if (!this.uppy) {
+            return;
+        }
+        const hasRemoteSource = (files ?? []).some((file) => file?.isRemote === true);
+        const endpoint = this.buildTusEndpoint(this.resolveOidForUpload(), hasRemoteSource);
+        const tusPlugin = this.uppy.getPlugin("Tus") as unknown as TusPlugin;
+        tusPlugin?.setOptions?.({ endpoint });
+        const tusOpts = (tusPlugin as unknown as { opts?: Record<string, unknown> })?.opts;
+        if (tusOpts) {
+            tusOpts["endpoint"] = endpoint;
+        }
     }
 
     private resolveUploadUrl(response: UppySuccessResponse): string {
@@ -443,7 +464,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
                 return;
             }
             const headers = this.buildTusHeaders(token);
-            const tusPlugin = this.uppy.getPlugin("Tus") as TusPlugin;
+            const tusPlugin = this.uppy.getPlugin("Tus") as unknown as TusPlugin;
             tusPlugin?.setOptions?.({ headers });
             if (tusPlugin?.opts) {
                 tusPlugin.opts["headers"] = headers;

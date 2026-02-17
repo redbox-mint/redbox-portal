@@ -3,7 +3,7 @@
 This page documents how ReDBox orchestrates uploads using:
 
 - Uppy frontend plugins (`@uppy/tus`, provider plugins)
-- ReDBox attachment endpoints (`/record/:oid/attach`)
+- ReDBox attachment endpoints (`/record/:oid/attach` for browser TUS uploads, plus `/companion/record/:oid/attach` companion route)
 - Optional Uppy Companion middleware (`/companion/*`)
 
 ## Component Architecture
@@ -13,13 +13,14 @@ flowchart LR
     A["Browser: FileUploadComponent (Angular)"] --> B["Uppy Core + Dashboard"]
     B --> C["TUS Plugin (@uppy/tus)"]
     B --> D["Provider Plugins (Google Drive / OneDrive / Dropbox)"]
-    C --> E["ReDBox Attach Endpoint\n/:branding/:portal/record/:oid/attach"]
+    C --> E["ReDBox Browser Attach Endpoint\n/:branding/:portal/record/:oid/attach"]
     D --> F["Companion Middleware\n/companion/*"]
     F --> G["Provider OAuth + Provider APIs"]
-    F --> E
-    E --> H["RecordController.doAttachment"]
-    H --> I["TUS Server + Datastream/Storage Services"]
-    I --> J["Storage (filesystem/S3 via configured services)"]
+    F --> H["Redbox Companion Attach Endpont\n/:branding/:portal/companion/record/:oid/attach"]
+    E --> I["RecordController.doAttachment"]
+    H --> I
+    I --> J["TUS Server + Datastream/Storage Services"]
+    J --> K["Storage (filesystem/S3 via configured services)"]
 ```
 
 ## Local File Upload Flow (TUS)
@@ -55,7 +56,7 @@ sequenceDiagram
     participant FC as "FileUploadComponent"
     participant CP as "Companion /companion/*"
     participant PR as "Cloud Provider OAuth/API"
-    participant RB as "ReDBox /record/:oid/attach"
+    participant RB as "ReDBox /companion/record/:oid/attach"
     participant PA as "companionAttachmentUploadAuth"
 
     U->>FC: Choose provider source (e.g. Drive)
@@ -69,6 +70,12 @@ sequenceDiagram
     RB-->>CP: Upload accepted/finalized
     CP-->>FC: Imported file available to Uppy
 ```
+
+Route notes:
+
+- `/:branding/:portal/record/:oid/attach` and `/:branding/:portal/record/:oid/attach/:attachId` are used by browser/local uploads and are CSRF-protected.
+- `/:branding/:portal/companion/record/:oid/attach` and `/:branding/:portal/companion/record/:oid/attach/:attachId` are used by companion/remote provider uploads.
+- Companion auth bypass is route-scoped to `/:branding/:portal/companion/record/:oid/attach*`.
 
 ## Companion Authorization Orchestration
 
@@ -103,4 +110,3 @@ flowchart TD
   - `packages/redbox-core-types/src/policies/companionAttachmentUploadAuth.ts`
 - Uppy frontend integration:
   - `angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts`
-

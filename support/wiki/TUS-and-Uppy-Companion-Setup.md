@@ -7,7 +7,9 @@ This guide explains how to configure resumable uploads (TUS) and cloud provider 
 ReDBox file uploads use:
 
 - `@uppy/tus` in the Angular `FileUploadComponent`
-- TUS server endpoints at `/:branding/:portal/record/:oid/attach`
+- TUS server endpoints at:
+  - Browser/local upload route (CSRF-protected): `/:branding/:portal/record/:oid/attach`
+  - Companion/remote provider upload route: `/:branding/:portal/companion/record/:oid/attach`
 - Optional Uppy Companion middleware at `/companion/*` for provider sources (Google Drive, OneDrive, Dropbox)
 
 ## 1. Enable Companion
@@ -89,7 +91,7 @@ For local development (`http://localhost:1500/companion`):
 Optional:
 
 ```bash
-UPPY_COMPANION_UPLOAD_URLS=http://localhost:1500/default/rdmp/record/pending-oid/attach
+UPPY_COMPANION_UPLOAD_URLS=http://localhost:1500/default/rdmp/companion/record/pending-oid/attach
 UPPY_COMPANION_ATTACHMENT_SECRET=<shared-secret-for-companion-attach>
 UPPY_COMPANION_ATTACHMENT_SECRET_HEADER=x-companion-secret
 UPPY_COMPANION_ATTACHMENT_LOCAL_ONLY=true
@@ -98,6 +100,7 @@ UPPY_COMPANION_ATTACHMENT_LOCAL_ONLY=true
 Notes:
 
 - Companion will fail startup if `UPPY_COMPANION_SECRET` is missing or shorter than 32 chars.
+- Companion requires at least one provider with a complete key+secret pair (`UPPY_GOOGLE_KEY` + `UPPY_GOOGLE_SECRET` and/or `UPPY_ONEDRIVE_KEY` + `UPPY_ONEDRIVE_SECRET`).
 - Do not edit generated shims in `config/*.js`; update `packages/redbox-core-types/src/config/*.ts` defaults or environment variables.
 
 ### What the two Companion secrets are for
@@ -114,8 +117,8 @@ Primary Companion application secret.
 
 Shared secret used between Companion and ReDBox attachment upload endpoints.
 
-- Added by Companion as a request header (default header: `x-companion-secret`) on server-side upload requests to `/:branding/:portal/record/:oid/attach`.
-- Validated by `companionAttachmentUploadAuth` policy before allowing Companion-originated upload create/chunk requests to bypass normal `checkAuth`.
+- Added by Companion as a request header (default header: `x-companion-secret`) on server-side upload requests to `/:branding/:portal/companion/record/:oid/attach`.
+- Validated by `companionAttachmentUploadAuth` policy on companion attachment routes before allowing Companion-originated upload create/chunk requests to bypass normal `checkAuth`.
 - Works with `UPPY_COMPANION_ATTACHMENT_LOCAL_ONLY` (default true) so only local/private-origin requests with a valid secret are accepted.
 
 Behavior when unset:
@@ -134,6 +137,11 @@ Use the `FileUploadComponent` in record form config and set:
 - `enabledSources`: any of `dropbox`, `googleDrive`, `onedrive`
 - `companionUrl`: typically `/companion`
 - optional `tusHeaders`, `restrictions`, `allowUploadWithoutSave`
+
+Routing behavior:
+
+- Local/browser uploads use `/:branding/:portal/record/:oid/attach`.
+- Remote provider uploads (via Companion) use `/:branding/:portal/companion/record/:oid/attach`.
 
 Example:
 
@@ -168,8 +176,10 @@ Routes are defined in:
 
 Endpoints:
 
-- `/:branding/:portal/record/:oid/attach`
-- `/:branding/:portal/record/:oid/attach/:attachId`
+- `/:branding/:portal/record/:oid/attach` (browser/local upload route, CSRF-protected)
+- `/:branding/:portal/record/:oid/attach/:attachId` (browser/local upload route, CSRF-protected)
+- `/:branding/:portal/companion/record/:oid/attach` (companion/remote provider upload route)
+- `/:branding/:portal/companion/record/:oid/attach/:attachId` (companion/remote provider upload route)
 
 These support TUS create/chunk flows used by Uppy.
 
@@ -187,7 +197,7 @@ Current behavior:
 - Authenticated users are allowed by default.
 - If path rules are configured for companion paths, they are enforced for authenticated users and can return `403`.
 
-### Attachment upload (`/record/:oid/attach`)
+### Attachment upload (`/record/:oid/attach` and `/companion/record/:oid/attach`)
 
 Attachment upload policies are configured in:
 
@@ -195,6 +205,7 @@ Attachment upload policies are configured in:
 - `packages/redbox-core-types/src/policies/companionAttachmentUploadAuth.ts`
 
 Companion server-side create/chunk requests can bypass standard `checkAuth` only when shared-secret and locality checks pass.
+Bypass is route-scoped and is ignored on non-companion attachment routes (including CSRF-protected legacy endpoints).
 
 ## 5. Verification
 
