@@ -216,6 +216,7 @@ api/shims/*.js
 api/policies/*.js
 api/middleware/*.js
 api/responses/*.js
+api/form-config/*.js
 
 attachments/
 docs/
@@ -226,3 +227,4 @@ packages/redbox-core-types/coverage/*
 
 packages/**/coverage
 packages/**/dist
+
