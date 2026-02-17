@@ -92,7 +92,7 @@ describe('momentShim', () => {
 
         it('should format with HH:mm:ss', () => {
             const result = momentShim(testDate);
-            const expected = DateTime.fromJSDate(testDate).toFormat('HH:mm:ss');
+            const expected = DateTime.fromJSDate(new Date(testDate)).toFormat('HH:mm:ss');
             expect(result.format('HH:mm:ss')).to.equal(expected);
         });
 
