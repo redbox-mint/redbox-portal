@@ -30,7 +30,7 @@
     "@uppy/google-drive": "^5.1.0",
     "@uppy/onedrive": "^5.1.0",
     "@uppy/tus": "^5.1.1",
-    "@ngx-formly/bootstrap": "^6.3.10",
+    "@ngx-formly/bootstrap": "^7.1.0",
     "@ngx-formly/core": "^6.3.6",
     "@researchdatabox/sails-ng-common": "../packages/sails-ng-common",
     "@tmcw/togeojson": "^7.1.2",
