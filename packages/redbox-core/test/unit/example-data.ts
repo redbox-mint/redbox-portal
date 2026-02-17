@@ -318,11 +318,17 @@ export const formConfigExample1: FormConfigFrame = {
                                             component: {
                                                 class: 'SimpleInputComponent'
                                             },
-                                            // expressions: {
-                                            //     'model.value': {
-                                            //         template: `<%= _.get(model,'text_1_event','') %>`
-                                            //     }
-                                            // }
+                                          expressions: [
+                                            {
+                                              name: 'text_7_text_1_event_expr',
+                                              config: {
+                                                template: `value & "__suffix"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/text_1_event::field.value.changed`,
+                                                target: `model.value`,
+                                              },
+                                            },
+                                          ],
                                         },
                                         {
                                             name: 'text_2_event',
@@ -366,15 +372,17 @@ export const formConfigExample1: FormConfigFrame = {
                                                     type: 'text'
                                                 }
                                             },
-                        //                     expressions: {
-                        //                         'component.visible': {
-                        //                             template: `<% if(_.isEmpty(_.get(model,'text_2_event',''))) {
-                        //     return false;
-                        //   } else {
-                        //     return true;
-                        //   } %>`
-                        //                         }
-                        //                     }
+                                          expressions: [
+                                            {
+                                              name: 'text_2_component_event_text_2_event_expr',
+                                              config: {
+                                                template: `value = "hide text_2_component_event"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/text_2_event::field.value.changed`,
+                                                target: `component.visible`,
+                                              },
+                                            },
+                                          ]
                                         },
                                         {
                                             name: 'text_3_event',
@@ -409,15 +417,17 @@ export const formConfigExample1: FormConfigFrame = {
                                             component: {
                                                 class: 'SimpleInputComponent'
                                             },
-                                            // expressions: {
-                                            //     'layout.visible': {
-                                            //         template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                                            //         return false;
-                                            //     } else {
-                                            //         return true;
-                                            //     } %>`
-                                            //     }
-                                            // }
+                                          expressions: [
+                                            {
+                                              name: 'text_3_layout_event_text_3_event_expr',
+                                              config: {
+                                                template: `value = "hide text_3_layout_event"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/text_3_event::field.value.changed`,
+                                                target: `layout.visible`,
+                                              },
+                                            },
+                                          ]
                                         },
                                     ]
                                 }
@@ -543,15 +553,17 @@ export const formConfigExample1: FormConfigFrame = {
                                                     ]
                                                 }
                                             },
-                        //                     expressions: {
-                        //                         'layout.visible': {
-                        //                             template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                        //     return false;
-                        //   } else {
-                        //     return true;
-                        //   } %>`
-                        //                         }
-                        //                     }
+                                          expressions: [
+                                            {
+                                              name: 'group_1_component_text_3_event_expr',
+                                              config: {
+                                                template: `value = "hide group_1_component"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/text_3_event::field.value.changed`,
+                                                target: `layout.visible`,
+                                              },
+                                            },
+                                          ]
                                         },
                                         {
                                             name: 'repeatable_textfield_1',
@@ -609,15 +621,17 @@ export const formConfigExample1: FormConfigFrame = {
                                                     helpText: 'Repeatable component help text',
                                                 }
                                             },
-                                            // expressions: {
-                                            //     'layout.visible': {
-                                            //         template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                                            //         return false;
-                                            //     } else {
-                                            //         return true;
-                                            //     } %>`
-                                            //     }
-                                            // }
+                                            expressions: [
+                                              {
+                                                name: 'repeatable_textfield_1_text_3_event_expr',
+                                                config: {
+                                                  template: `value = "hide repeatable_textfield_1"`,
+                                                  conditionKind: 'jsonpointer',
+                                                  condition: `/main_tab/tab_1/text_3_event::field.value.changed`,
+                                                  target: `layout.visible`,
+                                                },
+                                              },
+                                            ]
                                         },
 
                                     ]

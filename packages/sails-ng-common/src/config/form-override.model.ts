@@ -690,7 +690,7 @@ export class FormOverride {
       case 'in':
       case 'notin':
       case 'only':
-        const path = [...lineagePath.angularComponents, rule.q];
+        const path = [...lineagePath.dataModel, rule.q];
         const pathFieldRefs = path.map(i => this.toFieldReference(i));
         const identifierString = pathFieldRefs.map(i => `\`${i}\``).join('.');
         const values = (Array.isArray(rule.a) ? rule.a : [rule.a]).map(i => this.toFieldReference(i));
