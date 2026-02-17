@@ -1,8 +1,8 @@
 import {
-    ConstructFormConfigVisitor,
-    FormConfig,
-    FormConfigFrame, FormModesConfig,
-    QuestionTreeMeta, QuestionTreeOutcome, QuestionTreeQuestion, ReusableFormDefinitions,
+  ConstructFormConfigVisitor,
+  FormConfig,
+  FormConfigFrame, FormExpressionsTemplateConfigFrame, FormModesConfig,
+  QuestionTreeMeta, QuestionTreeOutcome, QuestionTreeQuestion, ReusableFormDefinitions,
 } from "../../src";
 import {formConfigExample2, reusableFormDefinitionsExample1} from "./example-data";
 import { logger } from "./helpers";
@@ -1052,6 +1052,12 @@ describe("Construct Visitor", async () => {
                     ]
                 },
             });
+          const expressionBase: FormExpressionsTemplateConfigFrame = {
+            condition: "/questiontree_1::field.value.changed",
+            template: "",
+            conditionKind: 'jsonpointer',
+            target: `layout.visible`,
+          };
             const expected: FormConfigFrame = {
                 name: "form",
                 componentDefinitions: [
@@ -1087,6 +1093,12 @@ describe("Construct Visitor", async () => {
                                                 ]
                                             }
                                         },
+                                      expressions:[
+                                        {
+                                          name: "question_2-questiontree", description: undefined,
+                                          config: {...expressionBase, template: "$count(`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0"}
+                                        }
+                                      ],
                                     },
                                     {
                                         name: "question_3",
@@ -1099,6 +1111,12 @@ describe("Construct Visitor", async () => {
                                                     {value: "no", label: "@questiontree_1-question_3-no"}]
                                             }
                                         },
+                                      expressions:[
+                                        {
+                                          name: "question_3-questiontree", description: undefined,
+                                          config: {...expressionBase, template: "$count(`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0"}
+                                        }
+                                      ],
                                     },
                                     {
                                         name: "question_4",
@@ -1111,6 +1129,28 @@ describe("Construct Visitor", async () => {
                                                 ]
                                             }
                                         },
+                                      expressions:[
+                                        {
+                                          name: "question_4-questiontree", description: undefined,
+                                          config: {
+                                            ...expressionBase, template: "(" +
+                                              "(" +
+                                              "$count(`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0" +
+                                              ") and (" +
+                                              "$count(`questiontree_1`.`question_2`[][$ in [\"no\"]]) > 0" +
+                                              ")" +
+                                              ") or (" +
+                                              "(" +
+                                              "`questiontree_1`.`question_1`[] = [\"no\"]" +
+                                              ") and (" +
+                                              "$count(`questiontree_1`.`question_2`[][$not($ in [\"no\"])]) = $count(`questiontree_1`.`question_2`)" +
+                                              ") and (" +
+                                              "$count(`questiontree_1`.`question_3`[][$ in [\"no\",\"maybe\"]]) > 0" +
+                                              ")" +
+                                              ")"
+                                          }
+                                        }
+                                      ],
                                     },
                                 ],
                             }

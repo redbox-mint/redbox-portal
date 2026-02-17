@@ -50,6 +50,8 @@ import {
     QuestionTreeQuestionAnswer, QuestionTreeQuestionRuleIn, QuestionTreeQuestionRules
 } from "./component/question-tree.outline";
 import {guessType} from "./helpers";
+import {LineagePaths} from "./names/naming-helpers";
+import {FormExpressionsConfigFrame} from "./form-component.outline";
 
 
 export class FormOverride {
@@ -301,11 +303,12 @@ export class FormOverride {
     /**
      * Create reusable components from the question tree questions DSL.
      * @param name The form component name.
+     * @param lineagePath The form component lineage path.
      * @param item The question tree component.
      * @private
      */
     public applyQuestionTreeDsl(
-        name: string | null, item: QuestionTreeFieldComponentDefinitionOutline
+        name: string | null, lineagePath: LineagePaths, item: QuestionTreeFieldComponentDefinitionOutline
     ): QuestionTreeFormComponentDefinitionFrames[] {
         const availableOutcomeValues = (item.config?.availableOutcomes ?? []).map(i => i.value);
         const availableMeta = item.config?.availableMeta ?? {};
@@ -371,9 +374,9 @@ export class FormOverride {
             });
 
             // All rules that reference questions or answer values must use valid values.
-            const checkRules = [rules];
-            while (checkRules.length > 0) {
-                const currentRule = checkRules.shift();
+            const rulesToCheck = [rules];
+            while (rulesToCheck.length > 0) {
+                const currentRule = rulesToCheck.shift();
                 if (!currentRule) {
                     continue;
                 }
@@ -382,7 +385,7 @@ export class FormOverride {
                         continue;
                     case "and":
                     case "or":
-                        checkRules.push(...currentRule.args);
+                        rulesToCheck.push(...currentRule.args);
                         break;
                     case "in":
                     case "notin":
@@ -404,6 +407,24 @@ export class FormOverride {
                 }
             }
 
+          // Transform rules DSL to expressions.
+          const ruleExpression = this.questionTreeRuleToExpression(lineagePath, rules);
+          const isVisible = ruleExpression === 'true';
+          if (!lineagePath.angularComponentsJsonPointer){
+            throw new Error(`${this.logName}: Did not provide lineage path JSON pointer ${JSON.stringify({name, lineagePath, item})}`);
+          }
+          const expressions: FormExpressionsConfigFrame[] | undefined = isVisible ? undefined : [{
+            name: `${id}-questiontree`,
+            config: {
+              // use formData in the template
+              template: ruleExpression,
+              conditionKind: 'jsonpointer',
+              // condition is always executed, should be true or false, if true, then evals template
+              // The condition should restrict to the question tree.
+              condition: `${lineagePath.angularComponentsJsonPointer}::field.value.changed`,
+              target: `layout.visible`
+            }
+          }];
 
             // build reusable component
             const hasOneAnswer = answersMax === 1;
@@ -420,8 +441,9 @@ export class FormOverride {
                             {
                                 name: "questiontree_answer_one",
                                 overrides: {replaceName: id},
-                                layout: {class: "DefaultLayout", config: {label: id}},
-                                component: {class: "RadioInputComponent", config: {options: componentOptions}}
+                                layout: {class: "DefaultLayout", config: {label: id, visible: isVisible}},
+                                component: {class: "RadioInputComponent", config: {options: componentOptions}},
+                                expressions: expressions,
                             }
                         ]
                     }
@@ -436,8 +458,9 @@ export class FormOverride {
                             {
                                 name: "questiontree_answer_one_more",
                                 overrides: {replaceName: id},
-                                layout: {class: "DefaultLayout", config: {label: id}},
-                                component: {class: "CheckboxInputComponent", config: {options: componentOptions}}
+                                layout: {class: "DefaultLayout", config: {label: id, visible: isVisible}},
+                                component: {class: "CheckboxInputComponent", config: {options: componentOptions}},
+                                expressions: expressions,
                             }
                         ]
                     }
@@ -454,6 +477,72 @@ export class FormOverride {
 
         return result;
     }
+
+  private toFieldReference(value: unknown): string {
+    // Normalise the string to a form useful for comparing identifiers.
+    const fieldRaw = value?.toString()?.normalize("NFKC") ?? "";
+    // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt
+    const fieldReference = [...fieldRaw].map((char) => {
+      const codePoint = char.codePointAt(0);
+      if (codePoint === undefined) {
+        return ''
+      }
+      // Numbers 0 - 9
+      if (codePoint >= 48 && codePoint <= 57) {
+        return char
+      }
+      // Letters A - Z
+      if (codePoint >= 65 && codePoint <= 90) {
+        return char
+      }
+      // Letters a - z
+      if (codePoint >= 97 && codePoint <= 122) {
+        return char
+      }
+      // Selected punctuation used in identifiers - : colon 58, @ at sign 64,
+      // - hyphen minus 45, . full stop 46, _ low line 95
+      if ([58, 64, 45, 46, 95].includes(codePoint)) {
+        return char
+      }
+      // Anything else is replaced with '_'
+      return '_';
+    });
+    return fieldReference.join('');
+  }
+
+  private questionTreeRuleToExpression(lineagePath: LineagePaths, rule: QuestionTreeQuestionRules): string {
+    switch (rule.op) {
+      case "true":
+        return 'true';
+      case "and":
+        return rule.args.map(arg => `(${this.questionTreeRuleToExpression(lineagePath, arg)})`).join(' and ');
+      case "or":
+        return rule.args.map(arg => `(${this.questionTreeRuleToExpression(lineagePath, arg)})`).join(' or ');
+      case "in":
+      case "notin":
+      case "only":
+        // Build the jsonata format identifier.
+        // Use the question tree angular component path, plus the question id as the path.
+        const path = [...lineagePath.angularComponents, rule.q]
+        // Escape unexpected characters.
+        const pathFieldRefs = path.map(i => this.toFieldReference(i));
+        // Use backticks to build each item in the jsonata identifier.
+        const identifierString = pathFieldRefs.map(i => `\`${i}\``).join('.');
+        // The value can be converted to a json array for the jsonata expression.
+        const values = (Array.isArray(rule.a) ? rule.a : [rule.a]).map(i => this.toFieldReference(i));
+        const valueString = JSON.stringify(values);
+        if (rule.op === "in") {
+          return `$count(${identifierString}[][$ in ${valueString}]) > 0`;
+        } else if (rule.op === "only") {
+          return `${identifierString}[] = ${valueString}`;
+        } else if (rule.op === "notin") {
+          return `$count(${identifierString}[][$not($ in ${valueString})]) = $count(${identifierString})`;
+        }
+        throw new Error(`${this.logName} unknown rule ${JSON.stringify(rule)}.`);
+      default:
+        throw new Error(`${this.logName} unknown rule ${JSON.stringify(rule)}.`);
+    }
+  }
 
     /**
      * Check that only the allowed form component frames have been used.

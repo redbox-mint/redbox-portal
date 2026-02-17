@@ -7,7 +7,7 @@ import {
   formValidatorsSharedDefinitions,
   TemplateFormConfigVisitor,
   ValidatorFormConfigVisitor, FormOverride, FormConfigFrame,
-  MigrationV4ToV5FormConfigVisitor
+  MigrationV4ToV5FormConfigVisitor, ReusableFormDefinitions
 } from "../../src";
 import {reusableFormDefinitionsExample1} from "./example-data";
 
@@ -142,10 +142,10 @@ describe("Migrate v4 to v5 Visitor", async () => {
       const outputFile = path.resolve(relPath, item.out);
       const actual = await migrateV4ToV5(inputFile, outputFile);
       expect(actual).to.not.be.empty;
-            const serialised = JSON.stringify(actual);
-            expect(serialised).to.not.contain('v4ClassName "ANDSVocab"');
-        }
+      const serialised = JSON.stringify(actual);
+      expect(serialised).to.not.contain('v4ClassName "ANDSVocab"');
     });
+  });
 
     it("maps MarkdownTextArea to RichTextEditor with markdown output format", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
@@ -199,9 +199,6 @@ describe("Migrate v4 to v5 Visitor", async () => {
                     }
                 ]
           }
-        ]
-      };
-      await migrateRunVisitors(formConfig);
         });
         expect(migrated.componentDefinitions).to.have.length.greaterThan(0);
         const migratedField = migrated.componentDefinitions[0];
@@ -487,14 +484,14 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(migrated.attachmentFields?.length).to.equal(2);
     });
 
-questionTreeData.forEach((item: { in: string, out: string }) => {
-  it(`should migrate question tree from ${item.in} to ${item.out}`, async function () {
-    const inputFile = path.resolve(relPath, item.in);
-    const outputFile = path.resolve(relPath, item.out);
-    let v4InputRequire = require(inputFile);
-    const migrated = formOverride.migrateDataClassificationToQuestionTree(v4InputRequire);
-    const tsContent = `import {QuestionTreeFieldComponentConfigFrame} from "@researchdatabox/sails-ng-common";
-export const questionTreeConfig:  QuestionTreeFieldComponentConfigFrame = ${JSON.stringify(migrated, null, 2)};
+  questionTreeData.forEach((item: { in: string, out: string }) => {
+    it(`should migrate question tree from ${item.in} to ${item.out}`, async function () {
+      const inputFile = path.resolve(relPath, item.in);
+      const outputFile = path.resolve(relPath, item.out);
+      let v4InputRequire = require(inputFile);
+      const migrated = formOverride.migrateDataClassificationToQuestionTree(v4InputRequire);
+      const tsContent = `import {QuestionTreeFieldComponentConfigFrame} from "@researchdatabox/sails-ng-common";
+const questionTreeConfig: QuestionTreeFieldComponentConfigFrame = ${JSON.stringify(migrated, null, 2)};
 module.exports = questionTreeConfig;
 `;
     fs.writeFileSync(outputFile, tsContent, "utf8");
