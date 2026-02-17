@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vocabulary Management Wireframes</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: #f6f6f8;
+        color: #1f1f23;
+        margin: 0;
+        padding: 2rem;
+        line-height: 1.4;
+      }
+      h1,
+      h2 {
+        margin-bottom: 0.75rem;
+      }
+      .frame {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid #e0e3ea;
+      }
+      .frame + .frame {
+        margin-top: 1rem;
+      }
+      .section-title {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+      }
+      .section-title span {
+        font-size: 0.9rem;
+        color: #6b7280;
+      }
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+      }
+      .table th,
+      .table td {
+        border-bottom: 1px solid #e5e7eb;
+        padding: 0.75rem 0.5rem;
+        text-align: left;
+        font-size: 0.9rem;
+      }
+      .table th {
+        color: #374151;
+        font-weight: 600;
+      }
+      .pill {
+        background: #edf2ff;
+        color: #4338ca;
+        border-radius: 999px;
+        padding: 0.2rem 0.8rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+      .filters {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+      }
+      .filters input,
+      .filters select,
+      .filters button {
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+      }
+      .filters button {
+        min-width: 120px;
+      }
+      .filters .primary.import-toggle {
+        min-width: 180px;
+      }
+      .metadata form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+      .metadata label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+      .radio-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+      .radio-options {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+      .radio-options label {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+      }
+      .metadata input,
+      .metadata textarea {
+        width: 100%;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 0.6rem;
+        font-size: 0.85rem;
+      }
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
+      .panel {
+        border: 1px solid #e4e7ec;
+        border-radius: 10px;
+        padding: 1rem;
+        background: #fafbff;
+      }
+      .tree {
+        list-style: none;
+        padding-left: 1rem;
+        margin: 0;
+      }
+      .tree li {
+        padding: 0.35rem 0;
+        position: relative;
+        font-size: 0.9rem;
+      }
+      .tree li::before {
+        content: "";
+        position: absolute;
+        left: -0.6rem;
+        top: 0.55rem;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: #cbd5f7;
+      }
+      .tree li ul {
+        margin-left: 1rem;
+        border-left: 1px solid #e0e3ea;
+        padding-left: 1rem;
+      }
+      .editor-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
+      .editor-actions button {
+        flex: 1;
+        border: none;
+        border-radius: 6px;
+        padding: 0.6rem;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+      .primary {
+        background: #4338ca;
+        color: #fff;
+      }
+      .secondary {
+        background: #e5e7eb;
+        color: #111827;
+      }
+      .panel small {
+        color: #6b7280;
+        display: block;
+        margin-top: 0.5rem;
+      }
+      .import-panel {
+        background: #111827;
+        color: #f9fafb;
+        border-radius: 12px;
+        padding: 1.25rem;
+      }
+      .import-panel input {
+        width: calc(100% - 90px);
+      }
+      .import-row {
+        display: grid;
+        grid-template-columns: 30px 1fr 150px 140px;
+        gap: 0.5rem;
+        align-items: center;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        font-size: 0.9rem;
+      }
+      .import-row:last-child {
+        border-bottom: none;
+      }
+      .pill-light {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .footer-note {
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin-top: 1rem;
+      }
+      @media (max-width: 900px) {
+        .split {
+          grid-template-columns: 1fr;
+        }
+        .import-row {
+          grid-template-columns: 30px 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Vocabulary Management Wireframes</h1>
+
+    <div class="frame">
+      <div class="section-title">
+        <h2>Vocabulary List</h2>
+        <span>Admin-only · Paginated</span>
+      </div>
+      <div class="filters">
+        <select>
+          <option>Type • All</option>
+          <option>Flat</option>
+          <option>Tree</option>
+        </select>
+        <select>
+          <option>Source • All</option>
+          <option>Local</option>
+          <option>RVA</option>
+        </select>
+        <input placeholder="Search by name/slug" />
+        <button>Apply</button>
+        <button class="primary import-toggle">Import from RVA</button>
+        <button class="secondary">New Vocab</button>
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Source</th>
+            <th>Last Sync</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>v1</td>
+            <td>Subjects</td>
+            <td><span class="pill">Tree</span></td>
+            <td>Local</td>
+            <td>—</td>
+            <td>Edit · Delete</td>
+          </tr>
+          <tr>
+            <td>v2</td>
+            <td>Languages</td>
+            <td><span class="pill">Flat</span></td>
+            <td>RVA</td>
+            <td>Jan 26, 2026</td>
+            <td>Sync · Delete</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="footer-note">Showing 1–2 of 12 · Filters persist while navigating pagination.</div>
+    </div>
+
+    <div class="frame">
+      <div class="section-title">
+        <h2>Vocabulary Detail + Entry Editor</h2>
+        <span>Tree-focused · Inline entry management</span>
+      </div>
+      <div class="metadata">
+        <div style="display:flex;gap:0.5rem">
+          <button class="primary">Save</button>
+          <button class="secondary">Cancel</button>
+          <button class="secondary">Delete</button>
+        </div>
+        <form>
+          <div>
+            <label>Name</label>
+            <input value="Subjects" />
+          </div>
+          <div>
+            <label>Slug (auto-gen)</label>
+            <input value="subjects" />
+          </div>
+          <div class="radio-field">
+            <label>Type</label>
+            <div class="radio-options">
+              <label><input type="radio" name="type" checked /> Tree</label>
+              <label><input type="radio" name="type" /> Flat</label>
+            </div>
+          </div>
+          <div class="radio-field">
+            <label>Source</label>
+            <div class="radio-options">
+              <label><input type="radio" name="source" checked /> Local</label>
+              <label><input type="radio" name="source" /> RVA</label>
+            </div>
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label>Description</label>
+            <textarea rows="3">Hierarchy for subject classification.</textarea>
+          </div>
+        </form>
+      </div>
+      <div class="split">
+        <div class="panel">
+          <strong>Entry tree</strong>
+          <ul class="tree">
+            <li>Science
+              <ul>
+                <li>Physics</li>
+              </ul>
+            </li>
+            <li>Arts</li>
+          </ul>
+          <div class="editor-actions">
+            <button class="secondary">Add Child</button>
+            <button class="secondary">Add Sibling</button>
+            <button class="secondary">Reorder ↑↓</button>
+          </div>
+        </div>
+        <div class="panel">
+          <strong>Entry detail</strong>
+          <div style="margin-top: 1rem;">
+            <label>Label</label>
+            <input value="Physics" />
+          </div>
+          <div style="margin-top: 0.75rem;">
+            <label>Value</label>
+            <input value="physics" />
+          </div>
+          <div style="margin-top: 0.75rem;">
+            <label>Identifier</label>
+            <input value="http://example.org/physics" />
+          </div>
+          <div style="margin-top: 0.75rem;">
+            <label>Parent</label>
+            <input value="Science" />
+          </div>
+          <div style="margin-top: 0.75rem;">
+            <label>Order</label>
+            <input value="2" />
+          </div>
+          <div class="editor-actions">
+            <button class="primary">Save entry</button>
+            <button class="secondary">Remove</button>
+          </div>
+          <small>Flat vocabularies hide the parent picker and show entries as rows instead of tree.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="frame">
+      <div class="section-title">
+        <h2>RVA Import / Sync Panel</h2>
+        <span>Modal or side rail</span>
+      </div>
+      <div class="import-panel">
+        <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+          <input placeholder="Search RVA vocabulary" />
+          <button class="primary">Search</button>
+        </div>
+        <div class="import-row">
+          <div>⭐️</div>
+          <div><strong>rva-123</strong></div>
+          <div>Animals</div>
+          <div><span class="pill-light">Latest v2</span></div>
+        </div>
+        <div class="import-row">
+          <div>⭐️</div>
+          <div><strong>rva-456</strong></div>
+          <div>Languages</div>
+          <div><span class="pill-light">Current</span></div>
+        </div>
+        <div class="editor-actions" style="margin-top: 1rem;">
+          <button class="primary">Import selected</button>
+          <button class="secondary">Cancel</button>
+        </div>
+        <small>Sync reuses this panel to pick a version; default is latest/current. Success message reports created/updated/skipped counts.</small>
+      </div>
+    </div>
+  </body>
+</html>

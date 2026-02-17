@@ -39,8 +39,7 @@ export namespace Controllers {
         const name: string = req.param('name');
         const editableParam = req.param('editable');
         const editable: boolean = editableParam !== 'false';
-        const brandName = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
-        const brand: BrandingModel = BrandingService.getBrand(brandName) ?? BrandingService.getDefault();
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
         const form = await firstValueFrom(FormsService.getFormByName(name, editable, String(brand.id)));
         if (!form) {
           return this.sendResp(req, res, {
@@ -62,8 +61,7 @@ export namespace Controllers {
 
     public async listForms(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandName = BrandingService.getBrandFromReq(req as unknown as BrandReqLike);
-        const brand: BrandingModel = BrandingService.getBrand(brandName) ?? BrandingService.getDefault();
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
         const forms: FormAttributes[] = await firstValueFrom(FormsService.listForms(String(brand.id)));
         const response: ListAPIResponse<FormAttributes> = new ListAPIResponse();
         const summary: ListAPISummary = new ListAPISummary();

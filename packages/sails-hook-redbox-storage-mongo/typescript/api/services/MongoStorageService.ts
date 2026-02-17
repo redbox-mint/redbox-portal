@@ -1,25 +1,38 @@
 import { Observable, of } from 'rxjs';
 import { mergeMap } from 'rxjs';
 
-import { Sails, Model } from "sails";
+import { Sails, Model } from 'sails';
 import { v1 as uuidv1 } from 'uuid';
 import { DateTime } from 'luxon';
 
 import mongodb = require('mongodb');
 import util = require('util');
 import stream = require('stream');
-import * as fs from 'fs';
 import { Transform } from 'json2csv';
-import { Services as services, DatastreamService, StorageService, StorageServiceResponse, DatastreamServiceResponse, Datastream, Attachment, RecordAuditModel, RecordAuditParams } from '@researchdatabox/redbox-core-types';
-const { transforms: { unwind, flatten } } = require('json2csv');
+import {
+  Services as services,
+  StorageManagerService as StorageManagerServiceTypes,
+  DatastreamService,
+  StorageService,
+  StorageServiceResponse,
+  DatastreamServiceResponse,
+  Datastream,
+  Attachment,
+  RecordAuditModel,
+  RecordAuditParams,
+} from '@researchdatabox/redbox-core-types';
+const {
+  transforms: { unwind, flatten },
+} = require('json2csv');
 import { ExportJSONTransformer } from '@researchdatabox/redbox-core-types';
-
 
 const pipeline = util.promisify(stream.pipeline);
 
 declare var sails: Sails;
 declare var _;
 declare var Record: Model, DeletedRecord: Model, RecordTypesService, TranslationService, FormsService, RecordAudit;
+
+
 
 export module Services {
   /**
@@ -60,9 +73,8 @@ export module Services {
       'listDatastreams',
       'createRecordAudit',
       'getRecordAudit',
-      'exists'
+      'exists',
     ];
-
 
     constructor() {
       super();
@@ -75,8 +87,6 @@ export module Services {
         sails.log.verbose(`${that.logHeader} Ready!`);
       });
     }
-
-
 
     private getUuid(): string {
       return uuidv1().replace(/-/g, '');
@@ -161,14 +171,16 @@ export module Services {
         await Record.updateOne({ redboxOid: oid }).set(record);
         response.success = true;
       } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to save update to MongoDB: ${JSON.stringify({
-          error: err,
-          response: response,
-          brand: brand,
-          oid: oid,
-          record: record,
-          user: user,
-        })}`);
+        sails.log.error(
+          `${this.logHeader} Failed to save update to MongoDB: ${JSON.stringify({
+            error: err,
+            response: response,
+            brand: brand,
+            oid: oid,
+            record: record,
+            user: user,
+          })}`
+        );
         response.success = false;
         response.message = err;
       }
@@ -193,9 +205,9 @@ export module Services {
 
     public async createBatch(type, data, harvestIdFldName): Promise<any> {
       const response = new StorageServiceResponse();
-      response.message = "";
+      response.message = '';
       let failFlag = false;
-      _.each(data, async (dataItem) => {
+      _.each(data, async dataItem => {
         dataItem.harvestId = _.get(dataItem, harvestIdFldName, '');
         _.set(dataItem, 'metaMetadata.type', type);
         try {
@@ -282,8 +294,8 @@ export module Services {
       let recordType = await RecordTypesService.get(brand, recordTypeName).toPromise();
       if (_.isEmpty(mappingContext)) {
         mappingContext = {
-          'processedRelationships': [recordTypeName],
-          'relatedObjects': {}
+          processedRelationships: [recordTypeName],
+          relatedObjects: {},
         };
         // add this records so it can be updated too!
         mappingContext.relatedObjects[recordTypeName] = [record];
@@ -308,7 +320,8 @@ export module Services {
             if (_.isEmpty(mappingContext.relatedObjects[targetRecordType])) {
               mappingContext.relatedObjects[targetRecordType] = relatedRecords;
             } else {
-              mappingContext.relatedObjects[targetRecordType] = mappingContext.relatedObjects[targetRecordType].concat(relatedRecords);
+              mappingContext.relatedObjects[targetRecordType] =
+                mappingContext.relatedObjects[targetRecordType].concat(relatedRecords);
             }
             for (let j = 0; j < relatedRecords.length; j++) {
               let recordRelationship = relatedRecords[j];
@@ -327,16 +340,14 @@ export module Services {
       return mappingContext;
     }
 
-
     public async delete(oid, permanentlyDelete: boolean = false) {
       const response = new StorageServiceResponse();
 
       try {
         if (permanentlyDelete) {
-
           const datastreams = await this.listDatastreams(oid, null);
           if (_.size(datastreams) > 0) {
-            _.each(datastreams, (file) => {
+            _.each(datastreams, file => {
               sails.log.verbose(`Deleting:`);
               sails.log.verbose(JSON.stringify(file));
               this.gridFsBucket.delete(file['_id'], (err, res) => {
@@ -347,13 +358,12 @@ export module Services {
               });
             });
           }
-
         } else {
           let record: any = await this.getMeta(oid);
           let deletedRecord = {
             redboxOid: record.redboxOid,
-            deletedRecordMetadata: record
-          }
+            deletedRecordMetadata: record,
+          };
           await DeletedRecord.create(deletedRecord);
         }
         await Record.destroyOne({ redboxOid: oid });
@@ -369,7 +379,7 @@ export module Services {
     }
 
     public async updateNotificationLog(oid, record, options): Promise<any> {
-      if (super.metTriggerCondition(oid, record, options) == "true") {
+      if (super.metTriggerCondition(oid, record, options) == 'true') {
         sails.log.verbose(`${this.logHeader} Updating notification log for oid: ${oid}`);
         const logName = _.get(options, 'logName', null);
         if (logName) {
@@ -391,7 +401,7 @@ export module Services {
         sails.log.verbose(JSON.stringify(record));
         sails.log.verbose(`======== End update =========`);
         // ready to update
-        if (_.get(options, "saveRecord", false)) {
+        if (_.get(options, 'saveRecord', false)) {
           try {
             const response = await this.updateMeta(null, oid, record, null);
           } catch (err) {
@@ -401,25 +411,40 @@ export module Services {
           }
         }
       } else {
-        sails.log.verbose(`Notification log name: '${options.name}', for oid: ${oid}, not running, condition not met: ${options.triggerCondition}`);
+        sails.log.verbose(
+          `Notification log name: '${options.name}', for oid: ${oid}, not running, condition not met: ${options.triggerCondition}`
+        );
         sails.log.verbose(JSON.stringify(record));
       }
       // no updates or condition not met ... just return the record
       return record;
     }
 
-    public async getDeletedRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, filterFields = undefined, filterString = undefined, filterMode: string = 'regex', secondarySort = undefined) {
-
-
+    public async getDeletedRecords(
+      workflowState,
+      recordType = undefined,
+      start,
+      rows = 10,
+      username,
+      roles,
+      brand,
+      editAccessOnly = undefined,
+      packageType = undefined,
+      sort = undefined,
+      filterFields = undefined,
+      filterString = undefined,
+      filterMode: string = 'regex',
+      secondarySort = undefined
+    ) {
       // BrandId ...
       let query = {
-        "deletedRecordMetadata.metaMetadata.brandId": brand.id
+        'deletedRecordMetadata.metaMetadata.brandId': brand.id,
       };
       // Paginate ...
       const options = {
         limit: _.toNumber(rows),
-        skip: _.toNumber(start)
-      }
+        skip: _.toNumber(start),
+      };
       // Sort ...defaults to lastSaveDate
       if (_.isEmpty(sort)) {
         sort = '{"lastSaveDate": -1}';
@@ -434,45 +459,51 @@ export module Services {
         } catch (error) {
           // trying to massage this to valid JSON
           options['sort'] = {};
-          options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(sort.substring(sort.indexOf(':') + 1));
+          options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(
+            sort.substring(sort.indexOf(':') + 1)
+          );
         }
       }
 
       if (!_.isEmpty(secondarySort)) {
-        options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(secondarySort.substring(secondarySort.indexOf(':') + 1));
+        options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(
+          secondarySort.substring(secondarySort.indexOf(':') + 1)
+        );
       }
 
       // Authorization ...
       let roleNames = this.getRoleNames(roles, brand);
       let andArray = [];
       let permissions = {
-        "$or": [{ "deletedRecordMetadata.authorization.view": username },
-        { "deletedRecordMetadata.authorization.edit": username },
-        { "deletedRecordMetadata.authorization.editRoles": { "$in": roleNames } },
-        { "deletedRecordMetadata.authorization.viewRoles": { "$in": roleNames } }]
+        $or: [
+          { 'deletedRecordMetadata.authorization.view': username },
+          { 'deletedRecordMetadata.authorization.edit': username },
+          { 'deletedRecordMetadata.authorization.editRoles': { $in: roleNames } },
+          { 'deletedRecordMetadata.authorization.viewRoles': { $in: roleNames } },
+        ],
       };
       andArray.push(permissions);
       // Metadata type...
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
         let typeArray = [];
         _.each(recordType, rType => {
-          typeArray.push({ "deletedRecordMetadata.metaMetadata.type": rType });
+          typeArray.push({ 'deletedRecordMetadata.metaMetadata.type': rType });
         });
-        let types = { "$or": typeArray };
+        let types = { $or: typeArray };
         andArray.push(types);
       }
       // Package type...
       if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
         let typeArray = [];
         _.each(packageType, rType => {
-          typeArray.push({ "deletedRecordMetadata.metaMetadata.packageType": rType });
+          typeArray.push({ 'deletedRecordMetadata.metaMetadata.packageType': rType });
         });
-        let types = { "$or": typeArray };
+        let types = { $or: typeArray };
         andArray.push(types);
       }
       // Workflow ...
       if (workflowState != undefined) {
-        query["deletedRecordMetadata.workflow.stage"] = workflowState;
+        query['deletedRecordMetadata.workflow.stage'] = workflowState;
       }
       if (!_.isEmpty(filterString) && !_.isEmpty(filterFields)) {
         let escapedFilterString = this.escapeRegExp(filterString);
@@ -484,7 +515,7 @@ export module Services {
           } else if (filterMode == 'regex') {
             filterQuery[filterField] = new RegExp(`.*${escapedFilterString}.*`);
             //regex expressions are printed as empty objects {} when using JSON.stringify
-            //hence intentionally not using JSON.stringify in below logging print out 
+            //hence intentionally not using JSON.stringify in below logging print out
             sails.log.verbose(filterQuery);
           }
           andArray.push(filterQuery);
@@ -503,21 +534,35 @@ export module Services {
       return response;
     }
 
-    public async getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, filterFields = undefined, filterString = undefined, filterMode = undefined, secondarySort = undefined) {
-
+    public async getRecords(
+      workflowState,
+      recordType = undefined,
+      start,
+      rows = 10,
+      username,
+      roles,
+      brand,
+      editAccessOnly = undefined,
+      packageType = undefined,
+      sort = undefined,
+      filterFields = undefined,
+      filterString = undefined,
+      filterMode = undefined,
+      secondarySort = undefined
+    ) {
       //Default to regex when filterMode is not set to maintain pre existing functionality
       if (_.isUndefined(filterMode) || _.isNull(filterMode) || _.isEmpty(filterMode)) {
         filterMode = 'regex';
       }
       // BrandId ...
       let query = {
-        "metaMetadata.brandId": brand.id
+        'metaMetadata.brandId': brand.id,
       };
       // Paginate ...
       const options = {
         limit: _.toNumber(rows),
-        skip: _.toNumber(start)
-      }
+        skip: _.toNumber(start),
+      };
       // Sort ...defaults to lastSaveDate
       if (_.isEmpty(sort)) {
         sort = '{"lastSaveDate": -1}';
@@ -532,22 +577,28 @@ export module Services {
         } catch (error) {
           // trying to massage this to valid JSON
           options['sort'] = {};
-          options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(sort.substring(sort.indexOf(':') + 1));
+          options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(
+            sort.substring(sort.indexOf(':') + 1)
+          );
         }
       }
 
       if (!_.isEmpty(secondarySort)) {
-        options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(secondarySort.substring(secondarySort.indexOf(':') + 1));
+        options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(
+          secondarySort.substring(secondarySort.indexOf(':') + 1)
+        );
       }
 
       // Authorization ...
       let roleNames = this.getRoleNames(roles, brand);
       let andArray = [];
       let permissions = {
-        "$or": [{ "authorization.view": username },
-        { "authorization.edit": username },
-        { "authorization.editRoles": { "$in": roleNames } },
-        { "authorization.viewRoles": { "$in": roleNames } }]
+        $or: [
+          { 'authorization.view': username },
+          { 'authorization.edit': username },
+          { 'authorization.editRoles': { $in: roleNames } },
+          { 'authorization.viewRoles': { $in: roleNames } },
+        ],
       };
       andArray.push(permissions);
       // Metadata type...
@@ -555,42 +606,42 @@ export module Services {
         if (recordType.length > 1) {
           let typeArray = [];
           _.each(recordType, rType => {
-            typeArray.push({ "metaMetadata.type": rType });
+            typeArray.push({ 'metaMetadata.type': rType });
           });
           // Fixed incorrect "$or" condition construction: it should be top level, not nested within a field name.
           // let types = { "$or": typeArray };
           // query["metaMetadata.type"] = types;
-          query["$or"] = typeArray;
+          query['$or'] = typeArray;
         } else {
           let recType = recordType[0];
           if (!_.isUndefined(recType) && !_.isEmpty(recType)) {
-            query["metaMetadata.type"] = recType;
+            query['metaMetadata.type'] = recType;
           }
         }
       } else if (recordType != undefined && recordType != '') {
-        query["metaMetadata.type"] = recordType;
+        query['metaMetadata.type'] = recordType;
       }
       // Package type...
       if (_.isArray(packageType)) {
         if (packageType.length > 1) {
           let typeArray = [];
           _.each(packageType, rType => {
-            typeArray.push({ "metaMetadata.packageType": rType });
+            typeArray.push({ 'metaMetadata.packageType': rType });
           });
-          let types = { "$or": typeArray };
-          query["metaMetadata.packageType"] = types;
+          let types = { $or: typeArray };
+          query['metaMetadata.packageType'] = types;
         } else {
           let packType = packageType[0];
           if (!_.isUndefined(packType) && !_.isEmpty(packType)) {
-            query["metaMetadata.packageType"] = packType;
+            query['metaMetadata.packageType'] = packType;
           }
         }
       } else if (packageType != undefined && packageType != '') {
-        query["metaMetadata.packageType"] = packageType;
+        query['metaMetadata.packageType'] = packageType;
       }
       // Workflow ...
       if (workflowState != undefined && workflowState != '') {
-        query["workflow.stage"] = workflowState;
+        query['workflow.stage'] = workflowState;
       }
       //Additional filter conditions
       if (!_.isEmpty(filterString) && !_.isEmpty(filterFields)) {
@@ -627,14 +678,20 @@ export module Services {
     }
 
     protected async runRecordQuery(colName, query, options) {
-      return { items: await this.recordCol.find(query, options).toArray(), totalItems: await this.recordCol.count(query) };
+      return {
+        items: await this.recordCol.find(query, options).toArray(),
+        totalItems: await this.recordCol.count(query),
+      };
     }
 
     protected async runDeletedRecordQuery(colName, query, options) {
-      return { items: await this.deletedRecordCol.find(query, options).toArray(), totalItems: await this.deletedRecordCol.count(query) };
+      return {
+        items: await this.deletedRecordCol.find(query, options).toArray(),
+        totalItems: await this.deletedRecordCol.count(query),
+      };
     }
 
-    private async * fetchAllRecords(query, options, stringifyJSON: boolean = false) {
+    private async *fetchAllRecords(query, options, stringifyJSON: boolean = false) {
       let skip = 0;
       let limit = options.limit;
       options.skip = skip;
@@ -651,42 +708,43 @@ export module Services {
         skip = skip + limit;
         options.skip = skip;
         result = await this.recordCol.find(query, options).toArray();
-
       }
     }
 
     public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): stream.Readable {
       let andArray = [];
       let query = {
-        "metaMetadata.brandId": brand.id,
-        "metaMetadata.type": recType
+        'metaMetadata.brandId': brand.id,
+        'metaMetadata.type': recType,
       };
       let roleNames = this.getRoleNames(roles, brand);
       let permissions = {
-        "$or": [{ "authorization.view": username },
-        { "authorization.edit": username },
-        { "authorization.editRoles": { "$in": roleNames } },
-        { "authorization.viewRoles": { "$in": roleNames } }]
+        $or: [
+          { 'authorization.view': username },
+          { 'authorization.edit': username },
+          { 'authorization.editRoles': { $in: roleNames } },
+          { 'authorization.viewRoles': { $in: roleNames } },
+        ],
       };
       andArray.push(permissions);
       const options = {
         limit: _.toNumber(sails.config.record.export.maxRecords),
         sort: {
-          lastSaveDate: -1
-        }
+          lastSaveDate: -1,
+        },
       };
       if (!_.isEmpty(modAfter)) {
         andArray.push({
           lastSaveDate: {
-            '$gte': `${modAfter}`
-          }
+            $gte: `${modAfter}`,
+          },
         });
       }
       if (!_.isEmpty(modBefore)) {
         andArray.push({
           lastSaveDate: {
-            '$lte': `${modBefore}`
-          }
+            $lte: `${modBefore}`,
+          },
         });
       }
       query['$and'] = andArray;
@@ -708,7 +766,7 @@ export module Services {
       var roleNames = [];
 
       for (var i = 0; i < roles.length; i++) {
-        var role = roles[i]
+        var role = roles[i];
         if (role.branding == brand.id) {
           roleNames.push(roles[i].name);
         }
@@ -717,14 +775,13 @@ export module Services {
       return roleNames;
     }
 
-
     public async addDatastreams(oid: string, fileIds: Datastream[]): Promise<DatastreamServiceResponse> {
       const response = new DatastreamServiceResponse();
       response.message = '';
       let hasFailure = false;
       for (const fileId of fileIds) {
         try {
-          await this.addDatastream(oid, fileId);
+          await this.addDatastream(oid, fileId, StorageManagerService.stagingDisk());
           const successMessage = `Successfully uploaded: ${JSON.stringify(fileId)}`;
           response.message = _.isEmpty(response.message) ? successMessage : `${response.message}\n${successMessage}`;
         } catch (err) {
@@ -738,46 +795,55 @@ export module Services {
     }
 
     public updateDatastream(oid: string, record, newMetadata, fileRoot, fileIdsAdded): any {
-      // loop thru the attachment fields and determine if we need to add or remove
-      return FormsService.getFormByName(record.metaMetadata.form, true)
-        .pipe(
-          mergeMap(form => {
-            // For any generated, view-only forms, the form may be null, add a coalescence to avoid breaking
-            // the attachment update process.
-            form = form ?? { attachmentFields: [] };
-            const typedForm = form as { attachmentFields: string[] };
-            const reqs = [];
-            record.metaMetadata.attachmentFields = typedForm.attachmentFields;
-            _.each(typedForm.attachmentFields, async (attField) => {
-              const oldAttachments = record.metadata[attField];
-              const newAttachments = newMetadata[attField];
-              const removeIds = [];
-              // process removals
-              if (!_.isUndefined(oldAttachments) && !_.isNull(oldAttachments) && !_.isNull(newAttachments)) {
-                const toRemove = _.differenceBy(oldAttachments, newAttachments, 'fileId');
-                _.each(toRemove, (removeAtt) => {
-                  if (removeAtt.type == 'attachment') {
-                    removeIds.push(new Datastream(removeAtt));
-                  }
-                });
-              }
-              // process additions
-              if (!_.isUndefined(newAttachments) && !_.isNull(newAttachments)) {
-                const toAdd = _.differenceBy(newAttachments, oldAttachments, 'fileId');
-                _.each(toAdd, (addAtt) => {
-                  if (addAtt.type == 'attachment') {
-                    fileIdsAdded.push(new Datastream(addAtt));
-                  }
-                });
-              }
-              reqs.push(this.addAndRemoveDatastreams(oid, fileIdsAdded, removeIds));
-            });
-            if (_.isEmpty(reqs)) {
-              reqs.push(of({ "request": "dummy" }));
-            }
-            return of(reqs);
-          })
+      let stagingDisk: StorageManagerServiceTypes.Services.IDisk;
+      if (typeof fileRoot === 'string') {
+        stagingDisk = StorageManagerService.disk(fileRoot);
+      } else if (fileRoot && typeof fileRoot.getStream === 'function') {
+        stagingDisk = fileRoot as StorageManagerServiceTypes.Services.IDisk;
+      } else {
+        throw new Error(
+          `${this.logHeader} updateDatastream requires fileRoot to be a disk name or an IDisk instance with getStream()`
         );
+      }
+      // loop thru the attachment fields and determine if we need to add or remove
+      return FormsService.getFormByName(record.metaMetadata.form, true).pipe(
+        mergeMap(form => {
+          // For any generated, view-only forms, the form may be null, add a coalescence to avoid breaking
+          // the attachment update process.
+          form = form ?? { attachmentFields: [] };
+          const typedForm = form as { attachmentFields: string[] };
+          const reqs = [];
+          record.metaMetadata.attachmentFields = typedForm.attachmentFields;
+          _.each(typedForm.attachmentFields, async attField => {
+            const oldAttachments = record.metadata[attField];
+            const newAttachments = newMetadata[attField];
+            const removeIds = [];
+            // process removals
+            if (!_.isUndefined(oldAttachments) && !_.isNull(oldAttachments) && !_.isNull(newAttachments)) {
+              const toRemove = _.differenceBy(oldAttachments, newAttachments, 'fileId');
+              _.each(toRemove, removeAtt => {
+                if (removeAtt.type == 'attachment') {
+                  removeIds.push(new Datastream(removeAtt));
+                }
+              });
+            }
+            // process additions
+            if (!_.isUndefined(newAttachments) && !_.isNull(newAttachments)) {
+              const toAdd = _.differenceBy(newAttachments, oldAttachments, 'fileId');
+              _.each(toAdd, addAtt => {
+                if (addAtt.type == 'attachment') {
+                  fileIdsAdded.push(new Datastream(addAtt));
+                }
+              });
+            }
+            reqs.push(this.addAndRemoveDatastreams(oid, fileIdsAdded, removeIds, stagingDisk));
+          });
+          if (_.isEmpty(reqs)) {
+            reqs.push(of({ request: 'dummy' }));
+          }
+          return of(reqs);
+        })
+      );
     }
 
     public async removeDatastream(oid, datastream: Datastream) {
@@ -800,44 +866,50 @@ export module Services {
       }
     }
 
-    public async addDatastream(oid, datastream: Datastream) {
+    public async addDatastream(oid, datastream: Datastream, stagingDisk?: StorageManagerServiceTypes.Services.IDisk) {
       const fileId = datastream.fileId;
       sails.log.verbose(`${this.logHeader} addDatastream() -> Meta: ${fileId}`);
       sails.log.verbose(JSON.stringify(datastream));
       const metadata = _.merge(datastream.metadata, { redboxOid: oid });
-      const fpath = `${sails.config.record.attachments.stageDir}/${fileId}`;
       const fileName = `${oid}/${fileId}`;
       sails.log.verbose(`${this.logHeader} addDatastream() -> Adding: ${fileName}`);
-
-      await this.streamFileToBucket(fpath, fileName, metadata);
+      const effectiveStagingDisk = stagingDisk ?? StorageManagerService.stagingDisk();
+      const readable = await effectiveStagingDisk.getStream(fileId);
+      await this.streamFileToBucket(readable, fileName, metadata);
       sails.log.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${fileName}`);
     }
 
-    /** 
-     * 
-     * Stream file to bucket and return a promise when it's complete 
-     * 
+    /**
+     *
+     * Stream file to bucket and return a promise when it's complete
+     *
      * */
-    private streamFileToBucket(fpath: string, fileName: string, metadata: any) {
+    private streamFileToBucket(readable: NodeJS.ReadableStream, fileName: string, metadata: any) {
       const uploadStream = this.gridFsBucket.openUploadStream(fileName, { metadata: metadata });
-      fs.createReadStream(fpath)
-        .pipe(uploadStream)
+      readable.pipe(uploadStream);
 
       return new Promise((resolve, reject) => {
         uploadStream.on('finish', () => {
           resolve(uploadStream.gridFSFile);
         });
 
-        uploadStream.on('error', (err) => {
+        uploadStream.on('error', err => {
           reject(err);
         });
       });
-
     }
 
-    public async addAndRemoveDatastreams(oid, addIds: any[], removeIds: any[]) {
+    public async addAndRemoveDatastreams(
+      oid,
+      addIds: any[],
+      removeIds: any[],
+      stagingDisk?: StorageManagerServiceTypes.Services.IDisk
+    ) {
+      if (!stagingDisk) {
+        throw new Error('MongoStorageService.addAndRemoveDatastreams requires a staging disk');
+      }
       for (const addId of addIds) {
-        await this.addDatastream(oid, addId);
+        await this.addDatastream(oid, addId, stagingDisk);
       }
       for (const removeId of removeIds) {
         await this.removeDatastream(oid, removeId);
@@ -852,15 +924,15 @@ export module Services {
       const fileName = `${oid}/${fileId}`;
       const fileRes = await this.getFileWithName(fileName).toArray();
       if (_.isArray(fileRes) && fileRes.length === 0) {
-        throw new Error(TranslationService.t('attachment-not-found'))
+        throw new Error(TranslationService.t('attachment-not-found'));
       }
       const response = new Attachment();
-      response.readstream = this.gridFsBucket.openDownloadStreamByName(fileName)
+      response.readstream = this.gridFsBucket.openDownloadStreamByName(fileName);
       return response;
     }
 
     public async listDatastreams(oid, fileId) {
-      let query: any = { "metadata.redboxOid": oid };
+      let query: any = { 'metadata.redboxOid': oid };
       if (!_.isEmpty(fileId)) {
         const fileName = `${oid}/${fileId}`;
         query = { filename: fileName };
@@ -893,7 +965,7 @@ export module Services {
         redboxOid: recordAudit.redboxOid,
         action: recordAudit.action,
         user: this.toJsonSafe(recordAudit.user),
-        record: this.toJsonSafe(recordAudit.record)
+        record: this.toJsonSafe(recordAudit.record),
       } as RecordAuditModel;
 
       if (_.isUndefined(payload.user)) {
@@ -931,7 +1003,6 @@ export module Services {
     }
 
     public async getRecordAudit(params: RecordAuditParams): Promise<any> {
-
       const oid = params.oid;
       const dateFrom = params.dateFrom;
       const dateTo = params.dateTo;
@@ -942,7 +1013,7 @@ export module Services {
         throw new Error(msg);
       }
 
-      var criteria = { "redboxOid": oid };
+      var criteria = { redboxOid: oid };
 
       if (_.isDate(dateFrom)) {
         criteria['createdAt'] = { ['>=']: dateFrom };
@@ -1013,9 +1084,7 @@ export module Services {
         response.message = err.message;
         return response;
       }
-
     }
-
 
     /**
      * Returns a MongoDB cursor
@@ -1030,14 +1099,13 @@ export module Services {
 
     /**
      * Returns true if record with oid exists.
-     * 
-     * @param oid 
-     * @returns 
+     *
+     * @param oid
+     * @returns
      */
     public async exists(oid: string): Promise<boolean> {
-      return await Record.count({ redboxOid: oid }) > 0;
+      return (await Record.count({ redboxOid: oid })) > 0;
     }
   }
-
 }
 module.exports = new Services.MongoStorageService().exports();

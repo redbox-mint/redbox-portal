@@ -105,6 +105,38 @@ export const routes: RoutesConfig = {
         action: 'supportAgreementIndex',
         skipAssets: true
     },
+    'get /:branding/:portal/admin/vocabulary/manager': {
+        controller: 'VocabularyController',
+        action: 'manager'
+    },
+    'get /:branding/:portal/admin/vocabulary': {
+        controller: 'VocabularyController',
+        action: 'list'
+    },
+    'post /:branding/:portal/admin/vocabulary/import': {
+        controller: 'VocabularyController',
+        action: 'import'
+    },
+    'get /:branding/:portal/admin/vocabulary/:id': {
+        controller: 'VocabularyController',
+        action: 'get'
+    },
+    'post /:branding/:portal/admin/vocabulary': {
+        controller: 'VocabularyController',
+        action: 'create'
+    },
+    'put /:branding/:portal/admin/vocabulary/:id': {
+        controller: 'VocabularyController',
+        action: 'update'
+    },
+    'delete /:branding/:portal/admin/vocabulary/:id': {
+        controller: 'VocabularyController',
+        action: 'delete'
+    },
+    'post /:branding/:portal/admin/vocabulary/:id/sync': {
+        controller: 'VocabularyController',
+        action: 'sync'
+    },
 
     // User routes
     '/:branding/:portal/user/profile': {
@@ -203,17 +235,22 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/listDeletedRecords': 'RecordController.getDeletedRecordList',
 
     // Vocab routes
-    'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
-    'get /:branding/:portal/ands/vocab/resourceDetails': 'VocabController.rvaGetResourceDetails',
-    'get /:branding/:portal/mint/:mintSourceType': 'VocabController.getMint',
-    'get /:branding/:portal/query/vocab/:queryId': 'VocabController.getRecords',
-    'post /:branding/:portal/external/vocab/:provider': {
-        controller: 'VocabController',
-        action: 'searchExternalService',
-        csrf: false
+    'get /:branding/:portal/vocab/:vocabIdOrSlug': {
+        controller: 'FormVocabularyController',
+        action: 'get'
     },
-    'get /:branding/:portal/collection/:collectionId': 'VocabController.getCollection',
-    'post /:branding/:portal/collection/:collectionId': 'VocabController.loadCollection',
+    'get /:branding/:portal/vocab/:vocabIdOrSlug/entries': {
+        controller: 'FormVocabularyController',
+        action: 'entries'
+    },
+    'get /:branding/:portal/vocab/:vocabIdOrSlug/children': {
+        controller: 'FormVocabularyController',
+        action: 'children'
+    },
+    'get /:branding/:portal/query/vocab/:queryId': {
+        controller: 'FormVocabularyController',
+        action: 'getRecords'
+    },
 
     // Export routes
     'get /:branding/:portal/export': 'ExportController.index',
@@ -234,9 +271,6 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/admin/getReport': 'ReportController.get',
     'get /:branding/:portal/admin/getReportResults': 'ReportController.getResults',
     'get /:branding/:portal/admin/downloadReportCSV': 'ReportController.downloadCSV',
-
-    // People search
-    'get /:branding/:portal/people/search': 'VocabController.searchPeople',
 
     // API docs
     'get /:branding/:portal/api-docs.apib': 'BrandingController.renderApiB',
@@ -321,6 +355,16 @@ export const routes: RoutesConfig = {
     // REST API routes - Forms
     'get /:branding/:portal/api/forms/get': { controller: 'webservice/FormManagementController', action: 'getForm', csrf: false },
     'get /:branding/:portal/api/forms': { controller: 'webservice/FormManagementController', action: 'listForms', csrf: false },
+
+    // REST API routes - Vocabulary
+    'get /:branding/:portal/api/vocabulary': { controller: 'webservice/VocabularyController', action: 'list', csrf: false },
+    'post /:branding/:portal/api/vocabulary/import': { controller: 'webservice/VocabularyController', action: 'import', csrf: false },
+    'get /:branding/:portal/api/vocabulary/:id': { controller: 'webservice/VocabularyController', action: 'get', csrf: false },
+    'post /:branding/:portal/api/vocabulary': { controller: 'webservice/VocabularyController', action: 'create', csrf: false },
+    'put /:branding/:portal/api/vocabulary/:id': { controller: 'webservice/VocabularyController', action: 'update', csrf: false },
+    'put /:branding/:portal/api/vocabulary/:id/reorder': { controller: 'webservice/VocabularyController', action: 'reorder', csrf: false },
+    'delete /:branding/:portal/api/vocabulary/:id': { controller: 'webservice/VocabularyController', action: 'delete', csrf: false },
+    'post /:branding/:portal/api/vocabulary/:id/sync': { controller: 'webservice/VocabularyController', action: 'sync', csrf: false },
 
     // REST API routes - Record Types
     'get /:branding/:portal/api/recordtypes/get': { controller: 'webservice/RecordTypeController', action: 'getRecordType', csrf: false },

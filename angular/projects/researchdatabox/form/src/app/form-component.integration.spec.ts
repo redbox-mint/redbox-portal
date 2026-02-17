@@ -25,6 +25,8 @@ import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from './helpers.spec';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { FormEventBusAdapterEffects } from './form-state/effects/form-event-bus-adapter.effects';
+import { TypeaheadInputComponent } from './component/typeahead-input.component';
+import { TypeaheadModule } from 'ngx-bootstrap/typeahead';
 
 describe('FormComponent Integration Tests', () => {
   let component: FormComponent;
@@ -65,8 +67,12 @@ describe('FormComponent Integration Tests', () => {
   beforeEach(async () => {
     await createTestbedModule({
       declarations: {
-        "SimpleInputComponent": SimpleInputComponent
-      }
+        "SimpleInputComponent": SimpleInputComponent,
+        "TypeaheadInputComponent": TypeaheadInputComponent
+      },
+      imports: {
+        "TypeaheadModule": TypeaheadModule.forRoot()
+      },
     });
 
     facade = TestBed.inject(FormStateFacade);
@@ -326,5 +332,29 @@ describe('FormComponent Integration Tests', () => {
 
     // Assert: resetAllFields action dispatched
     expect(dispatchSpy).toHaveBeenCalledWith(FormActions.resetAllFields());
+  }));
+
+  it('renders typeahead input from form config', waitForAsync(async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'typeahead-integration',
+      componentDefinitions: [
+        {
+          name: 'person_lookup',
+          component: {
+            class: 'TypeaheadInputComponent',
+            config: {
+              sourceType: 'static',
+              staticOptions: [{ label: 'Jane Doe', value: 'jane' }]
+            }
+          },
+          model: { class: 'TypeaheadInputModel', config: {} }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+    expect(input).toBeTruthy();
+    expect(input.getAttribute('role')).toBe('combobox');
   }));
 });

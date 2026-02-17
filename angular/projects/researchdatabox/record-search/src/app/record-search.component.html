@@ -1,0 +1,125 @@
+@if (isReady) {
+  <div class="row">
+    <div class="col-md-offset-2 col-md-8">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">
+            {{ 'record-search-heading' | i18next }}
+          </h3>
+        </div>
+        <div class="panel-body search-panel-body">
+          <div class="search-inline-row">
+            <label class="control-label search-inline-label" id="basic-search-addon" for="basic-search-input">
+              {{ 'record-search-basic-search' | i18next }}
+            </label>
+            <input
+              id="basic-search-input"
+              type="text"
+              [disabled]="isSearching"
+              [(ngModel)]="params.basicSearch"
+              class="form-control search-inline-input"
+              [placeholder]="'record-search-basic-search-placeholder' | i18next"
+              (keyup.enter)="search()"
+              aria-describedby="basic-search-addon"
+            />
+          </div>
+          <div class="search-action-row">
+            <span class="btn-group" role="group">
+              <button
+                [disabled]="isSearching || !params.basicSearch"
+                class="btn btn-primary"
+                type="button"
+                (click)="search()"
+              >
+                {{ 'record-search-' + record_type + '-submit' | i18next }}
+              </button>
+              <button
+                [disabled]="isSearching"
+                class="btn btn-primary dropdown-toggle"
+                data-bs-toggle="dropdown"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-label="Toggle dropdown"
+              >
+                <span class="caret" aria-hidden="true"></span>
+                <span class="sr-only">Toggle dropdown</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-right">
+                @for (recTypeName of getRecordTypeNames(); track recTypeName) {
+                  <li>
+                    <a href="#" (click)="setRecordType(recTypeName, $event)">{{
+                      'record-search-' + recTypeName + '-submit' | i18next
+                    }}</a>
+                  </li>
+                }
+              </ul>
+            </span>
+            <button [disabled]="isSearching" class="btn btn-primary search-reset-btn" type="button" (click)="resetSearch()">
+              {{ 'record-search-reset' | i18next }}
+            </button>
+          </div>
+          @if (searchMsg) {
+            <div class="bg-{{ searchMsgType }} text-center" id="searchMsg" tabindex="0" [innerText]="searchMsg"></div>
+            @if (isSearching) {
+              <div class="text-center" aria-live="polite">
+                <span class="fa fa-spinner fa-spin" aria-hidden="true"></span>
+              </div>
+            }
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Results section -->
+  @if (!isSearching && ((plans && plans.length > 0) || params.hasActiveRefiners())) {
+    <div class="row mt-3">
+      <div class="col-md-2">
+        <!-- Exact match and facets -->
+        @for (refinerConfig of params.getRefinerConfigs(); track refinerConfig.name) {
+          <record-search-refiner
+            [isSearching]="isSearching"
+            [refinerConfig]="refinerConfig"
+            (onApplyFilter)="search($event)"
+          ></record-search-refiner>
+        }
+      </div>
+      <div class="col-md-10">
+        @for (plan of plans; track plan.storage_id) {
+          <div class="panel panel-default">
+            <div class="panel-body">
+              <h3>
+                <a href="{{ brandingAndPortalUrl }}/record/view/{{ plan.storage_id }}" target="_blank" rel="noopener noreferrer">{{
+                  plan.dashboardTitle
+                }}</a>
+                @if (plan.hasEditAccess) {
+                  <a
+                    class="glyphicon glyphicon-pencil"
+                    href="{{ brandingAndPortalUrl }}/record/edit/{{ plan.storage_id }}"
+                    aria-label="Edit record"
+                    tooltip="Edit"
+                  ></a>
+                }
+              </h3>
+              <div [innerHtml]="getSafeDescription(plan)"></div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-10 col-md-offset-2">
+        @if (totalItems > 0) {
+          <pagination
+            [directionLinks]="false"
+            [boundaryLinks]="true"
+            [totalItems]="totalItems"
+            [(ngModel)]="params.currentPage"
+            (pageChanged)="pageChanged($event)"
+            class="pagination-sm"
+            [maxSize]="10"
+          ></pagination>
+        }
+      </div>
+    </div>
+  }
+}

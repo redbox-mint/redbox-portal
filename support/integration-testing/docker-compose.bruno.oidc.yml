@@ -66,6 +66,7 @@ x-rbportal-service: &rbportal-service
     - "../../app.integrationtest.js:/opt/redbox-portal/app.integrationtest.js"
     - "../../.tmp/attachments:/attachments"
     - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+    - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
   stop_grace_period: 30m
   healthcheck:
     test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
@@ -112,6 +113,7 @@ services:
       - "../../:/opt/redbox-portal:delegated"
       - "../../.tmp/attachments:/attachments"
       - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+      - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
   mongodb:
     image: mongo:latest
     pull_policy: 'missing'

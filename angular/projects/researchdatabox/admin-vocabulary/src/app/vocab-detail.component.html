@@ -1,0 +1,145 @@
+<div class="container-fluid px-0">
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label for="vocab-name">{{ 'admin-vocabulary-name' | i18next }}</label>
+      <input id="vocab-name" class="form-control" [(ngModel)]="draft.name" [attr.placeholder]="'admin-vocabulary-name-placeholder' | i18next" />
+    </div>
+    <div class="form-group col-md-6">
+      <label for="vocab-slug">{{ 'admin-vocabulary-slug' | i18next }}</label>
+      <input id="vocab-slug" class="form-control" [(ngModel)]="draft.slug" [attr.placeholder]="'admin-vocabulary-slug-placeholder' | i18next" />
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label for="vocab-type">{{ 'admin-vocabulary-type' | i18next }}</label>
+      <select id="vocab-type" class="form-control" [(ngModel)]="draft.type">
+        <option value="flat">{{ 'admin-vocabulary-type-flat-list' | i18next }}</option>
+        <option value="tree">{{ 'admin-vocabulary-type-tree' | i18next }}</option>
+      </select>
+    </div>
+    <div class="form-group col-md-6">
+      <label for="vocab-source">{{ 'admin-vocabulary-source' | i18next }}</label>
+      <select id="vocab-source" class="form-control" [(ngModel)]="draft.source">
+        <option value="local">{{ 'admin-vocabulary-source-local' | i18next }}</option>
+        <option value="rva">{{ 'admin-vocabulary-source-rva' | i18next }}</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="vocab-description">{{ 'admin-vocabulary-description' | i18next }}</label>
+    <textarea id="vocab-description" class="form-control" rows="3" [(ngModel)]="draft.description" [attr.placeholder]="'admin-vocabulary-description-placeholder' | i18next"></textarea>
+  </div>
+
+  <div class="mb-3" *ngIf="draft.type === 'tree' && hasEntries">
+    <button class="btn btn-sm btn-outline-info" type="button" (click)="toggleTreePreview()">
+      {{ isTreePreviewVisible ? ('admin-vocabulary-hide-tree-preview' | i18next) : ('admin-vocabulary-show-tree-preview' | i18next) }}
+    </button>
+
+    <div class="card card-body mt-2 tree-preview-panel" *ngIf="isTreePreviewVisible">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0">{{ 'admin-vocabulary-hierarchy-preview' | i18next }}</h6>
+        <button class="btn btn-sm btn-outline-secondary" type="button" (click)="refreshTreePreview()">{{ 'admin-vocabulary-refresh' | i18next }}</button>
+      </div>
+
+      <ul class="tree-preview-list mb-0" *ngIf="(previewTree || []).length > 0; else emptyPreview">
+        <ng-container *ngTemplateOutlet="previewNodesTemplate; context: { $implicit: previewTree || [] }"></ng-container>
+      </ul>
+
+      <ng-template #emptyPreview>
+        <p class="text-muted mb-0">{{ 'admin-vocabulary-empty-tree-preview' | i18next }}</p>
+      </ng-template>
+    </div>
+  </div>
+
+  <hr />
+
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0">{{ 'admin-vocabulary-entries' | i18next }}</h6>
+    <button class="btn btn-sm btn-outline-primary" type="button" (click)="addEntry()">{{ 'admin-vocabulary-add-entry' | i18next }}</button>
+  </div>
+
+  <div class="table-responsive" *ngIf="hasEntries">
+    <table class="table table-sm table-bordered mb-0">
+      <thead class="thead-light">
+        <tr>
+          <th style="width: 50px;">#</th>
+          <th>{{ 'admin-vocabulary-label' | i18next }}</th>
+          <th>{{ 'admin-vocabulary-value' | i18next }}</th>
+          <th>{{ 'admin-vocabulary-historical' | i18next }}</th>
+          <th>{{ 'admin-vocabulary-parent' | i18next }}</th>
+          <th style="width: 220px;">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let entry of draft.entries; let idx = index; trackBy: trackByEntryIndex">
+          <td class="align-middle">{{ idx + 1 }}</td>
+          <td><input class="form-control form-control-sm" [(ngModel)]="entry.label" (ngModelChange)="onEntryEdited()" [attr.placeholder]="'admin-vocabulary-entry-label-placeholder' | i18next" /></td>
+          <td><input class="form-control form-control-sm" [(ngModel)]="entry.value" (ngModelChange)="onEntryEdited()" [attr.placeholder]="'admin-vocabulary-entry-value-placeholder' | i18next" /></td>
+          <td class="align-middle text-center">
+            <input
+              type="checkbox"
+              [(ngModel)]="entry.historical"
+              (ngModelChange)="onEntryEdited()"
+              [attr.aria-label]="'admin-vocabulary-historical-checkbox' | i18next"
+            />
+          </td>
+          <td>
+            <ng-container *ngIf="draft.type === 'tree'; else flatParentField">
+              <ng-container *ngIf="isParentEditorOpen(entry); else parentReadOnly">
+                <div class="d-flex">
+                  <select
+                    class="form-control form-control-sm mr-2"
+                    [ngModel]="entry.parent || ''"
+                    (ngModelChange)="onParentChanged(entry, $event)"
+                  >
+                    <option value="">{{ 'admin-vocabulary-parent-root' | i18next }}</option>
+                    <option *ngFor="let option of getParentOptions(entry)" [value]="option.id">{{ option.label }}</option>
+                  </select>
+                  <button class="btn btn-sm btn-outline-secondary" type="button" (click)="closeParentEditor()">{{ 'admin-vocabulary-done' | i18next }}</button>
+                </div>
+              </ng-container>
+              <ng-template #parentReadOnly>
+                <div class="d-flex">
+                  <input class="form-control form-control-sm mr-2" [value]="parentDisplayValue(entry) || ('admin-vocabulary-parent-root' | i18next)" disabled />
+                  <button class="btn btn-sm btn-outline-primary" type="button" (click)="openParentEditor(entry)">{{ 'admin-vocabulary-change' | i18next }}</button>
+                </div>
+              </ng-template>
+            </ng-container>
+            <ng-template #flatParentField>
+              <input class="form-control form-control-sm" [value]="parentDisplayValue(entry)" disabled [attr.placeholder]="'admin-vocabulary-parent-na-flat' | i18next" />
+            </ng-template>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-outline-secondary mr-1" type="button" (click)="moveEntryUp(idx)" [disabled]="idx === 0">{{ 'admin-vocabulary-up' | i18next }}</button>
+            <button class="btn btn-sm btn-outline-secondary mr-1" type="button" (click)="moveEntryDown(idx)" [disabled]="idx === (draft.entries?.length || 1) - 1">{{ 'admin-vocabulary-down' | i18next }}</button>
+            <button class="btn btn-sm btn-outline-danger" type="button" (click)="removeEntry(idx)">{{ 'admin-vocabulary-remove' | i18next }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="text-muted mb-0" *ngIf="!hasEntries">{{ 'admin-vocabulary-empty-entries' | i18next }}</p>
+</div>
+
+<ng-template #previewNodesTemplate let-nodes>
+  <li *ngFor="let node of nodes; trackBy: trackByPreviewNode">
+    <div class="tree-preview-node">
+      <button
+        *ngIf="hasPreviewChildren(node)"
+        class="btn btn-sm btn-link tree-preview-toggle"
+        type="button"
+        (click)="togglePreviewNode(node)"
+      >
+        {{ isPreviewNodeCollapsed(node) ? '+' : '−' }}
+      </button>
+      <span class="tree-preview-leaf-spacer" *ngIf="!hasPreviewChildren(node)"></span>
+      <span>{{ node.display }}</span>
+    </div>
+    <ul class="tree-preview-list" *ngIf="hasPreviewChildren(node) && !isPreviewNodeCollapsed(node)">
+      <ng-container *ngTemplateOutlet="previewNodesTemplate; context: { $implicit: node.children }"></ng-container>
+    </ul>
+  </li>
+</ng-template>

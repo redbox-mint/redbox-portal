@@ -8,6 +8,7 @@ import { ServiceGenerator } from './generators/service';
 import { AddMethodGenerator } from './generators/add-method';
 import { AngularAppGenerator } from './generators/angular-app';
 import { AngularServiceGenerator } from './generators/angular-service';
+import { FormComponentGenerator } from './generators/form-component';
 import { FormFieldGenerator } from './generators/form-field';
 import { ModelGenerator } from './generators/model';
 import { registerMigrateFormConfigCommand } from './commands/migrate-form-config';
@@ -292,6 +293,34 @@ generate
       });
 
       console.log(`\n🛠️  Generating Angular service: ${name} for app ${options.app}...\n`);
+      await generator.generate();
+      console.log('\n✅ Done!\n');
+    } catch (error: any) {
+      console.error(`\n❌ Error: ${error.message}\n`);
+      process.exit(1);
+    }
+  });
+
+generate
+  .command('form-component <name>')
+  .description('Generate scaffold for a new form component across Angular and sails-ng-common')
+  .option('--app <app>', 'Target Angular app name', 'form')
+  .option('--with-service', 'Also generate a companion Angular HttpClient service', false)
+  .action(async (name, options) => {
+    try {
+      const globalOptions = program.opts();
+      const paths = resolvePaths(globalOptions);
+
+      const generator = new FormComponentGenerator({
+        name,
+        app: options.app,
+        withService: options.withService,
+        dryRun: globalOptions.dryRun,
+        root: paths.root,
+        paths
+      });
+
+      console.log(`\n🛠️  Generating form component scaffold: ${name}...\n`);
       await generator.generate();
       console.log('\n✅ Done!\n');
     } catch (error: any) {

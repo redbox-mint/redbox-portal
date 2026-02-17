@@ -40,7 +40,7 @@ import {
   JSONataQuerySource,
   FormValidatorSummaryErrors
 } from '@researchdatabox/sails-ng-common';
-import {FormBaseWrapperComponent} from "./component/base-wrapper.component";
+import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { createFormDefinitionChangedEvent, createFormDefinitionReadyEvent, createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
@@ -66,11 +66,11 @@ import { FormComponentValueChangeEventConsumer } from './form-state/events/';
  *
  */
 @Component({
-    selector: 'redbox-form',
-    templateUrl: './form.component.html',
-    styleUrls: ['./form.component.scss'],
-    providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
-    standalone: false
+  selector: 'redbox-form',
+  templateUrl: './form.component.html',
+  styleUrls: ['./form.component.scss'],
+  providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
+  standalone: false
 })
 export class FormComponent extends BaseComponent implements OnDestroy {
   private logName = "FormComponent";
@@ -129,7 +129,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   /**
    * The module paths for dynamic imports
    */
-  modulePaths:string[] = [];
+  modulePaths: string[] = [];
 
   /**
    * The form status signal - sourced from the facade (R16.4)
@@ -157,6 +157,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   debugFormComponents = signal<Record<string, unknown>>({});
   /**
+    * Form values debug map (actual payload)
+   */
+  debugFormValues = signal<Record<string, unknown>>({});
+  /**
+   * Raw form values debug map (includes disabled controls)
+   */
+  debugRawFormValues = signal<Record<string, unknown>>({});
+  /**
+   * Toggle for using raw form values in debug panel
+   */
+  debugUseRawValues = signal<boolean>(false);
+  /**
    * Reference container for dynamic components injection
    */
   @ViewChild('componentsContainer', { read: ViewContainerRef, static: false }) componentsContainer!: ViewContainerRef | undefined;
@@ -177,13 +189,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   /**
    * Debug info structure
    */
-  formDebugInfo:DebugInfo = {
-      name: "",
-      class: 'FormComponent',
-      status: FormStatus.INIT,
-      componentsLoaded: false,
-      isReady: false,
-      children: []
+  formDebugInfo: DebugInfo = {
+    name: "",
+    class: 'FormComponent',
+    status: FormStatus.INIT,
+    componentsLoaded: false,
+    isReady: false,
+    children: []
   };
   /**
    * The JSONata query source for component definitions
@@ -222,13 +234,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.downloadAndCreateOnInit.set(elementRef.nativeElement.getAttribute('downloadAndCreateOnInit') === 'true');
     }
 
-    this.appName = `Form::${this.trimmedParams.recordType()}::${this.trimmedParams.formName()} ${ this.trimmedParams.oid() ? ' - ' + this.trimmedParams.oid() : ''}`.trim();
+    this.appName = `Form::${this.trimmedParams.recordType()}::${this.trimmedParams.formName()} ${this.trimmedParams.oid() ? ' - ' + this.trimmedParams.oid() : ''}`.trim();
     this.loggerService.debug(`'${this.logName}' waiting for '${this.trimmedParams.formName()}' deps to init...`);
 
     this.initEffects();
   }
 
-  protected get getFormService(){
+  protected get getFormService() {
     return this.formService;
   }
 
@@ -271,7 +283,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (!compContainerRef) {
       throw new Error(`${this.logName}: No component container found. Cannot load components.`);
     }
-    for (const componentDefEntry of this.componentDefArr){
+    for (const componentDefEntry of this.componentDefArr) {
       const componentRef = compContainerRef.createComponent(FormBaseWrapperComponent);
       componentRef.instance.defaultComponentConfig = this.formDefMap?.formConfig?.defaultComponentConfig;
       componentRef.changeDetectorRef.detectChanges();
@@ -391,11 +403,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.subMaps['formValueChangesSub']?.unsubscribe();
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
         this.debugFormComponents.set(this.getDebugInfo());
+        this.debugFormValues.set(this.getDebugFormValue());
+        this.debugRawFormValues.set(this.getDebugRawFormValue());
       });
     }
     // set the initial signal values...
     this.formGroupStatus.set(this.dataStatus);
     this.debugFormComponents.set(this.getDebugInfo());
+    this.debugFormValues.set(this.getDebugFormValue());
+    this.debugRawFormValues.set(this.getDebugRawFormValue());
     // TODO: Placeholder for form-level expressions handling
     // Init the change event consumer
     // if (this.formDefMap?.formConfig.expressions){
@@ -494,6 +510,26 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.formDebugInfo;
   }
 
+  public getDebugFormValue(): Record<string, unknown> {
+    return this.getPersistedFormValue();
+  }
+
+  public getDebugRawFormValue(): Record<string, unknown> {
+    return structuredClone((this.form?.getRawValue?.() ?? {}) as Record<string, unknown>);
+  }
+
+  private getPersistedFormValue(): Record<string, unknown> {
+    const formValue = structuredClone((this.form?.value ?? {}) as Record<string, unknown>);
+    const groupMap = this.formDefMap?.completeGroupMap ?? {};
+    for (const [name, compEntry] of Object.entries(groupMap)) {
+      const includeByConfig = this.formService.shouldIncludeInFormControlMap(compEntry);
+      if (!includeByConfig) {
+        delete formValue[name];
+      }
+    }
+    return formValue;
+  }
+
 
   private getComponentDebugInfo(formFieldCompMapEntry: FormFieldCompMapEntry): DebugInfo {
     const componentEntry = formFieldCompMapEntry;
@@ -560,7 +596,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
         try {
           let response: RecordActionResult;
-          const currentFormValue = structuredClone(this.form.value);
+          const currentFormValue = this.getPersistedFormValue();
           // Mark form as pristine as we cloned the data already
           this.form.markAsPristine();
           if (_isEmpty(this.trimmedParams.oid())) {
@@ -572,9 +608,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }
           if (response?.success) {
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
+            if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
+              this.oid.set(String(response?.oid));
+            }
             // Emit success event
             this.eventBus.publish(
-              createFormSaveSuccessEvent({ savedData: currentFormValue })
+              createFormSaveSuccessEvent({
+                savedData: currentFormValue,
+                oid: !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid(),
+                response
+              })
             );
           } else {
             this.loggerService.warn(`${this.logName}: Form submission failed:`, response);

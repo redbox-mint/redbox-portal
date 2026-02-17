@@ -77,8 +77,8 @@ export class VocabField extends FieldBase<any> {
   completerLabelField: string;
 
   @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
-  
-  
+
+
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -134,7 +134,7 @@ export class VocabField extends FieldBase<any> {
         init.title = this.getTitle(this.value);
         this.initialValue = init;
       } else {
-        let init = {};
+        const init = {};
         init['title'] = this.value;
         init[this.stringLabelToField] = this.value;
         this.initialValue = init;
@@ -149,9 +149,9 @@ export class VocabField extends FieldBase<any> {
   }
 
   public reactEvent(eventName: string, eventData: any, origData: any) {
-    let selected = {};
+    const selected = {};
     if (this.storeLabelOnly || this.storeFreeTextAsString) {
-      selected['title'] = eventData; 
+      selected['title'] = eventData;
     }
     selected['originalObject'] = eventData;
     this.component.onSelect(selected, false, true);
@@ -185,11 +185,12 @@ export class VocabField extends FieldBase<any> {
 
   initLookupData() {
     if (this.sourceType == "vocab") {
+      const availableSourceData = this.findAvailableSourceData(this.sourceData);
       // Hack for creating the intended title...
-      _.forEach(this.sourceData, (data: any) => {
+      _.forEach(availableSourceData, (data: any) => {
         data.title = this.getTitle(data);
       });
-      this.dataService = this.completerService.local(this.sourceData, this.searchFields, 'title');
+      this.dataService = this.completerService.local(availableSourceData, this.searchFields, 'title');
     } else if (this.sourceType == "collection" || this.sourceType == "user") {
       let url = this.lookupService.getCollectionRootUrl(this.vocabId);
       if (this.sourceType == "user") {
@@ -226,7 +227,7 @@ export class VocabField extends FieldBase<any> {
         this.titleFieldArr,
         this.titleFieldDelim
       );
-    }  else if (this.sourceType == "query") {
+    } else if (this.sourceType == "query") {
       const url = this.lookupService.getRedboxLookupServiceUrl(this.vocabQueryId);
       this.dataService = new ReDBoxQueryLookupDataService(
         url,
@@ -243,10 +244,124 @@ export class VocabField extends FieldBase<any> {
     }
   }
 
+  private findAvailableSourceData(sourceData: any): any[] {
+    if (!_.isArray(sourceData)) {
+      return [];
+    }
+    return _.filter(sourceData, (option: any) => this.isOptionAvailable(option));
+  }
+
+  private isOptionAvailable(option: any): boolean {
+    if (!this.isHistoricalOption(option)) {
+      return true;
+    }
+    return this.optionMatchesCurrentValue(option);
+  }
+
+  private isHistoricalOption(option: any): boolean {
+    return _.get(option, 'historical') === true || _.get(option, 'historicalOnly') === true;
+  }
+
+  private optionMatchesCurrentValue(option: any): boolean {
+    if (_.isNil(this.value) || _.isEmpty(this.value)) {
+      return false;
+    }
+
+    const mappedOptionValue = this.getValue(option);
+    if (this.currentValueContainsMappedValue(this.value, mappedOptionValue)) {
+      return true;
+    }
+
+    const optionCandidates = this.collectComparisonValues(option, ['value', 'notation', 'identifier', 'id', 'uri']);
+    if (_.isEmpty(optionCandidates)) {
+      return false;
+    }
+    const currentCandidates = this.collectComparisonValues(this.value);
+    return _.some(optionCandidates, candidate => _.includes(currentCandidates, candidate));
+  }
+
+  private currentValueContainsMappedValue(currentValue: any, mappedValue: any): boolean {
+    if (_.isNil(mappedValue) || _.isEmpty(mappedValue) || _.isNil(currentValue) || _.isEmpty(currentValue)) {
+      return false;
+    }
+
+    if (_.isArray(currentValue)) {
+      return _.some(currentValue, (entry: any) => this.currentValueContainsMappedValue(entry, mappedValue));
+    }
+
+    if (_.isObject(mappedValue) && !_.isArray(mappedValue)) {
+      if (!_.isObject(currentValue) || _.isArray(currentValue)) {
+        return false;
+      }
+      const keys = _.keys(mappedValue).filter((key: string) => !_.isNil(mappedValue[key]) && String(mappedValue[key]).trim() !== '');
+      if (_.isEmpty(keys)) {
+        return false;
+      }
+      return _.every(keys, (key: string) => this.compareFieldValue(_.get(currentValue, key), mappedValue[key]));
+    }
+
+    return this.compareFieldValue(currentValue, mappedValue);
+  }
+
+  private compareFieldValue(current: any, expected: any): boolean {
+    if (_.isArray(current)) {
+      return _.some(current, (entry: any) => this.compareFieldValue(entry, expected));
+    }
+
+    const normalizedCurrent = this.normalizeComparisonValue(current);
+    const normalizedExpected = this.normalizeComparisonValue(expected);
+    if (_.isNil(normalizedCurrent) || _.isNil(normalizedExpected)) {
+      return false;
+    }
+
+    return normalizedCurrent === normalizedExpected;
+  }
+
+  private collectComparisonValues(value: any, preferredKeys: string[] = []): string[] {
+    const result = new Set<string>();
+    const visit = (candidate: any): void => {
+      if (_.isNil(candidate)) {
+        return;
+      }
+      if (_.isArray(candidate)) {
+        _.forEach(candidate, visit);
+        return;
+      }
+      if (_.isObject(candidate)) {
+        _.forOwn(candidate, (entryValue: any) => visit(entryValue));
+        return;
+      }
+      const normalized = this.normalizeComparisonValue(candidate);
+      if (!_.isNil(normalized)) {
+        result.add(normalized);
+      }
+    };
+
+    if (_.isObject(value) && !_.isArray(value) && !_.isEmpty(preferredKeys)) {
+      _.forEach(preferredKeys, (key: string) => {
+        const normalized = this.normalizeComparisonValue(_.get(value, key));
+        if (!_.isNil(normalized)) {
+          result.add(normalized);
+        }
+      });
+    }
+
+    visit(value);
+    return Array.from(result);
+  }
+
+  private normalizeComparisonValue(value: any): string | null {
+    if (_.isNil(value) || _.isObject(value)) {
+      return null;
+    }
+    const normalized = String(value).trim();
+    return _.isEmpty(normalized) ? null : normalized;
+  }
+
   public getTitle(data: any): string {
     let title = '';
-    if(!data) {
-      if(this.storedEventData != null) {
+    if (!data) {
+      if (this.storedEventData != null) {
         data = _.clone(this.storedEventData);
         this.storedEventData == null;
       }
@@ -325,7 +440,7 @@ export class VocabField extends FieldBase<any> {
   public setValue(value: any, emitEvent: boolean = true, updateTitle: boolean = true) {
     this.formModel.setValue(value, { emitEvent: emitEvent });
     if (updateTitle) {
-      if(!_.isUndefined(this.component.ngCompleter)) {
+      if (!_.isUndefined(this.component.ngCompleter)) {
         this.component.ngCompleter.ctrInput.nativeElement.value = this.getTitle(value);
       } else {
         this.storedEventData = _.clone(value);
@@ -344,10 +459,10 @@ export class VocabField extends FieldBase<any> {
   setRequiredAndClearValueOnFalse(flag) {
     this.required = flag;
     if (flag) {
-      this.validators =objectRequired();
+      this.validators = objectRequired();
       this.formModel.setValidators(this.validators);
     } else {
-      if (_.isFunction(this.validators) && _.isEqual(this.validators,objectRequired())) {
+      if (_.isFunction(this.validators) && _.isEqual(this.validators, objectRequired())) {
         this.validators = null;
       }
       this.formModel.clearValidators();
@@ -361,11 +476,11 @@ export class VocabField extends FieldBase<any> {
     if (flag) {
       this.validators = objectRequired();
     } else {
-      if (_.isFunction(this.validators) && _.isEqual(this.validators,objectRequired())) {
+      if (_.isFunction(this.validators) && _.isEqual(this.validators, objectRequired())) {
         this.validators = null;
       } else {
         _.remove(this.validators, (v) => {
-          return _.isEqual(v,objectRequired());
+          return _.isEqual(v, objectRequired());
         });
       }
     }
@@ -376,7 +491,7 @@ export class VocabField extends FieldBase<any> {
     }
   }
 
-  public setVisibility(data, eventConf:any = {}) {
+  public setVisibility(data, eventConf: any = {}) {
     let newVisible = this.visible;
     if (_.isArray(this.visibilityCriteria)) {
       // save the value of this data in a map, so we can run complex conditional logic that depends on one or more fields
@@ -393,18 +508,18 @@ export class VocabField extends FieldBase<any> {
 
       }
     } else
-    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
-      newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
-    } else {
-      newVisible = _.isEqual(data, this.visibilityCriteria);
-    }
+      if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
+        newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
+      } else {
+        newVisible = _.isEqual(data, this.visibilityCriteria);
+      }
     const that = this;
     setTimeout(() => {
       if (!newVisible) {
         if (that.visible) {
           // remove validators
           if (that.formModel) {
-            if(that['disableValidators'] != null && typeof(that['disableValidators']) == 'function') {
+            if (that['disableValidators'] != null && typeof (that['disableValidators']) == 'function') {
               that['disableValidators']();
             } else {
               that.formModel.clearValidators();
@@ -416,40 +531,40 @@ export class VocabField extends FieldBase<any> {
       } else {
         if (!that.visible) {
           // restore validators
-          if (that.formModel) {       
-              if(that['enableValidators'] != null && typeof(that['enableValidators']) == 'function') {
-                that['enableValidators']();
-              } else {
-                that.formModel.setValidators(that.validators);
-              }
-              that.formModel.updateValueAndValidity();
-              setTimeout(() => {
+          if (that.formModel) {
+            if (that['enableValidators'] != null && typeof (that['enableValidators']) == 'function') {
+              that['enableValidators']();
+            } else {
+              that.formModel.setValidators(that.validators);
+            }
+            that.formModel.updateValueAndValidity();
+            setTimeout(() => {
               that.component.ngCompleter.ctrInput.nativeElement.value = that.getTitle(null);
-              });
+            });
           }
         }
       }
       that.visible = newVisible;
     });
-    if(eventConf.returnData == true) {
+    if (eventConf.returnData == true) {
       return data;
     }
-    
+
   }
 
 }
 
-export function objectRequired(): ValidationErrors|null {
-  
-  return (control: AbstractControl): { [key: string]: any } | null =>  
-  (_.isEqual(control.value, {}) || _.isEmpty(control.value)) 
-            ? {'required': true} : null;
-            
-  
+export function objectRequired(): ValidationErrors | null {
+
+  return (control: AbstractControl): { [key: string]: any } | null =>
+    (_.isEqual(control.value, {}) || _.isEmpty(control.value))
+      ? { 'required': true } : null;
+
+
 }
 
 class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
-  storedEventData:any = null;
+  storedEventData: any = null;
   private searchTerms = new Subject<string>();
   private searchSubscription: Subscription;
 
@@ -462,7 +577,7 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
     private maxRows: string,
     private queryDelayTimeMs: number = 300,
     private storeFreeTextAsString: boolean = false,
-    private completerLabelField:string) {
+    private completerLabelField: string) {
     super();
     this.searchSubscription = this.searchTerms.pipe(
       debounceTime(this.queryDelayTimeMs), // Wait for a default 300ms of inactivity
@@ -476,10 +591,10 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
   }
 
   public performSearch(term: string): void {
-    let that = this;
+    const that = this;
     this.http.get(`${this.url}?search=${term}&start=0&rows=${this.maxRows}`).map((res: any, index: number) => {
-      let data = res.json();
-      let arrayPath = that.arrayProperty;
+      const data = res.json();
+      const arrayPath = that.arrayProperty;
       let itemArray = [];
       if (_.isUndefined(arrayPath) || _.isEmpty(arrayPath)) {
         itemArray = data;
@@ -487,10 +602,10 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
         itemArray = _.get(data, arrayPath);
       }
       // Convert the result to CompleterItem[]
-      let matches: (CompleterItem)[] = [];
+      const matches: (CompleterItem)[] = [];
       _.each(itemArray, item => {
         const completerItem = this.convertToItem(item)
-        if(completerItem != null) {
+        if (completerItem != null) {
           matches.push(completerItem);
         }
       });
@@ -507,9 +622,9 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
     if (!data) {
       return null;
     }
-    let completerItem = {};
+    const completerItem = {};
     completerItem[this.compositeTitleName] = this.getTitle(data);
-    completerItem['description'] = _.get(data, this.completerLabelField, this.getTitle(data)) ;
+    completerItem['description'] = _.get(data, this.completerLabelField, this.getTitle(data));
     completerItem['originalObject'] = data;
     return completerItem as CompleterItem;
   }
@@ -517,13 +632,13 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
   getTitle(data: any): string {
     let title = '';
     if (data == null) {
-      if(this.storedEventData != null) {
-          data = _.clone(this.storedEventData);
+      if (this.storedEventData != null) {
+        data = _.clone(this.storedEventData);
       }
       this.storedEventData = null;
     }
-  
-    if(data){
+
+    if (data) {
       if (_.isString(this.titleFieldDelim)) {
         _.forEach(this.titleFieldArr, (titleFld: string) => {
           const titleVal = _.get(data, titleFld);
@@ -561,7 +676,7 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
 }
 
 class ExternalLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
-  storedEventData:any = null;
+  storedEventData: any = null;
 
   constructor(private url: string,
     private http: Http,
@@ -576,9 +691,9 @@ class ExternalLookupDataService extends Subject<CompleterItem[]> implements Comp
 
     this.http.post(this.url, { options: { query: term } }).map((res: any, index: number) => {
       // Convert the result to CompleterItem[]
-      let data = res.json();
-      let itemArray = _.get(data, this.arrayProperty);
-      let matches: CompleterItem[] = [];
+      const data = res.json();
+      const itemArray = _.get(data, this.arrayProperty);
+      const matches: CompleterItem[] = [];
       _.each(itemArray, item => {
         matches.push(this.convertToItem(item));
       })
@@ -595,7 +710,7 @@ class ExternalLookupDataService extends Subject<CompleterItem[]> implements Comp
     if (!data) {
       return null;
     }
-    let completerItem = {};
+    const completerItem = {};
     completerItem[this.compositeTitleName] = this.getTitle(data);
     completerItem['originalObject'] = data;
     return completerItem as CompleterItem;
@@ -604,13 +719,13 @@ class ExternalLookupDataService extends Subject<CompleterItem[]> implements Comp
   getTitle(data: any): string {
     let title = '';
     if (data == null) {
-      if(this.storedEventData != null) {
-          data = _.clone(this.storedEventData);
+      if (this.storedEventData != null) {
+        data = _.clone(this.storedEventData);
       }
       this.storedEventData = null;
     }
-  
-  if(data){
+
+    if (data) {
       if (_.isString(this.titleFieldDelim)) {
         _.forEach(this.titleFieldArr, (titleFld: string) => {
           const titleVal = _.get(data, titleFld);
@@ -619,7 +734,7 @@ class ExternalLookupDataService extends Subject<CompleterItem[]> implements Comp
           }
         });
       } else {
-        
+
         // // expecting a delim pair array, 'prefix', 'suffix'
         // _.forEach(this.titleFieldArr, (titleFld: string, idx) => {
         //   const delimPair = this.titleFieldDelim[idx];
@@ -653,8 +768,8 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
     private exactMatchString: boolean) {
     super();
     this.searchFields = searchFieldStr.split(',');
-    
-    if(this.exactMatchString) {
+
+    if (this.exactMatchString) {
       this.stringWildcard = '';
     }
 
@@ -663,7 +778,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
     ).subscribe(term => {
       this.performSearch(term);
     });
-    
+
   }
 
   public search(term: string): void {
@@ -674,19 +789,19 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
     term = _.trim(luceneEscapeQuery.escape(term));
     let searchString = '';
     if (!_.isEmpty(term)) {
-      if(!this.exactMatchString) {
+      if (!this.exactMatchString) {
         term = _.toLower(term);
       }
       _.forEach(this.searchFields, (searchFld) => {
-          searchString = `${searchString}${_.isEmpty(searchString) ? '' : ' OR '}${searchFld}:${term}${this.stringWildcard}`
+        searchString = `${searchString}${_.isEmpty(searchString) ? '' : ' OR '}${searchFld}:${term}${this.stringWildcard}`
       });
     }
     if (!this.exactMatchString || (!_.isEmpty(term) && this.exactMatchString)) {
       const searchUrl = `${this.url}${searchString}&unflatten=${this.unflattenFlag}`;
       this.http.get(`${searchUrl}`).map((res: any, index: number) => {
         // Convert the result to CompleterItem[]
-        let data = res.json();
-        let matches: CompleterItem[] = _.map(data, (mintDataItem: any) => { return this.convertToItem(mintDataItem); });
+        const data = res.json();
+        const matches: CompleterItem[] = _.map(data, (mintDataItem: any) => { return this.convertToItem(mintDataItem); });
         this.next(matches);
       }).subscribe();
     }
@@ -716,7 +831,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
       }
     });
     // build the title,
-    let completerItem = {};
+    const completerItem = {};
     completerItem[this.compositeTitleName] = this.getTitle(data);
     completerItem['description'] = this.getCompleterDescription(data);
     completerItem['originalObject'] = item;
@@ -812,7 +927,7 @@ export class VocabFieldLookupService extends BaseService {
   getRedboxLookupServiceUrl(vocabQueryId: string) {
     return `${this.brandingAndPortalUrl}/query/vocab/${vocabQueryId}`;
   }
-  
+
 
 }
 
@@ -892,7 +1007,7 @@ export class VocabFieldComponent extends SimpleComponent {
   onSelect(selected: any, emitEvent: boolean = true, updateTitle: boolean = false) {
     console.log(`On select:`);
     console.log(selected);
-    let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
+    const disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
     if (selected) {
       if (this.loaded) {
         this.field.onItemSelect.emit(selected['originalObject']);
@@ -905,7 +1020,7 @@ export class VocabFieldComponent extends SimpleComponent {
       }
       if (this.field.storeLabelOnly) {
         this.field.setValue(this.field.getValue(selected.title), emitEvent, updateTitle);
-      } else if (this.field.storeFreeTextAsString && (_.isString(selected['originalObject']) || _.keys(selected['originalObject']).length == 1) ) {
+      } else if (this.field.storeFreeTextAsString && (_.isString(selected['originalObject']) || _.keys(selected['originalObject']).length == 1)) {
         // the above condition is true when the field is storing freely entered text
         const title = selected.title || (_.get(selected['originalObject'], 'title') || selected['originalObject']);
         this.field.setValue(this.field.getValue(title), emitEvent, updateTitle);
@@ -931,7 +1046,7 @@ export class VocabFieldComponent extends SimpleComponent {
   }
 
   onKeyup(value: any) {
-    let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
+    const disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
     if (!disableEditAfterSelect && !this.field.restrictToSelection) {
       if (this.field.storeFreeTextAsString) {
         this.field.formModel.setValue(this.field.searchStr);

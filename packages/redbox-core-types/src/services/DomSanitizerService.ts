@@ -62,14 +62,14 @@ const getWindow = () => {
   const globalCache = globalThis as typeof globalThis & {
     window?: WindowLike;
     DOMPurify?: DomPurifyInstance;
-    __svgSanitizerWindow?: WindowLike;
+    __domSanitizerWindow?: WindowLike;
   } & Record<string, unknown>;
   const globalWindow = globalCache.window;
   if (globalWindow && typeof globalWindow.document !== 'undefined') {
     return globalWindow;
   }
 
-  const cacheKey = '__svgSanitizerWindow';
+  const cacheKey = '__domSanitizerWindow';
   if (!globalCache[cacheKey]) {
     const { window } = new JSDOM('', { pretendToBeVisual: true });
     globalCache[cacheKey] = window;
@@ -123,7 +123,7 @@ const instantiateDomPurify = (factoryModule: unknown): DomPurifyInstance | null 
         return instance;
       }
     } catch (error) {
-      sails?.log?.silly?.('SvgSanitizerService:: DOMPurify instantiation attempt failed', error);
+      sails?.log?.silly?.('DomSanitizerService:: DOMPurify instantiation attempt failed', error);
     }
   }
 
@@ -136,12 +136,43 @@ const initialiseDOMPurify = (): DomPurifyInstance => {
     return instanceFromDomPurify;
   }
 
-  throw new Error('SvgSanitizerService: Failed to initialise DOMPurify with hook support');
+  throw new Error('DomSanitizerService: Failed to initialise DOMPurify with hook support');
 };
 
 const DOMPurify = initialiseDOMPurify();
 
 (globalThis as typeof globalThis & { DOMPurify?: DomPurifyInstance }).DOMPurify = DOMPurify;
+
+const createDOMPurifyForCall = (): DomPurifyInstance => {
+  const windowRef = getWindow();
+  const moduleRecord = (typeof domPurify === 'object' || typeof domPurify === 'function')
+    ? (domPurify as unknown as Record<string, unknown>)
+    : null;
+
+  const createDOMPurify =
+    (typeof moduleRecord?.createDOMPurify === 'function' && moduleRecord.createDOMPurify)
+    || (typeof domPurify === 'function' && domPurify)
+    || (typeof moduleRecord?.default === 'function' && moduleRecord.default)
+    || null;
+
+  if (typeof createDOMPurify === 'function') {
+    try {
+      const instance = (createDOMPurify as (window: WindowLike) => unknown)(windowRef);
+      if (isDomPurifyInstance(instance)) {
+        return instance;
+      }
+    } catch (error) {
+      sails?.log?.silly?.('DomSanitizerService:: per-call DOMPurify creation failed, falling back', error);
+    }
+  }
+
+  const fallback = instantiateDomPurify(domPurify);
+  if (fallback) {
+    return fallback;
+  }
+
+  throw new Error('DomSanitizerService: Failed to initialise DOMPurify instance for sanitize call');
+};
 
 export namespace Services {
   /**
@@ -206,11 +237,11 @@ export namespace Services {
    * - Consider additional application-specific validation
    * - Keep DOMPurify updated for latest security patches
    */
-  export class SvgSanitizer extends coreServices.Core.Service {
+  export class DomSanitizer extends coreServices.Core.Service {
 
     constructor() {
       super();
-      this.logHeader = "SvgSanitizerService::";
+      this.logHeader = "DomSanitizerService::";
     }
 
     getMaxBytes(): number {
@@ -233,7 +264,7 @@ export namespace Services {
         const sanitized = DOMPurify.sanitize(content, config);
         return String(sanitized);
       } catch (error) {
-        sails.log.error(`SvgSanitizerService: Error sanitizing content with profile '${profileName}':`, error);
+        sails.log.error(`DomSanitizerService: Error sanitizing content with profile '${profileName}':`, error);
         throw error;
       }
     }
@@ -254,7 +285,7 @@ export namespace Services {
       const profile = profiles[profileName] || profiles[dompurifyConfig.defaultProfile] || profiles.svg;
 
       if (!profile) {
-        sails.log.error(`SvgSanitizerService: DOMPurify profile '${profileName}' not found and no fallback available`);
+        sails.log.error(`DomSanitizerService: DOMPurify profile '${profileName}' not found and no fallback available`);
         throw new Error(`DOMPurify configuration profile '${profileName}' not found`);
       }
 
@@ -361,10 +392,13 @@ export namespace Services {
         errors.push('missing-svg-root');
       }
 
-      // Check for excessive nesting (prevent billion laughs attack)
-      const nestingLevel = (svg.match(/<[^\/][^>]*>/g) || []).length;
-      if (nestingLevel > 1000) {
+      // Check for excessive nesting and element count (resource exhaustion protection)
+      const svgStructure = this.inspectSvgStructure(svg);
+      if (svgStructure.maxDepth > 1000) {
         errors.push('excessive-nesting');
+      }
+      if (svgStructure.totalElements > 100000) {
+        errors.push('excessive-elements');
       }
 
       // Check for suspicious CDATA sections
@@ -459,16 +493,16 @@ export namespace Services {
           }
         };
 
-        DOMPurify.addHook('beforeSanitizeElements', beforeSanitizeElementsHook);
-        DOMPurify.addHook('beforeSanitizeAttributes', beforeSanitizeAttributesHook);
+        const domPurifyForCall = createDOMPurifyForCall();
+        domPurifyForCall.addHook('beforeSanitizeElements', beforeSanitizeElementsHook);
+        domPurifyForCall.addHook('beforeSanitizeAttributes', beforeSanitizeAttributesHook);
 
         let sanitized: unknown;
         try {
-          sanitized = DOMPurify.sanitize(svg, config);
+          sanitized = domPurifyForCall.sanitize(svg, config);
         } finally {
-          // Remove hooks added in this invocation only (LIFO removal)
-          DOMPurify.removeHook('beforeSanitizeAttributes');
-          DOMPurify.removeHook('beforeSanitizeElements');
+          domPurifyForCall.removeHook('beforeSanitizeAttributes');
+          domPurifyForCall.removeHook('beforeSanitizeElements');
         }
 
         // Post-sanitization validation
@@ -524,13 +558,46 @@ export namespace Services {
         };
       }
     }
+
+    private inspectSvgStructure(svg: string): { maxDepth: number; totalElements: number } {
+      const tagRegex = /<\s*(\/)?\s*([a-zA-Z][\w:.-]*)([^>]*)>/g;
+      let depth = 0;
+      let maxDepth = 0;
+      let totalElements = 0;
+
+      let match: RegExpExecArray | null;
+      while ((match = tagRegex.exec(svg)) !== null) {
+        const isClosingTag = Boolean(match[1]);
+        const trailingSegment = match[3] ?? '';
+        const isSelfClosingTag = /\/\s*$/.test(trailingSegment);
+
+        if (isClosingTag) {
+          depth = Math.max(0, depth - 1);
+          continue;
+        }
+
+        totalElements += 1;
+        depth += 1;
+        if (depth > maxDepth) {
+          maxDepth = depth;
+        }
+
+        if (isSelfClosingTag) {
+          depth = Math.max(0, depth - 1);
+        }
+      }
+
+      return { maxDepth, totalElements };
+    }
   }
+
+
 }
 
 
 export default Services;
-PopulateExportedMethods(Services.SvgSanitizer);
+PopulateExportedMethods(Services.DomSanitizer);
 
 declare global {
-  let SvgSanitizerService: Services.SvgSanitizer;
+  let DomSanitizerService: Services.DomSanitizer;
 }

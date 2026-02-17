@@ -41,8 +41,25 @@ export interface RecordSearchConfig {
 }
 
 export interface RecordAttachmentsConfig {
-    stageDir: string;
     path: string;
+    store?: 'file' | 's3';
+    file?: {
+        directory: string;
+    };
+    s3?: {
+        bucket: string;
+        region: string;
+        accessKeyId?: string;
+        secretAccessKey?: string;
+        endpoint?: string;
+        partSize?: number;
+    };
+    /** @deprecated Use file.directory instead. */
+    stageDir?: string;
+}
+
+export interface RecordFormConfig {
+    htmlSanitizationMode: 'sanitize' | 'reject';
 }
 
 export interface RecordConfig {
@@ -61,6 +78,7 @@ export interface RecordConfig {
     attachments: RecordAttachmentsConfig;
     datastreamService?: string;
     helpEmail: string;
+    form?: RecordFormConfig;
 }
 
 export const record: RecordConfig = {
@@ -75,6 +93,9 @@ export const record: RecordConfig = {
     maxUploadSize: 1073741824,
     mongodbDisk: '/attachments',
     diskSpaceThreshold: 10737418240,
+    form: {
+        htmlSanitizationMode: 'sanitize'
+    },
     api: {
         create: { method: 'post', url: "/api/v1/object/$packageType" },
         search: { method: 'get', url: "/api/v1/search" },
@@ -148,8 +169,11 @@ export const record: RecordConfig = {
         maxRecordsPerPage: 1000000
     },
     attachments: {
-        stageDir: '/attachments/staging',
-        path: '/attach'
+        path: '/attach',
+        store: 'file',
+        file: {
+            directory: '/attachments/staging'
+        }
     },
     helpEmail: 'support@redboxresearchdata.com.au'
 };

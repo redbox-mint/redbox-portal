@@ -394,9 +394,9 @@ export namespace Services {
           _.remove(userEmails, (email: string) => {
             return email == userObj['email'];
           });
-          const resolvedUsername = _.trim(String(userObj['username'] ?? userObj['name'] ?? ''));
-          if (!_.isEmpty(resolvedUsername)) {
-            userList.push(resolvedUsername);
+          const username = userObj['username'];
+          if (_.isString(username) && !_.isEmpty(username)) {
+            userList.push(username);
           }
         }
       });

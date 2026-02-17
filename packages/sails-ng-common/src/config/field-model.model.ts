@@ -1,6 +1,6 @@
-import {FormValidatorConfig} from "../validation/form.model";
-import {FieldDefinition} from "./field.model";
-import {FieldModelConfigOutline, FieldModelDefinitionOutline} from "./field-model.outline";
+import { FormValidatorConfig } from "../validation/form.model";
+import { FieldDefinition } from "./field.model";
+import { FieldModelConfigOutline, FieldModelDefinitionOutline } from "./field-model.outline";
 
 
 /**
@@ -14,6 +14,7 @@ export abstract class FieldModelConfig<ValueType> implements FieldModelConfigOut
     validators?: FormValidatorConfig[];
     value?: ValueType;
     wrapperCssClasses?: string;
+    disabled?: boolean;
 }
 
 /**

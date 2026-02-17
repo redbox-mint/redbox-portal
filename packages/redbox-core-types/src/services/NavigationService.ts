@@ -45,14 +45,6 @@ import {
 } from '../configmodels/AdminSidebarConfig';
 import { BrandingModel } from '../model/storage/BrandingModel';
 
-interface RequestLike {
-  isAuthenticated?: () => boolean;
-  user?: unknown;
-  path?: string;
-  params?: Record<string, unknown>;
-  body?: Record<string, unknown>;
-  session?: Record<string, unknown>;
-}
 
 /**
  * Context object containing request state for visibility checks
@@ -130,13 +122,13 @@ export namespace Services {
      * @param req - The Express/Sails request object
      * @returns ResolvedMenu ready for rendering in templates
      */
-    public async resolveMenu(req: RequestLike): Promise<ResolvedMenu> {
+    public async resolveMenu(req: Sails.Req): Promise<ResolvedMenu> {
       try {
         const context = this.buildResolutionContext(req);
 
         // Pull config from brandingAware or fall back to defaults
         let menuConfig: MenuConfigData = DEFAULT_MENU_CONFIG;
-        const brandName = BrandingService.getBrandFromReq(req);
+        const brandName = BrandingService.getBrandNameFromReq(req);
         if (typeof sails.config.brandingAware === 'function') {
           const brandingConfig = sails.config.brandingAware(brandName);
           if (brandingConfig?.menu?.items) {
@@ -167,13 +159,13 @@ export namespace Services {
      * @param req - The Express/Sails request object
      * @returns ResolvedHomePanels ready for rendering in templates
      */
-    public async resolveHomePanels(req: RequestLike): Promise<ResolvedHomePanels> {
+    public async resolveHomePanels(req: Sails.Req): Promise<ResolvedHomePanels> {
       try {
         const context = this.buildResolutionContext(req);
 
         // Pull config from brandingAware or fall back to defaults
         let homePanelConfig: HomePanelConfigData = DEFAULT_HOME_PANEL_CONFIG;
-        const brandName = BrandingService.getBrandFromReq(req);
+        const brandName = BrandingService.getBrandNameFromReq(req);
         if (typeof sails.config.brandingAware === 'function') {
           const brandingConfig = sails.config.brandingAware(brandName);
           if (brandingConfig?.homePanels?.panels) {
@@ -209,13 +201,13 @@ export namespace Services {
      * @param req - The Express/Sails request object
      * @returns ResolvedAdminSidebar ready for rendering in templates
      */
-    public async resolveAdminSidebar(req: RequestLike): Promise<ResolvedAdminSidebar> {
+    public async resolveAdminSidebar(req: Sails.Req): Promise<ResolvedAdminSidebar> {
       try {
         const context = this.buildResolutionContext(req);
 
         // Pull config from brandingAware or fall back to defaults
         let adminSidebarConfig: AdminSidebarConfigData = DEFAULT_ADMIN_SIDEBAR_CONFIG;
-        const brandName = BrandingService.getBrandFromReq(req);
+        const brandName = BrandingService.getBrandNameFromReq(req);
         if (typeof sails.config.brandingAware === 'function') {
           const brandingConfig = sails.config.brandingAware(brandName);
           if (brandingConfig?.adminSidebar?.sections) {
@@ -274,8 +266,8 @@ export namespace Services {
     /**
      * Builds the resolution context from a request
      */
-    private buildResolutionContext(req: RequestLike): ResolutionContext {
-      const brandName = BrandingService.getBrandFromReq(req);
+    private buildResolutionContext(req: Sails.Req): ResolutionContext {
+      const brandName = BrandingService.getBrandNameFromReq(req);
       const brand = BrandingService.getBrand(brandName) || null;
       const brandPortalPath = BrandingService.getBrandAndPortalPath(req);
       const isAuthenticated = req.isAuthenticated ? req.isAuthenticated() : false;

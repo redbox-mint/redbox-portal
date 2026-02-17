@@ -102,8 +102,8 @@ export namespace Controllers {
           if (!hasAccess) {
             return this.sendResp(req, res, {
               status: 403,
-              displayErrors: [{code: 'view-error-no-permissions'}],
-              v1: {message: TranslationService.t('view-error-no-permissions')}
+              displayErrors: [{ code: 'view-error-no-permissions' }],
+              v1: { message: TranslationService.t('view-error-no-permissions') }
             });
           }
           recordMetadata = record?.metadata ?? {};
@@ -114,16 +114,16 @@ export namespace Controllers {
         if (!formConfig) {
           return this.sendResp(req, res, {
             status: 500,
-            displayErrors: [{detail: "Form configuration not found."}],
+            displayErrors: [{ detail: "Form configuration not found." }],
           });
         }
-        const entries: TemplateCompileInput[] = FormRecordConsistencyService.extractRawTemplates(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
+        const entries: TemplateCompileInput[] = await FormRecordConsistencyService.extractRawTemplates(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
         return this.sendResp(req, res, {
           status: 500,
           errors: [this.asError(error)],
-          displayErrors: [{detail: "Could not get form data."}],
+          displayErrors: [{ detail: "Could not get form data." }],
         });
       }
     }

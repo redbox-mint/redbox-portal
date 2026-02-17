@@ -30,7 +30,7 @@ describe('UserController', () => {
         (global as any).sails = mockSails;
         (global as any).BrandingService = {
             getBrandAndPortalPath: sinon.stub().returns('/default/portal'),
-            getBrandFromReq: sinon.stub().returns('default'),
+            getBrandNameFromReq: sinon.stub().returns('default'),
             getBrand: sinon.stub().returns({ id: 'brand-1' })
         };
         (global as any).UsersService = {

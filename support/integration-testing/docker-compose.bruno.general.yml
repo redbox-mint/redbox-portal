@@ -5,20 +5,19 @@ x-bruno-service: &bruno-service
   image: node:24-bullseye
   pull_policy: 'missing'
   volumes:
-    - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
-    - "../../test/bruno/bruno.json:/opt/bruno-tests/bruno.json"
-    - "../../test/bruno/package.json:/opt/bruno-tests/package.json"
-    - "../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json"
-    - "../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png"
-    - "../../test/bruno/environments:/opt/bruno-tests/environments"
-    - "../../test/bruno/1 - REST API:/opt/bruno-tests/1 - REST API"
-    - "../../test/bruno/2 - AJAX calls:/opt/bruno-tests/2 - AJAX calls"
-    - "../../test/bruno/3 - OpenID Connect:/opt/bruno-tests/3 - OpenID Connect"
-    - "../../test/bruno/4 - General:/opt/bruno-tests/4 - General"
-    - "../../test/bruno/bruno-helpers.js:/opt/bruno-tests/bruno-helpers.js"
-    - "../../support/integration-testing/run-bruno-general.sh:/opt/bruno-tests/run-bruno-general.sh"
-    - "../../test/bruno/validate-bruno-files.js:/opt/bruno-tests/validate-bruno-files.js"
-    - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
+    - '../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno'
+    - '../../test/bruno/bruno.json:/opt/bruno-tests/bruno.json'
+    - '../../test/bruno/package.json:/opt/bruno-tests/package.json'
+    - '../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json'
+    - '../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png'
+    - '../../test/bruno/environments:/opt/bruno-tests/environments'
+    - '../../test/bruno/1 - REST API:/opt/bruno-tests/1 - REST API'
+    - '../../test/bruno/2 - AJAX calls:/opt/bruno-tests/2 - AJAX calls'
+    - '../../test/bruno/3 - OpenID Connect:/opt/bruno-tests/3 - OpenID Connect'
+    - '../../test/bruno/4 - General:/opt/bruno-tests/4 - General'
+    - '../../test/bruno/bruno-helpers.js:/opt/bruno-tests/bruno-helpers.js'
+    - '../../support/integration-testing/run-bruno-general.sh:/opt/bruno-tests/run-bruno-general.sh'
+    - '../../test/bruno/validate-bruno-files.js:/opt/bruno-tests/validate-bruno-files.js'
   working_dir: /opt/bruno-tests
   stop_grace_period: 30m
   networks:
@@ -34,7 +33,14 @@ x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
   - PORT=1500
   - NODE_OPTIONS=--max-old-space-size=1024
-  - "RBPORTAL_REMOTE_DEBUG=${RBPORTAL_REMOTE_DEBUG:-}"
+  - 'RBPORTAL_REMOTE_DEBUG=${RBPORTAL_REMOTE_DEBUG:-}'
+  - UPPY_COMPANION_ENABLED=true
+  - UPPY_COMPANION_SECRET=integrationtest-companion-secret
+  - UPPY_COMPANION_FILE_PATH=/tmp/companion
+  - UPPY_COMPANION_HOST=redboxportal:1500
+  - UPPY_COMPANION_PROTOCOL=http
+  - UPPY_COMPANION_PATH=/companion
+  - UPPY_COMPANION_UPLOAD_URLS=http://redboxportal:1500/default/rdmp/record/pending-oid/attach
   - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
   - sails_record__baseUrl_redbox=http://redbox:9000/redbox
   - sails_record__baseUrl_mint=http://203.101.226.160/mint
@@ -42,7 +48,7 @@ x-rbportal-env: &rbportal-env
   # - sails_log__level=verbose
   - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
   - sails_security__csrf=false
-  - "BRUNO_POST_SLEEP_SECONDS=${BRUNO_POST_SLEEP_SECONDS:-30}"
+  - 'BRUNO_POST_SLEEP_SECONDS=${BRUNO_POST_SLEEP_SECONDS:-30}'
 
 x-rbportal-depends: &rbportal-depends
   keycloak:
@@ -59,26 +65,27 @@ x-rbportal-service: &rbportal-service
   pull_policy: 'never'
   user: root
   # Debugging port (publish only when debugging locally)
-#  ports:
-#    - "9876:9876"
+  #  ports:
+  #    - "9876:9876"
   volumes:
-    - "../../test:/opt/redbox-portal/test"
-    - "../../support:/opt/redbox-portal/support"
-    - "../../coverage/bruno-general:/opt/redbox-portal/coverage/bruno-general"
-    - "../../app.integrationtest.js:/opt/redbox-portal/app.integrationtest.js"
-    - "../../.tmp/attachments:/attachments"
-    - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+    - '../../test:/opt/redbox-portal/test'
+    - '../../support:/opt/redbox-portal/support'
+    - '../../coverage/bruno-general:/opt/redbox-portal/coverage/bruno-general'
+    - '../../app.integrationtest.js:/opt/redbox-portal/app.integrationtest.js'
+    - '../../.tmp/attachments:/attachments'
+    - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
+    - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
   stop_grace_period: 30m
   healthcheck:
-    test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
+    test: ['CMD-SHELL', 'curl http://localhost:1500/default/rdmp/home']
     interval: '10s'
     timeout: '5s'
     retries: 10
     start_period: '60s'
   depends_on: *rbportal-depends
   expose:
-    - "1500"
-    - "1599"
+    - '1500'
+    - '1599'
   environment: *rbportal-env
   networks:
     main:
@@ -107,20 +114,21 @@ services:
     <<: *rbportal-service
     profiles: [ci]
     ports:
-      - "1500:1500"
+      - '1500:1500'
   redboxportal-mount:
     <<: *rbportal-service
     profiles: [mount]
     ports:
-      - "1500:1500"
+      - '1500:1500'
     image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
     volumes:
-      - "../../:/opt/redbox-portal:delegated"
-      - "../../.tmp/attachments:/attachments"
-      - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+      - '../../:/opt/redbox-portal:delegated'
+      - '../../.tmp/attachments:/attachments'
+      - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
+      - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     # Mount version runs npm install so needs longer startup time
     healthcheck:
-      test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
+      test: ['CMD-SHELL', 'curl http://localhost:1500/default/rdmp/home']
       interval: '10s'
       timeout: '5s'
       retries: 30
@@ -129,14 +137,14 @@ services:
     image: mongo:latest
     pull_policy: 'missing'
     ports:
-      - "27017:27017"
+      - '27017:27017'
     networks:
       main:
         aliases:
           - mongodb
     # No published ports needed in CI
     healthcheck:
-      test: [ 'CMD-SHELL', "echo 'db.runCommand(\"ping\").ok' | mongosh" ]
+      test: ['CMD-SHELL', 'echo ''db.runCommand("ping").ok'' | mongosh']
       interval: '10s'
       timeout: '5s'
       retries: 10
@@ -145,18 +153,18 @@ services:
     image: solr:latest
     pull_policy: 'missing'
     expose:
-      - "8983"
+      - '8983'
     # No published ports needed in CI
     healthcheck:
-      test: [ 'CMD-SHELL', 'curl http://localhost:8983' ]
+      test: ['CMD-SHELL', 'curl http://localhost:8983']
       interval: '10s'
       timeout: '5s'
       retries: 10
       start_period: '30s'
     networks:
       main:
-       aliases:
-         - solr
+        aliases:
+          - solr
     entrypoint:
       - docker-entrypoint.sh
       - solr-precreate
@@ -165,20 +173,20 @@ services:
     image: quay.io/keycloak/keycloak:17.0.1
     pull_policy: 'missing'
     expose:
-      - "8080"
+      - '8080'
     # No published ports needed in CI
     healthcheck:
-      test: ["CMD-SHELL", "curl http://localhost:8080"]
+      test: ['CMD-SHELL', 'curl http://localhost:8080']
       interval: '10s'
       timeout: '5s'
       retries: 10
       start_period: '30s'
     volumes:
-      - "./keycloakdb/data:/opt/keycloak/data"
+      - './keycloakdb/data:/opt/keycloak/data'
     networks:
       main:
-       aliases:
-         - keycloak
+        aliases:
+          - keycloak
     command:
       - start-dev
   email:

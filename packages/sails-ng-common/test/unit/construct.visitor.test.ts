@@ -3,8 +3,8 @@ import {
     FormConfig,
     FormConfigFrame, FormModesConfig, ReusableFormDefinitions,
 } from "../../src";
-import {formConfigExample2, reusableDefinitionsExample1} from "./example-data";
-import {logger} from "./helpers";
+import { formConfigExample2, reusableDefinitionsExample1 } from "./example-data";
+import { logger } from "./helpers";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -16,184 +16,273 @@ describe("Construct Visitor", async () => {
             args: FormConfigFrame;
             expected: FormConfigFrame;
         }[] = [
-            {
-                title: "create empty item",
-                args: {name: '', componentDefinitions: []},
-                expected: new FormConfig(),
-            },
-            {
-                title: "create item with expressions",
-                args: {
-                    name: 'form-with-expressions',
-                    componentDefinitions: [],
-                    expressions: [{
-                        name: 'my-expressions',
-                        config: {
-                            template: "some expression"
-                        }
-                    }]
+                {
+                    title: "create empty item",
+                    args: { name: '', componentDefinitions: [] },
+                    expected: new FormConfig(),
                 },
-                expected: {
-                    name: 'form-with-expressions',
-                    componentDefinitions: [],
-                    expressions: [{
-                        name: 'my-expressions',
-                        config: {
-                            template: "some expression"
-                        }
-                    }]
+                {
+                    title: "create item with expressions",
+                    args: {
+                        name: 'form-with-expressions',
+                        componentDefinitions: [],
+                        expressions: [{
+                            name: 'my-expressions',
+                            config: {
+                                template: "some expression"
+                            }
+                        }]
+                    },
+                    expected: {
+                        name: 'form-with-expressions',
+                        componentDefinitions: [],
+                        expressions: [{
+                            name: 'my-expressions',
+                            config: {
+                                template: "some expression"
+                            }
+                        }]
+                    },
                 },
-            },
-            {
-                title: "create simple example",
-                args: {
-                    name: '',
-                    componentDefinitions: [
-                        {
-                            name: 'repeatable_group_1',
-                            model: {
-                                class: 'RepeatableModel',
-                                config: {
-                                    defaultValue: [{text_3: "hello world from repeating groups"}]
-                                }
-                            },
-                            component: {
-                                class: 'RepeatableComponent',
-                                config: {
-                                    elementTemplate: {
-                                        // first group component
-                                        name: "",
-                                        model: {
-                                            class: 'GroupModel',
-                                            config: {
-                                                newEntryValue: {text_3: 'hello world 3!'},
-                                            }
-                                        },
-                                        component: {
-                                            class: 'GroupComponent',
-                                            config: {
-                                                wrapperCssClasses: 'col',
-                                                componentDefinitions: [
-                                                    {
-                                                        name: 'text_3',
-                                                        model: {
-                                                            class: 'SimpleInputModel',
-                                                            config: {
-                                                                validators: [
-                                                                    {
-                                                                        class: 'minLength',
-                                                                        message: "@validator-error-custom-text_3",
-                                                                        config: {minLength: 3}
-                                                                    }
-                                                                ]
-                                                            }
-                                                        },
-                                                        component: {
-                                                            class: 'SimpleInputComponent',
-                                                            config: {
-                                                                type: 'text'
-                                                            }
-                                                        }
-                                                    },
-                                                ]
-                                            }
-                                        },
-                                        layout: {
-                                            class: 'RepeatableElementLayout',
-                                            config: {
-                                                hostCssClasses: 'row align-items-start'
-                                            }
-                                        },
+                {
+                    title: "create simple example",
+                    args: {
+                        name: '',
+                        componentDefinitions: [
+                            {
+                                name: 'repeatable_group_1',
+                                model: {
+                                    class: 'RepeatableModel',
+                                    config: {
+                                        defaultValue: [{ text_3: "hello world from repeating groups" }]
                                     }
                                 },
-                            },
-                            layout: {
-                                class: 'DefaultLayout',
-                                config: {
-                                    label: 'Repeatable TextField not inside the tab with default wrapper defined',
-                                    helpText: 'Repeatable component help text',
-                                }
-                            },
-                        }
-                    ]
-                },
-                expected: {
-                    name: '',
-                    componentDefinitions: [
-                        {
-                            name: 'repeatable_group_1',
-                            model: {
-                                class: 'RepeatableModel',
-                                config: {
-                                    value: [{text_3: "hello world from repeating groups"}]
-                                }
-                            },
-                            component: {
-                                class: 'RepeatableComponent',
-                                config: {
-                                    elementTemplate: {
-                                        // first group component
-                                        name: "",
-                                        model: {
-                                            class: 'GroupModel',
-                                            config: { }
-                                        },
-                                        component: {
-                                            class: 'GroupComponent',
-                                            config: {
-                                                wrapperCssClasses: 'col',
-                                                componentDefinitions: [
-                                                    {
-                                                        name: 'text_3',
-                                                        model: {
-                                                            class: 'SimpleInputModel',
-                                                            config: {
-                                                                validators: [
-                                                                    {
-                                                                        class: 'minLength',
-                                                                        message: "@validator-error-custom-text_3",
-                                                                        config: {minLength: 3}
-                                                                    }
-                                                                ]
+                                component: {
+                                    class: 'RepeatableComponent',
+                                    config: {
+                                        elementTemplate: {
+                                            // first group component
+                                            name: "",
+                                            model: {
+                                                class: 'GroupModel',
+                                                config: {
+                                                    newEntryValue: { text_3: 'hello world 3!' },
+                                                }
+                                            },
+                                            component: {
+                                                class: 'GroupComponent',
+                                                config: {
+                                                    wrapperCssClasses: 'col',
+                                                    componentDefinitions: [
+                                                        {
+                                                            name: 'text_3',
+                                                            model: {
+                                                                class: 'SimpleInputModel',
+                                                                config: {
+                                                                    validators: [
+                                                                        {
+                                                                            class: 'minLength',
+                                                                            message: "@validator-error-custom-text_3",
+                                                                            config: { minLength: 3 }
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            component: {
+                                                                class: 'SimpleInputComponent',
+                                                                config: {
+                                                                    type: 'text'
+                                                                }
                                                             }
                                                         },
-                                                        component: {
-                                                            class: 'SimpleInputComponent',
-                                                            config: {
-                                                                type: 'text'
-                                                            }
-                                                        }
-                                                    },
-                                                ]
-                                            }
-                                        },
-                                        layout: {
-                                            class: 'RepeatableElementLayout',
-                                            config: {
-                                                hostCssClasses: 'row align-items-start'
-                                            }
-                                        },
+                                                    ]
+                                                }
+                                            },
+                                            layout: {
+                                                class: 'RepeatableElementLayout',
+                                                config: {
+                                                    hostCssClasses: 'row align-items-start'
+                                                }
+                                            },
+                                        }
+                                    },
+                                },
+                                layout: {
+                                    class: 'DefaultLayout',
+                                    config: {
+                                        label: 'Repeatable TextField not inside the tab with default wrapper defined',
+                                        helpText: 'Repeatable component help text',
                                     }
                                 },
-                            },
-                            layout: {
-                                class: 'DefaultLayout',
-                                config: {
-                                    label: 'Repeatable TextField not inside the tab with default wrapper defined',
-                                    helpText: 'Repeatable component help text',
-                                }
-                            },
-                        }
-                    ]
+                            }
+                        ]
+                    },
+                    expected: {
+                        name: '',
+                        componentDefinitions: [
+                            {
+                                name: 'repeatable_group_1',
+                                model: {
+                                    class: 'RepeatableModel',
+                                    config: {
+                                        value: [{ text_3: "hello world from repeating groups" }]
+                                    }
+                                },
+                                component: {
+                                    class: 'RepeatableComponent',
+                                    config: {
+                                        elementTemplate: {
+                                            // first group component
+                                            name: "",
+                                            model: {
+                                                class: 'GroupModel',
+                                                config: {}
+                                            },
+                                            component: {
+                                                class: 'GroupComponent',
+                                                config: {
+                                                    wrapperCssClasses: 'col',
+                                                    componentDefinitions: [
+                                                        {
+                                                            name: 'text_3',
+                                                            model: {
+                                                                class: 'SimpleInputModel',
+                                                                config: {
+                                                                    validators: [
+                                                                        {
+                                                                            class: 'minLength',
+                                                                            message: "@validator-error-custom-text_3",
+                                                                            config: { minLength: 3 }
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            component: {
+                                                                class: 'SimpleInputComponent',
+                                                                config: {
+                                                                    type: 'text'
+                                                                }
+                                                            }
+                                                        },
+                                                    ]
+                                                }
+                                            },
+                                            layout: {
+                                                class: 'RepeatableElementLayout',
+                                                config: {
+                                                    hostCssClasses: 'row align-items-start'
+                                                }
+                                            },
+                                        }
+                                    },
+                                },
+                                layout: {
+                                    class: 'DefaultLayout',
+                                    config: {
+                                        label: 'Repeatable TextField not inside the tab with default wrapper defined',
+                                        helpText: 'Repeatable component help text',
+                                    }
+                                },
+                            }
+                        ]
+                    },
                 },
-            },
-        ];
-        cases.forEach(({title, args, expected}) => {
+            ];
+        cases.forEach(({ title, args, expected }) => {
             it(`should ${title}`, async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
-                const actual = visitor.start({data: args, formMode: "edit"});
+                const actual = visitor.start({ data: args, formMode: "edit" });
                 expect(actual).to.containSubset(expected);
             });
+        });
+
+        it("should retain checkbox tree labelTemplate config", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "anzsrc",
+                            component: {
+                                class: "CheckboxTreeComponent",
+                                config: {
+                                    vocabRef: "anzsrc-2020-for",
+                                    labelTemplate: "{{default (split notation '/' -1) notation}} - {{label}}"
+                                }
+                            },
+                            model: {class: "CheckboxTreeModel", config: {}}
+                        }
+                    ]
+                }
+            });
+
+            const checkboxTreeConfig = actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown> | undefined;
+            expect(checkboxTreeConfig?.labelTemplate).to.equal("{{default (split notation '/' -1) notation}} - {{label}}");
+        });
+
+        it("should set typeahead namedQuery defaults and cache behaviour", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "contributor_lookup",
+                            component: {
+                                class: "TypeaheadInputComponent",
+                                config: {
+                                    sourceType: "namedQuery",
+                                    queryId: "contributors"
+                                }
+                            },
+                            model: {class: "TypeaheadInputModel", config: {}}
+                        }
+                    ]
+                }
+            });
+            const cfg = actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>;
+            expect(cfg?.sourceType).to.equal("namedQuery");
+            expect(cfg?.labelField).to.equal("label");
+            expect(cfg?.valueField).to.equal("value");
+            expect(cfg?.cacheResults).to.equal(false);
+        });
+
+        it("should drop unsupported map enabledModes and preserve valid modes", async function () {
+            const warnings: string[] = [];
+            const testLogger = {
+                ...logger,
+                warn: (message: unknown) => warnings.push(String(message ?? ""))
+            };
+            const visitor = new ConstructFormConfigVisitor(testLogger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "map_coverage",
+                            component: {
+                                class: "MapComponent",
+                                config: {
+                                    enabledModes: ["point", "polygon", "bad-mode" as any, "rectangle"]
+                                }
+                            },
+                            model: {
+                                class: "MapModel",
+                                config: {}
+                            }
+                        }
+                    ]
+                }
+            });
+
+            const mapConfig = actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>;
+            const enabledModes = mapConfig?.enabledModes as string[];
+            expect(enabledModes).to.deep.equal(["point", "polygon", "rectangle"]);
+            expect(warnings.some((msg) => msg.includes("Map construct dropped unsupported enabledModes"))).to.equal(true);
         });
     });
     describe("with overrides", async () => {
@@ -206,62 +295,62 @@ describe("Construct Visitor", async () => {
             };
             expected: FormConfigFrame;
         }[] = [
-            {
-                title: "expand reusable form config to standard form config in view mode",
-                args: {
-                    reusableFormDefs: reusableDefinitionsExample1,
-                    formConfig: formConfigExample2,
-                    formMode: "view",
-                },
-                expected: {
-                    name: "default-1.0-draft",
-                    componentDefinitions: [
-                        {name: "contributor_ci_name", component: {class: "ContentComponent"}},
-                        {name: "contributor_data_manager_email", component: {class: "ContentComponent"}},
-                        {
-                            name: "orcid",
-                            component: {
-                                class: "GroupComponent",
-                                config: {
-                                    componentDefinitions: [
-                                        {name: "orcid_nested_example1", component: {class: "ContentComponent"}}
-                                    ]
+                {
+                    title: "expand reusable form config to standard form config in view mode",
+                    args: {
+                        reusableFormDefs: reusableDefinitionsExample1,
+                        formConfig: formConfigExample2,
+                        formMode: "view",
+                    },
+                    expected: {
+                        name: "default-1.0-draft",
+                        componentDefinitions: [
+                            { name: "contributor_ci_name", component: { class: "ContentComponent" } },
+                            { name: "contributor_data_manager_email", component: { class: "ContentComponent" } },
+                            {
+                                name: "orcid",
+                                component: {
+                                    class: "GroupComponent",
+                                    config: {
+                                        componentDefinitions: [
+                                            { name: "orcid_nested_example1", component: { class: "ContentComponent" } }
+                                        ]
+                                    }
                                 }
-                            }
-                        },
-                        {name: "contributor_data_manager2", component: {class: "SimpleInputComponent"}},
-                    ]
+                            },
+                            { name: "contributor_data_manager2", component: { class: "SimpleInputComponent" } },
+                        ]
+                    },
                 },
-            },
-            {
-                title: "expand reusable form config to standard form config in edit mode",
-                args: {
-                    reusableFormDefs: reusableDefinitionsExample1,
-                    formConfig: formConfigExample2,
-                    formMode: "edit",
-                },
-                expected: {
-                    name: "default-1.0-draft",
-                    componentDefinitions: [
-                        {name: "contributor_ci_name", component: {class: "SimpleInputComponent"}},
-                        {name: "contributor_data_manager_email", component: {class: "SimpleInputComponent"}},
-                        {
-                            name: "orcid",
-                            component: {
-                                class: "GroupComponent",
-                                config: {
-                                    componentDefinitions: [
-                                        {name: "orcid_nested_example1", component: {class: "ContentComponent"}}
-                                    ]
+                {
+                    title: "expand reusable form config to standard form config in edit mode",
+                    args: {
+                        reusableFormDefs: reusableDefinitionsExample1,
+                        formConfig: formConfigExample2,
+                        formMode: "edit",
+                    },
+                    expected: {
+                        name: "default-1.0-draft",
+                        componentDefinitions: [
+                            { name: "contributor_ci_name", component: { class: "SimpleInputComponent" } },
+                            { name: "contributor_data_manager_email", component: { class: "SimpleInputComponent" } },
+                            {
+                                name: "orcid",
+                                component: {
+                                    class: "GroupComponent",
+                                    config: {
+                                        componentDefinitions: [
+                                            { name: "orcid_nested_example1", component: { class: "ContentComponent" } }
+                                        ]
+                                    }
                                 }
-                            }
-                        },
-                        {name: "contributor_data_manager2", component: {class: "SimpleInputComponent"}},
-                    ]
+                            },
+                            { name: "contributor_data_manager2", component: { class: "SimpleInputComponent" } },
+                        ]
+                    },
                 },
-            },
-        ];
-        cases.forEach(({title, args, expected}) => {
+            ];
+        cases.forEach(({ title, args, expected }) => {
             it(`should ${title}`, async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
                 const actual = visitor.start({
@@ -283,10 +372,10 @@ describe("Construct Visitor", async () => {
                         componentDefinitions: [
                             {
                                 name: "comp1",
-                                component: {class: "SimpleInputComponent"},
+                                component: { class: "SimpleInputComponent" },
                                 expressions: [
-                                    {name: "exp1", config: {template: ''}},
-                                    {name: "exp1", config: {template: ''}}
+                                    { name: "exp1", config: { template: '' } },
+                                    { name: "exp1", config: { template: '' } }
                                 ]
                             }
                         ]
@@ -309,8 +398,8 @@ describe("Construct Visitor", async () => {
                                     config: {
                                         elementTemplate: {
                                             name: "",
-                                            component: {class: "ReusableComponent"},
-                                            overrides: {reusableFormName: "standard-contributor-field"},
+                                            component: { class: "ReusableComponent" },
+                                            overrides: { reusableFormName: "standard-contributor-field" },
                                         }
                                     }
                                 }
@@ -335,8 +424,8 @@ describe("Construct Visitor", async () => {
                                     config: {
                                         elementTemplate: {
                                             name: "",
-                                            component: {class: "SimpleInputComponent"},
-                                            model: {class: "SimpleInputModel", config: {defaultValue: "not allowed"}}
+                                            component: { class: "SimpleInputComponent" },
+                                            model: { class: "SimpleInputModel", config: { defaultValue: "not allowed" } }
                                         }
                                     }
                                 }
@@ -366,10 +455,10 @@ describe("Construct Visitor", async () => {
                                                     componentDefinitions: [
                                                         {
                                                             name: "text_1",
-                                                            component: {class: "SimpleInputComponent"},
+                                                            component: { class: "SimpleInputComponent" },
                                                             model: {
                                                                 class: "SimpleInputModel",
-                                                                config: {defaultValue: "not allowed"}
+                                                                config: { defaultValue: "not allowed" }
                                                             }
                                                         }
                                                     ]
@@ -403,8 +492,8 @@ describe("Construct Visitor", async () => {
                                     config: {
                                         elementTemplate: {
                                             name: "",
-                                            component: {class: "ReusableComponent"},
-                                            overrides: {reusableFormName: "standard-contributor-field"},
+                                            component: { class: "ReusableComponent" },
+                                            overrides: { reusableFormName: "standard-contributor-field" },
                                         }
                                     }
                                 }
@@ -431,8 +520,8 @@ describe("Construct Visitor", async () => {
                                     config: {
                                         elementTemplate: {
                                             name: "",
-                                            component: {class: "ReusableComponent"},
-                                            overrides: {reusableFormName: "standard-contributor-field"},
+                                            component: { class: "ReusableComponent" },
+                                            overrides: { reusableFormName: "standard-contributor-field" },
                                         }
                                     }
                                 }
@@ -458,7 +547,7 @@ describe("Construct Visitor", async () => {
                                     config: {
                                         elementTemplate: {
                                             name: "",
-                                            component: {class: "ReusableComponent"},
+                                            component: { class: "ReusableComponent" },
                                             overrides: {
                                                 reusableFormName: "standard-contributor-field",
                                                 replaceName: "new_name"
@@ -490,7 +579,7 @@ describe("Construct Visitor", async () => {
                                     config: {
                                         elementTemplate: {
                                             name: "",
-                                            component: {class: "ReusableComponent"},
+                                            component: { class: "ReusableComponent" },
                                             overrides: {
                                                 reusableFormName: "standard-contributor",
                                                 replaceName: "new_name"
@@ -519,7 +608,7 @@ describe("Construct Visitor", async () => {
                                     config: {
                                         elementTemplate: {
                                             name: "",
-                                            component: {class: "TextAreaComponent"},
+                                            component: { class: "TextAreaComponent" },
                                             overrides: {
                                                 reusableFormName: "standard-contributor-field",
                                                 replaceName: "new_name"
@@ -543,7 +632,7 @@ describe("Construct Visitor", async () => {
                         name: "form",
                         componentDefinitions: [
                             {
-                                overrides: {reusableFormName: "standard-contributor-field"},
+                                overrides: { reusableFormName: "standard-contributor-field" },
                                 name: "one",
                                 component: {
                                     class: "ReusableComponent",
@@ -570,42 +659,42 @@ describe("Construct Visitor", async () => {
         });
         it("should fail when override reusable form config override does not have unique names", async () => {
             const errorFunc = function () {
-                    const visitor = new ConstructFormConfigVisitor(logger);
+                const visitor = new ConstructFormConfigVisitor(logger);
 
-                    visitor.start({
-                        data: {
-                            name: "form",
-                            componentDefinitions: [
-                                {
-                                    overrides: {reusableFormName: "standard-contributor-field"},
-                                    name: "one",
-                                    component: {
-                                        class: "ReusableComponent",
-                                        config: {
-                                            componentDefinitions: [
-                                                {
-                                                    name: "name",
-                                                    component: {
-                                                        class: 'SimpleInputComponent',
-                                                        config: {}
-                                                    },
+                visitor.start({
+                    data: {
+                        name: "form",
+                        componentDefinitions: [
+                            {
+                                overrides: { reusableFormName: "standard-contributor-field" },
+                                name: "one",
+                                component: {
+                                    class: "ReusableComponent",
+                                    config: {
+                                        componentDefinitions: [
+                                            {
+                                                name: "name",
+                                                component: {
+                                                    class: 'SimpleInputComponent',
+                                                    config: {}
                                                 },
-                                                {
-                                                    name: "name",
-                                                    component: {
-                                                        class: 'SimpleInputComponent',
-                                                        config: {}
-                                                    },
-                                                }
-                                            ]
-                                        }
+                                            },
+                                            {
+                                                name: "name",
+                                                component: {
+                                                    class: 'SimpleInputComponent',
+                                                    config: {}
+                                                },
+                                            }
+                                        ]
                                     }
                                 }
-                            ]
-                        }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
-                    });
-                }
-            ;
+                            }
+                        ]
+                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                });
+            }
+                ;
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
                 "Each item in the ReusableComponent componentDefinitions must have a unique name. " +
                 "These names were not unique 'name'.");
@@ -619,7 +708,7 @@ describe("Construct Visitor", async () => {
                         name: "form",
                         componentDefinitions: [
                             {
-                                overrides: {reusableFormName: "standard-contributor-field"},
+                                overrides: { reusableFormName: "standard-contributor-field" },
                                 name: "one",
                                 component: {
                                     class: "ReusableComponent",
@@ -629,7 +718,7 @@ describe("Construct Visitor", async () => {
                                                 name: "name",
                                                 component: {
                                                     class: 'CheckboxInputComponent',
-                                                    config: {options: []}
+                                                    config: { options: [] }
                                                 },
                                             },
                                         ]
@@ -666,7 +755,7 @@ describe("Construct Visitor", async () => {
                 },
                 formMode: "edit",
                 reusableFormDefs: reusableDefinitionsExample1,
-                record: {content1: "some value"}
+                record: { content1: "some value" }
             });
             const expected: FormConfigFrame = {
                 name: "form",
@@ -696,9 +785,9 @@ describe("Construct Visitor", async () => {
                                 class: 'CheckboxInputComponent',
                                 config: {
                                     options: [
-                                        {label: 'Option 1', value: 'option1'},
-                                        {label: 'Option 2', value: 'option2'},
-                                        {label: 'Option 3', value: 'option3'},
+                                        { label: 'Option 1', value: 'option1' },
+                                        { label: 'Option 2', value: 'option2' },
+                                        { label: 'Option 3', value: 'option3' },
                                     ]
                                 }
                             },
@@ -715,9 +804,9 @@ describe("Construct Visitor", async () => {
                                 class: 'CheckboxInputComponent',
                                 config: {
                                     options: [
-                                        {label: 'Option 1', value: 'option1'},
-                                        {label: 'Option 2', value: 'option2'},
-                                        {label: 'Option 3', value: 'option3'},
+                                        { label: 'Option 1', value: 'option1' },
+                                        { label: 'Option 2', value: 'option2' },
+                                        { label: 'Option 3', value: 'option3' },
                                     ]
                                 }
                             },
@@ -732,7 +821,7 @@ describe("Construct Visitor", async () => {
                 },
                 formMode: "view",
                 reusableFormDefs: reusableDefinitionsExample1,
-                record: {component_1: ['option3'], component_2: ['option2', 'option3']}
+                record: { component_1: ['option3'], component_2: ['option2', 'option3'] }
             });
             const expected = {
                 name: "form",
@@ -743,7 +832,7 @@ describe("Construct Visitor", async () => {
                         component: {
                             class: 'ContentComponent',
                             config: {
-                                content: {label: 'Option 3', value: 'option3'},
+                                content: { label: 'Option 3', value: 'option3' },
                                 template: `<span data-value="{{content.value}}">{{content.label}}</span>`
                             }
                         },
@@ -754,7 +843,7 @@ describe("Construct Visitor", async () => {
                         component: {
                             class: 'ContentComponent',
                             config: {
-                                content: [{label: 'Option 2', value: 'option2'},{label: 'Option 3', value: 'option3'}],
+                                content: [{ label: 'Option 2', value: 'option2' }, { label: 'Option 3', value: 'option3' }],
                                 template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
                             }
                         },
@@ -811,7 +900,7 @@ describe("Construct Visitor", async () => {
                             model: {
                                 class: "GroupModel",
                                 config: {
-                                    defaultValue: {component_1: ["group_rpt_1", "group_rpt_2"]}
+                                    defaultValue: { component_1: ["group_rpt_1", "group_rpt_2"] }
                                 }
                             }
                         }
@@ -861,7 +950,7 @@ describe("Construct Visitor", async () => {
                             class: "GroupModel",
                             config: {
                                 // The group's default value in the form config was overridden by descendant default values.
-                                value: {component_1: ["text_1", "text_2"]},
+                                value: { component_1: ["text_1", "text_2"] },
                             }
                         }
                     }

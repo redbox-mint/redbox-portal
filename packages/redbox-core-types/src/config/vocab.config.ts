@@ -90,19 +90,13 @@ export const vocab: VocabConfig = {
     },
     queries: {
         party: {
-            querySource: 'solr',
-            searchQuery: {
-                searchCore: 'default',
-                baseQuery: 'metaMetadata_type:rdmp'
+            querySource: 'database',
+            databaseQuery: {
+                queryName: 'listParties'
             },
             queryField: {
-                property: 'title',
+                property: 'search',
                 type: 'text'
-            },
-            resultObjectMapping: {
-                fullName: '<%= _.get(record,"contributor_ci.text_full_name","") %>',
-                email: '<%= _.get(record,"contributor_ci.email","") %>',
-                orcid: '<%= _.get(record,"contributor_ci.orcid","") %>'
             }
         },
         rdmp: {

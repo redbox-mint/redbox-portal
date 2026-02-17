@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:24.12.0-bullseye AS base
+FROM node:24.13.0-bullseye AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -33,19 +33,19 @@ RUN npm ci \
  && (cd packages/redbox-core-types && npm ci) \
  && (cd packages/sails-ng-common && npm ci) \
  && (cd packages/raido && npm ci) \
+ && (cd packages/rva-registry && npm ci) \
  && (cd packages/sails-hook-redbox-storage-mongo && npm ci)
 
 RUN cd packages/raido && npm run build
+RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
 RUN cd packages/redbox-core-types && npx tsc -p tsconfig.json
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
+
 RUN npx tsc --project tsconfig.json
 
 RUN chmod +x support/build/compileProductionAngular.sh \
  && support/build/compileProductionAngular.sh
-
-RUN chmod +x support/build/compileProductionAngularLegacy.sh \
- && support/build/compileProductionAngularLegacy.sh
 
 RUN npm run webpack
 
@@ -58,11 +58,12 @@ RUN npm prune --omit=dev \
     packages/redbox-core-types/node_modules \
     packages/sails-ng-common/node_modules \
     packages/raido/node_modules \
+    packages/rva-registry/node_modules \
     angular/node_modules \
     angular-legacy/node_modules \
     support/build/api-descriptors/node_modules
 
-FROM node:24.12.0-bullseye-slim AS runtime
+FROM node:24.13.0-bullseye-slim AS runtime
 
 ENV NODE_ENV=production
 ENV TZ=Australia/Brisbane
@@ -86,6 +87,7 @@ COPY --from=builder --chown=node:node /opt/redbox-portal/assets ./assets
 COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
 COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config
 COPY --from=builder --chown=node:node /opt/redbox-portal/form-config ./form-config
+COPY --from=builder --chown=node:node /opt/redbox-portal/bootstrap-data ./bootstrap-data
 COPY --from=builder --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages ./packages
 COPY --from=builder --chown=node:node /opt/redbox-portal/views ./views

@@ -24,11 +24,12 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { FormAttributes } from '../waterline-models/Form';
 import { createSchema } from 'genson-js';
 import * as path from 'path';
+import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import {
   ClientFormConfigVisitor,
   ConstructFormConfigVisitor,
   FormConfigFrame, FormConfigOutline,
-  FormModesConfig, ReusableFormDefinitions
+  FormModesConfig, ReusableFormDefinitions,
 } from "@researchdatabox/sails-ng-common";
 
 type WorkflowStepLike = {
@@ -591,15 +592,18 @@ export namespace Services {
      * @param recordMetadata The record metadata.
      * @param reusableFormDefs The reusable form definitions.
      */
-    public buildClientFormConfig(
+    public async buildClientFormConfig(
       item: FormConfigFrame,
       formMode?: FormModesConfig,
       userRoles?: string[],
       recordMetadata?: Record<string, unknown> | null,
-      reusableFormDefs?: ReusableFormDefinitions
-    ): FormConfigOutline {
+      reusableFormDefs?: ReusableFormDefinitions,
+      branding?: string
+    ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
+      const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
+      await vocabVisitor.resolveVocabs(constructed, branding);
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       const result = visitor.start({ form: constructed, formMode, userRoles });

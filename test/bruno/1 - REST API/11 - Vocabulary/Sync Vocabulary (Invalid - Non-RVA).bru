@@ -1,0 +1,25 @@
+meta {
+  name: Sync Vocabulary (Invalid - Non-RVA)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/default/rdmp/api/vocabulary/{{vocabularyId}}/sync
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("Status code is 400 for non-RVA vocabulary", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+}

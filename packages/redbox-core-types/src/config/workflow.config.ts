@@ -383,20 +383,14 @@ export const workflow: WorkflowConfig = {
                         rowConfig: [
                             {
                                 title: 'Party Name',
-                                variable: 'metadata.GIVEN_NAME',
-                                template: `<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.GIVEN_NAME}} {{metadata.FAMILY_NAME}}</a>`,
-                                initialSort: 'desc'
-                            },
-                            {
-                                title: 'Party Title',
-                                variable: 'metadata.JOB_TITLE',
-                                template: '{{metadata.JOB_TITLE}}',
+                                variable: 'metadata.fullName',
+                                template: `<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.fullName}}</a>`,
                                 initialSort: 'desc'
                             },
                             {
                                 title: 'Party Email',
-                                variable: 'metadata.EMAIL',
-                                template: '{{metadata.EMAIL}}',
+                                variable: 'metadata.email',
+                                template: '{{metadata.email}}',
                                 initialSort: 'desc'
                             },
                             {
