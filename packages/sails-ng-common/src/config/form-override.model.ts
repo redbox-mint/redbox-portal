@@ -523,7 +523,7 @@ export class FormOverride {
       case "only":
         // Build the jsonata format identifier.
         // Use the question tree angular component path, plus the question id as the path.
-        const path = [...lineagePath.angularComponents, rule.q]
+        const path = [...lineagePath.dataModel, rule.q]
         // Escape unexpected characters.
         const pathFieldRefs = path.map(i => this.toFieldReference(i));
         // Use backticks to build each item in the jsonata identifier.

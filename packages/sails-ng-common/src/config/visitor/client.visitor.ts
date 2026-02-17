@@ -121,7 +121,7 @@ import {
  *
  * This visitor performs the tasks to make the form config suitable for the client:
  * - remove fields with constraints that are not met by the provided formMode or userRoles
- * - remove expressions, as these must be processed by the server and retrieved by the client separately
+ * - process expressions, as these must be retrieved by the client separately
  * - remove fields that have value 'undefined'
  * - remove repeatable.model.config.value items that have no matching component
  * - remove repeatable.elementTemplate.model.config.newEntryValue items that have no matching component
@@ -585,11 +585,12 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     // The raw expressions must not be available to the client.
     if ('expressions' in item) {
       // Loop through the expressions and remove `template` if defined and set the `hasTemplate` flag
-      item.expressions = _map(item.expressions, expr => {
+      item.expressions?.forEach(expr => {
         expr.config.hasTemplate = expr.config?.template !== undefined && expr.config?.template !== null;
-        return expr;
+        this.removePropsUndefined(expr);
+        this.removePropsUndefined(expr.config);
       });
-      if (item.expressions.length === 0) {
+      if (item.expressions?.length === 0) {
         delete item['expressions'];
       }
     }

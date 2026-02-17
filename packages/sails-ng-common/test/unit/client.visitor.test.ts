@@ -66,6 +66,10 @@ describe("Client Visitor", async () => {
                 },
                 editCssClasses: "redbox-form form",
                 componentDefinitions: [
+                  {
+                    name: 'text_1',
+                    component: {class: 'SimpleInputComponent'},
+                  },
                     {
                         name: 'text_2',
                         layout: {
@@ -90,6 +94,26 @@ describe("Client Visitor", async () => {
                             },
                             allowModes: [],
                         },
+                      expressions: [
+                        {
+                          name: 'text_2_text_1_expr',
+                          config: {
+                            template: `value & "__suffix"`,
+                            conditionKind: 'jsonpointer',
+                            condition: `/text_1::field.value.changed`,
+                            target: `model.value`,
+                          },
+                        },
+                        {
+                          name: 'text_2_no_template_expr',
+                          config: {
+                            operation: "testing",
+                            conditionKind: 'jsonpointer',
+                            condition: `/text_1::field.value.changed`,
+                            target: `model.value`,
+                          },
+                        },
+                      ]
                     }
                 ]
             },
@@ -109,6 +133,22 @@ describe("Client Visitor", async () => {
                     none: {description: "Validate none of the fields.", initialMembership: "none"},
                 },
                 componentDefinitions: [
+                  {
+                    name: "text_1",
+                    component: {
+                      class: 'SimpleInputComponent',
+                      "config": {
+                        "autofocus": false,
+                        "disabled": false,
+                        "editMode": true,
+                        "readonly": false,
+                        "type": "text",
+                        "visible": true,
+                      },
+
+                    },
+                    model: {class: "SimpleInputModel", config: {}},
+                  },
                     {
                         name: 'text_2',
                         layout: {
@@ -144,6 +184,29 @@ describe("Client Visitor", async () => {
                                 "visible": true,
                             }
                         },
+                      expressions: [
+                        {
+                          name: 'text_2_text_1_expr',
+                          config: {
+                            hasTemplate: true,
+                            conditionKind: 'jsonpointer',
+                            condition: `/text_1::field.value.changed`,
+                            target: `model.value`,
+                            template: `value & "__suffix"`,
+                          },
+                        },
+
+                        {
+                          name: 'text_2_no_template_expr',
+                          config: {
+                            hasTemplate: false,
+                            operation: "testing",
+                            conditionKind: 'jsonpointer',
+                            condition: `/text_1::field.value.changed`,
+                            target: `model.value`,
+                          },
+                        },
+                      ]
                     }
                 ]
             }
@@ -269,12 +332,6 @@ describe("Client Visitor", async () => {
                         component: {
                             class: 'SimpleInputComponent',
                         },
-                        expressions: [{
-                            name: 'model.value',
-                            config: {
-                                template: `<%= _.get(model,'text_1_event','') %>`
-                            }
-                        }],
                         constraints: {
                             authorization: {
                                 allowRoles: [],
@@ -573,7 +630,7 @@ describe("Client Visitor", async () => {
         });
     });
 
-    it(`should result in an empty form config`, async function () {
+    it(`should result in an empty form config due to roles`, async function () {
         const formConfig: FormConfigFrame = {
             name: "basic-form",
             type: "rdmp",

@@ -29,32 +29,32 @@ describe("Template Visitor", async () => {
                 {
                     key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "0", "component", "config", "template"],
                     kind: "handlebars",
-                    value: "<h3>"
+                    value: '<h3>{{content}}</h3>',
                 },
                 {
-                    key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "10", "expressions", "model.value", "template"],
+                    key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "10", "expressions", "0", "config", "template"],
                     kind: "jsonata",
-                    value: "<%= _.get(model,'text_1_event',"
+                    value: `value & "__suffix"`,
                 },
                 {
-                    key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "12", "expressions", "component.visible", "template"],
+                    key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "12", "expressions", "0", "config", "template"],
                     kind: "jsonata",
-                    value: "<% if(_.isEmpty(_.get(model,'text_2_event'"
+                    value: `value = "hide text_2_component_event"`,
                 },
                 {
-                    key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "14", "expressions", "layout.visible", "template"],
+                    key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "14", "expressions", "0", "config", "template"],
                     kind: "jsonata",
-                    value: "<% if(_.isEmpty(_.get(model,'text_3_event'"
+                    value: `value = "hide text_3_layout_event"`,
                 },
                 {
-                    key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "0", "expressions", "layout.visible", "template"],
+                    key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "0", "expressions", "0", "config", "template"],
                     kind: "jsonata",
-                    value: "<% if(_.isEmpty(_.get(model,'text_3_event'"
+                    value: `value = "hide group_1_component"`,
                 },
                 {
-                    key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "1", "expressions", "layout.visible", "template"],
+                    key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "1", "expressions", "0", "config", "template"],
                     kind: "jsonata",
-                    value: "<% if(_.isEmpty(_.get(model,'text_3_event'"
+                    value: `value = "hide repeatable_textfield_1"`,
                 }
             ]
         },
@@ -120,14 +120,13 @@ describe("Template Visitor", async () => {
             const visitor = new TemplateFormConfigVisitor(logger);
             const actual = visitor.start({ form: constructed });
 
-            actual.forEach((actualItem, index) => {
-                const expectedItem = expected[index];
-                expect(actualItem.key).to.eql(expectedItem.key);
-                expect(actualItem.kind).to.eql(expectedItem.kind);
-                expect(actualItem.value)
-                    .to.be.a("string")
-                    .and.satisfy((msg: string) => msg.startsWith(expectedItem.value));
-            });
+          expected.forEach((expectedItem, index) => {
+            const actualItem = actual[index];
+            expect(actualItem).to.not.eql(undefined, `index ${index}`);
+            expect(actualItem.key).to.eql(expectedItem.key);
+            expect(actualItem.kind).to.eql(expectedItem.kind);
+            expect(actualItem.value).to.eql(expectedItem.value);
+          });
         });
     });
 });
