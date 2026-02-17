@@ -17,8 +17,9 @@ x-rbportal-env: &rbportal-env
   sails_record__baseUrl__mint: https://demo.redboxresearchdata.com.au/mint
   # Uppy Companion
   UPPY_COMPANION_ENABLED: '${UPPY_COMPANION_ENABLED:-false}'
-  UPPY_COMPANION_SECRET: '${UPPY_COMPANION_SECRET:-}'
+  UPPY_COMPANION_SECRET: '${UPPY_COMPANION_SECRET:-dev-local-companion-secret-2026-02-16}'
   UPPY_COMPANION_BEARER_TOKEN: '${UPPY_COMPANION_BEARER_TOKEN:-}'
+  UPPY_COMPANION_ATTACHMENT_SECRET: '${UPPY_COMPANION_ATTACHMENT_SECRET:-${UPPY_COMPANION_SECRET:-dev-local-companion-secret-2026-02-16}}'
   UPPY_COMPANION_UPLOAD_URLS: '${UPPY_COMPANION_UPLOAD_URLS:-^https?://(localhost|127\\.0\\.0\\.1):1500(?:/[^/]+/[^/]+)?/record/.+/attach$}'
   UPPY_GOOGLE_KEY: '${UPPY_GOOGLE_KEY:-}'
   UPPY_GOOGLE_SECRET: '${UPPY_GOOGLE_SECRET:-}'

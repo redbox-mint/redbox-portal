@@ -15,6 +15,8 @@ const skipper = require('skipper');
 import { redboxSession as redboxSessionMiddleware } from '../middleware/redboxSession';
 import { redboxSession as redboxSessionConfigValue } from './redboxSession.config';
 import type { CompanionConfig } from './companion.config';
+import * as BrandingServiceModule from '../services/BrandingService';
+import * as PathRulesServiceModule from '../services/PathRulesService';
 
 // Declare Sails and its config structure
 declare const sails: {
@@ -51,6 +53,8 @@ interface ExtendedRequest extends Request {
     };
     [key: string]: unknown;
 }
+declare const BrandingService: BrandingServiceModule.Services.Branding;
+declare const PathRulesService: PathRulesServiceModule.Services.PathRules;
 
 /**
  * Middleware function signature
@@ -109,6 +113,78 @@ let _lazyRedboxSessionMiddleware: RequestHandler | null = null;
 let _lazyCompanionMiddleware: RequestHandler | null = null;
 let _lazyCompanionMountPath = '/companion';
 let _lazyCompanionSocketWired = false;
+
+export interface CompanionAuthorizationDecision {
+    isCompanionRequest: boolean;
+    allowed: boolean;
+    statusCode?: number;
+    body?: Record<string, unknown>;
+}
+
+function isAuthenticatedRequest(req: Request): boolean {
+    return typeof (req as Request & { isAuthenticated?: () => boolean }).isAuthenticated === 'function'
+        && Boolean((req as Request & { isAuthenticated: () => boolean }).isAuthenticated());
+}
+
+export function authorizeCompanionRequest(req: Request, normalizedRoute: string, requestPath: string): CompanionAuthorizationDecision {
+    const isCompanionRequest = requestPath === normalizedRoute || requestPath.startsWith(`${normalizedRoute}/`);
+    if (!isCompanionRequest) {
+        return { isCompanionRequest: false, allowed: true };
+    }
+
+    if (!isAuthenticatedRequest(req)) {
+        return {
+            isCompanionRequest: true,
+            allowed: false,
+            statusCode: 401,
+            body: { message: 'Authentication required' },
+        };
+    }
+
+    const reqSessionBranding = String((req as Request & { session?: { branding?: unknown } }).session?.branding ?? '').trim();
+    if (!reqSessionBranding) {
+        return {
+            isCompanionRequest: true,
+            allowed: false,
+            statusCode: 403,
+            body: { message: 'Access Denied' },
+        };
+    }
+
+    const brand = BrandingService.getBrand(reqSessionBranding);
+    if (!brand) {
+        return {
+            isCompanionRequest: true,
+            allowed: false,
+            statusCode: 403,
+            body: { message: 'Access Denied' },
+        };
+    }
+
+    const rules = PathRulesService.getRulesFromPath(requestPath, brand);
+    if (!rules || rules.length === 0) {
+        return {
+            isCompanionRequest: true,
+            allowed: true,
+        };
+    }
+
+    const userRoles = (req as Request & { user?: { roles?: unknown[] } }).user?.roles ?? [];
+    const canRead = PathRulesService.canRead(rules, userRoles as Parameters<typeof PathRulesService.canRead>[1], brand.name);
+    if (!canRead) {
+        return {
+            isCompanionRequest: true,
+            allowed: false,
+            statusCode: 403,
+            body: { message: 'Access Denied' },
+        };
+    }
+
+    return {
+        isCompanionRequest: true,
+        allowed: true,
+    };
+}
 
 const getCookieValue = (cookieHeader: string | undefined, cookieName: string): string | undefined => {
     if (!cookieHeader) {
@@ -169,9 +245,15 @@ export const http: HttpConfig = {
             const route = String(companionConfig.route ?? '/companion').trim();
             const normalizedRoute = route.startsWith('/') ? route : `/${route}`;
             const requestPath = (req.originalUrl ?? req.url).split('?')[0];
-            if (requestPath !== normalizedRoute && !requestPath.startsWith(`${normalizedRoute}/`)) {
+            const authorizationDecision = authorizeCompanionRequest(req, normalizedRoute, requestPath);
+            if (!authorizationDecision.isCompanionRequest) {
                 return next();
             }
+            if (!authorizationDecision.allowed) {
+                const statusCode = authorizationDecision.statusCode ?? 403;
+                return res.status(statusCode).json(authorizationDecision.body ?? { message: 'Access Denied' });
+            }
+
             const relativePath = requestPath.substring(normalizedRoute.length);
             const relativePathParts = relativePath.split('/').filter(Boolean);
             const hasAuthTokenHeader = typeof req.headers?.['uppy-auth-token'] === 'string'
