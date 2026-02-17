@@ -811,10 +811,10 @@ export module Services {
           // For any generated, view-only forms, the form may be null, add a coalescence to avoid breaking
           // the attachment update process.
           form = form ?? { attachmentFields: [] };
-          const typedForm = form as { attachmentFields: string[] };
+          const typedForm = form as { configuration: { attachmentFields: string[] } };
           const reqs = [];
-          record.metaMetadata.attachmentFields = typedForm.attachmentFields;
-          _.each(typedForm.attachmentFields, async attField => {
+          record.metaMetadata.attachmentFields = typedForm.configuration.attachmentFields;
+          _.each(typedForm.configuration.attachmentFields, async attField => {
             const oldAttachments = record.metadata[attField];
             const newAttachments = newMetadata[attField];
             const removeIds = [];

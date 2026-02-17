@@ -1112,7 +1112,11 @@ export namespace Controllers {
 
         if (!hasViewAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
-          return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+          return this.sendResp(req, res, {
+            status: 403,
+            errors: [this.asError(new Error(TranslationService.t('edit-error-no-permissions')))],
+            displayErrors: [{ code: 'edit-error-no-permissions' }]
+          });
         }
         // check if this attachId exists in the record
         let found: AnyRecord | null = null;
@@ -1130,7 +1134,11 @@ export namespace Controllers {
         });
         if (!found) {
           sails.log.verbose("Error: Attachment not found in do attachment.");
-          return throwError(new Error(TranslationService.t('attachment-not-found')));
+          return this.sendResp(req, res, {
+            status: 404,
+            errors: [this.asError(new Error(TranslationService.t('attachment-not-found')))],
+            displayErrors: [{ code: 'attachment-not-found' }]
+          });
         }
         let mimeType = found['mimeType'] as string;
         if (_.isEmpty(mimeType)) {
@@ -1173,7 +1181,11 @@ export namespace Controllers {
         const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec as AnyRecord));
         if (!hasEditAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
-          return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+          return this.sendResp(req, res, {
+            status: 403,
+            errors: [this.asError(new Error(TranslationService.t('edit-error-no-permissions')))],
+            displayErrors: [{ code: 'edit-error-no-permissions' }]
+          });
         }
         sails.log.verbose(req.headers);
         const uploadFileSize = req.headers['upload-length'];
@@ -1187,7 +1199,10 @@ export namespace Controllers {
           if (diskSpace.free <= thresholdAppliedFileSize) {
             const errorMessage = TranslationService.t('not-enough-disk-space');
             sails.log.error(errorMessage + ' Total File Size ' + thresholdAppliedFileSize + ' Total Free Space ' + diskSpace.free);
-            return throwError(new Error(errorMessage));
+            return this.sendResp(req, res, {
+              status: 500,
+              errors: [this.asError(new Error(errorMessage))]
+            });
           }
         }
         // process the upload...

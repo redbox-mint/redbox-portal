@@ -157,12 +157,12 @@ export namespace Services {
           defaultLayoutComponent: formConfigRaw.defaultLayoutComponent as FormConfigFrame['defaultLayoutComponent'],
           componentDefinitions: formConfigRaw.componentDefinitions as FormConfigFrame['componentDefinitions'],
           debugValue: formConfigRaw.debugValue as FormConfigFrame['debugValue'],
+          attachmentFields: (formConfigRaw.attachmentFields ?? []) as FormConfigFrame['attachmentFields'],
 
           // Deprecated legacy properties (now removed):
           // fields → replaced by componentDefinitions
           // requiredFieldIndicator → removed
           // skipValidationOnSave → removed
-          // attachmentFields → removed
           // customAngularApp → removed
         };
 
