@@ -738,8 +738,8 @@ describe('The FormRecordConsistencyService', function () {
             let actual = null;
             const oldFormServiceGetFormByName = FormsService.getFormByName;
             try {
-                FormsService.getFormByName = function (formName, editMode): Observable<FormModel> {
-                    return of(formConfig)
+                FormsService.getFormByName = function (formName, editMode): Observable<any> {
+                    return of({ configuration: formConfig })
                 }
                 actual = await FormRecordConsistencyService.validateRecordValuesForFormConfig(record);
             } finally {
@@ -1035,8 +1035,8 @@ describe('The FormRecordConsistencyService', function () {
             let actual = null;
             const oldFormServiceGetFormByName = FormsService.getFormByName;
             try {
-                FormsService.getFormByName = function (formName, editMode): Observable<FormModel> {
-                    return of(formConfig)
+                FormsService.getFormByName = function (formName, editMode): Observable<any> {
+                    return of({ configuration: formConfig })
                 }
                 actual = await FormRecordConsistencyService.validateRecordValuesForFormConfig(record);
             } finally {
