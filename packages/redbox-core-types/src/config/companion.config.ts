@@ -42,8 +42,36 @@ export interface CompanionConfig {
     i18n?: Record<string, unknown>;
 }
 
+function hasValue(value: string | undefined): boolean {
+    return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isCompanionEnabledWithValidCredentials(): boolean {
+    const enabled = process.env.UPPY_COMPANION_ENABLED === 'true';
+    if (!enabled) {
+        return false;
+    }
+
+    const missingVars = [
+        'UPPY_GOOGLE_KEY',
+        'UPPY_GOOGLE_SECRET',
+        'UPPY_ONEDRIVE_KEY',
+        'UPPY_ONEDRIVE_SECRET'
+    ].filter((envVar) => !hasValue(process.env[envVar]));
+
+    if (missingVars.length > 0) {
+        console.warn(
+            `UPPY_COMPANION_ENABLED=true but missing required provider credentials (${missingVars.join(', ')}). `
+            + 'Disabling Uppy Companion to prevent runtime provider initialization errors.'
+        );
+        return false;
+    }
+
+    return true;
+}
+
 export const companion: CompanionConfig = {
-    enabled: process.env.UPPY_COMPANION_ENABLED === 'true',
+    enabled: isCompanionEnabledWithValidCredentials(),
     route: '/companion',
     secret: process.env.UPPY_COMPANION_SECRET || '',
     bearerToken: process.env.UPPY_COMPANION_BEARER_TOKEN || '',

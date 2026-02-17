@@ -11,7 +11,7 @@ This page documents how ReDBox orchestrates uploads using:
 ```mermaid
 flowchart LR
     A["Browser: FileUploadComponent (Angular)"] --> B["Uppy Core + Dashboard"]
-    B --> C["Tus Plugin (@uppy/tus)"]
+    B --> C["TUS Plugin (@uppy/tus)"]
     B --> D["Provider Plugins (Google Drive / OneDrive / Dropbox)"]
     C --> E["ReDBox Attach Endpoint\n/:branding/:portal/record/:oid/attach"]
     D --> F["Companion Middleware\n/companion/*"]
@@ -28,7 +28,7 @@ flowchart LR
 sequenceDiagram
     participant U as "User Browser"
     participant FC as "FileUploadComponent"
-    participant TUS as "Uppy Tus Plugin"
+    participant TUS as "Uppy TUS Plugin"
     participant RB as "ReDBox /record/:oid/attach"
     participant RC as "RecordController.doAttachment"
     participant ST as "TUS Server + Storage"

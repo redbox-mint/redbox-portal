@@ -147,6 +147,21 @@ function isAuthenticatedRequest(req: Sails.Req): boolean {
  * to bypass normal checkAuth when they include a valid shared secret header.
  */
 export function companionAttachmentUploadAuth(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
+    const requestWithBypassFlag = req as Sails.Req & Record<string, unknown>;
+    if (typeof requestWithBypassFlag[COMPANION_BYPASS_FLAG] !== 'undefined') {
+        sails.log.warn(`Ignoring pre-set ${COMPANION_BYPASS_FLAG} value on incoming request.`);
+        delete requestWithBypassFlag[COMPANION_BYPASS_FLAG];
+    }
+
+    const hasClientSuppliedBypassFlag = [
+        req.headers?.[COMPANION_BYPASS_FLAG.toLowerCase()],
+        (req.query as Record<string, unknown> | undefined)?.[COMPANION_BYPASS_FLAG],
+        (req.body as Record<string, unknown> | undefined)?.[COMPANION_BYPASS_FLAG],
+    ].some((value) => typeof value !== 'undefined');
+    if (hasClientSuppliedBypassFlag) {
+        sails.log.warn(`Ignoring client supplied ${COMPANION_BYPASS_FLAG} in header/query/body.`);
+    }
+
     const method = String(req.method ?? '').toUpperCase();
     const attachId = String(req.param('attachId') ?? '').trim();
     const isCreateRequest = method === 'POST' && attachId.length === 0;
@@ -192,7 +207,7 @@ export function companionAttachmentUploadAuth(req: Sails.Req, res: Sails.Res, ne
         return;
     }
 
-    (req as Sails.Req & Record<string, unknown>)[COMPANION_BYPASS_FLAG] = true;
+    requestWithBypassFlag[COMPANION_BYPASS_FLAG] = true;
     return next();
 }
 

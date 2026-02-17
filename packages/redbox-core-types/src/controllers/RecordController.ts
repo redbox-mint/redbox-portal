@@ -1163,7 +1163,22 @@ export namespace Controllers {
           }
         }
       } else {
+        // Trust boundary: this flag must only be set by server-side companionAttachmentUploadAuth policy
+        // after validating the configured shared secret and request locality. Never trust client input.
         const companionAttachmentUploadAuthorized = (req as Sails.Req & { companionAttachmentUploadAuthorized?: boolean }).companionAttachmentUploadAuthorized === true;
+        if (companionAttachmentUploadAuthorized) {
+          const requestUser = req.user as { id?: unknown; username?: unknown; email?: unknown } | undefined;
+          sails.log.notice('Companion attachment bypass authorized', {
+            oid,
+            method: req.method,
+            path: req.path,
+            userId: requestUser?.id,
+            username: requestUser?.username,
+            email: requestUser?.email,
+            remoteAddress: (req as Sails.Req & { socket?: { remoteAddress?: string } }).socket?.remoteAddress,
+            requestId: req.headers?.['x-request-id']
+          });
+        }
         if (!companionAttachmentUploadAuthorized) {
           const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec as AnyRecord));
           if (!hasEditAccess) {

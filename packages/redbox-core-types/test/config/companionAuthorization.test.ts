@@ -36,6 +36,11 @@ describe('authorizeCompanionRequest', function () {
         };
     });
 
+    afterEach(function () {
+        delete (global as any).BrandingService;
+        delete (global as any).PathRulesService;
+    });
+
     it('should allow non-companion requests without applying auth checks', function () {
         const req = createMockRequest({ authenticated: false });
         const decision = authorizeCompanionRequest(req as any, '/companion', '/record/view/123');
