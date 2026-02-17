@@ -32,6 +32,9 @@ const defaultPolicies: PolicyName[] = [
 ];
 
 const noCachePlusDefaultPolicies: PolicyName[] = ['noCache', ...defaultPolicies];
+const doAttachmentPolicies: PolicyName[] = noCachePlusDefaultPolicies.flatMap((policy) => (
+    policy === 'checkAuth' ? ['companionAttachmentUploadAuth', policy] : [policy]
+));
 const publicTranslationPolicies: PolicyName[] = [
     'noCache',
     'brandingAndPortal',
@@ -54,7 +57,10 @@ export const policies: PoliciesConfig = {
         'render': noCachePlusDefaultPolicies
     },
     RecordController: {
-        '*': noCachePlusDefaultPolicies
+        '*': noCachePlusDefaultPolicies,
+        // companionAttachmentUploadAuth runs before checkAuth; bypass is route-scoped
+        // and ignored for non-companion attachment routes.
+        'doAttachment': doAttachmentPolicies
     },
     'webservice/RecordController': {
         '*': noCachePlusDefaultPolicies
