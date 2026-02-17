@@ -32,10 +32,6 @@ const defaultPolicies: PolicyName[] = [
 ];
 
 const noCachePlusDefaultPolicies: PolicyName[] = ['noCache', ...defaultPolicies];
-const doAttachmentPolicies: PolicyName[] = noCachePlusDefaultPolicies.flatMap((policy) => (
-    policy === 'checkAuth' ? ['companionAttachmentUploadAuth', policy] : [policy]
-));
-
 const publicTranslationPolicies: PolicyName[] = [
     'noCache',
     'brandingAndPortal',
@@ -58,11 +54,7 @@ export const policies: PoliciesConfig = {
         'render': noCachePlusDefaultPolicies
     },
     RecordController: {
-        '*': noCachePlusDefaultPolicies,
-        // Attach endpoint remains protected by checkAuth for normal traffic.
-        // Companion server-side upload creation requests can bypass checkAuth
-        // only when companionAttachmentUploadAuth validates shared-secret + locality.
-        'doAttachment': doAttachmentPolicies
+        '*': noCachePlusDefaultPolicies
     },
     'webservice/RecordController': {
         '*': noCachePlusDefaultPolicies

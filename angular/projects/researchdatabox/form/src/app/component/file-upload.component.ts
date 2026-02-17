@@ -331,7 +331,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
 
     private buildTusEndpoint(oid: string): string {
         const base = String(this.getFormComponent.recordService.brandingAndPortalUrl ?? "").trim();
-        return `${base}/record/${oid}/attach`;
+        return `${base}/companion/record/${oid}/attach`;
     }
 
     private resolveUploadUrl(response: UppySuccessResponse): string {

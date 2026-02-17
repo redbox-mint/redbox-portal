@@ -143,7 +143,7 @@ function isAuthenticatedRequest(req: Sails.Req): boolean {
 /**
  * CompanionAttachmentUploadAuth Policy
  *
- * Allows Companion-server upload creation requests (POST /record/:oid/attach)
+ * Allows Companion-server upload creation requests (POST /companion/record/:oid/attach)
  * to bypass normal checkAuth when they include a valid shared secret header.
  */
 export function companionAttachmentUploadAuth(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {

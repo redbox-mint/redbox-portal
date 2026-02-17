@@ -14,8 +14,13 @@ declare const PathRulesService: PathRulesServiceModule.Services.PathRules;
  */
 export function checkAuth(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
     const companionAttachmentUploadAuthorized = (req as Sails.Req & { companionAttachmentUploadAuthorized?: boolean }).companionAttachmentUploadAuthorized;
-    if (companionAttachmentUploadAuthorized === true) {
+    const requestPath = String(req.path ?? '').toLowerCase();
+    const isCompanionAttachmentRoute = /^\/[^/]+\/[^/]+\/companion\/record\/[^/]+\/attach(?:\/[^/]+)?$/.test(requestPath);
+    if (companionAttachmentUploadAuthorized === true && isCompanionAttachmentRoute) {
         return next();
+    }
+    if (companionAttachmentUploadAuthorized === true && !isCompanionAttachmentRoute) {
+        sails.log.warn('Ignoring companionAttachmentUploadAuthorized bypass flag on non-companion attachment route.', { path: req.path });
     }
 
     const brand = BrandingService.getBrand(req.session.branding ?? '');

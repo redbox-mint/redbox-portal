@@ -141,7 +141,7 @@ describe("FileUploadComponent", () => {
                 notes: "uploaded in test"
             }
         }, {
-            uploadURL: "http://localhost/default/rdmp/record/pending-oid/attach/file-123"
+            uploadURL: "http://localhost/default/rdmp/companion/record/pending-oid/attach/file-123"
         });
 
         await fixture.whenStable();
@@ -204,8 +204,8 @@ describe("FileUploadComponent", () => {
                                 {
                                     type: "attachment",
                                     pending: true,
-                                    location: "/default/rdmp/record/pending-oid/attach/file-123",
-                                    uploadUrl: "http://localhost/default/rdmp/record/pending-oid/attach/file-123",
+                                    location: "/default/rdmp/companion/record/pending-oid/attach/file-123",
+                                    uploadUrl: "http://localhost/default/rdmp/companion/record/pending-oid/attach/file-123",
                                     fileId: "file-123",
                                     name: "test.csv"
                                 }
@@ -224,8 +224,8 @@ describe("FileUploadComponent", () => {
             {
                 type: "attachment",
                 pending: true,
-                location: "/default/rdmp/record/pending-oid/attach/file-123",
-                uploadUrl: "http://localhost/default/rdmp/record/pending-oid/attach/file-123",
+                location: "/default/rdmp/companion/record/pending-oid/attach/file-123",
+                uploadUrl: "http://localhost/default/rdmp/companion/record/pending-oid/attach/file-123",
                 fileId: "file-123",
                 name: "test.csv"
             }

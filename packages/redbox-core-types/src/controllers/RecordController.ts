@@ -1036,7 +1036,12 @@ export namespace Controllers {
       this.initTusServer();
       const method = _.toLower(req.method);
 
-      const prefix = `${BrandingService.getBrandAndPortalPath(req)}/record/${oid}`;
+      const brandPortalPrefix = BrandingService.getBrandAndPortalPath(req);
+      const defaultAttachmentPrefix = `${brandPortalPrefix}/record/${oid}`;
+      const companionAttachmentPrefix = `${brandPortalPrefix}/companion/record/${oid}`;
+      const prefix = [defaultAttachmentPrefix, companionAttachmentPrefix]
+        .find((candidatePrefix) => req.url.startsWith(candidatePrefix) || req.path.startsWith(candidatePrefix))
+        ?? defaultAttachmentPrefix;
       const tusReq = req as unknown as TusRequestExtension;
       tusReq._tusOriginalUrl = req.url;
       tusReq._tusBaseUrl = prefix;
@@ -1165,7 +1170,13 @@ export namespace Controllers {
       } else {
         // Trust boundary: this flag must only be set by server-side companionAttachmentUploadAuth policy
         // after validating the configured shared secret and request locality. Never trust client input.
-        const companionAttachmentUploadAuthorized = (req as Sails.Req & { companionAttachmentUploadAuthorized?: boolean }).companionAttachmentUploadAuthorized === true;
+        const requestPath = String(req.path ?? '').toLowerCase();
+        const isCompanionAttachmentRoute = /^\/[^/]+\/[^/]+\/companion\/record\/[^/]+\/attach(?:\/[^/]+)?$/.test(requestPath);
+        const rawCompanionAttachmentUploadAuthorized = (req as Sails.Req & { companionAttachmentUploadAuthorized?: boolean }).companionAttachmentUploadAuthorized === true;
+        const companionAttachmentUploadAuthorized = rawCompanionAttachmentUploadAuthorized && isCompanionAttachmentRoute;
+        if (rawCompanionAttachmentUploadAuthorized && !isCompanionAttachmentRoute) {
+          sails.log.warn('Ignoring companionAttachmentUploadAuthorized bypass flag for non-companion attachment route.', { path: req.path });
+        }
         if (companionAttachmentUploadAuthorized) {
           const requestUser = req.user as { id?: unknown; username?: unknown; email?: unknown } | undefined;
           sails.log.notice('Companion attachment bypass authorized', {

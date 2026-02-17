@@ -46,22 +46,22 @@ function hasValue(value: string | undefined): boolean {
     return typeof value === 'string' && value.trim().length > 0;
 }
 
+function hasProviderCredentials(keyEnvVar: string, secretEnvVar: string): boolean {
+    return hasValue(process.env[keyEnvVar]) && hasValue(process.env[secretEnvVar]);
+}
+
 function isCompanionEnabledWithValidCredentials(): boolean {
     const enabled = process.env.UPPY_COMPANION_ENABLED === 'true';
     if (!enabled) {
         return false;
     }
 
-    const missingVars = [
-        'UPPY_GOOGLE_KEY',
-        'UPPY_GOOGLE_SECRET',
-        'UPPY_ONEDRIVE_KEY',
-        'UPPY_ONEDRIVE_SECRET'
-    ].filter((envVar) => !hasValue(process.env[envVar]));
-
-    if (missingVars.length > 0) {
+    const hasDriveCredentials = hasProviderCredentials('UPPY_GOOGLE_KEY', 'UPPY_GOOGLE_SECRET');
+    const hasOneDriveCredentials = hasProviderCredentials('UPPY_ONEDRIVE_KEY', 'UPPY_ONEDRIVE_SECRET');
+    if (!hasDriveCredentials && !hasOneDriveCredentials) {
         console.warn(
-            `UPPY_COMPANION_ENABLED=true but missing required provider credentials (${missingVars.join(', ')}). `
+            'UPPY_COMPANION_ENABLED=true but no complete provider credentials were found. '
+            + 'Provide UPPY_GOOGLE_KEY+UPPY_GOOGLE_SECRET and/or UPPY_ONEDRIVE_KEY+UPPY_ONEDRIVE_SECRET. '
             + 'Disabling Uppy Companion to prevent runtime provider initialization errors.'
         );
         return false;
