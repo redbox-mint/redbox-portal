@@ -37,7 +37,7 @@ const formConfig: FormConfigFrame = {
   //     class: "script",// or "valueEquals", "valueInList", "hasKey" etc.
   //     config: {
   //         name: "runSomeOperationThatNeedsTheEntireFormData", // the unique name of the operation
-  //         template: "<%  %>"
+  //         template: "<%  %>" 
   //     }
   //   },
   //   {
@@ -854,7 +854,7 @@ const formConfig: FormConfigFrame = {
                         class: 'RepeatableComponent',
                         config: {
                           elementTemplate: {
-                            name: null,
+                            name: "",
                             model: {
                               class: 'SimpleInputModel',
                               config: {
@@ -928,7 +928,7 @@ const formConfig: FormConfigFrame = {
         class: 'RepeatableComponent',
         config: {
           elementTemplate: {
-            name: null,
+            name: "",
             // first group component
             model: {
               class: 'GroupModel',
@@ -1039,4 +1039,5 @@ const formConfig: FormConfigFrame = {
     // }
   ],
 };
-module.exports = formConfig;
+
+export default formConfig;

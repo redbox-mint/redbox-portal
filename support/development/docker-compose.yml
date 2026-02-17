@@ -27,6 +27,7 @@ x-rbportal-env: &rbportal-env
   UPPY_ONEDRIVE_SECRET: '${UPPY_ONEDRIVE_SECRET:-}'
   UPPY_COMPANION_HOST: 'localhost:1500'
   UPPY_COMPANION_PROTOCOL: 'http'
+  LOAD_DEFAULT_FORMS: 'true'
   # When testing using the API
   # sails_brandingConfigurationDefaults__auth__local__default__token: d077835a-696b-4728-85cf-3ffd57152b1e
   # sails_security__csrf: "false"

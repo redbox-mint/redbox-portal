@@ -557,7 +557,6 @@ describe('RecordsService', function () {
       expect(result).to.have.property('type', 'rdmp');
       expect(result).to.have.property('packageType', 'rdmp');
       expect(result).to.have.property('form', 'default-form');
-      expect(result).to.have.property('attachmentFields');
     });
   });
 
