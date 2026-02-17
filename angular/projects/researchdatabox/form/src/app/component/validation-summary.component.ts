@@ -66,7 +66,7 @@ import { TabComponent } from './tab.component';
     }
     .validation-summary-errors {
       margin-top: 0.25rem;
-      margin-left: 1rem;
+      margin-left: 2rem;
       padding-left: 1.25rem;
     }
   `],
