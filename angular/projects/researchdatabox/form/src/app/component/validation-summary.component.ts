@@ -8,8 +8,6 @@ import {
   GroupFieldComponentName,
   GroupFieldModelName,
   isTypeFieldDefinitionName,
-  isTypeFormComponentDefinition,
-  isTypeFormComponentDefinitionName,
   RepeatableComponentName,
   TabContentComponentName,
   TabContentLayoutName,
@@ -263,11 +261,15 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   }
 
   private getDefinitionLabel(definition: unknown): string | null {
-    if (!isTypeFormComponentDefinition(definition)) {
+    if (!definition || typeof definition !== 'object') {
       return null;
     }
-    const layoutConfig = definition.layout?.config as { label?: string; buttonLabel?: string } | undefined;
-    const componentConfig = definition.component?.config as { label?: string } | undefined;
+    const def = definition as {
+      layout?: { config?: { label?: string; buttonLabel?: string } };
+      component?: { config?: { label?: string } };
+    };
+    const layoutConfig = def.layout?.config;
+    const componentConfig = def.component?.config;
     if (this.isTabDefinition(definition)) {
       return layoutConfig?.label ?? layoutConfig?.buttonLabel ?? componentConfig?.label ?? null;
     }
@@ -275,30 +277,30 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   }
 
   private isGroupDefinition(definition: unknown): boolean {
-    if (!isTypeFormComponentDefinition(definition)) {
+    if (!definition || typeof definition !== 'object') {
       return false;
     }
-    const byComponent = isTypeFormComponentDefinitionName(definition, GroupFieldComponentName);
+    const byComponent = isTypeFieldDefinitionName((definition as { component?: unknown }).component, GroupFieldComponentName);
     const model = (definition as { model?: unknown }).model;
     const byModel = isTypeFieldDefinitionName(model, GroupFieldModelName);
     return byComponent || byModel;
   }
 
   private isTabDefinition(definition: unknown): boolean {
-    if (!isTypeFormComponentDefinition(definition)) {
+    if (!definition || typeof definition !== 'object') {
       return false;
     }
-    const byComponent = isTypeFormComponentDefinitionName(definition, TabContentComponentName);
+    const byComponent = isTypeFieldDefinitionName((definition as { component?: unknown }).component, TabContentComponentName);
     const layout = (definition as { layout?: unknown }).layout;
     const byLayout = isTypeFieldDefinitionName(layout, TabContentLayoutName);
     return byComponent || byLayout;
   }
 
   private isRepeatableDefinition(definition: unknown): boolean {
-    if (!isTypeFormComponentDefinition(definition)) {
+    if (!definition || typeof definition !== 'object') {
       return false;
     }
-    return isTypeFormComponentDefinitionName(definition, RepeatableComponentName);
+    return isTypeFieldDefinitionName((definition as { component?: unknown }).component, RepeatableComponentName);
   }
 
   private isGroupEntry(entry: FormFieldCompMapEntry): boolean {
