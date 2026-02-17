@@ -41,6 +41,10 @@ x-rbportal-env: &rbportal-env
   - UPPY_COMPANION_PROTOCOL=http
   - UPPY_COMPANION_PATH=/companion
   - UPPY_COMPANION_UPLOAD_URLS=http://redboxportal:1500/default/rdmp/record/pending-oid/attach
+  - UPPY_GOOGLE_KEY=integrationtest-google-key
+  - UPPY_GOOGLE_SECRET=integrationtest-google-secret
+  - UPPY_ONEDRIVE_KEY=integrationtest-onedrive-key
+  - UPPY_ONEDRIVE_SECRET=integrationtest-onedrive-secret
   - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
   - sails_record__baseUrl_redbox=http://redbox:9000/redbox
   - sails_record__baseUrl_mint=http://203.101.226.160/mint
