@@ -4,6 +4,7 @@ import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { SimpleInputComponent } from "./simple-input.component";
 import { GroupFieldComponent } from './group.component';
+import { RepeatableComponent } from './repeatable.component';
 import { TabComponent } from './tab.component';
 
 describe('ValidationSummaryFieldComponent', () => {
@@ -13,6 +14,7 @@ describe('ValidationSummaryFieldComponent', () => {
         "ValidationSummaryFieldComponent": ValidationSummaryFieldComponent,
         "SimpleInputComponent": SimpleInputComponent,
         "GroupFieldComponent": GroupFieldComponent,
+        "RepeatableComponent": RepeatableComponent,
       }
     });
   });
@@ -505,6 +507,77 @@ describe('ValidationSummaryFieldComponent', () => {
 
     const linkWithTabLabel = (fixtureWithTabLabel.nativeElement as HTMLElement).querySelector('.validation-summary-item a');
     expect(linkWithTabLabel?.textContent?.trim()).toBe('Project - Project name');
+  });
+
+  it('should use repeatable parent label instead of form-item-id when repeatable element has no own label', async () => {
+    // arrange
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'repeatable_textfield_1',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              defaultValue: ['not-matching-prefix'],
+            },
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: '',
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    validators: [
+                      {
+                        class: 'pattern',
+                        config: {
+                          pattern: /prefix.*/,
+                          description: 'must start with prefix',
+                        },
+                      },
+                    ],
+                  },
+                },
+                component: {
+                  class: 'SimpleInputComponent',
+                },
+                layout: {
+                  class: 'RepeatableElementLayout',
+                },
+              },
+            },
+          },
+          layout: {
+            class: 'DefaultLayout',
+            config: {
+              label: 'Repeatable TextField with default wrapper defined',
+            },
+          },
+        },
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+      ]
+    };
+
+    // act
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+
+    // assert
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    const link = nativeEl.querySelector('.validation-summary-item a');
+    expect(link).toBeTruthy();
+    expect(link?.textContent?.trim()).toBe('Repeatable TextField with default wrapper defined');
   });
 
 });

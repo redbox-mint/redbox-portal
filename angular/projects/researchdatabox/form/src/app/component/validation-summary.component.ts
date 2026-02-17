@@ -7,6 +7,10 @@ import {
   FormValidatorSummaryErrors,
   GroupFieldComponentName,
   GroupFieldModelName,
+  isTypeFieldDefinitionName,
+  isTypeFormComponentDefinition,
+  isTypeFormComponentDefinitionName,
+  RepeatableComponentName,
   TabContentComponentName,
   TabContentLayoutName,
   ValidationSummaryComponentName,
@@ -112,7 +116,10 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     const lineageLabels = this.getLineageLabels(summary);
     const leafLabel = this.getLeafValidationLabel(summary);
     if (lineageLabels.length > 0) {
-      if (lineageLabels[lineageLabels.length - 1] !== leafLabel) {
+      const shouldAppendLeaf =
+        !!leafLabel &&
+        (summary.message !== null || !summary.id || leafLabel !== summary.id);
+      if (shouldAppendLeaf && lineageLabels[lineageLabels.length - 1] !== leafLabel) {
         lineageLabels.push(leafLabel);
       }
       return lineageLabels.join(' - ');
@@ -196,13 +203,14 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       const labelKey = this.getEntryLabel(entry);
       if (labelKey) {
         const isLeaf = index === path.length - 1;
-        const includeLabel =
-          isLeaf ||
-          this.isGroupEntry(entry) ||
-          (this.includeTabLabel && this.isTabEntry(entry));
-        if (includeLabel) {
-          labels.push(this.translate(labelKey));
-        }
+      const includeLabel =
+        isLeaf ||
+        this.isGroupEntry(entry) ||
+        this.isRepeatableEntry(entry) ||
+        (this.includeTabLabel && this.isTabEntry(entry));
+      if (includeLabel) {
+        labels.push(this.translate(labelKey));
+      }
       }
 
       currentEntries = entry.component?.formFieldCompMapEntries ?? [];
@@ -227,10 +235,6 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       }
       current = (current as any)[segment];
 
-      if (!this.isFormComponentDefinitionObject(current)) {
-        continue;
-      }
-
       const labelKey = this.getDefinitionLabel(current);
       if (!labelKey) {
         continue;
@@ -240,6 +244,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       const includeLabel =
         isLeaf ||
         this.isGroupDefinition(current) ||
+        this.isRepeatableDefinition(current) ||
         (this.includeTabLabel && this.isTabDefinition(current));
       if (includeLabel) {
         labels.push(this.translate(labelKey));
@@ -257,31 +262,55 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     return layoutConfig?.label ?? (entry.compConfigJson?.component?.config as { label?: string } | undefined)?.label ?? null;
   }
 
-  private isFormComponentDefinitionObject(value: unknown): value is { component?: { class?: string; config?: { label?: string } }; model?: { class?: string }; layout?: { class?: string; config?: { label?: string; buttonLabel?: string } } } {
-    return !!value && typeof value === 'object' && ('component' in (value as object) || 'layout' in (value as object) || 'model' in (value as object));
-  }
-
-  private getDefinitionLabel(definition: { component?: { class?: string; config?: { label?: string } }; layout?: { class?: string; config?: { label?: string; buttonLabel?: string } } }): string | null {
-    if (this.isTabDefinition(definition)) {
-      return definition.layout?.config?.label ?? definition.layout?.config?.buttonLabel ?? definition.component?.config?.label ?? null;
+  private getDefinitionLabel(definition: unknown): string | null {
+    if (!isTypeFormComponentDefinition(definition)) {
+      return null;
     }
-    return definition.layout?.config?.label ?? definition.component?.config?.label ?? null;
+    const layoutConfig = definition.layout?.config as { label?: string; buttonLabel?: string } | undefined;
+    const componentConfig = definition.component?.config as { label?: string } | undefined;
+    if (this.isTabDefinition(definition)) {
+      return layoutConfig?.label ?? layoutConfig?.buttonLabel ?? componentConfig?.label ?? null;
+    }
+    return layoutConfig?.label ?? componentConfig?.label ?? null;
   }
 
-  private isGroupDefinition(definition: { component?: { class?: string }; model?: { class?: string } }): boolean {
-    return definition.component?.class === GroupFieldComponentName || definition.model?.class === GroupFieldModelName;
+  private isGroupDefinition(definition: unknown): boolean {
+    if (!isTypeFormComponentDefinition(definition)) {
+      return false;
+    }
+    const byComponent = isTypeFormComponentDefinitionName(definition, GroupFieldComponentName);
+    const model = (definition as { model?: unknown }).model;
+    const byModel = isTypeFieldDefinitionName(model, GroupFieldModelName);
+    return byComponent || byModel;
   }
 
-  private isTabDefinition(definition: { component?: { class?: string }; layout?: { class?: string } }): boolean {
-    return definition.component?.class === TabContentComponentName || definition.layout?.class === TabContentLayoutName;
+  private isTabDefinition(definition: unknown): boolean {
+    if (!isTypeFormComponentDefinition(definition)) {
+      return false;
+    }
+    const byComponent = isTypeFormComponentDefinitionName(definition, TabContentComponentName);
+    const layout = (definition as { layout?: unknown }).layout;
+    const byLayout = isTypeFieldDefinitionName(layout, TabContentLayoutName);
+    return byComponent || byLayout;
+  }
+
+  private isRepeatableDefinition(definition: unknown): boolean {
+    if (!isTypeFormComponentDefinition(definition)) {
+      return false;
+    }
+    return isTypeFormComponentDefinitionName(definition, RepeatableComponentName);
   }
 
   private isGroupEntry(entry: FormFieldCompMapEntry): boolean {
-    return entry.compConfigJson?.component?.class === GroupFieldComponentName || entry.compConfigJson?.model?.class === GroupFieldModelName;
+    return this.isGroupDefinition(entry.compConfigJson);
+  }
+
+  private isRepeatableEntry(entry: FormFieldCompMapEntry): boolean {
+    return this.isRepeatableDefinition(entry.compConfigJson);
   }
 
   private isTabEntry(entry: FormFieldCompMapEntry): boolean {
-    return entry.compConfigJson?.component?.class === TabContentComponentName || entry.compConfigJson?.layout?.class === TabContentLayoutName;
+    return this.isTabDefinition(entry.compConfigJson);
   }
 
   private get includeTabLabel(): boolean {
