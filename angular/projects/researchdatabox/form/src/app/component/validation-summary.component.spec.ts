@@ -3,8 +3,9 @@ import { ValidationSummaryFieldComponent } from "./validation-summary.component"
 import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { SimpleInputComponent } from "./simple-input.component";
-import { TabComponent } from './tab.component';
+import { GroupFieldComponent } from './group.component';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './repeatable.component';
+import { TabComponent } from './tab.component';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { FormComponentEventType } from '../form-state/events/form-component-event.types';
 
@@ -14,6 +15,7 @@ describe('ValidationSummaryFieldComponent', () => {
       declarations: {
         "ValidationSummaryFieldComponent": ValidationSummaryFieldComponent,
         "SimpleInputComponent": SimpleInputComponent,
+        "GroupFieldComponent": GroupFieldComponent,
         "RepeatableComponent": RepeatableComponent,
         "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
       }
@@ -390,9 +392,7 @@ describe('ValidationSummaryFieldComponent', () => {
                                   class: 'SimpleInputModel',
                                   config: {
                                     value: '',
-                                    validators: [
-                                      { class: 'required' }
-                                    ]
+                                    validators: [{ class: 'required' }]
                                   }
                                 },
                                 component: {
@@ -441,6 +441,294 @@ describe('ValidationSummaryFieldComponent', () => {
     const repeatableInput = nativeEl.querySelector('#tab2-tab-content input[type="text"]') as HTMLInputElement | null;
     expect(repeatableInput).toBeTruthy();
     expect(document.activeElement).toBe(repeatableInput);
+  });
+
+  it('should render grouped field labels with parent context in validation summary', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'group_1_component',
+          layout: {
+            class: 'DefaultLayout',
+            config: {
+              label: 'Group label',
+            },
+          },
+          model: {
+            class: 'GroupModel',
+            config: {
+              defaultValue: {},
+            },
+          },
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'text_1_event',
+                  layout: {
+                    class: 'DefaultLayout',
+                    config: {
+                      label: 'TextField with default wrapper defined',
+                    },
+                  },
+                  model: {
+                    class: 'SimpleInputModel',
+                    config: {
+                      value: '',
+                      validators: [{ class: 'required' }]
+                    }
+                  },
+                  component: {
+                    class: 'SimpleInputComponent'
+                  }
+                },
+              ]
+            }
+          }
+        },
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    const link = nativeEl.querySelector('.validation-summary-item a');
+    expect(link).toBeTruthy();
+    expect(link?.textContent?.trim()).toBe('Group label - TextField with default wrapper defined');
+  });
+
+  it('should include nested group labels in validation summary labels', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'group_1_component',
+          layout: {
+            class: 'DefaultLayout',
+            config: { label: 'People' },
+          },
+          model: {
+            class: 'GroupModel',
+            config: { defaultValue: {} },
+          },
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'group_2_component',
+                  layout: {
+                    class: 'DefaultLayout',
+                    config: { label: '@dmpt-people-tab-record-administrator' },
+                  },
+                  model: {
+                    class: 'GroupModel',
+                    config: { defaultValue: {} },
+                  },
+                  component: {
+                    class: 'GroupComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'email_field',
+                          layout: {
+                            class: 'DefaultLayout',
+                            config: { label: 'Email' },
+                          },
+                          model: {
+                            class: 'SimpleInputModel',
+                            config: {
+                              value: '',
+                              validators: [{ class: 'required' }],
+                            }
+                          },
+                          component: { class: 'SimpleInputComponent' }
+                        },
+                      ]
+                    }
+                  }
+                },
+              ]
+            }
+          }
+        },
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    const link = nativeEl.querySelector('.validation-summary-item a');
+    expect(link).toBeTruthy();
+    expect(link?.textContent?.trim()).toBe('People - @dmpt-people-tab-record-administrator - Email');
+  });
+
+  it('should include tab labels only when includeTabLabel is true', async () => {
+    const createTabComponentDefinition = (): any => ({
+      name: 'main_tab',
+      component: {
+        class: 'TabComponent',
+        config: {
+          tabs: [
+            {
+              name: 'project_tab',
+              layout: {
+                class: 'TabContentLayout',
+                config: { buttonLabel: 'Project' }
+              },
+              component: {
+                class: 'TabContentComponent',
+                config: {
+                  componentDefinitions: [
+                    {
+                      name: 'project_name',
+                      layout: {
+                        class: 'DefaultLayout',
+                        config: { label: 'Project name' }
+                      },
+                      model: {
+                        class: 'SimpleInputModel',
+                        config: {
+                          value: '',
+                          validators: [{ class: 'required' }]
+                        }
+                      },
+                      component: { class: 'SimpleInputComponent' }
+                    },
+                  ]
+                }
+              }
+            }
+          ]
+        } as TabFieldComponentConfigFrame
+      },
+      layout: { class: 'TabLayout' }
+    });
+
+    const formConfigWithoutTabLabel: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: { defaultComponentCssClasses: 'row' },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        createTabComponentDefinition(),
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+      ]
+    };
+
+    const formConfigWithTabLabel: FormConfigFrame = {
+      ...formConfigWithoutTabLabel,
+      componentDefinitions: [
+        createTabComponentDefinition(),
+        {
+          name: 'validation_summary_1',
+          component: {
+            class: "ValidationSummaryComponent",
+            config: { includeTabLabel: true } as any
+          }
+        },
+      ]
+    };
+
+    const { fixture: fixtureWithoutTabLabel } = await createFormAndWaitForReady(formConfigWithoutTabLabel);
+    const { fixture: fixtureWithTabLabel } = await createFormAndWaitForReady(formConfigWithTabLabel);
+
+    const linkWithoutTabLabel = (fixtureWithoutTabLabel.nativeElement as HTMLElement).querySelector('.validation-summary-item a');
+    expect(linkWithoutTabLabel?.textContent?.trim()).toBe('Project name');
+
+    const linkWithTabLabel = (fixtureWithTabLabel.nativeElement as HTMLElement).querySelector('.validation-summary-item a');
+    expect(linkWithTabLabel?.textContent?.trim()).toBe('Project - Project name');
+  });
+
+  it('should use repeatable parent label instead of form-item-id when repeatable element has no own label', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'repeatable_textfield_1',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['not-matching-prefix'],
+            },
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: '',
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    validators: [
+                      {
+                        class: 'pattern',
+                        config: {
+                          pattern: /^prefix.*/,
+                          description: 'must start with prefix',
+                        },
+                      },
+                    ],
+                  },
+                },
+                component: {
+                  class: 'SimpleInputComponent',
+                },
+                layout: {
+                  class: 'RepeatableElementLayout',
+                },
+              },
+            },
+          },
+          layout: {
+            class: 'DefaultLayout',
+            config: {
+              label: 'Repeatable TextField with default wrapper defined',
+            },
+          },
+        },
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    const link = nativeEl.querySelector('.validation-summary-item a');
+    expect(link).toBeTruthy();
+    expect(link?.textContent?.trim()).toBe('Repeatable TextField with default wrapper defined');
   });
 
 });

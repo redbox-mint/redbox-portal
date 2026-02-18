@@ -71,6 +71,8 @@ export * from './configmodels/SystemMessage';
 
 export { Policies } from './policies';
 
+export { FormConfigExports } from './form-config';
+
 import * as Middleware from './middleware/redboxSession';
 export { Middleware };
 

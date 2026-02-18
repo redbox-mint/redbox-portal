@@ -1,6 +1,7 @@
-import { APIErrorResponse, FormModel, ListAPIResponse, ListAPISummary, Controllers as controllers } from '../../index';
+import { APIErrorResponse, ListAPIResponse, ListAPISummary, Controllers as controllers } from '../../index';
+import { FormAttributes } from '../../waterline-models/Form';
+import { BrandingModel } from '../../model/storage/BrandingModel';
 import { firstValueFrom } from 'rxjs';
-
 
 export namespace Controllers {
   /**
@@ -36,7 +37,8 @@ export namespace Controllers {
         const name: string = req.param('name');
         const editableParam = req.param('editable');
         const editable: boolean = editableParam !== 'false';
-        const form = await firstValueFrom(FormsService.getFormByName(name, editable));
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
+        const form = await firstValueFrom(FormsService.getFormByName(name, editable, String(brand.id)));
         if (!form) {
           return this.sendResp(req, res, {
             status: 404,
@@ -57,8 +59,9 @@ export namespace Controllers {
 
     public async listForms(req: Sails.Req, res: Sails.Res) {
       try {
-        const forms: FormModel[] = await firstValueFrom(FormsService.listForms());
-        const response: ListAPIResponse<FormModel> = new ListAPIResponse();
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
+        const forms: FormAttributes[] = await firstValueFrom(FormsService.listForms(String(brand.id)));
+        const response: ListAPIResponse<FormAttributes> = new ListAPIResponse();
         const summary: ListAPISummary = new ListAPISummary();
         summary.numFound = forms.length;
         response.summary = summary;

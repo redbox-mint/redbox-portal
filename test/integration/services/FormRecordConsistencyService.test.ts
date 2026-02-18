@@ -1,4 +1,4 @@
-import {Observable, of} from "rxjs";
+import { Observable, of } from "rxjs";
 import {
     FormRecordConsistencyService as FormRecordConsistencyModule,
     FormsService as FormsModule
@@ -8,7 +8,7 @@ import {
     FormConfigFrame, FormValidatorSummaryErrors,
 } from "@researchdatabox/sails-ng-common";
 import BasicRedboxRecord = FormRecordConsistencyModule.Services.BasicRedboxRecord;
-import {FormModel} from "@researchdatabox/redbox-core-types";
+import { FormModel } from "@researchdatabox/redbox-core-types";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -66,7 +66,7 @@ describe('The FormRecordConsistencyService', function () {
             details: {
                 it: 'has',
                 an: 'array',
-                with: ['a', 'few', 'more', 'elements', {than: 'before'}],
+                with: ['a', 'few', 'more', 'elements', { than: 'before' }],
                 hello: ['first'],
             }
         };
@@ -99,7 +99,7 @@ describe('The FormRecordConsistencyService', function () {
                 kind: 'add',
                 path: ['details', 'with', 4],
                 original: undefined,
-                changed: {than: 'before'},
+                changed: { than: 'before' },
             },
             {
                 kind: 'delete',
@@ -121,204 +121,204 @@ describe('The FormRecordConsistencyService', function () {
             },
             expected: BasicRedboxRecord,
         }[] = [
-            {
-                // no changes
-                args: {
-                    componentDefinitions: [
-                        {
-                            name: 'repeatable_group_1',
-                            model: {
-                                class: 'RepeatableModel',
-                                config: {defaultValue: [{text_1: "hello world from repeating groups"}]}
-                            },
-                            component: {
-                                class: 'RepeatableComponent',
-                                config: {
-                                    elementTemplate: {
-                                        name: null,
-                                        model: {
-                                            class: 'GroupModel',
-                                            config: {newEntryValue: {text_2: 'hello world 2!'}}
-                                        },
-                                        component: {
-                                            class: 'GroupComponent',
-                                            config: {
-                                                wrapperCssClasses: 'col',
-                                                componentDefinitions: [
-                                                    {
-                                                        name: 'text_2',
-                                                        model: {class: 'SimpleInputModel', config: {}},
-                                                        component: {
-                                                            class: 'SimpleInputComponent'
-                                                        },
-                                                    },
-                                                ],
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    ],
-                    // NOTE: can't specify array contents that differ from the provided form config,
-                    //        and none of the components in the elementTemplate or child components,
-                    //        can use constraints, as the values not accessible to any user will be overwritten
-                    //        when users without access save the form
-                    original: {
-                        redboxOid: "abcd",
-                        metadata: {
-                            repeatable_for_admin: [
-                                {text_for_repeatable_for_admin: "rpt value 1"},
-                                {text_for_repeatable_for_admin: "rpt value 2"}
-                            ],
-                            repeatable_group_1: [
-                                {
-                                    text_2: "text 2 value",
-                                },
-                                {
-                                    text_2: "text 2 value 2",
-                                }
-                            ]
-                        }
-                    },
-                    changed: {
-                        redboxOid: "abcd",
-                        metadata: {
-                            repeatable_for_admin: [
-                                {text_for_repeatable_for_admin: "rpt value 1"},
-                                {text_for_repeatable_for_admin: "rpt value 2"}
-                            ],
-                            repeatable_group_1: [
-                                {
-                                    text_2: "text 2 value",
-                                },
-                                {
-                                    text_2: "text 2 value 2",
-                                }
-                            ]
-                        }
-                    }
-                },
-                expected: {
-                    redboxOid: "abcd",
-                    metadata: {
-                        repeatable_for_admin: [
-                            {text_for_repeatable_for_admin: "rpt value 1"},
-                            {text_for_repeatable_for_admin: "rpt value 2"}
-                        ],
-                        repeatable_group_1: [
+                {
+                    // no changes
+                    args: {
+                        componentDefinitions: [
                             {
-                                text_2: "text 2 value",
-                            },
-                            {
-                                text_2: "text 2 value 2",
-                            }
-                        ]
-                    }
-                },
-            },
-            {
-                // basic allowed and prevented changes
-                args: {
-                    componentDefinitions: [
-                        {
-                            name: 'group_1',
-                            model: {class: 'GroupModel', config: {}},
-                            component: {
-                                class: 'GroupComponent',
-                                config: {
-                                    componentDefinitions: [
-                                        {
-                                            name: 'text_1',
+                                name: 'repeatable_group_1',
+                                model: {
+                                    class: 'RepeatableModel',
+                                    config: { defaultValue: [{ text_1: "hello world from repeating groups" }] }
+                                },
+                                component: {
+                                    class: 'RepeatableComponent',
+                                    config: {
+                                        elementTemplate: {
+                                            name: null,
                                             model: {
-                                                class: 'SimpleInputModel',
-                                                config: {defaultValue: 'hello world 1!'}
+                                                class: 'GroupModel',
+                                                config: { newEntryValue: { text_2: 'hello world 2!' } }
                                             },
-                                            component: {class: 'SimpleInputComponent'},
-                                        },
-                                        {
-                                            name: 'group_2',
-                                            model: {class: 'GroupModel', config: {}},
                                             component: {
                                                 class: 'GroupComponent',
                                                 config: {
+                                                    wrapperCssClasses: 'col',
                                                     componentDefinitions: [
                                                         {
                                                             name: 'text_2',
-                                                            model: {class: 'SimpleInputModel', config: {}},
+                                                            model: { class: 'SimpleInputModel', config: {} },
                                                             component: {
                                                                 class: 'SimpleInputComponent'
                                                             },
                                                         },
-                                                    ]
-                                                }
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                        },
-                        {
-                            name: 'repeatable_1',
-                            model: {
-                                class: 'RepeatableModel',
-                                config: {defaultValue: ["hello world from repeating groups"]}
-                            },
-                            component: {
-                                class: 'RepeatableComponent',
-                                config: {
-                                    elementTemplate: {
-                                        name: null,
-                                        model: {class: 'SimpleInputModel', config: {}},
-                                        component: {class: 'SimpleInputComponent'},
+                                                    ],
+                                                },
+                                            },
+                                        },
                                     },
                                 },
                             },
+                        ],
+                        // NOTE: can't specify array contents that differ from the provided form config,
+                        //        and none of the components in the elementTemplate or child components,
+                        //        can use constraints, as the values not accessible to any user will be overwritten
+                        //        when users without access save the form
+                        original: {
+                            redboxOid: "abcd",
+                            metadata: {
+                                repeatable_for_admin: [
+                                    { text_for_repeatable_for_admin: "rpt value 1" },
+                                    { text_for_repeatable_for_admin: "rpt value 2" }
+                                ],
+                                repeatable_group_1: [
+                                    {
+                                        text_2: "text 2 value",
+                                    },
+                                    {
+                                        text_2: "text 2 value 2",
+                                    }
+                                ]
+                            }
                         },
-                    ],
-                    original: {
+                        changed: {
+                            redboxOid: "abcd",
+                            metadata: {
+                                repeatable_for_admin: [
+                                    { text_for_repeatable_for_admin: "rpt value 1" },
+                                    { text_for_repeatable_for_admin: "rpt value 2" }
+                                ],
+                                repeatable_group_1: [
+                                    {
+                                        text_2: "text 2 value",
+                                    },
+                                    {
+                                        text_2: "text 2 value 2",
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    expected: {
                         redboxOid: "abcd",
                         metadata: {
-                            group_1: {
-                                text_1: 'hello world 1!',
-                                group_2: {text_2: "group_1 group_2 text_2"},
-                            },
-                            repeatable_1: [
-                                "hello world from repeating groups",
+                            repeatable_for_admin: [
+                                { text_for_repeatable_for_admin: "rpt value 1" },
+                                { text_for_repeatable_for_admin: "rpt value 2" }
+                            ],
+                            repeatable_group_1: [
+                                {
+                                    text_2: "text 2 value",
+                                },
+                                {
+                                    text_2: "text 2 value 2",
+                                }
                             ]
                         }
                     },
-                    changed: {
+                },
+                {
+                    // basic allowed and prevented changes
+                    args: {
+                        componentDefinitions: [
+                            {
+                                name: 'group_1',
+                                model: { class: 'GroupModel', config: {} },
+                                component: {
+                                    class: 'GroupComponent',
+                                    config: {
+                                        componentDefinitions: [
+                                            {
+                                                name: 'text_1',
+                                                model: {
+                                                    class: 'SimpleInputModel',
+                                                    config: { defaultValue: 'hello world 1!' }
+                                                },
+                                                component: { class: 'SimpleInputComponent' },
+                                            },
+                                            {
+                                                name: 'group_2',
+                                                model: { class: 'GroupModel', config: {} },
+                                                component: {
+                                                    class: 'GroupComponent',
+                                                    config: {
+                                                        componentDefinitions: [
+                                                            {
+                                                                name: 'text_2',
+                                                                model: { class: 'SimpleInputModel', config: {} },
+                                                                component: {
+                                                                    class: 'SimpleInputComponent'
+                                                                },
+                                                            },
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                            },
+                            {
+                                name: 'repeatable_1',
+                                model: {
+                                    class: 'RepeatableModel',
+                                    config: { defaultValue: ["hello world from repeating groups"] }
+                                },
+                                component: {
+                                    class: 'RepeatableComponent',
+                                    config: {
+                                        elementTemplate: {
+                                            name: null,
+                                            model: { class: 'SimpleInputModel', config: {} },
+                                            component: { class: 'SimpleInputComponent' },
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                        original: {
+                            redboxOid: "abcd",
+                            metadata: {
+                                group_1: {
+                                    text_1: 'hello world 1!',
+                                    group_2: { text_2: "group_1 group_2 text_2" },
+                                },
+                                repeatable_1: [
+                                    "hello world from repeating groups",
+                                ]
+                            }
+                        },
+                        changed: {
+                            redboxOid: "abcd",
+                            metadata: {
+                                text_0: "text_0 this is not allowed, ignore it",
+                                group_1: {
+                                    text_1: 'text_1 new value',
+                                    text_another: "text_another this is not allowed, ignore it",
+                                },
+                                repeatable_1: [
+                                    "repeatable_1 text_rpt_1 index 0 new value",
+                                    "hello world from repeating groups",
+                                ]
+                            }
+                        },
+                    },
+                    expected: {
                         redboxOid: "abcd",
                         metadata: {
-                            text_0: "text_0 this is not allowed, ignore it",
                             group_1: {
                                 text_1: 'text_1 new value',
-                                text_another: "text_another this is not allowed, ignore it",
+                                group_2: { text_2: "group_1 group_2 text_2" },
                             },
                             repeatable_1: [
                                 "repeatable_1 text_rpt_1 index 0 new value",
                                 "hello world from repeating groups",
                             ]
                         }
-                    },
-                },
-                expected: {
-                    redboxOid: "abcd",
-                    metadata: {
-                        group_1: {
-                            text_1: 'text_1 new value',
-                            group_2: {text_2: "group_1 group_2 text_2"},
-                        },
-                        repeatable_1: [
-                            "repeatable_1 text_rpt_1 index 0 new value",
-                            "hello world from repeating groups",
-                        ]
                     }
                 }
-            }
-        ];
-        cases.forEach(({args, expected}) => {
+            ];
+        cases.forEach(({ args, expected }) => {
             it(`should merge as expected ${JSON.stringify(expected)} for args ${JSON.stringify(args)}`, (done) => {
                 const clientFormConfig: FormConfigFrame = {
                     name: "client-form-config",
@@ -344,16 +344,16 @@ describe('The FormRecordConsistencyService', function () {
         });
 
         it("fails when permittedChanges is not the expected structure", function () {
-            const record = {prop1: "value1"};
-            const permittedChanges = {prop1: {prop2: {prop3: "value1"}}};
+            const record = { prop1: "value1" };
+            const permittedChanges = { prop1: { prop2: { prop3: "value1" } } };
             const func = function () {
                 FormRecordConsistencyService.mergeRecordMetadataPermitted(record, record, permittedChanges, [])
             }
             expect(func).to.throw(Error, 'all definitions must have a property that is one');
         });
         it("fails when permittedChanges nested object is invalid", function () {
-            const record = {prop1: "value1"};
-            const permittedChanges = {properties: {prop1: {wrong: "wrong"}}};
+            const record = { prop1: "value1" };
+            const permittedChanges = { properties: { prop1: { wrong: "wrong" } } };
             const func = function () {
                 FormRecordConsistencyService.mergeRecordMetadataPermitted(record, record, permittedChanges, []);
             }
@@ -381,7 +381,7 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: {
                                     text_1: "group_1 text_1 default",
-                                    group_2: {text_2: "group_1 group_2 text_2 default"}
+                                    group_2: { text_2: "group_1 group_2 text_2 default" }
                                 }
                             }
                         },
@@ -391,8 +391,8 @@ describe('The FormRecordConsistencyService', function () {
                                 componentDefinitions: [
                                     {
                                         name: 'text_1',
-                                        model: {class: 'SimpleInputModel', config: {defaultValue: 'text_1 default'}},
-                                        component: {class: 'SimpleInputComponent'},
+                                        model: { class: 'SimpleInputModel', config: { defaultValue: 'text_1 default' } },
+                                        component: { class: 'SimpleInputComponent' },
                                     },
                                     {
                                         name: 'group_2',
@@ -411,7 +411,7 @@ describe('The FormRecordConsistencyService', function () {
                                                 componentDefinitions: [
                                                     {
                                                         name: 'text_2',
-                                                        model: {class: 'SimpleInputModel', config: {}},
+                                                        model: { class: 'SimpleInputModel', config: {} },
                                                         component: {
                                                             class: 'SimpleInputComponent'
                                                         },
@@ -420,7 +420,7 @@ describe('The FormRecordConsistencyService', function () {
                                                         name: 'text_3',
                                                         model: {
                                                             class: 'SimpleInputModel',
-                                                            config: {defaultValue: "text_3 default"}
+                                                            config: { defaultValue: "text_3 default" }
                                                         },
                                                         component: {
                                                             class: 'SimpleInputComponent'
@@ -430,7 +430,7 @@ describe('The FormRecordConsistencyService', function () {
                                                         name: 'repeatable_2',
                                                         model: {
                                                             class: 'RepeatableModel',
-                                                            config: {defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"]}
+                                                            config: { defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"] }
                                                         },
                                                         component: {
                                                             class: 'RepeatableComponent',
@@ -441,9 +441,9 @@ describe('The FormRecordConsistencyService', function () {
                                                                     // For the repeatable, the default is set in the RepeatableModel.
                                                                     model: {
                                                                         class: 'SimpleInputModel',
-                                                                        config: {newEntryValue: "elementTemplate default"}
+                                                                        config: { newEntryValue: "elementTemplate default" }
                                                                     },
-                                                                    component: {class: 'SimpleInputComponent'},
+                                                                    component: { class: 'SimpleInputComponent' },
                                                                 },
                                                             },
                                                         },
@@ -500,21 +500,21 @@ describe('The FormRecordConsistencyService', function () {
                         name: 'repeatable_1',
                         model: {
                             class: 'RepeatableModel',
-                            config: {defaultValue: [{text_group_repeatable_1: "hello world from repeating groups"}]}
+                            config: { defaultValue: [{ text_group_repeatable_1: "hello world from repeating groups" }] }
                         },
                         component: {
                             class: 'RepeatableComponent',
                             config: {
                                 elementTemplate: {
                                     name: null,
-                                    model: {class: 'GroupModel', config: {}},
+                                    model: { class: 'GroupModel', config: {} },
                                     component: {
                                         class: 'GroupComponent',
                                         config: {
                                             componentDefinitions: [
                                                 {
                                                     name: 'text_group_repeatable_1',
-                                                    model: {class: 'SimpleInputModel', config: {}},
+                                                    model: { class: 'SimpleInputModel', config: {} },
                                                     component: {
                                                         class: 'SimpleInputComponent'
                                                     },
@@ -542,7 +542,7 @@ describe('The FormRecordConsistencyService', function () {
                     },
                 },
                 repeatable_1: [
-                    {text_group_repeatable_1: "hello world from repeating groups"},
+                    { text_group_repeatable_1: "hello world from repeating groups" },
                 ],
             };
             const result = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig, "edit");
@@ -555,7 +555,7 @@ describe('The FormRecordConsistencyService', function () {
             const formConfig: FormModel & FormConfigFrame = {
                 ...formModelConfigStandard,
                 validators: [
-                    {class: 'different-values', config: {controlNames: ['text_1', 'text_2']}},
+                    { class: 'different-values', config: { controlNames: ['text_1', 'text_2'] } },
                 ],
                 componentDefinitions: [
                     {
@@ -565,13 +565,13 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: 'hello world!',
                                 validators: [
-                                    {class: 'required'},
-                                    {class: 'minLength', config: {minLength: 10}},
-                                    {class: 'maxLength', config: {maxLength: 20}},
+                                    { class: 'required' },
+                                    { class: 'minLength', config: { minLength: 10 } },
+                                    { class: 'maxLength', config: { maxLength: 20 } },
                                 ]
                             }
                         },
-                        component: {class: 'SimpleInputComponent'}
+                        component: { class: 'SimpleInputComponent' }
                     },
                     {
                         name: 'text_2',
@@ -580,12 +580,12 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: '',
                                 validators: [
-                                    {class: 'required'},
-                                    {class: 'requiredTrue'},
+                                    { class: 'required' },
+                                    { class: 'requiredTrue' },
                                 ]
                             }
                         },
-                        component: {class: 'SimpleInputComponent'}
+                        component: { class: 'SimpleInputComponent' }
                     },
                     {
                         name: 'group_2',
@@ -607,12 +607,12 @@ describe('The FormRecordConsistencyService', function () {
                                         model: {
                                             class: 'SimpleInputModel', config: {
                                                 validators: [
-                                                    {class: 'min', config: {min: 5}},
-                                                    {class: 'max', config: {max: 15}},
+                                                    { class: 'min', config: { min: 5 } },
+                                                    { class: 'max', config: { max: 15 } },
                                                 ]
                                             }
                                         },
-                                        component: {class: 'SimpleInputComponent'},
+                                        component: { class: 'SimpleInputComponent' },
                                     },
                                     {
                                         name: 'text_3',
@@ -631,18 +631,18 @@ describe('The FormRecordConsistencyService', function () {
                                                     {
                                                         class: 'minLength',
                                                         message: "@validator-error-custom-text_7",
-                                                        config: {minLength: 3}
+                                                        config: { minLength: 3 }
                                                     },
                                                 ]
                                             }
                                         },
-                                        component: {class: 'SimpleInputComponent'},
+                                        component: { class: 'SimpleInputComponent' },
                                     },
                                     {
                                         name: 'repeatable_2',
                                         model: {
                                             class: 'RepeatableModel',
-                                            config: {defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"]}
+                                            config: { defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"] }
                                         },
                                         component: {
                                             class: 'RepeatableComponent',
@@ -652,13 +652,13 @@ describe('The FormRecordConsistencyService', function () {
                                                     model: {
                                                         class: 'SimpleInputModel', config: {
                                                             validators: [
-                                                                {class: 'email'},
+                                                                { class: 'email' },
                                                             ]
                                                         }
                                                     },
                                                     component: {
                                                         class: 'SimpleInputComponent',
-                                                        config: {type: "email"}
+                                                        config: { type: "email" }
                                                     },
                                                 },
                                             },
@@ -668,7 +668,7 @@ describe('The FormRecordConsistencyService', function () {
                                         name: 'repeatable_3',
                                         model: {
                                             class: 'RepeatableModel',
-                                            config: {defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"]}
+                                            config: { defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"] }
                                         },
                                         component: {
                                             class: 'RepeatableComponent',
@@ -677,7 +677,7 @@ describe('The FormRecordConsistencyService', function () {
                                                     name: null,
                                                     model: {
                                                         class: 'GroupModel',
-                                                        config: {newEntryValue: {repeatable_4: ["repeatable_4 default 1", "repeatable_4 default 2"]}}
+                                                        config: { newEntryValue: { repeatable_4: ["repeatable_4 default 1", "repeatable_4 default 2"] } }
                                                     },
                                                     component: {
                                                         class: 'GroupComponent',
@@ -685,7 +685,7 @@ describe('The FormRecordConsistencyService', function () {
                                                             componentDefinitions: [
                                                                 {
                                                                     name: 'repeatable_4',
-                                                                    model: {class: 'RepeatableModel', config: {}},
+                                                                    model: { class: 'RepeatableModel', config: {} },
                                                                     component: {
                                                                         class: 'RepeatableComponent',
                                                                         config: {
@@ -694,7 +694,7 @@ describe('The FormRecordConsistencyService', function () {
                                                                                 model: {
                                                                                     class: 'SimpleInputModel', config: {
                                                                                         validators: [
-                                                                                            {class: 'required'},
+                                                                                            { class: 'required' },
                                                                                         ]
                                                                                     }
                                                                                 },
@@ -738,8 +738,8 @@ describe('The FormRecordConsistencyService', function () {
             let actual = null;
             const oldFormServiceGetFormByName = FormsService.getFormByName;
             try {
-                FormsService.getFormByName = function (formName, editMode): Observable<FormModel> {
-                    return of(formConfig)
+                FormsService.getFormByName = function (formName, editMode): Observable<any> {
+                    return of({ configuration: formConfig })
                 }
                 actual = await FormRecordConsistencyService.validateRecordValuesForFormConfig(record);
             } finally {
@@ -752,7 +752,7 @@ describe('The FormRecordConsistencyService', function () {
             const formConfig: FormModel & FormConfigFrame = {
                 ...formModelConfigStandard,
                 validators: [
-                    {class: 'different-values', config: {controlNames: ['text_1', 'text_2']}},
+                    { class: 'different-values', config: { controlNames: ['text_1', 'text_2'] } },
                 ],
                 componentDefinitions: [
                     {
@@ -762,12 +762,12 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: 'hello world!',
                                 validators: [
-                                    {class: 'minLength', config: {minLength: 20}},
-                                    {class: 'maxLength', config: {maxLength: 10}},
+                                    { class: 'minLength', config: { minLength: 20 } },
+                                    { class: 'maxLength', config: { maxLength: 10 } },
                                 ]
                             }
                         },
-                        component: {class: 'SimpleInputComponent'}
+                        component: { class: 'SimpleInputComponent' }
                     },
                     {
                         name: 'text_2',
@@ -776,13 +776,13 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: '',
                                 validators: [
-                                    {class: 'required'},
-                                    {class: 'requiredTrue'},
+                                    { class: 'required' },
+                                    { class: 'requiredTrue' },
                                 ]
                             }
                         },
-                        component: {class: 'SimpleInputComponent'},
-                        layout: {class: "DefaultLayout", config: {label: "@text_2_custom_label"}},
+                        component: { class: 'SimpleInputComponent' },
+                        layout: { class: "DefaultLayout", config: { label: "@text_2_custom_label" } },
                     },
                     {
                         name: 'group_2',
@@ -791,7 +791,7 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: {
                                     text_3: "group_2 text_3 default",
-                                    repeatable_2: [{text_rpt_2: "group_2 repeatable_2 text_rpt_2 default"}]
+                                    repeatable_2: [{ text_rpt_2: "group_2 repeatable_2 text_rpt_2 default" }]
                                 }
                             }
                         },
@@ -804,23 +804,23 @@ describe('The FormRecordConsistencyService', function () {
                                         model: {
                                             class: 'SimpleInputModel', config: {
                                                 validators: [
-                                                    {class: 'min', config: {min: 5}},
-                                                    {class: 'max', config: {max: 15}},
+                                                    { class: 'min', config: { min: 5 } },
+                                                    { class: 'max', config: { max: 15 } },
                                                 ]
                                             }
                                         },
-                                        component: {class: 'SimpleInputComponent'},
+                                        component: { class: 'SimpleInputComponent' },
                                     },
                                     {
                                         name: 'text_5',
                                         model: {
                                             class: 'SimpleInputModel', config: {
                                                 validators: [
-                                                    {class: 'required'},
+                                                    { class: 'required' },
                                                 ]
                                             }
                                         },
-                                        component: {class: 'SimpleInputComponent'},
+                                        component: { class: 'SimpleInputComponent' },
                                     },
                                     {
                                         name: 'text_3',
@@ -839,18 +839,18 @@ describe('The FormRecordConsistencyService', function () {
                                                     {
                                                         class: 'minLength',
                                                         message: "@validator-error-custom-text_7",
-                                                        config: {minLength: 50}
+                                                        config: { minLength: 50 }
                                                     },
                                                 ]
                                             }
                                         },
-                                        component: {class: 'SimpleInputComponent'},
+                                        component: { class: 'SimpleInputComponent' },
                                     },
                                     {
                                         name: 'repeatable_2',
                                         model: {
                                             class: 'RepeatableModel',
-                                            config: {defaultValue: [{repeatable_2_item1: "text_rpt_2 default 1"}, {repeatable_2_item2: "text_rpt_2 default 2"}]}
+                                            config: { defaultValue: [{ repeatable_2_item1: "text_rpt_2 default 1" }, { repeatable_2_item2: "text_rpt_2 default 2" }] }
                                         },
                                         component: {
                                             class: 'RepeatableComponent',
@@ -860,7 +860,7 @@ describe('The FormRecordConsistencyService', function () {
                                                     model: {
                                                         class: 'SimpleInputModel', config: {
                                                             validators: [
-                                                                {class: 'email'},
+                                                                { class: 'email' },
                                                             ]
                                                         }
                                                     },
@@ -1035,15 +1035,24 @@ describe('The FormRecordConsistencyService', function () {
             let actual = null;
             const oldFormServiceGetFormByName = FormsService.getFormByName;
             try {
-                FormsService.getFormByName = function (formName, editMode): Observable<FormModel> {
-                    return of(formConfig)
+                FormsService.getFormByName = function (formName, editMode): Observable<any> {
+                    return of({ configuration: formConfig })
                 }
                 actual = await FormRecordConsistencyService.validateRecordValuesForFormConfig(record);
             } finally {
                 FormsService.getFormByName = oldFormServiceGetFormByName;
             }
 
-            expect(actual).to.eql(expected);
+            const normalizeErrorResults = (results: any[]) => {
+                return (results || []).map((item: any) => {
+                    const copy = _.cloneDeep(item);
+                    delete copy.parents;
+                    delete copy.lineagePaths;
+                    return copy;
+                });
+            };
+
+            expect(normalizeErrorResults(actual)).to.eql(normalizeErrorResults(expected));
         });
     });
 
@@ -1059,13 +1068,13 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: 'hello world!',
                                 validators: [
-                                    {class: 'required'},
-                                    {class: 'minLength', config: {minLength: 10}},
-                                    {class: 'maxLength', config: {maxLength: 20}},
+                                    { class: 'required' },
+                                    { class: 'minLength', config: { minLength: 10 } },
+                                    { class: 'maxLength', config: { maxLength: 20 } },
                                 ]
                             }
                         },
-                        component: {class: 'SimpleInputComponent'}
+                        component: { class: 'SimpleInputComponent' }
                     },
                     {
                         name: 'text_2',
@@ -1074,12 +1083,12 @@ describe('The FormRecordConsistencyService', function () {
                             config: {
                                 defaultValue: '',
                                 validators: [
-                                    {class: 'required'},
-                                    {class: 'requiredTrue'},
+                                    { class: 'required' },
+                                    { class: 'requiredTrue' },
                                 ]
                             }
                         },
-                        component: {class: 'SimpleInputComponent'}
+                        component: { class: 'SimpleInputComponent' }
                     },
                     {
                         name: 'group_2',
@@ -1101,12 +1110,12 @@ describe('The FormRecordConsistencyService', function () {
                                         model: {
                                             class: 'SimpleInputModel', config: {
                                                 validators: [
-                                                    {class: 'min', config: {min: 5}},
-                                                    {class: 'max', config: {max: 15}},
+                                                    { class: 'min', config: { min: 5 } },
+                                                    { class: 'max', config: { max: 15 } },
                                                 ]
                                             }
                                         },
-                                        component: {class: 'SimpleInputComponent'},
+                                        component: { class: 'SimpleInputComponent' },
                                     },
                                     {
                                         name: 'text_3',
@@ -1125,18 +1134,18 @@ describe('The FormRecordConsistencyService', function () {
                                                     {
                                                         class: 'minLength',
                                                         message: "@validator-error-custom-text_7",
-                                                        config: {minLength: 3}
+                                                        config: { minLength: 3 }
                                                     },
                                                 ]
                                             }
                                         },
-                                        component: {class: 'SimpleInputComponent'},
+                                        component: { class: 'SimpleInputComponent' },
                                     },
                                     {
                                         name: 'repeatable_2',
                                         model: {
                                             class: 'RepeatableModel',
-                                            config: {defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"]}
+                                            config: { defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"] }
                                         },
                                         component: {
                                             class: 'RepeatableComponent',
@@ -1146,13 +1155,13 @@ describe('The FormRecordConsistencyService', function () {
                                                     model: {
                                                         class: 'SimpleInputModel', config: {
                                                             validators: [
-                                                                {class: 'email'},
+                                                                { class: 'email' },
                                                             ]
                                                         }
                                                     },
                                                     component: {
                                                         class: 'SimpleInputComponent',
-                                                        config: {type: "email"}
+                                                        config: { type: "email" }
                                                     },
                                                 },
                                             },
@@ -1162,7 +1171,7 @@ describe('The FormRecordConsistencyService', function () {
                                         name: 'repeatable_3',
                                         model: {
                                             class: 'RepeatableModel',
-                                            config: {defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"]}
+                                            config: { defaultValue: ["text_rpt_2 default 1", "text_rpt_2 default 2"] }
                                         },
                                         component: {
                                             class: 'RepeatableComponent',
@@ -1182,7 +1191,7 @@ describe('The FormRecordConsistencyService', function () {
                                                             componentDefinitions: [
                                                                 {
                                                                     name: 'repeatable_4',
-                                                                    model: {class: 'RepeatableModel', config: {}},
+                                                                    model: { class: 'RepeatableModel', config: {} },
                                                                     component: {
                                                                         class: 'RepeatableComponent',
                                                                         config: {
@@ -1191,7 +1200,7 @@ describe('The FormRecordConsistencyService', function () {
                                                                                 model: {
                                                                                     class: 'SimpleInputModel', config: {
                                                                                         validators: [
-                                                                                            {class: 'required'},
+                                                                                            { class: 'required' },
                                                                                         ]
                                                                                     }
                                                                                 },
@@ -1217,12 +1226,12 @@ describe('The FormRecordConsistencyService', function () {
             };
             const expected = {
                 "properties": {
-                    "text_1": {"type": "string"},
-                    "text_2": {"type": "string"},
+                    "text_1": { "type": "string" },
+                    "text_2": { "type": "string" },
                     "group_2": {
                         "properties": {
-                            "text_3": {"type": "string"},
-                            "text_4": {"type": "string"},
+                            "text_3": { "type": "string" },
+                            "text_4": { "type": "string" },
                             "repeatable_2": {
                                 "elements": {
                                     "type": "string"
@@ -1248,6 +1257,6 @@ describe('The FormRecordConsistencyService', function () {
             expect(actual).to.eql(expected);
         });
     })
-    ;
+        ;
 })
-;
+    ;

@@ -21,8 +21,9 @@ import { Observable, of, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, last, filter } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
-import { FormModel } from '../model/storage/FormModel';
+import { FormAttributes } from '../waterline-models/Form';
 import { createSchema } from 'genson-js';
+import * as path from 'path';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import {
   ClientFormConfigVisitor,
@@ -71,25 +72,31 @@ export namespace Services {
       'buildClientFormConfig',
     ];
 
-    public async bootstrap(workflowStep: WorkflowStepLike): Promise<unknown> {
+    public async bootstrap(workflowStep: WorkflowStepLike, brandingId: string): Promise<unknown> {
+      sails.log.verbose(`Bootstrapping form for workflow step: ${workflowStep.id} with form config: ${workflowStep.config.form}`);
       let form = await Form.find({
-        workflowStep: workflowStep.id
+        name: workflowStep.config.form,
+        branding: brandingId
       })
       if (sails.config.appmode.bootstrapAlways) {
         this.logger.verbose(`Destroying existing form definitions: ${workflowStep.config.form}`);
         await Form.destroyOne({
-          name: workflowStep.config.form
+          name: workflowStep.config.form,
+          branding: brandingId
         })
         form = null;
       }
       let formDefs: string[] = [];
       let formName: string | null = null;
+      const formRegistry = this.getFormConfigRegistry();
+      sails.log.verbose("Form registry: ");
+      sails.log.verbose(JSON.stringify(formRegistry));
       this.logger.verbose("Found : ");
       this.logger.verbose(form);
       if (!form || (Array.isArray(form) && form.length == 0)) {
         this.logger.verbose("Bootstrapping form definitions..");
         // only bootstrap the form for this workflow step
-        _.forOwn(sails.config.form.forms, (_formDef: unknown, formName: string) => {
+        _.forOwn(formRegistry, (_formDef: unknown, formName: string) => {
           if (formName == workflowStep.config.form) {
             formDefs.push(formName);
           }
@@ -104,9 +111,10 @@ export namespace Services {
       }
       // check now if the form already exists, if it does, ignore...
       const existingFormDef = await Form.find({
-        name: formName
-      }) as unknown as FormModel[];
-      const existCheck: { formName: string | null; existingFormDef: FormModel[] } = {
+        name: formName,
+        branding: brandingId
+      }) as unknown as FormAttributes[];
+      const existCheck: { formName: string | null; existingFormDef: FormAttributes[] } = {
         formName: formName,
         existingFormDef: existingFormDef
       };
@@ -127,44 +135,53 @@ export namespace Services {
       if (formName) {
         sails.log.verbose(`Preparing to create form...`);
         // TODO: assess the form config to see what should change
-        const formConfig = sails.config.form.forms[formName] as Record<string, unknown>;
+        const formConfigRaw = formRegistry[formName] as Record<string, unknown> | undefined;
+        if (!formConfigRaw) {
+          this.logger.warn(`No form config found for ${formName}, skipping bootstrap.`);
+          return null;
+        }
 
         // TODO: Make the typing stronger here by removing the Record type here 
         // once we remove the legacy forms config
-        const formObj: FormConfigFrame & Record<string, unknown> = {
+        const formConfig: FormConfigFrame = {
           name: formName,
-          fields: formConfig.fields,
-          workflowStep: workflowStep.id,
-          requiredFieldIndicator: formConfig.requiredFieldIndicator,
-          type: typeof formConfig.type === 'string' ? formConfig.type : '',
-          viewCssClasses: formConfig.viewCssClasses as FormConfigFrame['viewCssClasses'],
-          editCssClasses: formConfig.editCssClasses as FormConfigFrame['editCssClasses'],
-          skipValidationOnSave: formConfig.skipValidationOnSave,
-          attachmentFields: formConfig.attachmentFields as string[],
-          customAngularApp: formConfig.customAngularApp || null,
+          type: typeof formConfigRaw.type === 'string' ? formConfigRaw.type : '',
+          viewCssClasses: formConfigRaw.viewCssClasses as FormConfigFrame['viewCssClasses'],
+          editCssClasses: formConfigRaw.editCssClasses as FormConfigFrame['editCssClasses'],
+          domElementType: formConfigRaw.domElementType as FormConfigFrame['domElementType'],
+          domId: formConfigRaw.domId as FormConfigFrame['domId'],
+          defaultComponentConfig: formConfigRaw.defaultComponentConfig as FormConfigFrame['defaultComponentConfig'],
+          enabledValidationGroups: formConfigRaw.enabledValidationGroups as FormConfigFrame['enabledValidationGroups'],
+          validators: formConfigRaw.validators as FormConfigFrame['validators'],
+          validationGroups: formConfigRaw.validationGroups as FormConfigFrame['validationGroups'],
+          defaultLayoutComponent: formConfigRaw.defaultLayoutComponent as FormConfigFrame['defaultLayoutComponent'],
+          componentDefinitions: formConfigRaw.componentDefinitions as FormConfigFrame['componentDefinitions'],
+          debugValue: formConfigRaw.debugValue as FormConfigFrame['debugValue'],
+          attachmentFields: (formConfigRaw.attachmentFields ?? []) as FormConfigFrame['attachmentFields'],
 
-          // new fields
-          domElementType: formConfig.domElementType as FormConfigFrame['domElementType'],
-          domId: formConfig.domId as FormConfigFrame['domId'],
-          defaultComponentConfig: formConfig.defaultComponentConfig as FormConfigFrame['defaultComponentConfig'],
-          enabledValidationGroups: formConfig.enabledValidationGroups as FormConfigFrame['enabledValidationGroups'],
-          validators: formConfig.validators as FormConfigFrame['validators'],
-          validationGroups: formConfig.validationGroups as FormConfigFrame['validationGroups'],
-          defaultLayoutComponent: formConfig.defaultLayoutComponent as FormConfigFrame['defaultLayoutComponent'],
-          componentDefinitions: formConfig.componentDefinitions as FormConfigFrame['componentDefinitions'],
-          debugValue: formConfig.debugValue as FormConfigFrame['debugValue']
+          // Deprecated legacy properties (now removed):
+          // fields → replaced by componentDefinitions
+          // requiredFieldIndicator → removed
+          // skipValidationOnSave → removed
+          // customAngularApp → removed
         };
 
-        result = await Form.create(formObj) as unknown as FormModel;
+        const formObj = {
+          name: formName,
+          branding: brandingId,
+          configuration: formConfig,
+        };
+
+        result = await Form.create(formObj) as unknown as FormAttributes;
         this.logger.verbose("Created form record: ");
         this.logger.verbose(result);
       }
 
       if (result) {
-        this.logger.verbose(`Updating workflowstep ${result.workflowStep} to: ${result.id}`);
-        // update the workflow step...
+        this.logger.verbose(`Updating workflowstep ${workflowStep.id} to form: ${result.id}`);
+        // update the workflow step to reference the form
         return await WorkflowStep.update({
-          id: result.workflowStep
+          id: workflowStep.id
         }).set({
           form: result.id
         });
@@ -173,40 +190,70 @@ export namespace Services {
       return null;
     }
 
-    public listForms = (): Observable<FormModel[]> => {
-      return super.getObservable<FormModel[]>(Form.find({}));
+    private getFormConfigRegistry(): Record<string, unknown> {
+      const appPath = _.get(sails, 'config.appPath', process.cwd());
+      try {
+        sails.log.verbose(`Attempting to load form config registry from file system at path: ${appPath}/api/form-config`);
+        const registryModule = require(path.join(appPath, 'api', 'form-config')) as { forms?: Record<string, unknown> };
+        return registryModule?.forms ?? {};
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Unable to load form-config registry: ${message}`);
+        return {};
+      }
+    }
+
+    public listForms = (brandingId?: string): Observable<FormAttributes[]> => {
+      const query: Record<string, unknown> = {};
+      if (brandingId) {
+        query.branding = brandingId;
+      }
+      return super.getObservable<FormAttributes[]>(Form.find(query));
     }
 
 
-    public getFormByName = (formName: string, editMode: boolean): Observable<FormModel | null> => {
-      return super.getObservable<FormModel | null>(Form.findOne({
-        name: formName
-      })).pipe(flatMap(form => {
+    public getFormByName = (formName: string, editMode: boolean, brandingId?: string): Observable<FormAttributes | null> => {
+      const query: Record<string, unknown> = { name: formName };
+      if (brandingId) {
+        query.branding = brandingId;
+      }
+      return super.getObservable<FormAttributes | null>(Form.findOne(query)).pipe(flatMap(form => {
         if (form) {
-          this.setFormEditMode(form.fields, editMode);
+          // TODO: setFormEditMode is currently a no-op; legacy 'fields' property has been
+          // replaced by componentDefinitions in FormConfigFrame
           return of(form);
         }
         return of(null);
       }));
     }
 
-    public async getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: RecordLike) {
+    public async getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: RecordLike): Promise<FormAttributes | null> {
 
       // allow client to set the form name to use
       const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata?.form : formParam;
 
       if (formName == 'generated-view-only') {
-        return await this.generateFormFromSchema(branding, recordType, currentRec);
+        const generatedConfig = await this.generateFormFromSchema(branding, recordType, currentRec);
+        // Wrap the generated FormConfigFrame into a FormAttributes structure
+        const defaultBrandingId = String(BrandingService.getDefault()?.id ?? '');
+        return {
+          id: '',
+          name: 'generated-view-only',
+          branding: String(branding?.id ?? defaultBrandingId),
+          configuration: generatedConfig as FormConfigFrame,
+        };
       } else {
 
         if (!formName) {
           return null;
         }
-        return await firstValueFrom(this.getFormByName(formName, editMode));
+        const defaultBrandingId = String(BrandingService.getDefault()?.id ?? '');
+        const brandingId = String(branding?.id ?? defaultBrandingId);
+        return await firstValueFrom(this.getFormByName(formName, editMode, brandingId || undefined));
       }
     }
 
-    public getFormByStartingWorkflowStep(branding: BrandingModel, recordType: string, editMode: boolean): Observable<FormModel> {
+    public getFormByStartingWorkflowStep(branding: BrandingModel, recordType: string, editMode: boolean): Observable<FormAttributes> {
 
       const starting = true;
 
@@ -222,15 +269,17 @@ export namespace Services {
         }),
         flatMap(workflowStep => {
           if (workflowStep?.starting == true) {
-            return super.getObservable<FormModel | null>(Form.findOne({
-              name: workflowStep.config.form
+            return super.getObservable<FormAttributes | null>(Form.findOne({
+              name: workflowStep.config.form,
+              branding: branding.id
             }));
           }
           return of(null);
         }),
         flatMap(form => {
           if (form) {
-            this.setFormEditMode(form.fields, editMode);
+            // TODO: setFormEditMode is currently a no-op; legacy 'fields' property has been
+            // replaced by componentDefinitions in FormConfigFrame
             return of(form);
           }
           return of(null);

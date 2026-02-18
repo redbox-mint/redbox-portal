@@ -445,6 +445,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     this.sharedProps.setPropOverride('template', item.config, config);
     this.sharedProps.setPropOverride('content', item.config, config);
+    this.sharedProps.setPropOverride('contentIsTranslationCode', item.config, config);
   }
 
   visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {

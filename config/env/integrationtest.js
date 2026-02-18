@@ -69,6 +69,36 @@ const integrationTestAuthDefaults = {
   }
 };
 
+function hasValue(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function hasProviderCredentials(keyEnvVar, secretEnvVar) {
+  return hasValue(process.env[keyEnvVar]) && hasValue(process.env[secretEnvVar]);
+}
+
+function isCompanionEnabledWithValidCredentials() {
+  const enabled = process.env.UPPY_COMPANION_ENABLED === 'true';
+  if (!enabled) {
+    return false;
+  }
+
+  const hasDriveCredentials = hasProviderCredentials('UPPY_GOOGLE_KEY', 'UPPY_GOOGLE_SECRET');
+  const hasOneDriveCredentials = hasProviderCredentials('UPPY_ONEDRIVE_KEY', 'UPPY_ONEDRIVE_SECRET');
+  if (!hasDriveCredentials && !hasOneDriveCredentials) {
+    // sails.log may not be available at this point in the bootstrap process, so fall back to console if needed
+    const log = typeof sails !== 'undefined' && sails.log ? sails.log : console;
+    log.warn(
+      'UPPY_COMPANION_ENABLED=true but no complete provider credentials were found. '
+      + 'Provide UPPY_GOOGLE_KEY+UPPY_GOOGLE_SECRET and/or UPPY_ONEDRIVE_KEY+UPPY_ONEDRIVE_SECRET. '
+      + 'Disabling Uppy Companion to prevent runtime provider initialization errors.'
+    );
+    return false;
+  }
+
+  return true;
+}
+
 module.exports = {
   http:{
     rootContext: ''
@@ -131,11 +161,16 @@ module.exports = {
     }
   },
   companion: {
-    enabled: process.env.UPPY_COMPANION_ENABLED === 'true',
+    enabled: isCompanionEnabledWithValidCredentials(),
     route: '/companion',
     secret: process.env.UPPY_COMPANION_SECRET || '',
+    bearerToken: process.env.UPPY_COMPANION_BEARER_TOKEN || '',
+    attachmentSecret: process.env.UPPY_COMPANION_ATTACHMENT_SECRET || process.env.UPPY_COMPANION_SECRET || '',
+    attachmentSecretHeader: process.env.UPPY_COMPANION_ATTACHMENT_SECRET_HEADER || 'x-companion-secret',
+    attachmentLocalOnly: process.env.UPPY_COMPANION_ATTACHMENT_LOCAL_ONLY !== 'false',
     filePath: process.env.UPPY_COMPANION_FILE_PATH || '/tmp/companion',
     uploadUrls: (process.env.UPPY_COMPANION_UPLOAD_URLS || '').split(',').map((v) => v.trim()).filter(Boolean),
+    tusDeferredUploadLength: process.env.UPPY_COMPANION_TUS_DEFERRED_UPLOAD_LENGTH !== 'false',
     server: {
       host: process.env.UPPY_COMPANION_HOST || '',
       protocol: process.env.UPPY_COMPANION_PROTOCOL || 'http',
@@ -146,7 +181,7 @@ module.exports = {
         key: process.env.UPPY_DROPBOX_KEY || '',
         secret: process.env.UPPY_DROPBOX_SECRET || ''
       },
-      google: {
+      drive: {
         key: process.env.UPPY_GOOGLE_KEY || '',
         secret: process.env.UPPY_GOOGLE_SECRET || ''
       },

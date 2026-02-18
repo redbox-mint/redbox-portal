@@ -26,6 +26,20 @@ interface UppySuccessResponse {
     };
     [key: string]: unknown;
 }
+
+interface CsrfConfigShape {
+    csrfToken?: unknown;
+}
+
+interface CompanionAuthProvider {
+    login: (args: unknown) => Promise<unknown>;
+    setAuthToken: (token: string) => Promise<unknown> | unknown;
+    __redboxAuthFallbackInstalled?: boolean;
+}
+
+interface UppyProviderPlugin {
+    provider?: CompanionAuthProvider;
+}
 import { Subscription } from "rxjs";
 import { FormComponent } from "../form.component";
 import { FormComponentEventBus, FormSaveSuccessEvent } from "../form-state/events";
@@ -91,7 +105,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         this.allowUploadWithoutSave = cfg.allowUploadWithoutSave ?? false;
         this.restrictions = cfg.restrictions;
         this.enabledSources = this.normalizedEnabledSources(cfg.enabledSources);
-        this.companionUrl = String(cfg.companionUrl ?? "").trim() || undefined;
+        this.companionUrl = this.resolveCompanionUrl(cfg.companionUrl);
         this.tusHeaders = (cfg.tusHeaders ?? {}) as Record<string, string>;
         this.attachmentText = String(cfgRecord["attachmentText"] ?? "Add attachment(s)");
         this.attachmentTextDisabled = String(cfgRecord["attachmentTextDisabled"] ?? "Save your record to attach files");
@@ -219,7 +233,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
 
         if (this.uppy) {
             const endpoint = this.buildTusEndpoint(finalOid);
-            const tusPlugin = this.uppy.getPlugin("Tus") as TusPlugin;
+            const tusPlugin = this.uppy.getPlugin("Tus") as unknown as TusPlugin;
             tusPlugin?.setOptions?.({ endpoint });
             if (tusPlugin?.opts) {
                 tusPlugin.opts["endpoint"] = endpoint;
@@ -262,15 +276,21 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         });
         this.ensureTusHeadersContainCsrf();
 
+        this.uppy.on("upload", (_uploadID: string, files: UppyFile<UppyMeta, UppyBody>[]) => {
+            this.configureTusEndpointForUpload(files);
+        });
+
         if (this.companionUrl) {
             if (this.enabledSources.includes("dropbox")) {
                 this.uppy.use(deps.DropboxPlugin, { companionUrl: this.companionUrl });
             }
             if (this.enabledSources.includes("googleDrive")) {
                 this.uppy.use(deps.GoogleDrivePlugin, { companionUrl: this.companionUrl });
+                this.installProviderAuthFallback("GoogleDrive", ["companion-GoogleDrive-auth-token"], ["uppyAuthToken--googledrive", "uppyAuthToken--drive"]);
             }
             if (this.enabledSources.includes("onedrive")) {
                 this.uppy.use(deps.OneDrivePlugin, { companionUrl: this.companionUrl });
+                this.installProviderAuthFallback("OneDrive", ["companion-OneDrive-auth-token"], ["uppyAuthToken--onedrive"]);
             }
         }
 
@@ -313,9 +333,26 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         return this.getFormComponent.trimmedParams.oid() || (this.allowUploadWithoutSave ? pendingOid : "");
     }
 
-    private buildTusEndpoint(oid: string): string {
+    private buildTusEndpoint(oid: string, useCompanionRoute = false): string {
         const base = String(this.getFormComponent.recordService.brandingAndPortalUrl ?? "").trim();
+        if (useCompanionRoute) {
+            return `${base}/companion/record/${oid}/attach`;
+        }
         return `${base}/record/${oid}/attach`;
+    }
+
+    private configureTusEndpointForUpload(files?: UppyFile<UppyMeta, UppyBody>[]): void {
+        if (!this.uppy) {
+            return;
+        }
+        const hasRemoteSource = (files ?? []).some((file) => file?.isRemote === true);
+        const endpoint = this.buildTusEndpoint(this.resolveOidForUpload(), hasRemoteSource);
+        const tusPlugin = this.uppy.getPlugin("Tus") as unknown as TusPlugin;
+        tusPlugin?.setOptions?.({ endpoint });
+        const tusOpts = (tusPlugin as unknown as { opts?: Record<string, unknown> })?.opts;
+        if (tusOpts) {
+            tusOpts["endpoint"] = endpoint;
+        }
     }
 
     private resolveUploadUrl(response: UppySuccessResponse): string {
@@ -408,7 +445,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         }
         const cfg = this.configService.getConfig();
         if (cfg && typeof cfg.then !== "function") {
-            return String((cfg as any)?.csrfToken ?? "").trim();
+            return String(this.readCsrfToken(cfg) ?? "").trim();
         }
         return "";
     }
@@ -421,13 +458,13 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         if (!cfgPromise || typeof cfgPromise.then !== "function") {
             return;
         }
-        cfgPromise.then((cfg: any) => {
-            const token = String(cfg?.csrfToken ?? this.configService.csrfToken ?? "").trim();
+        cfgPromise.then((cfg: unknown) => {
+            const token = String(this.readCsrfToken(cfg) ?? this.configService.csrfToken ?? "").trim();
             if (!token || !this.uppy) {
                 return;
             }
             const headers = this.buildTusHeaders(token);
-            const tusPlugin = this.uppy.getPlugin("Tus") as TusPlugin;
+            const tusPlugin = this.uppy.getPlugin("Tus") as unknown as TusPlugin;
             tusPlugin?.setOptions?.({ headers });
             if (tusPlugin?.opts) {
                 tusPlugin.opts["headers"] = headers;
@@ -435,6 +472,101 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         }).catch((err: unknown) => {
             console.error('ensureTusHeadersContainCsrf: failed to load config for CSRF token', err);
         });
+    }
+
+    private installProviderAuthFallback(pluginId: string, tokenStorageKeys: string[], cookieNames: string[]): void {
+        if (!this.uppy) {
+            return;
+        }
+        const plugin = this.uppy.getPlugin(pluginId);
+        if (!this.isProviderPlugin(plugin)) {
+            return;
+        }
+        const provider = plugin.provider;
+        if (!provider || typeof provider.login !== "function" || typeof provider.setAuthToken !== "function") {
+            return;
+        }
+        if (provider.__redboxAuthFallbackInstalled) {
+            return;
+        }
+
+        const originalLogin = provider.login.bind(provider);
+        provider.login = async (args: unknown) => {
+            try {
+                return await originalLogin(args);
+            } catch (err: unknown) {
+                const message = String((err as { message?: unknown })?.message ?? "");
+                if (message.includes("Auth window was closed by the user")) {
+                    const token = this.findCompanionToken(tokenStorageKeys, cookieNames);
+                    if (token) {
+                        await provider.setAuthToken(token);
+                        return;
+                    }
+                }
+                throw err;
+            }
+        };
+        provider.__redboxAuthFallbackInstalled = true;
+    }
+
+    private readCsrfToken(config: unknown): string | undefined {
+        if (!config || typeof config !== "object") {
+            return undefined;
+        }
+        return String((config as CsrfConfigShape).csrfToken ?? "").trim() || undefined;
+    }
+
+    private isProviderPlugin(plugin: unknown): plugin is UppyProviderPlugin {
+        return !!plugin && typeof plugin === "object" && "provider" in plugin;
+    }
+
+    private findCompanionToken(tokenStorageKeys: string[], cookieNames: string[]): string | undefined {
+        for (const key of tokenStorageKeys) {
+            const token = String(localStorage.getItem(key) ?? "").trim();
+            if (token) {
+                return token;
+            }
+        }
+        const rawCookie = String(document.cookie ?? "");
+        if (!rawCookie) {
+            return undefined;
+        }
+        const segments = rawCookie.split(";");
+        for (const name of cookieNames) {
+            for (const rawSegment of segments) {
+                const segment = rawSegment.trim();
+                if (!segment.startsWith(`${name}=`)) {
+                    continue;
+                }
+                const value = segment.substring(name.length + 1).trim();
+                if (!value) {
+                    continue;
+                }
+                try {
+                    return decodeURIComponent(value);
+                } catch {
+                    return value;
+                }
+            }
+        }
+        return undefined;
+    }
+
+    private resolveCompanionUrl(rawCompanionUrl: unknown): string | undefined {
+        const raw = String(rawCompanionUrl ?? "").trim();
+        if (!raw) {
+            return undefined;
+        }
+        if (/^https?:\/\//i.test(raw)) {
+            return raw.replace(/\/+$/, "");
+        }
+        if (raw.startsWith("//")) {
+            return `${window.location.protocol}${raw}`.replace(/\/+$/, "");
+        }
+        if (raw.startsWith("/")) {
+            return `${window.location.origin}${raw}`.replace(/\/+$/, "");
+        }
+        return `${window.location.origin}/${raw}`.replace(/\/+$/, "");
     }
 
     private getUppyDependencies(): UppyDependencies {
