@@ -183,21 +183,21 @@ describe("Migrate v4 to v5 Visitor", async () => {
         };
         const visitor = new MigrationV4ToV5FormConfigVisitor(testLogger);
         const migrated = visitor.start({
-            data: {
-                name: 'checkbox-tree-edge',
-                fields: [
-                    {
-                        class: 'ANDSVocab',
-                        compClass: 'ANDSVocabComponent',
-                        definition: {
-                            name: 'dc:subject_anzsrc:for',
-                            leafOnly: 'definitely',
-                            maxDepth: 'not-a-number',
-                            regex: '[',
-                            value: { bad: 'shape' }
-                        }
-                    }
-                ]
+          data: {
+            name: 'checkbox-tree-edge',
+            fields: [
+              {
+                class: 'ANDSVocab',
+                compClass: 'ANDSVocabComponent',
+                definition: {
+                  name: 'dc:subject_anzsrc:for',
+                  leafOnly: 'definitely',
+                  maxDepth: 'not-a-number',
+                  regex: '[',
+                  value: {bad: 'shape'}
+                }
+              }
+            ]
           }
         });
         expect(migrated.componentDefinitions).to.have.length.greaterThan(0);
@@ -494,24 +494,24 @@ describe("Migrate v4 to v5 Visitor", async () => {
 const questionTreeConfig: QuestionTreeFieldComponentConfigFrame = ${JSON.stringify(migrated, null, 2)};
 module.exports = questionTreeConfig;
 `;
-    fs.writeFileSync(outputFile, tsContent, "utf8");
-    expect(migrated).to.not.be.empty;
+      fs.writeFileSync(outputFile, tsContent, "utf8");
+      expect(migrated).to.not.be.empty;
 
-    // Confirm the migration is valid.
-    const formConfig: FormConfigFrame = {
-      name: "form",
-      componentDefinitions: [
-        {
-          name: "questiontree_1",
-          component: {
-            class: "QuestionTreeComponent",
-            config: migrated,
-          },
-        }
-      ]
-    };
-    await migrateRunVisitors(formConfig);
+      // Confirm the migration is valid.
+      const formConfig: FormConfigFrame = {
+        name: "form",
+        componentDefinitions: [
+          {
+            name: "questiontree_1",
+            component: {
+              class: "QuestionTreeComponent",
+              config: migrated,
+            },
+          }
+        ]
+      };
+      await migrateRunVisitors(formConfig);
+    });
   });
-});
 });
 

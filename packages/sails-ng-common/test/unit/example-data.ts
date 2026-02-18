@@ -633,7 +633,41 @@ export const formConfigExample1: FormConfigFrame = {
                                               },
                                             ]
                                         },
-
+                                      {
+                                        name: "questiontree_1",
+                                        component: {
+                                          class: "QuestionTreeComponent",
+                                          config: {
+                                            availableOutcomes: [
+                                              {value: "value1", label: "@outcomes-value1"},
+                                              {value: "value2", label: "@outcomes-value2"},
+                                            ],
+                                            availableMeta: {
+                                              prop2: {
+                                                value1: "@outcomes-prop2-value1",
+                                                value2: "@outcomes-prop2-value2",
+                                              },
+                                            },
+                                            questions: [
+                                              {
+                                                id: "question_1",
+                                                answersMin: 1,
+                                                answersMax: 1,
+                                                answers: [{value: "yes"}, {value: "no"}],
+                                                rules: {op: "true"},
+                                              },
+                                              {
+                                                id: "question_2",
+                                                answersMin: 1,
+                                                answersMax: 2,
+                                                answers: [{value: "yes"}, {value: "no", meta: {prop2: "value1"}, outcome: "value1"}],
+                                                rules: {op: "in", q: "question_1", a: ["no"]}
+                                              }
+                                            ],
+                                            componentDefinitions: [],
+                                          }
+                                        },
+                                      }
                                     ]
                                 }
                             }

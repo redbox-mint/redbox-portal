@@ -7,9 +7,9 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import { ValidatorFormConfigVisitor } from "../../src/visitor/validator.visitor";
 import { logger } from "./helpers";
-import { formConfigExample1 } from "./example-data";
 import Services from "../../src/services/DomSanitizerService";
 import * as _ from "lodash";
+import {formConfigExample1} from "@researchdatabox/sails-ng-common/dist/test/unit/example-data";
 
 const DomSanitizerService = new Services.DomSanitizer();
 

@@ -1441,13 +1441,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
             // Continue the construction
             this.formPathHelper.acceptFormPath(
                 formComponent,
-                this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, index),
+                this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(formComponent, index),
             );
 
             // After the construction is done, apply any transforms
-            const itemTransformed = this.formOverride.applyQuestionTreeOutline(
-                this.formOverride.applyOverrideTransform(formComponent, this.formMode)
-            );
+            const itemTransformed = this.formOverride.applyOverrideTransform(
+              formComponent, this.formMode);
 
             // Store the instance on the item
             item.config?.componentDefinitions.push(itemTransformed);

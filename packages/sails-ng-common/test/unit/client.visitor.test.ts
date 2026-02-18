@@ -1,8 +1,10 @@
 import {
-    ClientFormConfigVisitor, ConstructFormConfigVisitor, FormConfigFrame,
-    TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
+  ClientFormConfigVisitor, ConstructFormConfigVisitor, FormConfigFrame,
+  FormExpressionsTemplateConfigFrame, QuestionTreeMeta, QuestionTreeOutcome,
+  QuestionTreeQuestion,
+  TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
 } from "../../src";
-import {formConfigExample1} from "./example-data";
+import {formConfigExample1, reusableFormDefinitionsExample1} from "./example-data";
 import {logger} from "./helpers";
 
 
@@ -14,7 +16,11 @@ describe("Client Visitor", async () => {
         const args = formConfigExample1;
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({data: args, formMode: "edit"});
+        const constructed = constructor.start({
+          data: args,
+          formMode: "edit",
+          reusableFormDefs: reusableFormDefinitionsExample1,
+        });
 
         const visitor = new ClientFormConfigVisitor(logger);
         const actual = visitor.start({form: constructed});
@@ -41,7 +47,7 @@ describe("Client Visitor", async () => {
         // tab 2 component count
         const tabSecond = (formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs[1];
         expect(tabSecond.component.class).to.eql("TabContentComponent");
-        expect((tabSecond.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(2);
+        expect((tabSecond.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(3);
     });
 
     const cases: {
@@ -684,4 +690,240 @@ describe("Client Visitor", async () => {
         });
         expect(actual).to.eql({});
     });
+
+  it("should build the expected form config with question tree", async () => {
+    const availableOutcomes: QuestionTreeOutcome[] = [
+      {value: "value1", label: "@outcomes-value1"},
+      {value: "value2", label: "@outcomes-value2"},
+    ];
+    const availableMeta: QuestionTreeMeta = {
+      prop2: {
+        value1: "@outcomes-prop2-value1",
+        value2: "@outcomes-prop2-value2",
+      },
+    };
+    const questions: QuestionTreeQuestion[] = [
+      {
+        id: "question_1",
+        answersMin: 1,
+        answersMax: 1,
+        answers: [{value: "yes"}, {value: "no"}],
+        rules: {op: "true"},
+      },
+      {
+        id: "question_2",
+        answersMin: 1,
+        answersMax: 2,
+        answers: [{value: "yes"}, {value: "no"}],
+        rules: {op: "in", q: "question_1", a: ["no"]}
+      },
+      {
+        id: "question_3",
+        answersMin: 1,
+        answersMax: 2,
+        answers: [{value: "yes"}, {value: "maybe"}, {value: "no"}],
+        rules: {op: "in", q: "question_2", a: ["yes"]}
+      },
+      {
+        id: "question_4",
+        answersMin: 1,
+        answersMax: 1,
+        answers: [
+          {
+            value: "yes",
+            label: "@answer-yes",
+            outcome: "value1",
+            meta: {prop2: "value2"},
+          },
+          {
+            value: "no", label: "No",
+            outcome: "value2",
+            meta: {prop2: "value2"},
+          },
+        ],
+        rules: {
+          op: "or", args: [
+            {
+              op: "and", args: [
+                {op: "in", q: "question_1", a: ["no"]},
+                {op: "in", q: "question_2", a: ["no"]},
+              ]
+            },
+            {
+              op: "and", args: [
+                {op: "only", q: "question_1", a: ["no"]},
+                {op: "notin", q: "question_2", a: ["no"]},
+                {op: "in", q: "question_3", a: ["no", "maybe"]},
+              ]
+            }
+          ]
+        },
+      }
+    ];
+    const formConfig: FormConfigFrame = {
+      name: "form",
+      componentDefinitions: [
+        {
+          name: "questiontree_1",
+          component: {
+            class: "QuestionTreeComponent",
+            config: {
+              availableOutcomes,
+              availableMeta,
+              questions,
+              componentDefinitions: [],
+            }
+          },
+        }
+      ]
+    };
+    const expressionBase: FormExpressionsTemplateConfigFrame = {
+      condition: "/questiontree_1::field.value.changed",
+      template: "",
+      conditionKind: 'jsonpointer',
+      target: `layout.visible`,
+    };
+    const expected: FormConfigFrame = {
+      name: "form",
+      componentDefinitions: [
+        {
+          name: "questiontree_1",
+          component: {
+            class: "QuestionTreeComponent",
+            config: {
+              availableOutcomes,
+              availableMeta,
+              questions,
+              componentDefinitions: [
+                {
+                  name: "question_1",
+                  component: {
+                    class: "RadioInputComponent",
+                    config: {
+                      options: [
+                        {value: "yes", label: "@questiontree_1-question_1-yes"},
+                        {value: "no", label: "@questiontree_1-question_1-no"},
+                      ]
+                    }
+                  },
+                  layout: {
+                    class: "DefaultLayout",
+                    config: {
+                      visible: true,
+                    }
+                  }
+                },
+                {
+                  name: "question_2",
+                  component: {
+                    class: "CheckboxInputComponent",
+                    config: {
+                      options: [
+                        {value: "yes", label: "@questiontree_1-question_2-yes"},
+                        {value: "no", label: "@questiontree_1-question_2-no"},
+                      ]
+                    }
+                  },
+                  layout: {
+                    class: "DefaultLayout",
+                    config: {
+                      visible: false,
+                    }
+                  },
+                  expressions: [
+                    {
+                      name: "question_2-questiontree", description: undefined,
+                      config: {
+                        ...expressionBase,
+                        template: "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0"
+                      }
+                    }
+                  ],
+                },
+                {
+                  name: "question_3",
+                  component: {
+                    class: "CheckboxInputComponent",
+                    config: {
+                      options: [
+                        {value: "yes", label: "@questiontree_1-question_3-yes"},
+                        {value: "maybe", label: "@questiontree_1-question_3-maybe"},
+                        {value: "no", label: "@questiontree_1-question_3-no"}]
+                    }
+                  },
+                  layout: {
+                    class: "DefaultLayout",
+                    config: {
+                      visible: false,
+                    }
+                  },
+                  expressions: [
+                    {
+                      name: "question_3-questiontree", description: undefined,
+                      config: {
+                        ...expressionBase,
+                        template: "$count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0"
+                      }
+                    }
+                  ],
+                },
+                {
+                  name: "question_4",
+                  component: {
+                    class: "RadioInputComponent",
+                    config: {
+                      options: [
+                        {value: "yes", label: "@answer-yes"},
+                        {value: "no", label: "No"},
+                      ]
+                    }
+                  },
+                  layout: {
+                    class: "DefaultLayout",
+                    config: {
+                      visible: false,
+                    }
+                  },
+                  expressions: [
+                    {
+                      name: "question_4-questiontree", description: undefined,
+                      config: {
+                        ...expressionBase, template: "(" +
+                          "(" +
+                          "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0" +
+                          ") and (" +
+                          "$count(formData.`questiontree_1`.`question_2`[][$ in [\"no\"]]) > 0" +
+                          ")" +
+                          ") or (" +
+                          "(" +
+                          "formData.`questiontree_1`.`question_1`[] = [\"no\"]" +
+                          ") and (" +
+                          "$count(formData.`questiontree_1`.`question_2`[][$not($ in [\"no\"])]) = $count(formData.`questiontree_1`.`question_2`)" +
+                          ") and (" +
+                          "$count(formData.`questiontree_1`.`question_3`[][$ in [\"no\",\"maybe\"]]) > 0" +
+                          ")" +
+                          ")"
+                      }
+                    }
+                  ],
+                },
+              ],
+            }
+          },
+        }
+      ]
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      data: formConfig,
+      formMode: "edit",
+      reusableFormDefs: reusableFormDefinitionsExample1,
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({form: constructed});
+
+    expect(actual).to.containSubset(expected);
+  });
 });

@@ -9,8 +9,7 @@ import {
 } from "./component/content.outline";
 import {
     AllFormComponentDefinitionOutlines,
-    AvailableFormComponentDefinitionFrames, QuestionTreeFormComponentDefinitionFrames,
-    QuestionTreeFormComponentDefinitionOutlines,
+    AvailableFormComponentDefinitionFrames,
     ReusableFormDefinitions
 } from "./dictionary.outline";
 import {TextAreaComponentName, TextAreaFormComponentDefinitionOutline} from "./component/text-area.outline";
@@ -309,7 +308,7 @@ export class FormOverride {
      */
     public applyQuestionTreeDsl(
         name: string | null, lineagePath: LineagePaths, item: QuestionTreeFieldComponentDefinitionOutline
-    ): QuestionTreeFormComponentDefinitionFrames[] {
+    ): AvailableFormComponentDefinitionFrames[] {
         const availableOutcomeValues = (item.config?.availableOutcomes ?? []).map(i => i.value);
         const availableMeta = item.config?.availableMeta ?? {};
         const questions = item.config?.questions ?? [];
@@ -328,7 +327,7 @@ export class FormOverride {
             errors.push(`Question ids must be unique, these were not ${Array.from(duplicateQuestionIds).sort().join(', ')}.`);
         }
 
-        const result: QuestionTreeFormComponentDefinitionFrames[] = [];
+        const result: AvailableFormComponentDefinitionFrames[] = [];
         questions.forEach((question, questionIndex) => {
             const id = question.id;
             const answersMin = question.answersMin;
@@ -409,9 +408,11 @@ export class FormOverride {
 
           // Transform rules DSL to expressions.
           const ruleExpression = this.questionTreeRuleToExpression(lineagePath, rules);
-          const isVisible = ruleExpression === 'true';
-          if (!lineagePath.angularComponentsJsonPointer){
-            throw new Error(`${this.logName}: Did not provide lineage path JSON pointer ${JSON.stringify({name, lineagePath, item})}`);
+          const isVisible = !ruleExpression || ruleExpression === 'true';
+          if (!lineagePath.angularComponentsJsonPointer) {
+            throw new Error(`${this.logName}: Did not provide lineage path JSON pointer ${JSON.stringify({
+              name, lineagePath, item
+            })}`);
           }
           const expressions: FormExpressionsConfigFrame[] | undefined = isVisible ? undefined : [{
             name: `${id}-questiontree`,
@@ -432,7 +433,7 @@ export class FormOverride {
                 .map(a => {
                     return {value: a.value, label: a.label ?? `@${name}-${id}-${a.value}`}
                 });
-            const componentAnswerOne: QuestionTreeFormComponentDefinitionFrames = {
+            const componentAnswerOne: AvailableFormComponentDefinitionFrames = {
                 overrides: {reusableFormName: "questiontree-answer-one"},
                 name: "",
                 component: {
@@ -449,7 +450,7 @@ export class FormOverride {
                     }
                 }
             };
-            const componentAnswerMore: QuestionTreeFormComponentDefinitionFrames = {
+            const componentAnswerMore: AvailableFormComponentDefinitionFrames = {
                 overrides: {reusableFormName: "questiontree-answer-one-more"},
                 name: "",
                 component: {
@@ -527,7 +528,7 @@ export class FormOverride {
         // Escape unexpected characters.
         const pathFieldRefs = path.map(i => this.toFieldReference(i));
         // Use backticks to build each item in the jsonata identifier.
-        const identifierString = pathFieldRefs.map(i => `\`${i}\``).join('.');
+        const identifierString = ['formData', ...pathFieldRefs.map(i => `\`${i}\``)].join('.');
         // The value can be converted to a json array for the jsonata expression.
         const values = (Array.isArray(rule.a) ? rule.a : [rule.a]).map(i => this.toFieldReference(i));
         const valueString = JSON.stringify(values);
@@ -549,8 +550,8 @@ export class FormOverride {
      * @param items The form components after reusable components have been applied.
      * @private
      */
-    public applyQuestionTreeFrames(items: AvailableFormComponentDefinitionFrames[]): QuestionTreeFormComponentDefinitionFrames[] {
-        const result: QuestionTreeFormComponentDefinitionFrames[] = [];
+    public applyQuestionTreeFrames(items: AvailableFormComponentDefinitionFrames[]): AvailableFormComponentDefinitionFrames[] {
+        const result: AvailableFormComponentDefinitionFrames[] = [];
         for (const item of items) {
             if (isTypeFormComponentDefinitionName<SimpleInputFormComponentDefinitionFrame>(item, SimpleInputComponentName)) {
                 result.push(item);
@@ -571,24 +572,6 @@ export class FormOverride {
             throw new Error(`${this.logName}: Invalid form component frame ${item.name} class ${item.component.class} in Question Tree.`);
         }
         return result;
-    }
-
-    /**
-     * Check that only the allowed form component outlines have been used.
-     * @param item The form components after the components have been visited and transformed.
-     * @private
-     */
-    public applyQuestionTreeOutline(item: AllFormComponentDefinitionOutlines): QuestionTreeFormComponentDefinitionOutlines {
-        if (isTypeFormComponentDefinitionName<SimpleInputFormComponentDefinitionFrame>(item, SimpleInputComponentName)) {
-            return item;
-        }
-        if (isTypeFormComponentDefinitionName<CheckboxInputFormComponentDefinitionFrame>(item, CheckboxInputComponentName)) {
-            return item;
-        }
-        if (isTypeFormComponentDefinitionName<RadioInputFormComponentDefinitionFrame>(item, RadioInputComponentName)) {
-            return item;
-        }
-        throw new Error(`${this.logName}: Invalid form component frame ${item.name} class ${item.component.class} in Question Tree.`);
     }
 
     public migrateDataClassificationToQuestionTree(data: any): QuestionTreeFieldComponentConfigFrame {

@@ -448,10 +448,19 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     /* Question Tree */
 
     visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+      (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+        // Visit children
+        this.acceptJsonTypeDefPath(
+          componentDefinition,
+          this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index),
+          ['properties']
+        );
+      });
     }
 
     visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
-        this.setFromModelDefinition(item);
+      // Visit nested components to build the correct structure.
+      // this.setFromModelDefinition(item);
     }
 
     visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
@@ -461,6 +470,9 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   /* Shared */
 
   protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
+    // TODO: What if there is no model value set? Each component has an associated data type / data model structure.
+    //       It would probably be better to use the component data structure knowledge instead of guessing the optional
+    //       model value.
     const value = item?.config?.value;
 
     // default to a type of string

@@ -1,7 +1,7 @@
 import {
-    AvailableFieldLayoutDefinitionFrames,
-    AvailableFieldLayoutDefinitionOutlines, QuestionTreeFormComponentDefinitionFrames,
-    QuestionTreeFormComponentDefinitionOutlines,
+  AvailableFieldLayoutDefinitionFrames,
+  AvailableFieldLayoutDefinitionOutlines, AvailableFormComponentDefinitionFrames,
+  AvailableFormComponentDefinitionOutlines,
 } from "../dictionary.outline";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {
@@ -256,14 +256,14 @@ export interface QuestionTreeFieldComponentConfigFrame extends FieldComponentCon
      * Interface only, there is no class for this config property.
      */
     questions: QuestionTreeQuestion[];
-    componentDefinitions: QuestionTreeFormComponentDefinitionFrames[];
+    componentDefinitions: AvailableFormComponentDefinitionFrames[];
 }
 
 export interface QuestionTreeFieldComponentConfigOutline extends QuestionTreeFieldComponentConfigFrame, FieldComponentConfigOutline {
     availableOutcomes: QuestionTreeOutcome[];
     availableMeta?: QuestionTreeMeta;
     questions: QuestionTreeQuestion[];
-    componentDefinitions: QuestionTreeFormComponentDefinitionOutlines[];
+    componentDefinitions: AvailableFormComponentDefinitionOutlines[];
 }
 
 export interface QuestionTreeFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {

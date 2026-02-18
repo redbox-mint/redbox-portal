@@ -5,7 +5,7 @@ import {
     TemplateFormConfigVisitor
 } from "../../src";
 
-import { formConfigExample1 } from "./example-data";
+import {formConfigExample1, reusableFormDefinitionsExample1} from "./example-data";
 import { logger } from "./helpers";
 
 let expect: Chai.ExpectStatic;
@@ -55,6 +55,11 @@ describe("Template Visitor", async () => {
                     key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "1", "expressions", "0", "config", "template"],
                     kind: "jsonata",
                     value: `value = "hide repeatable_textfield_1"`,
+                },
+                {
+                    key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions","2", "component", "config", "componentDefinitions", "1", "expressions", "0", "config", "template"],
+                    kind: "jsonata",
+                    value: '$count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0',
                 }
             ]
         },
@@ -115,10 +120,14 @@ describe("Template Visitor", async () => {
     cases.forEach(({ title, args, expected }) => {
         it(`should ${title}`, async function () {
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start({ data: args, formMode: "edit" });
+            const constructed = constructor.start({
+              data: args, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1,
+            });
 
             const visitor = new TemplateFormConfigVisitor(logger);
             const actual = visitor.start({ form: constructed });
+
+            expect(actual).to.have.length(expected.length);
 
           expected.forEach((expectedItem, index) => {
             const actualItem = actual[index];

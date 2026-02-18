@@ -7,7 +7,7 @@ import {
 } from "../../src";
 import {ValidatorFormConfigVisitor} from "../../src";
 import {logger} from "./helpers";
-import {formConfigExample1} from "./example-data";
+import {formConfigExample1, reusableFormDefinitionsExample1} from "./example-data";
 
 
 let expect: Chai.ExpectStatic;
@@ -413,7 +413,7 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({data: args, formMode: "edit", record});
+        const constructed = constructor.start({data: args, formMode: "edit", record, reusableFormDefs: reusableFormDefinitionsExample1,});
 
         const visitor = new ValidatorFormConfigVisitor(logger);
         const actual = visitor.start({

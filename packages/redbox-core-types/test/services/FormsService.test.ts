@@ -2,6 +2,11 @@ import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
+import {FormConfigFrame, FormModesConfig, TemplateFormConfigVisitor} from "@researchdatabox/sails-ng-common";
+import {
+  formConfigExample1,
+  reusableFormDefinitionsExample1
+} from '@researchdatabox/sails-ng-common/dist/test/unit/example-data';
 
 describe('FormsService', function() {
   let mockSails: any;
@@ -252,6 +257,28 @@ describe('FormsService', function() {
       expect(schema.properties).to.have.property('title');
       expect(schema.properties.title.type).to.equal('string');
       expect(schema.properties.count.type).to.equal('integer');
+    });
+  });
+
+  describe('buildClientFormConfig', async function() {
+    it('should build the client form config for a basic form', async function() {
+      const item: FormConfigFrame = formConfigExample1;
+      const formMode: FormModesConfig = "edit";
+      const userRoles: string[] = [];
+      const recordMetadata: Record<string, unknown> = {};
+      const reusableFormDefs = reusableFormDefinitionsExample1;
+
+      // see: Services.FormRecordConsistency.extractRawTemplates
+      const form = await FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata, reusableFormDefs);
+      const visitor = new TemplateFormConfigVisitor(mockSails.log);
+
+      expect(form).to.have.property('name');
+      expect(form.name).to.eql(item.name);
+
+      const templates = visitor.start({form});
+
+      expect(templates).to.have.length(6);
+      expect(templates.map(t => t.kind)).to.eql(["handlebars", "jsonata", "jsonata", "jsonata", "jsonata", "jsonata"]);
     });
   });
 });

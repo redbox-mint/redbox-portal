@@ -562,6 +562,19 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
         this.processFieldComponentDefinition(item);
+
+      const items: AvailableFormComponentDefinitionOutlines[] = [];
+      const that = this;
+      (item?.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+        items.push(componentDefinition);
+        that.formPathHelper.acceptFormPath(
+          componentDefinition,
+          this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index)
+        );
+      });
+      if (item.config) {
+        item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
+      }
     }
 
     visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
@@ -571,6 +584,12 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
         this.acceptCheckConstraintsCurrentPath(item);
         this.processFormComponentDefinition(item);
+
+      // if there are no components, this is an invalid component
+      // indicate this by deleting all properties on item
+      if ((item.component?.config?.componentDefinitions ?? [])?.length === 0) {
+        this.removePropsAll(item);
+      }
     }
 
   /* Shared */

@@ -170,22 +170,3 @@ export type AvailableFieldLayoutDefinitionFrames = Exclude<
  * The type for a mapping of reusable form config name to form config definition.
  */
 export type ReusableFormDefinitions = { [key: string]: AvailableFormComponentDefinitionFrames[] };
-
-/**
- * The form component frames available in the question tree component.
- */
-export type QuestionTreeFormComponentDefinitionFrames =
-    SimpleInputFormComponentDefinitionFrame
-    | CheckboxInputFormComponentDefinitionFrame
-    | RadioInputFormComponentDefinitionFrame
-    | ReusableFormComponentDefinitionFrame
-    ;
-/**
- * The form component outlines available in the question tree component.
- */
-export type QuestionTreeFormComponentDefinitionOutlines =
-    SimpleInputFormComponentDefinitionOutline
-    | CheckboxInputFormComponentDefinitionOutline
-    | RadioInputFormComponentDefinitionOutline
-    ;
-
