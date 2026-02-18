@@ -853,6 +853,146 @@ describe("Construct Visitor", async () => {
             expect(actual).to.containSubset(expected);
         });
     });
+    describe("accordion transformations", async () => {
+        it("should transform tab to accordion in view mode", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_tab",
+                            component: {
+                                class: "TabComponent",
+                                config: {
+                                    tabs: [
+                                        {
+                                            name: "tab_one",
+                                            layout: { class: "TabContentLayout", config: { buttonLabel: "Tab One" } },
+                                            component: {
+                                                class: "TabContentComponent",
+                                                config: { componentDefinitions: [] }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            layout: { class: "TabLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            const transformed = actual.componentDefinitions[0];
+            expect(transformed.component.class).to.equal("AccordionComponent");
+            expect(transformed.layout?.class).to.equal("AccordionLayout");
+            expect((transformed.component.config as any)?.startingOpenMode).to.equal("all-open");
+            expect((transformed.component.config as any)?.panels?.length).to.equal(1);
+            expect((transformed.component.config as any)?.panels?.[0]?.layout?.config?.buttonLabel).to.equal("Tab One");
+        });
+
+        it("should keep tab in edit mode", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_tab",
+                            component: {
+                                class: "TabComponent",
+                                config: { tabs: [] }
+                            },
+                            layout: { class: "TabLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            expect(actual.componentDefinitions[0].component.class).to.equal("TabComponent");
+        });
+
+        it("should construct direct accordion with default startingOpenMode", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_accordion",
+                            component: {
+                                class: "AccordionComponent",
+                                config: {
+                                    panels: [
+                                        {
+                                            name: "panel_one",
+                                            component: {
+                                                class: "AccordionPanelComponent",
+                                                config: { componentDefinitions: [] }
+                                            },
+                                            layout: { class: "AccordionPanelLayout", config: {} }
+                                        }
+                                    ]
+                                }
+                            },
+                            layout: { class: "AccordionLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            expect(actual.componentDefinitions[0].component.class).to.equal("AccordionComponent");
+            expect((actual.componentDefinitions[0].component.config as any)?.startingOpenMode).to.equal("all-open");
+        });
+
+        it("should skip malformed tab entries with warning", async () => {
+            const warnings: string[] = [];
+            const testLogger = {
+                ...logger,
+                warn: (message: unknown) => warnings.push(String(message ?? ""))
+            };
+
+            const visitor = new ConstructFormConfigVisitor(testLogger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_tab",
+                            component: {
+                                class: "TabComponent",
+                                config: {
+                                    tabs: [
+                                        {
+                                            name: "tab_valid",
+                                            component: {
+                                                class: "TabContentComponent",
+                                                config: { componentDefinitions: [] }
+                                            }
+                                        },
+                                        {
+                                            // @ts-ignore
+                                            name: "invalid_tab",
+                                            component: { class: "SimpleInputComponent", config: {} }
+                                        }
+                                    ] as any
+                                }
+                            },
+                            layout: { class: "TabLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            const tabs = (actual.componentDefinitions[0].component.config as any)?.tabs ?? [];
+            expect(tabs.length).to.equal(1);
+            expect(warnings.some(msg => msg.includes("Invalid TabContentComponent entry skipped"))).to.equal(true);
+        });
+    });
     describe("repeatable special cases", async () => {
         it("should set model values as expected", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);

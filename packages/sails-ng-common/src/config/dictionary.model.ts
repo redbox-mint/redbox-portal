@@ -16,6 +16,7 @@ import { SimpleInputDefaults, SimpleInputMap } from './component/simple-input.mo
 import { ValidationSummaryDefaults, ValidationSummaryMap } from './component/validation-summary.model';
 import { TabContentDefaults, TabContentMap } from './component/tab-content.model';
 import { TabDefaults, TabMap } from './component/tab.model';
+import { AccordionDefaults, AccordionMap } from './component/accordion.model';
 import { CheckboxInputDefaults, CheckboxInputMap } from './component/checkbox-input.model';
 import { DropdownInputDefaults, DropdownInputMap } from './component/dropdown-input.model';
 import { RadioInputDefaults, RadioInputMap } from './component/radio-input.model';
@@ -48,6 +49,7 @@ export const AllDefs = [
   ...ValidationSummaryMap,
   ...TabContentMap,
   ...TabMap,
+  ...AccordionMap,
   ...CheckboxInputMap,
   ...DropdownInputMap,
   ...RadioInputMap,
@@ -77,6 +79,7 @@ const RawDefaults = [
   ValidationSummaryDefaults,
   TabContentDefaults,
   TabDefaults,
+  AccordionDefaults,
   CheckboxInputDefaults,
   DropdownInputDefaults,
   RadioInputDefaults,

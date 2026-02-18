@@ -33,6 +33,7 @@ import {
     DropdownInputComponentName,
     DropdownInputFormComponentDefinitionOutline,
 } from "./component/dropdown-input.outline";
+import {TabContentComponentName} from "./component/tab-content.outline";
 
 import {ReusableComponentName, ReusableFormComponentDefinitionFrame} from "./component/reusable.outline";
 import {FormModesConfig} from "./shared.outline";
@@ -43,6 +44,23 @@ import {
 import {PropertiesHelper} from "./visitor/common.model";
 import {ILogger} from "../logger.interface";
 import {ContentFieldComponentConfig} from "./component/content.model";
+import {TabFormComponentDefinitionOutline, TabComponentName} from "./component/tab.outline";
+import {
+    AccordionComponentName,
+    AccordionFormComponentDefinitionFrame,
+    AccordionFormComponentDefinitionOutline,
+    AccordionLayoutName,
+    AccordionPanelComponentName,
+    AccordionPanelFormComponentDefinitionFrame,
+    AccordionPanelFormComponentDefinitionOutline,
+    AccordionPanelLayoutName
+} from "./component/accordion.outline";
+import {
+    AccordionFieldComponentConfig,
+    AccordionFieldLayoutConfig,
+    AccordionPanelFieldComponentConfig,
+    AccordionPanelFieldLayoutConfig
+} from "./component/accordion.model";
 
 
 export class FormOverride {
@@ -76,6 +94,9 @@ export class FormOverride {
         },
         [DateInputComponentName]: {
             [ContentComponentName]: this.sourceDateInputComponentTargetContentComponent,
+        },
+        [TabComponentName]: {
+            [AccordionComponentName]: this.sourceTabComponentTargetAccordionComponent,
         }
     };
 
@@ -113,6 +134,12 @@ export class FormOverride {
         [DateInputComponentName]: {
             "view": {
                 component: ContentComponentName,
+            }
+        },
+        [TabComponentName]: {
+            "view": {
+                component: AccordionComponentName,
+                layout: AccordionLayoutName,
             }
         },
     }
@@ -373,6 +400,94 @@ export class FormOverride {
             // Use the common handlebars formatDate helper
             target.component.config.template = `<span data-value="{{content}}">{{formatDate content}}</span>`
         }
+
+        return target;
+    }
+
+    private sourceTabComponentTargetAccordionComponent(
+        source: TabFormComponentDefinitionOutline,
+        formMode: FormModesConfig
+    ): AccordionFormComponentDefinitionOutline {
+        const frame: AccordionFormComponentDefinitionFrame = {
+            name: source.name,
+            component: {
+                class: AccordionComponentName,
+                config: {
+                    panels: [],
+                    startingOpenMode: "all-open",
+                }
+            },
+            layout: {
+                class: AccordionLayoutName,
+                config: {},
+            },
+            module: source.module,
+            expressions: source.expressions,
+            constraints: source.constraints,
+            overrides: source.overrides,
+        };
+
+        const target = this.propertiesHelper.sharedConstructFormComponent(frame);
+        if (!isTypeFormComponentDefinitionName<AccordionFormComponentDefinitionOutline>(target, AccordionComponentName)) {
+            throw new Error(`Could not create class for form component class name '${AccordionComponentName}': ${JSON.stringify(target)}.`);
+        }
+
+        target.component.config = new AccordionFieldComponentConfig();
+        if (!target.layout) {
+            throw new Error(`Could not create layout class for '${AccordionComponentName}'.`);
+        }
+        target.layout.config = target.layout.config ?? new AccordionFieldLayoutConfig();
+
+        this.propertiesHelper.sharedPopulateFieldComponentConfig(target.component.config, source.component?.config);
+        this.propertiesHelper.sharedPopulateFieldLayoutConfig(target.layout.config, source.layout?.config);
+        target.component.config.startingOpenMode = "all-open";
+        target.component.config.panels = [];
+
+        const tabs = source.component?.config?.tabs ?? [];
+        tabs.forEach((tab, index) => {
+            if (!isTypeFormComponentDefinitionName(tab, TabContentComponentName)) {
+                this.logger.warn(`Tab to accordion transform skipped invalid tab at index ${index} for component '${source.name}'.`);
+                return;
+            }
+
+            const buttonLabel = tab.layout?.config?.buttonLabel ?? tab.name ?? `${index}`;
+            const panelFrame: AccordionPanelFormComponentDefinitionFrame = {
+                name: tab.name ?? `panel-${index}`,
+                component: {
+                    class: AccordionPanelComponentName,
+                    config: {
+                        componentDefinitions: tab.component?.config?.componentDefinitions ?? [],
+                    }
+                },
+                layout: {
+                    class: AccordionPanelLayoutName,
+                    config: {
+                        buttonLabel,
+                    }
+                },
+            };
+
+            const panel = this.propertiesHelper.sharedConstructFormComponent(panelFrame);
+            if (!isTypeFormComponentDefinitionName<AccordionPanelFormComponentDefinitionOutline>(panel, AccordionPanelComponentName)) {
+                this.logger.warn(`Tab to accordion transform skipped panel at index ${index} for component '${source.name}'.`);
+                return;
+            }
+
+            panel.component.config = panel.component.config ?? new AccordionPanelFieldComponentConfig();
+            if (!panel.layout) {
+                throw new Error(`Could not create layout class for '${AccordionPanelComponentName}'.`);
+            }
+            panel.layout.config = panel.layout.config ?? new AccordionPanelFieldLayoutConfig();
+
+            this.propertiesHelper.sharedPopulateFieldComponentConfig(panel.component.config, panelFrame.component.config);
+            // sharedPopulateFieldComponentConfig only maps common fields, so preserve panel children explicitly.
+            panel.component.config.componentDefinitions =
+                (panelFrame.component.config?.componentDefinitions ?? []) as typeof panel.component.config.componentDefinitions;
+            this.propertiesHelper.sharedPopulateFieldLayoutConfig(panel.layout.config, panelFrame.layout?.config);
+            this.propertiesHelper.setPropOverride("buttonLabel", panel.layout.config, panelFrame.layout?.config);
+
+            target.component.config?.panels.push(panel);
+        });
 
         return target;
     }

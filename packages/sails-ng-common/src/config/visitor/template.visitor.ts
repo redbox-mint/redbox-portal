@@ -31,6 +31,14 @@ import {
   TabFormComponentDefinitionOutline,
 } from '../component/tab.outline';
 import {
+  AccordionFieldComponentDefinitionOutline,
+  AccordionFieldLayoutDefinitionOutline,
+  AccordionFormComponentDefinitionOutline,
+  AccordionPanelFieldComponentDefinitionOutline,
+  AccordionPanelFieldLayoutDefinitionOutline,
+  AccordionPanelFormComponentDefinitionOutline,
+} from '../component/accordion.outline';
+import {
   TabContentFieldComponentDefinitionOutline,
   TabContentFieldLayoutDefinitionOutline,
   TabContentFormComponentDefinitionOutline,
@@ -234,6 +242,38 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {}
 
   visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  /* Accordion */
+
+  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
+    (item.config?.panels ?? []).forEach((componentDefinition, index) => {
+      this.formPathHelper.acceptFormPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(componentDefinition, index)
+      );
+    });
+  }
+
+  visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): void {}
+
+  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
+    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+      this.formPathHelper.acceptFormPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(componentDefinition, index)
+      );
+    });
+  }
+
+  visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): void {}
+
+  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 

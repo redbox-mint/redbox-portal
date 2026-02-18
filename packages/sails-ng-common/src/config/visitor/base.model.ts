@@ -30,6 +30,14 @@ import {
   TabFormComponentDefinitionOutline,
 } from '../component/tab.outline';
 import {
+  AccordionFieldComponentDefinitionOutline,
+  AccordionFieldLayoutDefinitionOutline,
+  AccordionFormComponentDefinitionOutline,
+  AccordionPanelFieldComponentDefinitionOutline,
+  AccordionPanelFieldLayoutDefinitionOutline,
+  AccordionPanelFormComponentDefinitionOutline,
+} from '../component/accordion.outline';
+import {
   TabContentFieldComponentDefinitionOutline,
   TabContentFieldLayoutDefinitionOutline,
   TabContentFormComponentDefinitionOutline,
@@ -198,6 +206,32 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   }
 
   visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Accordion */
+
+  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
     this.notImplemented();
   }
 

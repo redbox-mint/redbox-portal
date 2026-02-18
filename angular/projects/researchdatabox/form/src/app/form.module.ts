@@ -38,6 +38,7 @@ import { SaveButtonComponent } from './component/save-button.component';
 import { CancelButtonComponent } from './component/cancel-button.component';
 import { TabNavButtonComponent } from './component/tab-nav-button.component';
 import { TabComponent, TabComponentLayout, TabContentComponent } from './component/tab.component';
+import { AccordionComponent, AccordionPanelComponent } from './component/accordion.component';
 import { TextAreaComponent } from './component/text-area.component';
 import { DropdownInputComponent } from './component/dropdown-input.component';
 import { CheckboxInputComponent } from './component/checkbox-input.component';
@@ -78,6 +79,8 @@ import { A11yModule } from '@angular/cdk/a11y';
     TabComponent,
     TabContentComponent,
     TabComponentLayout,
+    AccordionComponent,
+    AccordionPanelComponent,
     DropdownInputComponent,
     CheckboxInputComponent,
     RadioInputComponent,

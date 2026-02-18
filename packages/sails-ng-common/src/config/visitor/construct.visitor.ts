@@ -76,6 +76,31 @@ import {
 } from '../component/tab.outline';
 import { TabFieldComponentConfig, TabFieldLayoutConfig } from '../component/tab.model';
 import {
+  AccordionComponentName,
+  AccordionFieldComponentDefinitionFrame,
+  AccordionFieldComponentDefinitionOutline,
+  AccordionFieldLayoutDefinitionFrame,
+  AccordionFieldLayoutDefinitionOutline,
+  AccordionFormComponentDefinitionFrame,
+  AccordionFormComponentDefinitionOutline,
+  AccordionLayoutName,
+  AccordionPanelComponentName,
+  AccordionPanelFieldComponentDefinitionFrame,
+  AccordionPanelFieldComponentDefinitionOutline,
+  AccordionPanelFieldLayoutDefinitionFrame,
+  AccordionPanelFieldLayoutDefinitionOutline,
+  AccordionPanelFormComponentDefinitionFrame,
+  AccordionPanelFormComponentDefinitionOutline,
+  AccordionPanelLayoutName,
+} from '../component/accordion.outline';
+import {
+  AccordionFieldComponentConfig,
+  AccordionFieldLayoutConfig,
+  AccordionPanelFieldComponentConfig,
+  AccordionPanelFieldLayoutConfig,
+  AccordionPanelFormComponentDefinition,
+} from '../component/accordion.model';
+import {
   TabContentComponentName,
   TabContentFieldComponentDefinitionFrame,
   TabContentFieldComponentDefinitionOutline,
@@ -673,6 +698,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     for (const compDef of compDefs) {
       if (isTypeFormComponentDefinitionName<TabContentFormComponentDefinitionFrame>(compDef, TabContentComponentName)) {
         tabs.push(compDef);
+      } else {
+        this.logger.warn(
+          `Invalid ${TabContentComponentName} entry skipped at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(compDef)}`
+        );
       }
     }
     frame.tabs = tabs;
@@ -730,6 +759,127 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Accordion */
+
+  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<AccordionFieldComponentDefinitionFrame>(currentData, AccordionComponentName)) {
+      throw new Error(
+        `Invalid ${AccordionComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const frame = currentData?.config ?? { panels: [] };
+
+    item.config = new AccordionFieldComponentConfig();
+
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, frame);
+    this.sharedProps.setPropOverride('startingOpenMode', item.config, frame);
+
+    const compDefs = this.formOverride.applyOverridesReusable(frame?.panels ?? [], this.reusableFormDefs);
+    const panels: AccordionPanelFormComponentDefinitionFrame[] = [];
+    for (const compDef of compDefs) {
+      if (
+        isTypeFormComponentDefinitionName<AccordionPanelFormComponentDefinitionFrame>(
+          compDef,
+          AccordionPanelComponentName
+        )
+      ) {
+        panels.push(compDef);
+      } else {
+        this.logger.warn(
+          `Invalid ${AccordionPanelComponentName} entry skipped at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(compDef)}`
+        );
+      }
+    }
+    frame.panels = panels;
+
+    frame.panels.forEach((componentDefinition, index) => {
+      if (
+        isTypeFormComponentDefinitionName<AccordionPanelFormComponentDefinitionFrame>(
+          componentDefinition,
+          AccordionPanelComponentName
+        )
+      ) {
+        const formComponent = this.constructFormComponent(componentDefinition);
+        this.formPathHelper.acceptFormPath(
+          formComponent,
+          this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(formComponent, index)
+        );
+
+        const itemTransformed = this.formOverride.applyOverrideTransform(
+          formComponent,
+          this.formMode
+        ) as AccordionPanelFormComponentDefinition;
+
+        item.config?.panels.push(itemTransformed);
+      }
+    });
+  }
+
+  visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<AccordionFieldLayoutDefinitionFrame>(currentData, AccordionLayoutName)) {
+      throw new Error(
+        `Invalid ${AccordionLayoutName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    item.config = new AccordionFieldLayoutConfig();
+    this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, config);
+  }
+
+  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<AccordionPanelFieldComponentDefinitionFrame>(currentData, AccordionPanelComponentName)) {
+      throw new Error(
+        `Invalid ${AccordionPanelComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config ?? { componentDefinitions: [] };
+
+    item.config = new AccordionPanelFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+    config.componentDefinitions = this.formOverride.applyOverridesReusable(
+      config?.componentDefinitions ?? [],
+      this.reusableFormDefs
+    );
+
+    config.componentDefinitions.forEach((componentDefinition, index) => {
+      const formComponent = this.constructFormComponent(componentDefinition);
+      this.formPathHelper.acceptFormPath(
+        formComponent,
+        this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(formComponent, index)
+      );
+
+      const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
+      item.config?.componentDefinitions.push(itemTransformed);
+    });
+  }
+
+  visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<AccordionPanelFieldLayoutDefinitionFrame>(currentData, AccordionPanelLayoutName)) {
+      throw new Error(
+        `Invalid ${AccordionPanelLayoutName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    item.config = new AccordionPanelFieldLayoutConfig();
+    this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, config);
+    this.sharedProps.setPropOverride('buttonLabel', item.config, config);
+  }
+
+  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
   }
 
