@@ -78,6 +78,10 @@ export interface FieldDependencyTriggerEvent extends FieldScopedEventBase {
  */
 export interface FieldFocusRequestEvent extends FieldScopedEventBase {
   readonly type: 'field.request.focus';
+  readonly targetElementId?: string;
+  readonly lineagePath?: Array<string | number>;
+  readonly requestId?: string;
+  readonly source?: string;
 }
 
 /**
@@ -291,6 +295,21 @@ export function createFieldFocusRequestEvent(
     FormComponentEventType.FIELD_FOCUS_REQUEST,
     options
   );
+}
+
+/**
+ * Helper factory for focus requests that require lineage-based reveal/navigation.
+ * `lineagePath` is mandatory for these requests.
+ */
+export function createLineageFieldFocusRequestEvent(
+  options: Omit<FormComponentEventOptions<FieldFocusRequestEvent>, 'lineagePath'> & {
+    lineagePath: Array<string | number>;
+  }
+): FormComponentEventResult<FieldFocusRequestEvent> {
+  if (!options.lineagePath || options.lineagePath.length === 0) {
+    throw new Error('Lineage focus requests require lineagePath.');
+  }
+  return createFieldFocusRequestEvent(options);
 }
 
 /**

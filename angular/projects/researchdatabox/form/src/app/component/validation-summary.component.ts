@@ -1,7 +1,8 @@
-import { DOCUMENT } from '@angular/common';
 import { Component, inject, Injector, Input } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, TranslationService } from "@researchdatabox/portal-ng-common";
 import { FormComponent } from "../form.component";
+import { TabComponent } from './tab.component';
 import {
   FormValidatorComponentErrors,
   FormValidatorSummaryErrors,
@@ -13,7 +14,8 @@ import {
   TabContentLayoutName,
   ValidationSummaryComponentName,
 } from "@researchdatabox/sails-ng-common";
-import { TabComponent } from './tab.component';
+import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
+import { createLineageFieldFocusRequestEvent } from '../form-state/events/form-component-event.types';
 
 
 @Component({
@@ -86,6 +88,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   @Input() public override model?: never;
 
   private _injector = inject(Injector);
+  private readonly eventBus = inject(FormComponentEventBus);
   private readonly doc = inject(DOCUMENT);
   private readonly translationService = inject(TranslationService);
   private readonly focusableSelector = [
@@ -107,6 +110,19 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
 
   public onValidationSummaryClick(event: MouseEvent, summary: FormValidatorSummaryErrors): void {
     event.preventDefault();
+    const lineagePath = summary.lineagePaths?.angularComponents ?? [];
+    if (lineagePath.length > 0) {
+      this.eventBus.publish(
+        createLineageFieldFocusRequestEvent({
+          fieldId: summary.id ?? String(lineagePath[lineagePath.length - 1]),
+          targetElementId: summary.id ?? undefined,
+          lineagePath,
+          requestId: this.buildFocusRequestId(),
+          source: 'validation-summary',
+          sourceId: this.getFormComponent.eventScopeId
+        })
+      );
+    }
     void this.revealAndFocusValidationTarget(summary);
   }
 
@@ -372,4 +388,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     return this._injector.get(FormComponent);
   }
 
+  private buildFocusRequestId(): string {
+    return `validation-summary-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
 }
