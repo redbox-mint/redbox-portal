@@ -272,11 +272,11 @@ export namespace Services {
       }
     }
 
-    getSearchService() {
+    getSearchService(ref: Records = this) {
       if (_.isEmpty(sails.config.storage) || _.isEmpty(sails.config.search.serviceName)) {
-        this.searchService = SolrSearchService;
+        ref.searchService = SolrSearchService;
       } else {
-        this.searchService = sails.services[sails.config.search.serviceName] as unknown as SearchService;
+        ref.searchService = sails.services[sails.config.search.serviceName] as unknown as SearchService;
       }
     }
 
