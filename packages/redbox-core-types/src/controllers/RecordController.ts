@@ -235,8 +235,8 @@ export namespace Controllers {
         localFormName = locals['localFormName'] as string;
       }
       const extFormName = localFormName ? localFormName : '';
-      let appSelector = 'dmp-form';
-      let appName = 'dmp';
+      const appSelector = 'dmp-form';
+      const appName = 'dmp';
       sails.log.debug('RECORD::APP: ' + appName);
       sails.log.debug('RECORD::APP formName: ' + extFormName);
       if (recordType != '' && extFormName == '') {
@@ -1043,7 +1043,12 @@ export namespace Controllers {
       this.initTusServer();
       const method = _.toLower(req.method);
 
-      const prefix = `${BrandingService.getBrandAndPortalPath(req)}/record/${oid}`;
+      const brandPortalPrefix = BrandingService.getBrandAndPortalPath(req);
+      const defaultAttachmentPrefix = `${brandPortalPrefix}/record/${oid}`;
+      const companionAttachmentPrefix = `${brandPortalPrefix}/companion/record/${oid}`;
+      const prefix = [defaultAttachmentPrefix, companionAttachmentPrefix]
+        .find((candidatePrefix) => req.url.startsWith(candidatePrefix) || req.path.startsWith(candidatePrefix))
+        ?? defaultAttachmentPrefix;
       const tusReq = req as unknown as TusRequestExtension;
       tusReq._tusOriginalUrl = req.url;
       tusReq._tusBaseUrl = prefix;

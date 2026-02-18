@@ -193,4 +193,22 @@ describe('checkAuth policy', function () {
 
         expect(usedRoles).to.deep.equal(['guest']);
     });
+
+    it('should bypass checkAuth when companion upload auth has already authorized request', function () {
+        let getBrandCalled = false;
+        (global as any).BrandingService.getBrand = () => {
+            getBrandCalled = true;
+            return { name: 'default' };
+        };
+
+        const { req, res, getStatus } = createMockReqRes({ authenticated: false });
+        req.companionAttachmentUploadAuthorized = true;
+        let nextCalled = false;
+
+        checkAuth(req, res, () => { nextCalled = true; });
+
+        expect(nextCalled).to.be.true;
+        expect(getStatus()).to.be.undefined;
+        expect(getBrandCalled).to.be.false;
+    });
 });

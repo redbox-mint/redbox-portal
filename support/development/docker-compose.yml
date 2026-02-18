@@ -3,35 +3,49 @@ version: '3.9'
 x-rbportal-env: &rbportal-env
   NODE_ENV: docker
   PORT: 1500
-  WEBPACK_SKIP: "true"
+  WEBPACK_SKIP: 'true'
   sails__datastores__mongodb__url: mongodb://mongodb:27017/redbox-portal
   sails__datastores__redboxStorage__url: mongodb://mongodb:27017/redbox-storage
   sails__redboxSession_mongoUrl: mongodb://mongodb:27017/sessions
   # For NG apps migrated NG 15 or above, if you are actively developing the front-end, then build your app manually, making sure you disable filename hashing, before you use the app.
-  sails_angularDev: "true"
+  sails_angularDev: 'true'
   sails_appUrl: http://localhost:1500
   # Flag to enable the new form framework app, currently enabled in the "edit" mode
-  sails_enableNewForm: "true"
+  sails_enableNewForm: 'true'
   sails_redbox__apiKey: c8e844fc-8550-497f-b970-7900ec8741ca
   sails_record__baseUrl__redbox: http://redbox:9000/redbox
   sails_record__baseUrl__mint: https://demo.redboxresearchdata.com.au/mint
-  LOAD_DEFAULT_FORMS: "true"
+  # Uppy Companion
+  UPPY_COMPANION_ENABLED: '${UPPY_COMPANION_ENABLED:-false}'
+  UPPY_COMPANION_SECRET: '${UPPY_COMPANION_SECRET:-dev-local-companion-secret-2026-02-16}'
+  UPPY_COMPANION_BEARER_TOKEN: '${UPPY_COMPANION_BEARER_TOKEN:-}'
+  UPPY_COMPANION_ATTACHMENT_SECRET: '${UPPY_COMPANION_ATTACHMENT_SECRET:-${UPPY_COMPANION_SECRET:-dev-local-companion-secret-2026-02-16}}'
+  UPPY_COMPANION_UPLOAD_URLS: '${UPPY_COMPANION_UPLOAD_URLS:-^https?://(localhost|127\\.0\\.0\\.1):1500(?:/[^/]+/[^/]+)?/companion/record/.+/attach$}'
+  UPPY_GOOGLE_KEY: '${UPPY_GOOGLE_KEY:-}'
+  UPPY_GOOGLE_SECRET: '${UPPY_GOOGLE_SECRET:-}'
+  UPPY_ONEDRIVE_KEY: '${UPPY_ONEDRIVE_KEY:-}'
+  UPPY_ONEDRIVE_SECRET: '${UPPY_ONEDRIVE_SECRET:-}'
+  UPPY_COMPANION_HOST: 'localhost:1500'
+  UPPY_COMPANION_PROTOCOL: 'http'
+  LOAD_DEFAULT_FORMS: 'true'
   # When testing using the API
   # sails_brandingConfigurationDefaults__auth__local__default__token: d077835a-696b-4728-85cf-3ffd57152b1e
   # sails_security__csrf: "false"
 
 x-rbportal-volumes: &rbportal-volumes
-  - "./.dev/attachments:/attachments:delegated"
-  - "./.dev/publication:/publication:delegated"
-  - "./.dev/hooks:/opt/hooks:delegated"
-  - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
+  - './.dev/attachments:/attachments:delegated'
+  - './.dev/publication:/publication:delegated'
+  - './.dev/hooks:/opt/hooks:delegated'
+  - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
 
 x-rbportal-service: &rbportal-service
+  env_file:
+    - ./.env
   environment: *rbportal-env
   ports:
-    - "1500:1500"
+    - '1500:1500'
     # Debugging port
-    - "9876:9876"
+    - '9876:9876'
   depends_on:
     - mongodb
     - solr
@@ -51,11 +65,11 @@ services:
     profiles: [mount]
     image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
     volumes:
-      - "../../:/opt/redbox-portal:delegated"
-      - "./.dev/attachments:/attachments:delegated"
-      - "./.dev/publication:/publication:delegated"
-      - "./.dev/hooks:/opt/hooks:delegated"
-      - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
+      - '../../:/opt/redbox-portal:delegated'
+      - './.dev/attachments:/attachments:delegated'
+      - './.dev/publication:/publication:delegated'
+      - './.dev/hooks:/opt/hooks:delegated'
+      - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
   rbportal-build:
     <<: *rbportal-service
     profiles: [build]
@@ -69,21 +83,21 @@ services:
     #image: mvertes/alpine-mongo:latest
     image: mongo:latest
     volumes:
-      - "./devdata:/devdata:delegated"
-      - "./.dev/mongo/data/db:/data/db:delegated"
-      - "./.dev/log/mongo:/var/log/mongo:delegated"
+      - './devdata:/devdata:delegated'
+      - './.dev/mongo/data/db:/data/db:delegated'
+      - './.dev/log/mongo:/var/log/mongo:delegated'
     networks:
       main:
         aliases:
           - mongodb
     ports:
-      - "27017:27017"
+      - '27017:27017'
   solr:
     image: solr:latest
     expose:
-      - "8983"
+      - '8983'
     ports:
-      - "8983:8983"
+      - '8983:8983'
     # Example of pre create additional solr cores that needs to be coupled with correct record type configuration
     # volumes:
     #  - "../integration-testing/solr.in.sh:/etc/default/solr.in.sh"

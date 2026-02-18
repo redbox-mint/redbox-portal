@@ -54,6 +54,7 @@ export * from './webpack.config';
 export * from './csp.config';
 export * from './dompurify.config';
 export * from './redboxSession.config';
+export * from './companion.config';
 // Complex/Large configs (interface-only)
 export * from './branding.config';
 export * from './brandingConfigurationDefaults.config';
@@ -124,6 +125,7 @@ import { webpack, WebpackConfig } from './webpack.config';
 // Security config imports
 import { csp, ContentSecurityPolicyConfig } from './csp.config';
 import { dompurify, DomPurifyConfig } from './dompurify.config';
+import { companion, CompanionConfig } from './companion.config';
 
 // Auth config import
 import { auth } from './auth.config';
@@ -205,6 +207,7 @@ export interface SailsConfig {
     blueprints: BlueprintsConfig;
     cors: CorsConfig;
     redboxSession: RedboxSessionConfig;
+    companion: CompanionConfig;
     security: SecurityConfig;
     globals: GlobalsConfig;
     models: ModelsConfig;
@@ -341,6 +344,7 @@ export const Config = {
     typescript,
     custom_cache,
     redboxSession,
+    companion,
     brandingConfigurationDefaults,
     reports,
     branding,
