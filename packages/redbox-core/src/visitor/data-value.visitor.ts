@@ -106,6 +106,11 @@ import {
   DateInputFieldModelDefinitionOutline,
   DateInputFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
+import {
+  QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFieldModelDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
 import { FormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { FieldModelDefinitionFrame } from '@researchdatabox/sails-ng-common';
 import { ILogger } from '@researchdatabox/sails-ng-common';
@@ -445,6 +450,25 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  /* Question Tree */
+
+  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+      this.formPathHelper.acceptFormPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index)
+      );
+    });
+  }
+
+  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
+
+  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 

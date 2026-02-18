@@ -105,6 +105,11 @@ import {
   DateInputFieldModelDefinitionOutline,
   DateInputFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
+import {
+  QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFieldModelDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
 import { FormConstraintConfig } from '@researchdatabox/sails-ng-common';
 import { AvailableFormComponentDefinitionOutlines } from '@researchdatabox/sails-ng-common';
 import { FormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
@@ -704,6 +709,37 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
     this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
+  }
+
+  /* Question Tree */
+
+  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+    this.processFieldComponentDefinition(item);
+
+    const items: AvailableFormComponentDefinitionOutlines[] = [];
+    (item?.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+      items.push(componentDefinition);
+      this.formPathHelper.acceptFormPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index)
+      );
+    });
+    if (item.config) {
+      item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
+    }
+  }
+
+  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+    this.processFieldModelDefinition(item);
+  }
+
+  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
+    this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+
+    if ((item.component?.config?.componentDefinitions ?? [])?.length === 0) {
+      this.removePropsAll(item);
+    }
   }
 
   /* Shared */

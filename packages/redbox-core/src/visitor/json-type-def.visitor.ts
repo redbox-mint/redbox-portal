@@ -107,6 +107,11 @@ import {
   DateInputFieldModelDefinitionOutline,
   DateInputFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
+import {
+  QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFieldModelDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
 import { guessType } from '@researchdatabox/sails-ng-common';
 import { FieldModelDefinitionFrame } from '@researchdatabox/sails-ng-common';
 import { FormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
@@ -479,6 +484,26 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  /* Question Tree */
+
+  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+      this.acceptJsonTypeDefPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index),
+        ['properties']
+      );
+    });
+  }
+
+  visitQuestionTreeFieldModelDefinition(_item: QuestionTreeFieldModelDefinitionOutline): void {
+    // Visit nested components to build the correct structure.
+  }
+
+  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 

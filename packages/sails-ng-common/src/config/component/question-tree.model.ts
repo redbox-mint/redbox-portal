@@ -25,7 +25,7 @@ import {
     QuestionTreeQuestion
 } from "./question-tree.outline";
 import {
-    AvailableFieldLayoutDefinitionOutlines, QuestionTreeFormComponentDefinitionOutlines
+  AvailableFieldLayoutDefinitionOutlines, AvailableFormComponentDefinitionOutlines
 } from "../dictionary.outline";
 
 
@@ -35,7 +35,7 @@ export class QuestionTreeFieldComponentConfig extends FieldComponentConfig imple
     availableOutcomes: QuestionTreeOutcome[];
     availableMeta?: QuestionTreeMeta;
     questions: QuestionTreeQuestion[];
-    componentDefinitions: QuestionTreeFormComponentDefinitionOutlines[];
+    componentDefinitions: AvailableFormComponentDefinitionOutlines[];
 
     constructor() {
         super();
