@@ -35,9 +35,9 @@ import {FormService} from "../form.service";
   selector: 'redbox-form-default-component-layout',
   template: `
   @if (componentDefinition) {
-    @if (getStringProperty('label')) {
-      @if (isVisible) {
-        <label class="form-label">
+    <div class="rb-form-field-layout">
+      @if (getStringProperty('label') && isVisible) {
+        <label class="form-label rb-form-field-label">
           <span [innerHtml]="getStringProperty('label') | i18next" [title]="tooltip | i18next"></span>
           @if (isRequired) {
             <span
@@ -53,37 +53,32 @@ import {FormService} from "../form.service";
         @if (helpTextVisible) {
           <span class="help-block" [innerHtml]="getStringProperty('helpText') | i18next"></span>
         }
-        <br>
-        }
       }
-      <ng-container #componentContainer  ></ng-container>
-      <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
-      <ng-template #beforeComponentTemplate>
-<!--        @if (isVisible) {-->
-<!--          Before {{ componentName }}-->
-<!--          <br>-->
-<!--          }-->
-        </ng-template>
-        <ng-template #afterComponentTemplate>
-          @if (isVisible) {
-<!--            After {{ componentName }}-->
-            @let componentValidationList = getFormValidatorComponentErrors;
-            @if (componentValidationList.length > 0) {
-              <div class="invalid-feedback">
-                Invalid value:
-                @for (error of componentValidationList; track (error.class ?? 'err') + '-' + $index) {
-                  <span [attr.data-validation-error-class]="error.class"
-                        [attr.data-validation-error-message]="error.message">
-                    {{ $index + 1 }}) {{ error.message | i18next: error.params }}
-                  </span>
-                }
-              </div>
+      <div class="rb-form-field-control">
+        <ng-container #componentContainer  ></ng-container>
+      </div>
+    </div>
+    <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
+    <ng-template #beforeComponentTemplate>
+    </ng-template>
+    <ng-template #afterComponentTemplate>
+      @if (isVisible) {
+        @let componentValidationList = getFormValidatorComponentErrors;
+        @if (componentValidationList.length > 0) {
+          <div class="invalid-feedback">
+            Invalid value:
+            @for (error of componentValidationList; track (error.class ?? 'err') + '-' + $index) {
+              <span [attr.data-validation-error-class]="error.class"
+                    [attr.data-validation-error-message]="error.message">
+                {{ $index + 1 }}) {{ error.message | i18next: error.params }}
+              </span>
             }
-            <div class="valid-feedback">The field is valid.</div>
-            <br>
-            }
-          </ng-template>
+          </div>
         }
+        <div class="valid-feedback">The field is valid.</div>
+      }
+    </ng-template>
+  }
   `,
   standalone: false,
   // Note: No need for host property here if using @HostBinding

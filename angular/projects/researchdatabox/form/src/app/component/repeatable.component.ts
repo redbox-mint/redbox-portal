@@ -27,10 +27,14 @@ import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '.
   template:
     `
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-    <ng-container #repeatableContainer></ng-container>
-    @if (isStatusReady() && isVisible) {
-      <button type="button" class="btn btn-md btn-primary" (click)="appendNewElement()" [attr.aria-label]="'Add'">Add</button>
-    }
+    <div class="rb-form-repeatable">
+      <div class="rb-form-repeatable__items">
+        <ng-container #repeatableContainer></ng-container>
+      </div>
+      @if (isStatusReady() && isVisible) {
+        <button type="button" class="rb-form-repeatable__add btn btn-md btn-primary" (click)="appendNewElement()" [attr.aria-label]="'Add'">Add</button>
+      }
+    </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   `,
   standalone: false
@@ -312,10 +316,14 @@ export interface RepeatableElementEntry {
 @Component({
   selector: 'redbox-form-repeatable-component-layout',
   template: `
-  <ng-container #componentContainer></ng-container>
-  @if (isVisible) {
-    <button type="button" class="col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
-  }
+  <div class="rb-form-repeatable-item">
+    <div class="rb-form-repeatable-item__content">
+      <ng-container #componentContainer></ng-container>
+    </div>
+    @if (isVisible) {
+      <button type="button" class="rb-form-repeatable-item__remove col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
+    }
+  </div>
   <ng-template #afterComponentTemplate>
     @if (isVisible) {
       @let componentValidationList = getFormValidatorComponentErrors;

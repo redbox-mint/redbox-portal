@@ -151,4 +151,11 @@ describe('TabNavButtonComponent', () => {
     expect((buttons[0] as HTMLButtonElement).disabled).toBeTrue();
     expect((buttons[1] as HTMLButtonElement).disabled).toBeTrue();
   });
+
+  it('should render shared action row nav wrapper class', async () => {
+    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true } as any);
+    fixture.detectChanges();
+    const navWrapper = fixture.nativeElement.querySelector('.rb-form-tab-nav-buttons');
+    expect(navWrapper).toBeTruthy();
+  });
 });

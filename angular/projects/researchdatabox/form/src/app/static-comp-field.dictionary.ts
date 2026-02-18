@@ -5,6 +5,7 @@ import {
   RepeatableElementLayoutComponent,
 } from './component/repeatable.component';
 import { DefaultLayoutComponent } from './component/default-layout.component';
+import { ActionRowLayoutComponent } from './component/action-row-layout.component';
 import { InlineLayoutComponent } from './component/inline-layout.component';
 import { ValidationSummaryFieldComponent } from './component/validation-summary.component';
 import { GroupFieldModel, GroupFieldComponent } from './component/group.component';
@@ -70,6 +71,7 @@ import {
   AccordionPanelLayoutName,
   RepeatableElementLayoutName,
   DefaultLayoutName,
+  ActionRowLayoutName,
   InlineLayoutName,
   StaticClassMapType,
 } from '@researchdatabox/sails-ng-common';
@@ -135,6 +137,7 @@ export type StaticLayoutClassMapType = StaticLayoutClassMapGenType<typeof FormFi
 export type AllLayoutClassMapType = StaticClassMapType<string, typeof FormFieldBaseComponent<unknown> | null>;
 export const getStaticLayoutClassMap = (): StaticLayoutClassMapType => ({
   [DefaultLayoutName]: DefaultLayoutComponent,
+  [ActionRowLayoutName]: ActionRowLayoutComponent,
   [InlineLayoutName]: InlineLayoutComponent,
   [RepeatableElementLayoutName]: RepeatableElementLayoutComponent,
   // The tab content layout is only used in the form config, it is not an angular component.

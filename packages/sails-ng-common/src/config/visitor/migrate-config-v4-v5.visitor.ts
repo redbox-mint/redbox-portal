@@ -32,6 +32,8 @@ import {
 import { SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig } from '../component/simple-input.model';
 import { DefaultFieldLayoutDefinitionOutline, DefaultLayoutName } from '../component/default-layout.outline';
 import { DefaultFieldLayoutConfig } from '../component/default-layout.model';
+import { ActionRowFieldLayoutDefinitionOutline } from '../component/action-row-layout.outline';
+import { ActionRowFieldLayoutConfig } from '../component/action-row-layout.model';
 import { FormComponentDefinitionFrame, FormComponentDefinitionOutline } from '../form-component.outline';
 import {
   ContentComponentName,
@@ -1151,6 +1153,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
     const field = this.getV4Data();
     item.config = new DefaultFieldLayoutConfig();
+    this.sharedPopulateFieldLayoutConfig(item.config, field);
+  }
+
+  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new ActionRowFieldLayoutConfig();
     this.sharedPopulateFieldLayoutConfig(item.config, field);
   }
 

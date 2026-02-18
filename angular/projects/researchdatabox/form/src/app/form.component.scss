@@ -1,0 +1,209 @@
+:host {
+  --rb-form-max-width: 1120px;
+  --rb-form-nav-width: 220px;
+  --rb-form-gap-1: 0.5rem;
+  --rb-form-gap-2: 0.75rem;
+  --rb-form-gap-3: 1rem;
+  --rb-form-gap-4: 1.5rem;
+  --rb-form-gap-5: 2rem;
+  --rb-form-border-color: rgba(15, 23, 42, 0.14);
+  --rb-form-bg-muted: rgba(15, 23, 42, 0.04);
+  display: block;
+}
+
+:host,
+:host * {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.rb-form-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rb-form-gap-4);
+  width: min(100%, var(--rb-form-max-width));
+  margin: 0 auto;
+}
+
+.rb-form-shell__main {
+  width: 100%;
+}
+
+.rb-form-debug-panel {
+  width: 100%;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-tab-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--rb-form-gap-4);
+  align-items: start;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-tab-nav-wrapper {
+  min-width: 0;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-tab-panel-wrapper {
+  min-width: 0;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-tab-nav {
+  gap: var(--rb-form-gap-1);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-tab-pane {
+  width: 100%;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-field-layout,
+:host(.rb-form-edit) ::ng-deep .rb-form-inline-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rb-form-gap-2);
+  margin-bottom: var(--rb-form-gap-3);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-inline-layout {
+  gap: var(--rb-form-gap-1);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-inline-layout__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rb-form-gap-2);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-field-label,
+:host(.rb-form-edit) ::ng-deep .rb-form-inline-label {
+  margin-bottom: 0;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-group,
+:host(.rb-form-edit) ::ng-deep .rb-form-repeatable {
+  display: grid;
+  gap: var(--rb-form-gap-3);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-repeatable__items {
+  display: grid;
+  gap: var(--rb-form-gap-3);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-repeatable__add {
+  justify-self: start;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--rb-form-gap-2);
+  align-items: start;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item__remove {
+  align-self: start;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--rb-form-gap-2);
+  margin-top: var(--rb-form-gap-5);
+  padding-top: var(--rb-form-gap-3);
+  border-top: 1px solid var(--rb-form-border-color);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-action-row .rb-form-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-form-gap-2);
+  justify-content: flex-end;
+  width: 100%;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-action-row > * {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-action-row .rb-form-action-slot {
+  width: auto;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-action-row .rb-form-action-slot .rb-form-inline-layout,
+:host(.rb-form-edit) ::ng-deep .rb-form-action-row .rb-form-action-slot .rb-form-field-layout {
+  margin-bottom: 0;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-action-slot--start {
+  margin-right: auto;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-action-row--compact {
+  margin-top: var(--rb-form-gap-3);
+  padding-top: var(--rb-form-gap-2);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-tab-nav-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-form-gap-2);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-save-button {
+  display: inline-flex;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-validation-summary {
+  margin-bottom: var(--rb-form-gap-3);
+  padding: var(--rb-form-gap-2);
+  border: 1px solid var(--rb-form-border-color);
+  background: var(--rb-form-bg-muted);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-contributor-inline .rb-form-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--rb-form-gap-1);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-contributor-inline .rb-form-contributor-inline__field {
+  width: 100%;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-contributor-inline .rb-form-field-layout,
+:host(.rb-form-edit) ::ng-deep .rb-form-contributor-inline .rb-form-inline-layout {
+  margin-bottom: 0;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-contributor-inline .rb-form-inline-layout,
+:host(.rb-form-edit) ::ng-deep .rb-form-contributor-inline .rb-form-inline-layout__control {
+  width: 100%;
+}
+
+@media (min-width: 992px) {
+  :host(.rb-form-edit) ::ng-deep .rb-form-tab-shell {
+    grid-template-columns: minmax(0, var(--rb-form-nav-width)) minmax(0, 1fr);
+    column-gap: var(--rb-form-gap-5);
+  }
+
+  :host(.rb-form-edit) ::ng-deep .rb-form-tab-nav {
+    position: sticky;
+    top: var(--rb-form-gap-3);
+  }
+}
+
+@media (max-width: 575.98px) {
+  :host(.rb-form-edit) ::ng-deep .rb-form-action-row {
+    justify-content: flex-start;
+  }
+
+  :host(.rb-form-edit) ::ng-deep .rb-form-action-slot--start {
+    flex: 1 0 100%;
+    margin-right: 0;
+  }
+}

@@ -30,6 +30,7 @@ import { ValidationSummaryFieldComponent } from './component/validation-summary.
 import { I18NextPipe, provideI18Next } from 'angular-i18next';
 import { GroupFieldComponent } from './component/group.component';
 import { DefaultLayoutComponent } from './component/default-layout.component';
+import { ActionRowLayoutComponent } from './component/action-row-layout.component';
 import { InlineLayoutComponent } from './component/inline-layout.component';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
 import { FormBaseWrapperDirective } from './component/base-wrapper.directive';
@@ -62,6 +63,7 @@ import { A11yModule } from '@angular/cdk/a11y';
 @NgModule({
   declarations: [
     DefaultLayoutComponent,
+    ActionRowLayoutComponent,
     InlineLayoutComponent,
     FormBaseWrapperComponent,
     FormBaseWrapperDirective,

@@ -47,6 +47,12 @@ import {
 } from '../component/default-layout.outline';
 import { DefaultFieldLayoutConfig } from '../component/default-layout.model';
 import {
+  ActionRowFieldLayoutDefinitionFrame,
+  ActionRowFieldLayoutDefinitionOutline,
+  ActionRowLayoutName,
+} from '../component/action-row-layout.outline';
+import { ActionRowFieldLayoutConfig } from '../component/action-row-layout.model';
+import {
   InlineFieldLayoutDefinitionFrame,
   InlineFieldLayoutDefinitionOutline,
   InlineLayoutName,
@@ -754,6 +760,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, config);
 
     this.sharedProps.setPropOverride('buttonSectionCssClass', item.config, config);
+    this.sharedProps.setPropOverride('tabShellCssClass', item.config, config);
+    this.sharedProps.setPropOverride('tabNavWrapperCssClass', item.config, config);
+    this.sharedProps.setPropOverride('tabPanelWrapperCssClass', item.config, config);
     this.sharedProps.setPropOverride('tabPaneCssClass', item.config, config);
     this.sharedProps.setPropOverride('tabPaneActiveCssClass', item.config, config);
     this.sharedProps.setPropOverride('buttonSectionAriaOrientation', item.config, config);
@@ -1230,6 +1239,23 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     item.config = new InlineFieldLayoutConfig();
     this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
+  }
+
+  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<ActionRowFieldLayoutDefinitionFrame>(currentData, ActionRowLayoutName)) {
+      throw new Error(
+        `Invalid ${ActionRowLayoutName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+    item.config = new ActionRowFieldLayoutConfig();
+    this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, config);
+    this.sharedProps.setPropOverride('containerCssClass', item.config, config);
+    this.sharedProps.setPropOverride('alignment', item.config, config);
+    this.sharedProps.setPropOverride('wrap', item.config, config);
+    this.sharedProps.setPropOverride('slotCssClass', item.config, config);
+    this.sharedProps.setPropOverride('compact', item.config, config);
   }
 
   /* Checkbox Input */

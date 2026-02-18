@@ -167,4 +167,41 @@ describe('RepeatableComponent', () => {
     subscription.unsubscribe();
   });
 
+  it('should render repeatable wrapper classes', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_css',
+      componentDefinitions: [
+        {
+          name: 'repeatable_css',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          }
+        },
+      ]
+    };
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    expect(fixture.nativeElement.querySelector('.rb-form-repeatable')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.rb-form-repeatable-item')).toBeTruthy();
+  });
+
 });

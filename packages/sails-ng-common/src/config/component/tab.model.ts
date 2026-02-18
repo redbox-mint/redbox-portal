@@ -45,9 +45,12 @@ export class TabFieldComponentDefinition extends FieldComponentDefinition implem
 
 
 export class TabFieldLayoutConfig extends FieldLayoutConfig implements TabFieldLayoutConfigOutline {
-    hostCssClasses?: KeyValueStringProperty = 'd-flex align-items-start';
-    buttonSectionCssClass?: string = 'nav flex-column nav-pills me-5';
-    tabPaneCssClass?: string = 'tab-pane fade';
+    hostCssClasses?: KeyValueStringProperty = 'rb-form-tab-layout';
+    tabShellCssClass?: string = 'rb-form-tab-shell';
+    tabNavWrapperCssClass?: string = 'rb-form-tab-nav-wrapper';
+    tabPanelWrapperCssClass?: string = 'rb-form-tab-panel-wrapper';
+    buttonSectionCssClass?: string = 'rb-form-tab-nav nav flex-column nav-pills';
+    tabPaneCssClass?: string = 'rb-form-tab-pane tab-pane fade';
     tabPaneActiveCssClass?: string = 'active show';
     buttonSectionAriaOrientation?: ButtonSectionAriaOrientationOptionsType = 'vertical';
 

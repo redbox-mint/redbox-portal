@@ -35,52 +35,51 @@ import {FormService} from "../form.service";
   selector: 'redbox-form-inline-component-layout',
   template: `
   @if (componentDefinition) {
-    @if (getStringProperty('label')) {
-      @if (isVisible) {
-        <label class="form-label mb-0 d-inline-block flex-shrink-0">
-          <span [innerHtml]="getStringProperty('label') | i18next" [title]="tooltip | i18next"></span>
-          @if (isRequired) {
-            <span
-              class="form-field-required-indicator"
-            [innerHTML]="getStringProperty('labelRequiredStr')"></span>
+    <div class="rb-form-inline-layout">
+      @if (getStringProperty('label') && isVisible) {
+        <div class="rb-form-inline-layout__row">
+          <label class="form-label mb-0 d-inline-block flex-shrink-0 rb-form-inline-label">
+            <span [innerHtml]="getStringProperty('label') | i18next" [title]="tooltip | i18next"></span>
+            @if (isRequired) {
+              <span
+                class="form-field-required-indicator"
+              [innerHTML]="getStringProperty('labelRequiredStr')"></span>
+            }
+            @if (getStringProperty('helpText')) {
+              <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
+                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+              </button>
+            }
+          </label>
+          @if (helpTextVisible) {
+            <span class="help-block" [innerHtml]="getStringProperty('helpText') | i18next"></span>
           }
-          @if (getStringProperty('helpText')) {
-            <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
-              <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-            </button>
-          }
-        </label>
-        @if (helpTextVisible) {
-          <span class="help-block" [innerHtml]="getStringProperty('helpText') | i18next"></span>
+        </div>
         }
+      <div class="rb-form-inline-layout__control">
+        <ng-container #componentContainer  ></ng-container>
+      </div>
+    </div>
+    <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
+    <ng-template #beforeComponentTemplate>
+    </ng-template>
+    <ng-template #afterComponentTemplate>
+      @if (isVisible) {
+        @let componentValidationList = getFormValidatorComponentErrors;
+        @if (componentValidationList.length > 0) {
+          <div class="invalid-feedback">
+            Invalid value:
+            @for (error of componentValidationList; track (error.class ?? 'err') + '-' + $index) {
+              <span [attr.data-validation-error-class]="error.class"
+                    [attr.data-validation-error-message]="error.message">
+                {{ $index + 1 }}) {{ error.message | i18next: error.params }}
+              </span>
+            }
+          </div>
         }
       }
-      <ng-container #componentContainer  ></ng-container>
-      <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
-      <ng-template #beforeComponentTemplate>
-<!--        @if (isVisible) {-->
-<!--          Before {{ componentName }}-->
-<!--          <br>-->
-<!--          }-->
-        </ng-template>
-        <ng-template #afterComponentTemplate>
-          @if (isVisible) {
-<!--            After {{ componentName }}-->
-            @let componentValidationList = getFormValidatorComponentErrors;
-            @if (componentValidationList.length > 0) {
-              <div class="invalid-feedback">
-                Invalid value:
-                @for (error of componentValidationList; track (error.class ?? 'err') + '-' + $index) {
-                  <span [attr.data-validation-error-class]="error.class"
-                        [attr.data-validation-error-message]="error.message">
-                    {{ $index + 1 }}) {{ error.message | i18next: error.params }}
-                  </span>
-                }
-              </div>
-            }
-            }
-          </ng-template>
-        }
+    </ng-template>
+  }
   `,
   standalone: false,
   // Note: No need for host property here if using @HostBinding

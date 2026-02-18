@@ -10,7 +10,9 @@ import { FormStateFacade } from '../form-state';
   template:`
   @if (isVisible) {
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-    <button type="button" class="btn btn-primary" (click)="save()" [innerHtml]="currentLabel()" [disabled]="disabled()"></button>
+    <div class="rb-form-save-button">
+      <button type="button" class="btn btn-primary" (click)="save()" [innerHtml]="currentLabel()" [disabled]="disabled()"></button>
+    </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   }
   `,

@@ -12,22 +12,24 @@ import { TabComponent } from './tab.component';
   template: `
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-      @if (endDisplayMode === 'disabled') {
-        <button type="button" class="btn btn-secondary" [disabled]="!canGoPrev()" (click)="stepToTab(-1)">
-          {{ prevLabel }}
-        </button>
-        <button type="button" class="btn btn-primary" [disabled]="!canGoNext()" (click)="stepToTab(1)">
-          {{ nextLabel }}
-        </button>
-      }
-      @if (endDisplayMode === 'hidden') {
-        @if (canGoPrev()) {
-          <button type="button" class="btn btn-secondary" (click)="stepToTab(-1)">{{ prevLabel }}</button>
+      <div class="rb-form-tab-nav-buttons">
+        @if (endDisplayMode === 'disabled') {
+          <button type="button" class="btn btn-secondary" [disabled]="!canGoPrev()" (click)="stepToTab(-1)">
+            {{ prevLabel }}
+          </button>
+          <button type="button" class="btn btn-primary" [disabled]="!canGoNext()" (click)="stepToTab(1)">
+            {{ nextLabel }}
+          </button>
         }
-        @if (canGoNext()) {
-          <button type="button" class="btn btn-primary" (click)="stepToTab(1)">{{ nextLabel }}</button>
+        @if (endDisplayMode === 'hidden') {
+          @if (canGoPrev()) {
+            <button type="button" class="btn btn-secondary" (click)="stepToTab(-1)">{{ prevLabel }}</button>
+          }
+          @if (canGoNext()) {
+            <button type="button" class="btn btn-primary" (click)="stepToTab(1)">{{ nextLabel }}</button>
+          }
         }
-      }
+      </div>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
