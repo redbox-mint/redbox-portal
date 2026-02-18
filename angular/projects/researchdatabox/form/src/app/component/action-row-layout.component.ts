@@ -83,9 +83,6 @@ export class ActionRowLayoutComponent<ValueType> extends FormFieldBaseComponent<
   }
 
   protected get justifyContent(): string {
-    if (typeof window !== 'undefined' && window.innerWidth <= 575) {
-      return 'flex-start';
-    }
     const alignment = this.getStringProperty('alignment') as ActionRowAlignmentOptionsType;
     if (alignment === 'start') {
       return 'flex-start';

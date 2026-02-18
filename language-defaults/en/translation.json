@@ -668,6 +668,8 @@
   "edit-link-label": "Edit",
   "pdf-history-modal-label": "PDF History Modal",
   "help": "Help",
+  "form.invalidValue": "Invalid value:",
+  "form.fieldValid": "The field is valid.",
   "add-button-label": "Add Item",
   "remove-button-label": "Remove Item",
   "select-all-items": "Select All Items",

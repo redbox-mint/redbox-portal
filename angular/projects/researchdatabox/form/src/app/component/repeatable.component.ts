@@ -32,7 +32,7 @@ import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '.
         <ng-container #repeatableContainer></ng-container>
       </div>
       @if (isStatusReady() && isVisible) {
-        <button type="button" class="rb-form-repeatable__add btn btn-md btn-primary" (click)="appendNewElement()" [attr.aria-label]="'Add'">Add</button>
+        <button type="button" class="rb-form-repeatable__add btn btn-md btn-primary" (click)="appendNewElement()" [attr.aria-label]="'add-button-label' | i18next">Add</button>
       }
     </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />

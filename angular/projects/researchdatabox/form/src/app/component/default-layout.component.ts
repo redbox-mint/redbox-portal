@@ -1,5 +1,5 @@
-import { isUndefined as _isUndefined, isNull as _isNull, set as _set} from 'lodash-es';
-import {Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, inject} from '@angular/core';
+import { isUndefined as _isUndefined, isNull as _isNull, set as _set } from 'lodash-es';
+import { Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, inject } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import {
   FieldLayoutDefinitionFrame,
@@ -8,7 +8,7 @@ import {
   DefaultLayoutName
 } from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
-import {FormService} from "../form.service";
+import { FormService } from "../form.service";
 
 /**
  * Default Form Component Layout
@@ -66,7 +66,7 @@ import {FormService} from "../form.service";
         @let componentValidationList = getFormValidatorComponentErrors;
         @if (componentValidationList.length > 0) {
           <div class="invalid-feedback">
-            Invalid value:
+            {{ 'form.invalidValue' | i18next }}
             @for (error of componentValidationList; track (error.class ?? 'err') + '-' + $index) {
               <span [attr.data-validation-error-class]="error.class"
                     [attr.data-validation-error-message]="error.message">
@@ -75,7 +75,7 @@ import {FormService} from "../form.service";
             }
           </div>
         }
-        <div class="valid-feedback">The field is valid.</div>
+        <div class="valid-feedback">{{ 'form.fieldValid' | i18next }}</div>
       }
     </ng-template>
   }
@@ -101,9 +101,9 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   // wrapperComponentRef!: ComponentRef<FormFieldBaseComponent<unknown>>;
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
-  public helpTextVisibleOnInit:boolean = false;
-  public labelRequiredStr:string = '';
-  public tooltip:string = '';
+  public helpTextVisibleOnInit: boolean = false;
+  public labelRequiredStr: string = '';
+  public tooltip: string = '';
   /**
    * Override to set additional properties required by the wrapper component.
    *
@@ -114,7 +114,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     this.componentClass = formFieldCompMapEntry?.componentClass as typeof FormFieldBaseComponent<ValueType>;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout;
     this.tooltip = this.getStringProperty('tooltip');
-    if(!_isUndefined(this.formFieldCompMapEntry) && !_isNull(this.formFieldCompMapEntry)) {
+    if (!_isUndefined(this.formFieldCompMapEntry) && !_isNull(this.formFieldCompMapEntry)) {
       this.formFieldCompMapEntry.layout = this as FormFieldBaseComponent<ValueType>;
     }
 
@@ -123,11 +123,11 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
       _set(this.formFieldCompMapEntry, `compConfigJson.layout.name`, `${compConfigName}-layout`);
     }
 
-    if(!_isUndefined(this.formFieldCompMapEntry?.compConfigJson?.layout?.name)) {
+    if (!_isUndefined(this.formFieldCompMapEntry?.compConfigJson?.layout?.name)) {
       this.name = this.formFieldCompMapEntry?.compConfigJson?.layout?.name;
     }
 
-    if(this.helpTextVisibleOnInit) {
+    if (this.helpTextVisibleOnInit) {
       this.setHelpTextVisibleOnInit();
     }
   }
@@ -174,7 +174,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
     return this.formService.getFormValidatorComponentErrors(this.model?.formControl);
   }
 
-  protected get componentName(){
+  protected get componentName() {
     return this.formFieldConfigName();
   }
 }
