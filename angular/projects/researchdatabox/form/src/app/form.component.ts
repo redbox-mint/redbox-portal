@@ -184,6 +184,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   recordService = inject(RecordService);
   /**
+   * Browser location service used for URL state updates
+   */
+  private locationService = inject(Location);
+  /**
    * Save response after save operations, also used to track in-flight saves (null)
    */
   saveResponse = signal<RecordActionResult | null | undefined>(undefined);
@@ -618,7 +622,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           if (response?.success) {
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
             if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
-              this.oid.set(String(response?.oid));
+              const createdOid = String(response?.oid);
+              this.oid.set(createdOid);
+              this.locationService.replaceState(this.buildEditRecordPath(createdOid));
             }
             // Emit success event
             this.eventBus.publish(
@@ -722,6 +728,24 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   public get componentQuerySource(): JSONataQuerySource | undefined {
     return this.componentDefQuerySource;
+  }
+
+  private buildEditRecordPath(oid: string): string {
+    const createdOid = String(oid ?? '').trim();
+    if (_isEmpty(createdOid)) {
+      return 'record/edit';
+    }
+    const brandingAndPortalUrl = String(this.recordService.brandingAndPortalUrl ?? '').trim();
+    if (!_isEmpty(brandingAndPortalUrl)) {
+      try {
+        const parsedUrl = new URL(brandingAndPortalUrl);
+        const basePath = parsedUrl.pathname.replace(/\/+$/, '');
+        return `${basePath}/record/edit/${createdOid}`;
+      } catch {
+        this.loggerService.warn(`${this.logName}: Invalid brandingAndPortalUrl '${brandingAndPortalUrl}', falling back to relative path.`);
+      }
+    }
+    return `record/edit/${createdOid}`;
   }
 }
 
