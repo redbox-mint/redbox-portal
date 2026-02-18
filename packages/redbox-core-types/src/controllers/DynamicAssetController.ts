@@ -23,6 +23,7 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { Controllers as controllers } from '../CoreController';
 import { TemplateCompileInput, FormConfigFrame } from "@researchdatabox/sails-ng-common";
 import { firstValueFrom } from "rxjs";
+import { FormAttributes } from '../waterline-models';
 
 
 /**
@@ -84,10 +85,10 @@ export namespace Controllers {
       try {
         // TODO: this block is very similar to RecordController.getForm - refactor to service?
         const userRoles = ((req.user?.roles ?? []) as globalThis.Record<string, unknown>[]).map((role) => role?.name as string).filter((name) => !!name);
-        let form, recordMetadata;
+        let form: FormAttributes | null, recordMetadata;
         if (!oid) {
           recordMetadata = null;
-          form = await firstValueFrom<unknown>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
+          form = await firstValueFrom<FormAttributes>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
         } else {
           const record = await RecordsService.getMeta(oid);
           const recordAny = record as unknown as Record<string, unknown>;
@@ -109,8 +110,8 @@ export namespace Controllers {
           recordMetadata = record?.metadata ?? {};
           form = await FormsService.getForm(brand, "", editMode, "", record);
         }
-        const formRecord = form as { configuration?: FormConfigFrame } | null;
-        const formConfig = formRecord?.configuration;
+
+        const formConfig = form?.configuration;
         if (!formConfig) {
           return this.sendResp(req, res, {
             status: 500,

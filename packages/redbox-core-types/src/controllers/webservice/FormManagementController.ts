@@ -3,8 +3,6 @@ import { FormAttributes } from '../../waterline-models/Form';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 import { firstValueFrom } from 'rxjs';
 
-type BrandReqLike = { params?: globalThis.Record<string, unknown>; body?: globalThis.Record<string, unknown>; session?: globalThis.Record<string, unknown> };
-
 export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
