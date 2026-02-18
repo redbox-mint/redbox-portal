@@ -294,16 +294,6 @@ export class FormOverride {
         const hasTransform = !!transformComponentClassName && !!transformFunc;
         const result = hasTransform ? transformFunc.call(this, original, formMode) : original;
 
-        // When a component is transformed for the active mode, ensure it remains includable in that mode.
-        // This avoids transformed view/edit components being removed later by constraints filtering.
-        if (hasTransform) {
-            result.constraints = result.constraints ?? { authorization: { allowRoles: [] }, allowModes: [] };
-            result.constraints.allowModes = Array.isArray(result.constraints.allowModes) ? result.constraints.allowModes : [];
-            if (!result.constraints.allowModes.includes(formMode)) {
-                result.constraints.allowModes.push(formMode);
-            }
-        }
-
         // Use 'replaceName' to update the form component name.
         if (original.overrides?.replaceName !== undefined) {
             result.name = original.overrides?.replaceName;
@@ -473,7 +463,10 @@ export class FormOverride {
                 component: {
                     class: AccordionPanelComponentName,
                     config: {
-                        componentDefinitions: tab.component?.config?.componentDefinitions ?? [],
+                        componentDefinitions: (tab.component?.config?.componentDefinitions ?? []).map(compDef => {
+                            this.forceAllowModeForTransformedTree(compDef as any, formMode);
+                            return compDef;
+                        }),
                     }
                 },
                 layout: {
@@ -507,6 +500,31 @@ export class FormOverride {
         });
 
         return target;
+    }
+
+    private forceAllowModeForTransformedTree(componentDefinition: any, formMode: FormModesConfig): void {
+        if (!componentDefinition || typeof componentDefinition !== "object") {
+            return;
+        }
+
+        const constraints = componentDefinition.constraints ?? { authorization: { allowRoles: [] }, allowModes: [] };
+        constraints.allowModes = Array.isArray(constraints.allowModes) ? constraints.allowModes : [];
+        if (!constraints.allowModes.includes(formMode)) {
+            constraints.allowModes.push(formMode);
+        }
+        componentDefinition.constraints = constraints;
+
+        const nested = componentDefinition?.component?.config;
+        if (!nested || typeof nested !== "object") {
+            return;
+        }
+
+        (nested.componentDefinitions ?? []).forEach((child: any) => this.forceAllowModeForTransformedTree(child, formMode));
+        (nested.tabs ?? []).forEach((child: any) => this.forceAllowModeForTransformedTree(child, formMode));
+        (nested.panels ?? []).forEach((child: any) => this.forceAllowModeForTransformedTree(child, formMode));
+        if (nested.elementTemplate) {
+            this.forceAllowModeForTransformedTree(nested.elementTemplate, formMode);
+        }
     }
 
     private commonContentComponent(
