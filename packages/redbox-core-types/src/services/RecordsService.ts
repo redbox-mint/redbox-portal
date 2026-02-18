@@ -131,7 +131,8 @@ export namespace Services {
     }
 
     public async bootstrapData(): Promise<void> {
-      this.getStorageService(this);
+      this.getServices();
+
       const bootstrapPath = this.getBootstrapDataPath();
       let fileNames: string[] = [];
 
@@ -242,11 +243,16 @@ export namespace Services {
         'after',
         ['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'],
         function () {
-          that.getDatastreamService(that);
-          that.searchService = sails.services[sails.config.search.serviceName] as unknown as SearchService;
-          that.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
+          that.getServices(that);
         }
       );
+    }
+
+    private getServices(ref: Records = this) {
+      ref.getDatastreamService(ref);
+      ref.searchService = sails.services[sails.config.search.serviceName] as unknown as SearchService;
+      ref.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
+      ref.getStorageService(ref);
     }
 
     getStorageService(ref: Records = this) {
@@ -267,11 +273,11 @@ export namespace Services {
       }
     }
 
-    getSearchService() {
+    getSearchService(ref: Records = this) {
       if (_.isEmpty(sails.config.storage) || _.isEmpty(sails.config.search.serviceName)) {
-        this.searchService = SolrSearchService;
+        ref.searchService = SolrSearchService;
       } else {
-        this.searchService = sails.services[sails.config.search.serviceName] as unknown as SearchService;
+        ref.searchService = sails.services[sails.config.search.serviceName] as unknown as SearchService;
       }
     }
 
