@@ -124,4 +124,31 @@ describe('AccordionComponent', () => {
 
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]').length).toBe(0);
   });
+
+  it('expands and collapses all panels from controls', async () => {
+    const { fixture } = await createFormAndWaitForReady(buildAccordionForm('first-open'));
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelectorAll('input[type="text"]').length).toBe(1);
+
+    const expandAllButton = Array.from(compiled.querySelectorAll('.accordion-controls button')).find(button =>
+      button.textContent?.includes('Expand all'));
+    expect(expandAllButton).toBeTruthy();
+
+    (expandAllButton as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]').length).toBe(2);
+
+    const collapseAllButton = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.accordion-controls button'))
+      .find(button => button.textContent?.includes('Collapse all'));
+    expect(collapseAllButton).toBeTruthy();
+
+    (collapseAllButton as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]').length).toBe(0);
+  });
 });

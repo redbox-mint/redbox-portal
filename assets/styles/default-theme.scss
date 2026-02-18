@@ -6127,6 +6127,14 @@ a.list-group-item-danger.active,a.list-group-item-danger.active:focus,a.list-gro
     border-color: $panel-branding-border-color;
 }
 
+.panel-default > .panel-heading .btn,
+.panel-default > .panel-heading .btn:hover,
+.panel-default > .panel-heading .btn:focus,
+.panel-default > .panel-heading .btn:active,
+.panel-default > .panel-heading .btn.active {
+    color: $panel-branding-color;
+}
+
 .panel-default>.panel-heading+.panel-collapse>.panel-body {
     border-top-color: $panel-branding-border-color;
 }

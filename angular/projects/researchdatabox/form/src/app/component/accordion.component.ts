@@ -20,7 +20,49 @@ import { FormComponent } from '../form.component';
 
 @Component({
   selector: 'redbox-form-accordion',
-  template: `<ng-container #panelsContainer></ng-container>`,
+  template: `
+    <div class="accordion-controls d-flex justify-content-end mb-3" role="group" aria-label="Accordion controls">
+      <div class="btn-group btn-group-sm shadow-sm rounded-pill border border-secondary overflow-hidden">
+        <button
+          type="button"
+          class="btn btn-outline-secondary accordion-control-btn border-0 rounded-0"
+          [class.active]="allPanelsOpen"
+          [disabled]="allPanelsOpen"
+          (click)="expandAllPanels()"
+        >
+          Expand all
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-secondary accordion-control-btn border-0 border-left border-secondary rounded-0"
+          [class.active]="allPanelsCollapsed"
+          [disabled]="allPanelsCollapsed"
+          (click)="collapseAllPanels()"
+        >
+          Collapse all
+        </button>
+      </div>
+    </div>
+    <ng-container #panelsContainer></ng-container>
+  `,
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+
+      .accordion-control-btn {
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        transition: all 0.2s ease;
+      }
+
+      .accordion-control-btn.active,
+      .accordion-control-btn:disabled {
+        opacity: 1;
+      }
+    `,
+  ],
   standalone: false,
 })
 export class AccordionComponent extends FormFieldBaseComponent<undefined> {
@@ -109,6 +151,22 @@ export class AccordionComponent extends FormFieldBaseComponent<undefined> {
     this.panelComponents.forEach(panel => panel.setOpen(true));
   }
 
+  public expandAllPanels(): void {
+    this.panelComponents.forEach(panel => panel.setOpen(true));
+  }
+
+  public collapseAllPanels(): void {
+    this.panelComponents.forEach(panel => panel.setOpen(false));
+  }
+
+  public get allPanelsOpen(): boolean {
+    return this.panelComponents.length > 0 && this.panelComponents.every(panel => panel.isOpen);
+  }
+
+  public get allPanelsCollapsed(): boolean {
+    return this.panelComponents.length > 0 && this.panelComponents.every(panel => !panel.isOpen);
+  }
+
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
     return this.panelComponents.flatMap(panel => panel.formFieldBaseComponents);
   }
@@ -125,17 +183,17 @@ export class AccordionComponent extends FormFieldBaseComponent<undefined> {
 @Component({
   selector: 'redbox-form-accordion-panel',
   template: `
-    <div class="panel panel-default">
+    <div class="panel panel-default shadow-sm">
       <div class="panel-heading">
         <h4 class="panel-title mb-0">
           <button
-            class="btn w-100 text-start p-0 border-0 bg-transparent text-white text-decoration-none d-flex align-items-center gap-2"
+            class="btn w-100 text-left p-0 border-0 bg-transparent text-decoration-none d-flex align-items-center"
             type="button"
             [attr.aria-expanded]="isOpen"
             [attr.aria-controls]="panelContentId"
             (click)="toggleOpen()"
           >
-            <span aria-hidden="true">{{ isOpen ? '▾' : '▸' }}</span>
+            <span class="panel-toggle-icon" aria-hidden="true">{{ isOpen ? '▾' : '▸' }}</span>
             {{ panelLabel }}
           </button>
         </h4>
@@ -149,6 +207,26 @@ export class AccordionComponent extends FormFieldBaseComponent<undefined> {
       </div>
     </div>
   `,
+  styles: [
+    `
+      .panel.panel-default {
+        border: 0;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1rem;
+      }
+
+      .panel-heading .btn {
+        font-weight: 600;
+        padding: 1rem 1.25rem !important;
+        transition: background-color 0.2s ease;
+      }
+
+      .panel-toggle-icon {
+        margin-right: 0.5rem;
+      }
+    `,
+  ],
   standalone: false,
 })
 export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> implements AfterViewChecked {
@@ -183,6 +261,9 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> i
   }
 
   public setOpen(open: boolean): void {
+    if (open && !this.isOpen) {
+      this.pendingOpenInitialise = true;
+    }
     this.isOpen = open;
   }
 
