@@ -3,14 +3,14 @@ import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
 
-describe('FormsService', function() {
+describe('FormsService', function () {
   let mockSails: any;
   let FormsService: any;
   let mockForm: any;
   let mockWorkflowStep: any;
   let mockRecordType: any;
 
-  beforeEach(function() {
+  beforeEach(function () {
     mockSails = createMockSails({
       config: {
         appPath: '/app',
@@ -76,7 +76,7 @@ describe('FormsService', function() {
     FormsService = new Services.Forms();
   });
 
-  afterEach(function() {
+  afterEach(function () {
     cleanupServiceTestGlobals();
     delete (global as any).BrandingService;
     delete (global as any).Form;
@@ -85,16 +85,16 @@ describe('FormsService', function() {
     sinon.restore();
   });
 
-  describe('flattenFields', function() {
-    it('should flatten fields recursively', function() {
+  describe('flattenFields', function () {
+    it('should flatten fields recursively', function () {
       const fields = [
         { name: 'field1' },
         { name: 'group1', fields: [{ name: 'field2' }] }
       ];
       const result: any[] = [];
-      
+
       FormsService.flattenFields(fields, result);
-      
+
       expect(result).to.have.length(3);
       expect(result[0].name).to.equal('field1');
       expect(result[1].name).to.equal('group1');
@@ -102,33 +102,33 @@ describe('FormsService', function() {
     });
   });
 
-  describe('filterFieldsHasEditAccess', function() {
-    it('should remove fields requiring edit access if user lacks it', function() {
+  describe('filterFieldsHasEditAccess', function () {
+    it('should remove fields requiring edit access if user lacks it', function () {
       const fields = [
         { definition: { name: 'field1' } },
         { definition: { name: 'field2' }, needsEditAccess: true }
       ];
-      
+
       FormsService.filterFieldsHasEditAccess(fields, false);
-      
+
       expect(fields).to.have.length(1);
       expect(fields[0].definition.name).to.equal('field1');
     });
 
-    it('should keep fields requiring edit access if user has it', function() {
+    it('should keep fields requiring edit access if user has it', function () {
       const fields = [
         { definition: { name: 'field1' } },
         { definition: { name: 'field2' }, needsEditAccess: true }
       ];
-      
+
       FormsService.filterFieldsHasEditAccess(fields, true);
-      
+
       expect(fields).to.have.length(2);
     });
 
-    it('should filter nested fields', function() {
+    it('should filter nested fields', function () {
       const fields = [
-        { 
+        {
           definition: {
             name: 'group1',
             fields: [
@@ -138,87 +138,87 @@ describe('FormsService', function() {
           }
         }
       ];
-      
+
       FormsService.filterFieldsHasEditAccess(fields, false);
-      
+
       expect(fields[0].definition.fields).to.have.length(1);
       expect(fields[0].definition.fields[0].definition.name).to.equal('field1');
     });
   });
 
-  describe('listForms', function() {
-    it('should return list of forms', async function() {
+  describe('listForms', function () {
+    it('should return list of forms', async function () {
       const forms = [{ name: 'form1' }];
       mockForm.find.returns(createQueryObject(forms));
-      
+
       const result = await FormsService.listForms('brand-1').toPromise();
-      
+
       expect(mockForm.find.called).to.be.true;
       expect(mockForm.find.calledWith({ branding: 'brand-1' })).to.be.true;
       expect(result).to.deep.equal(forms);
     });
   });
 
-  describe('getFormByName', function() {
-    it('should return form by name', async function() {
+  describe('getFormByName', function () {
+    it('should return form by name', async function () {
       const form = { name: 'form1', fields: [] };
       mockForm.findOne.returns(createQueryObject(form));
-      
+
       const result = await FormsService.getFormByName('form1', false, 'brand-1').toPromise();
-      
+
       expect(mockForm.findOne.calledWith({ name: 'form1', branding: 'brand-1' })).to.be.true;
       expect(result).to.deep.equal(form);
     });
 
-    it('should return null if form not found', async function() {
+    it('should return null if form not found', async function () {
       mockForm.findOne.returns(createQueryObject(null));
-      
+
       const result = await FormsService.getFormByName('form1', false).toPromise();
-      
+
       expect(result).to.be.null;
     });
   });
 
-  describe('getForm', function() {
-    it('should get form using name from record', async function() {
+  describe('getForm', function () {
+    it('should get form using name from record', async function () {
       const record = { metaMetadata: { form: 'form1' } };
       const brand = { id: 'brand-1' };
       sinon.stub(FormsService, 'getFormByName').returns(of({ name: 'form1' }));
-      
+
       const result = await FormsService.getForm(brand, undefined, false, 'type', record);
-      
+
       expect(FormsService.getFormByName.calledWith('form1', false, 'brand-1')).to.be.true;
       expect(result).to.deep.equal({ name: 'form1' });
     });
 
-    it('should generate form from schema if form name is generated-view-only', async function() {
+    it('should generate form from schema if form name is generated-view-only', async function () {
       const record = { metaMetadata: { form: 'generated-view-only' } };
       const brand = { id: 'brand-1' };
       sinon.stub(FormsService, 'generateFormFromSchema').resolves({ generated: true });
-      
+
       const result = await FormsService.getForm(brand, undefined, false, 'type', record);
-      
+
       expect(FormsService.generateFormFromSchema.called).to.be.true;
       expect(result).to.deep.equal({ id: '', name: 'generated-view-only', branding: 'brand-1', configuration: { generated: true } });
     });
   });
 
-  describe('bootstrap', function() {
-    it('should create form if not exists', async function() {
+  describe('bootstrap', function () {
+    it('should create form if not exists', async function () {
       const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
       sinon.stub(FormsService, 'getFormConfigRegistry').returns({
         'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }
       });
       mockForm.find.resolves([]); // not found initially
       mockForm.create.resolves({ id: 'form-1' });
-      
+
       await FormsService.bootstrap(workflowStep, 'brand-1');
-      
+
       expect(mockForm.create.called).to.be.true;
       expect(mockWorkflowStep.update.calledWith({ id: 'step-1' })).to.be.true;
     });
 
-    it('should prefer formConfigRegistry over legacy forms', async function() {
+    it('should prefer formConfigRegistry over legacy forms', async function () {
       sinon.stub(FormsService, 'getFormConfigRegistry').returns({
         'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }
       });
@@ -231,26 +231,26 @@ describe('FormsService', function() {
       expect(mockForm.create.called).to.be.true;
     });
 
-    it('should skip if form exists', async function() {
+    it('should skip if form exists', async function () {
       sinon.stub(FormsService, 'getFormConfigRegistry').returns({
         'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }
       });
       const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
       // First find (by form name from workflow step config) returns existing form
       mockForm.find.onFirstCall().resolves([{ id: 'existing-form', name: 'default-form' }]);
-      
+
       await FormsService.bootstrap(workflowStep, 'brand-1');
-      
+
       expect(mockForm.create.called).to.be.false;
     });
 
-    it('should destroy and recreate if bootstrapAlways is true', async function() {
+    it('should destroy and recreate if bootstrapAlways is true', async function () {
       mockSails.config.appmode.bootstrapAlways = true;
       sinon.stub(FormsService, 'getFormConfigRegistry').returns({
         'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }
       });
       const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
-      
+
       // first find returns something (existing linked form)
       mockForm.find.onFirstCall().resolves([{ id: 'existing-linked' }]);
       // second find (for formName) should return empty so we create new one?
@@ -258,36 +258,36 @@ describe('FormsService', function() {
       // if bootstrapAlways: destroyOne. form = null.
       // then if !form (true), find formName from config.
       // then check existingFormDef.
-      
+
       // so find calls:
       // 1. find linked form (returns something) -> destroy called. form set to null.
       // 2. find existing form def (by name).
-      
+
       mockForm.find.resolves([]); // default
-      mockForm.find.onFirstCall().resolves([{ id: 'existing-linked' }]); // found by name
+      mockForm.find.onFirstCall().resolves([{ id: 'existing-linked' }]);
       mockForm.find.onSecondCall().resolves([]); // not found by name after destroy (so we create)
-      
+
       mockForm.destroyOne.resolves({});
       mockForm.create.resolves({ id: 'form-1' });
-      
+
       await FormsService.bootstrap(workflowStep, 'brand-1');
-      
+
       expect(mockForm.destroyOne.called).to.be.true;
       expect(mockForm.create.called).to.be.true;
     });
   });
 
-  describe('inferSchemaFromMetadata', function() {
-    it('should create schema from metadata', function() {
+  describe('inferSchemaFromMetadata', function () {
+    it('should create schema from metadata', function () {
       const record = {
         metadata: {
           title: 'Test',
           count: 10
         }
       };
-      
+
       const schema = FormsService.inferSchemaFromMetadata(record);
-      
+
       expect(schema.properties).to.have.property('title');
       expect(schema.properties.title.type).to.equal('string');
       expect(schema.properties.count.type).to.equal('integer');
