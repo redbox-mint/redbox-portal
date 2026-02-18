@@ -25,6 +25,10 @@ describe('FormRecordConsistencyService', function() {
 
     setupServiceTestGlobals(mockSails);
 
+    (global as any).BrandingService = {
+      getDefault: sinon.stub().returns({ id: 'default-brand' }),
+      getBrand: sinon.stub().returns({ id: 'default-brand' }),
+    };
     (global as any).RecordsService = {
       getMeta: sinon.stub()
     };
@@ -39,6 +43,7 @@ describe('FormRecordConsistencyService', function() {
 
   afterEach(function() {
     cleanupServiceTestGlobals();
+    delete (global as any).BrandingService;
     delete (global as any).RecordsService;
     delete (global as any).FormsService;
     sinon.restore();
@@ -50,7 +55,15 @@ describe('FormRecordConsistencyService', function() {
       const original = { redboxOid: 'oid', metadata: { original: 'value' } };
       
       (global as any).RecordsService.getMeta.resolves(original);
-      (global as any).FormsService.getFormByName.returns(of({}));
+      (global as any).FormsService.getFormByName.returns(of({
+        name: 'test-form',
+        branding: 'default-brand',
+        configuration: {
+          name: 'test-form',
+          componentDefinitions: [],
+          fields: []
+        }
+      }));
       
       // Mock internal methods to simplify test
       sinon.stub(FormRecordConsistencyService, 'mergeRecordClientFormConfig').returns({ merged: true });

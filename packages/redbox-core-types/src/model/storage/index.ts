@@ -10,7 +10,6 @@ export { AsynchProgressModel } from './AsynchProgressModel'
 export { CacheEntryModel } from './CacheEntryModel';
 export { CounterModel } from './CounterModel';
 export { DashboardTypeModel } from './DashboardTypeModel';
-export { FormModel } from './FormModel';
 export { WorkspaceAppModel } from './WorkspaceAppModel';
 export { WorkflowStepModel } from './WorkflowStepModel';
 export { UserAuditModel } from './UserAuditModel';

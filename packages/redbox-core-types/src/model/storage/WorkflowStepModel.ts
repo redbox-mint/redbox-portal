@@ -1,8 +1,8 @@
 import {RecordTypeModel} from './RecordTypeModel';
-import {FormModel} from './FormModel';
+import {FormAttributes} from '../../waterline-models/Form';
 export interface WorkflowStepModel {
     name: string;
-    form: FormModel;
+    form: FormAttributes;
     config: unknown;
     starting: boolean;
     recordType: RecordTypeModel;

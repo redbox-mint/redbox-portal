@@ -18,6 +18,14 @@ describe('FormsService', function() {
           bootstrapAlways: false
         },
         form: {
+          formConfigRegistry: {
+            'default-form': {
+              type: 'rdmp',
+              fields: [],
+              messages: {},
+              attachmentFields: []
+            }
+          },
           forms: {
             'default-form': {
               type: 'rdmp',
@@ -40,7 +48,7 @@ describe('FormsService', function() {
     mockForm = {
       find: sinon.stub().resolves([]),
       findOne: sinon.stub().resolves(null),
-      create: sinon.stub().resolves({ id: 'created-form', workflowStep: 'step-1' }),
+      create: sinon.stub().resolves({ id: 'created-form' }),
       destroyOne: sinon.stub().resolves({}),
       update: sinon.stub().returns({ set: sinon.stub().resolves({}) })
     };
@@ -55,6 +63,11 @@ describe('FormsService', function() {
     };
 
     setupServiceTestGlobals(mockSails);
+    (global as any).BrandingService = {
+      getDefault: sinon.stub().returns({ id: 'default-brand' }),
+      getBrand: sinon.stub().returns({ id: 'default-brand' }),
+      getBrandFromReq: sinon.stub().returns('default'),
+    };
     (global as any).Form = mockForm;
     (global as any).WorkflowStep = mockWorkflowStep;
     (global as any).RecordType = mockRecordType;
@@ -65,6 +78,7 @@ describe('FormsService', function() {
 
   afterEach(function() {
     cleanupServiceTestGlobals();
+    delete (global as any).BrandingService;
     delete (global as any).Form;
     delete (global as any).WorkflowStep;
     delete (global as any).RecordType;
@@ -137,9 +151,10 @@ describe('FormsService', function() {
       const forms = [{ name: 'form1' }];
       mockForm.find.returns(createQueryObject(forms));
       
-      const result = await FormsService.listForms().toPromise();
+      const result = await FormsService.listForms('brand-1').toPromise();
       
       expect(mockForm.find.called).to.be.true;
+      expect(mockForm.find.calledWith({ branding: 'brand-1' })).to.be.true;
       expect(result).to.deep.equal(forms);
     });
   });
@@ -149,9 +164,9 @@ describe('FormsService', function() {
       const form = { name: 'form1', fields: [] };
       mockForm.findOne.returns(createQueryObject(form));
       
-      const result = await FormsService.getFormByName('form1', false).toPromise();
+      const result = await FormsService.getFormByName('form1', false, 'brand-1').toPromise();
       
-      expect(mockForm.findOne.calledWith({ name: 'form1' })).to.be.true;
+      expect(mockForm.findOne.calledWith({ name: 'form1', branding: 'brand-1' })).to.be.true;
       expect(result).to.deep.equal(form);
     });
 
@@ -167,49 +182,73 @@ describe('FormsService', function() {
   describe('getForm', function() {
     it('should get form using name from record', async function() {
       const record = { metaMetadata: { form: 'form1' } };
+      const brand = { id: 'brand-1' };
       sinon.stub(FormsService, 'getFormByName').returns(of({ name: 'form1' }));
       
-      const result = await FormsService.getForm({}, undefined, false, 'type', record);
+      const result = await FormsService.getForm(brand, undefined, false, 'type', record);
       
-      expect(FormsService.getFormByName.calledWith('form1', false)).to.be.true;
+      expect(FormsService.getFormByName.calledWith('form1', false, 'brand-1')).to.be.true;
       expect(result).to.deep.equal({ name: 'form1' });
     });
 
     it('should generate form from schema if form name is generated-view-only', async function() {
       const record = { metaMetadata: { form: 'generated-view-only' } };
+      const brand = { id: 'brand-1' };
       sinon.stub(FormsService, 'generateFormFromSchema').resolves({ generated: true });
       
-      const result = await FormsService.getForm({}, undefined, false, 'type', record);
+      const result = await FormsService.getForm(brand, undefined, false, 'type', record);
       
       expect(FormsService.generateFormFromSchema.called).to.be.true;
-      expect(result).to.deep.equal({ generated: true });
+      expect(result).to.deep.equal({ id: '', name: 'generated-view-only', branding: 'brand-1', configuration: { generated: true } });
     });
   });
 
   describe('bootstrap', function() {
     it('should create form if not exists', async function() {
       const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
+      sinon.stub(FormsService, 'getFormConfigRegistry').returns({
+        'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }
+      });
       mockForm.find.resolves([]); // not found initially
-      mockForm.create.resolves({ id: 'form-1', workflowStep: 'step-1' });
+      mockForm.create.resolves({ id: 'form-1' });
       
-      await FormsService.bootstrap(workflowStep);
+      await FormsService.bootstrap(workflowStep, 'brand-1');
       
       expect(mockForm.create.called).to.be.true;
       expect(mockWorkflowStep.update.calledWith({ id: 'step-1' })).to.be.true;
     });
 
-    it('should skip if form exists', async function() {
+    it('should prefer formConfigRegistry over legacy forms', async function() {
+      sinon.stub(FormsService, 'getFormConfigRegistry').returns({
+        'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }
+      });
       const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
-      mockForm.find.onFirstCall().resolves([]); // nothing linked to step
-      mockForm.find.onSecondCall().resolves([{ id: 'existing-form', name: 'default-form' }]); // form def exists
+      mockForm.find.resolves([]);
+      mockForm.create.resolves({ id: 'form-1' });
+
+      await FormsService.bootstrap(workflowStep, 'brand-1');
+
+      expect(mockForm.create.called).to.be.true;
+    });
+
+    it('should skip if form exists', async function() {
+      sinon.stub(FormsService, 'getFormConfigRegistry').returns({
+        'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }
+      });
+      const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
+      // First find (by form name from workflow step config) returns existing form
+      mockForm.find.onFirstCall().resolves([{ id: 'existing-form', name: 'default-form' }]);
       
-      await FormsService.bootstrap(workflowStep);
+      await FormsService.bootstrap(workflowStep, 'brand-1');
       
       expect(mockForm.create.called).to.be.false;
     });
 
     it('should destroy and recreate if bootstrapAlways is true', async function() {
       mockSails.config.appmode.bootstrapAlways = true;
+      sinon.stub(FormsService, 'getFormConfigRegistry').returns({
+        'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }
+      });
       const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
       
       // first find returns something (existing linked form)
@@ -225,13 +264,13 @@ describe('FormsService', function() {
       // 2. find existing form def (by name).
       
       mockForm.find.resolves([]); // default
-      mockForm.find.onFirstCall().resolves([{ id: 'existing-linked' }]); // found linked
-      mockForm.find.onSecondCall().resolves([]); // not found by name (so we create)
+      mockForm.find.onFirstCall().resolves([{ id: 'existing-linked' }]); 
+      mockForm.find.onSecondCall().resolves([]); // not found by name after destroy (so we create)
       
       mockForm.destroyOne.resolves({});
-      mockForm.create.resolves({ id: 'form-1', workflowStep: 'step-1' });
+      mockForm.create.resolves({ id: 'form-1' });
       
-      await FormsService.bootstrap(workflowStep);
+      await FormsService.bootstrap(workflowStep, 'brand-1');
       
       expect(mockForm.destroyOne.called).to.be.true;
       expect(mockForm.create.called).to.be.true;

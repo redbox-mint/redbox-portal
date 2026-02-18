@@ -23,6 +23,7 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { Controllers as controllers } from '../CoreController';
 import { TemplateCompileInput, FormConfigFrame } from "@researchdatabox/sails-ng-common";
 import { firstValueFrom } from "rxjs";
+import { FormAttributes } from '../waterline-models';
 
 
 /**
@@ -84,10 +85,10 @@ export namespace Controllers {
       try {
         // TODO: this block is very similar to RecordController.getForm - refactor to service?
         const userRoles = ((req.user?.roles ?? []) as globalThis.Record<string, unknown>[]).map((role) => role?.name as string).filter((name) => !!name);
-        let form, recordMetadata;
+        let form: FormAttributes | null, recordMetadata;
         if (!oid) {
           recordMetadata = null;
-          form = await firstValueFrom<unknown>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
+          form = await firstValueFrom<FormAttributes>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
         } else {
           const record = await RecordsService.getMeta(oid);
           const recordAny = record as unknown as Record<string, unknown>;
@@ -102,20 +103,28 @@ export namespace Controllers {
           if (!hasAccess) {
             return this.sendResp(req, res, {
               status: 403,
-              displayErrors: [{code: 'view-error-no-permissions'}],
-              v1: {message: TranslationService.t('view-error-no-permissions')}
+              displayErrors: [{ code: 'view-error-no-permissions' }],
+              v1: { message: TranslationService.t('view-error-no-permissions') }
             });
           }
           recordMetadata = record?.metadata ?? {};
           form = await FormsService.getForm(brand, "", editMode, "", record);
         }
-        const entries: TemplateCompileInput[] = await FormRecordConsistencyService.extractRawTemplates(form as FormConfigFrame, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
+
+        const formConfig = form?.configuration;
+        if (!formConfig) {
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ detail: "Form configuration not found." }],
+          });
+        }
+        const entries: TemplateCompileInput[] = await FormRecordConsistencyService.extractRawTemplates(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
         return this.sendResp(req, res, {
           status: 500,
           errors: [this.asError(error)],
-          displayErrors: [{detail: "Could not get form data."}],
+          displayErrors: [{ detail: "Could not get form data." }],
         });
       }
     }
