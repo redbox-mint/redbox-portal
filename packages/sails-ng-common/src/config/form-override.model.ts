@@ -294,6 +294,16 @@ export class FormOverride {
         const hasTransform = !!transformComponentClassName && !!transformFunc;
         const result = hasTransform ? transformFunc.call(this, original, formMode) : original;
 
+        // When a component is transformed for the active mode, ensure it remains includable in that mode.
+        // This avoids transformed view/edit components being removed later by constraints filtering.
+        if (hasTransform) {
+            result.constraints = result.constraints ?? { authorization: { allowRoles: [] }, allowModes: [] };
+            result.constraints.allowModes = Array.isArray(result.constraints.allowModes) ? result.constraints.allowModes : [];
+            if (!result.constraints.allowModes.includes(formMode)) {
+                result.constraints.allowModes.push(formMode);
+            }
+        }
+
         // Use 'replaceName' to update the form component name.
         if (original.overrides?.replaceName !== undefined) {
             result.name = original.overrides?.replaceName;
@@ -528,6 +538,10 @@ export class FormOverride {
 
         // TODO: does it make sense to copy all shared properties? The css classes might need to be different?
         this.propertiesHelper.sharedPopulateFieldComponentConfig(target.component.config, source.component.config);
+        if (target.layout) {
+            target.layout.config = target.layout.config ?? {};
+            this.propertiesHelper.sharedPopulateFieldLayoutConfig(target.layout.config, source.layout?.config);
+        }
 
         return target;
     }
