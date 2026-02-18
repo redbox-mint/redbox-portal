@@ -55,7 +55,15 @@ describe('FormRecordConsistencyService', function() {
       const original = { redboxOid: 'oid', metadata: { original: 'value' } };
       
       (global as any).RecordsService.getMeta.resolves(original);
-      (global as any).FormsService.getFormByName.returns(of({ configuration: { fields: [] } }));
+      (global as any).FormsService.getFormByName.returns(of({
+        name: 'test-form',
+        branding: 'default-brand',
+        configuration: {
+          name: 'test-form',
+          componentDefinitions: [],
+          fields: []
+        }
+      }));
       
       // Mock internal methods to simplify test
       sinon.stub(FormRecordConsistencyService, 'mergeRecordClientFormConfig').returns({ merged: true });

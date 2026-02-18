@@ -342,8 +342,7 @@ export namespace Services {
       }
 
       _.set(metaMetadata, 'form', _.get(metaMetadataWorkflowStep, 'config.form'));
-      // Deprecated: attachmentFields has been removed from FormConfigFrame
-      // _.set(metaMetadata, 'attachmentFields', formObj.attachmentFields);
+      _.set(metaMetadata, 'attachmentFields', formObj.attachmentFields);
 
       return metaMetadata;
     }
@@ -676,12 +675,9 @@ export namespace Services {
         }
       }
 
-      // Deprecated: attachmentFields has been removed from FormConfigFrame
-      // const form: unknown = await firstValueFrom(FormsService.getFormByName(String(recordMeta.form ?? ''), true))
-      // recordMeta.attachmentFields = form != undefined ? form.configuration?.attachmentFields ?? [] : [];
-      const form: FormAttributes | null = await firstValueFrom(FormsService.getFormByName(String(recordMeta.form ?? ''), true));
+      const brandId = recordMeta.brandId ?? brandObj?.id ? String(recordMeta.brandId ?? brandObj?.id) : undefined;
+      const form: FormAttributes | null = await firstValueFrom(FormsService.getFormByName(String(recordMeta.form ?? ''), true, brandId));
       recordMeta.attachmentFields = form != undefined ? form.configuration?.attachmentFields ?? [] : [];
-      // recordMeta.attachmentFields = form != undefined ? (form as AnyRecord).attachmentFields : [];
 
       // process pre-save
       if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {

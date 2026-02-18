@@ -264,7 +264,7 @@ describe('FormsService', function() {
       // 2. find existing form def (by name).
       
       mockForm.find.resolves([]); // default
-      mockForm.find.onFirstCall().resolves([{ id: 'existing-linked' }]); // found by name
+      mockForm.find.onFirstCall().resolves([{ id: 'existing-linked' }]); 
       mockForm.find.onSecondCall().resolves([]); // not found by name after destroy (so we create)
       
       mockForm.destroyOne.resolves({});
