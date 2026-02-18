@@ -32,8 +32,9 @@ import {
 import { SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig } from '../component/simple-input.model';
 import { DefaultFieldLayoutDefinitionOutline, DefaultLayoutName } from '../component/default-layout.outline';
 import { DefaultFieldLayoutConfig } from '../component/default-layout.model';
-import { ActionRowFieldLayoutDefinitionOutline } from '../component/action-row-layout.outline';
+import { ActionRowFieldLayoutDefinitionOutline, ActionRowLayoutName } from '../component/action-row-layout.outline';
 import { ActionRowFieldLayoutConfig } from '../component/action-row-layout.model';
+import { InlineLayoutName } from '../component/inline-layout.outline';
 import { FormComponentDefinitionFrame, FormComponentDefinitionOutline } from '../form-component.outline';
 import {
   ContentComponentName,
@@ -255,10 +256,12 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
     '': {
       componentClassName: GroupFieldComponentName,
       modelClassName: GroupFieldModelName,
+      layoutClassName: ActionRowLayoutName,
     },
     ButtonBarContainerComponent: {
       componentClassName: GroupFieldComponentName,
       modelClassName: GroupFieldModelName,
+      layoutClassName: ActionRowLayoutName,
     },
   },
   TextField: {
@@ -536,6 +539,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('type', item, currentData);
     this.sharedProps.setPropOverride('viewCssClasses', item, currentData);
     this.sharedProps.setPropOverride('editCssClasses', item, currentData);
+    this.applyLegacyFormCssNormalization(item);
 
     // Convert properties from v4 to v5.
 
@@ -826,7 +830,6 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedPopulateFieldComponentConfig(item.config, field);
 
     if (field?.class === 'ButtonBarContainer' || field?.compClass === 'ButtonBarContainerComponent') {
-      config.hostCssClasses = 'd-flex gap-3';
       this.isInsideButtonBarContainer = true;
     }
 
@@ -1158,7 +1161,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
     const field = this.getV4Data();
-    item.config = new ActionRowFieldLayoutConfig();
+    item.config = (new DefaultFieldLayoutConfig() as unknown) as ActionRowFieldLayoutConfig;
     this.sharedPopulateFieldLayoutConfig(item.config, field);
   }
 
@@ -1497,6 +1500,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     if (!layoutClassName) {
       layoutClassName = 'DefaultLayout';
     }
+    if (this.shouldUseInlineLayoutForAnchorButton(field, componentClassName)) {
+      layoutClassName = InlineLayoutName;
+    }
+    if (this.isInsideButtonBarContainer && this.shouldUseInlineLayoutInButtonBar(componentClassName)) {
+      layoutClassName = InlineLayoutName;
+    }
     currentData.layout = { class: layoutClassName, config: {} };
 
     // Set the constraints
@@ -1647,6 +1656,46 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         disabled: option?.disabled ?? option?.historicalOnly ?? undefined,
       };
     });
+  }
+
+  private applyLegacyFormCssNormalization(item: FormConfigOutline): void {
+    const normalizedViewCssClasses = this.normalizeLegacyFormCssClasses(item.viewCssClasses, 'view');
+    if (normalizedViewCssClasses) {
+      item.viewCssClasses = normalizedViewCssClasses;
+    }
+
+    const normalizedEditCssClasses = this.normalizeLegacyFormCssClasses(item.editCssClasses, 'edit');
+    if (normalizedEditCssClasses) {
+      item.editCssClasses = normalizedEditCssClasses;
+    }
+  }
+
+  private normalizeLegacyFormCssClasses(cssClasses: unknown, mode: 'view' | 'edit'): string | undefined {
+    if (typeof cssClasses !== 'string') {
+      return undefined;
+    }
+
+    const normalized = cssClasses.trim().replace(/\s+/g, ' ');
+    if (mode === 'view' && normalized === 'row col-md-offset-1 col-md-10') {
+      return 'redbox-form form rb-form-view';
+    }
+    if (mode === 'edit' && normalized === 'row col-md-12') {
+      return 'redbox-form form rb-form-edit';
+    }
+    return undefined;
+  }
+
+  private shouldUseInlineLayoutInButtonBar(componentClassName: string): boolean {
+    return (
+      componentClassName === SaveButtonComponentName ||
+      componentClassName === CancelButtonComponentName ||
+      componentClassName === TabNavButtonComponentName
+    );
+  }
+
+  private shouldUseInlineLayoutForAnchorButton(field: Record<string, unknown>, componentClassName: string): boolean {
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    return v4ClassName === 'AnchorOrButton' && componentClassName === SaveButtonComponentName;
   }
 
   /**
