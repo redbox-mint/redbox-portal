@@ -151,4 +151,87 @@ describe('AccordionComponent', () => {
 
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]').length).toBe(0);
   });
+
+  it('wires aria relationships for panel header and region', async () => {
+    const { fixture } = await createFormAndWaitForReady(buildAccordionForm('all-open'));
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    const firstHeaderButton = compiled.querySelector('.panel-heading button') as HTMLButtonElement;
+    const firstRegion = compiled.querySelector('.panel-collapse') as HTMLElement;
+
+    expect(firstHeaderButton).toBeTruthy();
+    expect(firstRegion).toBeTruthy();
+
+    const headerId = firstHeaderButton.getAttribute('id');
+    const controlsId = firstHeaderButton.getAttribute('aria-controls');
+    expect(headerId).toBeTruthy();
+    expect(controlsId).toBeTruthy();
+    expect(firstRegion.getAttribute('id')).toBe(controlsId);
+    expect(firstRegion.getAttribute('role')).toBe('region');
+    expect(firstRegion.getAttribute('aria-labelledby')).toBe(headerId);
+  });
+
+  it('supports arrow key navigation across accordion headers', async () => {
+    const { fixture } = await createFormAndWaitForReady(buildAccordionForm('all-open'));
+    const compiled = fixture.nativeElement as HTMLElement;
+    const buttons = Array.from(compiled.querySelectorAll('.panel-heading button')) as HTMLButtonElement[];
+
+    expect(buttons.length).toBe(2);
+    buttons[0].focus();
+    expect(document.activeElement).toBe(buttons[0]);
+
+    buttons[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(buttons[1]);
+
+    buttons[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(buttons[0]);
+  });
+
+  it('moves focus to header when collapsing a panel that contains focus', async () => {
+    const { fixture } = await createFormAndWaitForReady(buildAccordionForm('first-open'));
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    const panelButtons = Array.from(compiled.querySelectorAll('.panel-heading button')) as HTMLButtonElement[];
+    panelButtons[1].click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const inputs = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]')) as HTMLInputElement[];
+    expect(inputs.length).toBe(2);
+    const panelTwoInput = inputs.find(input => input.value === 'hello 2') as HTMLInputElement;
+    expect(panelTwoInput).toBeTruthy();
+    panelTwoInput.focus();
+    expect(document.activeElement).toBe(panelTwoInput);
+
+    const collapseAllButton = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.accordion-controls button'))
+      .find(button => button.textContent?.includes('Collapse all')) as HTMLButtonElement;
+    collapseAllButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(document.activeElement).toBe(panelButtons[1]);
+  });
+
+  it('announces panel expanded and collapsed state changes in live region', async () => {
+    const { fixture } = await createFormAndWaitForReady(buildAccordionForm('first-open'));
+    const compiled = fixture.nativeElement as HTMLElement;
+    const firstHeaderButton = compiled.querySelector('.panel-heading button') as HTMLButtonElement;
+
+    firstHeaderButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const firstLiveRegion = (fixture.nativeElement as HTMLElement).querySelector('.sr-only[aria-live="polite"]') as HTMLElement;
+    expect(firstLiveRegion.textContent ?? '').toContain('collapsed');
+
+    firstHeaderButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect((firstLiveRegion.textContent ?? '')).toContain('expanded');
+  });
 });

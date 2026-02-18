@@ -450,7 +450,14 @@ export class FormOverride {
                 return;
             }
 
-            const buttonLabel = tab.layout?.config?.buttonLabel ?? tab.name ?? `${index}`;
+            const buttonLabelCandidate = tab.layout?.config?.buttonLabel;
+            const tabNameCandidate = tab.name;
+            const buttonLabel =
+                (typeof buttonLabelCandidate === "string" && buttonLabelCandidate.trim().length > 0)
+                    ? buttonLabelCandidate
+                    : ((typeof tabNameCandidate === "string" && tabNameCandidate.trim().length > 0)
+                        ? tabNameCandidate
+                        : `${index}`);
             const panelFrame: AccordionPanelFormComponentDefinitionFrame = {
                 name: tab.name ?? `panel-${index}`,
                 component: {

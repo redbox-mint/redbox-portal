@@ -875,7 +875,7 @@ describe("Construct Visitor", async () => {
                                                 config: { componentDefinitions: [] }
                                             }
                                         }
-                                    ]
+                                    ] as any
                                 }
                             },
                             layout: { class: "TabLayout", config: {} }
@@ -890,6 +890,107 @@ describe("Construct Visitor", async () => {
             expect((transformed.component.config as any)?.startingOpenMode).to.equal("all-open");
             expect((transformed.component.config as any)?.panels?.length).to.equal(1);
             expect((transformed.component.config as any)?.panels?.[0]?.layout?.config?.buttonLabel).to.equal("Tab One");
+        });
+
+        it("should transform empty tabs to accordion with zero panels in view mode", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_tab",
+                            component: {
+                                class: "TabComponent",
+                                config: { tabs: [] }
+                            },
+                            layout: { class: "TabLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            const transformed = actual.componentDefinitions[0];
+            expect(transformed.component.class).to.equal("AccordionComponent");
+            expect(((transformed.component.config as any)?.panels ?? []).length).to.equal(0);
+        });
+
+        it("should apply transformed panel label fallback chain", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_tab",
+                            component: {
+                                class: "TabComponent",
+                                config: {
+                                    tabs: [
+                                        {
+                                            name: "tab_with_button_label",
+                                            layout: { class: "TabContentLayout", config: { buttonLabel: "Button Label" } },
+                                            component: { class: "TabContentComponent", config: { componentDefinitions: [] } }
+                                        },
+                                        {
+                                            name: "tab_with_name_only",
+                                            component: { class: "TabContentComponent", config: { componentDefinitions: [] } }
+                                        },
+                                        {
+                                            name: "",
+                                            component: { class: "TabContentComponent", config: { componentDefinitions: [] } }
+                                        }
+                                    ]
+                                }
+                            },
+                            layout: { class: "TabLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            const panels = ((actual.componentDefinitions[0].component.config as any)?.panels ?? []);
+            expect(panels.length).to.equal(3);
+            expect(panels[0]?.layout?.config?.buttonLabel).to.equal("Button Label");
+            expect(panels[1]?.layout?.config?.buttonLabel).to.equal("tab_with_name_only");
+            expect(panels[2]?.layout?.config?.buttonLabel).to.equal("2");
+        });
+
+        it("should skip malformed transformed tabs with warning in view mode", async () => {
+            const warnings: string[] = [];
+            const testLogger = {
+                ...logger,
+                warn: (message: unknown) => warnings.push(String(message ?? ""))
+            };
+            const visitor = new ConstructFormConfigVisitor(testLogger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_tab",
+                            component: {
+                                class: "TabComponent",
+                                config: {
+                                    tabs: [
+                                        { name: "tab_valid", component: { class: "TabContentComponent", config: { componentDefinitions: [] } } },
+                                        // @ts-ignore - intentionally invalid to assert warning+skip behavior
+                                        { name: "tab_invalid", component: { class: "SimpleInputComponent", config: {} } }
+                                    ] as any
+                                }
+                            },
+                            layout: { class: "TabLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            const panels = ((actual.componentDefinitions[0].component.config as any)?.panels ?? []);
+            expect(panels.length).to.equal(1);
+            expect(warnings.some(msg => msg.includes("Invalid TabContentComponent entry skipped"))).to.equal(true);
         });
 
         it("should keep tab in edit mode", async () => {
