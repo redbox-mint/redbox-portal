@@ -548,6 +548,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(formComponent)
     );
 
+    // Repeatable elements must use RepeatableElementLayout so item rows render remove controls.
+    if (formComponent.layout) {
+      formComponent.layout.class = RepeatableElementLayoutName;
+    }
+
     // After the construction is done, apply any transforms
     const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
 

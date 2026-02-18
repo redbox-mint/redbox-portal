@@ -343,11 +343,47 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(elementTemplate.name).to.equal("");
         expect((elementTemplate.component as Record<string, unknown>).class).to.equal("TypeaheadInputComponent");
         expect((elementTemplate.model as Record<string, unknown>).class).to.equal("TypeaheadInputModel");
+        expect((elementTemplate.layout as Record<string, unknown>).class).to.equal("RepeatableElementLayout");
 
         const typeaheadConfig = (elementTemplate.component as Record<string, unknown>).config as Record<string, unknown>;
         expect(typeaheadConfig.sourceType).to.equal("namedQuery");
         expect(typeaheadConfig.queryId).to.equal("fundingBody");
         expect(typeaheadConfig.labelField).to.equal("dc_description");
+    });
+
+    it('maps RepeatableContributor layout label from definition name when label is missing', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "repeatable-contributor-label-fallback",
+                fields: [
+                    {
+                        class: "RepeatableContributor",
+                        compClass: "RepeatableContributorComponent",
+                        definition: {
+                            name: "contributor_oi",
+                            fields: [
+                                {
+                                    class: "ContributorField",
+                                    definition: {
+                                        label: "@dmpt-people-tab-otherdatacreators",
+                                        help: "@dmpt-people-tab-otherdatacreators-help",
+                                        nameColHdr: "@dmpt-people-tab-name-hdr",
+                                        emailColHdr: "@dmpt-people-tab-email-hdr",
+                                        orcidColHdr: "@dmpt-people-tab-orcid-hdr",
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("RepeatableComponent");
+        expect(migratedField.layout?.class).to.equal("DefaultLayout");
+        expect((migratedField.layout?.config as Record<string, unknown>)?.label).to.equal("contributor_oi");
     });
 
     it("maps legacy MapField to MapComponent and normalizes config/value", async function () {

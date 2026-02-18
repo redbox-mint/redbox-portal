@@ -32,7 +32,10 @@ import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '.
         <ng-container #repeatableContainer></ng-container>
       </div>
       @if (isStatusReady() && isVisible) {
-        <button type="button" class="rb-form-repeatable__add btn btn-md btn-primary" (click)="appendNewElement()" [attr.aria-label]="'add-button-label' | i18next">Add</button>
+        <button type="button" class="rb-form-repeatable__add btn btn-primary" (click)="appendNewElement()" [attr.aria-label]="'add-button-label' | i18next">
+          <span class="fa fa-plus-circle" aria-hidden="true"></span>
+          <span>Add</span>
+        </button>
       }
     </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
@@ -316,12 +319,14 @@ export interface RepeatableElementEntry {
 @Component({
   selector: 'redbox-form-repeatable-component-layout',
   template: `
-  <div class="rb-form-repeatable-item">
+  <div class="rb-form-repeatable-item" [class.rb-form-repeatable-item--contributor]="isContributorInline">
     <div class="rb-form-repeatable-item__content">
       <ng-container #componentContainer></ng-container>
     </div>
     @if (isVisible) {
-      <button type="button" class="rb-form-repeatable-item__remove col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
+      <button type="button" class="rb-form-repeatable-item__remove btn btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next">
+        <span class="fa fa-minus-circle" aria-hidden="true"></span>
+      </button>
     }
   </div>
   <ng-template #afterComponentTemplate>
@@ -346,6 +351,14 @@ export interface RepeatableElementEntry {
 export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
   protected override logName = RepeatableElementLayoutName;
   public removeFn?: () => void;
+
+  protected get isContributorInline(): boolean {
+    const hostCssClasses = this.formFieldCompMapEntry?.compConfigJson?.component?.config?.hostCssClasses;
+    if (typeof hostCssClasses !== 'string') {
+      return false;
+    }
+    return hostCssClasses.split(/\s+/).includes('rb-form-contributor-inline');
+  }
 
   protected clickedRemove() {
     this.removeFn?.call(this);

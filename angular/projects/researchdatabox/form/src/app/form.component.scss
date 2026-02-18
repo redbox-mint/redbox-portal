@@ -93,17 +93,53 @@
 
 :host(.rb-form-edit) ::ng-deep .rb-form-repeatable__add {
   justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
 }
 
 :host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--rb-form-gap-2);
   align-items: start;
 }
 
+:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item__content {
+  min-width: 0;
+}
+
 :host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item__remove {
   align-self: start;
+  min-width: 3.1rem;
+  min-height: 3.2rem;
+  height: 3.2rem;
+  padding: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item:has(.rb-form-field-label) .rb-form-repeatable-item__remove {
+  margin-top: 2.25rem;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item:has(.rb-form-inline-label):not(:has(.rb-form-contributor-inline)) .rb-form-repeatable-item__remove {
+  margin-top: 0;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item.rb-form-repeatable-item--contributor .rb-form-repeatable-item__remove {
+  margin-top: 2.25rem;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item__content .rb-form-field-label {
+  display: block;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item__content .rb-form-contributor-inline .rb-form-inline-label {
+  display: none;
 }
 
 :host(.rb-form-edit) ::ng-deep .rb-form-action-row {

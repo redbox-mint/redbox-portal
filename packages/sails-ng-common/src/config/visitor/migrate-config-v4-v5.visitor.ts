@@ -10,6 +10,7 @@ import {
 } from '../component/group.outline';
 import {
   RepeatableComponentName,
+  RepeatableElementLayoutName,
   RepeatableElementFieldLayoutDefinitionOutline,
   RepeatableFieldComponentDefinitionOutline,
   RepeatableFieldModelDefinitionOutline,
@@ -764,6 +765,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           v4FormPathMore
         );
 
+        // Always use the repeatable element layout so each item renders the remove button.
+        if (formComponent.layout) {
+          formComponent.layout.class = RepeatableElementLayoutName;
+        }
+
         // TODO: This check & change needs to be expanded to collect the defaultValues for all nested components as well.
         //       Likely something similar to how the construct visitor does it could be adapted for this.
         // Overall repeatable default: repeatable.model.config.defaultValue
@@ -806,7 +812,16 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
+    const field = this.getV4Data();
     this.populateFormComponent(item);
+
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    if (v4ClassName === 'RepeatableContributor') {
+      const contributorLabel = field?.definition?.label || field?.definition?.name;
+      if (contributorLabel && item.layout?.config && !item.layout.config.label) {
+        item.layout.config.label = contributorLabel;
+      }
+    }
   }
 
   /* Validation Summary */
@@ -1588,8 +1603,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, field?: any) {
+    const isLegacyRepeatableContributor = `${field?.class ?? ''}`.trim() === 'RepeatableContributor';
+    const migratedLabel =
+      field?.definition?.label
+      // RepeatableContributor often only defines 'name'; preserve a section label on migration.
+      || (isLegacyRepeatableContributor ? field?.definition?.name : undefined);
     const config = {
-      label: this.isInsideButtonBarContainer ? undefined : field?.definition?.label,
+      label: this.isInsideButtonBarContainer ? undefined : migratedLabel,
       helpText: field?.definition?.help,
     };
     this.sharedProps.sharedPopulateFieldLayoutConfig(item, config);
