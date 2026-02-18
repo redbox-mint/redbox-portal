@@ -19,6 +19,7 @@ import {
   createFieldValueChangedEvent,
   createFieldDependencyTriggerEvent,
   createFieldFocusRequestEvent,
+  createLineageFieldFocusRequestEvent,
   createFormSaveRequestedEvent,
   createFormSaveExecuteEvent
 } from './form-component-event.types';
@@ -555,12 +556,43 @@ describe('FormComponentEventBus', () => {
     it('should create field focus request events via helper', () => {
       const event = createFieldFocusRequestEvent({
         fieldId: 'email',
-        sourceId: 'validation-component'
+        sourceId: 'validation-component',
+        targetElementId: 'form-item-id-email',
+        lineagePath: ['tabs', 'email'],
+        requestId: 'focus-req-1',
+        source: 'validation-summary'
       });
 
       expect(event.type).toBe(FormComponentEventType.FIELD_FOCUS_REQUEST);
       expect(event.fieldId).toBe('email');
       expect(event.sourceId).toBe('validation-component');
+      expect(event.targetElementId).toBe('form-item-id-email');
+      expect(event.lineagePath).toEqual(['tabs', 'email']);
+      expect(event.requestId).toBe('focus-req-1');
+      expect(event.source).toBe('validation-summary');
+    });
+
+    it('should create lineage-based focus request events via helper', () => {
+      const event = createLineageFieldFocusRequestEvent({
+        fieldId: 'email',
+        lineagePath: ['email'],
+        source: 'validation-summary',
+        sourceId: 'form-1'
+      });
+
+      expect(event.type).toBe(FormComponentEventType.FIELD_FOCUS_REQUEST);
+      expect(event.fieldId).toBe('email');
+      expect(event.lineagePath).toEqual(['email']);
+      expect(event.source).toBe('validation-summary');
+      expect(event.sourceId).toBe('form-1');
+    });
+
+    it('should throw when lineage focus request omits lineagePath', () => {
+      expect(() => createLineageFieldFocusRequestEvent({
+        fieldId: 'email',
+        lineagePath: [],
+        sourceId: 'form-1'
+      })).toThrow();
     });
 
     it('should create form save requested events via helper', () => {

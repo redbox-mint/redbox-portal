@@ -43,6 +43,7 @@ import {
 import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
+import { FormComponentFocusRequestCoordinator } from './form-state/events/form-component-focus-request-coordinator.service';
 import { createFormDefinitionChangedEvent, createFormDefinitionReadyEvent, createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
@@ -69,7 +70,11 @@ import { FormComponentValueChangeEventConsumer } from './form-state/events/';
   selector: 'redbox-form',
   templateUrl: './form.component.html',
   styleUrls: ['./form.component.scss'],
-  providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
+  providers: [
+    Location,
+    { provide: LocationStrategy, useClass: PathLocationStrategy },
+    FormComponentFocusRequestCoordinator
+  ],
   standalone: false
 })
 export class FormComponent extends BaseComponent implements OnDestroy {
@@ -144,6 +149,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Subscribe to EventBus execute command (Task 15)
    */
   private eventBus = inject(FormComponentEventBus);
+  private focusRequestCoordinator = inject(FormComponentFocusRequestCoordinator);
+  public readonly eventScopeId = `form-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   /**
    * Status of the form, derived from the facade as signal
    */
@@ -176,6 +183,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Record service
    */
   recordService = inject(RecordService);
+  /**
+   * Browser location service used for URL state updates
+   */
+  private locationService = inject(Location);
   /**
    * Save response after save operations, also used to track in-flight saves (null)
    */
@@ -360,6 +371,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Initialize subscriptions to event bus
    */
   protected initSubscriptions() {
+    this.focusRequestCoordinator.bind(this);
+
     // Listen for execute save command and invoke saveForm (Task 15)
     this.subMaps['saveExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_SAVE_EXECUTE)
@@ -609,7 +622,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           if (response?.success) {
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
             if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
-              this.oid.set(String(response?.oid));
+              const createdOid = String(response?.oid);
+              this.oid.set(createdOid);
+              this.locationService.replaceState(this.buildEditRecordPath(createdOid));
             }
             // Emit success event
             this.eventBus.publish(
@@ -708,10 +723,29 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   ngOnDestroy(): void {
     // Clean up subscriptions
     Object.values(this.subMaps).forEach(sub => sub.unsubscribe());
+    this.focusRequestCoordinator.destroy();
   }
 
   public get componentQuerySource(): JSONataQuerySource | undefined {
     return this.componentDefQuerySource;
+  }
+
+  private buildEditRecordPath(oid: string): string {
+    const createdOid = String(oid ?? '').trim();
+    if (_isEmpty(createdOid)) {
+      return 'record/edit';
+    }
+    const brandingAndPortalUrl = String(this.recordService.brandingAndPortalUrl ?? '').trim();
+    if (!_isEmpty(brandingAndPortalUrl)) {
+      try {
+        const parsedUrl = new URL(brandingAndPortalUrl);
+        const basePath = parsedUrl.pathname.replace(/\/+$/, '');
+        return `${basePath}/record/edit/${createdOid}`;
+      } catch {
+        this.loggerService.warn(`${this.logName}: Invalid brandingAndPortalUrl '${brandingAndPortalUrl}', falling back to relative path.`);
+      }
+    }
+    return `record/edit/${createdOid}`;
   }
 }
 

@@ -12,6 +12,7 @@
 import { lastValueFrom, Observable } from 'rxjs';
 import type { BrandingAwareFunction } from './config';
 import type { LoDashStatic } from 'lodash';
+import { BrandingModel } from './model';
 
 declare const sails: Sails.Application;
 declare const _: LoDashStatic;
@@ -53,13 +54,13 @@ export async function coreBootstrap(): Promise<void> {
     sails.log.verbose(defRoles);
 
     const defUserAndDefRoles: { defUser: unknown; defRoles: unknown } = await lastValueFrom(sails.services.usersservice.bootstrap(defRoles) as Observable<{ defUser: unknown; defRoles: unknown }>);
-    sails.log.verbose("Pathrules service, bootstrapped.");
+    sails.log.verbose("Users service, bootstrapped.");
 
     const _pathRulesBootstrapResult = await lastValueFrom(sails.services.pathrulesservice.bootstrap(defUserAndDefRoles.defUser, defUserAndDefRoles.defRoles) as Observable<unknown>);
-    sails.log.verbose("Record types service, bootstrapped.");
+    sails.log.verbose("Pathrules service, bootstrapped.");
 
     const recordsTypes = await sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault());
-    sails.log.verbose("Workflowsteps service, bootstrapped.");
+    sails.log.verbose("Record types service, bootstrapped.");
 
     const _dashboardTypes = await sails.services.dashboardtypesservice.bootstrap(sails.services.brandingservice.getDefault());
     sails.log.verbose("DashboardTypes service, bootstrapped.");
@@ -67,12 +68,15 @@ export async function coreBootstrap(): Promise<void> {
     const workflowSteps = await sails.services.workflowstepsservice.bootstrap(recordsTypes);
     sails.log.verbose("Workflowsteps service, bootstrapped.");
 
+    const defaultBranding = sails.services.brandingservice.getDefault() as BrandingModel;
+    const defaultBrandingId = String(defaultBranding?.id ?? '');
+
     if (_.isArray(workflowSteps)) {
         for (const workflowStep of workflowSteps) {
-            await sails.services.formsservice.bootstrap(workflowStep);
+            await sails.services.formsservice.bootstrap(workflowStep, defaultBrandingId);
         }
     } else {
-        await sails.services.formsservice.bootstrap(workflowSteps);
+        await sails.services.formsservice.bootstrap(workflowSteps, defaultBrandingId);
     }
 
     sails.log.verbose("Forms service, bootstrapped.");

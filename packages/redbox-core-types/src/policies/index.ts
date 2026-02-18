@@ -8,6 +8,7 @@
 export { brandingAndPortal } from './brandingAndPortal';
 export { checkAuth } from './checkAuth';
 export { checkBrandingValid } from './checkBrandingValid';
+export { companionAttachmentUploadAuth } from './companionAttachmentUploadAuth';
 export { contentSecurityPolicy } from './contentSecurityPolicy';
 export { disallowedHeadRequestHandler } from './disallowedHeadRequestHandler';
 export { i18nLanguages } from './i18nLanguages';
@@ -23,6 +24,7 @@ export { setLang } from './setLang';
 import { brandingAndPortal } from './brandingAndPortal';
 import { checkAuth } from './checkAuth';
 import { checkBrandingValid } from './checkBrandingValid';
+import { companionAttachmentUploadAuth } from './companionAttachmentUploadAuth';
 import { contentSecurityPolicy } from './contentSecurityPolicy';
 import { disallowedHeadRequestHandler } from './disallowedHeadRequestHandler';
 import { i18nLanguages } from './i18nLanguages';
@@ -38,6 +40,7 @@ export const Policies = {
     brandingAndPortal,
     checkAuth,
     checkBrandingValid,
+    companionAttachmentUploadAuth,
     contentSecurityPolicy,
     disallowedHeadRequestHandler,
     i18nLanguages,

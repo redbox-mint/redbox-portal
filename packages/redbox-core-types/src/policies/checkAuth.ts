@@ -13,6 +13,11 @@ declare const PathRulesService: PathRulesServiceModule.Services.PathRules;
  * based on their roles and the path rules defined for the brand.
  */
 export function checkAuth(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
+    const companionAttachmentUploadAuthorized = (req as Sails.Req & { companionAttachmentUploadAuthorized?: boolean }).companionAttachmentUploadAuthorized;
+    if (companionAttachmentUploadAuthorized === true) {
+        return next();
+    }
+
     const brand = BrandingService.getBrand(req.session.branding ?? '');
     if (!brand) {
         sails.log.verbose("In checkAuth, no branding found.");
