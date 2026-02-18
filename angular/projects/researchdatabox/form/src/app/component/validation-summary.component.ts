@@ -201,14 +201,14 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       const labelKey = this.getEntryLabel(entry);
       if (labelKey) {
         const isLeaf = index === path.length - 1;
-      const includeLabel =
-        isLeaf ||
-        this.isGroupEntry(entry) ||
-        this.isRepeatableEntry(entry) ||
-        (this.includeTabLabel && this.isTabEntry(entry));
-      if (includeLabel) {
-        labels.push(this.translate(labelKey));
-      }
+        const includeLabel =
+          isLeaf ||
+          this.isGroupEntry(entry) ||
+          this.isRepeatableEntry(entry) ||
+          (this.includeTabLabel && this.isTabEntry(entry));
+        if (includeLabel) {
+          labels.push(this.translate(labelKey));
+        }
       }
 
       currentEntries = entry.component?.formFieldCompMapEntries ?? [];
@@ -336,7 +336,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       return key;
     }
     const result = typeof translated === 'string' ? translated : String(translated);
-    return result === 'undefined' ? key : result;
+    return result;
   }
 
   private findComponentEntryFromLineage(angularPath: Array<string | number>): FormFieldCompMapEntry | undefined {

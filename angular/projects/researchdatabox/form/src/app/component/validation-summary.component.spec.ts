@@ -4,7 +4,7 @@ import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { SimpleInputComponent } from "./simple-input.component";
 import { GroupFieldComponent } from './group.component';
-import { RepeatableComponent } from './repeatable.component';
+import { RepeatableComponent, RepeatableElementLayoutComponent } from './repeatable.component';
 import { TabComponent } from './tab.component';
 
 describe('ValidationSummaryFieldComponent', () => {
@@ -15,6 +15,7 @@ describe('ValidationSummaryFieldComponent', () => {
         "SimpleInputComponent": SimpleInputComponent,
         "GroupFieldComponent": GroupFieldComponent,
         "RepeatableComponent": RepeatableComponent,
+        "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
       }
     });
   });
@@ -525,7 +526,7 @@ describe('ValidationSummaryFieldComponent', () => {
           model: {
             class: 'RepeatableModel',
             config: {
-              defaultValue: ['not-matching-prefix'],
+              value: ['not-matching-prefix'],
             },
           },
           component: {
@@ -540,7 +541,7 @@ describe('ValidationSummaryFieldComponent', () => {
                       {
                         class: 'pattern',
                         config: {
-                          pattern: /prefix.*/,
+                          pattern: /^prefix.*/,
                           description: 'must start with prefix',
                         },
                       },
