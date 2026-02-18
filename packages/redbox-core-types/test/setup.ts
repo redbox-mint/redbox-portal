@@ -6,6 +6,7 @@ import * as lodash from 'lodash';
 import type { Services as _BrandingServiceTypes } from '../src/services/BrandingService';
 import type { Services as _VocabServiceTypes } from '../src/services/VocabService';
 import type { Services as _VocabularyServiceTypes } from '../src/services/VocabularyService';
+import type { Services as _RvaImportServiceTypes } from '../src/services/RvaImportService';
 
 /**
  * Test setup file that runs before all tests.
