@@ -61,6 +61,21 @@ describe('Ajax VocabularyController', () => {
     expect(sendResp.calledOnce).to.be.true;
   });
 
+  it('returns 500 with errors array when create throws unexpectedly', async () => {
+    const req = { body: { name: 'Test', type: 'flat', source: 'local' }, session: { branding: 'default' } } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    (global as any).sails.services.vocabularyservice.create.rejects(new Error('database unavailable'));
+
+    await controller.create(req, res);
+
+    expect(sendResp.calledOnce).to.be.true;
+    const payload = sendResp.firstCall.args[2];
+    expect(payload?.status).to.equal(500);
+    expect(payload?.errors).to.be.an('array');
+    expect(payload?.errors?.[0]).to.be.instanceOf(Error);
+  });
+
   it('lists vocabularies with wrapped data and meta', async () => {
     const req = { param: sinon.stub().returns(undefined), session: { branding: 'default' } } as unknown as Sails.Req;
     const res = {} as Sails.Res;

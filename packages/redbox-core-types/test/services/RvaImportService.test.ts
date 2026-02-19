@@ -106,4 +106,76 @@ describe('RvaImportService', () => {
     await service.importRvaVocabulary('https://vocabs.ardc.edu.au/repository/api/lda/anzsrc-for/2020');
     expect(getVocabularyByIdStub.firstCall.args[0]).to.equal(1);
   });
+
+  it('prioritises importable versions when selecting a version automatically', async () => {
+    getVocabularyByIdStub.onCall(0).resolves({
+      data: {
+        id: 1,
+        title: 'RVA Vocab',
+        version: [
+          { id: 101, status: 'current', 'do-import': false, 'release-date': '2025-01-01' },
+          { id: 102, status: 'superseded', 'do-import': true, 'release-date': '2024-01-01' }
+        ]
+      }
+    } as unknown as Awaited<ReturnType<ResourcesApi['getVocabularyById']>>);
+
+    await service.importRvaVocabulary('1');
+
+    expect(conceptTreeStub.firstCall.args[0]).to.equal(102);
+  });
+
+  it('throws a clear error when RVA has no current concept tree for the selected version', async () => {
+    conceptTreeStub.rejects({
+      isAxiosError: true,
+      response: {
+        status: 400,
+        data: 'No current concept tree for that version.'
+      }
+    });
+
+    try {
+      await service.importRvaVocabulary('1');
+      expect.fail('Expected importRvaVocabulary to throw');
+    } catch (error) {
+      expect(String(error)).to.contain('has no current concept tree artefact');
+    }
+  });
+
+  it('deduplicates repeated RVA identifiers to satisfy unique entry constraints', async () => {
+    conceptTreeStub.resolves({
+      data: JSON.stringify({
+        forest: [
+          {
+            iri: 'https://example.org/root-a',
+            label: 'Root A',
+            children: [
+              {
+                iri: 'https://example.org/shared-concept',
+                label: 'Shared'
+              }
+            ]
+          },
+          {
+            iri: 'https://example.org/root-b',
+            label: 'Root B',
+            children: [
+              {
+                iri: 'https://example.org/shared-concept',
+                label: 'Shared'
+              }
+            ]
+          }
+        ]
+      })
+    } as unknown as Awaited<ReturnType<ResourcesApi['getVersionArtefactConceptTree']>>);
+
+    await service.importRvaVocabulary('1');
+
+    expect(createStub.calledOnce).to.equal(true);
+    const payload = createStub.firstCall.args[0];
+    const sharedEntries = payload.entries.filter((entry: { label: string }) => entry.label === 'Shared');
+    expect(sharedEntries).to.have.length(2);
+    expect(sharedEntries[0].identifier).to.equal('https://example.org/shared-concept');
+    expect(sharedEntries[1].identifier).to.equal('https://example.org/shared-concept#2');
+  });
 });
