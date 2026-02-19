@@ -86,7 +86,8 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
     if (!normalized) {
       return `btn ${fallbackVariantClass}`;
     }
-    return /\bbtn\b/.test(normalized) ? normalized : `btn ${normalized}`;
+    const classTokens = normalized.split(/\s+/);
+    return classTokens.includes('btn') ? normalized : `btn ${normalized}`;
   }
 
 }

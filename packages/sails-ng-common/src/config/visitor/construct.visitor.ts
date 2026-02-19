@@ -983,6 +983,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('forceSave', item.config, config);
     this.sharedProps.setPropOverride('enabledValidationGroups', item.config, config);
     this.sharedProps.setPropOverride('labelSaving', item.config, config);
+    this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
   }
 
   visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
@@ -1010,6 +1011,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('confirmationTitle', item.config, config);
     this.sharedProps.setPropOverride('cancelButtonMessage', item.config, config);
     this.sharedProps.setPropOverride('confirmButtonMessage', item.config, config);
+    this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
   }
 
   visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {

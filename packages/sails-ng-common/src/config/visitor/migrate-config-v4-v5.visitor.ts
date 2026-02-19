@@ -1720,9 +1720,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       return undefined;
     }
     // Bootstrap 3 -> 5 compatibility for common legacy button class.
-    return normalized
+    const migrated = normalized
       .replace(/\bbtn-default\b/g, 'btn-secondary')
       .trim();
+    const classTokens = migrated.split(/\s+/);
+    return classTokens.includes('btn') ? migrated : `btn ${migrated}`;
   }
 
   private shouldUseInlineLayoutInButtonBar(componentClassName: string): boolean {
