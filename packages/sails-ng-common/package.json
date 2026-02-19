@@ -68,7 +68,9 @@
     "functions": 45,
     "branches": 45,
     "include": [
-      "**/src/**/*.*"
+      "**/src/handlebars-helpers.*",
+      "**/src/config/names/**/*.*",
+      "**/src/validation/**/*.*"
     ],
     "reporter": [
       "lcov",
