@@ -486,26 +486,28 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   @HostBinding('class') get hostClasses(): string {
+    const baselineClasses = 'rb-form-host';
     if (!this.formDefMap?.formConfig) {
-      return '';
+      return baselineClasses;
     }
 
     const cssClasses = this.editMode() ? this.formDefMap.formConfig.editCssClasses : this.formDefMap.formConfig.viewCssClasses;
 
     if (!cssClasses) {
-      return '';
+      return baselineClasses;
     }
 
     if (_isString(cssClasses)) {
-      return cssClasses;
+      return `${baselineClasses} ${cssClasses}`.trim();
     }
 
     // If cssClasses is an object with key-value pairs, transform it to space-delimited string
     // where keys with truthy values become class names
-    return Object.entries(cssClasses)
+    const resolvedClasses = Object.entries(cssClasses)
       .filter(([_, value]) => value)
       .map(([className, _]) => className)
       .join(' ');
+    return `${baselineClasses} ${resolvedClasses}`.trim();
   }
 
   /**

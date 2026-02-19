@@ -6,6 +6,7 @@ import {
 } from './shared.outline';
 
 import { DefaultLayoutDefaults, DefaultLayoutMap } from './component/default-layout.model';
+import { ActionRowLayoutMap } from './component/action-row-layout.model';
 import { InlineLayoutMap } from './component/inline-layout.model';
 import { RepeatableDefaults, RepeatableMap } from './component/repeatable.model';
 import { GroupDefaults, GroupMap } from './component/group.model';
@@ -37,6 +38,7 @@ import { TabNavButtonDefaults, TabNavButtonMap } from './component/tab-nav-butto
  */
 export const AllDefs = [
   ...DefaultLayoutMap,
+  ...ActionRowLayoutMap,
   ...InlineLayoutMap,
   ...RepeatableMap,
   ...GroupMap,

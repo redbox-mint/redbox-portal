@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, TranslationService } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
 import {
   TabNavButtonComponentName,
@@ -12,22 +12,24 @@ import { TabComponent } from './tab.component';
   template: `
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-      @if (endDisplayMode === 'disabled') {
-        <button type="button" class="btn btn-secondary" [disabled]="!canGoPrev()" (click)="stepToTab(-1)">
-          {{ prevLabel }}
-        </button>
-        <button type="button" class="btn btn-primary" [disabled]="!canGoNext()" (click)="stepToTab(1)">
-          {{ nextLabel }}
-        </button>
-      }
-      @if (endDisplayMode === 'hidden') {
-        @if (canGoPrev()) {
-          <button type="button" class="btn btn-secondary" (click)="stepToTab(-1)">{{ prevLabel }}</button>
+      <div class="rb-form-tab-nav-buttons">
+        @if (endDisplayMode === 'disabled') {
+          <button type="button" class="btn btn-secondary" [disabled]="!canGoPrev()" (click)="stepToTab(-1)">
+            {{ prevLabel }}
+          </button>
+          <button type="button" class="btn btn-primary" [disabled]="!canGoNext()" (click)="stepToTab(1)">
+            {{ nextLabel }}
+          </button>
         }
-        @if (canGoNext()) {
-          <button type="button" class="btn btn-primary" (click)="stepToTab(1)">{{ nextLabel }}</button>
+        @if (endDisplayMode === 'hidden') {
+          @if (canGoPrev()) {
+            <button type="button" class="btn btn-secondary" (click)="stepToTab(-1)">{{ prevLabel }}</button>
+          }
+          @if (canGoNext()) {
+            <button type="button" class="btn btn-primary" (click)="stepToTab(1)">{{ nextLabel }}</button>
+          }
         }
-      }
+      </div>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
@@ -37,17 +39,18 @@ export class TabNavButtonComponent extends FormFieldBaseComponent<undefined> imp
   public override logName = TabNavButtonComponentName;
   protected override formComponent: FormComponent = inject(FormComponent);
   public override componentDefinition?: TabNavButtonFieldComponentDefinitionOutline;
+  private readonly translationService = inject(TranslationService);
 
   private tabComponent: TabComponent | null = null;
   private tabIds: string[] = [];
   currentTabIndex = signal<number>(0);
 
   get prevLabel(): string {
-    return this.componentDefinition?.config?.prevLabel ?? 'Previous';
+    return this.translateLabel(this.componentDefinition?.config?.prevLabel, 'Previous');
   }
 
   get nextLabel(): string {
-    return this.componentDefinition?.config?.nextLabel ?? 'Next';
+    return this.translateLabel(this.componentDefinition?.config?.nextLabel, 'Next');
   }
 
   get endDisplayMode(): string {
@@ -134,5 +137,15 @@ export class TabNavButtonComponent extends FormFieldBaseComponent<undefined> imp
       }
     }
     return this.currentTabIndex();
+  }
+
+  private translateLabel(label: string | undefined, fallback: string): string {
+    const key = label ?? fallback;
+    const translated = this.translationService.t(key);
+    if (translated === undefined || translated === null || translated === '') {
+      return key;
+    }
+    const value = typeof translated === 'string' ? translated : String(translated);
+    return value === 'undefined' ? key : value;
   }
 }

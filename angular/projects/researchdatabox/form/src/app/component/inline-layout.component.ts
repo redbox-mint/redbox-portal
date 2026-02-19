@@ -1,5 +1,5 @@
-import { isUndefined as _isUndefined, isNull as _isNull, set as _set} from 'lodash-es';
-import {Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, inject} from '@angular/core';
+import { isUndefined as _isUndefined, isNull as _isNull, set as _set } from 'lodash-es';
+import { Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, inject } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import {
   FieldLayoutDefinitionFrame,
@@ -8,7 +8,7 @@ import {
   InlineLayoutName
 } from "@researchdatabox/sails-ng-common";
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
-import {FormService} from "../form.service";
+import { FormService } from "../form.service";
 
 /**
  * Inline Form Component Layout
@@ -35,52 +35,41 @@ import {FormService} from "../form.service";
   selector: 'redbox-form-inline-component-layout',
   template: `
   @if (componentDefinition) {
-    @if (getStringProperty('label')) {
+    <div class="rb-form-inline-layout">
+      @if (getStringProperty('label') && isVisible) {
+        <div class="rb-form-inline-layout__row">
+          <label class="form-label mb-0 d-inline-block flex-shrink-0 rb-form-inline-label">
+            <span [innerHtml]="getStringProperty('label') | i18next" [title]="tooltip | i18next"></span>
+            @if (isRequired) {
+              <span
+                class="form-field-required-indicator"
+              [innerHTML]="getStringProperty('labelRequiredStr')"></span>
+            }
+            @if (getStringProperty('helpText')) {
+              <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
+                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+              </button>
+            }
+          </label>
+          @if (helpTextVisible) {
+            <span class="help-block" [innerHtml]="getStringProperty('helpText') | i18next"></span>
+          }
+        </div>
+        }
+      <div class="rb-form-inline-layout__control">
+        <ng-container #componentContainer  ></ng-container>
+      </div>
+    </div>
+    <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
+    <ng-template #beforeComponentTemplate>
+    </ng-template>
+    <ng-template #afterComponentTemplate>
       @if (isVisible) {
-        <label class="form-label mb-0 d-inline-block flex-shrink-0">
-          <span [innerHtml]="getStringProperty('label') | i18next" [title]="tooltip | i18next"></span>
-          @if (isRequired) {
-            <span
-              class="form-field-required-indicator"
-            [innerHTML]="getStringProperty('labelRequiredStr')"></span>
-          }
-          @if (getStringProperty('helpText')) {
-            <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
-              <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-            </button>
-          }
-        </label>
-        @if (helpTextVisible) {
-          <span class="help-block" [innerHtml]="getStringProperty('helpText') | i18next"></span>
-        }
-        }
+        @let componentValidationList = getFormValidatorComponentErrors;
+        <redbox-field-error-summary [errors]="componentValidationList" [fieldName]="componentName"></redbox-field-error-summary>
       }
-      <ng-container #componentContainer  ></ng-container>
-      <!-- instead of rendering the 'before' and 'after' templates around the componentContainer, we supply named templates so the component can render these as it sees fit -->
-      <ng-template #beforeComponentTemplate>
-<!--        @if (isVisible) {-->
-<!--          Before {{ componentName }}-->
-<!--          <br>-->
-<!--          }-->
-        </ng-template>
-        <ng-template #afterComponentTemplate>
-          @if (isVisible) {
-<!--            After {{ componentName }}-->
-            @let componentValidationList = getFormValidatorComponentErrors;
-            @if (componentValidationList.length > 0) {
-              <div class="invalid-feedback">
-                Invalid value:
-                @for (error of componentValidationList; track (error.class ?? 'err') + '-' + $index) {
-                  <span [attr.data-validation-error-class]="error.class"
-                        [attr.data-validation-error-message]="error.message">
-                    {{ $index + 1 }}) {{ error.message | i18next: error.params }}
-                  </span>
-                }
-              </div>
-            }
-            }
-          </ng-template>
-        }
+    </ng-template>
+  }
   `,
   standalone: false,
   // Note: No need for host property here if using @HostBinding
@@ -103,9 +92,9 @@ export class InlineLayoutComponent<ValueType> extends FormFieldBaseComponent<Val
 
   // wrapperComponentRef!: ComponentRef<FormFieldBaseComponent<unknown>>;
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
-  public helpTextVisibleOnInit:boolean = false;
-  public labelRequiredStr:string = '';
-  public tooltip:string = '';
+  public helpTextVisibleOnInit: boolean = false;
+  public labelRequiredStr: string = '';
+  public tooltip: string = '';
   /**
    * Override to set additional properties required by the wrapper component.
    *
@@ -116,7 +105,7 @@ export class InlineLayoutComponent<ValueType> extends FormFieldBaseComponent<Val
     this.componentClass = formFieldCompMapEntry?.componentClass as typeof FormFieldBaseComponent<ValueType>;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout;
     this.tooltip = this.getStringProperty('tooltip');
-    if(!_isUndefined(this.formFieldCompMapEntry) && !_isNull(this.formFieldCompMapEntry)) {
+    if (!_isUndefined(this.formFieldCompMapEntry) && !_isNull(this.formFieldCompMapEntry)) {
       this.formFieldCompMapEntry.layout = this as FormFieldBaseComponent<ValueType>;
     }
 
@@ -125,11 +114,11 @@ export class InlineLayoutComponent<ValueType> extends FormFieldBaseComponent<Val
       _set(this.formFieldCompMapEntry, `compConfigJson.layout.name`, `${compConfigName}-layout`);
     }
 
-    if(!_isUndefined(this.formFieldCompMapEntry?.compConfigJson?.layout?.name)) {
+    if (!_isUndefined(this.formFieldCompMapEntry?.compConfigJson?.layout?.name)) {
       this.name = this.formFieldCompMapEntry?.compConfigJson?.layout?.name;
     }
 
-    if(this.helpTextVisibleOnInit) {
+    if (this.helpTextVisibleOnInit) {
       this.setHelpTextVisibleOnInit();
     }
   }
@@ -176,7 +165,7 @@ export class InlineLayoutComponent<ValueType> extends FormFieldBaseComponent<Val
     return this.formService.getFormValidatorComponentErrors(this.model?.formControl);
   }
 
-  protected get componentName(){
+  protected get componentName() {
     return this.formFieldConfigName();
   }
 }

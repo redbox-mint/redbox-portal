@@ -27,10 +27,17 @@ import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '.
   template:
     `
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-    <ng-container #repeatableContainer></ng-container>
-    @if (isStatusReady() && isVisible) {
-      <button type="button" class="btn btn-md btn-primary" (click)="appendNewElement()" [attr.aria-label]="'Add'">Add</button>
-    }
+    <div class="rb-form-repeatable">
+      <div class="rb-form-repeatable__items">
+        <ng-container #repeatableContainer></ng-container>
+      </div>
+      @if (isStatusReady() && isVisible) {
+        <button type="button" class="rb-form-repeatable__add btn btn-primary" (click)="appendNewElement()" [attr.aria-label]="'add-button-label' | i18next">
+          <span class="fa fa-plus-circle" aria-hidden="true"></span>
+          <span>{{ 'add-button-label' | i18next }}</span>
+        </button>
+      }
+    </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   `,
   standalone: false
@@ -312,24 +319,20 @@ export interface RepeatableElementEntry {
 @Component({
   selector: 'redbox-form-repeatable-component-layout',
   template: `
-  <ng-container #componentContainer></ng-container>
-  @if (isVisible) {
-    <button type="button" class="col-auto fa fa-minus-circle btn text-20 btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next"></button>
-  }
+  <div class="rb-form-repeatable-item" [class.rb-form-repeatable-item--contributor]="isContributorInline">
+    <div class="rb-form-repeatable-item__content">
+      <ng-container #componentContainer></ng-container>
+    </div>
+    @if (isVisible) {
+      <button type="button" class="rb-form-repeatable-item__remove btn btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next">
+        <span class="fa fa-minus-circle" aria-hidden="true"></span>
+      </button>
+    }
+  </div>
   <ng-template #afterComponentTemplate>
     @if (isVisible) {
       @let componentValidationList = getFormValidatorComponentErrors;
-      @if (componentValidationList.length > 0) {
-        <div class="invalid-feedback">
-          Field validation errors:
-          <ul>
-            @for (error of componentValidationList; track $index) {
-              <li>{{ error.message | i18next: error.params }}</li>
-            }
-          </ul>
-        </div>
-      }
-      <div class="valid-feedback">The field is valid.</div>
+      <redbox-field-error-summary [errors]="componentValidationList" [fieldName]="componentName"></redbox-field-error-summary>
     }
   </ng-template>
   `,
@@ -338,6 +341,14 @@ export interface RepeatableElementEntry {
 export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
   protected override logName = RepeatableElementLayoutName;
   public removeFn?: () => void;
+
+  protected get isContributorInline(): boolean {
+    const hostCssClasses = this.formFieldCompMapEntry?.compConfigJson?.component?.config?.hostCssClasses;
+    if (typeof hostCssClasses !== 'string') {
+      return false;
+    }
+    return hostCssClasses.split(/\s+/).includes('rb-form-contributor-inline');
+  }
 
   protected clickedRemove() {
     this.removeFn?.call(this);

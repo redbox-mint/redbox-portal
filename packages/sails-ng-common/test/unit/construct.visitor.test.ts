@@ -250,6 +250,37 @@ describe("Construct Visitor", async () => {
             expect(cfg?.cacheResults).to.equal(false);
         });
 
+        it("should normalize repeatable elementTemplate layout to RepeatableElementLayout", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "repeatable-layout-normalization",
+                    componentDefinitions: [
+                        {
+                            name: "keywords",
+                            component: {
+                                class: "RepeatableComponent",
+                                config: {
+                                    elementTemplate: {
+                                        name: "",
+                                        component: { class: "SimpleInputComponent" },
+                                        model: { class: "SimpleInputModel", config: {} },
+                                        layout: { class: "DefaultLayout", config: {} }
+                                    }
+                                }
+                            },
+                            model: { class: "RepeatableModel", config: { defaultValue: ["a"] } },
+                            layout: { class: "DefaultLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+            const repeatable = actual.componentDefinitions?.[0];
+            const elementLayoutClass = (repeatable?.component?.config as any)?.elementTemplate?.layout?.class;
+            expect(elementLayoutClass).to.equal("RepeatableElementLayout");
+        });
+
         it("should drop unsupported map enabledModes and preserve valid modes", async function () {
             const warnings: string[] = [];
             const testLogger = {

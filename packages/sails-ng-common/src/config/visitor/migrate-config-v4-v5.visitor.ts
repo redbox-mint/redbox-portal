@@ -10,6 +10,7 @@ import {
 } from '../component/group.outline';
 import {
   RepeatableComponentName,
+  RepeatableElementLayoutName,
   RepeatableElementFieldLayoutDefinitionOutline,
   RepeatableFieldComponentDefinitionOutline,
   RepeatableFieldModelDefinitionOutline,
@@ -32,6 +33,9 @@ import {
 import { SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig } from '../component/simple-input.model';
 import { DefaultFieldLayoutDefinitionOutline, DefaultLayoutName } from '../component/default-layout.outline';
 import { DefaultFieldLayoutConfig } from '../component/default-layout.model';
+import { ActionRowFieldLayoutDefinitionOutline, ActionRowLayoutName } from '../component/action-row-layout.outline';
+import { ActionRowFieldLayoutConfig } from '../component/action-row-layout.model';
+import { InlineLayoutName } from '../component/inline-layout.outline';
 import { FormComponentDefinitionFrame, FormComponentDefinitionOutline } from '../form-component.outline';
 import {
   ContentComponentName,
@@ -253,10 +257,12 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
     '': {
       componentClassName: GroupFieldComponentName,
       modelClassName: GroupFieldModelName,
+      layoutClassName: ActionRowLayoutName,
     },
     ButtonBarContainerComponent: {
       componentClassName: GroupFieldComponentName,
       modelClassName: GroupFieldModelName,
+      layoutClassName: ActionRowLayoutName,
     },
   },
   TextField: {
@@ -534,6 +540,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('type', item, currentData);
     this.sharedProps.setPropOverride('viewCssClasses', item, currentData);
     this.sharedProps.setPropOverride('editCssClasses', item, currentData);
+    this.applyLegacyFormCssNormalization(item);
 
     // Convert properties from v4 to v5.
 
@@ -758,6 +765,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           v4FormPathMore
         );
 
+        // Always use the repeatable element layout so each item renders the remove button.
+        if (formComponent.layout) {
+          formComponent.layout.class = RepeatableElementLayoutName;
+        }
+
         // TODO: This check & change needs to be expanded to collect the defaultValues for all nested components as well.
         //       Likely something similar to how the construct visitor does it could be adapted for this.
         // Overall repeatable default: repeatable.model.config.defaultValue
@@ -800,7 +812,16 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
+    const field = this.getV4Data();
     this.populateFormComponent(item);
+
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    if (v4ClassName === 'RepeatableContributor') {
+      const contributorLabel = field?.definition?.label || field?.definition?.name;
+      if (contributorLabel && item.layout?.config && !item.layout.config.label) {
+        item.layout.config.label = contributorLabel;
+      }
+    }
   }
 
   /* Validation Summary */
@@ -824,7 +845,6 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedPopulateFieldComponentConfig(item.config, field);
 
     if (field?.class === 'ButtonBarContainer' || field?.compClass === 'ButtonBarContainerComponent') {
-      config.hostCssClasses = 'd-flex gap-3';
       this.isInsideButtonBarContainer = true;
     }
 
@@ -966,6 +986,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const field = this.getV4Data();
     item.config = new SaveButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
+    this.sharedProps.setPropOverride('buttonCssClasses', item.config, {
+      buttonCssClasses: this.normalizeLegacyButtonCssClasses(field?.definition?.cssClasses ?? field?.definition?.cssClass),
+    });
   }
 
   visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
@@ -983,6 +1006,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('confirmationTitle', item.config, field?.definition);
     this.sharedProps.setPropOverride('cancelButtonMessage', item.config, field?.definition);
     this.sharedProps.setPropOverride('confirmButtonMessage', item.config, field?.definition);
+    this.sharedProps.setPropOverride('buttonCssClasses', item.config, {
+      buttonCssClasses: this.normalizeLegacyButtonCssClasses(field?.definition?.cssClasses ?? field?.definition?.cssClass),
+    });
   }
 
   visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
@@ -1151,6 +1177,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
     const field = this.getV4Data();
     item.config = new DefaultFieldLayoutConfig();
+    this.sharedPopulateFieldLayoutConfig(item.config, field);
+  }
+
+  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new ActionRowFieldLayoutConfig();
     this.sharedPopulateFieldLayoutConfig(item.config, field);
   }
 
@@ -1489,6 +1521,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     if (!layoutClassName) {
       layoutClassName = 'DefaultLayout';
     }
+    if (this.shouldUseInlineLayoutForAnchorButton(field, componentClassName)) {
+      layoutClassName = InlineLayoutName;
+    }
+    if (this.isInsideButtonBarContainer && this.shouldUseInlineLayoutInButtonBar(componentClassName)) {
+      layoutClassName = InlineLayoutName;
+    }
     currentData.layout = { class: layoutClassName, config: {} };
 
     // Set the constraints
@@ -1571,8 +1609,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, field?: any) {
+    const isLegacyRepeatableContributor = `${field?.class ?? ''}`.trim() === 'RepeatableContributor';
+    const migratedLabel =
+      field?.definition?.label
+      // RepeatableContributor often only defines 'name'; preserve a section label on migration.
+      || (isLegacyRepeatableContributor ? field?.definition?.name : undefined);
     const config = {
-      label: this.isInsideButtonBarContainer ? undefined : field?.definition?.label,
+      label: this.isInsideButtonBarContainer ? undefined : migratedLabel,
       helpText: field?.definition?.help,
     };
     this.sharedProps.sharedPopulateFieldLayoutConfig(item, config);
@@ -1639,6 +1682,62 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         disabled: option?.disabled ?? option?.historicalOnly ?? undefined,
       };
     });
+  }
+
+  private applyLegacyFormCssNormalization(item: FormConfigOutline): void {
+    const normalizedViewCssClasses = this.normalizeLegacyFormCssClasses(item.viewCssClasses, 'view');
+    if (normalizedViewCssClasses) {
+      item.viewCssClasses = normalizedViewCssClasses;
+    }
+
+    const normalizedEditCssClasses = this.normalizeLegacyFormCssClasses(item.editCssClasses, 'edit');
+    if (normalizedEditCssClasses) {
+      item.editCssClasses = normalizedEditCssClasses;
+    }
+  }
+
+  private normalizeLegacyFormCssClasses(cssClasses: unknown, mode: 'view' | 'edit'): string | undefined {
+    if (typeof cssClasses !== 'string') {
+      return undefined;
+    }
+
+    const normalized = cssClasses.trim().replace(/\s+/g, ' ');
+    if (mode === 'view' && normalized === 'row col-md-offset-1 col-md-10') {
+      return 'redbox-form form rb-form-view';
+    }
+    if (mode === 'edit' && normalized === 'row col-md-12') {
+      return 'redbox-form form rb-form-edit';
+    }
+    return undefined;
+  }
+
+  private normalizeLegacyButtonCssClasses(cssClasses: unknown): string | undefined {
+    if (typeof cssClasses !== 'string') {
+      return undefined;
+    }
+    const normalized = cssClasses.trim().replace(/\s+/g, ' ');
+    if (!normalized) {
+      return undefined;
+    }
+    // Bootstrap 3 -> 5 compatibility for common legacy button class.
+    const migrated = normalized
+      .replace(/\bbtn-default\b/g, 'btn-secondary')
+      .trim();
+    const classTokens = migrated.split(/\s+/);
+    return classTokens.includes('btn') ? migrated : `btn ${migrated}`;
+  }
+
+  private shouldUseInlineLayoutInButtonBar(componentClassName: string): boolean {
+    return (
+      componentClassName === SaveButtonComponentName ||
+      componentClassName === CancelButtonComponentName ||
+      componentClassName === TabNavButtonComponentName
+    );
+  }
+
+  private shouldUseInlineLayoutForAnchorButton(field: Record<string, unknown>, componentClassName: string): boolean {
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    return v4ClassName === 'AnchorOrButton' && componentClassName === SaveButtonComponentName;
   }
 
   /**

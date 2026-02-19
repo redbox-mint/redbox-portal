@@ -38,6 +38,11 @@ export interface CancelButtonFieldComponentConfigFrame extends FieldComponentCon
    * The label for the confirm button in the confirmation dialog.
    */
   confirmButtonMessage?: string;
+  /**
+   * CSS classes to apply to the main cancel button element.
+   * Example: 'btn-warning' or 'btn btn-warning'.
+   */
+  buttonCssClasses?: string;
 }
 
 export interface CancelButtonFieldComponentConfigOutline

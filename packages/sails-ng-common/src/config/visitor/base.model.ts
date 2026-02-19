@@ -60,6 +60,7 @@ import {
   TextAreaFormComponentDefinitionOutline,
 } from '../component/text-area.outline';
 import { DefaultFieldLayoutDefinitionOutline } from '../component/default-layout.outline';
+import { ActionRowFieldLayoutDefinitionOutline } from '../component/action-row-layout.outline';
 import { InlineFieldLayoutDefinitionOutline } from '../component/inline-layout.outline';
 import {
   CheckboxInputFieldComponentDefinitionOutline,
@@ -302,6 +303,10 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   /* Inline Layout  */
 
   visitInlineFieldLayoutDefinition(item: InlineFieldLayoutDefinitionOutline): void {
+    this.visitDefaultFieldLayoutDefinition(item as any);
+  }
+
+  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
     this.visitDefaultFieldLayoutDefinition(item as any);
   }
 

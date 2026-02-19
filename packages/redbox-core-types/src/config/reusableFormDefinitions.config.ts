@@ -21,7 +21,7 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
             name: "name",
             component: {
                 class: "SimpleInputComponent",
-                config: {type: "text", hostCssClasses: "flex-grow-1 d-block", wrapperCssClasses: "col-md-4 mb-3"}
+                config: {type: "text", hostCssClasses: "flex-grow-1 d-block", wrapperCssClasses: "rb-form-contributor-inline__field"}
             },
             model: {class: "SimpleInputModel", config: {}},
             layout: {
@@ -33,7 +33,7 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
             name: "email",
             component: {
                 class: "SimpleInputComponent",
-                config: {type: "text", hostCssClasses: "flex-grow-1 d-block", wrapperCssClasses: "col-md-4 mb-3"}
+                config: {type: "text", hostCssClasses: "flex-grow-1 d-block", wrapperCssClasses: "rb-form-contributor-inline__field"}
             },
             model: {class: "SimpleInputModel", config: {validators: [{class: "email"}]}},
             layout: {
@@ -45,7 +45,7 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
             name: "orcid",
             component: {
                 class: "SimpleInputComponent",
-                config: {type: "text", hostCssClasses: "flex-grow-1 d-block", wrapperCssClasses: "col-md-4 mb-3"}
+                config: {type: "text", hostCssClasses: "flex-grow-1 d-block", wrapperCssClasses: "rb-form-contributor-inline__field"}
             },
             model: {class: "SimpleInputModel", config: {validators: [{class: "orcid"}]}},
             layout: {
@@ -63,7 +63,7 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
             component: {
                 class: "GroupComponent",
                 config: {
-                    hostCssClasses: "row g-3",
+                    hostCssClasses: "rb-form-contributor-inline",
                     componentDefinitions: [
                         {
                             overrides: {reusableFormName: "standard-contributor-fields"},

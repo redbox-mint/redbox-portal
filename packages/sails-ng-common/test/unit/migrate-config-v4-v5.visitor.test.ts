@@ -158,6 +158,21 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect((field.component.config as Record<string, unknown>)?.outputFormat).to.equal("markdown");
     });
 
+    it("normalizes legacy top-level form css classes to rb-form classes", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "legacy-css-migration",
+                viewCssClasses: "row col-md-offset-1 col-md-10",
+                editCssClasses: "row col-md-12",
+                fields: []
+            }
+        });
+
+        expect(migrated.viewCssClasses).to.equal("redbox-form form rb-form-view");
+        expect(migrated.editCssClasses).to.equal("redbox-form form rb-form-edit");
+    });
+
     it('applies checkbox tree migration edge-case fallbacks and coercions', async function () {
         const warnings: string[] = [];
         const testLogger = {
@@ -328,11 +343,47 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(elementTemplate.name).to.equal("");
         expect((elementTemplate.component as Record<string, unknown>).class).to.equal("TypeaheadInputComponent");
         expect((elementTemplate.model as Record<string, unknown>).class).to.equal("TypeaheadInputModel");
+        expect((elementTemplate.layout as Record<string, unknown>).class).to.equal("RepeatableElementLayout");
 
         const typeaheadConfig = (elementTemplate.component as Record<string, unknown>).config as Record<string, unknown>;
         expect(typeaheadConfig.sourceType).to.equal("namedQuery");
         expect(typeaheadConfig.queryId).to.equal("fundingBody");
         expect(typeaheadConfig.labelField).to.equal("dc_description");
+    });
+
+    it('maps RepeatableContributor layout label from definition name when label is missing', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "repeatable-contributor-label-fallback",
+                fields: [
+                    {
+                        class: "RepeatableContributor",
+                        compClass: "RepeatableContributorComponent",
+                        definition: {
+                            name: "contributor_oi",
+                            fields: [
+                                {
+                                    class: "ContributorField",
+                                    definition: {
+                                        label: "@dmpt-people-tab-otherdatacreators",
+                                        help: "@dmpt-people-tab-otherdatacreators-help",
+                                        nameColHdr: "@dmpt-people-tab-name-hdr",
+                                        emailColHdr: "@dmpt-people-tab-email-hdr",
+                                        orcidColHdr: "@dmpt-people-tab-orcid-hdr",
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("RepeatableComponent");
+        expect(migratedField.layout?.class).to.equal("DefaultLayout");
+        expect((migratedField.layout?.config as Record<string, unknown>)?.label).to.equal("contributor_oi");
     });
 
     it("maps legacy MapField to MapComponent and normalizes config/value", async function () {
@@ -415,20 +466,57 @@ describe("Migrate v4 to v5 Visitor", async () => {
         const migratedField = migrated.componentDefinitions[0];
         expect(migratedField.component.class).to.equal("GroupComponent");
         expect(migratedField.model?.class).to.equal("GroupModel");
+        expect(migratedField.layout?.class).to.equal("ActionRowLayout");
 
         const componentConfig = migratedField.component.config as Record<string, unknown>;
-        expect(componentConfig.hostCssClasses).to.equal("d-flex gap-3");
+        expect(componentConfig.hostCssClasses).to.be.undefined;
 
         const childComponents = componentConfig.componentDefinitions as any[];
         expect(childComponents).to.have.length(2);
         expect(childComponents[0].name).to.equal("save");
+        expect(childComponents[0].layout?.class).to.equal("InlineLayout");
         expect(childComponents[0].layout?.config?.label).to.be.undefined;
         expect(childComponents[1].name).to.equal("cancel");
+        expect(childComponents[1].layout?.class).to.equal("InlineLayout");
         expect(childComponents[1].layout?.config?.label).to.be.undefined;
         expect(childComponents.find(c => c.name === "spacer")).to.be.undefined;
 
         const modelConfig = migratedField.model?.config as Record<string, unknown>;
         expect(modelConfig.disabled).to.be.true;
+    });
+
+    it("maps AnchorOrButton links to SaveButton with InlineLayout", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "anchor-or-button-migration",
+                fields: [
+                    {
+                        class: "Container",
+                        compClass: "GenericGroupComponent",
+                        definition: {
+                            name: "link_group",
+                            fields: [
+                                {
+                                    class: "AnchorOrButton",
+                                    definition: {
+                                        name: "edit_link",
+                                        label: "@dmp-edit-record-link"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const group = migrated.componentDefinitions[0];
+        const groupConfig = group.component.config as Record<string, unknown>;
+        const childComponents = groupConfig.componentDefinitions as any[];
+        expect(childComponents).to.have.length(1);
+        expect(childComponents[0].component.class).to.equal("SaveButtonComponent");
+        expect(childComponents[0].layout?.class).to.equal("InlineLayout");
     });
     it("populates attachmentFields from FileUpload components", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
@@ -467,4 +555,3 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(migrated.attachmentFields?.length).to.equal(2);
     });
 });
-
