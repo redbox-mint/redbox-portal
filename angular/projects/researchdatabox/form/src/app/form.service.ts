@@ -240,7 +240,7 @@ export class FormService extends HttpClientService {
         }
 
         // Resolve the component. A component is required.
-        // TODO: make sure a 'default' component is defined for each field - this will be done on the server-side
+        // A 'default' component can be defined for each field on the server-side.
         if (componentClassName && componentClassName in this.compClassMap) {
           componentClass = this.compClassMap[componentClassName];
           if (componentClass) {
@@ -308,6 +308,8 @@ export class FormService extends HttpClientService {
       // Add the field definition to the list if it has the minimum requirements.
       if (!_isEmpty(fieldDef)) {
         _merge(fieldDef, {
+          // TODO: This may need a check for whether the dataModel should include the component name or not.
+          //       Maybe use formService.shouldIncludeInFormControlMap?
           lineagePaths: this.buildLineagePaths(parentLineagePaths, {
             angularComponents: [componentName],
             dataModel: modelClass ? [componentName] : [],

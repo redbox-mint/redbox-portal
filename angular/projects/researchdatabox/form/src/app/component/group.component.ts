@@ -165,19 +165,9 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
         this.loggerService.debug(`${this.logName}: component for '${key}' does not have a model or formControl, skipping addItem.`);
       }
 
-      // Set the lineage path and reference to the wrapper component.
+      // Set the reference to the wrapper component.
+      // TODO: is this needed? See how other components with nested components do this?
       if (elemFieldEntry) {
-        const dataModel = hasModel && includeInFormControlMap ? [key] : [];
-        elemFieldEntry.lineagePaths = this.formService.buildLineagePaths(
-          this.formFieldCompMapEntry?.lineagePaths,
-          {
-            angularComponents: [key],
-            dataModel: dataModel,
-            // TODO: The formConfig likely needs to be updated with the path to the group child component.
-            //       This requires the index in the componentDefinition, which isn't readily available here.
-            formConfig: [],
-          }
-        )
         elemFieldEntry.componentRef = wrapperRef;
       }
     }

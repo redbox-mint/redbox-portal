@@ -87,9 +87,6 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     if (!formFieldCompMapEntry) {
       throw new Error(`${this.logName}: cannot initialise component because formFieldCompMapEntry was invalid.`);
     }
-    const name = this.formFieldConfigName();
-    this.loggerService.debug(`${this.logName}: Starting initialise component for '${name}'.`, this.formFieldCompMapEntry);
-    this.className = name;
     try {
       // Create a method that children can override to set their own properties
       this.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
@@ -109,6 +106,11 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       throw new Error(`${this.logName}: cannot set component properties because formFieldCompMapEntry was invalid.`);
     }
     this.formFieldCompMapEntry = formFieldCompMapEntry;
+
+    const name = this.formFieldConfigName();
+    this.loggerService.debug(`${this.logName}: Initialise component for '${name}'.`, this.formFieldCompMapEntry);
+    this.className = name;
+
     this.formFieldCompMapEntry.component = this as FormFieldBaseComponent<ValueType>;
     this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType>;
     this.componentDefinition = this.formFieldCompMapEntry.compConfigJson?.component as FormFieldComponentOrLayoutDefinition;

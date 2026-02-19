@@ -57,7 +57,6 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     formFieldCompMapEntry?: FormFieldCompMapEntry,
     omitLayout: boolean = false
   ): Promise<FormFieldBaseComponent<ValueType> | null> {
-    this.loggerService.debug(`${this.logName}: Starting initWrapperComponent for '${this.formFieldConfigName()}'.`, this.formFieldCompMapEntry);
 
     // Ensure the initialisation details are available.
     if (!formFieldCompMapEntry) {
@@ -66,6 +65,8 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Store the form field details.
     this.formFieldCompMapEntry = formFieldCompMapEntry;
+    const componentName = this.formFieldConfigName();
+    this.loggerService.debug(`${this.logName}: Starting initWrapperComponent for '${componentName}'.`, this.formFieldCompMapEntry);
     this.componentClass = this.formFieldCompMapEntry.componentClass as typeof FormFieldBaseComponent<ValueType>;
 
     // If the wrapper has already been initialised, provide the component instance.
@@ -130,8 +131,8 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
         definition: this.formFieldCompMapEntry
       });
     }
-    
-    this.loggerService.debug(`${this.logName}: Finished initComponent for '${name}'.`, this.formFieldCompMapEntry);
+
+    this.loggerService.debug(`${this.logName}: Finished initComponent for '${componentName}'.`, this.formFieldCompMapEntry);
 
     // Set the host binding CSS classes for the wrapper element.
     const wrapperCssClasses = this.formFieldCompMapEntry.compConfigJson?.component?.config?.wrapperCssClasses;
@@ -160,14 +161,14 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   }
 
   /**
-   * 
-   * Returns true if this isn't a layout. 
-   * 
+   *
+   * Returns true if this isn't a layout.
+   *
    * TODO: Improve to have more explicit control over when to attach the producer.
-   * 
-   * @param entry 
-   * @param instance 
-   * @returns 
+   *
+   * @param entry
+   * @param instance
+   * @returns
    */
   private shouldAttachValueChangeProducer(
     entry: FormFieldCompMapEntry | undefined,
@@ -176,14 +177,14 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     return !!entry && entry.component === instance;
   }
   /**
-   * 
+   *
    * Returns true if is a component.
-   * 
+   *
    * TODO: Improve to have more explicit control over when to attach the consumer.
-   * 
-   * @param entry 
-   * @param instance 
-   * @returns 
+   *
+   * @param entry
+   * @param instance
+   * @returns
    */
   private shouldAttachValueChangeConsumer(
     entry: FormFieldCompMapEntry | undefined,
