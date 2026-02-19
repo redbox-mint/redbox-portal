@@ -9,7 +9,10 @@ import { ValidatorFormConfigVisitor } from "../../src/visitor/validator.visitor"
 import { logger } from "./helpers";
 import Services from "../../src/services/DomSanitizerService";
 import * as _ from "lodash";
-import {formConfigExample1} from "@researchdatabox/sails-ng-common/dist/test/unit/example-data";
+import {
+  formConfigExample1,
+  reusableFormDefinitionsExample1
+} from "@researchdatabox/sails-ng-common/dist/test/unit/example-data";
 
 const DomSanitizerService = new Services.DomSanitizer();
 
@@ -421,7 +424,9 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({ data: args, formMode: "edit", record });
+        const constructed = constructor.start({
+          data: args, formMode: "edit", record, reusableFormDefs: reusableFormDefinitionsExample1
+        });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
         const actual = visitor.start({
@@ -451,7 +456,8 @@ describe("Validator Visitor", async () => {
                     }
                 ]
             },
-            formMode: "edit"
+            formMode: "edit",
+            reusableFormDefs: reusableFormDefinitionsExample1,
         });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
@@ -507,7 +513,10 @@ describe("Validator Visitor", async () => {
             const constructor = new ConstructFormConfigVisitor(logger);
             let constructed;
             try {
-                constructed = constructor.start({ data: formConfig, formMode: "edit" });
+                constructed = constructor.start({
+                  data: formConfig, formMode: "edit",
+                  reusableFormDefs: reusableFormDefinitionsExample1,
+                });
             } catch (e) {
                 console.error("CONSTRUCTION ERROR (1):", e);
                 console.error("ERROR STACK (1):", (e as any).stack);
@@ -551,7 +560,10 @@ describe("Validator Visitor", async () => {
             };
 
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start({ data: formConfig, formMode: "edit" });
+            const constructed = constructor.start({
+              data: formConfig, formMode: "edit",
+              reusableFormDefs: reusableFormDefinitionsExample1,
+            });
 
             // Set mode to reject
             (global as any).sails = buildSails('reject');
@@ -589,7 +601,10 @@ describe("Validator Visitor", async () => {
             };
 
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start({ data: formConfig, formMode: "edit" });
+            const constructed = constructor.start({
+              data: formConfig, formMode: "edit",
+              reusableFormDefs: reusableFormDefinitionsExample1,
+            });
 
             (global as any).sails = buildSails('sanitize');
             (globalThis as any).sails = (global as any).sails;
