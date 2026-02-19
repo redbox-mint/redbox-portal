@@ -449,11 +449,7 @@ jobs:
       - run:
           name: Compile shared packages
           command: |
-            npm run compile:raido && npm run compile:rva && npm run compile:core
-      - run:
-          name: Compile sails-ng-common
-          command: |
-            npm run compile:sails-ng-common
+            npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:core
       - run:
           name: Install redbox-hook-kit dependencies
           command: |
