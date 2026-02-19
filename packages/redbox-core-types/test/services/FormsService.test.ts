@@ -277,8 +277,8 @@ describe('FormsService', function() {
 
       const templates = visitor.start({form});
 
-      expect(templates).to.have.length(6);
-      expect(templates.map(t => t.kind)).to.eql(["handlebars", "jsonata", "jsonata", "jsonata", "jsonata", "jsonata"]);
+      expect(templates).to.have.length(7);
+      expect(templates.map(t => t.kind)).to.eql(["handlebars", "jsonata", "jsonata", "jsonata", "jsonata", "jsonata", "jsonata"]);
     });
   });
 });

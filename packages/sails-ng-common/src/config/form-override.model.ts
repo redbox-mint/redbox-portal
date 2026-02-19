@@ -443,7 +443,7 @@ export class FormOverride {
                                 name: "questiontree_answer_one",
                                 overrides: {replaceName: id},
                                 layout: {class: "DefaultLayout", config: {label: id, visible: isVisible}},
-                                component: {class: "RadioInputComponent", config: {options: componentOptions}},
+                                component: {class: "RadioInputComponent", config: {options: componentOptions, visible: isVisible}},
                                 expressions: expressions,
                             }
                         ]

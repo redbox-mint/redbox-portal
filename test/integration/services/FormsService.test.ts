@@ -538,7 +538,20 @@ describe('The FormsService', function () {
                 componentDefinitions: [
                   {
                     name: 'text_1',
-                    component: {class: 'SimpleInputComponent'},
+                    component: {class: 'SimpleInputComponent',
+                      "config": {
+                        "autofocus": false,
+                        "disabled": false,
+                        "editMode": true,
+                        "readonly": false,
+                        "type": "text",
+                        "visible": true,
+                      },
+                    },
+                    "model": {
+                      "class": "SimpleInputModel",
+                      "config": {}
+                    }
                   },
                     {
                         name: 'text_2',
@@ -575,6 +588,26 @@ describe('The FormsService', function () {
                                 visible: true,
                             },
                         },
+                      expressions: [
+                        {
+                          name: 'text_2_text_1_expr',
+                          config: {
+                            template: `value & "__suffix"`,
+                            conditionKind: 'jsonpointer',
+                            condition: `/text_1::field.value.changed`,
+                            target: `model.value`,
+                          },
+                        },
+                        {
+                          name: 'text_2_no_template_expr',
+                          config: {
+                            operation: "testing",
+                            conditionKind: 'jsonpointer',
+                            condition: `/text_1::field.value.changed`,
+                            target: `model.value`,
+                          },
+                        },
+                      ]
                     }
                 ]
             };
