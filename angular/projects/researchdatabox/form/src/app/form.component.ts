@@ -217,6 +217,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   private valueChangeEventConsumer = new FormComponentValueChangeEventConsumer(this.eventBus);
 
+  protected configObj: Record<string, unknown> = {};
+
+  public get config() {
+    return this.configObj;
+  }
+
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(ConfigService) private configService: ConfigService,
@@ -258,6 +264,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   protected async initComponent(): Promise<void> {
     this.loggerService.info(`${this.logName}: Loading form with OID: ${this.trimmedParams.oid()}, on edit mode:${this.editMode()}, Record Type: ${this.trimmedParams.recordType()}, formName: ${this.trimmedParams.formName()}`);
     try {
+      this.configObj = await this.configService.getConfig();
       if (this.downloadAndCreateOnInit()) {
         await this.downloadAndCreateFormComponents();
       } else {
