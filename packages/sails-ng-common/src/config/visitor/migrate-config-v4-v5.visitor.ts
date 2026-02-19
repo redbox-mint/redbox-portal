@@ -986,6 +986,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const field = this.getV4Data();
     item.config = new SaveButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
+    this.sharedProps.setPropOverride('buttonCssClasses', item.config, {
+      buttonCssClasses: this.normalizeLegacyButtonCssClasses(field?.definition?.cssClasses ?? field?.definition?.cssClass),
+    });
   }
 
   visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
@@ -1003,6 +1006,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('confirmationTitle', item.config, field?.definition);
     this.sharedProps.setPropOverride('cancelButtonMessage', item.config, field?.definition);
     this.sharedProps.setPropOverride('confirmButtonMessage', item.config, field?.definition);
+    this.sharedProps.setPropOverride('buttonCssClasses', item.config, {
+      buttonCssClasses: this.normalizeLegacyButtonCssClasses(field?.definition?.cssClasses ?? field?.definition?.cssClass),
+    });
   }
 
   visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
@@ -1703,6 +1709,20 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       return 'redbox-form form rb-form-edit';
     }
     return undefined;
+  }
+
+  private normalizeLegacyButtonCssClasses(cssClasses: unknown): string | undefined {
+    if (typeof cssClasses !== 'string') {
+      return undefined;
+    }
+    const normalized = cssClasses.trim().replace(/\s+/g, ' ');
+    if (!normalized) {
+      return undefined;
+    }
+    // Bootstrap 3 -> 5 compatibility for common legacy button class.
+    return normalized
+      .replace(/\bbtn-default\b/g, 'btn-secondary')
+      .trim();
   }
 
   private shouldUseInlineLayoutInButtonBar(componentClassName: string): boolean {

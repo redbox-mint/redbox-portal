@@ -20,6 +20,7 @@ export class SaveButtonFieldComponentConfig extends FieldComponentConfig impleme
     targetStep?: string;
     forceSave?: boolean;
     labelSaving?: string;
+    buttonCssClasses?: string;
 
     constructor() {
         super();

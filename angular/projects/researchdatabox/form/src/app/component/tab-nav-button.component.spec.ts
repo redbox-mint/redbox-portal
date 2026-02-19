@@ -5,15 +5,17 @@ import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec'
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 
 let formConfig: FormConfigFrame;
+let translationService: { translationMap?: Record<string, string> };
 
 describe('TabNavButtonComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule({
+    const testBed = await createTestbedModule({
       declarations: {
         TabComponent,
         TabNavButtonComponent,
       },
     });
+    translationService = testBed.translationService as unknown as { translationMap?: Record<string, string> };
 
     formConfig = {
       name: 'testing',
@@ -157,5 +159,24 @@ describe('TabNavButtonComponent', () => {
     fixture.detectChanges();
     const navWrapper = fixture.nativeElement.querySelector('.rb-form-tab-nav-buttons');
     expect(navWrapper).toBeTruthy();
+  });
+
+  it('should resolve translation keys for previous and next labels', async () => {
+    translationService.translationMap = {
+      '@tab-nav-previous': 'Back',
+      '@tab-nav-next': 'Continue',
+    };
+    const tabNavConfig = formConfig.componentDefinitions[1]?.component?.config as Record<string, unknown> | undefined;
+    if (tabNavConfig) {
+      tabNavConfig['prevLabel'] = '@tab-nav-previous';
+      tabNavConfig['nextLabel'] = '@tab-nav-next';
+    }
+
+    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true } as any);
+    fixture.detectChanges();
+    const navHost = fixture.nativeElement.querySelector('redbox-form-tab-nav-button');
+    const buttons = navHost.querySelectorAll('button');
+    expect((buttons[0] as HTMLButtonElement).textContent?.trim()).toBe('Back');
+    expect((buttons[1] as HTMLButtonElement).textContent?.trim()).toBe('Continue');
   });
 });
