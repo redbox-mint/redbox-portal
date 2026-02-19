@@ -103,7 +103,7 @@
     "css-loader": "^7.1.2",
     "eslint": "^9.27.0",
     "ejs-cli": "^2.2.3",
-    "globals": "^16.4.0",
+    "globals": "^17.3.0",
     "mini-css-extract-plugin": "^2.9.4",
     "mocha": "^11.7.2",
     "mocha-junit-reporter": "^2.2.1",
