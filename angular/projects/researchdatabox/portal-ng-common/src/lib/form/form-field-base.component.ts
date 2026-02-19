@@ -115,9 +115,10 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     this.loggerService.debug(`${this.logName}: Initialise component for '${name}'.`, this.formFieldCompMapEntry);
     this.className = name;
 
-    this.formFieldCompMapEntry.component = this as FormFieldBaseComponent<ValueType>;
+    this.formFieldCompMapEntry.component = this;
+    // TODO: use type narrowing instead of type assertion.
     this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType>;
-    this.componentDefinition = this.formFieldCompMapEntry.compConfigJson?.component as FormFieldComponentOrLayoutDefinition;
+    this.componentDefinition = this.formFieldCompMapEntry.compConfigJson?.component;
     this.expressions = this.formFieldCompMapEntry.compConfigJson?.expressions;
     if (this.formFieldCompMapEntry.compConfigJson?.name) {
       this.name = this.formFieldCompMapEntry.compConfigJson.name;
@@ -289,6 +290,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       // Return a dummy control or throw, depending on desired behavior
       throw new Error(`${this.logName}: could not get form control from model for '${this.formFieldConfigName()}'.`);
     }
+    // TODO: use type narrowing instead of type assertion.
     return control as FormControl<ValueType>;
   }
 

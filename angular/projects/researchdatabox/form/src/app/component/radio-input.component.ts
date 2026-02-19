@@ -1,8 +1,13 @@
 import { Component, Input } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
-  RadioInputComponentName, RadioInputFieldComponentConfig, RadioInputModelName, RadioInputModelValueType, RadioOption } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
+  isTypeFieldDefinitionName,
+  RadioInputComponentName,
+  RadioInputFieldComponentDefinitionFrame,
+  RadioInputModelName,
+  RadioInputModelValueType,
+  RadioOption
+} from '@researchdatabox/sails-ng-common';
 
 export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
   protected override logName = RadioInputModelName;
@@ -12,25 +17,27 @@ export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
   selector: 'redbox-radio',
   template: `
     @if (isVisible) {
-      <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-      @for (opt of options; track opt.value) {
-        <div>
+      <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
+      @for (opt of options; track $index) {
+        <div class="form-check">
           <input
             type="radio"
-            [attr.name]="name"
-            [formControl]="formControl"
-            [id]="getOptionId(opt)"
+            class="form-check-input"
+            [formControl]="this.formControl"
+            [attr.name]="this.getOptionName($index)"
+            [name]="this.getOptionName($index)"
+            [attr.value]="opt.value"
             [value]="opt.value"
-            [class.is-valid]="isValid"
-            [class.is-invalid]="!isValid"
-            [readonly]="isReadonly"
-            [title]="tooltip">
-          <label [for]="getOptionId(opt)">
-            {{opt.label}}
+            [id]="this.getOptionId(opt)"
+            [attr.id]="this.getOptionId(opt)">
+          <label
+            class="form-check-label"
+            [attr.for]="getOptionId(opt)">
+            {{ opt.label | i18next }}
           </label>
         </div>
       }
-      <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
+      <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
     }
   `,
   standalone: false
@@ -41,28 +48,22 @@ export class RadioInputComponent extends FormFieldBaseComponent<RadioInputModelV
   public options: RadioOption[] = [];
 
   /**
-   * Override to set additional properties required by the wrapper component.
-   *
-   * @param formFieldCompMapEntry
+   * The model associated with this component.
    */
-  protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
-    super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
-    this.tooltip = this.getStringProperty('tooltip');
-    let radioInputConfig = this.componentDefinition?.config as RadioInputFieldComponentConfig;
-    let defaultConfig = new RadioInputFieldComponentConfig();
-    const cfg = (_isUndefined(radioInputConfig) || _isEmpty(radioInputConfig)) ? defaultConfig : radioInputConfig;
+  @Input() public override model?: RadioInputModel;
 
-    const cfgOptions: RadioOption[] = cfg.options;
-    if (!_isUndefined(cfgOptions) && !_isEmpty(cfgOptions)) {
-      this.options = cfgOptions;
-    } else {
-      this.options = defaultConfig.options;
+  protected override async initData(): Promise<void> {
+    const formComponentFrame = this.componentDefinition;
+    if (!isTypeFieldDefinitionName<RadioInputFieldComponentDefinitionFrame>(formComponentFrame, RadioInputComponentName)) {
+      throw new Error(`${this.logName}: Expected ${RadioInputComponentName} but got ${JSON.stringify(formComponentFrame)}`);
     }
-
+    const config = formComponentFrame.config;
+    this.options = config?.options ?? [];
+    this.tooltip = config?.tooltip ?? "";
   }
 
   /**
-   * Generate a unique ID for each radio option
+   * Generate a unique ID for each option
    * @param opt The radio option
    * @returns A unique ID string
    */
@@ -70,8 +71,7 @@ export class RadioInputComponent extends FormFieldBaseComponent<RadioInputModelV
     return `${this.name}-${opt.value}`;
   }
 
-  /**
-   * The model associated with this component.
-   */
-  @Input() public override model?: RadioInputModel;
+  getOptionName(index: number): string {
+    return this.name ?? index?.toString();
+  }
 }
