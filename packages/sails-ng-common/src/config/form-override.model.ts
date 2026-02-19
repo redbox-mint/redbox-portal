@@ -460,7 +460,7 @@ export class FormOverride {
                                 name: "questiontree_answer_one_more",
                                 overrides: {replaceName: id},
                                 layout: {class: "DefaultLayout", config: {label: id, visible: isVisible}},
-                                component: {class: "CheckboxInputComponent", config: {options: componentOptions}},
+                                component: {class: "CheckboxInputComponent", config: {options: componentOptions, visible: isVisible}},
                                 expressions: expressions,
                             }
                         ]

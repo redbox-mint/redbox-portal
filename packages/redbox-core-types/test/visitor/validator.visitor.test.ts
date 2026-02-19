@@ -1,13 +1,17 @@
 import {cloneDeep as _cloneDeep} from "lodash";
 import {
-    ConstructFormConfigVisitor,
-    FormConfigFrame,
-    formValidatorsSharedDefinitions,
-    FormValidatorSummaryErrors
-} from "../../src";
-import {ValidatorFormConfigVisitor} from "../../src";
-import {logger} from "./helpers";
-import {formConfigExample1, reusableFormDefinitionsExample1} from "./example-data";
+  ConstructFormConfigVisitor,
+  FormConfigFrame,
+  formValidatorsSharedDefinitions,
+  FormValidatorSummaryErrors
+} from "@researchdatabox/sails-ng-common";
+import {ValidatorFormConfigVisitor} from "../../src/visitor/validator.visitor";
+import {logger} from "../unit/helpers";
+import {
+  formConfigExample1,
+  reusableFormDefinitionsExample1
+} from "@researchdatabox/sails-ng-common/dist/test/unit/example-data";
+
 
 
 let expect: Chai.ExpectStatic;

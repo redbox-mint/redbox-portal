@@ -40,7 +40,6 @@ export * from './config/visitor/data-value.visitor';
 export * from './config/visitor/json-type-def.visitor';
 export * from './config/visitor/migrate-config-v4-v5.visitor';
 export * from './config/visitor/template.visitor';
-export * from './config/visitor/validator.visitor';
 export * from './logger.interface';
 // config/component
 export * from './config/component/checkbox-input.model';

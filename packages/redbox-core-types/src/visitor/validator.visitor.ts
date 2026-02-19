@@ -1,68 +1,72 @@
 import {
-    FormConfigVisitor,
-    FormValidatorConfig,
-    FormValidatorControl,
-    FormValidatorDefinition,
-    FormValidatorSummaryErrors,
-    SimpleServerFormValidatorControl,
-    FormConfigOutline,
-    ILogger,
-    SimpleInputFieldComponentDefinitionOutline,
-    SimpleInputFieldModelDefinitionOutline,
-    SimpleInputFormComponentDefinitionOutline,
-    guessType,
-    FormComponentDefinitionOutline,
-    ValidatorsSupport,
-    ContentFieldComponentDefinitionOutline,
-    ContentFormComponentDefinitionOutline,
-    RepeatableFieldComponentDefinitionOutline,
-    RepeatableFieldModelDefinitionOutline,
-    RepeatableElementFieldLayoutDefinitionOutline,
-    RepeatableFormComponentDefinitionOutline,
-    ValidationSummaryFieldComponentDefinitionOutline,
-    ValidationSummaryFormComponentDefinitionOutline,
-    GroupFieldComponentDefinitionOutline,
-    GroupFieldModelDefinitionOutline,
-    GroupFormComponentDefinitionOutline,
-    TabFieldComponentDefinitionOutline,
-    TabFieldLayoutDefinitionOutline,
-    TabFormComponentDefinitionOutline,
-    TabContentFieldComponentDefinitionOutline,
-    TabContentFieldLayoutDefinitionOutline,
-    TabContentFormComponentDefinitionOutline,
-    SaveButtonFieldComponentDefinitionOutline,
-    SaveButtonFormComponentDefinitionOutline,
-    TextAreaFieldComponentDefinitionOutline,
-    TextAreaFieldModelDefinitionOutline,
-    TextAreaFormComponentDefinitionOutline,
-    DefaultFieldLayoutDefinitionOutline,
-    CheckboxInputFieldComponentDefinitionOutline,
-    CheckboxInputFieldModelDefinitionOutline,
-    CheckboxInputFormComponentDefinitionOutline,
-    CheckboxTreeFieldComponentDefinitionOutline,
-    CheckboxTreeFieldModelDefinitionOutline,
-    CheckboxTreeFormComponentDefinitionOutline,
-    DropdownInputFieldComponentDefinitionOutline,
-    DropdownInputFieldModelDefinitionOutline,
-    DropdownInputFormComponentDefinitionOutline,
-    TypeaheadInputFieldComponentDefinitionOutline,
-    TypeaheadInputFieldModelDefinitionOutline,
-    TypeaheadInputFormComponentDefinitionOutline,
-    RichTextEditorFieldComponentDefinitionOutline,
-    RichTextEditorFieldModelDefinitionOutline,
-    RichTextEditorFormComponentDefinitionOutline,
-    RadioInputFieldComponentDefinitionOutline,
-    RadioInputFieldModelDefinitionOutline,
-    RadioInputFormComponentDefinitionOutline,
-    DateInputFieldComponentDefinitionOutline,
-    DateInputFieldModelDefinitionOutline,
-    DateInputFormComponentDefinitionOutline,
-    FormConfig,
-    DataValueFormConfigVisitor,
-    buildLineagePaths
+  FormConfigVisitor,
+  FormValidatorConfig,
+  FormValidatorControl,
+  FormValidatorDefinition,
+  FormValidatorSummaryErrors,
+  SimpleServerFormValidatorControl,
+  FormConfigOutline,
+  ILogger,
+  SimpleInputFieldComponentDefinitionOutline,
+  SimpleInputFieldModelDefinitionOutline,
+  SimpleInputFormComponentDefinitionOutline,
+  guessType,
+  FormComponentDefinitionOutline,
+  ValidatorsSupport,
+  ContentFieldComponentDefinitionOutline,
+  ContentFormComponentDefinitionOutline,
+  RepeatableFieldComponentDefinitionOutline,
+  RepeatableFieldModelDefinitionOutline,
+  RepeatableElementFieldLayoutDefinitionOutline,
+  RepeatableFormComponentDefinitionOutline,
+  ValidationSummaryFieldComponentDefinitionOutline,
+  ValidationSummaryFormComponentDefinitionOutline,
+  GroupFieldComponentDefinitionOutline,
+  GroupFieldModelDefinitionOutline,
+  GroupFormComponentDefinitionOutline,
+  TabFieldComponentDefinitionOutline,
+  TabFieldLayoutDefinitionOutline,
+  TabFormComponentDefinitionOutline,
+  TabContentFieldComponentDefinitionOutline,
+  TabContentFieldLayoutDefinitionOutline,
+  TabContentFormComponentDefinitionOutline,
+  SaveButtonFieldComponentDefinitionOutline,
+  SaveButtonFormComponentDefinitionOutline,
+  TextAreaFieldComponentDefinitionOutline,
+  TextAreaFieldModelDefinitionOutline,
+  TextAreaFormComponentDefinitionOutline,
+  DefaultFieldLayoutDefinitionOutline,
+  CheckboxInputFieldComponentDefinitionOutline,
+  CheckboxInputFieldModelDefinitionOutline,
+  CheckboxInputFormComponentDefinitionOutline,
+  CheckboxTreeFieldComponentDefinitionOutline,
+  CheckboxTreeFieldModelDefinitionOutline,
+  CheckboxTreeFormComponentDefinitionOutline,
+  DropdownInputFieldComponentDefinitionOutline,
+  DropdownInputFieldModelDefinitionOutline,
+  DropdownInputFormComponentDefinitionOutline,
+  TypeaheadInputFieldComponentDefinitionOutline,
+  TypeaheadInputFieldModelDefinitionOutline,
+  TypeaheadInputFormComponentDefinitionOutline,
+  RichTextEditorFieldComponentDefinitionOutline,
+  RichTextEditorFieldModelDefinitionOutline,
+  RichTextEditorFormComponentDefinitionOutline,
+  RadioInputFieldComponentDefinitionOutline,
+  RadioInputFieldModelDefinitionOutline,
+  RadioInputFormComponentDefinitionOutline,
+  DateInputFieldComponentDefinitionOutline,
+  DateInputFieldModelDefinitionOutline,
+  DateInputFormComponentDefinitionOutline,
+  FormConfig,
+  DataValueFormConfigVisitor,
+  buildLineagePaths, CancelButtonFieldComponentDefinitionOutline, CancelButtonFormComponentDefinitionOutline,
+  TabNavButtonFieldComponentDefinitionOutline, TabNavButtonFormComponentDefinitionOutline,
+  MapFieldComponentDefinitionOutline, MapDrawingMode, MapFieldModelDefinitionOutline, MapFormComponentDefinitionOutline,
+  FileUploadFieldComponentDefinitionOutline, FileUploadFieldModelDefinitionOutline,
+  FileUploadFormComponentDefinitionOutline, QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline,
+  FormPathHelper
 } from "@researchdatabox/sails-ng-common";
-import { get as _get } from "lodash";
-import { FormPathHelper } from "@researchdatabox/sails-ng-common/dist/src/config/visitor/common.model";
 
 
 declare const sails: {
@@ -267,6 +271,22 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         this.acceptFormComponentDefinition(item);
     }
 
+  /* Cancel Button  */
+
+  visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): void { }
+
+  visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  /* Tab Nav Button  */
+
+  visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): void { }
+
+  visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
     /* Text Area */
 
     visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {
@@ -369,7 +389,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
                 id: String(this.formPathHelper.formPath.angularComponents?.[this.formPathHelper.formPath.angularComponents.length - 1] ?? ""),
                 message: item?.config?.label ?? "TypeaheadInput configuration",
                 errors: configErrors,
-                lineagePaths: buildLineagePaths(this.formPathHelper.formPath)
+                lineagePaths: buildLineagePaths(this.formPathHelper.formPath),
             });
         }
     }
@@ -441,7 +461,51 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         this.acceptFormComponentDefinition(item);
     }
 
-    /* Radio Input */
+
+  /* Map */
+
+  visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
+    const configErrors: FormValidatorSummaryErrors['errors'] = [];
+    const enabledModes = Array.isArray(item.config?.enabledModes) ? item.config?.enabledModes : [];
+    const validModes: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'select'];
+    const invalidModes = enabledModes.filter(mode => !validModes.includes(mode));
+    if (invalidModes.length > 0) {
+      configErrors.push({
+        class: 'mapEnabledModes',
+        message: '@validator-error-map-enabled-modes',
+        params: { invalidModes },
+      });
+    }
+    if (configErrors.length > 0) {
+      this.validationErrors.push({
+        id: String(
+          this.formPathHelper.formPath.angularComponents?.[this.formPathHelper.formPath.angularComponents.length - 1] ??
+          ''
+        ),
+        message: item?.config?.label ?? 'MapComponent configuration',
+        errors: configErrors,
+        lineagePaths: buildLineagePaths(this.formPathHelper.formPath),
+      });
+    }
+  }
+
+  visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void { }
+
+  visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  /* File Upload */
+
+  visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void { }
+
+  visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void { }
+
+  visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  /* Radio Input */
 
     visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
     }
@@ -462,6 +526,25 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+      (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+        // Visit children
+        this.formPathHelper.acceptFormPath(
+          componentDefinition,
+          this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index)
+        );
+      });
+    }
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

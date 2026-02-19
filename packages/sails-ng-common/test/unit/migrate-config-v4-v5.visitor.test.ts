@@ -6,7 +6,7 @@ import {
   ConstructFormConfigVisitor,
   formValidatorsSharedDefinitions,
   TemplateFormConfigVisitor,
-  ValidatorFormConfigVisitor, FormOverride, FormConfigFrame,
+  FormOverride, FormConfigFrame,
   MigrationV4ToV5FormConfigVisitor, ReusableFormDefinitions
 } from "../../src";
 import {reusableFormDefinitionsExample1} from "./example-data";
@@ -106,11 +106,12 @@ async function migrateRunVisitors(formConfig: FormConfigFrame) {
     form: constructResult
   });
 
-  const validatorVisitor = new ValidatorFormConfigVisitor(logger);
-  validatorVisitor.start({
-    form: constructResult,
-    validatorDefinitions: formValidatorsSharedDefinitions
-  });
+  // TODO: use the redbox-hook-kit instead of the tests to run the migrate visitor.
+  // const validatorVisitor = new ValidatorFormConfigVisitor(logger);
+  // validatorVisitor.start({
+  //   form: constructResult,
+  //   validatorDefinitions: formValidatorsSharedDefinitions
+  // });
 
   const clientVisitor = new ClientFormConfigVisitor(logger);
   clientVisitor.start({

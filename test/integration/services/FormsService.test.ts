@@ -596,6 +596,7 @@ describe('The FormsService', function () {
                             conditionKind: 'jsonpointer',
                             condition: `/text_1::field.value.changed`,
                             target: `model.value`,
+                            hasTemplate: true,
                           },
                         },
                         {
@@ -605,6 +606,7 @@ describe('The FormsService', function () {
                             conditionKind: 'jsonpointer',
                             condition: `/text_1::field.value.changed`,
                             target: `model.value`,
+                            hasTemplate: false,
                           },
                         },
                       ]
