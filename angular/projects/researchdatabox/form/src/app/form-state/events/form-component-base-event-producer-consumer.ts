@@ -135,4 +135,13 @@ export abstract class FormComponentEventBaseProducerConsumer {
 				}));
 		}
 	}
+
+	/**
+	 * Helper to debug messages 
+	 */
+	protected logDebug(message: string, ...optionalParams: any[]) {
+		if (this.formComp?.config['debugEvents'] == "true") {
+			this.loggerService.debug(message, ...optionalParams);
+		}
+	}
 }
