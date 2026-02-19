@@ -44,7 +44,7 @@ describe('migrate-form-config command', () => {
     const content = fs.readFileSync(outputPath, 'utf8');
     expect(content).to.contain("import { FormConfigFrame } from '@researchdatabox/sails-ng-common';");
     expect(content).to.contain('const formConfig: FormConfigFrame = ');
-    expect(content).to.contain('module.exports = formConfig;');
+    expect(content).to.contain('export default formConfig;');
   });
 
   it('should respect global --dry-run and not write output file', async () => {

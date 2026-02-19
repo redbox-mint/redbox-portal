@@ -14,6 +14,7 @@ import {Title} from "@angular/platform-browser";
 import {provideI18Next} from "angular-i18next";
 import {provideHttpClient} from "@angular/common/http";
 import {HttpTestingController, provideHttpClientTesting} from "@angular/common/http/testing";
+import { LineagePaths } from "@researchdatabox/sails-ng-common";
 
 
 describe('The FormService', () => {
@@ -51,6 +52,33 @@ describe('The FormService', () => {
   it('should create an instance', () => {
     expect(service).toBeTruthy();
     httpTesting.verify();
+  });
+
+  it('should resolve accordion component classes from static map', async () => {
+    const componentDefinitions = [
+        {
+          name: 'accordion_1',
+          component: { class: 'AccordionComponent', config: { panels: [] } },
+          layout: { class: 'AccordionLayout' },
+        },
+        {
+          name: 'accordion_panel_1',
+          component: { class: 'AccordionPanelComponent', config: { componentDefinitions: [] } },
+          layout: { class: 'AccordionPanelLayout' },
+        },
+      ] as any;
+
+    const lineagePaths: LineagePaths = service.buildLineagePaths({
+      angularComponents: [],
+      dataModel: [],
+      formConfig: [],
+    });
+
+    const entries = await service.resolveFormComponentClasses(componentDefinitions, lineagePaths);
+
+    expect(entries.length).toBe(2);
+    expect(entries[0].componentClass?.name).toBe('AccordionComponent');
+    expect(entries[1].componentClass?.name).toBe('AccordionPanelComponent');
   });
 
   describe('JSONata helpers', () => {

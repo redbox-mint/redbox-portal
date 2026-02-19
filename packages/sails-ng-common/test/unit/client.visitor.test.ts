@@ -627,4 +627,72 @@ describe("Client Visitor", async () => {
         });
         expect(actual).to.eql({});
     });
+
+    it(`should keep transformed accordion in view mode`, async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            formMode: "view",
+            data: {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "main_tab",
+                        component: {
+                            class: "TabComponent",
+                            config: {
+                                tabs: [
+                                    {
+                                        name: "tab1",
+                                        component: {
+                                            class: "TabContentComponent",
+                                            config: { componentDefinitions: [] }
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        layout: { class: "TabLayout", config: {} }
+                    }
+                ]
+            }
+        });
+
+        const visitor = new ClientFormConfigVisitor(logger);
+        const actual = visitor.start({ form: constructed, formMode: "view" });
+        expect(actual.componentDefinitions[0].component.class).to.eql("AccordionComponent");
+    });
+
+    it(`should keep tab in edit mode`, async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            formMode: "edit",
+            data: {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "main_tab",
+                        component: {
+                            class: "TabComponent",
+                            config: {
+                                tabs: [
+                                    {
+                                        name: "tab1",
+                                        component: {
+                                            class: "TabContentComponent",
+                                            config: { componentDefinitions: [] }
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        layout: { class: "TabLayout", config: {} }
+                    }
+                ]
+            }
+        });
+
+        const visitor = new ClientFormConfigVisitor(logger);
+        const actual = visitor.start({ form: constructed, formMode: "edit" });
+        expect(actual.componentDefinitions[0].component.class).to.eql("TabComponent");
+    });
 });

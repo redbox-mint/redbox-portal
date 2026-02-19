@@ -6,6 +6,12 @@ import { GroupFieldComponentDefinitionOutline, GroupFormComponentDefinitionOutli
 import { TabFieldComponentDefinitionOutline, TabFormComponentDefinitionOutline } from '../component/tab.outline';
 import { TabContentFieldComponentDefinitionOutline, TabContentFormComponentDefinitionOutline } from '../component/tab-content.outline';
 import { RepeatableFieldComponentDefinitionOutline, RepeatableFormComponentDefinitionOutline } from '../component/repeatable.outline';
+import {
+    AccordionFieldComponentDefinitionOutline,
+    AccordionFormComponentDefinitionOutline,
+    AccordionPanelFieldComponentDefinitionOutline,
+    AccordionPanelFormComponentDefinitionOutline
+} from '../component/accordion.outline';
 
 /**
  * A visitor that traverses the form config and populates the attachmentFields property.
@@ -68,6 +74,24 @@ export class AttachmentFieldsVisitor extends FormConfigVisitor {
 
     visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
         item.config?.tabs?.forEach(tab => tab.accept(this));
+    }
+
+    // Accordion
+    visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
+        item.component.accept(this);
+    }
+
+    visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
+        item.config?.panels?.forEach(panel => panel.accept(this));
+    }
+
+    // Accordion Panel
+    visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
+        item.component.accept(this);
+    }
+
+    visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
+        item.config?.componentDefinitions?.forEach(def => def.accept(this));
     }
 
     // Tab Content
