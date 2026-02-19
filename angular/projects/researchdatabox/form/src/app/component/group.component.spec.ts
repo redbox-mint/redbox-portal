@@ -159,7 +159,7 @@ describe('GroupFieldComponent', () => {
       angularComponents: ["group_1_component", "group_2_component", "text_5"],
       angularComponentsJsonPointer: "/group_1_component/group_2_component/text_5",
       dataModel: ["group_1_component", "group_2_component", "text_5"],
-      formConfig: ["componentDefinitions", 0, "component", "config", "componentDefinitions", 2],
+      formConfig: ["componentDefinitions", 0, "component", "config", "componentDefinitions", 2, "component", "config", "componentDefinitions", 0],
     });
   });
 
