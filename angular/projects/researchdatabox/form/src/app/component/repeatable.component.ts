@@ -7,7 +7,7 @@ import {
   RepeatableComponentName,
   RepeatableElementLayoutName,
   RepeatableFieldComponentConfig,
-  RepeatableFieldComponentDefinition,
+  RepeatableFieldComponentDefinitionFrame,
   RepeatableModelName
 } from '@researchdatabox/sails-ng-common';
 import {isEmpty as _isEmpty, cloneDeep as _cloneDeep, isUndefined as _isUndefined} from 'lodash-es';
@@ -77,7 +77,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
 
     const componentFormConfig = this.componentDefinition;
-    if (!isTypeFieldDefinitionName<RepeatableFieldComponentDefinition>(componentFormConfig, RepeatableComponentName)) {
+    if (!isTypeFieldDefinitionName<RepeatableFieldComponentDefinitionFrame>(componentFormConfig, RepeatableComponentName)) {
       throw new Error(`Expected a repeatable component, but got ${JSON.stringify(componentFormConfig)}`);
     }
 
@@ -178,13 +178,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   protected createFieldNewMapEntry(templateEntry: FormFieldCompMapEntry, value: any): RepeatableElementEntry {
     const localUniqueId = RepeatableFieldComponentConfig.getLocalUID();
 
-    const elemEntry = {
+    const elemEntry: FormFieldCompMapEntry = {
       modelClass: templateEntry.modelClass,
       layoutClass: templateEntry.layoutClass,
       componentClass: templateEntry.componentClass,
       compConfigJson: _cloneDeep(templateEntry.compConfigJson),
-      localUniqueId: localUniqueId,
-    } as FormFieldCompMapEntry;
+    };
 
     // The component and layout names are set from the repeatable component name or a default name,
     // with localUniqueId appended to ensure uniqueness.

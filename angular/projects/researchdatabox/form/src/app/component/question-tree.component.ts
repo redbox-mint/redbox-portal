@@ -3,7 +3,8 @@ import {
   QuestionTreeModelValueType,
   QuestionTreeComponentName,
   QuestionTreeModelName, FormConfigFrame, isTypeWithComponentDefinitions,
-  isTypeFieldDefinitionName, QuestionTreeFieldComponentDefinition
+  isTypeFieldDefinitionName,
+  QuestionTreeFieldComponentDefinitionFrame
 } from "@researchdatabox/sails-ng-common";
 import {Component, inject, Injector, ViewChild, ViewContainerRef} from "@angular/core";
 import {AbstractControl, FormGroup} from "@angular/forms";
@@ -82,7 +83,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
 
     const componentFormConfig = this.formFieldCompMapEntry?.compConfigJson?.component;
-    if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinition>(componentFormConfig, QuestionTreeComponentName)){
+    if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(componentFormConfig, QuestionTreeComponentName)){
       throw new Error(`Expected a question tree component, but got ${JSON.stringify(componentFormConfig)}`);
     }
 

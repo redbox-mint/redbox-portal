@@ -15,7 +15,8 @@ import {
   FormConfigFrame,
   GroupFieldModelValueType, GroupFieldModelName, GroupFieldComponentName,
   isTypeFieldDefinitionName,
-  isTypeWithComponentDefinitions, GroupFieldComponentDefinition,
+  isTypeWithComponentDefinitions,
+  GroupFieldComponentDefinitionFrame,
 } from "@researchdatabox/sails-ng-common";
 import { FormComponentsMap, FormService } from "../form.service";
 import { FormComponent } from "../form.component";
@@ -107,7 +108,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
 
     const componentFormConfig = this.formFieldCompMapEntry?.compConfigJson?.component;
-    if (!isTypeFieldDefinitionName<GroupFieldComponentDefinition>(componentFormConfig, GroupFieldComponentName)) {
+    if (!isTypeFieldDefinitionName<GroupFieldComponentDefinitionFrame>(componentFormConfig, GroupFieldComponentName)) {
       throw new Error(`Expected a group component, but got ${JSON.stringify(componentFormConfig)}`);
     }
 
