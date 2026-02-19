@@ -29,7 +29,15 @@ class VocabularyApiServiceStub {
 
 class TranslationServiceStub {
   async waitForInit(): Promise<this> { return this; }
-  t(value: string, defaultValue?: string): string { return defaultValue || value; }
+  t(value: string, defaultValue?: string, options?: Record<string, unknown>): string {
+    const template = defaultValue || value;
+    if (!options) {
+      return template;
+    }
+    return Object.entries(options).reduce((result, [key, optionValue]) => {
+      return result.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), String(optionValue));
+    }, template);
+  }
 }
 
 describe('AdminVocabularyComponent', () => {
@@ -268,5 +276,25 @@ describe('AdminVocabularyComponent', () => {
 
     expect(component.syncStatusMessage).toBe('');
     expect(component.syncStatusVariant).toBe('');
+  });
+
+  it('shows backend RVA import error details instead of generic HTTP status text', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(VocabularyApiService);
+
+    spyOn(api, 'importRva').and.rejectWith({
+      message: 'Http failure response for http://localhost:1500/default/rdmp/api/vocabulary/import: 400 Bad Request',
+      error: {
+        message: 'RVA version 199 has no current concept tree artefact. This vocabulary cannot be imported until RVA publishes a concept tree for that version.'
+      }
+    });
+    spyOn(api, 'list').and.resolveTo({ data: [], meta: { total: 0, limit: 25, offset: 0 } });
+
+    await component.importRva('141');
+
+    expect(component.importStatusVariant).toBe('danger');
+    expect(component.error).toContain('has no current concept tree artefact');
+    expect(component.error).not.toContain('Http failure response');
   });
 });
