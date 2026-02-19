@@ -1,17 +1,17 @@
-import { FormConfigVisitor } from './base.model';
-import { ILogger } from '../../logger.interface';
-import { FormConfigOutline } from '../form-config.outline';
-import { FileUploadFormComponentDefinitionOutline } from '../component/file-upload.outline';
-import { GroupFieldComponentDefinitionOutline, GroupFormComponentDefinitionOutline } from '../component/group.outline';
-import { TabFieldComponentDefinitionOutline, TabFormComponentDefinitionOutline } from '../component/tab.outline';
-import { TabContentFieldComponentDefinitionOutline, TabContentFormComponentDefinitionOutline } from '../component/tab-content.outline';
-import { RepeatableFieldComponentDefinitionOutline, RepeatableFormComponentDefinitionOutline } from '../component/repeatable.outline';
+import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
+import { ILogger } from '@researchdatabox/sails-ng-common';
+import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
+import { FileUploadFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { GroupFieldComponentDefinitionOutline, GroupFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { TabFieldComponentDefinitionOutline, TabFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { TabContentFieldComponentDefinitionOutline, TabContentFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { RepeatableFieldComponentDefinitionOutline, RepeatableFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import {
     AccordionFieldComponentDefinitionOutline,
     AccordionFormComponentDefinitionOutline,
     AccordionPanelFieldComponentDefinitionOutline,
     AccordionPanelFormComponentDefinitionOutline
-} from '../component/accordion.outline';
+} from '@researchdatabox/sails-ng-common';
 
 /**
  * A visitor that traverses the form config and populates the attachmentFields property.

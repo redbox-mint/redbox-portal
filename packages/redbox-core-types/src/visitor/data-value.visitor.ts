@@ -1,36 +1,35 @@
-import { FormConfigVisitor } from './base.model';
-import { FormConfigOutline } from '../form-config.outline';
+import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
+import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import { set as _set } from 'lodash';
 import {
   SimpleInputFieldComponentDefinitionOutline,
   SimpleInputFieldModelDefinitionOutline,
   SimpleInputFormComponentDefinitionOutline,
-} from '../component/simple-input.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   ContentFieldComponentDefinitionOutline,
   ContentFormComponentDefinitionOutline,
-} from '../component/content.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   RepeatableElementFieldLayoutDefinitionOutline,
   RepeatableFieldComponentDefinitionOutline,
   RepeatableFieldModelDefinitionOutline,
   RepeatableFormComponentDefinitionOutline,
-  RepeatableModelName,
-} from '../component/repeatable.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   ValidationSummaryFieldComponentDefinitionOutline,
   ValidationSummaryFormComponentDefinitionOutline,
-} from '../component/validation-summary.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
-} from '../component/group.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   TabFieldComponentDefinitionOutline,
   TabFieldLayoutDefinitionOutline,
   TabFormComponentDefinitionOutline,
-} from '../component/tab.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   AccordionFieldComponentDefinitionOutline,
   AccordionFieldLayoutDefinitionOutline,
@@ -38,101 +37,104 @@ import {
   AccordionPanelFieldComponentDefinitionOutline,
   AccordionPanelFieldLayoutDefinitionOutline,
   AccordionPanelFormComponentDefinitionOutline,
-} from '../component/accordion.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   TabContentFieldComponentDefinitionOutline,
   TabContentFieldLayoutDefinitionOutline,
   TabContentFormComponentDefinitionOutline,
-} from '../component/tab-content.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   SaveButtonFieldComponentDefinitionOutline,
   SaveButtonFormComponentDefinitionOutline,
-} from '../component/save-button.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   CancelButtonFieldComponentDefinitionOutline,
   CancelButtonFormComponentDefinitionOutline,
-} from '../component/cancel-button.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   TabNavButtonFieldComponentDefinitionOutline,
   TabNavButtonFormComponentDefinitionOutline,
-} from '../component/tab-nav-button.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   TextAreaFieldComponentDefinitionOutline,
   TextAreaFieldModelDefinitionOutline,
   TextAreaFormComponentDefinitionOutline,
-} from '../component/text-area.outline';
-import { DefaultFieldLayoutDefinitionOutline } from '../component/default-layout.outline';
+} from '@researchdatabox/sails-ng-common';
+import { DefaultFieldLayoutDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import {
   CheckboxInputFieldComponentDefinitionOutline,
   CheckboxInputFieldModelDefinitionOutline,
   CheckboxInputFormComponentDefinitionOutline,
-} from '../component/checkbox-input.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   CheckboxTreeFieldComponentDefinitionOutline,
   CheckboxTreeFieldModelDefinitionOutline,
   CheckboxTreeFormComponentDefinitionOutline,
-} from '../component/checkbox-tree.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   DropdownInputFieldComponentDefinitionOutline,
   DropdownInputFieldModelDefinitionOutline,
   DropdownInputFormComponentDefinitionOutline,
-} from '../component/dropdown-input.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   TypeaheadInputFieldComponentDefinitionOutline,
   TypeaheadInputFieldModelDefinitionOutline,
   TypeaheadInputFormComponentDefinitionOutline,
-} from '../component/typeahead-input.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   RichTextEditorFieldComponentDefinitionOutline,
   RichTextEditorFieldModelDefinitionOutline,
   RichTextEditorFormComponentDefinitionOutline,
-} from '../component/rich-text-editor.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   MapFieldComponentDefinitionOutline,
   MapFieldModelDefinitionOutline,
   MapFormComponentDefinitionOutline,
-} from '../component/map.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   FileUploadFieldComponentDefinitionOutline,
   FileUploadFieldModelDefinitionOutline,
   FileUploadFormComponentDefinitionOutline,
-} from '../component/file-upload.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   RadioInputFieldComponentDefinitionOutline,
   RadioInputFieldModelDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
-} from '../component/radio-input.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   DateInputFieldComponentDefinitionOutline,
   DateInputFieldModelDefinitionOutline,
   DateInputFormComponentDefinitionOutline,
-} from '../component/date-input.outline';
-import { guessType } from '../helpers';
-import { FieldModelDefinitionFrame } from '../field-model.outline';
-import { FormComponentDefinitionOutline } from '../form-component.outline';
-import { ILogger } from '../../logger.interface';
-import { CanVisit } from './base.outline';
-import { FormPathHelper } from './common.model';
-import { LineagePath, LineagePathsPartial } from '../names/naming-helpers';
+} from '@researchdatabox/sails-ng-common';
+import { FormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { FieldModelDefinitionFrame } from '@researchdatabox/sails-ng-common';
+import { ILogger } from '@researchdatabox/sails-ng-common';
+import { FormConfig } from '@researchdatabox/sails-ng-common';
+import { FormPathHelper } from '@researchdatabox/sails-ng-common';
 
 /**
- * Visit each form config class type to build the JSON TypeDef schema that represents the form config.
+ * Visit each form config component and extract the value for each field.
  *
- * One use for this is to enable merging two records.
+ * This is used for to create a record data model structure from a form config.
+ *
+ * Each component definition is a property, where the key is the name and the value is the model value.
  */
-export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
-  protected override logName = 'JsonTypeDefSchemaFormConfigVisitor';
+export class DataValueFormConfigVisitor extends FormConfigVisitor {
+  protected override logName = 'DataValueFormConfigVisitor';
 
-  private jsonTypeDefPath: LineagePath;
-  private jsonTypeDef: Record<string, unknown>;
-  private typeaheadValueModesByJsonPath: Map<string, 'value' | 'optionObject'>;
+  private dataValues: Record<string, unknown>;
+
+  private formConfig: FormConfigOutline;
+
   private formPathHelper: FormPathHelper;
 
   constructor(logger: ILogger) {
     super(logger);
-    this.jsonTypeDefPath = [];
-    this.jsonTypeDef = {};
-    this.typeaheadValueModesByJsonPath = new Map<string, 'value' | 'optionObject'>();
+
+    this.dataValues = {};
+
+    this.formConfig = new FormConfig();
+
     this.formPathHelper = new FormPathHelper(logger, this);
   }
 
@@ -142,13 +144,14 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
    * @param options.form The constructed form.
    */
   start(options: { form: FormConfigOutline }): Record<string, unknown> {
-    this.jsonTypeDefPath = [];
-    this.jsonTypeDef = {};
-    this.typeaheadValueModesByJsonPath = new Map<string, 'value' | 'optionObject'>();
     this.formPathHelper.reset();
 
-    options.form.accept(this);
-    return this.jsonTypeDef;
+    this.dataValues = {};
+
+    this.formConfig = options.form;
+    this.formConfig.accept(this);
+
+    return this.dataValues;
   }
 
   /* Form Config */
@@ -156,10 +159,9 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   visitFormConfig(item: FormConfigOutline): void {
     (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
       // Visit children
-      this.acceptJsonTypeDefPath(
+      this.formPathHelper.acceptFormPath(
         componentDefinition,
-        this.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index),
-        ['properties']
+        this.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index)
       );
     });
   }
@@ -187,20 +189,13 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   /* Repeatable  */
 
   visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-    const componentDefinition = item.config?.elementTemplate;
-    if (componentDefinition) {
-      this.acceptJsonTypeDefPath(
-        componentDefinition,
-        this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(componentDefinition),
-        ['elements']
-      );
-    }
+    // The value in the elementTemplate is the value for *new* items,
+    // no new array elements are created as part of the data value visitor.
+    // So, don't process the element template.
   }
 
   visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
-    // Build the json type def from the component instead of model for repeatable.
-    // Need to visit nested components to build the correct structure.
-    // this.setFromModelDefinition(item);
+    this.setFromModelDefinition(item);
   }
 
   visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {}
@@ -222,18 +217,15 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
     (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
       // Visit children
-      this.acceptJsonTypeDefPath(
+      this.formPathHelper.acceptFormPath(
         componentDefinition,
-        this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(componentDefinition, index),
-        ['properties']
+        this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(componentDefinition, index)
       );
     });
   }
 
   visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
-    // Build the json type def from the component instead of model for group.
-    // Need to visit nested components to build the correct structure.
-    // this.setFromModelDefinition(item);
+    this.setFromModelDefinition(item);
   }
 
   visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
@@ -245,7 +237,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
     (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
       // Visit children
-      this.acceptJsonTypeDefPath(
+      this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForTabFieldComponentDefinition(componentDefinition, index)
       );
@@ -262,7 +254,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
 
   visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
     (item.config?.panels ?? []).forEach((componentDefinition, index) => {
-      this.acceptJsonTypeDefPath(
+      this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(componentDefinition, index)
       );
@@ -277,7 +269,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
 
   visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
     (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-      this.acceptJsonTypeDefPath(
+      this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(componentDefinition, index)
       );
@@ -295,7 +287,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
     (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
       // Visit children
-      this.acceptJsonTypeDefPath(
+      this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index)
       );
@@ -386,29 +378,9 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
 
   /* Typeahead Input */
 
-  visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
-    const jsonPathKey = this.jsonTypeDefPath.join('/');
-    this.typeaheadValueModesByJsonPath.set(
-      jsonPathKey,
-      item.config?.valueMode === 'optionObject' ? 'optionObject' : 'value'
-    );
-  }
+  visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {}
 
   visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
-    const jsonPathKey = this.jsonTypeDefPath.join('/');
-    const valueMode = this.typeaheadValueModesByJsonPath.get(jsonPathKey) ?? 'value';
-    if (valueMode === 'optionObject') {
-      _set(this.jsonTypeDef, this.jsonTypeDefPath, {
-        properties: {
-          label: { type: 'string' },
-          value: { type: 'string' },
-        },
-        optionalProperties: {
-          sourceType: { type: 'string' },
-        },
-      });
-      return;
-    }
     this.setFromModelDefinition(item);
   }
 
@@ -433,9 +405,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {}
 
   visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
-    _set(this.jsonTypeDef, this.jsonTypeDefPath, {
-      type: 'object',
-    });
+    this.setFromModelDefinition(item);
   }
 
   visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
@@ -447,11 +417,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {}
 
   visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
-    _set(this.jsonTypeDef, this.jsonTypeDefPath, {
-      elements: {
-        type: 'object',
-      },
-    });
+    this.setFromModelDefinition(item);
   }
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
@@ -484,53 +450,25 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
 
   /* Shared */
 
-  protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
-    const value = item?.config?.value;
-
-    // default to a type of string
-    let guessedType = 'string';
-
-    if (value !== undefined) {
-      if (item?.class === RepeatableModelName) {
-        if (Array.isArray(value) && value.length > 0) {
-          guessedType = guessType(value[0]);
-        } else {
-          guessedType = 'string';
-        }
-      } else {
-        guessedType = guessType(value);
-      }
-    }
-    // type: https://jsontypedef.com/docs/jtd-in-5-minutes/#type-schemas
-    _set(this.jsonTypeDef, this.jsonTypeDefPath, { type: guessedType });
-  }
-
   /**
-   * Call accept on the properties of the form component definition outline that can be visited.
-   * @param item The form component definition outline.
+   * Set the value for the form component when visiting the model definition.
+   *
+   * Some components might have data values in other places (e.g. ContentComponent component.config.content).
+   * This is currently not included in the built data value structure.
+   *
+   * There may be future uses cases for extracting data values from places other than the model.config.value.
+   *
+   * @param item The field model definition.
    * @protected
    */
-  protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
-    const jsonTypeDefPathKeys = item.model && item.name ? [item.name] : [];
-
-    this.acceptJsonTypeDefPath(item.component, { formConfig: ['component'] }, jsonTypeDefPathKeys);
-    if (item.model) {
-      this.acceptJsonTypeDefPath(item.model, { formConfig: ['model'] }, jsonTypeDefPathKeys);
-    }
-    if (item.layout) {
-      this.acceptJsonTypeDefPath(item.layout, { formConfig: ['layout'] }, jsonTypeDefPathKeys);
+  protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
+    const dataModelPath = this.formPathHelper.formPath.dataModel;
+    if (item?.config?.value !== undefined) {
+      _set(this.dataValues, dataModelPath, item?.config?.value);
     }
   }
 
-  protected acceptJsonTypeDefPath(item: CanVisit, more: LineagePathsPartial, jsonTypeDefPathKeys?: LineagePath): void {
-    const originalPath = [...this.jsonTypeDefPath];
-    try {
-      this.jsonTypeDefPath = [...originalPath, ...(jsonTypeDefPathKeys ?? [])];
-      this.formPathHelper.acceptFormPath(item, more);
-    } catch (error) {
-      throw error;
-    } finally {
-      this.jsonTypeDefPath = originalPath;
-    }
+  protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
+    this.formPathHelper.acceptFormComponentDefinition(item);
   }
 }

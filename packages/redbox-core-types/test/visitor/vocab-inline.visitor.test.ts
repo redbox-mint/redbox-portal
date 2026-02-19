@@ -1,13 +1,13 @@
 import { expect } from 'chai';
 import {
     CheckboxTreeFormComponentDefinitionOutline,
-    ConstructFormConfigVisitor,
     DropdownInputFormComponentDefinitionOutline,
     FormConfigFrame,
     GroupFieldComponentName,
     RadioInputFormComponentDefinitionOutline
 } from '@researchdatabox/sails-ng-common';
 import type { ILogger } from '../../src/Logger';
+import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
 import { VocabInlineFormConfigVisitor } from '../../src/visitor/vocab-inline.visitor';
 
 describe('VocabInlineFormConfigVisitor', () => {
