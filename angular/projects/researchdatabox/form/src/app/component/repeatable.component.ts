@@ -34,7 +34,7 @@ import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '.
       @if (isStatusReady() && isVisible) {
         <button type="button" class="rb-form-repeatable__add btn btn-primary" (click)="appendNewElement()" [attr.aria-label]="'add-button-label' | i18next">
           <span class="fa fa-plus-circle" aria-hidden="true"></span>
-          <span>Add</span>
+          <span>{{ 'add-button-label' | i18next }}</span>
         </button>
       }
     </div>

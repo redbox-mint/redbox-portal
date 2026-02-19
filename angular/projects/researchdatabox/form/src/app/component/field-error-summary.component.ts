@@ -17,9 +17,10 @@ import { getAdditionalErrorCount, getPrimaryError, hasMultipleErrors } from './f
                   class="rb-form-field-error-toggle"
                   [attr.aria-expanded]="isExpanded"
                   [attr.aria-controls]="detailPanelId"
+                  [attr.aria-label]="'form.additionalErrorsButtonAriaLabel' | i18next: { count: additionalErrorCount }"
                   (click)="toggleExpanded()"
                   (keydown)="onToggleKeydown($event)">
-            +{{ additionalErrorCount }} more
+            {{ 'form.additionalErrorsButtonLabel' | i18next: { count: additionalErrorCount } }}
           </button>
         }
       </div>
@@ -27,7 +28,7 @@ import { getAdditionalErrorCount, getPrimaryError, hasMultipleErrors } from './f
         <div class="rb-form-field-error-panel"
              [attr.id]="detailPanelId"
              role="region"
-             [attr.aria-label]="fieldName + ' validation errors'">
+             [attr.aria-label]="'form.validationErrorsAriaLabel' | i18next: { fieldName: fieldName }">
           <p class="rb-form-field-error-panel__title">{{ 'form.fixFollowingErrors' | i18next }}</p>
           <ul class="rb-form-field-error-panel__list">
             @for (error of errors; track trackError(error, $index)) {
@@ -45,8 +46,12 @@ import { getAdditionalErrorCount, getPrimaryError, hasMultipleErrors } from './f
   standalone: false,
 })
 export class FieldErrorSummaryComponent implements OnChanges {
+  private static nextInstanceId = 0;
+
   @Input() errors: FormValidatorComponentErrors[] = [];
   @Input() fieldName: string = '';
+
+  private readonly instanceId = FieldErrorSummaryComponent.nextInstanceId++;
 
   public isExpanded: boolean = false;
 
@@ -69,11 +74,11 @@ export class FieldErrorSummaryComponent implements OnChanges {
   }
 
   public get summaryId(): string {
-    return `${this.fieldName || 'field'}-error-summary`;
+    return `${this.fieldName || 'field'}-${this.instanceId}-error-summary`;
   }
 
   public get detailPanelId(): string {
-    return `${this.fieldName || 'field'}-error-details`;
+    return `${this.fieldName || 'field'}-${this.instanceId}-error-details`;
   }
 
   public toggleExpanded(): void {

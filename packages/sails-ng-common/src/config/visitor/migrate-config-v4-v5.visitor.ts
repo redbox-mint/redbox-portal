@@ -1182,7 +1182,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
     const field = this.getV4Data();
-    item.config = (new DefaultFieldLayoutConfig() as unknown) as ActionRowFieldLayoutConfig;
+    item.config = new ActionRowFieldLayoutConfig();
     this.sharedPopulateFieldLayoutConfig(item.config, field);
   }
 
