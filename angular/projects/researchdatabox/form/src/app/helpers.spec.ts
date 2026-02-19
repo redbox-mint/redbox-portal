@@ -20,6 +20,7 @@ import { DefaultLayoutComponent } from "./component/default-layout.component";
 import { InlineLayoutComponent } from "./component/inline-layout.component";
 import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
 import { FormBaseWrapperDirective } from "./component/base-wrapper.directive";
+import { FieldErrorSummaryComponent } from "./component/field-error-summary.component";
 import { provideHttpClient } from "@angular/common/http";
 import { provideHttpClientTesting } from "@angular/common/http/testing";
 import { provideFormFeature } from './form-state/providers';
@@ -122,6 +123,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "InlineLayoutComponent": InlineLayoutComponent,
       "FormBaseWrapperComponent": FormBaseWrapperComponent,
       "FormBaseWrapperDirective": FormBaseWrapperDirective,
+      "FieldErrorSummaryComponent": FieldErrorSummaryComponent,
       "FormComponent": FormComponent,
     }, testConfig.declarations ?? {}),
     imports: await createTestBedModuleConfig({

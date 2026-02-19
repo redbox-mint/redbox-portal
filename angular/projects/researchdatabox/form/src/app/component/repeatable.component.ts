@@ -332,17 +332,7 @@ export interface RepeatableElementEntry {
   <ng-template #afterComponentTemplate>
     @if (isVisible) {
       @let componentValidationList = getFormValidatorComponentErrors;
-      @if (componentValidationList.length > 0) {
-        <div class="invalid-feedback">
-          Field validation errors:
-          <ul>
-            @for (error of componentValidationList; track $index) {
-              <li>{{ error.message | i18next: error.params }}</li>
-            }
-          </ul>
-        </div>
-      }
-      <div class="valid-feedback">The field is valid.</div>
+      <redbox-field-error-summary [errors]="componentValidationList" [fieldName]="componentName"></redbox-field-error-summary>
     }
   </ng-template>
   `,

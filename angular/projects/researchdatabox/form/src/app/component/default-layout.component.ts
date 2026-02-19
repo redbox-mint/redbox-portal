@@ -64,18 +64,7 @@ import { FormService } from "../form.service";
     <ng-template #afterComponentTemplate>
       @if (isVisible) {
         @let componentValidationList = getFormValidatorComponentErrors;
-        @if (componentValidationList.length > 0) {
-          <div class="invalid-feedback">
-            {{ 'form.invalidValue' | i18next }}
-            @for (error of componentValidationList; track (error.class ?? 'err') + '-' + $index) {
-              <span [attr.data-validation-error-class]="error.class"
-                    [attr.data-validation-error-message]="error.message">
-                {{ $index + 1 }}) {{ error.message | i18next: error.params }}
-              </span>
-            }
-          </div>
-        }
-        <div class="valid-feedback">{{ 'form.fieldValid' | i18next }}</div>
+        <redbox-field-error-summary [errors]="componentValidationList" [fieldName]="componentName"></redbox-field-error-summary>
       }
     </ng-template>
   }

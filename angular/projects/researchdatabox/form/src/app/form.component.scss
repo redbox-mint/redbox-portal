@@ -8,6 +8,11 @@
   --rb-form-gap-5: 2rem;
   --rb-form-border-color: rgba(15, 23, 42, 0.14);
   --rb-form-bg-muted: rgba(15, 23, 42, 0.04);
+  --rb-form-validation-danger: var(--rb-form-color-danger, #b83a2f);
+  --rb-form-validation-danger-strong: var(--rb-form-color-danger-strong, #8f1f16);
+  --rb-form-validation-surface: var(--rb-form-color-danger-soft, #fff5f3);
+  --rb-form-validation-outline: color-mix(in srgb, var(--rb-form-validation-danger) 24%, #ffffff);
+  --rb-form-validation-shadow: color-mix(in srgb, var(--rb-form-validation-danger) 24%, transparent);
   display: block;
 }
 
@@ -199,6 +204,89 @@
   padding: var(--rb-form-gap-2);
   border: 1px solid var(--rb-form-border-color);
   background: var(--rb-form-bg-muted);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-field-error-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.1rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--rb-form-validation-outline);
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.9), rgba(255, 244, 241, 0.95)),
+    var(--rb-form-validation-surface);
+  box-shadow: 0 6px 16px -14px var(--rb-form-validation-shadow);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-field-error-summary__primary {
+  flex: 0 1 auto;
+  color: var(--rb-form-validation-danger-strong);
+  font-weight: 600;
+  font-size: 0.92rem;
+  line-height: 1.3;
+  max-width: min(100%, 48rem);
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-field-error-toggle {
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--rb-form-validation-danger) 35%, #ffffff);
+  background: #fff;
+  color: var(--rb-form-validation-danger-strong);
+  border-radius: 999px;
+  padding: 0.16rem 0.58rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+  transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-field-error-toggle:hover,
+:host(.rb-form-edit) ::ng-deep .rb-form-field-error-toggle:focus-visible {
+  background: color-mix(in srgb, var(--rb-form-validation-danger) 10%, #ffffff);
+  box-shadow: 0 0 0 0.18rem color-mix(in srgb, var(--rb-form-validation-danger) 18%, transparent);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-field-error-panel {
+  margin-top: 0.45rem;
+  padding: 0.68rem 0.75rem 0.7rem 0.85rem;
+  border-radius: 0.68rem;
+  border-left: 4px solid var(--rb-form-validation-danger);
+  background: color-mix(in srgb, var(--rb-form-validation-surface) 80%, #ffffff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rb-form-validation-danger) 15%, #ffffff);
+  max-height: 8.4rem;
+  overflow: auto;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-field-error-panel__list {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-field-error-panel__title {
+  margin: 0 0 0.42rem 0;
+  color: var(--rb-form-validation-danger-strong);
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-field-error-panel__item {
+  margin: 0;
+  color: var(--rb-form-validation-danger-strong);
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+:host(.rb-form-edit) ::ng-deep .rb-form-field-error-panel__item + .rb-form-field-error-panel__item {
+  margin-top: 0.28rem;
 }
 
 :host(.rb-form-edit) ::ng-deep .rb-form-contributor-inline .rb-form-group {

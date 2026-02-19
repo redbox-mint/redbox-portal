@@ -670,6 +670,7 @@
   "help": "Help",
   "form.invalidValue": "Invalid value:",
   "form.fieldValid": "The field is valid.",
+  "form.fixFollowingErrors": "Please fix the following errors:",
   "add-button-label": "Add Item",
   "remove-button-label": "Remove Item",
   "select-all-items": "Select All Items",
