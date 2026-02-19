@@ -30,7 +30,6 @@ import {
   SearchService,
   BrandingModel,
   RecordTypeModel, ErrorResponseItemV2,
-  FormModel,
   RecordModel,
   UserModel,
   RoleModel,
@@ -43,6 +42,7 @@ import { FileStore } from '@tus/file-store';
 import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormAttributes } from '../waterline-models/Form';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -203,7 +203,14 @@ export namespace Controllers {
       const form = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
       const formMode = editMode ? "edit" : "view";
       const reusableFormDefs = sails.config.reusableFormDefinitions;
-      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(form as unknown as FormConfigFrame, formMode, reusableFormDefs);
+      const formConfig = form?.configuration;
+      if (!formConfig) {
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: `Form configuration not found for record type: ${recordType}` }],
+        });
+      }
+      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig, formMode, reusableFormDefs);
 
       // return the matching format, return the model data as json
       return this.sendResp(req, res, {
@@ -228,8 +235,8 @@ export namespace Controllers {
         localFormName = locals['localFormName'] as string;
       }
       const extFormName = localFormName ? localFormName : '';
-      let appSelector = 'dmp-form';
-      let appName = 'dmp';
+      const appSelector = 'dmp-form';
+      const appName = 'dmp';
       sails.log.debug('RECORD::APP: ' + appName);
       sails.log.debug('RECORD::APP formName: ' + extFormName);
       if (recordType != '' && extFormName == '') {
@@ -240,10 +247,7 @@ export namespace Controllers {
               displayErrors: [{ detail: 'Form not found' }]
             });
           }
-          if (form['customAngularApp'] != null) {
-            appSelector = form['customAngularApp']['appSelector'];
-            appName = form['customAngularApp']['appName'];
-          }
+          // Deprecated: customAngularApp has been removed from FormConfigFrame
           return this.sendView(req, res, 'record/edit', {
             oid: oid,
             rdmp: rdmp,
@@ -254,17 +258,14 @@ export namespace Controllers {
           });
         });
       } else if (extFormName != '') {
-        FormsService.getFormByName(extFormName, true).subscribe(form => {
+        FormsService.getFormByName(extFormName, true, String(brand.id)).subscribe(form => {
           if (!form) {
             return this.sendResp(req, res, {
               status: 404,
               displayErrors: [{ detail: 'Form not found' }]
             });
           }
-          if (form['customAngularApp'] != null) {
-            appSelector = form['customAngularApp']['appSelector'];
-            appName = form['customAngularApp']['appName'];
-          }
+          // Deprecated: customAngularApp has been removed from FormConfigFrame
           return this.sendView(req, res, 'record/edit', {
             oid: oid,
             rdmp: rdmp,
@@ -282,7 +283,7 @@ export namespace Controllers {
       } else {
         from(this.recordsService.getMeta(oid)).pipe(flatMap(record => {
           const formName = record.metaMetadata.form;
-          return FormsService.getFormByName(formName, true);
+          return FormsService.getFormByName(formName, true, String(brand.id));
         })).subscribe(form => {
           if (!form) {
             return this.sendResp(req, res, {
@@ -291,12 +292,9 @@ export namespace Controllers {
             });
           }
           sails.log.debug(form);
-          if (form['customAngularApp'] != null) {
-            appSelector = form['customAngularApp']['appSelector'];
-            appName = form['customAngularApp']['appName'];
-          }
+          // Deprecated: customAngularApp has been removed from FormConfigFrame
           if (!recordType) {
-            recordType = form['type'];
+            recordType = form.configuration?.type ?? '';
           }
           return this.sendView(req, res, 'record/edit', {
             oid: oid,
@@ -342,7 +340,7 @@ export namespace Controllers {
       const formParam = req.param('formName');
 
       try {
-        let form: FormModel | null = null;
+        let form: FormAttributes | null = null;
         let currentRec: RecordModel | null = null;
         if (!oid) {
           //find form to create a record
@@ -388,7 +386,7 @@ export namespace Controllers {
           }
 
           // get the form config
-          form = await FormsService.getForm(brand, formParam, editMode, '', currentRec as RecordModel) as FormModel | null;
+          form = await FormsService.getForm(brand, formParam, editMode, '', currentRec as RecordModel) as FormAttributes | null;
           if (_.isEmpty(form)) {
             const msg = `Error, getting form ${formParam} for OID: ${oid}`;
             return this.sendResp(req, res, {
@@ -406,8 +404,17 @@ export namespace Controllers {
         const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[]).map((role: AnyRecord) => String(role['name'] ?? '')).filter((name: string) => !!name);
         const recordData = currentRec;
         const reusableFormDefs = sails.config.reusableFormDefinitions;
+        const formConfig = form?.configuration;
+        if (!formConfig) {
+          const msg = `Form configuration not found for form ${formParam}, record type ${recordType}, oid ${oid}`;
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ detail: msg }],
+            v1: { message: msg }
+          });
+        }
         const mergedForm = await FormsService.buildClientFormConfig(
-          form as unknown as FormConfigFrame,
+          formConfig,
           formMode,
           userRoles,
           recordData?.metadata ?? null,
@@ -1036,7 +1043,12 @@ export namespace Controllers {
       this.initTusServer();
       const method = _.toLower(req.method);
 
-      const prefix = `${BrandingService.getBrandAndPortalPath(req)}/record/${oid}`;
+      const brandPortalPrefix = BrandingService.getBrandAndPortalPath(req);
+      const defaultAttachmentPrefix = `${brandPortalPrefix}/record/${oid}`;
+      const companionAttachmentPrefix = `${brandPortalPrefix}/companion/record/${oid}`;
+      const prefix = [defaultAttachmentPrefix, companionAttachmentPrefix]
+        .find((candidatePrefix) => req.url.startsWith(candidatePrefix) || req.path.startsWith(candidatePrefix))
+        ?? defaultAttachmentPrefix;
       const tusReq = req as unknown as TusRequestExtension;
       tusReq._tusOriginalUrl = req.url;
       tusReq._tusBaseUrl = prefix;
@@ -1105,7 +1117,11 @@ export namespace Controllers {
 
         if (!hasViewAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
-          return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+          return this.sendResp(req, res, {
+            status: 403,
+            errors: [this.asError(new Error(TranslationService.t('edit-error-no-permissions')))],
+            displayErrors: [{ code: 'edit-error-no-permissions' }]
+          });
         }
         // check if this attachId exists in the record
         let found: AnyRecord | null = null;
@@ -1123,7 +1139,11 @@ export namespace Controllers {
         });
         if (!found) {
           sails.log.verbose("Error: Attachment not found in do attachment.");
-          return throwError(new Error(TranslationService.t('attachment-not-found')));
+          return this.sendResp(req, res, {
+            status: 404,
+            errors: [this.asError(new Error(TranslationService.t('attachment-not-found')))],
+            displayErrors: [{ code: 'attachment-not-found' }]
+          });
         }
         let mimeType = found['mimeType'] as string;
         if (_.isEmpty(mimeType)) {
@@ -1166,7 +1186,11 @@ export namespace Controllers {
         const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec as AnyRecord));
         if (!hasEditAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
-          return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+          return this.sendResp(req, res, {
+            status: 403,
+            errors: [this.asError(new Error(TranslationService.t('edit-error-no-permissions')))],
+            displayErrors: [{ code: 'edit-error-no-permissions' }]
+          });
         }
         sails.log.verbose(req.headers);
         const uploadFileSize = req.headers['upload-length'];
@@ -1180,7 +1204,10 @@ export namespace Controllers {
           if (diskSpace.free <= thresholdAppliedFileSize) {
             const errorMessage = TranslationService.t('not-enough-disk-space');
             sails.log.error(errorMessage + ' Total File Size ' + thresholdAppliedFileSize + ' Total Free Space ' + diskSpace.free);
-            return throwError(new Error(errorMessage));
+            return this.sendResp(req, res, {
+              status: 500,
+              errors: [this.asError(new Error(errorMessage))]
+            });
           }
         }
         // process the upload...

@@ -619,6 +619,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
     this.sharedPopulateFieldComponentConfig(item.config, field);
 
+    // TODO: form.customAngularApp?
+    // TODO: form.requiredFieldIndicator?
+    // TODO: form.messages?
+    // TODO: form.attachmentFields?
     // Content component is used to display info about missing component mappings.
     // Provide a message for not yet implemented fields.
     const { componentClassName, modelClassName, layoutClassName } = this.mapV4ToV5(field);

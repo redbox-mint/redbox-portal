@@ -30,6 +30,14 @@ import {
   TabFormComponentDefinitionOutline,
 } from '../component/tab.outline';
 import {
+  AccordionFieldComponentDefinitionOutline,
+  AccordionFieldLayoutDefinitionOutline,
+  AccordionFormComponentDefinitionOutline,
+  AccordionPanelFieldComponentDefinitionOutline,
+  AccordionPanelFieldLayoutDefinitionOutline,
+  AccordionPanelFormComponentDefinitionOutline,
+} from '../component/accordion.outline';
+import {
   TabContentFieldComponentDefinitionOutline,
   TabContentFieldLayoutDefinitionOutline,
   TabContentFormComponentDefinitionOutline,
@@ -336,6 +344,56 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     // if there are no tabs, this is an invalid component
     // indicate this by deleting all properties on item
     if ((item.component?.config?.tabs ?? [])?.length === 0) {
+      this.removePropsAll(item);
+    }
+  }
+
+  /* Accordion */
+
+  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
+    this.processFieldComponentDefinition(item);
+
+    (item.config?.panels ?? []).forEach((componentDefinition, index) => {
+      this.formPathHelper.acceptFormPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(componentDefinition, index)
+      );
+    });
+  }
+
+  visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): void {
+    this.processFieldLayoutDefinition(item);
+  }
+
+  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
+    this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+
+    if ((item.component?.config?.panels ?? [])?.length === 0) {
+      this.removePropsAll(item);
+    }
+  }
+
+  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
+    this.processFieldComponentDefinition(item);
+
+    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+      this.formPathHelper.acceptFormPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(componentDefinition, index)
+      );
+    });
+  }
+
+  visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): void {
+    this.processFieldLayoutDefinition(item);
+  }
+
+  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
+    this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+
+    if ((item.component?.config?.componentDefinitions ?? []).length === 0) {
       this.removePropsAll(item);
     }
   }

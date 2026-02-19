@@ -19,6 +19,7 @@ import {
   TabContentTypes,
 } from './component/tab-content.outline';
 import { TabTypes } from './component/tab.outline';
+import { AccordionTypes } from './component/accordion.outline';
 import { DefaultLayoutTypes } from './component/default-layout.outline';import { InlineLayoutTypes } from './component/inline-layout.outline';
 import {
   FieldLayoutDefinitionFrameKindType,
@@ -71,6 +72,7 @@ export type AllTypes =
   | ValidationSummaryTypes
   | TabContentTypes
   | TabTypes
+  | AccordionTypes
   | CheckboxInputTypes
   | DropdownInputTypes
   | RadioInputTypes

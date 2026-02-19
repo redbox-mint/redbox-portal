@@ -359,6 +359,28 @@ export class FormPathHelper {
     };
   }
 
+  public lineagePathsForAccordionFieldComponentDefinition(
+    item: FormComponentDefinitionOutline,
+    index: number
+  ): LineagePathsPartial {
+    return {
+      formConfig: ['config', 'panels', index.toString()],
+      dataModel: this.getFormPathDataModel(item),
+      angularComponents: this.getFormPathAngularComponents(item),
+    };
+  }
+
+  public lineagePathsForAccordionPanelFieldComponentDefinition(
+    item: FormComponentDefinitionOutline,
+    index: number
+  ): LineagePathsPartial {
+    return {
+      formConfig: ['config', 'componentDefinitions', index.toString()],
+      dataModel: this.getFormPathDataModel(item),
+      angularComponents: this.getFormPathAngularComponents(item),
+    };
+  }
+
   public lineagePathsForRepeatableFieldComponentDefinition(item: FormComponentDefinitionOutline): LineagePathsPartial {
     return {
       formConfig: ['config', 'elementTemplate'],

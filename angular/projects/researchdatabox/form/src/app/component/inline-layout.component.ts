@@ -38,7 +38,7 @@ import {FormService} from "../form.service";
     @if (getStringProperty('label')) {
       @if (isVisible) {
         <label class="form-label mb-0 d-inline-block flex-shrink-0">
-          <span [innerHtml]="getStringProperty('label')" [title]="tooltip"></span>
+          <span [innerHtml]="getStringProperty('label') | i18next" [title]="tooltip | i18next"></span>
           @if (isRequired) {
             <span
               class="form-field-required-indicator"
@@ -51,7 +51,7 @@ import {FormService} from "../form.service";
           }
         </label>
         @if (helpTextVisible) {
-          <span class="help-block" [innerHtml]="getStringProperty('helpText')"></span>
+          <span class="help-block" [innerHtml]="getStringProperty('helpText') | i18next"></span>
         }
         }
       }

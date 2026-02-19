@@ -2,8 +2,8 @@ import { FormFieldModel } from './base.model';
 import { FormControl, FormGroup } from '@angular/forms';
 import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef, ApplicationRef, AfterViewInit } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
 import { LoggerService } from '../logger.service';
-import { get as _get, isEqual as _isEqual, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, isObject as _isObject, isArray as _isArray, cloneDeep as _cloneDeep} from 'lodash-es';
-import {UtilityService} from "../utility.service";
+import { get as _get, isEqual as _isEqual, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, isObject as _isObject, isArray as _isArray, cloneDeep as _cloneDeep } from 'lodash-es';
+import { UtilityService } from "../utility.service";
 import {
   FormExpressionsConfigFrame,
   FormComponentDefinitionFrame,
@@ -16,10 +16,14 @@ import {
   JSONataQuerySourceProperty,
   FormExpressionsConfigOutline
 } from '@researchdatabox/sails-ng-common';
-import {LoDashTemplateUtilityService} from '../lodash-template-utility.service';
+import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
 
 export type FormFieldComponentOrLayoutDefinition = FieldComponentDefinitionFrame | FieldLayoutDefinitionFrame;
 export type FormFieldComponentOrLayoutConfig = FieldComponentConfigFrame | FieldLayoutConfigFrame;
+export interface FormFieldFocusRequestOptions {
+  scroll?: boolean;
+  scrollOptions?: ScrollIntoViewOptions;
+}
 
 /**
  * Base class for form components. Data binding to a form field is optional.
@@ -31,8 +35,8 @@ export type FormFieldComponentOrLayoutConfig = FieldComponentConfigFrame | Field
 @Directive()
 export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   protected logName: string = "FormFieldBaseComponent";
-  public name:string | null = '';
-  public className:string = '';
+  public name: string | null = '';
+  public className: string = '';
   public model?: FormFieldModel<ValueType>;
   public componentDefinition?: FormFieldComponentOrLayoutDefinition;
   public componentDefinitionCache?: FieldComponentConfigFrame;
@@ -115,7 +119,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType>;
     this.componentDefinition = this.formFieldCompMapEntry.compConfigJson?.component as FormFieldComponentOrLayoutDefinition;
     this.expressions = this.formFieldCompMapEntry.compConfigJson?.expressions;
-    if(this.formFieldCompMapEntry.compConfigJson?.name) {
+    if (this.formFieldCompMapEntry.compConfigJson?.name) {
       this.name = this.formFieldCompMapEntry.compConfigJson.name;
     }
   }
@@ -133,12 +137,12 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return this.status() === FormFieldComponentStatus.INIT_VIEW_READY || this.status() === FormFieldComponentStatus.READY;
   }
 
-  public getBooleanProperty(name:string, defaultValue:boolean): boolean {
-    return _get(this.componentDefinition?.config,name,defaultValue);
+  public getBooleanProperty(name: string, defaultValue: boolean): boolean {
+    return _get(this.componentDefinition?.config, name, defaultValue);
   }
 
-  public getStringProperty(name:string) {
-    return _get(this.componentDefinition?.config,name,'');
+  public getStringProperty(name: string) {
+    return _get(this.componentDefinition?.config, name, '');
   }
 
   get isVisible(): boolean {
@@ -154,22 +158,22 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   get label(): string {
-    return _get(this.componentDefinition?.config,'label','');
+    return _get(this.componentDefinition?.config, 'label', '');
   }
 
-  hasExpressionsConfigChanged(lastKeyChanged:string, forceCheckAll:boolean = false): boolean {
+  hasExpressionsConfigChanged(lastKeyChanged: string, forceCheckAll: boolean = false): boolean {
     let propertyChanged = false;
-    for(let key of _keys(this.componentDefinitionCache)) {
+    for (let key of _keys(this.componentDefinitionCache)) {
       //TODO in principle comparing properties that are complex objects seems not required
       //group component has a componentDefinition property of its inner components so it may be
       //It requires to revisit once we start testing a real form config in the new framework
-      if((key == lastKeyChanged && !_isObject(key)) || forceCheckAll ) {
-        let oldValue = _get(this.componentDefinition?.config,key);
-        let newValue = _get(this.componentDefinitionCache,key);
+      if ((key == lastKeyChanged && !_isObject(key)) || forceCheckAll) {
+        let oldValue = _get(this.componentDefinition?.config, key);
+        let newValue = _get(this.componentDefinitionCache, key);
         let configPropertyChanged = oldValue !== newValue;
-        if(configPropertyChanged) {
+        if (configPropertyChanged) {
           propertyChanged = true;
-          this.loggerService.info(`key ${key} oldValue ${oldValue} newValue ${newValue} propertyChanged ${propertyChanged}`,'');
+          this.loggerService.info(`key ${key} oldValue ${oldValue} newValue ${newValue} propertyChanged ${propertyChanged}`, '');
           break;
         }
       }
@@ -178,30 +182,30 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   protected getFormComponentFromAppRef(): any {
-    if(this.formComponent === undefined) {
+    if (this.formComponent === undefined) {
       this.formComponent = this.appRef.components[0];
     }
     return this.formComponent;
   }
 
   protected getFormGroupFromAppRef(): FormGroup | undefined {
-    if(this.form == undefined) {
+    if (this.form == undefined) {
       this.form = this.getFormComponentFromAppRef()?.instance?.form;
     }
     return this.form;
   }
 
-  public getComponentByName(targetComponentName:string): any {
+  public getComponentByName(targetComponentName: string): any {
     let compRef;
     try {
       let formComponent = this.getFormComponentFromAppRef();
 
-      if(!_isUndefined(formComponent)) {
+      if (!_isUndefined(formComponent)) {
         let components = formComponent.instance.components;
 
-        for(let compEntry of components) {
-          let compName = _get(compEntry,'name','');
-          if(compName == targetComponentName) {
+        for (let compEntry of components) {
+          let compName = _get(compEntry, 'name', '');
+          if (compName == targetComponentName) {
             compRef = compEntry.component;
             return compRef;
           }
@@ -213,17 +217,17 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return compRef;
   }
 
-  public getLayoutByName(targetComponentName:string): any {
+  public getLayoutByName(targetComponentName: string): any {
     let layoutRef;
     try {
       let formComponent = this.getFormComponentFromAppRef();
 
-      if(!_isUndefined(formComponent)) {
+      if (!_isUndefined(formComponent)) {
         let components = formComponent.instance.components;
 
-        for(let compEntry of components) {
-          let layoutName = _get(compEntry,'name','');
-          if(layoutName == targetComponentName) {
+        for (let compEntry of components) {
+          let layoutName = _get(compEntry, 'name', '');
+          if (layoutName == targetComponentName) {
             layoutRef = compEntry.layout;
             return layoutRef;
           }
@@ -266,8 +270,8 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
           // this.hostBindingCssClasses = { [this.componentDefinition.config?.defaultComponentCssClasses]: true };
           this.hostBindingCssClasses = this.componentDefinition.config?.defaultComponentCssClasses;
         } else {
-        // Assuming it's already in the desired { [key: string]: boolean } format
-        // this.hostBindingCssClasses = this.config.defaultComponentCssClasses;
+          // Assuming it's already in the desired { [key: string]: boolean } format
+          // this.hostBindingCssClasses = this.config.defaultComponentCssClasses;
         }
       } else {
         this.hostBindingCssClasses = undefined; // No default classes provided
@@ -355,12 +359,48 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   /**
    * Get the child form field component map entries.
    */
-  public get formFieldCompMapEntries() : FormFieldCompMapEntry[] {
+  public get formFieldCompMapEntries(): FormFieldCompMapEntry[] {
     return [];
   }
 
-  public formFieldConfigName(defaultName?: string){
+  public formFieldConfigName(defaultName?: string) {
     return this.utilityService.formFieldConfigName(this.formFieldCompMapEntry, defaultName);
+  }
+
+  public requestFocus(options: FormFieldFocusRequestOptions = {}): boolean {
+    const target = this.getFocusTargetElement();
+    if (!target) {
+      return false;
+    }
+
+    const shouldScroll = options.scroll ?? true;
+    if (shouldScroll && typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView(options.scrollOptions ?? {
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+
+    if (typeof target.focus === 'function') {
+      target.focus({ preventScroll: true });
+      return true;
+    }
+    return false;
+  }
+
+  protected getFocusTargetElement(): HTMLElement | null {
+    const nativeElement =
+      this.formFieldCompMapEntry?.componentRef?.location?.nativeElement ??
+      this.formFieldCompMapEntry?.layoutRef?.location?.nativeElement;
+
+    if (!(nativeElement instanceof HTMLElement)) {
+      return null;
+    }
+
+    const focusable = nativeElement.querySelector(
+      'input:not([type="hidden"]):not([disabled]),select:not([disabled]),textarea:not([disabled]),button:not([disabled]),a[href]:not([disabled]),[tabindex]:not([tabindex="-1"])'
+    );
+    return focusable instanceof HTMLElement ? focusable : nativeElement;
   }
 }
 
@@ -381,7 +421,7 @@ export interface FormFieldCompMapEntry {
   componentRef?: ComponentRef<FormFieldBaseComponent<unknown>>;
   layout?: FormFieldBaseComponent<unknown>;
   layoutRef?: ComponentRef<FormFieldBaseComponent<unknown>>;
-  componentTemplateRefMap? : { [key: string]: TemplateRef<unknown> };
+  componentTemplateRefMap?: { [key: string]: TemplateRef<unknown> };
   // optional control map to support 'container' like components that don't have a model themselves
   formControlMap?: { [key: string]: FormControl };
   lineagePaths?: LineagePaths;

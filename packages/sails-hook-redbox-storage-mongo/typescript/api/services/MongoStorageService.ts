@@ -808,13 +808,10 @@ export module Services {
       // loop thru the attachment fields and determine if we need to add or remove
       return FormsService.getFormByName(record.metaMetadata.form, true).pipe(
         mergeMap(form => {
-          // For any generated, view-only forms, the form may be null, add a coalescence to avoid breaking
-          // the attachment update process.
-          form = form ?? { attachmentFields: [] };
-          const typedForm = form as { attachmentFields: string[] };
+          const attachmentFields = _.get(form, 'configuration.attachmentFields', _.get(form, 'attachmentFields', []));
           const reqs = [];
-          record.metaMetadata.attachmentFields = typedForm.attachmentFields;
-          _.each(typedForm.attachmentFields, async attField => {
+          record.metaMetadata.attachmentFields = attachmentFields;
+          _.each(attachmentFields, async attField => {
             const oldAttachments = record.metadata[attField];
             const newAttachments = newMetadata[attField];
             const removeIds = [];

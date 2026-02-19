@@ -10,6 +10,7 @@ import { ValidationSummaryFieldComponent } from './component/validation-summary.
 import { GroupFieldModel, GroupFieldComponent } from './component/group.component';
 import { ContentComponent } from './component/content.component';
 import { TabComponent, TabComponentLayout, TabContentComponent } from './component/tab.component';
+import { AccordionComponent, AccordionPanelComponent } from './component/accordion.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import { CancelButtonComponent } from './component/cancel-button.component';
 import { TabNavButtonComponent } from './component/tab-nav-button.component';
@@ -63,6 +64,10 @@ import {
   GroupFieldComponentName,
   TabLayoutName,
   TabContentLayoutName,
+  AccordionComponentName,
+  AccordionPanelComponentName,
+  AccordionLayoutName,
+  AccordionPanelLayoutName,
   RepeatableElementLayoutName,
   DefaultLayoutName,
   InlineLayoutName,
@@ -87,6 +92,8 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [ValidationSummaryComponentName]: ValidationSummaryFieldComponent,
   [TabContentComponentName]: TabContentComponent,
   [TabComponentName]: TabComponent,
+  [AccordionComponentName]: AccordionComponent,
+  [AccordionPanelComponentName]: AccordionPanelComponent,
   [CheckboxInputComponentName]: CheckboxInputComponent,
   [DropdownInputComponentName]: DropdownInputComponent,
   [RadioInputComponentName]: RadioInputComponent,
@@ -137,4 +144,6 @@ export const getStaticLayoutClassMap = (): StaticLayoutClassMapType => ({
   // The tab content layout is only used in the form config, it is not an angular component.
   [TabContentLayoutName]: null,
   [TabLayoutName]: TabComponentLayout,
+  [AccordionLayoutName]: null,
+  [AccordionPanelLayoutName]: null,
 });

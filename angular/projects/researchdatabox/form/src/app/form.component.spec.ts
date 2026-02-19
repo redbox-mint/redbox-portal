@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { Location } from '@angular/common';
 import { FormComponent } from './form.component';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
@@ -165,6 +166,48 @@ describe('FormComponent', () => {
 
     expect(debugValues['enabled_text']).toBe('enabled value');
     expect(debugValues['disabled_group']).toBeUndefined();
+  });
+
+  it('updates URL to edit path after successful create', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'create-url-update',
+      debugValue: false,
+      componentDefinitions: [
+        {
+          name: 'text_create',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'create value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, {
+      oid: '',
+      recordType: 'rdmp',
+      editMode: true,
+      formName: 'default-1.0-draft',
+      downloadAndCreateOnInit: false
+    });
+
+    const location = fixture.debugElement.injector.get(Location);
+    const replaceStateSpy = spyOn(location, 'replaceState').and.stub();
+    (formComponent.recordService as any).brandingAndPortalUrl = 'http://localhost/default/rdmp';
+    spyOn(formComponent.recordService, 'create').and.resolveTo({
+      success: true,
+      oid: 'oid-123'
+    } as any);
+
+    await formComponent.saveForm(true);
+
+    expect(formComponent.oid()).toBe('oid-123');
+    expect(replaceStateSpy).toHaveBeenCalledWith('/default/rdmp/record/edit/oid-123');
   });
 
 });

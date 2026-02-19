@@ -78,7 +78,7 @@ export function registerMigrateFormConfigCommand(program: Command): void {
 
 const formConfig: FormConfigFrame = ${JSON.stringify(migrated, null, 2)};
 
-module.exports = formConfig;
+export default formConfig;
 `;
 
         if (globalOptions.dryRun) {

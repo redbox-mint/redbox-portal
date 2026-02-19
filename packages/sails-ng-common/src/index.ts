@@ -66,6 +66,8 @@ export * from './config/component/simple-input.model';
 export * from './config/component/simple-input.outline';
 export * from './config/component/tab.model';
 export * from './config/component/tab.outline';
+export * from './config/component/accordion.model';
+export * from './config/component/accordion.outline';
 export * from './config/component/tab-content.model';
 export * from './config/component/tab-content.outline';
 export * from './config/component/text-area.model';

@@ -10,3 +10,4 @@ export * from './form-component-event-bus.service';
 export * from './form-component-base-event-producer-consumer';
 export * from './form-component-base-event-consumer';
 export * from './form-component-change-event-consumer';
+export * from './form-component-focus-request-coordinator.service';

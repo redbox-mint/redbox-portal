@@ -77,7 +77,7 @@ describe('momentShim', () => {
     });
 
     describe('format()', () => {
-        const testDate = new Date('2024-01-15T10:30:45Z');
+        const testDate = '2024-01-15T10:30:45Z';
 
         it('should return ISO format when no format specified', () => {
             const result = momentShim(testDate);
@@ -92,7 +92,7 @@ describe('momentShim', () => {
 
         it('should format with HH:mm:ss', () => {
             const result = momentShim(testDate);
-            const expected = DateTime.fromJSDate(testDate).toFormat('HH:mm:ss');
+            const expected = DateTime.fromJSDate(new Date(testDate)).toFormat('HH:mm:ss');
             expect(result.format('HH:mm:ss')).to.equal(expected);
         });
 

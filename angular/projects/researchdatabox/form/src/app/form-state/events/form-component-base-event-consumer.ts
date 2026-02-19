@@ -196,14 +196,14 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 		const expressions: FormExpressionsConfigFrame[] | undefined  = options.definition?.expressions;
 		if (expressions === undefined || _isEmpty(expressions)) {
 			const msg = `${this.constructor.name}: No expressions defined for component '${options.component?.formFieldConfigName()}'. Change events will not be consumed.`;
-			this.loggerService.debug(msg, options.definition);
-			throw new Error(msg);
-		}	
+			this.logDebug(msg, options.definition);
+			return;
+		}
 		this.expressions = expressions;
 		// FormControl is optional for some components
 		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component?.model?.formControl;
 		if (!control) {
-			this.loggerService.debug(`${this.constructor.name}: No form control found for component '${options.component?.formFieldConfigName()}'. Change events may or may not be properly consumed.`, options.definition);
+			this.logDebug(`${this.constructor.name}: No form control found for component '${options.component?.formFieldConfigName()}'. Change events may or may not be properly consumed.`, options.definition);
 		} else {
 			this.control = control;
 		}

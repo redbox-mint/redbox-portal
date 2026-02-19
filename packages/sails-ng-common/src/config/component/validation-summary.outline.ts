@@ -17,6 +17,11 @@ export const ValidationSummaryComponentName = "ValidationSummaryComponent" as co
 export type ValidationSummaryComponentNameType = typeof ValidationSummaryComponentName;
 
 export interface ValidationSummaryFieldComponentConfigFrame extends FieldComponentConfigFrame {
+    /**
+     * Whether to include tab labels in validation summary labels.
+     * Group labels are always included.
+     */
+    includeTabLabel?: boolean;
 }
 
 export interface ValidationSummaryFieldComponentConfigOutline extends ValidationSummaryFieldComponentConfigFrame, FieldComponentConfigOutline {
@@ -55,4 +60,3 @@ export type ValidationSummaryTypes =
     | { kind: FieldComponentDefinitionKindType, class: ValidationSummaryFieldComponentDefinitionOutline }
     | { kind: FormComponentDefinitionKindType, class: ValidationSummaryFormComponentDefinitionOutline }
     ;
-

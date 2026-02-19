@@ -17,8 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Injectable, computed, Signal, Inject} from '@angular/core';
-import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set, isArray as _isArray, clone as _clone, each as _each, isEqual as _isEqual, isNull as _isNull, first as _first, join as  _join,  extend as _extend, template as _template, concat as _concat, find as _find, trim as _trim } from 'lodash-es';
+import { Injectable, computed, Signal, Inject } from '@angular/core';
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set, isArray as _isArray, clone as _clone, each as _each, isEqual as _isEqual, isNull as _isNull, first as _first, join as _join, extend as _extend, template as _template, concat as _concat, find as _find, trim as _trim } from 'lodash-es';
 import { DateTime } from 'luxon';
 import { Initable } from './initable.interface';
 import { LoggerService } from './logger.service';
@@ -36,7 +36,7 @@ export class UtilityService {
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService
-  ) {}
+  ) { }
 
   /**
    * returns concatenated string
@@ -81,7 +81,7 @@ export class UtilityService {
     let dataOk = true;
     for (let fieldToMatch of fieldsToMatch) {
       let emittedValueToMatch = _get(valueObject, fieldToMatch);
-      if(emittedValueToMatch === undefined || emittedValueToMatch === null || _isUndefined(emittedValueToMatch)){
+      if (emittedValueToMatch === undefined || emittedValueToMatch === null || _isUndefined(emittedValueToMatch)) {
         dataOk = false;
       }
     }
@@ -103,7 +103,7 @@ export class UtilityService {
       for (let fieldToMatch of fieldsToMatch) {
         let fieldValueToMatch = _get(fieldValue, fieldToMatch);
         let emittedValueToMatch = _get(valueObject, fieldToMatch);
-        if(_isEqual(fieldValueToMatch,emittedValueToMatch)) {
+        if (_isEqual(fieldValueToMatch, emittedValueToMatch)) {
           concatReq = false;
         }
       }
@@ -125,19 +125,19 @@ export class UtilityService {
     const fieldsToSet = config.fieldsToSet;
     const templateObject = config.templateObject;
     let fieldValues = _clone(field.formModel.value);
-    fieldValues = this.mergeObjectIntoArray(data,fieldValues, fieldsToMatch, fieldsToSet, templateObject);
+    fieldValues = this.mergeObjectIntoArray(data, fieldValues, fieldsToMatch, fieldsToSet, templateObject);
 
     return fieldValues;
   }
 
 
   public logSubscribeDebugToConsole(data: any, config: any, field: any) {
-    this.loggerService.log("Logging subscription information" )
-    this.loggerService.log("The data is:" )
+    this.loggerService.log("Logging subscription information")
+    this.loggerService.log("The data is:")
     this.loggerService.log(JSON.stringify(data))
-    this.loggerService.log("Config is:" )
+    this.loggerService.log("Config is:")
     this.loggerService.log(JSON.stringify(config))
-    this.loggerService.log("Field is:" )
+    this.loggerService.log("Field is:")
     this.loggerService.log(JSON.stringify(field))
     return data;
   }
@@ -150,21 +150,21 @@ export class UtilityService {
    * @param  {any} field
    * @return {array}
    */
-   public getMergedObjectArrayAsArray(data: any, config: any, field: any) {
+  public getMergedObjectArrayAsArray(data: any, config: any, field: any) {
     const fieldsToMatch = config.fieldsToMatch;
     const fieldsToSet = config.fieldsToSet;
     const templateObject = config.templateObject;
     let fieldValues = _clone(field.formModel.value);
 
-    for(let dataObject of data) {
+    for (let dataObject of data) {
       fieldValues = this.mergeObjectIntoArray(dataObject, fieldValues, fieldsToMatch, fieldsToSet, templateObject);
     }
     return fieldValues;
   }
 
-  private mergeObjectIntoArray(data:any, fieldValues:any, fieldsToMatch:any, fieldsToSet:any, templateObject:any){
+  private mergeObjectIntoArray(data: any, fieldValues: any, fieldsToMatch: any, fieldsToSet: any, templateObject: any) {
     let wrappedData = data;
-    if(!_isArray(data)) {
+    if (!_isArray(data)) {
       wrappedData = [data];
     }
 
@@ -173,21 +173,21 @@ export class UtilityService {
       //gets cleared therefore need to checkDataOk if any of the fields to match are
       //undefined not enter the if block and the same value will be sent back to the
       //subscriber field
-      let checkDataOk = this.checkData(emittedDataValue,fieldsToMatch);
-      if(checkDataOk){
-        let concatReq = this.checkConcatReq(emittedDataValue,fieldsToMatch,fieldValues);
-        if(concatReq) {
+      let checkDataOk = this.checkData(emittedDataValue, fieldsToMatch);
+      if (checkDataOk) {
+        let concatReq = this.checkConcatReq(emittedDataValue, fieldsToMatch, fieldValues);
+        if (concatReq) {
           let value = _clone(templateObject);
           for (let fieldToSet of fieldsToSet) {
-              let val = _get(emittedDataValue, fieldToSet);
-              _set(value, fieldToSet, val);
+            let val = _get(emittedDataValue, fieldToSet);
+            _set(value, fieldToSet, val);
           }
           //If there is only one item in fieldValues array it may be empty and must be re-used
           //if there is more than one item in the array it's too cumbersome to manage all
           //scenarios and edge cases therefore it's better to add a new item to the array
-          if(fieldValues.length == 1) {
-            let checkFieldValuesDataOk = this.checkData(fieldValues[0],fieldsToMatch);
-            if(checkFieldValuesDataOk) {
+          if (fieldValues.length == 1) {
+            let checkFieldValuesDataOk = this.checkData(fieldValues[0], fieldsToMatch);
+            if (checkFieldValuesDataOk) {
               fieldValues.push(value);
             } else {
               fieldValues = [value];
@@ -263,11 +263,20 @@ export class UtilityService {
    * @return {string}
    */
   public getPropertyFromObjectConcat(data: any, config: any) {
-    let values:any = [];
-    _each(config.field, (f:any) => {
-      values.push(_get(data, f));
+    const result: any[] = [];
+    _each(config.field, (f: any) => {
+      const val = _get(data, f);
+      if (_isArray(val)) {
+        for (const v of val) {
+          if (v !== undefined && v !== null) {
+            result.push(v);
+          }
+        }
+      } else if (val !== undefined && val !== null) {
+        result.push(val);
+      }
     });
-    return _concat([], ...values);
+    return result;
   }
 
 
@@ -309,12 +318,12 @@ export class UtilityService {
     if (field) {
       value = _get(data, field);
     }
-    const values:any = [];
-    _each(value, (v:any) => {
+    const values: any = [];
+    _each(value, (v: any) => {
       if (v) {
         v = v.replace(regTrail, '');
       }
-      values.push(v.split(reg).map((item:any) => item.trim()));
+      values.push(v.split(reg).map((item: any) => item.trim()));
     });
     return _concat([], ...values);
   }
@@ -345,14 +354,14 @@ export class UtilityService {
    * @param  {any} config - field, formatOrigin, formatTarget
    * @return {array}
    */
-  public convertToDateFormat(data:any, config:any) {
+  public convertToDateFormat(data: any, config: any) {
     let field = config.field;
     let formatOrigin = config.formatOrigin || 'DD-MMM-YY';
     let formatTarget = config.formatTarget || 'YYYY-MM-DD';
     let value = data;
 
-    if(field) {
-      value = _get(data,field);
+    if (field) {
+      value = _get(data, field);
     }
     const converted = DateTime.fromFormat(value, formatOrigin).toFormat(formatTarget);
     this.loggerService.log(`convertToDateFormat ${converted}`);
@@ -363,7 +372,7 @@ export class UtilityService {
     return _join(_get(data, fieldName ? fieldName : config.field), fieldSeparator ? fieldSeparator : config.separator);
   }
 
-  public numberFormat(number: number, locale:string = '', options: any = undefined ): string {
+  public numberFormat(number: number, locale: string = '', options: any = undefined): string {
     if (_isEmpty(locale)) {
       return new Intl.NumberFormat().format(number);
     } else {
@@ -372,8 +381,8 @@ export class UtilityService {
   }
 
   public runTemplate(data: any, config: any, field: any = undefined) {
-    const imports = _extend({data: data, config: config, DateTime: DateTime, numberFormat:this.numberFormat, field: field}, this);
-    const templateData = {imports: imports};
+    const imports = _extend({ data: data, config: config, DateTime: DateTime, numberFormat: this.numberFormat, field: field }, this);
+    const templateData = { imports: imports };
     const template = _template(config.template, templateData);
     const templateRes = template();
     // added ability to parse the string template result into JSON
@@ -416,7 +425,7 @@ export class UtilityService {
    * @param urlPath The path parts.
    * @param params The query string parts.
    */
-  public async getDynamicImport(brandingAndPortalUrl: string, urlPath: string[], params?: {[key:string]: any}) {
+  public async getDynamicImport(brandingAndPortalUrl: string, urlPath: string[], params?: { [key: string]: any }) {
     if (!brandingAndPortalUrl) {
       throw new Error("Must provide brandingAndPortalUrl");
     }
@@ -435,7 +444,7 @@ export class UtilityService {
     url.searchParams.set('ts', ts);
     url.searchParams.set('apiVersion', "2.0");
 
-    Object.entries(params?? {}).forEach(([key, value]) => {
+    Object.entries(params ?? {}).forEach(([key, value]) => {
       // Remove any existing url param with matching key, set to the key value pair in params.
       if (guessType(value) === "object") {
         url.searchParams.set(key, JSON.stringify(value));
@@ -458,7 +467,7 @@ export class UtilityService {
     this.dynamicImportCache.clear();
   }
 
-  public formFieldConfigName(compMapEntry: { compConfigJson?: {name?: string}, name?: string } | undefined, defaultName?: string) {
+  public formFieldConfigName(compMapEntry: { compConfigJson?: { name?: string }, name?: string } | undefined, defaultName?: string) {
     return compMapEntry?.compConfigJson?.name || compMapEntry?.name || defaultName || "";
   }
 }

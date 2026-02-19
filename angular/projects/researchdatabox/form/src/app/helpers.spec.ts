@@ -27,7 +27,9 @@ import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
+import { FormComponentFocusRequestCoordinator } from './form-state/events/form-component-focus-request-coordinator.service';
 import { TiptapEditorDirective } from "ngx-tiptap";
+import { A11yModule } from "@angular/cdk/a11y";
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
@@ -129,6 +131,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "RedboxPortalCoreModule": RedboxPortalCoreModule,
       "I18NextPipe": I18NextPipe,
       "TiptapEditorDirective": TiptapEditorDirective,
+      "A11yModule": A11yModule,
     }, testConfig.imports ?? {}),
     providers: await createTestBedModuleConfig({
       "APP_BASE_HREF": { provide: APP_BASE_HREF, useValue: 'http://localhost' },
@@ -147,6 +150,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "provideFormFeature": provideFormFeature(),  // Add form state providers 
       "FormStateFacade": FormStateFacade,  // Provide the facade service
       "FormComponentEventBus": FormComponentEventBus,  // Provide the event bus service
+      "FormComponentFocusRequestCoordinator": FormComponentFocusRequestCoordinator,
     }, testConfig.providers ?? {}),
   }).compileComponents();
   return {
