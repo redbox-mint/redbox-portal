@@ -114,7 +114,7 @@ services:
       - solr-precreate
       - redbox
   keycloak:
-    image: quay.io/keycloak/keycloak:17.0.1
+    image: quay.io/keycloak/keycloak:26.5.4
     pull_policy: 'always'
     expose:
       - "8080"
