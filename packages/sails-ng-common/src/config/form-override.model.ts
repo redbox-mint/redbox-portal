@@ -12,7 +12,7 @@ import {
     AvailableFormComponentDefinitionFrames,
     ReusableFormDefinitions
 } from "./dictionary.outline";
-import {TextAreaComponentName, TextAreaFormComponentDefinitionOutline} from "./component/text-area.outline";
+import { TextAreaComponentName, TextAreaFormComponentDefinitionOutline } from "./component/text-area.outline";
 import {
     CheckboxInputComponentName,
     CheckboxInputFormComponentDefinitionOutline
@@ -26,25 +26,25 @@ import {
     DateInputComponentName,
     DateInputFormComponentDefinitionOutline
 } from "./component/date-input.outline";
-import {DefaultTransformsType, KnownTransformsType} from "./form-override.outline";
-import {cloneDeep as _cloneDeep, merge as _merge} from "lodash";
+import { DefaultTransformsType, KnownTransformsType } from "./form-override.outline";
+import { cloneDeep as _cloneDeep, merge as _merge } from "lodash";
 
 import {
     DropdownInputComponentName,
     DropdownInputFormComponentDefinitionOutline,
 } from "./component/dropdown-input.outline";
-import {TabContentComponentName} from "./component/tab-content.outline";
+import { TabContentComponentName } from "./component/tab-content.outline";
 
-import {ReusableComponentName, ReusableFormComponentDefinitionFrame} from "./component/reusable.outline";
-import {FormModesConfig} from "./shared.outline";
+import { ReusableComponentName, ReusableFormComponentDefinitionFrame } from "./component/reusable.outline";
+import { FormModesConfig } from "./shared.outline";
 import {
     isTypeFormComponentDefinitionName,
     isTypeReusableComponent
 } from "./form-types.outline";
-import {PropertiesHelper} from "./visitor/common.model";
-import {ILogger} from "../logger.interface";
-import {ContentFieldComponentConfig} from "./component/content.model";
-import {TabFormComponentDefinitionOutline, TabComponentName} from "./component/tab.outline";
+import { PropertiesHelper } from "./visitor/common.model";
+import { ILogger } from "../logger.interface";
+import { ContentFieldComponentConfig } from "./component/content.model";
+import { TabFormComponentDefinitionOutline, TabComponentName } from "./component/tab.outline";
 import {
     AccordionComponentName,
     AccordionFormComponentDefinitionFrame,
@@ -69,11 +69,11 @@ import {
     GroupFieldComponentName,
     GroupFormComponentDefinitionOutline
 } from "./component/group.outline";
-import {CheckboxTreeComponentName} from "./component/checkbox-tree.outline";
-import {TypeaheadInputComponentName} from "./component/typeahead-input.outline";
-import {RichTextEditorComponentName} from "./component/rich-text-editor.outline";
-import {MapComponentName} from "./component/map.outline";
-import {FileUploadComponentName} from "./component/file-upload.outline";
+import { CheckboxTreeComponentName } from "./component/checkbox-tree.outline";
+import { TypeaheadInputComponentName } from "./component/typeahead-input.outline";
+import { RichTextEditorComponentName } from "./component/rich-text-editor.outline";
+import { MapComponentName } from "./component/map.outline";
+import { FileUploadComponentName } from "./component/file-upload.outline";
 
 
 export class FormOverride {
@@ -255,9 +255,9 @@ export class FormOverride {
             if (additionalItemsMatched.length === 1) {
                 const additionalItem = additionalItemsMatched[0];
                 const known = {
-                    component: {reusable: expandedItem.component.class, additional: additionalItem.component.class},
-                    model: {reusable: expandedItem.model?.class, additional: additionalItem.model?.class},
-                    layout: {reusable: expandedItem.layout?.class, additional: additionalItem.layout?.class},
+                    component: { reusable: expandedItem.component.class, additional: additionalItem.component.class },
+                    model: { reusable: expandedItem.model?.class, additional: additionalItem.model?.class },
+                    layout: { reusable: expandedItem.layout?.class, additional: additionalItem.layout?.class },
                 };
                 for (const [key, values] of Object.entries(known)) {
                     const reusableValue = values.reusable;
@@ -456,13 +456,27 @@ export class FormOverride {
         return target;
     }
 
+    private isDeepEmpty(value: any): boolean {
+        if (value === null || value === undefined || value === "") {
+            return true;
+        }
+        if (Array.isArray(value)) {
+            return value.every(item => this.isDeepEmpty(item));
+        }
+        if (typeof value === "object") {
+            return Object.values(value).every(val => this.isDeepEmpty(val));
+        }
+        return false;
+    }
+
     private sourceRepeatableComponentTargetContentComponent(
         source: RepeatableFormComponentDefinitionOutline,
         formMode: FormModesConfig
     ): ContentFormComponentDefinitionOutline {
         const target = this.commonContentComponent(source, formMode);
         if (target.component.config) {
-            target.component.config.content = Array.isArray(source.model?.config?.value) ? source.model?.config?.value : [];
+            const rawArray = Array.isArray(source.model?.config?.value) ? source.model?.config?.value : [];
+            target.component.config.content = rawArray.filter(item => !this.isDeepEmpty(item));
             target.component.config.template = this.generateTemplateForComponent(source, "content");
         }
         return target;
@@ -517,7 +531,7 @@ export class FormOverride {
     private renderRepeatableTable(children: AllFormComponentDefinitionOutlines[], rootExpr: string): string {
         const headers = children.map(child => `<th>${this.resolveTranslatedLabel(child)}</th>`).join("");
         const cells = children.map(child => `<td>${this.renderLeafValue(child, "this", [child.name])}</td>`).join("");
-        return `<div class="rb-view-repeatable rb-view-repeatable-table-wrapper"><table class="table table-striped table-sm rb-view-repeatable-table"><thead><tr>${headers}</tr></thead><tbody>{{#each ${rootExpr}}}<tr>${cells}</tr>{{/each}}</tbody></table></div>`;
+        return `{{#if ${rootExpr}}}<div class="rb-view-repeatable rb-view-repeatable-table-wrapper"><table class="table table-striped table-sm rb-view-repeatable-table"><thead><tr>${headers}</tr></thead><tbody>{{#each ${rootExpr}}}<tr>${cells}</tr>{{/each}}</tbody></table></div>{{/if}}`;
     }
 
     private renderRepeatableFallback(
@@ -525,7 +539,7 @@ export class FormOverride {
         rootExpr: string
     ): string {
         const itemBody = this.renderComponentBody(elementTemplate, "this");
-        return `<div class="rb-view-repeatable rb-view-repeatable-list">{{#each ${rootExpr}}}<div class="rb-view-repeatable-card">${itemBody}</div>{{/each}}</div>`;
+        return `{{#if ${rootExpr}}}<div class="rb-view-repeatable rb-view-repeatable-list">{{#each ${rootExpr}}}<div class="rb-view-repeatable-card">${itemBody}</div>{{/each}}</div>{{/if}}`;
     }
 
     private renderComponentBody(component: AllFormComponentDefinitionOutlines, rootExpr: string): string {
@@ -809,7 +823,7 @@ export class FormOverride {
             // One value
             const value = values[0];
             const label = options?.find(option => option.value === value)?.label ?? value;
-            targetCompConf.content = {value, label};
+            targetCompConf.content = { value, label };
             targetCompConf.template = `<span data-value="{{content.value}}">{{content.label}}</span>`;
         } else {
             // More than one value
