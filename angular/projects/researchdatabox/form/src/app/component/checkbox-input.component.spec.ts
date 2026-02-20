@@ -47,9 +47,9 @@ describe('CheckboxInputComponent', () => {
 
     const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
-    const selectEl = compiled.querySelector('input[type="checkbox"]:checked') as HTMLInputElement;
-    expect(selectEl).toBeTruthy();
-    const selectedText = selectEl.id;
+    const selectEls = compiled.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:checked');
+    expect(selectEls.length).toEqual(1);
+    const selectedText = selectEls[0].id;
     expect(selectedText).toEqual('checkbox_test-b');
   });
 });

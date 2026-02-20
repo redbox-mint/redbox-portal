@@ -28,7 +28,10 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
             [name]="this.getOptionName($index)"
             [attr.value]="opt.value"
             [id]="this.getOptionId(opt)"
-            [attr.id]="this.getOptionId(opt)">
+            [attr.id]="this.getOptionId(opt)"
+            [checked]="isOptionSelected(opt.value)"
+            (change)="onOptionChange($any($event.target).checked, opt.value)"
+            [title]="tooltip">
           <label
             class="form-check-label"
             [attr.for]="getOptionId(opt)">
@@ -63,6 +66,23 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
     this.tooltip = config?.tooltip ?? "";
     this.placeholder = config?.placeholder ?? "";
     this.multipleValues = config?.multipleValues ?? false;
+
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => console.log(mutation));
+    });
+    const observerConfig = {
+      subtree: false,
+      childList: false,
+      attributes: true,
+      attributeOldValue: false,
+      // attributeFilter: [],
+      characterData: false,
+      characterDataOldValue: false,
+    };
+
+    observer.observe(this.formFieldCompMapEntry?.componentRef?.location?.nativeElement, observerConfig);
+    observer.observe(this.formFieldCompMapEntry?.layoutRef?.location?.nativeElement, observerConfig);
+    // TODO: createFieldMetaChangedEvent
   }
 
   /**
