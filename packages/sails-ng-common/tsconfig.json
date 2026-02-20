@@ -24,8 +24,7 @@
     "node_modules/**"
   ],
   "include": [
-    "src/**/*.ts",
-    "test/**/*.ts"
+    "src/**/*.ts"
   ],
   "compileOnSave": true,
   "buildOnSave": false,

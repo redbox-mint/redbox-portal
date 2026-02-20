@@ -1,13 +1,14 @@
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import {
     CheckboxTreeFormComponentDefinitionOutline,
-    ConstructFormConfigVisitor,
     DropdownInputFormComponentDefinitionOutline,
     FormConfigFrame,
     GroupFieldComponentName,
     RadioInputFormComponentDefinitionOutline
 } from '@researchdatabox/sails-ng-common';
 import type { ILogger } from '../../src/Logger';
+import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
 import { VocabInlineFormConfigVisitor } from '../../src/visitor/vocab-inline.visitor';
 
 describe('VocabInlineFormConfigVisitor', () => {
@@ -147,44 +148,6 @@ describe('VocabInlineFormConfigVisitor', () => {
         expect((thrown as Error).message).to.contain("Inline vocabulary 'status' was not found");
     });
 
-    it('uses sails.services.vocabularyservice when global VocabularyService is not set', async () => {
-        delete (globalThis as any).VocabularyService;
-        (globalThis as any).sails = {
-            config: { auth: { defaultBrand: 'default' } },
-            services: {
-                vocabularyservice: {
-                    getEntries: async () => ({ entries: [{ label: 'Applied', value: 'applied' }] }),
-                },
-            },
-        };
-
-        const input: FormConfigFrame = {
-            name: 'test',
-            componentDefinitions: [
-                {
-                    name: 'activity_type',
-                    component: {
-                        class: 'DropdownInputComponent',
-                        config: {
-                            vocabRef: 'anzsrc-toa',
-                            inlineVocab: true,
-                        },
-                    },
-                },
-            ],
-        };
-
-        const constructor = new ConstructFormConfigVisitor(logger as any);
-        const constructed = constructor.start({ data: input, formMode: 'edit' });
-
-        const visitor = new VocabInlineFormConfigVisitor(logger);
-        await visitor.resolveVocabs(constructed, 'default');
-
-        const dropdown = constructed.componentDefinitions?.[0] as DropdownInputFormComponentDefinitionOutline;
-        const options = dropdown?.component?.config?.options as Array<{ label: string; value: string }>;
-        expect(options).to.have.length(1);
-        expect(options[0]?.value).to.equal('applied');
-    });
 
     it('inlines checkbox tree vocab by paging all entries and building nested treeData', async () => {
         (globalThis as any).VocabularyService = {

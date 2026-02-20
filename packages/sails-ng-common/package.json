@@ -13,7 +13,7 @@
     "test:clean": "rm -rf support/junit || true",
     "compile": "tsc -p tsconfig.prod.json",
     "compile:clean": "rm -rf dist/",
-    "test:compile": "tsc -p tsconfig.json",
+    "test:compile": "tsc -p tsconfig.test.json",
     "pretest:compile": "npm run compile:clean"
   },
   "repository": {
@@ -68,7 +68,9 @@
     "functions": 45,
     "branches": 45,
     "include": [
-      "**/src/**/*.*"
+      "**/src/handlebars-helpers.*",
+      "**/src/config/names/**/*.*",
+      "**/src/validation/**/*.*"
     ],
     "reporter": [
       "lcov",

@@ -1,4 +1,5 @@
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import { HomePanelConfig, DEFAULT_HOME_PANEL_CONFIG, HOME_PANEL_CONFIG_SCHEMA } from '../../src/configmodels/HomePanelConfig';
 
 describe('HomePanelConfig', function() {

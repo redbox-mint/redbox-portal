@@ -1,4 +1,5 @@
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import { setLang } from '../../src/policies/setLang';
 
 // Mock TranslationService

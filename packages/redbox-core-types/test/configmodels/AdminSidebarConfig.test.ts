@@ -1,4 +1,5 @@
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import { AdminSidebarConfig, DEFAULT_ADMIN_SIDEBAR_CONFIG, ADMIN_SIDEBAR_CONFIG_SCHEMA } from '../../src/configmodels/AdminSidebarConfig';
 
 describe('AdminSidebarConfig', function() {

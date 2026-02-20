@@ -1,13 +1,14 @@
-import { MigrationV4ToV5FormConfigVisitor } from "../../src/config/visitor/migrate-config-v4-v5.visitor";
+import { MigrationV4ToV5FormConfigVisitor } from "../../src/visitor/migrate-config-v4-v5.visitor";
 import fs from "fs";
 import path from "path";
 import { logger } from "./helpers";
 import {
-    ClientFormConfigVisitor,
-    ConstructFormConfigVisitor, formValidatorsSharedDefinitions, ReusableFormDefinitions,
-    TemplateFormConfigVisitor,
-    ValidatorFormConfigVisitor
-} from "../../src";
+    formValidatorsSharedDefinitions, ReusableFormDefinitions,
+} from "@researchdatabox/sails-ng-common";
+import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
+import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
+import { TemplateFormConfigVisitor } from "../../src/visitor/template.visitor";
+import { ValidatorFormConfigVisitor } from "../../src/visitor/validator.visitor";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -467,4 +468,3 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(migrated.attachmentFields?.length).to.equal(2);
     });
 });
-

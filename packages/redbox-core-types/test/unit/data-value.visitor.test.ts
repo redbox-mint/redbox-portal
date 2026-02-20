@@ -1,4 +1,6 @@
-import {FormConfigFrame, DataValueFormConfigVisitor, ConstructFormConfigVisitor} from "../../src";
+import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import { DataValueFormConfigVisitor } from "../../src/visitor/data-value.visitor";
+import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
 import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
 

@@ -1,34 +1,34 @@
 import { get as _get, set as _set, cloneDeep as _cloneDeep, map as _map } from 'lodash';
-import { FormConfigOutline } from '../form-config.outline';
+import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import {
   SimpleInputFieldComponentDefinitionOutline,
   SimpleInputFieldModelDefinitionOutline,
   SimpleInputFormComponentDefinitionOutline,
-} from '../component/simple-input.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   ContentFieldComponentDefinitionOutline,
   ContentFormComponentDefinitionOutline,
-} from '../component/content.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   RepeatableElementFieldLayoutDefinitionOutline,
   RepeatableFieldComponentDefinitionOutline,
   RepeatableFieldModelDefinitionOutline,
   RepeatableFormComponentDefinitionOutline,
-} from '../component/repeatable.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   ValidationSummaryFieldComponentDefinitionOutline,
   ValidationSummaryFormComponentDefinitionOutline,
-} from '../component/validation-summary.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
-} from '../component/group.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   TabFieldComponentDefinitionOutline,
   TabFieldLayoutDefinitionOutline,
   TabFormComponentDefinitionOutline,
-} from '../component/tab.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   AccordionFieldComponentDefinitionOutline,
   AccordionFieldLayoutDefinitionOutline,
@@ -36,89 +36,89 @@ import {
   AccordionPanelFieldComponentDefinitionOutline,
   AccordionPanelFieldLayoutDefinitionOutline,
   AccordionPanelFormComponentDefinitionOutline,
-} from '../component/accordion.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   TabContentFieldComponentDefinitionOutline,
   TabContentFieldLayoutDefinitionOutline,
   TabContentFormComponentDefinitionOutline,
-} from '../component/tab-content.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   SaveButtonFieldComponentDefinitionOutline,
   SaveButtonFormComponentDefinitionOutline,
-} from '../component/save-button.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   CancelButtonFieldComponentDefinitionOutline,
   CancelButtonFormComponentDefinitionOutline,
-} from '../component/cancel-button.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   TabNavButtonFieldComponentDefinitionOutline,
   TabNavButtonFormComponentDefinitionOutline,
-} from '../component/tab-nav-button.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   TextAreaFieldComponentDefinitionOutline,
   TextAreaFieldModelDefinitionOutline,
   TextAreaFormComponentDefinitionOutline,
-} from '../component/text-area.outline';
-import { DefaultFieldLayoutDefinitionOutline } from '../component/default-layout.outline';
+} from '@researchdatabox/sails-ng-common';
+import { DefaultFieldLayoutDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import {
   CheckboxInputFieldComponentDefinitionOutline,
   CheckboxInputFieldModelDefinitionOutline,
   CheckboxInputFormComponentDefinitionOutline,
-} from '../component/checkbox-input.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   CheckboxTreeFieldComponentDefinitionOutline,
   CheckboxTreeFieldModelDefinitionOutline,
   CheckboxTreeFormComponentDefinitionOutline,
-} from '../component/checkbox-tree.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   DropdownInputFieldComponentDefinitionOutline,
   DropdownInputFieldModelDefinitionOutline,
   DropdownInputFormComponentDefinitionOutline,
-} from '../component/dropdown-input.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   TypeaheadInputFieldComponentDefinitionOutline,
   TypeaheadInputFieldModelDefinitionOutline,
   TypeaheadInputFormComponentDefinitionOutline,
-} from '../component/typeahead-input.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   RichTextEditorFieldComponentDefinitionOutline,
   RichTextEditorFieldModelDefinitionOutline,
   RichTextEditorFormComponentDefinitionOutline,
-} from '../component/rich-text-editor.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   MapFieldComponentDefinitionOutline,
   MapFieldModelDefinitionOutline,
   MapFormComponentDefinitionOutline,
-} from '../component/map.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   FileUploadFieldComponentDefinitionOutline,
   FileUploadFieldModelDefinitionOutline,
   FileUploadFormComponentDefinitionOutline,
-} from '../component/file-upload.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   RadioInputFieldComponentDefinitionOutline,
   RadioInputFieldModelDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
-} from '../component/radio-input.outline';
+} from '@researchdatabox/sails-ng-common';
 import {
   DateInputFieldComponentDefinitionOutline,
   DateInputFieldModelDefinitionOutline,
   DateInputFormComponentDefinitionOutline,
-} from '../component/date-input.outline';
-import { FormConstraintConfig } from '../form-component.model';
-import { AvailableFormComponentDefinitionOutlines } from '../dictionary.outline';
-import { FormComponentDefinitionOutline } from '../form-component.outline';
-import { FieldComponentDefinitionOutline } from '../field-component.outline';
-import { FieldModelDefinitionOutline } from '../field-model.outline';
-import { FieldLayoutDefinitionOutline } from '../field-layout.outline';
-import { ILogger } from '../../logger.interface';
-import { FormConfig } from '../form-config.model';
-import { FormConfigVisitor } from './base.model';
-import { FormModesConfig } from '../shared.outline';
-import { FormPathHelper } from './common.model';
-import { isTypeWithComponentDefinitions } from '../form-types.outline';
+} from '@researchdatabox/sails-ng-common';
+import { FormConstraintConfig } from '@researchdatabox/sails-ng-common';
+import { AvailableFormComponentDefinitionOutlines } from '@researchdatabox/sails-ng-common';
+import { FormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { FieldComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { FieldModelDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { FieldLayoutDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { ILogger } from '@researchdatabox/sails-ng-common';
+import { FormConfig } from '@researchdatabox/sails-ng-common';
+import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
+import { FormModesConfig } from '@researchdatabox/sails-ng-common';
+import { FormPathHelper } from '@researchdatabox/sails-ng-common';
+import { isTypeWithComponentDefinitions } from '@researchdatabox/sails-ng-common';
 import { JsonTypeDefSchemaFormConfigVisitor } from './json-type-def.visitor';
-import { guessType } from '../helpers';
+import { guessType } from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config class type and build the form config for the client-side.
