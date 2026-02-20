@@ -1,15 +1,14 @@
+import { MigrationV4ToV5FormConfigVisitor } from "../../src/visitor/migrate-config-v4-v5.visitor";
 import fs from "fs";
 import path from "path";
 import { logger } from "./helpers";
 import {
-  ClientFormConfigVisitor,
-  ConstructFormConfigVisitor,
-  formValidatorsSharedDefinitions,
-  TemplateFormConfigVisitor,
-  FormOverride, FormConfigFrame,
-  MigrationV4ToV5FormConfigVisitor, ReusableFormDefinitions
-} from "../../src";
-import {reusableFormDefinitionsExample1} from "./example-data";
+    formValidatorsSharedDefinitions, ReusableFormDefinitions,
+} from "@researchdatabox/sails-ng-common";
+import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
+import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
+import { TemplateFormConfigVisitor } from "../../src/visitor/template.visitor";
+import { ValidatorFormConfigVisitor } from "../../src/visitor/validator.visitor";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -515,4 +514,3 @@ module.exports = questionTreeConfig;
     });
   });
 });
-

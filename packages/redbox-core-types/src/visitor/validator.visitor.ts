@@ -36,8 +36,18 @@ import {
   TabContentFieldComponentDefinitionOutline,
   TabContentFieldLayoutDefinitionOutline,
   TabContentFormComponentDefinitionOutline,
+    AccordionFieldComponentDefinitionOutline,
+    AccordionFieldLayoutDefinitionOutline,
+    AccordionFormComponentDefinitionOutline,
+    AccordionPanelFieldComponentDefinitionOutline,
+    AccordionPanelFieldLayoutDefinitionOutline,
+    AccordionPanelFormComponentDefinitionOutline,
   SaveButtonFieldComponentDefinitionOutline,
   SaveButtonFormComponentDefinitionOutline,
+    CancelButtonFieldComponentDefinitionOutline,
+    CancelButtonFormComponentDefinitionOutline,
+    TabNavButtonFieldComponentDefinitionOutline,
+    TabNavButtonFormComponentDefinitionOutline,
   TextAreaFieldComponentDefinitionOutline,
   TextAreaFieldModelDefinitionOutline,
   TextAreaFormComponentDefinitionOutline,
@@ -57,6 +67,14 @@ import {
   RichTextEditorFieldComponentDefinitionOutline,
   RichTextEditorFieldModelDefinitionOutline,
   RichTextEditorFormComponentDefinitionOutline,
+    MapDrawingMode,
+    MapFieldComponentDefinitionOutline,
+    MapFieldModelDefinitionOutline,
+    MapFormComponentDefinitionOutline,
+    FileUploadFieldComponentDefinitionOutline,
+    FileUploadFieldModelDefinitionOutline,
+    FileUploadFormComponentDefinitionOutline,
+    FormPathHelper,
   RadioInputFieldComponentDefinitionOutline,
   RadioInputFieldModelDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
@@ -64,7 +82,7 @@ import {
   DateInputFieldModelDefinitionOutline,
   DateInputFormComponentDefinitionOutline,
   FormConfig,
-  DataValueFormConfigVisitor,
+
   buildLineagePaths, CancelButtonFieldComponentDefinitionOutline, CancelButtonFormComponentDefinitionOutline,
   TabNavButtonFieldComponentDefinitionOutline, TabNavButtonFormComponentDefinitionOutline,
   MapFieldComponentDefinitionOutline, MapDrawingMode, MapFieldModelDefinitionOutline, MapFormComponentDefinitionOutline,
@@ -73,6 +91,8 @@ import {
   QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline,
   FormPathHelper
 } from "@researchdatabox/sails-ng-common";
+import { get as _get } from "lodash";
+import { DataValueFormConfigVisitor } from "./data-value.visitor";
 
 
 declare const sails: {
@@ -83,6 +103,10 @@ declare const sails: {
             }
         }
     }
+};
+
+declare const DomSanitizerService: {
+    sanitizeWithProfile: (value: string, profile?: string) => string;
 };
 
 /**
@@ -249,37 +273,39 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         this.acceptFormComponentDefinition(item);
     }
 
-  /* Accordion */
+    /* Accordion */
 
-  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
-    (item.config?.panels ?? []).forEach((componentDefinition, index) => {
-      this.formPathHelper.acceptFormPath(
-        componentDefinition,
-        this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(componentDefinition, index)
-      );
-    });
-  }
+    visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
+        (item.config?.panels ?? []).forEach((componentDefinition, index) => {
+            this.formPathHelper.acceptFormPath(
+                componentDefinition,
+                this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(componentDefinition, index)
+            );
+        });
+    }
 
-  visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): void { }
+    visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): void {
+    }
 
-  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
-    this.acceptFormComponentDefinition(item);
-  }
+    visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
 
-  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-      this.formPathHelper.acceptFormPath(
-        componentDefinition,
-        this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(componentDefinition, index)
-      );
-    });
-  }
+    visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
+        (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+            this.formPathHelper.acceptFormPath(
+                componentDefinition,
+                this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(componentDefinition, index)
+            );
+        });
+    }
 
-  visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): void { }
+    visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): void {
+    }
 
-  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
-    this.acceptFormComponentDefinition(item);
-  }
+    visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
 
     /*  Tab Content */
 
@@ -309,21 +335,23 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         this.acceptFormComponentDefinition(item);
     }
 
-  /* Cancel Button  */
+    /* Cancel Button  */
 
-  visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): void { }
+    visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): void {
+    }
 
-  visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
-    this.acceptFormComponentDefinition(item);
-  }
+    visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
 
-  /* Tab Nav Button  */
+    /* Tab Nav Button  */
 
-  visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): void { }
+    visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): void {
+    }
 
-  visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void {
-    this.acceptFormComponentDefinition(item);
-  }
+    visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
 
     /* Text Area */
 
@@ -496,6 +524,51 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Map */
+
+    visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
+        const configErrors: FormValidatorSummaryErrors["errors"] = [];
+        const enabledModes = Array.isArray(item.config?.enabledModes) ? item.config?.enabledModes : [];
+        const validModes: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'select'];
+        const invalidModes = enabledModes.filter(mode => !validModes.includes(mode));
+        if (invalidModes.length > 0) {
+            configErrors.push({
+                class: 'mapEnabledModes',
+                message: '@validator-error-map-enabled-modes',
+                params: { invalidModes }
+            });
+        }
+        if (configErrors.length > 0) {
+            this.validationErrors.push({
+                id: String(
+                    this.formPathHelper.formPath.angularComponents?.[this.formPathHelper.formPath.angularComponents.length - 1] ?? ''
+                ),
+                message: item?.config?.label ?? 'MapComponent configuration',
+                errors: configErrors,
+                lineagePaths: buildLineagePaths(this.formPathHelper.formPath)
+            });
+        }
+    }
+
+    visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
+    }
+
+    visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* File Upload */
+
+    visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
+    }
+
+    visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
+    }
+
+    visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

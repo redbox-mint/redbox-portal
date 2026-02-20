@@ -28,7 +28,7 @@ function toDateTime(input: Date | number | string): DateTime {
     if (input instanceof Date) return DateTime.fromJSDate(input);
     if (typeof input === 'number') return DateTime.fromMillis(input);
     if (typeof input === 'string') {
-        const iso = DateTime.fromISO(input, { setZone: true });
+        const iso = DateTime.fromISO(input);
         if (iso.isValid) return iso;
         const http = DateTime.fromHTTP(input);
         if (http.isValid) return http;

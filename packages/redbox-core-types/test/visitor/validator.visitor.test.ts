@@ -1,17 +1,13 @@
 import {cloneDeep as _cloneDeep} from "lodash";
 import {
-  ConstructFormConfigVisitor,
-  FormConfigFrame,
-  formValidatorsSharedDefinitions,
-  FormValidatorSummaryErrors
-} from "@researchdatabox/sails-ng-common";
-import {ValidatorFormConfigVisitor} from "../../src/visitor/validator.visitor";
-import {logger} from "../unit/helpers";
-import {
-  formConfigExample1,
-  reusableFormDefinitionsExample1
-} from "@researchdatabox/sails-ng-common/dist/test/unit/example-data";
-
+    ConstructFormConfigVisitor,
+    FormConfigFrame,
+    formValidatorsSharedDefinitions,
+    FormValidatorSummaryErrors
+} from "../../src";
+import {ValidatorFormConfigVisitor} from "../../src";
+import {logger} from "./helpers";
+import {formConfigExample1} from "./example-data";
 
 
 let expect: Chai.ExpectStatic;
@@ -417,7 +413,7 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({data: args, formMode: "edit", record, reusableFormDefs: reusableFormDefinitionsExample1,});
+        const constructed = constructor.start({data: args, formMode: "edit", record});
 
         const visitor = new ValidatorFormConfigVisitor(logger);
         const actual = visitor.start({

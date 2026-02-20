@@ -1,17 +1,24 @@
 
-import { AttachmentFieldsVisitor } from "../../src/config/visitor/attachment-fields.visitor";
+import { AttachmentFieldsVisitor } from "../../src/visitor/attachment-fields.visitor";
 import { logger } from "./helpers";
-import { FormConfig } from "../../src/config/form-config.model";
-import { FileUploadFormComponentDefinition } from "../../src/config/component/file-upload.model";
-import { FileUploadFieldComponentDefinition, FileUploadFieldComponentConfig } from "../../src/config/component/file-upload.model";
-import { GroupFormComponentDefinition } from "../../src/config/component/group.model";
-import { GroupFieldComponentDefinition, GroupFieldComponentConfig } from "../../src/config/component/group.model";
-import { TabFormComponentDefinition } from "../../src/config/component/tab.model";
-import { TabFieldComponentDefinition, TabFieldComponentConfig } from "../../src/config/component/tab.model";
-import { TabContentFormComponentDefinition } from "../../src/config/component/tab-content.model";
-import { TabContentFieldComponentDefinition, TabContentFieldComponentConfig } from "../../src/config/component/tab-content.model";
-import { RepeatableFormComponentDefinition } from "../../src/config/component/repeatable.model";
-import { RepeatableFieldComponentDefinition, RepeatableFieldComponentConfig } from "../../src/config/component/repeatable.model";
+import {
+    FormConfig,
+    FileUploadFormComponentDefinition,
+    FileUploadFieldComponentDefinition,
+    FileUploadFieldComponentConfig,
+    GroupFormComponentDefinition,
+    GroupFieldComponentDefinition,
+    GroupFieldComponentConfig,
+    TabFormComponentDefinition,
+    TabFieldComponentDefinition,
+    TabFieldComponentConfig,
+    TabContentFormComponentDefinition,
+    TabContentFieldComponentDefinition,
+    TabContentFieldComponentConfig,
+    RepeatableFormComponentDefinition,
+    RepeatableFieldComponentDefinition,
+    RepeatableFieldComponentConfig
+} from "@researchdatabox/sails-ng-common";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);

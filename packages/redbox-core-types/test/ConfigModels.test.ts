@@ -1,5 +1,6 @@
 import { ConfigModels } from '../src/configmodels/ConfigModels';
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 
 describe('ConfigModels', function () {
 

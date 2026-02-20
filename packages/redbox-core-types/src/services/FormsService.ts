@@ -26,11 +26,11 @@ import { createSchema } from 'genson-js';
 import * as path from 'path';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import {
-  ClientFormConfigVisitor,
-  ConstructFormConfigVisitor,
   FormConfigFrame, FormConfigOutline,
   FormModesConfig, ReusableFormDefinitions,
 } from "@researchdatabox/sails-ng-common";
+import { ClientFormConfigVisitor } from '../visitor/client.visitor';
+import { ConstructFormConfigVisitor } from '../visitor/construct.visitor';
 
 type WorkflowStepLike = {
   id: string;

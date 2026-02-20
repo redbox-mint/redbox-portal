@@ -447,9 +447,9 @@ jobs:
           command: |
             npm install --no-save --ignore-scripts
       - run:
-          name: Compile sails-ng-common
+          name: Compile shared packages
           command: |
-            npm run compile:sails-ng-common
+            npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:core
       - run:
           name: Install redbox-hook-kit dependencies
           command: |
