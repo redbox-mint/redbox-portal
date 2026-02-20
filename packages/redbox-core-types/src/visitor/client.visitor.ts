@@ -119,6 +119,9 @@ import { FormPathHelper } from '@researchdatabox/sails-ng-common';
 import { isTypeWithComponentDefinitions } from '@researchdatabox/sails-ng-common';
 import { JsonTypeDefSchemaFormConfigVisitor } from './json-type-def.visitor';
 import { guessType } from '@researchdatabox/sails-ng-common';
+import { FormOverride } from '@researchdatabox/sails-ng-common';
+import { GroupFieldComponentName } from '@researchdatabox/sails-ng-common';
+import { RepeatableComponentName } from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config class type and build the form config for the client-side.
@@ -142,22 +145,26 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
   private clientFormConfig: FormConfigOutline;
   private formMode: FormModesConfig;
+  private formModeProvided: boolean;
   private userRoles: string[];
 
   private constraintPath: FormConstraintConfig[];
 
   private formPathHelper: FormPathHelper;
+  private formOverride: FormOverride;
 
   constructor(logger: ILogger) {
     super(logger);
 
     this.clientFormConfig = new FormConfig();
     this.formMode = 'view';
+    this.formModeProvided = false;
     this.userRoles = [];
 
     this.constraintPath = [];
 
     this.formPathHelper = new FormPathHelper(logger, this);
+    this.formOverride = new FormOverride(logger);
   }
 
   /**
@@ -174,14 +181,73 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   start(options: { form: FormConfigOutline; formMode?: FormModesConfig; userRoles?: string[] }) {
     this.clientFormConfig = options.form;
     this.formMode = options.formMode ?? 'view';
+    this.formModeProvided = options.formMode !== undefined;
     this.userRoles = options.userRoles ?? [];
 
     this.constraintPath = [];
     this.formPathHelper.reset();
 
     this.clientFormConfig.accept(this);
+    this.applyPostPruningViewModeTransforms();
 
     return this.clientFormConfig;
+  }
+
+  protected applyPostPruningViewModeTransforms(): void {
+    if (this.formMode !== 'view' || !this.formModeProvided) {
+      return;
+    }
+    if (!Array.isArray(this.clientFormConfig.componentDefinitions)) {
+      return;
+    }
+    this.clientFormConfig.componentDefinitions = this.applyPostPruningTransforms(this.clientFormConfig.componentDefinitions, true);
+  }
+
+  protected applyPostPruningTransforms(
+    items: AvailableFormComponentDefinitionOutlines[],
+    isTopLevel: boolean
+  ): AvailableFormComponentDefinitionOutlines[] {
+    return items.map(item => this.applyPostPruningTransformToComponent(item, isTopLevel));
+  }
+
+  protected applyPostPruningTransformToComponent(
+    item: AvailableFormComponentDefinitionOutlines,
+    isTopLevel: boolean
+  ): AvailableFormComponentDefinitionOutlines {
+    const className = item?.component?.class;
+    const shouldTransformRepeatable = className === RepeatableComponentName;
+    const shouldTransformTopLevelGroup = isTopLevel && className === GroupFieldComponentName;
+
+    if (shouldTransformRepeatable || shouldTransformTopLevelGroup) {
+      const transformed = this.formOverride.applyOverrideTransform(item, this.formMode, { phase: "client" }) as AvailableFormComponentDefinitionOutlines;
+      this.processFormComponentDefinition(transformed);
+      return transformed;
+    }
+
+    const config = item?.component?.config as Record<string, unknown> | undefined;
+    if (!config) {
+      return item;
+    }
+
+    if (Array.isArray(config.componentDefinitions)) {
+      config.componentDefinitions = this.applyPostPruningTransforms(
+        config.componentDefinitions as AvailableFormComponentDefinitionOutlines[],
+        false
+      );
+    }
+    if (Array.isArray(config.tabs)) {
+      config.tabs = this.applyPostPruningTransforms(
+        config.tabs as AvailableFormComponentDefinitionOutlines[],
+        false
+      );
+    }
+    if (Array.isArray(config.panels)) {
+      config.panels = this.applyPostPruningTransforms(
+        config.panels as AvailableFormComponentDefinitionOutlines[],
+        false
+      );
+    }
+    return item;
   }
 
   visitFormConfig(item: FormConfigOutline): void {

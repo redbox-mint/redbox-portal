@@ -61,6 +61,19 @@ import {
     AccordionPanelFieldComponentConfig,
     AccordionPanelFieldLayoutConfig
 } from "./component/accordion.model";
+import {
+    RepeatableComponentName,
+    RepeatableFormComponentDefinitionOutline
+} from "./component/repeatable.outline";
+import {
+    GroupFieldComponentName,
+    GroupFormComponentDefinitionOutline
+} from "./component/group.outline";
+import {CheckboxTreeComponentName} from "./component/checkbox-tree.outline";
+import {TypeaheadInputComponentName} from "./component/typeahead-input.outline";
+import {RichTextEditorComponentName} from "./component/rich-text-editor.outline";
+import {MapComponentName} from "./component/map.outline";
+import {FileUploadComponentName} from "./component/file-upload.outline";
 
 
 export class FormOverride {
@@ -94,6 +107,12 @@ export class FormOverride {
         },
         [DateInputComponentName]: {
             [ContentComponentName]: this.sourceDateInputComponentTargetContentComponent,
+        },
+        [RepeatableComponentName]: {
+            [ContentComponentName]: this.sourceRepeatableComponentTargetContentComponent,
+        },
+        [GroupFieldComponentName]: {
+            [ContentComponentName]: this.sourceGroupComponentTargetContentComponent,
         },
         [TabComponentName]: {
             [AccordionComponentName]: this.sourceTabComponentTargetAccordionComponent,
@@ -136,6 +155,16 @@ export class FormOverride {
                 component: ContentComponentName,
             }
         },
+        [RepeatableComponentName]: {
+            "view": {
+                component: ContentComponentName,
+            }
+        },
+        [GroupFieldComponentName]: {
+            "view": {
+                component: ContentComponentName,
+            }
+        },
         [TabComponentName]: {
             "view": {
                 component: AccordionComponentName,
@@ -143,6 +172,20 @@ export class FormOverride {
             }
         },
     }
+
+    private readonly tableCompatibleLeafComponentNames = new Set<string>([
+        SimpleInputComponentName,
+        TextAreaComponentName,
+        DateInputComponentName,
+        DropdownInputComponentName,
+        CheckboxInputComponentName,
+        RadioInputComponentName,
+        TypeaheadInputComponentName,
+        RichTextEditorComponentName,
+        MapComponentName,
+        ContentComponentName,
+        CheckboxTreeComponentName,
+    ]);
 
     /**
      * Apply any reusable form configs in the form component definitions.
@@ -241,8 +284,13 @@ export class FormOverride {
      * @param formMode The current form mode.
      * @returns The transformed form component.
      */
-    public applyOverrideTransform(source: AllFormComponentDefinitionOutlines, formMode: FormModesConfig): AllFormComponentDefinitionOutlines {
+    public applyOverrideTransform(
+        source: AllFormComponentDefinitionOutlines,
+        formMode: FormModesConfig,
+        options?: { phase?: "construct" | "client" }
+    ): AllFormComponentDefinitionOutlines {
         const original: AllFormComponentDefinitionOutlines = _cloneDeep(source);
+        const phase = options?.phase ?? "construct";
 
         // Get the component class name, this is also used as the form component identifier.
         const originalComponentClassName = original.component.class;
@@ -251,7 +299,11 @@ export class FormOverride {
         let transforms = original?.overrides?.formModeClasses?.[formMode] ?? {};
 
         // Apply any default transform for the provided form mode.
-        if (originalComponentClassName in this.defaultTransforms) {
+        const deferViewModeContentFlatteningAtConstruct = phase === "construct" &&
+            formMode === "view" &&
+            new Set<string>([RepeatableComponentName, GroupFieldComponentName]).has(originalComponentClassName);
+
+        if (originalComponentClassName in this.defaultTransforms && !deferViewModeContentFlatteningAtConstruct) {
             const defaultTransform = this.defaultTransforms[originalComponentClassName] ?? {};
             if (formMode in defaultTransform) {
                 const defaultTransformClasses = defaultTransform[formMode] ?? {};
@@ -402,6 +454,181 @@ export class FormOverride {
         }
 
         return target;
+    }
+
+    private sourceRepeatableComponentTargetContentComponent(
+        source: RepeatableFormComponentDefinitionOutline,
+        formMode: FormModesConfig
+    ): ContentFormComponentDefinitionOutline {
+        const target = this.commonContentComponent(source, formMode);
+        if (target.component.config) {
+            target.component.config.content = Array.isArray(source.model?.config?.value) ? source.model?.config?.value : [];
+            target.component.config.template = this.generateTemplateForComponent(source, "content");
+        }
+        return target;
+    }
+
+    private sourceGroupComponentTargetContentComponent(
+        source: GroupFormComponentDefinitionOutline,
+        formMode: FormModesConfig
+    ): ContentFormComponentDefinitionOutline {
+        const target = this.commonContentComponent(source, formMode);
+        if (target.component.config) {
+            const contentValue = source.model?.config?.value;
+            target.component.config.content = contentValue && typeof contentValue === "object" ? contentValue : {};
+            target.component.config.template = this.generateTemplateForComponent(source, "content");
+        }
+        return target;
+    }
+
+    private generateTemplateForComponent(component: AllFormComponentDefinitionOutlines, rootExpr: string): string {
+        const className = component?.component?.class;
+        if (className === RepeatableComponentName) {
+            return this.generateRepeatableTemplate(component as RepeatableFormComponentDefinitionOutline, rootExpr);
+        }
+        if (className === GroupFieldComponentName) {
+            return this.generateGroupTemplate(component as GroupFormComponentDefinitionOutline, rootExpr);
+        }
+        return this.renderLeafValue(component, rootExpr, []);
+    }
+
+    private generateRepeatableTemplate(component: RepeatableFormComponentDefinitionOutline, rootExpr: string): string {
+        const elementTemplate = component?.component?.config?.elementTemplate;
+        if (!elementTemplate) {
+            return `<div class="rb-view-repeatable"></div>`;
+        }
+
+        const groupChildren = this.getGroupChildren(elementTemplate);
+        const tableEligible = !!groupChildren && this.isTableEligibleGroupChildren(groupChildren);
+        this.logger.debug(`Repeatable view transform '${component.name}' using ${tableEligible ? "table" : "fallback"} layout.`);
+
+        if (tableEligible && groupChildren) {
+            return this.renderRepeatableTable(groupChildren, rootExpr);
+        }
+        return this.renderRepeatableFallback(elementTemplate, rootExpr);
+    }
+
+    private generateGroupTemplate(component: GroupFormComponentDefinitionOutline, rootExpr: string): string {
+        const children = component?.component?.config?.componentDefinitions ?? [];
+        const rows = children.map(child => this.renderLabelValueRow(child, rootExpr)).join("");
+        return `<div class="rb-view-group">${rows}</div>`;
+    }
+
+    private renderRepeatableTable(children: AllFormComponentDefinitionOutlines[], rootExpr: string): string {
+        const headers = children.map(child => `<th>${this.resolveTranslatedLabel(child)}</th>`).join("");
+        const cells = children.map(child => `<td>${this.renderLeafValue(child, "this", [child.name])}</td>`).join("");
+        return `<div class="rb-view-repeatable rb-view-repeatable-table-wrapper"><table class="table table-striped table-sm rb-view-repeatable-table"><thead><tr>${headers}</tr></thead><tbody>{{#each ${rootExpr}}}<tr>${cells}</tr>{{/each}}</tbody></table></div>`;
+    }
+
+    private renderRepeatableFallback(
+        elementTemplate: AllFormComponentDefinitionOutlines,
+        rootExpr: string
+    ): string {
+        const itemBody = this.renderComponentBody(elementTemplate, "this");
+        return `<div class="rb-view-repeatable rb-view-repeatable-list">{{#each ${rootExpr}}}<div class="rb-view-repeatable-card">${itemBody}</div>{{/each}}</div>`;
+    }
+
+    private renderComponentBody(component: AllFormComponentDefinitionOutlines, rootExpr: string): string {
+        const className = component?.component?.class;
+        if (className === GroupFieldComponentName) {
+            const children = this.getGroupChildren(component) ?? [];
+            return children.map(child => this.renderLabelValueRow(child, rootExpr)).join("");
+        }
+        if (className === RepeatableComponentName) {
+            const nestedRoot = this.buildNestedExpression(rootExpr, component?.name);
+            return this.generateRepeatableTemplate(component as RepeatableFormComponentDefinitionOutline, nestedRoot);
+        }
+        return this.renderLeafValue(component, rootExpr, component?.name ? [component.name] : []);
+    }
+
+    private renderLabelValueRow(component: AllFormComponentDefinitionOutlines, rootExpr: string): string {
+        const label = this.resolveTranslatedLabel(component);
+        const valueExpr = this.renderComponentBody(component, rootExpr);
+        if (label.trim().length === 0) {
+            return `<div class="rb-view-row"><div class="rb-view-value">${valueExpr}</div></div>`;
+        }
+        return `<div class="rb-view-row"><div class="rb-view-label">${label}</div><div class="rb-view-value">${valueExpr}</div></div>`;
+    }
+
+    private renderLeafValue(component: AllFormComponentDefinitionOutlines, rootExpr: string, pathParts: string[]): string {
+        const className = component?.component?.class ?? "";
+        const expression = this.safeValueExpression(rootExpr, pathParts);
+
+        if (className === FileUploadComponentName) {
+            return `<ul class="rb-view-file-upload">{{#each ${expression}}}<li>{{default this.name this.fileId}}</li>{{/each}}</ul>`;
+        }
+        if (className === ContentComponentName) {
+            const template = component?.component?.config && "template" in component.component.config
+                ? (component.component.config as { template?: string }).template
+                : undefined;
+            const trimmedTemplate = (template ?? "").trim();
+            if (trimmedTemplate === "{{content}}" || trimmedTemplate === "{{{content}}}" || trimmedTemplate === "<span>{{content}}</span>") {
+                return `{{default ${expression} ""}}`;
+            }
+            return `{{default ${expression} ""}}`;
+        }
+        if (className === CheckboxTreeComponentName) {
+            return `{{join ${expression} ", "}}`;
+        }
+        return `{{default ${expression} ""}}`;
+    }
+
+    private getGroupChildren(component: AllFormComponentDefinitionOutlines): AllFormComponentDefinitionOutlines[] | null {
+        if (component?.component?.class !== GroupFieldComponentName) {
+            return null;
+        }
+        const componentDefinitions = component?.component?.config && "componentDefinitions" in component.component.config
+            ? (component.component.config as { componentDefinitions?: AllFormComponentDefinitionOutlines[] }).componentDefinitions
+            : [];
+        return componentDefinitions ?? [];
+    }
+
+    private isTableEligibleGroupChildren(children: AllFormComponentDefinitionOutlines[]): boolean {
+        const names = new Set<string>();
+        for (const child of children) {
+            const childName = child?.name?.trim?.() ?? "";
+            if (childName.length === 0 || names.has(childName)) {
+                this.logger.debug(`Repeatable view transform table eligibility failed due to duplicate/empty child name '${child?.name ?? ""}'.`);
+                return false;
+            }
+            names.add(childName);
+
+            const className = child?.component?.class ?? "";
+            if (!this.tableCompatibleLeafComponentNames.has(className) || className === FileUploadComponentName) {
+                this.logger.debug(`Repeatable view transform table eligibility failed for class '${className}'.`);
+                return false;
+            }
+        }
+        return children.length > 0;
+    }
+
+    private resolveTranslatedLabel(component: AllFormComponentDefinitionOutlines): string {
+        const config = component?.component?.config as { label?: string } | undefined;
+        const label = typeof config?.label === "string" ? config.label.trim() : "";
+        if (label.length > 0) {
+            return `{{t "${this.escapeForHandlebarsLiteral(label)}"}}`;
+        }
+        const name = typeof component?.name === "string" ? component.name.trim() : "";
+        return this.escapeForHandlebarsLiteral(name);
+    }
+
+    private safeValueExpression(rootExpr: string, pathParts: string[]): string {
+        const cleanedParts = (pathParts ?? []).filter(part => typeof part === "string" && part.trim().length > 0);
+        if (cleanedParts.length === 0) {
+            return rootExpr;
+        }
+        return `(get ${rootExpr} "${this.escapeForHandlebarsLiteral(cleanedParts.join("."))}" "")`;
+    }
+
+    private buildNestedExpression(rootExpr: string, part?: string): string {
+        if (!part || part.trim().length === 0) {
+            return rootExpr;
+        }
+        return `(get ${rootExpr} "${this.escapeForHandlebarsLiteral(part)}" "")`;
+    }
+
+    private escapeForHandlebarsLiteral(value: string): string {
+        return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     }
 
     private sourceTabComponentTargetAccordionComponent(

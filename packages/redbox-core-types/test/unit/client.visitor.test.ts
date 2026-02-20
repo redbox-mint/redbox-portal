@@ -1,6 +1,6 @@
 import {
     FormConfigFrame,
-    TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
+    TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame, FormOverride
 } from "@researchdatabox/sails-ng-common";
 import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
 import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
@@ -696,5 +696,307 @@ describe("Client Visitor", async () => {
         const visitor = new ClientFormConfigVisitor(logger);
         const actual = visitor.start({ form: constructed, formMode: "edit" });
         expect(actual.componentDefinitions[0].component.class).to.eql("TabComponent");
+    });
+
+    it(`should transform repeatable group to content table in view mode`, async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            formMode: "view",
+            data: {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "contributors",
+                        component: {
+                            class: "RepeatableComponent",
+                            config: {
+                                elementTemplate: {
+                                    name: "",
+                                    component: {
+                                        class: "GroupComponent",
+                                        config: {
+                                            componentDefinitions: [
+                                                {
+                                                    name: "title",
+                                                    component: { class: "SimpleInputComponent", config: { label: "@label.title" } },
+                                                    model: { class: "SimpleInputModel", config: {} }
+                                                },
+                                                {
+                                                    name: "tree",
+                                                    component: { class: "CheckboxTreeComponent", config: { label: "@label.tree" } },
+                                                    model: { class: "CheckboxTreeModel", config: {} }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    model: { class: "GroupModel", config: {} }
+                                }
+                            }
+                        },
+                        model: {
+                            class: "RepeatableModel",
+                            config: { defaultValue: [{ title: "Alice", tree: "A" }] }
+                        }
+                    }
+                ]
+            }
+        });
+
+        const visitor = new ClientFormConfigVisitor(logger);
+        const actual = visitor.start({ form: constructed, formMode: "view" });
+        const transformed = actual.componentDefinitions?.[0];
+        const transformedConfig = transformed?.component?.config as { template?: string } | undefined;
+        expect(transformed?.component?.class).to.equal("ContentComponent");
+        expect(transformedConfig?.template).to.contain("rb-view-repeatable-table");
+        expect(transformedConfig?.template).to.contain('{{t "@label.title"}}');
+        expect(transformedConfig?.template).to.contain('{{join (get this "tree" "") ", "}}');
+    });
+
+    it(`should force repeatable fallback layout when row contains file upload`, async function () {
+        const formOverride = new FormOverride(logger);
+        const transformed = formOverride.applyOverrideTransform({
+            name: "attachments",
+            component: {
+                class: "RepeatableComponent",
+                config: {
+                    elementTemplate: {
+                        name: "",
+                        component: {
+                            class: "GroupComponent",
+                            config: {
+                                componentDefinitions: [
+                                    {
+                                        name: "files",
+                                        component: { class: "FileUploadComponent" }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            model: { class: "RepeatableModel", config: { value: [{}] } }
+        } as any, "view", { phase: "client" });
+        const transformedConfig = transformed.component?.config as { template?: string } | undefined;
+        expect(transformedConfig?.template).to.contain("rb-view-repeatable-list");
+        expect(transformedConfig?.template).to.not.contain("rb-view-repeatable-table");
+    });
+
+    it(`should fallback from table layout for duplicate or empty child names`, async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            formMode: "view",
+            data: {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "dup_names",
+                        component: {
+                            class: "RepeatableComponent",
+                            config: {
+                                elementTemplate: {
+                                    name: "",
+                                    component: {
+                                        class: "GroupComponent",
+                                        config: {
+                                            componentDefinitions: [
+                                                {
+                                                    name: "dup",
+                                                    component: { class: "SimpleInputComponent", config: {} },
+                                                    model: { class: "SimpleInputModel", config: {} }
+                                                },
+                                                {
+                                                    name: "dup",
+                                                    component: { class: "SimpleInputComponent", config: {} },
+                                                    model: { class: "SimpleInputModel", config: {} }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    model: { class: "GroupModel", config: {} }
+                                }
+                            }
+                        },
+                        model: { class: "RepeatableModel", config: { defaultValue: [{ dup: "x" }] } }
+                    },
+                    {
+                        name: "empty_name",
+                        component: {
+                            class: "RepeatableComponent",
+                            config: {
+                                elementTemplate: {
+                                    name: "",
+                                    component: {
+                                        class: "GroupComponent",
+                                        config: {
+                                            componentDefinitions: [
+                                                {
+                                                    name: "",
+                                                    component: { class: "SimpleInputComponent", config: {} },
+                                                    model: { class: "SimpleInputModel", config: {} }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    model: { class: "GroupModel", config: {} }
+                                }
+                            }
+                        },
+                        model: { class: "RepeatableModel", config: { defaultValue: [{}] } }
+                    }
+                ]
+            }
+        });
+        const visitor = new ClientFormConfigVisitor(logger);
+        const actual = visitor.start({ form: constructed, formMode: "view" });
+        const firstTemplate = (actual.componentDefinitions?.[0]?.component?.config as { template?: string } | undefined)?.template ?? "";
+        const secondTemplate = (actual.componentDefinitions?.[1]?.component?.config as { template?: string } | undefined)?.template ?? "";
+        expect(firstTemplate).to.contain("rb-view-repeatable-list");
+        expect(secondTemplate).to.contain("rb-view-repeatable-list");
+    });
+
+    it(`should transform top-level group to content in view mode`, async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            formMode: "view",
+            data: {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "details",
+                        component: {
+                            class: "GroupComponent",
+                            config: {
+                                componentDefinitions: [
+                                    {
+                                        name: "title",
+                                        component: { class: "SimpleInputComponent", config: { label: "@label.title" } },
+                                        model: { class: "SimpleInputModel", config: {} }
+                                    },
+                                    {
+                                        name: "description",
+                                        component: { class: "SimpleInputComponent", config: {} },
+                                        model: { class: "SimpleInputModel", config: {} }
+                                    }
+                                ]
+                            }
+                        },
+                        model: { class: "GroupModel", config: { defaultValue: { title: "T", description: "D" } } }
+                    }
+                ]
+            }
+        });
+        const visitor = new ClientFormConfigVisitor(logger);
+        const actual = visitor.start({ form: constructed, formMode: "view" });
+        const transformed = actual.componentDefinitions?.[0];
+        const template = (transformed?.component?.config as { template?: string } | undefined)?.template ?? "";
+        expect(transformed?.component?.class).to.equal("ContentComponent");
+        expect(template).to.contain('{{t "@label.title"}}');
+        expect(template).to.contain("description");
+    });
+
+    it(`should exclude role and mode disallowed descendants from generated transformed template`, async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            formMode: "view",
+            data: {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "contributors",
+                        component: {
+                            class: "RepeatableComponent",
+                            config: {
+                                elementTemplate: {
+                                    name: "",
+                                    component: {
+                                        class: "GroupComponent",
+                                        config: {
+                                            componentDefinitions: [
+                                                {
+                                                    name: "visible",
+                                                    component: { class: "SimpleInputComponent", config: { label: "@label.visible" } },
+                                                    model: { class: "SimpleInputModel", config: {} }
+                                                },
+                                                {
+                                                    name: "hiddenByMode",
+                                                    component: { class: "SimpleInputComponent", config: { label: "@label.hidden.mode" } },
+                                                    model: { class: "SimpleInputModel", config: {} },
+                                                    constraints: { allowModes: ["edit"] }
+                                                },
+                                                {
+                                                    name: "hiddenByRole",
+                                                    component: { class: "SimpleInputComponent", config: { label: "@label.hidden.role" } },
+                                                    model: { class: "SimpleInputModel", config: {} },
+                                                    constraints: { authorization: { allowRoles: ["Admin"] } }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    model: { class: "GroupModel", config: {} }
+                                }
+                            }
+                        },
+                        model: {
+                            class: "RepeatableModel",
+                            config: { defaultValue: [{ visible: "A", hiddenByMode: "B", hiddenByRole: "C" }] }
+                        }
+                    }
+                ]
+            }
+        });
+        const visitor = new ClientFormConfigVisitor(logger);
+        const actual = visitor.start({ form: constructed, formMode: "view", userRoles: ["User"] });
+        const template = (actual.componentDefinitions?.[0]?.component?.config as { template?: string } | undefined)?.template ?? "";
+        expect(template).to.contain("@label.visible");
+        expect(template).to.not.contain("@label.hidden.mode");
+        expect(template).to.not.contain("@label.hidden.role");
+    });
+
+    it(`should keep repeatable and group untransformed in edit mode`, async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            formMode: "edit",
+            data: {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "top_group",
+                        component: {
+                            class: "GroupComponent",
+                            config: {
+                                componentDefinitions: [
+                                    {
+                                        name: "group_field",
+                                        component: { class: "SimpleInputComponent", config: {} },
+                                        model: { class: "SimpleInputModel", config: {} }
+                                    }
+                                ]
+                            }
+                        },
+                        model: { class: "GroupModel", config: {} }
+                    },
+                    {
+                        name: "top_repeatable",
+                        component: {
+                            class: "RepeatableComponent",
+                            config: {
+                                elementTemplate: {
+                                    name: "",
+                                    component: { class: "SimpleInputComponent", config: {} },
+                                    model: { class: "SimpleInputModel", config: {} }
+                                }
+                            }
+                        },
+                        model: { class: "RepeatableModel", config: {} }
+                    }
+                ]
+            }
+        });
+        const visitor = new ClientFormConfigVisitor(logger);
+        const actual = visitor.start({ form: constructed, formMode: "edit" });
+        const classesByName = new Map((actual.componentDefinitions ?? []).map(item => [item.name, item.component.class]));
+        expect(classesByName.get("top_group")).to.equal("GroupComponent");
+        expect(classesByName.get("top_repeatable")).to.equal("RepeatableComponent");
     });
 });

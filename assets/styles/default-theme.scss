@@ -260,6 +260,43 @@ input[type="submit"]:hover, button[type=submit]:hover {background-color: $submit
     margin-bottom: 30px;
 }
 
+.rb-view-repeatable-table-wrapper {
+    overflow-x: auto;
+}
+
+.rb-view-repeatable-table {
+    margin-bottom: 1rem;
+}
+
+.rb-view-repeatable-card {
+    border: 1px solid #d9d9d9;
+    border-radius: 0.25rem;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    background-color: #fff;
+}
+
+.rb-view-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.rb-view-label {
+    font-weight: 600;
+}
+
+.rb-view-value {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.rb-view-file-upload {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
 .col2-set {
     margin-left: -30px;
     overflow: hidden;

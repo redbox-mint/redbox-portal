@@ -252,7 +252,7 @@ const formConfig: FormConfigFrame = {
                       }
                     },
                     "layout": {
-                      "class": "DefaultLayout",
+                      "class": "RepeatableElementLayout",
                       "config": {
                         "readonly": false,
                         "visible": true,
@@ -440,6 +440,7 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "creators",
                   "disabled": false,
                   "autofocus": false,
                   "labelRequiredStr": "*",

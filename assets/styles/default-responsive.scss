@@ -61,6 +61,10 @@
   .btn .btn-large {
     display:none;
   }
+
+  .rb-view-repeatable-card, .rb-view-repeatable-table-wrapper {
+    page-break-inside: avoid;
+  }
 }
 
 @media only screen and (min-width: 992px) and (max-width: 1280px) {

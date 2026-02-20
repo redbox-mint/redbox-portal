@@ -459,7 +459,7 @@ describe('The FormsService', function () {
             expect(result.componentDefinitions[0].name).to.eql('text_1');
             expect(result.componentDefinitions[0].component.class).to.eql('ContentComponent');
             expect(result.componentDefinitions[1].name).to.eql('repeatable_1');
-            expect(result.componentDefinitions[1].component.class).to.eql('RepeatableComponent');
+            expect(result.componentDefinitions[1].component.class).to.eql('ContentComponent');
             // done();
             // expect(result).to.eql(expected);
         });
@@ -854,131 +854,19 @@ describe('The FormsService', function () {
                     },
                 ]
             };
-            const expected: FormConfigFrame = {
-                name: "remove-items-constrains-nested",
-                type: "rdmp",
-                debugValue: true,
-                domElementType: 'form',
-                defaultComponentConfig: {
-                    defaultComponentCssClasses: 'row',
-                },
-                editCssClasses: "redbox-form form",
-                enabledValidationGroups: ["all"],
-                validators: [],
-                validationGroups: {
-                    all: { description: "Validate all fields with validators.", initialMembership: "all" },
-                    none: { description: "Validate none of the fields.", initialMembership: "none" },
-                },
-                componentDefinitions: [
-                    {
-                        name: 'repeatable_group_1',
-                        model: {
-                            class: 'RepeatableModel',
-                            config: {
-                                value: [{
-                                    // TODO: only 'text_2' should be here, but that requires implementing repeatable value filtering
-                                    //  when all all child components have no form control.
-                                    text_1: "value repeatable_group_1 defaultValue text_1",
-                                    text_2: "value repeatable_group_1 defaultValue text_2",
-                                    repeatable_for_admin: ["value repeatable_group_1 defaultValue repeatable_for_admin"],
-                                }]
-                            }
-                        },
-                        component: {
-                            class: 'RepeatableComponent',
-                            config: {
-                                autofocus: false,
-                                disabled: false,
-                                editMode: true,
-                                readonly: false,
-                                visible: true,
-                                elementTemplate: {
-                                    name: "",
-                                    model: {
-                                        class: 'GroupModel', config: {
-                                            newEntryValue: {
-                                                // TODO: only 'text_2' should be here, but that requires implementing repeatable value filtering
-                                                //  when all all child components have no form control.
-                                                text_1: 'value repeatable_group_1 elementTemplate newEntryValue text_1',
-                                                text_2: 'value repeatable_group_1 elementTemplate newEntryValue text_1',
-                                                repeatable_for_admin: ["value repeatable_group_1 elementTemplate newEntryValue repeatable_for_admin"],
-                                            }
-                                        }
-                                    },
-                                    component: {
-                                        class: 'GroupComponent',
-                                        config: {
-                                            autofocus: false,
-                                            disabled: false,
-                                            editMode: true,
-                                            readonly: false,
-                                            visible: true,
-                                            wrapperCssClasses: 'col',
-                                            componentDefinitions: [
-                                                // <-- requires mode edit, so expect to be removed
-                                                {
-                                                    name: 'text_2',
-                                                    component: {
-                                                        class: 'ContentComponent',
-                                                        config: {
-                                                            autofocus: false,
-                                                            disabled: false,
-                                                            editMode: true,
-                                                            readonly: false,
-                                                            visible: true,
-                                                        },
-                                                    },
-                                                },
-                                                // <-- requires role 'Admin', so is removed
-                                            ]
-                                        }
-                                    },
-                                    layout: {
-                                        class: 'RepeatableElementLayout',
-                                        config: {
-                                            hostCssClasses: 'row align-items-start',
-                                            autofocus: false,
-                                            cssClassesMap: {},
-                                            disabled: false,
-                                            editMode: true,
-                                            helpTextVisible: false,
-                                            helpTextVisibleOnInit: false,
-                                            labelRequiredStr: "*",
-                                            readonly: false,
-                                            visible: true,
-                                        }
-                                    },
-                                    // <-- requires mode view, so is kept, constraints removed
-                                }
-                            },
-                        },
-                        layout: {
-                            class: 'DefaultLayout',
-                            config: {
-                                label: 'Repeatable TextField with default wrapper defined',
-                                helpText: 'Repeatable component help text',
-                                autofocus: false,
-                                cssClassesMap: {},
-                                disabled: false,
-                                editMode: true,
-                                helpTextVisible: false,
-                                helpTextVisibleOnInit: false,
-                                labelRequiredStr: "*",
-                                readonly: false,
-                                visible: true,
-                            }
-                        },
-                    },
-                ]
-            };
             const original = JSON.stringify(formConfig);
             const result = await FormsService.buildClientFormConfig(formConfig, "view");
 
             // ensure the formConfig has not been modified
             expect(JSON.stringify(formConfig)).to.eql(original);
 
-            // confirm the client form config looks as expected
-            expect(result).to.eql(expected);
+            // confirm nested constraints were applied before view-mode transform
+            expect(result.componentDefinitions).to.have.length(1);
+            expect(result.componentDefinitions[0].name).to.eql('repeatable_group_1');
+            expect(result.componentDefinitions[0].component.class).to.eql('ContentComponent');
+            expect(result.componentDefinitions[0].component.config.template).to.contain('<th>text_2</th>');
+            expect(result.componentDefinitions[0].component.config.template).not.to.contain('text_1');
+            expect(result.componentDefinitions[0].component.config.template).not.to.contain('repeatable_for_admin');
         });
     });
 });

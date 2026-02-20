@@ -1421,6 +1421,42 @@ describe("Construct Visitor", async () => {
         });
     });
     describe("repeatable special cases", async () => {
+        it("should keep top-level repeatable and group untransformed in view mode during construct phase", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "top_group",
+                            component: {
+                                class: "GroupComponent",
+                                config: { componentDefinitions: [] }
+                            },
+                            model: { class: "GroupModel", config: {} }
+                        },
+                        {
+                            name: "top_repeatable",
+                            component: {
+                                class: "RepeatableComponent",
+                                config: {
+                                    elementTemplate: {
+                                        name: "",
+                                        component: { class: "SimpleInputComponent", config: {} },
+                                        model: { class: "SimpleInputModel", config: {} }
+                                    }
+                                }
+                            },
+                            model: { class: "RepeatableModel", config: {} }
+                        }
+                    ]
+                }
+            });
+            expect(actual.componentDefinitions[0].component.class).to.equal("GroupComponent");
+            expect(actual.componentDefinitions[1].component.class).to.equal("RepeatableComponent");
+        });
+
         it("should set model values as expected", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = visitor.start({
@@ -1490,13 +1526,9 @@ describe("Construct Visitor", async () => {
                                             config: {
                                                 elementTemplate: {
                                                     name: "",
-                                                    component: {
-                                                        class: "ContentComponent",
-                                                        config: {
-                                                            // TODO: how should repeatables behave when converted to 'view'?
-                                                            // TODO: how should repeatable elementTemplates behave when they contain components that have no model?
-                                                            // content: "text_default",
-                                                        }
+                                                component: {
+                                                    class: "ContentComponent",
+                                                    config: {}
                                                     },
                                                 }
                                             }
