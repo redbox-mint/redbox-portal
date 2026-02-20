@@ -1,4 +1,5 @@
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import * as lodash from 'lodash';
 import * as fs from 'node:fs/promises';

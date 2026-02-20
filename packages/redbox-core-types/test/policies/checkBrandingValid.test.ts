@@ -1,4 +1,5 @@
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 
 // Mock globals BEFORE importing policy
 (global as any)._ = require('lodash');

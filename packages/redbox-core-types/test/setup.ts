@@ -1,6 +1,5 @@
 import '../src/sails';
 import * as lodash from 'lodash';
-import chai from 'chai';
 
 // Ensure TypeScript includes Sails global service declarations during tests.
 // These are type-only imports and do not execute the modules at runtime.
