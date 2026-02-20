@@ -7,7 +7,7 @@ import {FormConfigFrame, FormModesConfig, TemplateFormConfigVisitor} from "@rese
 import {
   formConfigExample1,
   reusableFormDefinitionsExample1
-} from '@researchdatabox/sails-ng-common/dist/test/unit/example-data';
+} from "../unit/example-data";
 
 describe('FormsService', function () {
   let mockSails: any;
