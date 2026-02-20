@@ -36,12 +36,6 @@ import {
   TabContentFieldComponentDefinitionOutline,
   TabContentFieldLayoutDefinitionOutline,
   TabContentFormComponentDefinitionOutline,
-    AccordionFieldComponentDefinitionOutline,
-    AccordionFieldLayoutDefinitionOutline,
-    AccordionFormComponentDefinitionOutline,
-    AccordionPanelFieldComponentDefinitionOutline,
-    AccordionPanelFieldLayoutDefinitionOutline,
-    AccordionPanelFormComponentDefinitionOutline,
   SaveButtonFieldComponentDefinitionOutline,
   SaveButtonFormComponentDefinitionOutline,
     CancelButtonFieldComponentDefinitionOutline,
@@ -83,13 +77,8 @@ import {
   DateInputFormComponentDefinitionOutline,
   FormConfig,
 
-  buildLineagePaths, CancelButtonFieldComponentDefinitionOutline, CancelButtonFormComponentDefinitionOutline,
-  TabNavButtonFieldComponentDefinitionOutline, TabNavButtonFormComponentDefinitionOutline,
-  MapFieldComponentDefinitionOutline, MapDrawingMode, MapFieldModelDefinitionOutline, MapFormComponentDefinitionOutline,
-  FileUploadFieldComponentDefinitionOutline, FileUploadFieldModelDefinitionOutline,
-  FileUploadFormComponentDefinitionOutline, QuestionTreeFieldComponentDefinitionOutline,
+  buildLineagePaths,  QuestionTreeFieldComponentDefinitionOutline,
   QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline,
-  FormPathHelper
 } from "@researchdatabox/sails-ng-common";
 import { get as _get } from "lodash";
 import { DataValueFormConfigVisitor } from "./data-value.visitor";
@@ -526,52 +515,6 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
-
-    /* Map */
-
-    visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
-        const configErrors: FormValidatorSummaryErrors["errors"] = [];
-        const enabledModes = Array.isArray(item.config?.enabledModes) ? item.config?.enabledModes : [];
-        const validModes: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'select'];
-        const invalidModes = enabledModes.filter(mode => !validModes.includes(mode));
-        if (invalidModes.length > 0) {
-            configErrors.push({
-                class: 'mapEnabledModes',
-                message: '@validator-error-map-enabled-modes',
-                params: { invalidModes }
-            });
-        }
-        if (configErrors.length > 0) {
-            this.validationErrors.push({
-                id: String(
-                    this.formPathHelper.formPath.angularComponents?.[this.formPathHelper.formPath.angularComponents.length - 1] ?? ''
-                ),
-                message: item?.config?.label ?? 'MapComponent configuration',
-                errors: configErrors,
-                lineagePaths: buildLineagePaths(this.formPathHelper.formPath)
-            });
-        }
-    }
-
-    visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
-    }
-
-    visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
-
-    /* File Upload */
-
-    visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
-    }
-
-    visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
-    }
-
-    visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
-    }
-
 
   /* Map */
 

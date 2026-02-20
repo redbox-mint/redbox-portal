@@ -6,8 +6,9 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
 import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
-import {formConfigExample1, reusableFormDefinitionsExample1} from "./example-data";
+import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
+import {reusableFormDefinitions} from "../../src";
 
 
 let expect: Chai.ExpectStatic;
@@ -21,7 +22,7 @@ describe("Client Visitor", async () => {
         const constructed = constructor.start({
           data: args,
           formMode: "edit",
-          reusableFormDefs: reusableFormDefinitionsExample1,
+          reusableFormDefs: reusableFormDefinitions,
         });
 
         const visitor = new ClientFormConfigVisitor(logger);
@@ -902,7 +903,7 @@ describe("Client Visitor", async () => {
                   },
                   expressions: [
                     {
-                      name: "question_2-questiontree", description: undefined,
+                      name: "question_2-layoutvis-qt", description: undefined,
                       config: {
                         ...expressionBase,
                         template: "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0"
@@ -929,7 +930,7 @@ describe("Client Visitor", async () => {
                   },
                   expressions: [
                     {
-                      name: "question_3-questiontree", description: undefined,
+                      name: "question_3-layoutvis-qt", description: undefined,
                       config: {
                         ...expressionBase,
                         template: "$count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0"
@@ -956,7 +957,7 @@ describe("Client Visitor", async () => {
                   },
                   expressions: [
                     {
-                      name: "question_4-questiontree", description: undefined,
+                      name: "question_4-layoutvis-qt", description: undefined,
                       config: {
                         ...expressionBase, template: "(" +
                           "(" +
@@ -988,7 +989,7 @@ describe("Client Visitor", async () => {
     const constructed = constructor.start({
       data: formConfig,
       formMode: "edit",
-      reusableFormDefs: reusableFormDefinitionsExample1,
+      reusableFormDefs: reusableFormDefinitions,
     });
 
     const visitor = new ClientFormConfigVisitor(logger);

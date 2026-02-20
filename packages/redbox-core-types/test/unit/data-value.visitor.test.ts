@@ -1,8 +1,9 @@
 import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
 import { DataValueFormConfigVisitor } from "../../src/visitor/data-value.visitor";
 import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
-import {formConfigExample1, reusableFormDefinitionsExample1} from "./example-data";
+import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
+import {reusableFormDefinitions} from "../../src";
 
 
 let expect: Chai.ExpectStatic;
@@ -231,7 +232,7 @@ describe("Data Value Visitor", async () => {
             const constructed = constructor.start({
               data: args,
               formMode:"edit",
-              reusableFormDefs: reusableFormDefinitionsExample1,
+              reusableFormDefs: reusableFormDefinitions,
             });
 
             const visitor = new DataValueFormConfigVisitor(logger);
@@ -241,7 +242,7 @@ describe("Data Value Visitor", async () => {
             // Confirm that using an empty record gives empty data value result
             const constructorEmpty = new ConstructFormConfigVisitor(logger);
             const constructedEmpty = constructorEmpty.start({
-              data: args, formMode:"edit", record: {}, reusableFormDefs: reusableFormDefinitionsExample1,
+              data: args, formMode:"edit", record: {}, reusableFormDefs: reusableFormDefinitions,
             });
 
             const visitorEmpty = new DataValueFormConfigVisitor(logger);

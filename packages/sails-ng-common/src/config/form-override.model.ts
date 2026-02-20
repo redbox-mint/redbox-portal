@@ -62,11 +62,8 @@ import {
     AccordionPanelFieldLayoutConfig
 } from "./component/accordion.model";
 import {
-    QuestionTreeFieldComponentConfigFrame,
-    QuestionTreeFieldComponentDefinitionOutline, QuestionTreeMeta, QuestionTreeOutcome, QuestionTreeQuestion,
-    QuestionTreeQuestionAnswer, QuestionTreeQuestionRuleIn, QuestionTreeQuestionRules
+    QuestionTreeFieldComponentDefinitionOutline,  QuestionTreeQuestionRules
 } from "./component/question-tree.outline";
-import {guessType} from "./helpers";
 import {LineagePath, LineagePaths} from "./names/naming-helpers";
 import {FormExpressionsConfigFrame} from "./form-component.outline";
 
@@ -576,7 +573,7 @@ export class FormOverride {
         // Build the jsonata format identifier.
         // Use the question tree angular component path, plus the question id as the path.
         const path = [...lineagePath.dataModel, rule.q]
-        const identifierString = this.lineagePathToExpressionIdentifiers(['formData', ...path]);
+        const identifierString = `formData.${this.lineagePathToExpressionIdentifiers([...path])}`;
         // The value can be converted to a json array for the jsonata expression.
         const values = (Array.isArray(rule.a) ? rule.a : [rule.a]).map(i => this.toFieldReference(i));
         const valueString = JSON.stringify(values);
@@ -631,101 +628,6 @@ export class FormOverride {
         }
         return result;
     }
-
-    public migrateDataClassificationToQuestionTree(data: any): QuestionTreeFieldComponentConfigFrame {
-
-        const v4Definition = data.createDataClassificationStructure();
-        const v4OrderedOutcomes: string[] = data.orderedOutcomes ?? [];
-
-        // NOTE: The outcome is the 'main' result, which might be displayed, from a Question Tree.
-        //       The outcome meta is additional data that can be included in any outcomes, but is not the 'main' outcome.
-        //       A question tree may have multiple outcomes, and multiple meta properties, each with the same or multiple values.
-        const availableOutcomes: QuestionTreeOutcome[] = v4OrderedOutcomes.map(o => {
-            return {value: o, label: o}
-        });
-        const availableMeta: QuestionTreeMeta = {};
-        const questions: QuestionTreeQuestion[] = [];
-        const defaultOutcomePropName = "classification";
-        for (const [questionId, questionInfo] of Object.entries(v4Definition)) {
-            const qInfo = questionInfo as Record<string, unknown>;
-
-            const rawConditions = qInfo?.conditions as Record<string, string[]>;
-            const rawAnswers = (Array.isArray(qInfo?.answers) ? qInfo?.answers : []) ?? [];
-
-            // TODO: are the label and help needed, or can the existing translations be used?
-            // const rawLabel = qInfo?.label;
-            // const rawHelp = qInfo?.help;
-
-            const rawMinAnswers = qInfo?.minAnswers;
-            const rawMaxAnswers = qInfo?.maxAnswers;
-
-            const questionAnswers: QuestionTreeQuestionAnswer[] = [];
-
-            for (const rawAnswer of rawAnswers) {
-                const answerValue = rawAnswer?.value;
-                const answerLabel = rawAnswer?.label;
-                const answerOutcome = rawAnswer?.outcome;
-                const answerOutcomeGuessedType = guessType(answerOutcome);
-                if (answerOutcomeGuessedType === "string") {
-                    questionAnswers.push({
-                        value: answerValue,
-                        label: answerLabel,
-                        outcome: answerOutcome,
-                    });
-                } else if (answerOutcomeGuessedType === 'object') {
-                    // Use the v4 'classification' property as the v5 outcome,
-                    // any other property is outcome meta / additional data.
-                    const meta = Object.fromEntries(Object.entries(answerOutcome)
-                        .filter(([k, v]) => k !== defaultOutcomePropName && !!v)
-                        .map(([k, v]) => [k, v?.toString() ?? ""]));
-                    questionAnswers.push({
-                        value: answerValue,
-                        label: answerLabel,
-                        outcome: answerOutcome[defaultOutcomePropName],
-                        meta: meta,
-                    });
-                    Object.entries(meta).forEach(([k, v]) => {
-                        if (!(k in availableMeta)){
-                            availableMeta[k] = {};
-                        }
-                        if (!(v in availableMeta[k])){
-                            availableMeta[k][v] = v;
-                        }
-                    });
-                } else if (["undefined", "null"].includes(answerOutcomeGuessedType)) {
-                    questionAnswers.push({
-                        value: answerValue,
-                        label: answerLabel,
-                    });
-                } else {
-                    throw new Error(JSON.stringify({answerOutcomeGuessedType, rawAnswer}));
-                }
-            }
-
-            const rules: QuestionTreeQuestionRules = {
-                op: "or", args: [
-                    ...Object.entries(rawConditions).map(([ruleQuestionId, ruleAnswerValue]) => {
-                        return {op: "in", q: ruleQuestionId, a: ruleAnswerValue} as QuestionTreeQuestionRuleIn;
-                    })
-                ]
-            };
-
-            questions.push({
-                id: questionId,
-                answersMin: parseInt(rawMinAnswers?.toString() ?? "1"),
-                answersMax: parseInt(rawMaxAnswers?.toString() ?? "1"),
-                answers: questionAnswers,
-                rules: rules,
-            });
-        }
-        return {
-            availableOutcomes,
-            availableMeta,
-            questions,
-            componentDefinitions: [],
-        };
-    }
-
 
     /* Transforms between components */
 

@@ -108,10 +108,11 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { FormComponentDefinitionOutline, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { ILogger } from '@researchdatabox/sails-ng-common';
-import { FormPathHelper } from '@researchdatabox/sails-ng-common';import {
+import { FormPathHelper } from '@researchdatabox/sails-ng-common';
+import {
     QuestionTreeFieldComponentDefinitionOutline,
     QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline
-} from "../component/question-tree.outline";
+} from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config class type and extract information about any

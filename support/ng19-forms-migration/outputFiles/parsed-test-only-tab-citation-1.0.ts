@@ -1,5 +1,4 @@
-
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 const formConfig: FormConfigFrame = {
   "name": "v4FormConfig",
   "enabledValidationGroups": [
@@ -870,4 +869,4 @@ const formConfig: FormConfigFrame = {
   "debugValue": true,
   "attachmentFields": []
 };
-module.exports = formConfig;
+export default formConfig;

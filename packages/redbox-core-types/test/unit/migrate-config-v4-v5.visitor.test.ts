@@ -1,149 +1,78 @@
-import { MigrationV4ToV5FormConfigVisitor } from "../../src/visitor/migrate-config-v4-v5.visitor";
-import fs from "fs";
 import path from "path";
 import { logger } from "./helpers";
+import { MigrationV4ToV5FormConfigVisitor } from "../../src";
 import {
-    formValidatorsSharedDefinitions, ReusableFormDefinitions,
-} from "@researchdatabox/sails-ng-common";
-import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
-import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
-import { TemplateFormConfigVisitor } from "../../src/visitor/template.visitor";
-import { ValidatorFormConfigVisitor } from "../../src/visitor/validator.visitor";
+  migrateDataClassification,
+  migrateFormConfigFile,
+  migrateFormConfigVerify
+} from "../../src/visitor/migrate-config-helpers";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
-const reusableFormDefinitions: ReusableFormDefinitions = {
-    "standard-contributor-fields": [
-        {
-            name: "name",
-            component: {
-                class: "SimpleInputComponent",
-                config: { type: "text", hostCssClasses: "flex-grow-1 d-block", wrapperCssClasses: "col-md-4 mb-3" }
-            },
-            model: { class: "SimpleInputModel", config: {} },
-            layout: {
-                class: "InlineLayout",
-                config: { label: "Name", hostCssClasses: "d-flex align-items-center gap-2" }
-            },
-        },
-        {
-            name: "email",
-            component: {
-                class: "SimpleInputComponent",
-                config: { type: "text", hostCssClasses: "flex-grow-1 d-block", wrapperCssClasses: "col-md-4 mb-3" }
-            },
-            model: { class: "SimpleInputModel", config: { validators: [{ class: "email" }] } },
-            layout: {
-                class: "InlineLayout",
-                config: { label: "Email", hostCssClasses: "d-flex align-items-center gap-2" }
-            },
-        },
-        {
-            name: "orcid",
-            component: {
-                class: "SimpleInputComponent",
-                config: { type: "text", hostCssClasses: "flex-grow-1 d-block", wrapperCssClasses: "col-md-4 mb-3" }
-            },
-            model: { class: "SimpleInputModel", config: { validators: [{ class: "orcid" }] } },
-            layout: {
-                class: "InlineLayout",
-                config: { label: "ORCID", hostCssClasses: "d-flex align-items-center gap-2" }
-            },
-        },
-    ],
-    "standard-contributor-fields-group": [
-        {
-            name: "standard_contributor_fields_group",
-            layout: { class: "DefaultLayout", config: { label: "Standard Contributor" } },
-            model: { class: "GroupModel", config: {} },
-            component: {
-                class: "GroupComponent",
-                config: {
-                    hostCssClasses: "row g-3",
-                    componentDefinitions: [
-                        {
-                            overrides: { reusableFormName: "standard-contributor-fields" },
-                            name: "standard_contributor_fields_reusable",
-                            component: { class: "ReusableComponent", config: { componentDefinitions: [] } },
-                        },
-                    ],
-                },
-            },
-        },
-    ],
-};
-
-
-async function migrateV4ToV5(v4InputFile: string, v5OutputFile: string) {
-  logger.info(`Migrate form config v4 to v5: ${v4InputFile} -> ${v5OutputFile}`);
-  let formConfig = require(v4InputFile);
-
-  const migrateVisitor = new MigrationV4ToV5FormConfigVisitor(logger);
-  const actual = migrateVisitor.start({data: formConfig});
-
-  const tsContent = `import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
-const formConfig: FormConfigFrame = ${JSON.stringify(actual, null, 2)};
-module.exports = formConfig;
-`;
-  fs.writeFileSync(v5OutputFile, tsContent, "utf8");
-
-  await migrateRunVisitors(actual);
-
-  return actual;
-}
-
-async function migrateRunVisitors(formConfig: FormConfigFrame) {
-  // Also run other visitors to check for issues in the migration.
-  const constructVisitor = new ConstructFormConfigVisitor(logger);
-  const constructResult = constructVisitor.start({
-    data: formConfig, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1
-  });
-
-  const templateVisitor = new TemplateFormConfigVisitor(logger);
-  templateVisitor.start({
-    form: constructResult
-  });
-
-  // TODO: use the redbox-hook-kit instead of the tests to run the migrate visitor.
-  // const validatorVisitor = new ValidatorFormConfigVisitor(logger);
-  // validatorVisitor.start({
-  //   form: constructResult,
-  //   validatorDefinitions: formValidatorsSharedDefinitions
-  // });
-
-  const clientVisitor = new ClientFormConfigVisitor(logger);
-  clientVisitor.start({
-    form: constructResult, formMode: "edit", userRoles: ["Admin", "Librarians", "Researcher", "Guest"],
-  });
-}
-
 describe("Migrate v4 to v5 Visitor", async () => {
-  const formOverride = new FormOverride(logger);
   const relPath = path.relative(path.join(__dirname, 'packages/sails-ng-common'), __dirname);
 
-  const migrateData = [];
-  const questionTreeData = [];
+  describe("full migration", async () => {
+    beforeEach(() => {
+      (globalThis as any).sails = { config: { auth: { defaultBrand: 'default' } } };
+      (globalThis as any).VocabularyService = {
+        getEntries: async () => ({ entries: [{ label: 'Open', value: 'open' }, { label: 'Closed', value: 'closed' }] })
+      };
+    });
 
-  const testData = require(path.resolve(relPath, 'support/ng19-forms-migration/data.ts'));
-  migrateData.push(...(testData.migrate ?? []));
-  questionTreeData.push(...(testData.questionTree ?? []));
+    afterEach(() => {
+      delete (globalThis as any).sails;
+      delete (globalThis as any).VocabularyService;
+    });
 
-  const localDataPath = path.join(relPath, 'support/ng19-forms-migration/local/data.ts');
-  if (fs.existsSync(localDataPath)) {
-    const casesData = require(path.resolve(localDataPath));
-    migrateData.push(...(casesData.migrate ?? []));
-    questionTreeData.push(...(casesData.questionTree ?? []));
-  }
+    // Full form config migration tests
+    [
+      {
+        "in": "support/ng19-forms-migration/inputFiles/test-only-dataRecord-1.0-draft.js",
+        "out": "support/ng19-forms-migration/outputFiles/parsed-test-only-dataRecord-1.0-draft.ts",
+      },
+      {
+        "in": "support/ng19-forms-migration/inputFiles/test-only-tab-citation-1.0.js",
+        "out": "support/ng19-forms-migration/outputFiles/parsed-test-only-tab-citation-1.0.ts",
+      }
+    ].forEach((item: { in: string, out: string }) => {
+      it(`should migrate from ${item.in} to ${item.out}`, async function () {
+        const inputFile = path.resolve(relPath, item.in);
+        const outputFile = path.resolve(relPath, item.out);
 
-  migrateData.forEach((item: { in: string, out: string }) => {
-    it(`should migrate from ${item.in} to ${item.out}`, async function () {
-      const inputFile = path.resolve(relPath, item.in);
-      const outputFile = path.resolve(relPath, item.out);
-      const actual = await migrateV4ToV5(inputFile, outputFile);
-      expect(actual).to.not.be.empty;
-      const serialised = JSON.stringify(actual);
-      expect(serialised).to.not.contain('v4ClassName "ANDSVocab"');
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const actual = await migrateFormConfigFile(visitor, inputFile, outputFile, false);
+        expect(actual).to.not.be.empty;
+
+        const serialised = JSON.stringify(actual);
+        expect(serialised).to.not.contain('v4ClassName "ANDSVocab"');
+
+        await migrateFormConfigVerify(actual, logger);
+      });
+    });
+
+    // Data classification to question tree migration tests.
+    [
+      {
+        "in":"support/ng19-forms-migration/inputFiles/definition.js",
+        "out":"support/ng19-forms-migration/outputFiles/question-tree-definition-form-config.ts",
+      }
+    ].forEach((item: { in: string, out: string }) => {
+      it(`should migrate data classification from ${item.in} to question tree config ${item.out}`, async function () {
+        const inputFile = path.resolve(relPath, item.in);
+        const outputFile = path.resolve(relPath, item.out);
+
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const actual = migrateDataClassification(visitor, inputFile, outputFile, false);
+        expect(actual.formConfig).to.not.be.empty;
+        expect(actual.migratedConfig).to.not.be.empty;
+
+        const serialised = JSON.stringify(actual);
+        expect(serialised).to.not.contain('v4ClassName "ANDSVocab"');
+
+        await migrateFormConfigVerify(actual.formConfig, logger);
+      });
     });
   });
 
@@ -483,34 +412,4 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(migrated.attachmentFields).to.not.include("title");
         expect(migrated.attachmentFields?.length).to.equal(2);
     });
-
-  questionTreeData.forEach((item: { in: string, out: string }) => {
-    it(`should migrate question tree from ${item.in} to ${item.out}`, async function () {
-      const inputFile = path.resolve(relPath, item.in);
-      const outputFile = path.resolve(relPath, item.out);
-      let v4InputRequire = require(inputFile);
-      const migrated = formOverride.migrateDataClassificationToQuestionTree(v4InputRequire);
-      const tsContent = `import {QuestionTreeFieldComponentConfigFrame} from "@researchdatabox/sails-ng-common";
-const questionTreeConfig: QuestionTreeFieldComponentConfigFrame = ${JSON.stringify(migrated, null, 2)};
-module.exports = questionTreeConfig;
-`;
-      fs.writeFileSync(outputFile, tsContent, "utf8");
-      expect(migrated).to.not.be.empty;
-
-      // Confirm the migration is valid.
-      const formConfig: FormConfigFrame = {
-        name: "form",
-        componentDefinitions: [
-          {
-            name: "questiontree_1",
-            component: {
-              class: "QuestionTreeComponent",
-              config: migrated,
-            },
-          }
-        ]
-      };
-      await migrateRunVisitors(formConfig);
-    });
-  });
 });

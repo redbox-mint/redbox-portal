@@ -266,13 +266,14 @@ import { FormModesConfig } from '@researchdatabox/sails-ng-common';
 import { FieldModelConfigFrame, FieldModelDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { FormOverride } from '@researchdatabox/sails-ng-common';
 import { FormPathHelper, PropertiesHelper } from '@researchdatabox/sails-ng-common';
-import { LineagePath } from '@researchdatabox/sails-ng-common';import {
+import { LineagePath } from '@researchdatabox/sails-ng-common';
+import {
     QuestionTreeComponentName, QuestionTreeFieldComponentDefinitionFrame,
     QuestionTreeFieldComponentDefinitionOutline, QuestionTreeFieldModelDefinitionFrame,
     QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline,
-    QuestionTreeModelName
-} from "../component/question-tree.outline";
-import {QuestionTreeFieldComponentConfig, QuestionTreeFieldModelConfig} from "../component/question-tree.model";
+    QuestionTreeModelName,
+  QuestionTreeFieldComponentConfig, QuestionTreeFieldModelConfig,
+} from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config frame and create an instance of the associated class.

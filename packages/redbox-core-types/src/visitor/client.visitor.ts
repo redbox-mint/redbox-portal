@@ -122,7 +122,7 @@ import { guessType } from '@researchdatabox/sails-ng-common';
 import {
     QuestionTreeFieldComponentDefinitionOutline,
     QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline
-} from "../component/question-tree.outline";
+} from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config class type and build the form config for the client-side.
