@@ -1,7 +1,5 @@
-/// <reference path="./chai-subset.d.ts" />
 import '../src/sails';
 import * as lodash from 'lodash';
-import chaiSubset from 'chai-subset';
 import chai from 'chai';
 
 // Ensure TypeScript includes Sails global service declarations during tests.
@@ -63,5 +61,3 @@ const mockLogger = {
 (global as any).AsynchProgress = { find: () => ({ exec: () => { } }) };
 (global as any).Role = { find: () => ({ exec: () => { } }) };
 (global as any).BrandingConfig = { findOne: () => ({ exec: () => { } }) };
-
-chai.use(chaiSubset);

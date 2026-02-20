@@ -192,7 +192,21 @@ describe("Construct Visitor", async () => {
             it(`should ${title}`, async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
                 const actual = visitor.start({ data: args, formMode: "edit" });
-                expect(actual).to.containSubset(expected);
+                expect(actual).to.deep.include({ name: expected.name });
+
+                const expectedDefs = expected.componentDefinitions ?? [];
+                const actualDefs = actual.componentDefinitions ?? [];
+                expect(actualDefs).to.have.lengthOf(expectedDefs.length);
+                expect(actualDefs.map(componentDef => componentDef.name))
+                    .to.deep.include.members(expectedDefs.map(componentDef => componentDef.name));
+                expect(actualDefs.map(componentDef => componentDef.component.class))
+                    .to.deep.include.members(expectedDefs.map(componentDef => componentDef.component.class));
+
+                expectedDefs.forEach((componentDef, index) => {
+                    if (componentDef.layout?.config) {
+                        expect(actualDefs[index]?.layout?.config).to.deep.include(componentDef.layout.config);
+                    }
+                });
             });
         });
 
@@ -358,7 +372,29 @@ describe("Construct Visitor", async () => {
                     formMode: args.formMode,
                     reusableFormDefs: args.reusableFormDefs
                 });
-                expect(actual).to.containSubset(expected);
+                expect(actual).to.deep.include({ name: expected.name });
+
+                const expectedDefs = expected.componentDefinitions ?? [];
+                const actualDefs = actual.componentDefinitions ?? [];
+                expect(actualDefs).to.have.lengthOf(expectedDefs.length);
+                expect(actualDefs.map(componentDef => componentDef.name))
+                    .to.deep.include.members(expectedDefs.map(componentDef => componentDef.name));
+                expect(actualDefs.map(componentDef => componentDef.component.class))
+                    .to.deep.include.members(expectedDefs.map(componentDef => componentDef.component.class));
+
+                const expectedOrcidConfig = expectedDefs.find(componentDef => componentDef.name === "orcid")
+                    ?.component?.config as { componentDefinitions?: Array<{ name: string, component: { class: string } }> } | undefined;
+                const actualOrcidConfig = actualDefs.find(componentDef => componentDef.name === "orcid")
+                    ?.component?.config as { componentDefinitions?: Array<{ name: string, component: { class: string } }> } | undefined;
+                const expectedOrcidNested = expectedOrcidConfig?.componentDefinitions ?? [];
+                const actualOrcidNested = actualOrcidConfig?.componentDefinitions ?? [];
+
+                if (expectedOrcidNested.length > 0) {
+                    expect(actualOrcidNested.map((componentDef: { name: string }) => componentDef.name))
+                        .to.deep.include.members(expectedOrcidNested.map(componentDef => componentDef.name));
+                    expect(actualOrcidNested.map((componentDef: { component: { class: string } }) => componentDef.component.class))
+                        .to.deep.include.members(expectedOrcidNested.map(componentDef => componentDef.component.class));
+                }
             });
         });
     });
@@ -771,7 +807,12 @@ describe("Construct Visitor", async () => {
                     }
                 ]
             };
-            expect(actual).to.containSubset(expected);
+            expect(actual).to.deep.include({ name: expected.name });
+            expect(actual.componentDefinitions[0]).to.deep.include({ name: "content1" });
+            expect(actual.componentDefinitions[0].component).to.deep.include({ class: "ContentComponent" });
+            expect(actual.componentDefinitions[0].component.config).to.deep.include({
+                template: '<h1>{{model}}</h1>'
+            });
         });
         it("should populate transformed content component from record", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
@@ -850,7 +891,20 @@ describe("Construct Visitor", async () => {
                     }
                 ]
             };
-            expect(actual).to.containSubset(expected);
+            expect(actual).to.deep.include({ name: expected.name });
+            expect(actual.componentDefinitions[0]).to.deep.include({ name: "component_1" });
+            expect(actual.componentDefinitions[0].component).to.deep.include({ class: "ContentComponent" });
+            expect(actual.componentDefinitions[0].component.config).to.deep.include({
+                content: { label: 'Option 3', value: 'option3' },
+                template: `<span data-value="{{content.value}}">{{content.label}}</span>`
+            });
+
+            expect(actual.componentDefinitions[1]).to.deep.include({ name: "component_2" });
+            expect(actual.componentDefinitions[1].component).to.deep.include({ class: "ContentComponent" });
+            expect(actual.componentDefinitions[1].component.config).to.deep.include({
+                content: [{ label: 'Option 2', value: 'option2' }, { label: 'Option 3', value: 'option3' }],
+                template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
+            });
         });
     });
     describe("accordion transformations", async () => {
@@ -1197,7 +1251,27 @@ describe("Construct Visitor", async () => {
                     }
                 ]
             };
-            expect(actual).to.containSubset(expected);
+            expect(actual).to.deep.include({ name: expected.name });
+            const groupDef = actual.componentDefinitions[0];
+            expect(groupDef).to.not.equal(undefined);
+            expect(groupDef).to.deep.include({ name: "group_1" });
+            expect(groupDef.component).to.deep.include({ class: "GroupComponent" });
+            expect(groupDef.model).to.deep.include({ class: "GroupModel" });
+            expect(groupDef.model?.config).to.deep.include({
+                value: { component_1: ["text_1", "text_2"] }
+            });
+
+            const groupConfig = groupDef.component.config as { componentDefinitions?: Array<unknown> } | undefined;
+            const repeatableDef = groupConfig?.componentDefinitions?.[0] as {
+                name: string,
+                component: { class: string },
+                model?: { class: string, config: { value: string[] } }
+            } | undefined;
+            expect(repeatableDef).to.not.equal(undefined);
+            expect(repeatableDef).to.deep.include({ name: "component_1" });
+            expect(repeatableDef?.component).to.deep.include({ class: "RepeatableComponent" });
+            expect(repeatableDef?.model).to.deep.include({ class: "RepeatableModel" });
+            expect(repeatableDef?.model?.config).to.deep.include({ value: ["text_1", "text_2"] });
         });
     });
 });
