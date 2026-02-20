@@ -1,63 +1,39 @@
+import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel} from "@researchdatabox/portal-ng-common";
 import {
-  Component,
-  inject,
-  Injector,
-  ViewChild,
-  ViewContainerRef
-} from '@angular/core';
-import { AbstractControl, FormGroup} from "@angular/forms";
-import {
-  FormFieldBaseComponent,
-  FormFieldCompMapEntry,
-  FormFieldModel,
-} from "@researchdatabox/portal-ng-common";
-import {
-  FormConfigFrame,
-  GroupFieldModelValueType, GroupFieldModelName, GroupFieldComponentName,
+  QuestionTreeModelValueType,
+  QuestionTreeComponentName,
+  QuestionTreeModelName, FormConfigFrame, isTypeWithComponentDefinitions,
   isTypeFieldDefinitionName,
-  isTypeWithComponentDefinitions,
-  GroupFieldComponentDefinitionFrame,
+  QuestionTreeFieldComponentDefinitionFrame
 } from "@researchdatabox/sails-ng-common";
-import { FormComponentsMap, FormService } from "../form.service";
-import { FormComponent } from "../form.component";
-import {
-  get as _get,
-  isEmpty as _isEmpty,
-  isUndefined as _isUndefined,
-} from "lodash-es";
-import { FormBaseWrapperComponent } from "./base-wrapper.component";
+import {Component, inject, Injector, ViewChild, ViewContainerRef} from "@angular/core";
+import {AbstractControl, FormGroup} from "@angular/forms";
+import {FormComponentsMap, FormService} from "../form.service";
+import {FormComponent} from "../form.component";
+import {isEmpty as _isEmpty, isUndefined as _isUndefined} from "lodash-es";
+import {FormBaseWrapperComponent} from "./base-wrapper.component";
 
-/**
- * The model for the Group Component.
- */
-export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
-  protected override logName = GroupFieldModelName;
+
+export class QuestionTreeModel extends FormFieldModel<QuestionTreeModelValueType> {
+  protected override logName = QuestionTreeModelName;
   public override formControl?: FormGroup;
 
-  protected override postCreateGetInitValue(): GroupFieldModelValueType {
+  protected override postCreateGetInitValue(): QuestionTreeModelValueType {
     return this.fieldConfig.config?.value ?? {};
   }
 
   protected override postCreateGetFormControl(): FormGroup<{ [key: string]: AbstractControl<any> }> {
     // Create the empty FormGroup here, not in the component.
     // This is different from FormComponent, which has no model.
-    // Creating the FormGroup here allows encapsulating the FormGroup & children in the same way as other components.
+    // Creating the FormGroup here allows encapsulating the FormGroup & children
     // in the same way as other components.
     const modelElems: { [key: string]: AbstractControl<any> } = {};
-    const formControl = new FormGroup(modelElems);
-    if (this.fieldConfig.config?.disabled) {
-      formControl.disable();
-    }
-    return formControl;
+    return new FormGroup(modelElems);
   }
 
   public addItem(name: string, targetModel?: FormFieldModel<unknown>) {
-    const control = targetModel?.getFormControl();
-    if (this.formControl && name && control) {
-      if (this.formControl.disabled && control.enabled) {
-        control.disable();
-      }
-      this.formControl.addControl(name, control);
+    if (this.formControl && name && targetModel) {
+      this.formControl.addControl(name, targetModel.getFormControl());
     } else {
       throw new Error(`${this.logName}: formControl or name or targetModel are not valid. Cannot add item.`);
     }
@@ -65,7 +41,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
 }
 
 @Component({
-  selector: 'redbox-groupfield',
+  selector: 'redbox-questiontreefield',
   template: `
     <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
     <ng-container #componentContainer/>
@@ -73,15 +49,15 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
   `,
   standalone: false
 })
-export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelValueType> {
-  protected override logName: string = GroupFieldComponentName;
-  public override model?: GroupFieldModel;
+export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeModelValueType> {
+  protected override logName = QuestionTreeComponentName;
+  public override model?: QuestionTreeModel;
 
   private formService = inject(FormService);
   private injector = inject(Injector);
   protected formComponentsMap?: FormComponentsMap;
 
-  @ViewChild('componentContainer', { read: ViewContainerRef, static: true })
+  @ViewChild('componentContainer', {read: ViewContainerRef, static: true})
   private componentContainer!: ViewContainerRef;
 
   private elementFormConfig?: FormConfigFrame;
@@ -89,14 +65,13 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
   protected get getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);
   }
-
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
     return this.formFieldCompMapEntries
       .map(c => c.component)
       .filter(c => c !== undefined && c !== null);
   }
 
-  public override get formFieldCompMapEntries(): FormFieldCompMapEntry[] {
+  public override get formFieldCompMapEntries() : FormFieldCompMapEntry[] {
     return this.formComponentsMap?.components ?? [];
   }
 
@@ -108,18 +83,18 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
     const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
 
     const componentFormConfig = this.formFieldCompMapEntry?.compConfigJson?.component;
-    if (!isTypeFieldDefinitionName<GroupFieldComponentDefinitionFrame>(componentFormConfig, GroupFieldComponentName)) {
-      throw new Error(`Expected a group component, but got ${JSON.stringify(componentFormConfig)}`);
+    if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(componentFormConfig, QuestionTreeComponentName)){
+      throw new Error(`Expected a question tree component, but got ${JSON.stringify(componentFormConfig)}`);
     }
 
     const componentConfigFormConfig = componentFormConfig.config;
-    if (!isTypeWithComponentDefinitions(componentConfigFormConfig) || componentConfigFormConfig.componentDefinitions?.length < 1) {
-      throw new Error(`Expected a group component config with at least one componentDefinition, but got ${JSON.stringify(componentConfigFormConfig)}`);
+    if (!isTypeWithComponentDefinitions(componentConfigFormConfig) || componentConfigFormConfig.componentDefinitions?.length < 1){
+      throw new Error(`Expected a question tree component config with at least one componentDefinition, but got ${JSON.stringify(componentConfigFormConfig)}`);
     }
 
     const componentDefinitions = componentConfigFormConfig.componentDefinitions;
     this.elementFormConfig = {
-      name: `form-config-generated-group-${formComponentName}`,
+      name: `form-config-generated-questiontree-${formComponentName}`,
       // Store the child component definitions.
       componentDefinitions: componentDefinitions,
       // Get the default config.
@@ -143,10 +118,10 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       throw new Error(`${this.logName}: model is not defined. Cannot initialize the component.`);
     }
 
-    // Create the form group fields from the form components map.
+    // Create the form fields from the form components map.
     const elemVals = this.model.initValue ?? {};
     const formGroupMap = this.formService.groupComponentsByName(this.formComponentsMap);
-    for (const key of Object.keys(formGroupMap.completeGroupMap ?? {})) {
+    for (const key of Object.keys(formGroupMap.withFormControl ?? {})) {
       // Create the wrapper component.
       const wrapperRef = this.componentContainer.createComponent(FormBaseWrapperComponent<unknown>);
       wrapperRef.instance.defaultComponentConfig = this.elementFormConfig?.defaultComponentConfig;
@@ -155,15 +130,14 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
       // Populate the component model if it has one.
       const hasModel = this.model?.formControl && compInstance?.model;
-      const includeInFormControlMap = this.formService.shouldIncludeInFormControlMap(elemFieldEntry);
-      if (hasModel && includeInFormControlMap) {
+      if (hasModel) {
         const elemVal = elemVals?.[key];
         if (compInstance?.model && !_isUndefined(elemVal)) {
           compInstance.model.setValue(elemVal);
         }
         this.model.addItem(key, compInstance.model);
       } else {
-        this.loggerService.debug(`${this.logName}: component for '${key}' does not have a model or formControl, skipping addItem.`);
+        this.loggerService.warn(`${this.logName}: model or formControl for '${key}' is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`);
       }
 
       // Set the reference to the wrapper component.

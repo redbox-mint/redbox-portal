@@ -84,6 +84,8 @@ export * from './config/component/file-upload.model';
 export * from './config/component/file-upload.outline';
 export * from './config/component/reusable.model';
 export * from './config/component/reusable.outline';
+export * from "./config/component/question-tree.model";
+export * from "./config/component/question-tree.outline";
 // validation
 export * from './validation/helpers';
 export * from './validation/form.model';

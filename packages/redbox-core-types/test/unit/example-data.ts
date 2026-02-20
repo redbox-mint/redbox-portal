@@ -1,84 +1,4 @@
-import {FormConfigFrame, ReusableFormDefinitions} from "@researchdatabox/sails-ng-common";
-
-
-export const reusableDefinitionsExample1: ReusableFormDefinitions = {
-    // definition of a reusable form config - standard component definitions
-    // The standard people field
-    "standard-contributor-field": [
-        {
-            name: "name",
-            component: {class: "SimpleInputComponent", config: {type: "text"}}
-        },
-        {
-            name: "email",
-            component: {class: "SimpleInputComponent", config: {type: "text"}}
-        },
-        {
-            name: "orcid",
-            component: {
-                class: "GroupComponent",
-                config: {
-                    componentDefinitions: [
-                        {
-                            name: "example1",
-                            component: {class: "SimpleInputComponent", config: {type: "text"}},
-                        }
-                    ]
-                }
-            }
-        },
-    ],
-    // TODO: The standard people fields - ci, data manager, supervisor, contributor.
-    // definition of a reusable form config that refers to another reusable form config
-    // the component definition can be either a standard component def or the 'reusableName' format
-    "standard-people-fields": [
-        {
-            // this element in the array is replaced by the 3 items in the "standard-contributor-field" array
-            overrides: {reusableFormName: "standard-contributor-field"},
-            // Name does not matter, this array element will be replaced
-            name: "",
-            component: {
-                class: "ReusableComponent",
-                config: {
-                    componentDefinitions: [
-                        {
-                            // for the item in the array that matches the match name, change the name to replace
-                            // merge all other properties, preferring the definitions here
-                            overrides: {replaceName: "contributor_ci_name"},
-                            name: "name",
-                            component: {class: "SimpleInputComponent", config: {type: "tel"}},
-                        },
-                        {
-                            // refer to the item without changing it
-                            // this is useful for referring to an item that has nested components that will be changed
-                            name: "orcid",
-                            component: {
-                                class: "GroupComponent",
-                                config: {
-                                    componentDefinitions: [
-                                        {
-                                            overrides: {replaceName: "orcid_nested_example1"},
-                                            name: "example1",
-                                            component: {class: "ContentComponent", config: {}},
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                        // the 'email' item in the reusable definition array is copied with no changes
-                    ]
-                }
-            },
-        },
-        {
-            // this element is used as-is
-            name: "contributor_data_manager",
-            component: {class: "SimpleInputComponent", config: {type: "text"}}
-        }
-    ],
-    // TODO: The standard project info fields: title, description, keywords, SEO codes, FOR codes
-    "standard-project-info-fields": [],
-};
+import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 
 /**
  * A general form config with examples of most of the component types and nested components.
@@ -94,7 +14,7 @@ export const formConfigExample1: FormConfigFrame = {
     editCssClasses: "redbox-form form",
     // Validators that operate on multiple fields.
     validators: [
-        {class: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
+        { class: 'different-values', config: { controlNames: ['text_1_event', 'text_2'] } },
     ],
     // Groups of validators that can be enabled and disabled together.
     validationGroups: {
@@ -199,9 +119,9 @@ export const formConfigExample1: FormConfigFrame = {
                                                 class: 'DropdownInputComponent',
                                                 config: {
                                                     options: [
-                                                        {label: 'Option 1', value: 'option1'},
-                                                        {label: 'Option 2', value: 'option2'},
-                                                        {label: 'Option 3', value: 'option3'},
+                                                        { label: 'Option 1', value: 'option1' },
+                                                        { label: 'Option 2', value: 'option2' },
+                                                        { label: 'Option 3', value: 'option3' },
                                                     ],
                                                     tooltip: 'Dropdown tooltip'
                                                 }
@@ -226,9 +146,9 @@ export const formConfigExample1: FormConfigFrame = {
                                                 class: 'CheckboxInputComponent',
                                                 config: {
                                                     options: [
-                                                        {label: 'Option 1', value: 'option1'},
-                                                        {label: 'Option 2', value: 'option2'},
-                                                        {label: 'Option 3', value: 'option3'},
+                                                        { label: 'Option 1', value: 'option1' },
+                                                        { label: 'Option 2', value: 'option2' },
+                                                        { label: 'Option 3', value: 'option3' },
                                                     ],
                                                     tooltip: 'Checkbox tooltip',
                                                     multipleValues: false
@@ -254,10 +174,10 @@ export const formConfigExample1: FormConfigFrame = {
                                                 class: 'CheckboxInputComponent',
                                                 config: {
                                                     options: [
-                                                        {label: 'Multi Option 1', value: 'option1'},
-                                                        {label: 'Multi Option 2', value: 'option2'},
-                                                        {label: 'Multi Option 3', value: 'option3'},
-                                                        {label: 'Multi Option 4', value: 'option4'},
+                                                        { label: 'Multi Option 1', value: 'option1' },
+                                                        { label: 'Multi Option 2', value: 'option2' },
+                                                        { label: 'Multi Option 3', value: 'option3' },
+                                                        { label: 'Multi Option 4', value: 'option4' },
                                                     ],
                                                     tooltip: 'Multiple selection checkbox tooltip',
                                                     multipleValues: true
@@ -283,9 +203,9 @@ export const formConfigExample1: FormConfigFrame = {
                                                 class: 'RadioInputComponent',
                                                 config: {
                                                     options: [
-                                                        {label: 'Option 1', value: 'option1'},
-                                                        {label: 'Option 2', value: 'option2'},
-                                                        {label: 'Option 3', value: 'option3'},
+                                                        { label: 'Option 1', value: 'option1' },
+                                                        { label: 'Option 2', value: 'option2' },
+                                                        { label: 'Option 3', value: 'option3' },
                                                     ],
                                                     tooltip: 'Checkbox tooltip'
                                                 }
@@ -335,7 +255,7 @@ export const formConfigExample1: FormConfigFrame = {
                                                 config: {
                                                     defaultValue: 'hello world!',
                                                     validators: [
-                                                        {class: 'required'},
+                                                        { class: 'required' },
                                                     ]
                                                 }
                                             },
@@ -390,7 +310,7 @@ export const formConfigExample1: FormConfigFrame = {
                                                         {
                                                             class: 'minLength',
                                                             message: "@validator-error-custom-text_7",
-                                                            config: {minLength: 3}
+                                                            config: { minLength: 3 }
                                                         },
                                                     ]
                                                 }
@@ -398,11 +318,17 @@ export const formConfigExample1: FormConfigFrame = {
                                             component: {
                                                 class: 'SimpleInputComponent'
                                             },
-                                            // expressions: {
-                                            //     'model.value': {
-                                            //         template: `<%= _.get(model,'text_1_event','') %>`
-                                            //     }
-                                            // }
+                                          expressions: [
+                                            {
+                                              name: 'text_7_text_1_event_expr',
+                                              config: {
+                                                template: `value & "__suffix"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/text_1_event::field.value.changed`,
+                                                target: `model.value`,
+                                              },
+                                            },
+                                          ],
                                         },
                                         {
                                             name: 'text_2_event',
@@ -411,7 +337,7 @@ export const formConfigExample1: FormConfigFrame = {
                                                 config: {
                                                     defaultValue: 'hello world! component event',
                                                     validators: [
-                                                        {class: 'required'},
+                                                        { class: 'required' },
                                                     ]
                                                 }
                                             },
@@ -446,15 +372,17 @@ export const formConfigExample1: FormConfigFrame = {
                                                     type: 'text'
                                                 }
                                             },
-                        //                     expressions: {
-                        //                         'component.visible': {
-                        //                             template: `<% if(_.isEmpty(_.get(model,'text_2_event',''))) {
-                        //     return false;
-                        //   } else {
-                        //     return true;
-                        //   } %>`
-                        //                         }
-                        //                     }
+                                          expressions: [
+                                            {
+                                              name: 'text_2_component_event_text_2_event_expr',
+                                              config: {
+                                                template: `value = "hide text_2_component_event"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/text_2_event::field.value.changed`,
+                                                target: `component.visible`,
+                                              },
+                                            },
+                                          ]
                                         },
                                         {
                                             name: 'text_3_event',
@@ -463,7 +391,7 @@ export const formConfigExample1: FormConfigFrame = {
                                                 config: {
                                                     defaultValue: 'hello world! layout event',
                                                     validators: [
-                                                        {class: 'required'},
+                                                        { class: 'required' },
                                                     ]
                                                 }
                                             },
@@ -489,15 +417,17 @@ export const formConfigExample1: FormConfigFrame = {
                                             component: {
                                                 class: 'SimpleInputComponent'
                                             },
-                                            // expressions: {
-                                            //     'layout.visible': {
-                                            //         template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                                            //         return false;
-                                            //     } else {
-                                            //         return true;
-                                            //     } %>`
-                                            //     }
-                                            // }
+                                          expressions: [
+                                            {
+                                              name: 'text_3_layout_event_text_3_event_expr',
+                                              config: {
+                                                template: `value = "hide text_3_layout_event"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/text_3_event::field.value.changed`,
+                                                target: `layout.visible`,
+                                              },
+                                            },
+                                          ]
                                         },
                                     ]
                                 }
@@ -601,7 +531,7 @@ export const formConfigExample1: FormConfigFrame = {
                                                                                 config: {
                                                                                     defaultValue: 'hello world 5!',
                                                                                     validators: [
-                                                                                        {class: 'required'},
+                                                                                        { class: 'required' },
                                                                                         {
                                                                                             class: 'pattern',
                                                                                             config: {
@@ -623,15 +553,17 @@ export const formConfigExample1: FormConfigFrame = {
                                                     ]
                                                 }
                                             },
-                        //                     expressions: {
-                        //                         'layout.visible': {
-                        //                             template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                        //     return false;
-                        //   } else {
-                        //     return true;
-                        //   } %>`
-                        //                         }
-                        //                     }
+                                          expressions: [
+                                            {
+                                              name: 'group_1_component_text_3_event_expr',
+                                              config: {
+                                                template: `value = "hide group_1_component"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/text_3_event::field.value.changed`,
+                                                target: `layout.visible`,
+                                              },
+                                            },
+                                          ]
                                         },
                                         {
                                             name: 'repeatable_textfield_1',
@@ -661,7 +593,7 @@ export const formConfigExample1: FormConfigFrame = {
                                                                     {
                                                                         class: 'minLength',
                                                                         message: "@validator-error-custom-example_repeatable",
-                                                                        config: {minLength: 3}
+                                                                        config: { minLength: 3 }
                                                                     },
                                                                 ]
                                                             }
@@ -689,17 +621,53 @@ export const formConfigExample1: FormConfigFrame = {
                                                     helpText: 'Repeatable component help text',
                                                 }
                                             },
-                                            // expressions: {
-                                            //     'layout.visible': {
-                                            //         template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                                            //         return false;
-                                            //     } else {
-                                            //         return true;
-                                            //     } %>`
-                                            //     }
-                                            // }
+                                            expressions: [
+                                              {
+                                                name: 'repeatable_textfield_1_text_3_event_expr',
+                                                config: {
+                                                  template: `value = "hide repeatable_textfield_1"`,
+                                                  conditionKind: 'jsonpointer',
+                                                  condition: `/main_tab/tab_1/text_3_event::field.value.changed`,
+                                                  target: `layout.visible`,
+                                                },
+                                              },
+                                            ]
                                         },
-
+                                      {
+                                        name: "questiontree_1",
+                                        component: {
+                                          class: "QuestionTreeComponent",
+                                          config: {
+                                            availableOutcomes: [
+                                              {value: "value1", label: "@outcomes-value1"},
+                                              {value: "value2", label: "@outcomes-value2"},
+                                            ],
+                                            availableMeta: {
+                                              prop2: {
+                                                value1: "@outcomes-prop2-value1",
+                                                value2: "@outcomes-prop2-value2",
+                                              },
+                                        },
+                                            questions: [
+                                              {
+                                                id: "question_1",
+                                                answersMin: 1,
+                                                answersMax: 1,
+                                                answers: [{value: "yes"}, {value: "no"}],
+                                                rules: {op: "true"},
+                                              },
+                                              {
+                                                id: "question_2",
+                                                answersMin: 1,
+                                                answersMax: 2,
+                                                answers: [{value: "yes"}, {value: "no", meta: {prop2: "value1"}, outcome: "value1"}],
+                                                rules: {op: "in", q: "question_1", a: ["no"]}
+                                              }
+                                            ],
+                                            componentDefinitions: [],
+                                          }
+                                        },
+                                      }
                                     ]
                                 }
                             }
@@ -713,7 +681,7 @@ export const formConfigExample1: FormConfigFrame = {
             model: {
                 class: 'RepeatableModel',
                 config: {
-                    defaultValue: [{text_3: "hello world from repeating groups"}]
+                    defaultValue: [{ text_3: "hello world from repeating groups" }]
                 }
             },
             component: {
@@ -725,7 +693,7 @@ export const formConfigExample1: FormConfigFrame = {
                         model: {
                             class: 'GroupModel',
                             config: {
-                                newEntryValue: {text_3: 'hello world 3!'},
+                                newEntryValue: { text_3: 'hello world 3!' },
                             }
                         },
                         component: {
@@ -742,7 +710,7 @@ export const formConfigExample1: FormConfigFrame = {
                                                     {
                                                         class: 'minLength',
                                                         message: "@validator-error-custom-text_3",
-                                                        config: {minLength: 3}
+                                                        config: { minLength: 3 }
                                                     }
                                                 ]
                                             }
@@ -786,7 +754,7 @@ export const formConfigExample1: FormConfigFrame = {
         },
         {
             name: 'validation_summary_1',
-            component: {class: "ValidationSummaryComponent"}
+            component: { class: "ValidationSummaryComponent" }
         },
     ]
 };
@@ -805,11 +773,11 @@ export const formConfigExample2: FormConfigFrame = {
     editCssClasses: "redbox-form form",
     // Validators that operate on multiple fields.
     validators: [
-        {class: 'different-values', config: {controlNames: ['text_1_event', 'text_2']}},
+        { class: 'different-values', config: { controlNames: ['text_1_event', 'text_2'] } },
     ],
     componentDefinitions: [
         {
-            overrides: {reusableFormName: "standard-people-fields"},
+            overrides: { reusableFormName: "standard-people-fields" },
             name: "",
             component: {
                 class: "ReusableComponent",
@@ -820,16 +788,16 @@ export const formConfigExample2: FormConfigFrame = {
                             // note that the 'name' used here must be the name after previous reusable form config process is done, not the original name
                             overrides: {
                                 replaceName: "contributor_data_manager2",
-                                formModeClasses: {"view": {component: "SimpleInputComponent"}}
+                                formModeClasses: { "view": { component: "SimpleInputComponent" } }
                             },
                             name: "contributor_data_manager",
-                            component: {class: "SimpleInputComponent", config: {}}
+                            component: { class: "SimpleInputComponent", config: {} }
                         },
                         {
                             // change only the name of the component injected into the reusable form config (nested reusable form config!)
-                            overrides: {replaceName: "contributor_data_manager_email"},
+                            overrides: { replaceName: "contributor_data_manager_email" },
                             name: "email",
-                            component: {class: "SimpleInputComponent", config: {}}
+                            component: { class: "SimpleInputComponent", config: {} }
                         }
                         // other two elements 'contributor_ci_name' and 'contributor_ci_orcid' included unchanged
                     ]

@@ -1,7 +1,12 @@
 import { Command } from 'commander';
-import * as fs from 'fs';
 import * as path from 'path';
-import { ILogger } from '@researchdatabox/sails-ng-common';
+import {ILogger} from '@researchdatabox/sails-ng-common';
+import {
+  migrateDataClassification,
+  migrateFormConfigFile,
+  migrateFormConfigVerify
+} from "@researchdatabox/redbox-core-types/dist/visitor/migrate-config-helpers";
+
 
 const migrationLogger: ILogger = {
   silly: (...args: any[]) => console.debug(...args),
@@ -18,31 +23,27 @@ const migrationLogger: ILogger = {
   blank: () => undefined
 };
 
-type MigrationVisitorConstructor = new (logger: any) => {
-  start: (params: { data: any }) => any;
-};
-
-function resolveMigrationVisitorConstructor(): MigrationVisitorConstructor {
+function resolveMigrationVisitorConstructor() {
   const candidates = [
     () => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const pkg = require('@researchdatabox/redbox-core-types');
-      return pkg.MigrationV4ToV5FormConfigVisitor as MigrationVisitorConstructor | undefined;
+      return pkg.MigrationV4ToV5FormConfigVisitor;
     },
     () => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const pkg = require(path.resolve(__dirname, '..', '..', '..', 'redbox-core-types', 'dist', 'visitor', 'migrate-config-v4-v5.visitor.js'));
-      return pkg.MigrationV4ToV5FormConfigVisitor as MigrationVisitorConstructor | undefined;
+      return pkg.MigrationV4ToV5FormConfigVisitor;
     },
     () => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const pkg = require('@researchdatabox/sails-ng-common');
-      return pkg.MigrationV4ToV5FormConfigVisitor as MigrationVisitorConstructor | undefined;
+      return pkg.MigrationV4ToV5FormConfigVisitor;
     },
     () => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const pkg = require(path.resolve(__dirname, '..', '..', '..', 'sails-ng-common', 'dist', 'src', 'config', 'visitor', 'migrate-config-v4-v5.visitor.js'));
-      return pkg.MigrationV4ToV5FormConfigVisitor as MigrationVisitorConstructor | undefined;
+      return pkg.MigrationV4ToV5FormConfigVisitor;
     }
   ];
 
@@ -74,32 +75,39 @@ export function registerMigrateFormConfigCommand(program: Command): void {
         const inputPath = path.resolve(options.input);
         const outputPath = path.resolve(options.output);
 
-        if (!fs.existsSync(inputPath)) {
-          throw new Error(`Input file does not exist: ${inputPath}`);
-        }
-
-        console.log(`\n🛠️  Migrating form config: ${inputPath} -> ${outputPath}\n`);
-
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const v4FormConfig = require(inputPath);
         const MigrationVisitor = resolveMigrationVisitorConstructor();
         const migrateVisitor = new MigrationVisitor(migrationLogger);
-        const migrated = migrateVisitor.start({ data: v4FormConfig });
 
-        const tsContent = `import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+        const migrated = await migrateFormConfigFile(migrateVisitor, inputPath, outputPath, globalOptions.dryRun);
+        await migrateFormConfigVerify(migrated, migrationLogger);
 
-const formConfig: FormConfigFrame = ${JSON.stringify(migrated, null, 2)};
+        console.log('\n✅ Done!\n');
+      } catch (error: any) {
+        console.error(`\n❌ Error: ${error.message}\n`);
+        process.exit(1);
+      }
+    });
+}
 
-export default formConfig;
-`;
 
-        if (globalOptions.dryRun) {
-          console.log('[dry-run] Migration completed; no file written.');
-        } else {
-          fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-          fs.writeFileSync(outputPath, tsContent, 'utf8');
-          console.log(`✅ Wrote migrated form config: ${outputPath}`);
-        }
+
+export function registerMigrateDataClassificationCommand(program: Command): void {
+  program
+    .command('migrate-data-classification')
+    .description('Migrate a legacy v4 JS data classification definition file to the v5 TS form framework format')
+    .requiredOption('-i, --input <path>', 'Path to the legacy v4 JS file')
+    .requiredOption('-o, --output <path>', 'Path to write the migrated v5 TypeScript config file')
+    .action(async (options) => {
+      try {
+        const globalOptions = program.opts();
+        const inputPath = path.resolve(options.input);
+        const outputPath = path.resolve(options.output);
+
+        const MigrationVisitor = resolveMigrationVisitorConstructor();
+        const migrateVisitor = new MigrationVisitor(migrationLogger);
+
+        const migrated = migrateDataClassification(migrateVisitor, inputPath, outputPath, globalOptions.dryRun);
+        await migrateFormConfigVerify(migrated.formConfig, migrationLogger);
 
         console.log('\n✅ Done!\n');
       } catch (error: any) {

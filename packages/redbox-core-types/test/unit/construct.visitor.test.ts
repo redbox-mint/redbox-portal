@@ -1,10 +1,12 @@
 import {
-    FormConfig,
-    FormConfigFrame, FormModesConfig, ReusableFormDefinitions,
+  FormConfig,
+  FormConfigFrame, FormModesConfig,
+  ReusableFormDefinitions,
 } from "@researchdatabox/sails-ng-common";
 import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
-import { formConfigExample2, reusableDefinitionsExample1 } from "./example-data";
+import {formConfigExample2} from "./example-data";
 import { logger } from "./helpers";
+import { reusableFormDefinitions } from "../../src";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -16,179 +18,179 @@ describe("Construct Visitor", async () => {
             args: FormConfigFrame;
             expected: FormConfigFrame;
         }[] = [
-                {
-                    title: "create empty item",
-                    args: { name: '', componentDefinitions: [] },
-                    expected: new FormConfig(),
+            {
+                title: "create empty item",
+                args: {name: '', componentDefinitions: []},
+                expected: new FormConfig(),
+            },
+            {
+                title: "create item with expressions",
+                args: {
+                    name: 'form-with-expressions',
+                    componentDefinitions: [],
+                    expressions: [{
+                        name: 'my-expressions',
+                        config: {
+                            template: "some expression"
+                        }
+                    }]
                 },
-                {
-                    title: "create item with expressions",
-                    args: {
-                        name: 'form-with-expressions',
-                        componentDefinitions: [],
-                        expressions: [{
-                            name: 'my-expressions',
-                            config: {
-                                template: "some expression"
-                            }
-                        }]
-                    },
-                    expected: {
-                        name: 'form-with-expressions',
-                        componentDefinitions: [],
-                        expressions: [{
-                            name: 'my-expressions',
-                            config: {
-                                template: "some expression"
-                            }
-                        }]
-                    },
+                expected: {
+                    name: 'form-with-expressions',
+                    componentDefinitions: [],
+                    expressions: [{
+                        name: 'my-expressions',
+                        config: {
+                            template: "some expression"
+                        }
+                    }]
                 },
-                {
-                    title: "create simple example",
-                    args: {
-                        name: '',
-                        componentDefinitions: [
-                            {
-                                name: 'repeatable_group_1',
-                                model: {
-                                    class: 'RepeatableModel',
-                                    config: {
-                                        defaultValue: [{ text_3: "hello world from repeating groups" }]
-                                    }
-                                },
-                                component: {
-                                    class: 'RepeatableComponent',
-                                    config: {
-                                        elementTemplate: {
-                                            // first group component
-                                            name: "",
-                                            model: {
-                                                class: 'GroupModel',
-                                                config: {
-                                                    newEntryValue: { text_3: 'hello world 3!' },
-                                                }
-                                            },
-                                            component: {
-                                                class: 'GroupComponent',
-                                                config: {
-                                                    wrapperCssClasses: 'col',
-                                                    componentDefinitions: [
-                                                        {
-                                                            name: 'text_3',
-                                                            model: {
-                                                                class: 'SimpleInputModel',
-                                                                config: {
-                                                                    validators: [
-                                                                        {
-                                                                            class: 'minLength',
-                                                                            message: "@validator-error-custom-text_3",
-                                                                            config: { minLength: 3 }
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            },
-                                                            component: {
-                                                                class: 'SimpleInputComponent',
-                                                                config: {
-                                                                    type: 'text'
-                                                                }
+            },
+            {
+                title: "create simple example",
+                args: {
+                    name: '',
+                    componentDefinitions: [
+                        {
+                            name: 'repeatable_group_1',
+                            model: {
+                                class: 'RepeatableModel',
+                                config: {
+                                    defaultValue: [{text_3: "hello world from repeating groups"}]
+                                }
+                            },
+                            component: {
+                                class: 'RepeatableComponent',
+                                config: {
+                                    elementTemplate: {
+                                        // first group component
+                                        name: "",
+                                        model: {
+                                            class: 'GroupModel',
+                                            config: {
+                                                newEntryValue: {text_3: 'hello world 3!'},
+                                            }
+                                        },
+                                        component: {
+                                            class: 'GroupComponent',
+                                            config: {
+                                                wrapperCssClasses: 'col',
+                                                componentDefinitions: [
+                                                    {
+                                                        name: 'text_3',
+                                                        model: {
+                                                            class: 'SimpleInputModel',
+                                                            config: {
+                                                                validators: [
+                                                                    {
+                                                                        class: 'minLength',
+                                                                        message: "@validator-error-custom-text_3",
+                                                                        config: {minLength: 3}
+                                                                    }
+                                                                ]
                                                             }
                                                         },
-                                                    ]
-                                                }
-                                            },
-                                            layout: {
-                                                class: 'RepeatableElementLayout',
-                                                config: {
-                                                    hostCssClasses: 'row align-items-start'
-                                                }
-                                            },
-                                        }
-                                    },
-                                },
-                                layout: {
-                                    class: 'DefaultLayout',
-                                    config: {
-                                        label: 'Repeatable TextField not inside the tab with default wrapper defined',
-                                        helpText: 'Repeatable component help text',
+                                                        component: {
+                                                            class: 'SimpleInputComponent',
+                                                            config: {
+                                                                type: 'text'
+                                                            }
+                                                        }
+                                                    },
+                                                ]
+                                            }
+                                        },
+                                        layout: {
+                                            class: 'RepeatableElementLayout',
+                                            config: {
+                                                hostCssClasses: 'row align-items-start'
+                                            }
+                                        },
                                     }
                                 },
-                            }
-                        ]
-                    },
-                    expected: {
-                        name: '',
-                        componentDefinitions: [
-                            {
-                                name: 'repeatable_group_1',
-                                model: {
-                                    class: 'RepeatableModel',
-                                    config: {
-                                        value: [{ text_3: "hello world from repeating groups" }]
-                                    }
-                                },
-                                component: {
-                                    class: 'RepeatableComponent',
-                                    config: {
-                                        elementTemplate: {
-                                            // first group component
-                                            name: "",
-                                            model: {
-                                                class: 'GroupModel',
-                                                config: {}
-                                            },
-                                            component: {
-                                                class: 'GroupComponent',
-                                                config: {
-                                                    wrapperCssClasses: 'col',
-                                                    componentDefinitions: [
-                                                        {
-                                                            name: 'text_3',
-                                                            model: {
-                                                                class: 'SimpleInputModel',
-                                                                config: {
-                                                                    validators: [
-                                                                        {
-                                                                            class: 'minLength',
-                                                                            message: "@validator-error-custom-text_3",
-                                                                            config: { minLength: 3 }
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            },
-                                                            component: {
-                                                                class: 'SimpleInputComponent',
-                                                                config: {
-                                                                    type: 'text'
-                                                                }
+                            },
+                            layout: {
+                                class: 'DefaultLayout',
+                                config: {
+                                    label: 'Repeatable TextField not inside the tab with default wrapper defined',
+                                    helpText: 'Repeatable component help text',
+                                }
+                            },
+                        }
+                    ]
+                },
+                expected: {
+                    name: '',
+                    componentDefinitions: [
+                        {
+                            name: 'repeatable_group_1',
+                            model: {
+                                class: 'RepeatableModel',
+                                config: {
+                                    value: [{text_3: "hello world from repeating groups"}]
+                                }
+                            },
+                            component: {
+                                class: 'RepeatableComponent',
+                                config: {
+                                    elementTemplate: {
+                                        // first group component
+                                        name: "",
+                                        model: {
+                                            class: 'GroupModel',
+                                            config: {}
+                                        },
+                                        component: {
+                                            class: 'GroupComponent',
+                                            config: {
+                                                wrapperCssClasses: 'col',
+                                                componentDefinitions: [
+                                                    {
+                                                        name: 'text_3',
+                                                        model: {
+                                                            class: 'SimpleInputModel',
+                                                            config: {
+                                                                validators: [
+                                                                    {
+                                                                        class: 'minLength',
+                                                                        message: "@validator-error-custom-text_3",
+                                                                        config: {minLength: 3}
+                                                                    }
+                                                                ]
                                                             }
                                                         },
-                                                    ]
-                                                }
-                                            },
-                                            layout: {
-                                                class: 'RepeatableElementLayout',
-                                                config: {
-                                                    hostCssClasses: 'row align-items-start'
-                                                }
-                                            },
-                                        }
-                                    },
-                                },
-                                layout: {
-                                    class: 'DefaultLayout',
-                                    config: {
-                                        label: 'Repeatable TextField not inside the tab with default wrapper defined',
-                                        helpText: 'Repeatable component help text',
+                                                        component: {
+                                                            class: 'SimpleInputComponent',
+                                                            config: {
+                                                                type: 'text'
+                                                            }
+                                                        }
+                                                    },
+                                                ]
+                                            }
+                                        },
+                                        layout: {
+                                            class: 'RepeatableElementLayout',
+                                            config: {
+                                                hostCssClasses: 'row align-items-start'
+                                            }
+                                        },
                                     }
                                 },
-                            }
-                        ]
-                    },
+                            },
+                            layout: {
+                                class: 'DefaultLayout',
+                                config: {
+                                    label: 'Repeatable TextField not inside the tab with default wrapper defined',
+                                    helpText: 'Repeatable component help text',
+                                }
+                            },
+                        }
+                    ]
                 },
-            ];
-        cases.forEach(({ title, args, expected }) => {
+            },
+        ];
+        cases.forEach(({title, args, expected}) => {
             it(`should ${title}`, async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
                 const actual = visitor.start({ data: args, formMode: "edit" });
@@ -312,7 +314,7 @@ describe("Construct Visitor", async () => {
                 {
                     title: "expand reusable form config to standard form config in view mode",
                     args: {
-                        reusableFormDefs: reusableDefinitionsExample1,
+                    reusableFormDefs: reusableFormDefinitions,
                         formConfig: formConfigExample2,
                         formMode: "view",
                     },
@@ -339,7 +341,7 @@ describe("Construct Visitor", async () => {
                 {
                     title: "expand reusable form config to standard form config in edit mode",
                     args: {
-                        reusableFormDefs: reusableDefinitionsExample1,
+                    reusableFormDefs: reusableFormDefinitions,
                         formConfig: formConfigExample2,
                         formMode: "edit",
                     },
@@ -441,7 +443,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
                 });
             };
             expect(errorFunc).to.throw(Error, `Repeatable element template overrides must result in exactly one item, got 3`);
@@ -467,7 +469,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
                 });
             };
             expect(errorFunc).to.throw(Error, "Set the repeatable elementTemplate new item default using 'elementTemplate.model.config.newEntryValue', not 'elementTemplate.model.config.defaultValue', set the repeatable default in 'repeatable.model.config.defaultValue'");
@@ -506,7 +508,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
                 });
             };
             expect(errorFunc).to.throw(Error, "Set the repeatable elementTemplate descendant component new item default using 'elementTemplate.model.config.newEntryValue', set the repeatable default in 'repeatable.model.config.defaultValue', not the descendant components");
@@ -535,7 +537,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
                 });
             };
             expect(errorFunc).to.throw(Error, "Could not find class for form component class name 'NotAClass'");
@@ -563,7 +565,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
                 });
             };
             expect(errorFunc).to.throw(Error);
@@ -593,7 +595,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
                 });
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
@@ -625,7 +627,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
                 });
             };
             expect(errorFunc1).to.throw(Error, "Invalid usage of reusable form config. Component class 'ReusableComponent' must be 'ReusableComponent' and reusableFormName");
@@ -654,7 +656,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
                 });
             };
             expect(errorFunc2).to.throw(Error, "Invalid usage of reusable form config. Component class 'TextAreaComponent' must be 'ReusableComponent' and reusableFormName");
@@ -686,7 +688,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
                 });
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
@@ -727,7 +729,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                        }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
                 });
             }
                 ;
@@ -762,7 +764,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableDefinitionsExample1
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
                 });
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
@@ -790,7 +792,7 @@ describe("Construct Visitor", async () => {
                     ]
                 },
                 formMode: "edit",
-                reusableFormDefs: reusableDefinitionsExample1,
+                reusableFormDefs: reusableFormDefinitions,
                 record: { content1: "some value" }
             });
             const expected: FormConfigFrame = {
@@ -861,7 +863,7 @@ describe("Construct Visitor", async () => {
                     ]
                 },
                 formMode: "view",
-                reusableFormDefs: reusableDefinitionsExample1,
+                reusableFormDefs: reusableFormDefinitions,
                 record: { component_1: ['option3'], component_2: ['option2', 'option3'] }
             });
             const expected = {
@@ -884,7 +886,7 @@ describe("Construct Visitor", async () => {
                         component: {
                             class: 'ContentComponent',
                             config: {
-                                content: [{ label: 'Option 2', value: 'option2' }, { label: 'Option 3', value: 'option3' }],
+                                content: [{label: 'Option 2', value: 'option2'}, {label: 'Option 3', value: 'option3'}],
                                 template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
                             }
                         },
@@ -1153,7 +1155,7 @@ describe("Construct Visitor", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = visitor.start({
                 formMode: "view",
-                reusableFormDefs: reusableDefinitionsExample1,
+                reusableFormDefs: reusableFormDefinitions,
                 data: {
                     name: "form",
                     componentDefinitions: [

@@ -240,7 +240,7 @@ export class FormService extends HttpClientService {
         }
 
         // Resolve the component. A component is required.
-        // TODO: make sure a 'default' component is defined for each field - this will be done on the server-side
+        // A 'default' component can be defined for each field on the server-side.
         if (componentClassName && componentClassName in this.compClassMap) {
           componentClass = this.compClassMap[componentClassName];
           if (componentClass) {
@@ -308,6 +308,8 @@ export class FormService extends HttpClientService {
       // Add the field definition to the list if it has the minimum requirements.
       if (!_isEmpty(fieldDef)) {
         _merge(fieldDef, {
+          // TODO: This may need a check for whether the dataModel should include the component name or not.
+          //       Maybe use formService.shouldIncludeInFormControlMap?
           lineagePaths: this.buildLineagePaths(parentLineagePaths, {
             angularComponents: [componentName],
             dataModel: modelClass ? [componentName] : [],
@@ -815,6 +817,32 @@ export class FormService extends HttpClientService {
       }
     }
     return returnArr;
+  }
+
+  public setUpFieldMutationObserverToComponentEvents(formFieldCompMapEntry: FormFieldCompMapEntry | undefined) {
+    const observer = new MutationObserver(mutations => {
+      // TODO: createFieldMetaChangedEvent
+      mutations.forEach(mutation => console.log(mutation));
+    });
+    const observerConfig = {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeOldValue: true,
+      // attributeFilter: [],
+      characterData: false,
+      characterDataOldValue: false,
+    };
+
+    if (formFieldCompMapEntry?.componentRef?.location?.nativeElement) {
+      observer.observe(formFieldCompMapEntry?.componentRef?.location?.nativeElement, observerConfig);
+    }
+    if (formFieldCompMapEntry?.layoutRef?.location?.nativeElement) {
+      observer.observe(formFieldCompMapEntry?.layoutRef?.location?.nativeElement, observerConfig);
+    }
+
+    // TODO: register the mutation observer to the angular component,
+    //  so the component can destroy the MutationObserver when necessary
   }
 }
 

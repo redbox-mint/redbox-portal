@@ -114,6 +114,10 @@ import { ILogger } from '@researchdatabox/sails-ng-common';
 import { CanVisit } from '@researchdatabox/sails-ng-common';
 import { FormPathHelper } from '@researchdatabox/sails-ng-common';
 import { LineagePath, LineagePathsPartial } from '@researchdatabox/sails-ng-common';
+import {
+    QuestionTreeFieldComponentDefinitionOutline,
+    QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline
+} from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config class type to build the JSON TypeDef schema that represents the form config.
@@ -482,9 +486,34 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     this.acceptFormComponentDefinition(item);
   }
 
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+      (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+        // Visit children
+        this.acceptJsonTypeDefPath(
+          componentDefinition,
+          this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index),
+          ['properties']
+        );
+      });
+    }
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+      // Visit nested components to build the correct structure.
+      // this.setFromModelDefinition(item);
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
   /* Shared */
 
   protected setFromModelDefinition(item: FieldModelDefinitionFrame<unknown>) {
+    // TODO: What if there is no model value set? Each component has an associated data type / data model structure.
+    //       It would probably be better to use the component data structure knowledge instead of guessing the optional
+    //       model value.
     const value = item?.config?.value;
 
     // default to a type of string

@@ -30,6 +30,7 @@ import { MapDefaults, MapMap } from './component/map.model';
 import { FileUploadDefaults, FileUploadMap } from './component/file-upload.model';
 import { CancelButtonDefaults, CancelButtonMap } from './component/cancel-button.model';
 import { TabNavButtonDefaults, TabNavButtonMap } from './component/tab-nav-button.model';
+import {QuestionTreeDefaults, QuestionTreeMap} from './component/question-tree.model';
 
 /**
  * The static array of all available classes and the kind of class.
@@ -60,6 +61,7 @@ export const AllDefs = [
   ...RichTextEditorMap,
   ...MapMap,
   ...FileUploadMap,
+  ...QuestionTreeMap,
 ] as const;
 
 /**
@@ -90,6 +92,7 @@ const RawDefaults = [
   RichTextEditorDefaults,
   MapDefaults,
   FileUploadDefaults,
+  QuestionTreeDefaults,
 ];
 
 /**

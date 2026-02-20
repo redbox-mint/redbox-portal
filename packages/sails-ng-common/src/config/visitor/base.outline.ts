@@ -108,6 +108,10 @@ import {
   FileUploadFieldModelDefinitionOutline,
   FileUploadFormComponentDefinitionOutline,
 } from '../component/file-upload.outline';
+import {
+    QuestionTreeFieldComponentDefinitionOutline, QuestionTreeFieldModelDefinitionOutline,
+    QuestionTreeFormComponentDefinitionOutline
+} from "../component/question-tree.outline";
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -137,13 +141,13 @@ export interface FormConfigVisitorOutline {
 
   visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
 
-  visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void;
+    visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void;
+
+    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
 
   /* Repeatable  */
 
-  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
-
-  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void;
+    visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void;
 
   visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void;
 
@@ -306,4 +310,13 @@ export interface FormConfigVisitorOutline {
   visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void;
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void;
+
+  /* Question Tree */
+
+  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void;
+
+  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void;
+
+  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void;
+
 }

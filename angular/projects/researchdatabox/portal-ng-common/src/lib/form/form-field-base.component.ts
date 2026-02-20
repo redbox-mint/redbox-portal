@@ -91,9 +91,6 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     if (!formFieldCompMapEntry) {
       throw new Error(`${this.logName}: cannot initialise component because formFieldCompMapEntry was invalid.`);
     }
-    const name = this.formFieldConfigName();
-    this.loggerService.debug(`${this.logName}: Starting initialise component for '${name}'.`, this.formFieldCompMapEntry);
-    this.className = name;
     try {
       // Create a method that children can override to set their own properties
       this.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
@@ -113,9 +110,15 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       throw new Error(`${this.logName}: cannot set component properties because formFieldCompMapEntry was invalid.`);
     }
     this.formFieldCompMapEntry = formFieldCompMapEntry;
-    this.formFieldCompMapEntry.component = this as FormFieldBaseComponent<ValueType>;
+
+    const name = this.formFieldConfigName();
+    this.loggerService.debug(`${this.logName}: Initialise component for '${name}'.`, this.formFieldCompMapEntry);
+    this.className = name;
+
+    this.formFieldCompMapEntry.component = this;
+    // TODO: use type narrowing instead of type assertion.
     this.model = this.formFieldCompMapEntry?.model as FormFieldModel<ValueType>;
-    this.componentDefinition = this.formFieldCompMapEntry.compConfigJson?.component as FormFieldComponentOrLayoutDefinition;
+    this.componentDefinition = this.formFieldCompMapEntry.compConfigJson?.component;
     this.expressions = this.formFieldCompMapEntry.compConfigJson?.expressions;
     if (this.formFieldCompMapEntry.compConfigJson?.name) {
       this.name = this.formFieldCompMapEntry.compConfigJson.name;
@@ -287,6 +290,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       // Return a dummy control or throw, depending on desired behavior
       throw new Error(`${this.logName}: could not get form control from model for '${this.formFieldConfigName()}'.`);
     }
+    // TODO: use type narrowing instead of type assertion.
     return control as FormControl<ValueType>;
   }
 

@@ -1,11 +1,14 @@
 import {
-    FormConfigFrame,
-    TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
+   FormConfigFrame,
+  FormExpressionsTemplateConfigFrame, QuestionTreeMeta, QuestionTreeOutcome,
+  QuestionTreeQuestion,
+  TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
 } from "@researchdatabox/sails-ng-common";
 import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
 import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
 import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
+import {reusableFormDefinitions} from "../../src";
 
 
 let expect: Chai.ExpectStatic;
@@ -16,7 +19,11 @@ describe("Client Visitor", async () => {
         const args = formConfigExample1;
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({data: args, formMode: "edit"});
+        const constructed = constructor.start({
+          data: args,
+          formMode: "edit",
+          reusableFormDefs: reusableFormDefinitions,
+        });
 
         const visitor = new ClientFormConfigVisitor(logger);
         const actual = visitor.start({form: constructed});
@@ -43,7 +50,7 @@ describe("Client Visitor", async () => {
         // tab 2 component count
         const tabSecond = (formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs[1];
         expect(tabSecond.component.class).to.eql("TabContentComponent");
-        expect((tabSecond.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(2);
+        expect((tabSecond.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(3);
     });
 
     const cases: {
@@ -68,6 +75,10 @@ describe("Client Visitor", async () => {
                 },
                 editCssClasses: "redbox-form form",
                 componentDefinitions: [
+                  {
+                    name: 'text_1',
+                    component: {class: 'SimpleInputComponent'},
+                  },
                     {
                         name: 'text_2',
                         layout: {
@@ -92,6 +103,26 @@ describe("Client Visitor", async () => {
                             },
                             allowModes: [],
                         },
+                      expressions: [
+                        {
+                          name: 'text_2_text_1_expr',
+                          config: {
+                            template: `value & "__suffix"`,
+                            conditionKind: 'jsonpointer',
+                            condition: `/text_1::field.value.changed`,
+                            target: `model.value`,
+                          },
+                        },
+                        {
+                          name: 'text_2_no_template_expr',
+                          config: {
+                            operation: "testing",
+                            conditionKind: 'jsonpointer',
+                            condition: `/text_1::field.value.changed`,
+                            target: `model.value`,
+                          },
+                        },
+                      ]
                     }
                 ]
             },
@@ -111,6 +142,22 @@ describe("Client Visitor", async () => {
                     none: {description: "Validate none of the fields.", initialMembership: "none"},
                 },
                 componentDefinitions: [
+                  {
+                    name: "text_1",
+                    component: {
+                      class: 'SimpleInputComponent',
+                      "config": {
+                        "autofocus": false,
+                        "disabled": false,
+                        "editMode": true,
+                        "readonly": false,
+                        "type": "text",
+                        "visible": true,
+                      },
+
+                    },
+                    model: {class: "SimpleInputModel", config: {}},
+                  },
                     {
                         name: 'text_2',
                         layout: {
@@ -146,6 +193,29 @@ describe("Client Visitor", async () => {
                                 "visible": true,
                             }
                         },
+                      expressions: [
+                        {
+                          name: 'text_2_text_1_expr',
+                          config: {
+                            hasTemplate: true,
+                            conditionKind: 'jsonpointer',
+                            condition: `/text_1::field.value.changed`,
+                            target: `model.value`,
+                            template: `value & "__suffix"`,
+                          },
+                        },
+
+                        {
+                          name: 'text_2_no_template_expr',
+                          config: {
+                            hasTemplate: false,
+                            operation: "testing",
+                            conditionKind: 'jsonpointer',
+                            condition: `/text_1::field.value.changed`,
+                            target: `model.value`,
+                          },
+                        },
+                      ]
                     }
                 ]
             }
@@ -271,12 +341,6 @@ describe("Client Visitor", async () => {
                         component: {
                             class: 'SimpleInputComponent',
                         },
-                        expressions: [{
-                            name: 'model.value',
-                            config: {
-                                template: `<%= _.get(model,'text_1_event','') %>`
-                            }
-                        }],
                         constraints: {
                             authorization: {
                                 allowRoles: [],
@@ -575,7 +639,7 @@ describe("Client Visitor", async () => {
         });
     });
 
-    it(`should result in an empty form config`, async function () {
+    it(`should result in an empty form config due to roles`, async function () {
         const formConfig: FormConfigFrame = {
             name: "basic-form",
             type: "rdmp",
@@ -697,4 +761,240 @@ describe("Client Visitor", async () => {
         const actual = visitor.start({ form: constructed, formMode: "edit" });
         expect(actual.componentDefinitions[0].component.class).to.eql("TabComponent");
     });
+
+  it("should build the expected form config with question tree", async () => {
+    const availableOutcomes: QuestionTreeOutcome[] = [
+      {value: "value1", label: "@outcomes-value1"},
+      {value: "value2", label: "@outcomes-value2"},
+    ];
+    const availableMeta: QuestionTreeMeta = {
+      prop2: {
+        value1: "@outcomes-prop2-value1",
+        value2: "@outcomes-prop2-value2",
+      },
+    };
+    const questions: QuestionTreeQuestion[] = [
+      {
+        id: "question_1",
+        answersMin: 1,
+        answersMax: 1,
+        answers: [{value: "yes"}, {value: "no"}],
+        rules: {op: "true"},
+      },
+      {
+        id: "question_2",
+        answersMin: 1,
+        answersMax: 2,
+        answers: [{value: "yes"}, {value: "no"}],
+        rules: {op: "in", q: "question_1", a: ["no"]}
+      },
+      {
+        id: "question_3",
+        answersMin: 1,
+        answersMax: 2,
+        answers: [{value: "yes"}, {value: "maybe"}, {value: "no"}],
+        rules: {op: "in", q: "question_2", a: ["yes"]}
+      },
+      {
+        id: "question_4",
+        answersMin: 1,
+        answersMax: 1,
+        answers: [
+          {
+            value: "yes",
+            label: "@answer-yes",
+            outcome: "value1",
+            meta: {prop2: "value2"},
+          },
+          {
+            value: "no", label: "No",
+            outcome: "value2",
+            meta: {prop2: "value2"},
+          },
+        ],
+        rules: {
+          op: "or", args: [
+            {
+              op: "and", args: [
+                {op: "in", q: "question_1", a: ["no"]},
+                {op: "in", q: "question_2", a: ["no"]},
+              ]
+            },
+            {
+              op: "and", args: [
+                {op: "only", q: "question_1", a: ["no"]},
+                {op: "notin", q: "question_2", a: ["no"]},
+                {op: "in", q: "question_3", a: ["no", "maybe"]},
+              ]
+            }
+          ]
+        },
+      }
+    ];
+    const formConfig: FormConfigFrame = {
+      name: "form",
+      componentDefinitions: [
+        {
+          name: "questiontree_1",
+          component: {
+            class: "QuestionTreeComponent",
+            config: {
+              availableOutcomes,
+              availableMeta,
+              questions,
+              componentDefinitions: [],
+            }
+          },
+        }
+      ]
+    };
+    const expressionBase: FormExpressionsTemplateConfigFrame = {
+      condition: "/questiontree_1::field.value.changed",
+      template: "",
+      conditionKind: 'jsonpointer',
+      target: `layout.visible`,
+    };
+    const expected: FormConfigFrame = {
+      name: "form",
+      componentDefinitions: [
+        {
+          name: "questiontree_1",
+          component: {
+            class: "QuestionTreeComponent",
+            config: {
+              availableOutcomes,
+              availableMeta,
+              questions,
+              componentDefinitions: [
+                {
+                  name: "question_1",
+                  component: {
+                    class: "RadioInputComponent",
+                    config: {
+                      options: [
+                        {value: "yes", label: "@questiontree_1-question_1-yes"},
+                        {value: "no", label: "@questiontree_1-question_1-no"},
+                      ]
+                    }
+                  },
+                  layout: {
+                    class: "DefaultLayout",
+                    config: {
+                      visible: true,
+                    }
+                  }
+                },
+                {
+                  name: "question_2",
+                  component: {
+                    class: "CheckboxInputComponent",
+                    config: {
+                      options: [
+                        {value: "yes", label: "@questiontree_1-question_2-yes"},
+                        {value: "no", label: "@questiontree_1-question_2-no"},
+                      ]
+                    }
+                  },
+                  layout: {
+                    class: "DefaultLayout",
+                    config: {
+                      visible: false,
+                    }
+                  },
+                  expressions: [
+                    {
+                      name: "question_2-layoutvis-qt", description: undefined,
+                      config: {
+                        ...expressionBase,
+                        template: "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0"
+                      }
+                    }
+                  ],
+                },
+                {
+                  name: "question_3",
+                  component: {
+                    class: "CheckboxInputComponent",
+                    config: {
+                      options: [
+                        {value: "yes", label: "@questiontree_1-question_3-yes"},
+                        {value: "maybe", label: "@questiontree_1-question_3-maybe"},
+                        {value: "no", label: "@questiontree_1-question_3-no"}]
+                    }
+                  },
+                  layout: {
+                    class: "DefaultLayout",
+                    config: {
+                      visible: false,
+                    }
+                  },
+                  expressions: [
+                    {
+                      name: "question_3-layoutvis-qt", description: undefined,
+                      config: {
+                        ...expressionBase,
+                        template: "$count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0"
+                      }
+                    }
+                  ],
+                },
+                {
+                  name: "question_4",
+                  component: {
+                    class: "RadioInputComponent",
+                    config: {
+                      options: [
+                        {value: "yes", label: "@answer-yes"},
+                        {value: "no", label: "No"},
+                      ]
+                    }
+                  },
+                  layout: {
+                    class: "DefaultLayout",
+                    config: {
+                      visible: false,
+                    }
+                  },
+                  expressions: [
+                    {
+                      name: "question_4-layoutvis-qt", description: undefined,
+                      config: {
+                        ...expressionBase, template: "(" +
+                          "(" +
+                          "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0" +
+                          ") and (" +
+                          "$count(formData.`questiontree_1`.`question_2`[][$ in [\"no\"]]) > 0" +
+                          ")" +
+                          ") or (" +
+                          "(" +
+                          "formData.`questiontree_1`.`question_1`[] = [\"no\"]" +
+                          ") and (" +
+                          "$count(formData.`questiontree_1`.`question_2`[][$not($ in [\"no\"])]) = $count(formData.`questiontree_1`.`question_2`)" +
+                          ") and (" +
+                          "$count(formData.`questiontree_1`.`question_3`[][$ in [\"no\",\"maybe\"]]) > 0" +
+                          ")" +
+                          ")"
+                      }
+                    }
+                  ],
+                },
+              ],
+            }
+          },
+        }
+      ]
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      data: formConfig,
+      formMode: "edit",
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({form: constructed});
+
+    expect(actual).to.containSubset(expected);
+  });
 });

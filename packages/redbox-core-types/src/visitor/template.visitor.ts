@@ -109,6 +109,10 @@ import {
 import { FormComponentDefinitionOutline, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { ILogger } from '@researchdatabox/sails-ng-common';
 import { FormPathHelper } from '@researchdatabox/sails-ng-common';
+import {
+    QuestionTreeFieldComponentDefinitionOutline,
+    QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline
+} from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config class type and extract information about any
@@ -440,6 +444,25 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
+
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+      (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+        // Visit children
+        this.formPathHelper.acceptFormPath(
+          componentDefinition,
+          this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index)
+        );
+      });
+    }
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
 
   /* Shared */
 

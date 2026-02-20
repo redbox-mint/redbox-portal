@@ -111,6 +111,10 @@ import {
   FileUploadFieldModelDefinitionOutline,
   FileUploadFormComponentDefinitionOutline,
 } from '../component/file-upload.outline';
+import {
+  QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline
+} from "../component/question-tree.outline";
 
 /**
  * The form config visitor definition.
@@ -438,6 +442,20 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   }
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Question Tree */
+
+  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
     this.notImplemented();
   }
 

@@ -3,6 +3,7 @@ import { DataValueFormConfigVisitor } from "../../src/visitor/data-value.visitor
 import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
 import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
+import {reusableFormDefinitions} from "../../src";
 
 
 let expect: Chai.ExpectStatic;
@@ -228,7 +229,11 @@ describe("Data Value Visitor", async () => {
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start({data: args, formMode:"edit"});
+            const constructed = constructor.start({
+              data: args,
+              formMode:"edit",
+              reusableFormDefs: reusableFormDefinitions,
+            });
 
             const visitor = new DataValueFormConfigVisitor(logger);
             const actual = visitor.start({form: constructed});
@@ -236,7 +241,9 @@ describe("Data Value Visitor", async () => {
 
             // Confirm that using an empty record gives empty data value result
             const constructorEmpty = new ConstructFormConfigVisitor(logger);
-            const constructedEmpty = constructorEmpty.start({data: args, formMode:"edit", record: {}});
+            const constructedEmpty = constructorEmpty.start({
+              data: args, formMode:"edit", record: {}, reusableFormDefs: reusableFormDefinitions,
+            });
 
             const visitorEmpty = new DataValueFormConfigVisitor(logger);
             const actualEmpty = visitorEmpty.start({form: constructedEmpty});

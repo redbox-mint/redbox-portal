@@ -7,7 +7,11 @@ import { GroupTypes } from './component/group.outline';
 import { SaveButtonTypes } from './component/save-button.outline';
 import { TextAreaTypes } from './component/text-area.outline';
 import { ContentTypes } from './component/content.outline';
-import { SimpleInputTypes } from './component/simple-input.outline';
+import {
+    SimpleInputFormComponentDefinitionFrame,
+    SimpleInputFormComponentDefinitionOutline,
+    SimpleInputTypes
+} from './component/simple-input.outline';
 import { ValidationSummaryTypes } from './component/validation-summary.outline';
 import {
   TabContentFormComponentDefinitionOutline,
@@ -16,9 +20,7 @@ import {
 } from './component/tab-content.outline';
 import { TabTypes } from './component/tab.outline';
 import { AccordionTypes } from './component/accordion.outline';
-import { DefaultLayoutTypes } from './component/default-layout.outline';
-import { InlineLayoutTypes } from './component/inline-layout.outline';
-
+import { DefaultLayoutTypes } from './component/default-layout.outline';import { InlineLayoutTypes } from './component/inline-layout.outline';
 import {
   FieldLayoutDefinitionFrameKindType,
   FieldLayoutDefinitionKindType,
@@ -37,6 +39,20 @@ import { MapTypes } from './component/map.outline';
 import { FileUploadTypes } from './component/file-upload.outline';
 import { CancelButtonTypes } from './component/cancel-button.outline';
 import { TabNavButtonTypes } from './component/tab-nav-button.outline';
+import {
+  CheckboxInputFormComponentDefinitionFrame,
+  CheckboxInputFormComponentDefinitionOutline,
+} from "./component/checkbox-input.outline";
+import {
+  RadioInputFormComponentDefinitionFrame,
+  RadioInputFormComponentDefinitionOutline,
+} from "./component/radio-input.outline";
+import {
+  ReusableFormComponentDefinitionFrame,
+  ReusableFormComponentDefinitionOutline
+} from "./component/reusable.outline";
+import {QuestionTreeTypes} from "./component/question-tree.outline";
+
 
 /**
  * The static type union of all available interfaces that provides typing for the object literal and schema.
@@ -66,7 +82,10 @@ export type AllTypes =
   | TypeaheadInputTypes
   | RichTextEditorTypes
   | MapTypes
-  | FileUploadTypes;
+  | FileUploadTypes
+  | QuestionTreeTypes
+  ;
+
 
 /*
  * The variables below here are conveniences that provide access to the various groups

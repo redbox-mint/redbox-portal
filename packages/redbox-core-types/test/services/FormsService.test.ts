@@ -1,8 +1,12 @@
+import {reusableFormDefinitions, TemplateFormConfigVisitor} from "../../src";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
+import {FormConfigFrame, FormModesConfig} from "@researchdatabox/sails-ng-common";
+import {formConfigExample1} from "../unit/example-data";
 
 describe('FormsService', function () {
   let mockSails: any;
@@ -292,6 +296,52 @@ describe('FormsService', function () {
       expect(schema.properties).to.have.property('title');
       expect(schema.properties.title.type).to.equal('string');
       expect(schema.properties.count.type).to.equal('integer');
+    });
+  });
+
+  describe('buildClientFormConfig', async function() {
+    it('should build the client form config for a basic form', async function() {
+      const item: FormConfigFrame = formConfigExample1;
+      const formMode: FormModesConfig = "edit";
+      const userRoles: string[] = [];
+      const recordMetadata: Record<string, unknown> = {};
+      const reusableFormDefs = reusableFormDefinitions;
+
+      // see: Services.FormRecordConsistency.extractRawTemplates
+      const form = await FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata, reusableFormDefs);
+      const visitor = new TemplateFormConfigVisitor(mockSails.log);
+
+      expect(form).to.have.property('name');
+      expect(form.name).to.eql(item.name);
+
+      const templates = visitor.start({form});
+
+      const expectedTemplates =  [
+        {
+          "kind": "handlebars", "value": "<h3>{{content}}</h3>"
+        },
+        {
+          "kind": "jsonata", "value": "value & \"__suffix\"",
+        },
+        {
+          "kind": "jsonata", "value": "value = \"hide text_2_component_event\""
+        },
+        {
+          "kind": "jsonata", "value": "value = \"hide text_3_layout_event\""
+        },
+        {
+          "kind": "jsonata", "value": "value = \"hide group_1_component\""
+        },
+        {
+          "kind": "jsonata", "value": "value = \"hide repeatable_textfield_1\""
+        },
+        {
+          "kind": "jsonata", "value": "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0"
+        },
+      ];
+      expect(templates).containSubset(expectedTemplates);
+      expect(templates).to.have.length(expectedTemplates.length);
+
     });
   });
 });

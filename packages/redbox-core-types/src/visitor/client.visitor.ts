@@ -119,13 +119,17 @@ import { FormPathHelper } from '@researchdatabox/sails-ng-common';
 import { isTypeWithComponentDefinitions } from '@researchdatabox/sails-ng-common';
 import { JsonTypeDefSchemaFormConfigVisitor } from './json-type-def.visitor';
 import { guessType } from '@researchdatabox/sails-ng-common';
+import {
+    QuestionTreeFieldComponentDefinitionOutline,
+    QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline
+} from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config class type and build the form config for the client-side.
  *
  * This visitor performs the tasks to make the form config suitable for the client:
  * - remove fields with constraints that are not met by the provided formMode or userRoles
- * - remove expressions, as these must be processed by the server and retrieved by the client separately
+ * - process expressions, as these must be retrieved by the client separately
  * - remove fields that have value 'undefined'
  * - remove repeatable.model.config.value items that have no matching component
  * - remove repeatable.elementTemplate.model.config.newEntryValue items that have no matching component
@@ -612,6 +616,40 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.processFormComponentDefinition(item);
   }
 
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+        this.processFieldComponentDefinition(item);
+
+      const items: AvailableFormComponentDefinitionOutlines[] = [];
+      const that = this;
+      (item?.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+        items.push(componentDefinition);
+        that.formPathHelper.acceptFormPath(
+          componentDefinition,
+          this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index)
+        );
+      });
+      if (item.config) {
+        item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
+      }
+    }
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+        this.processFieldModelDefinition(item);
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
+        this.acceptCheckConstraintsCurrentPath(item);
+        this.processFormComponentDefinition(item);
+
+      // if there are no components, this is an invalid component
+      // indicate this by deleting all properties on item
+      if ((item.component?.config?.componentDefinitions ?? [])?.length === 0) {
+        this.removePropsAll(item);
+      }
+    }
+
   /* Shared */
 
   protected processFormComponentDefinition(item: FormComponentDefinitionOutline) {
@@ -624,11 +662,12 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     // The raw expressions must not be available to the client.
     if ('expressions' in item) {
       // Loop through the expressions and remove `template` if defined and set the `hasTemplate` flag
-      item.expressions = _map(item.expressions, expr => {
+      item.expressions?.forEach(expr => {
         expr.config.hasTemplate = expr.config?.template !== undefined && expr.config?.template !== null;
-        return expr;
+        this.removePropsUndefined(expr);
+        this.removePropsUndefined(expr.config);
       });
-      if (item.expressions.length === 0) {
+      if (item.expressions?.length === 0) {
         delete item['expressions'];
       }
     }

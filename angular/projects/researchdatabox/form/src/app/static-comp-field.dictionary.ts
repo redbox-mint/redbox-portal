@@ -72,7 +72,9 @@ import {
   DefaultLayoutName,
   InlineLayoutName,
   StaticClassMapType,
+  QuestionTreeModelName, QuestionTreeComponentName,
 } from '@researchdatabox/sails-ng-common';
+import {QuestionTreeComponent, QuestionTreeModel} from "./component/question-tree.component";
 
 /*
  * The Component classes.
@@ -103,6 +105,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [FileUploadComponentName]: FileUploadComponent,
   [CancelButtonComponentName]: CancelButtonComponent,
   [TabNavButtonComponentName]: TabNavButtonComponent,
+  [QuestionTreeComponentName]: QuestionTreeComponent,
 });
 
 /*
@@ -125,6 +128,7 @@ export const getStaticModelClassMap = (): StaticModelClassMapType => ({
   [RichTextEditorModelName]: RichTextEditorModel,
   [MapModelName]: MapModel,
   [FileUploadModelName]: FileUploadModel,
+  [QuestionTreeModelName]: QuestionTreeModel,
 });
 
 /*

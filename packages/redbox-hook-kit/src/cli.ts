@@ -11,7 +11,10 @@ import { AngularServiceGenerator } from './generators/angular-service';
 import { FormComponentGenerator } from './generators/form-component';
 import { FormFieldGenerator } from './generators/form-field';
 import { ModelGenerator } from './generators/model';
-import { registerMigrateFormConfigCommand } from './commands/migrate-form-config';
+import {
+  registerMigrateDataClassificationCommand,
+  registerMigrateFormConfigCommand
+} from './commands/migrate-form-config';
 import { generateCompletionScript } from './completion';
 import {
   parseAttributes,
@@ -52,6 +55,7 @@ program
   });
 
 registerMigrateFormConfigCommand(program);
+registerMigrateDataClassificationCommand(program);
 
 program
   .command('init')
@@ -60,12 +64,12 @@ program
     console.log('🚀 Initializing ReDBox Hook project...\n');
 
     const cwd = process.cwd();
-    
+
     // Create typescript directory structure if it doesn't exist
     const typescriptDir = path.join(cwd, 'typescript');
     const apiDir = path.join(typescriptDir, 'api');
     const controllersDir = path.join(apiDir, 'controllers');
-    
+
     if (!fs.existsSync(typescriptDir)) {
       fs.mkdirSync(typescriptDir, { recursive: true });
     } else {
@@ -157,7 +161,7 @@ generate
     try {
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
-      
+
       const generator = new ControllerGenerator({
         name,
         actions: options.actions,
@@ -190,7 +194,7 @@ generate
     try {
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
-      
+
       const generator = new ServiceGenerator({
         name,
         methods: options.methods,
@@ -222,7 +226,7 @@ generate
     try {
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
-      
+
       const generator = new AddMethodGenerator({
         file: options.file,
         method: options.method,
@@ -254,7 +258,7 @@ generate
     try {
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
-      
+
       const generator = new AngularAppGenerator({
         name,
         ejsView: options.ejsView,
@@ -282,7 +286,7 @@ generate
     try {
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
-      
+
       const generator = new AngularServiceGenerator({
         name,
         app: options.app,
@@ -337,7 +341,7 @@ generate
     try {
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
-      
+
       const generator = new FormFieldGenerator({
         name,
         type: options.type,
@@ -395,7 +399,7 @@ generate
     try {
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
-      
+
       const generator = new ModelGenerator({
         name,
         identity: options.identity,

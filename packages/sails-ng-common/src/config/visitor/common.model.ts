@@ -251,8 +251,27 @@ export class FormPathHelper {
     this._formPath = buildLineagePaths();
   }
 
-  get formPath(): LineagePaths {
-    return this._formPath;
+  /**
+     * Get the current form paths.
+     */
+    get formPath(): LineagePaths {
+        // Return a copy so the current form paths cannot be changed.
+        return {
+            angularComponents: [...this._formPath.angularComponents],
+            angularComponentsJsonPointer: this._formPath.angularComponentsJsonPointer?.toString(),
+            dataModel: [...this._formPath.dataModel],
+            formConfig: [...this._formPath.formConfig],
+        };
+    }
+
+    /**
+     * Get the current model name.
+     */
+    get modelName(): string | null {
+        if (this._formPath.dataModel.length > 0) {
+            return this._formPath.dataModel[this._formPath.dataModel.length - 1]?.toString();
+        }
+        return null;
   }
 
   public reset() {
@@ -371,6 +390,17 @@ export class FormPathHelper {
   }
 
   public lineagePathsForReusableFieldComponentDefinition(
+    item: FormComponentDefinitionOutline,
+    index: number
+  ): LineagePathsPartial {
+    return {
+      formConfig: ['config', 'componentDefinitions', index.toString()],
+      dataModel: this.getFormPathDataModel(item),
+      angularComponents: this.getFormPathAngularComponents(item),
+    };
+  }
+
+  public lineagePathsForQuestionTreeFieldComponentDefinition(
     item: FormComponentDefinitionOutline,
     index: number
   ): LineagePathsPartial {

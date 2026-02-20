@@ -39,7 +39,10 @@ import {
   SimpleInputFormComponentDefinitionOutline,
   SimpleInputModelName,
 } from '@researchdatabox/sails-ng-common';
-import { SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+    SimpleInputFieldComponentConfig,
+    SimpleInputFieldModelConfig,
+} from '@researchdatabox/sails-ng-common';
 import {
   DefaultFieldLayoutDefinitionFrame,
   DefaultFieldLayoutDefinitionOutline,
@@ -254,13 +257,23 @@ import {
   isTypeFormComponentDefinitionName,
   isTypeFormConfig,
 } from '@researchdatabox/sails-ng-common';
-import { AllFormComponentDefinitionOutlines, ReusableFormDefinitions } from '@researchdatabox/sails-ng-common';
+import {
+    AllFormComponentDefinitionOutlines,
+    ReusableFormDefinitions
+} from '@researchdatabox/sails-ng-common';
 import { ILogger } from '@researchdatabox/sails-ng-common';
 import { FormModesConfig } from '@researchdatabox/sails-ng-common';
 import { FieldModelConfigFrame, FieldModelDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { FormOverride } from '@researchdatabox/sails-ng-common';
 import { FormPathHelper, PropertiesHelper } from '@researchdatabox/sails-ng-common';
 import { LineagePath } from '@researchdatabox/sails-ng-common';
+import {
+    QuestionTreeComponentName, QuestionTreeFieldComponentDefinitionFrame,
+    QuestionTreeFieldComponentDefinitionOutline, QuestionTreeFieldModelDefinitionFrame,
+    QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline,
+    QuestionTreeModelName,
+  QuestionTreeFieldComponentConfig, QuestionTreeFieldModelConfig,
+} from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config frame and create an instance of the associated class.
@@ -510,12 +523,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
     frame.elementTemplate = compDefs[0];
 
-    // The element template name must be falsy.
-    // It is also allowed for a ReusableComponent to have a replaceName that is falsy.
-    const elementTemplateName = frame.elementTemplate?.name;
-    const elementTemplateClass = frame.elementTemplate?.component?.class;
-    const elementTemplateReplaceName = frame.elementTemplate?.overrides?.replaceName;
-    const nameIsFalsy = !elementTemplateName;
+        // The element template name must be falsy.
+        // It is also allowed for a ReusableComponent to have a replaceName that is falsy.
+        const elementTemplateName = frame.elementTemplate?.name;
+        const elementTemplateClass = frame.elementTemplate?.component?.class;
+        const elementTemplateReplaceName = frame.elementTemplate?.overrides?.replaceName;
+        const nameIsFalsy = !elementTemplateName;
     const nameWillBeTransformedToFalsy = elementTemplateReplaceName === null || elementTemplateReplaceName === '';
     if (!nameIsFalsy && !nameWillBeTransformedToFalsy) {
       this.logger.error(
@@ -626,20 +639,20 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         `Invalid ${GroupFieldComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
       );
     }
-    const frame = currentData?.config ?? { componentDefinitions: [] };
+        const configFrame = currentData?.config ?? {componentDefinitions: []};
 
     // Create the class instance for the config
     item.config = new GroupFieldComponentConfig();
 
-    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, frame);
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, configFrame);
 
-    frame.componentDefinitions = this.formOverride.applyOverridesReusable(
-      frame?.componentDefinitions ?? [],
+    configFrame.componentDefinitions = this.formOverride.applyOverridesReusable(
+      configFrame?.componentDefinitions ?? [],
       this.reusableFormDefs
     );
 
     // Visit the components
-    frame.componentDefinitions.forEach((componentDefinition, index) => {
+        configFrame.componentDefinitions.forEach((componentDefinition, index) => {
       const formComponent = this.constructFormComponent(componentDefinition);
 
       // Continue the construction
@@ -1543,6 +1556,75 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.populateFormComponent(item);
   }
 
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(currentData, QuestionTreeComponentName)) {
+            throw new Error(`Invalid ${QuestionTreeComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+        const configFrame = currentData?.config ?? {availableOutcomes: [], questions: [], componentDefinitions: []};
+
+        // Create the class instance for the config
+        item.config = new QuestionTreeFieldComponentConfig();
+
+        this.sharedProps.sharedPopulateFieldComponentConfig(item.config, configFrame);
+
+        this.sharedProps.setPropOverride('availableOutcomes', item.config, configFrame);
+        this.sharedProps.setPropOverride('availableMeta', item.config, configFrame);
+        this.sharedProps.setPropOverride('questions', item.config, configFrame);
+
+        // Transform the question tree questions DSL into reusable components.
+        configFrame.componentDefinitions = this.formOverride.applyQuestionTreeDsl(
+          this.formPathHelper.modelName, this.formPathHelper.formPath, item
+        );
+
+        // Apply the reusable component overrides.
+        configFrame.componentDefinitions = this.formOverride.applyQuestionTreeFrames(
+            this.formOverride.applyOverridesReusable(configFrame?.componentDefinitions ?? [], this.reusableFormDefs)
+        );
+
+        // formOverride.applyOverridesReusable(config?.componentDefinitions ?? [], this.reusableFormDefs);
+        // Visit the components
+        configFrame.componentDefinitions.forEach((componentDefinition, index) => {
+            const formComponent = this.constructFormComponent(componentDefinition);
+
+            // Continue the construction
+            this.formPathHelper.acceptFormPath(
+                formComponent,
+                this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(formComponent, index),
+            );
+
+            // After the construction is done, apply any transforms
+            const itemTransformed = this.formOverride.applyOverrideTransform(
+              formComponent, this.formMode);
+
+            // Store the instance on the item
+            item.config?.componentDefinitions.push(itemTransformed);
+        });
+
+    }
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+        // Get the current raw data for constructing the class instance.
+        const currentData = this.getData();
+        if (!isTypeFieldDefinitionName<QuestionTreeFieldModelDefinitionFrame>(currentData, QuestionTreeModelName)) {
+            throw new Error(`Invalid ${QuestionTreeModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+        }
+
+        // Create the class instance for the config
+        item.config = new QuestionTreeFieldModelConfig();
+
+        this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+        this.setModelValue(item, currentData?.config);
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
+        this.populateFormComponent(item);
+    }
+
   /* Shared */
 
   protected constructFormComponent(item: FormComponentDefinitionFrame): AllFormComponentDefinitionOutlines {
@@ -1557,7 +1639,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       );
     }
 
-    // NOTE: Leaving expressions form-level processing placeholder, currently unused and unimplemented.
+        // TODO: Leaving expressions form-level processing placeholder, currently unused and unimplemented.
     // Set the expressions
     item.expressions = [];
     const expressionNames = new Set<string>();
@@ -1714,6 +1796,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     const dataModelPath = this.formPathHelper.formPath.dataModel;
     return _cloneDeep(_get(this.recordValues, dataModelPath, undefined));
   }
+
+  /* Additional Repeatable */
 
   /**
    * Check whether the current form config path matches the

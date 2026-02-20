@@ -9,13 +9,15 @@
  * Think about how this could work if clients are allowed to define templates and store in db...
  */
 
-import { ReusableFormDefinitions } from "@researchdatabox/sails-ng-common";
+import {ReusableFormDefinitions} from "@researchdatabox/sails-ng-common";
 
 // Re-export the type for convenience
-export { ReusableFormDefinitions };
+export {ReusableFormDefinitions};
 
 export const reusableFormDefinitions: ReusableFormDefinitions = {
-
+    /**
+     * Standard contributor form fields for the v4 ContributorField.
+     */
     "standard-contributor-fields": [
         {
             name: "name",
@@ -54,7 +56,9 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
             },
         },
     ],
-
+    /**
+     * Standard contributor form fields group for the v4 ContributorField.
+     */
     "standard-contributor-fields-group": [
         {
             name: "standard_contributor_fields_group",
@@ -75,17 +79,18 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
             },
         },
     ],
-
-    // definition of a reusable form config - standard component definitions
-    // The standard people field
+    /**
+     * TODO: The standard people fields - ci, data manager, supervisor, contributor.
+     * definition of a reusable form config - standard component definitions
+     */
     "standard-contributor-field": [
         {
             name: "name",
-            component: { class: "SimpleInputComponent", config: { type: "text" } }
+            component: {class: "SimpleInputComponent", config: {type: "text"}}
         },
         {
             name: "email",
-            component: { class: "SimpleInputComponent", config: { type: "text" } }
+            component: {class: "SimpleInputComponent", config: {type: "text"}}
         },
         {
             name: "orcid",
@@ -95,20 +100,22 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
                     componentDefinitions: [
                         {
                             name: "example1",
-                            component: { class: "SimpleInputComponent", config: { type: "text" } },
+                            component: {class: "SimpleInputComponent", config: {type: "text"}},
                         }
                     ]
                 }
             }
         },
     ],
-    // TODO: The standard people fields - ci, data manager, supervisor, contributor.
-    // definition of a reusable form config that refers to another reusable form config
-    // the component definition can be either a standard component def or the 'reusableName' format
+    /**
+     * TODO: The standard people fields - ci, data manager, supervisor, contributor.
+     * definition of a reusable form config that refers to another reusable form config
+     * the component definition can be either a standard component def or the 'reusableName' format
+     */
     "standard-people-fields": [
         {
             // this element in the array is replaced by the 3 items in the "standard-contributor-field" array
-            overrides: { reusableFormName: "standard-contributor-field" },
+            overrides: {reusableFormName: "standard-contributor-field"},
             // Name does not matter, this array element will be replaced
             name: "",
             component: {
@@ -118,9 +125,9 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
                         {
                             // for the item in the array that matches the match name, change the name to replace
                             // merge all other properties, preferring the definitions here
-                            overrides: { replaceName: "contributor_ci_name" },
+                            overrides: {replaceName: "contributor_ci_name"},
                             name: "name",
-                            component: { class: "ContentComponent", config: {} },
+                            component: {class: "SimpleInputComponent", config: {type: "tel"}},
                         },
                         {
                             // refer to the item without changing it
@@ -131,9 +138,9 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
                                 config: {
                                     componentDefinitions: [
                                         {
-                                            overrides: { replaceName: "orcid_nested_example1" },
+                                            overrides: {replaceName: "orcid_nested_example1"},
                                             name: "example1",
-                                            component: { class: "ContentComponent", config: {} },
+                                            component: {class: "ContentComponent", config: {}},
                                         }
                                     ]
                                 }
@@ -147,9 +154,26 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
         {
             // this element is used as-is
             name: "contributor_data_manager",
-            component: { class: "SimpleInputComponent", config: { type: "text" } }
+            component: {class: "SimpleInputComponent", config: {type: "text"}}
         }
     ],
-    // TODO: The standard project info fields: title, description, keywords, SEO codes, FOR codes
-    "standard-project-info-fields": [],
+
+    /**
+     * Question Tree components for single-answer input.
+     */
+    "questiontree-answer-one": [
+        {
+            name: "questiontree_answer_one",
+            component: {class: "RadioInputComponent", config: {options: []}}
+        }
+    ],
+    /**
+     * Question Tree components for one or more-answer input.
+     */
+    "questiontree-answer-one-more": [
+        {
+            name: "questiontree_answer_one_more",
+            component: {class: "CheckboxInputComponent", config: {options: []}}
+        }
+    ],
 };
