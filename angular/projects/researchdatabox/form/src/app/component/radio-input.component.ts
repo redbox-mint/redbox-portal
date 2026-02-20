@@ -29,7 +29,10 @@ export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
             [attr.value]="opt.value"
             [value]="opt.value"
             [id]="this.getOptionId(opt)"
-            [attr.id]="this.getOptionId(opt)">
+            [attr.id]="this.getOptionId(opt)"
+            [class.is-valid]="isValid"
+            [class.is-invalid]="!isValid"
+            [title]="tooltip">
           <label
             class="form-check-label"
             [attr.for]="getOptionId(opt)">
@@ -60,6 +63,23 @@ export class RadioInputComponent extends FormFieldBaseComponent<RadioInputModelV
     const config = formComponentFrame.config;
     this.options = config?.options ?? [];
     this.tooltip = config?.tooltip ?? "";
+
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => console.log(mutation));
+    });
+    const observerConfig = {
+      subtree: false,
+      childList: false,
+      attributes: true,
+      attributeOldValue: false,
+      // attributeFilter: [],
+      characterData: false,
+      characterDataOldValue: false,
+    };
+
+    observer.observe(this.formFieldCompMapEntry?.componentRef?.location?.nativeElement, observerConfig);
+    observer.observe(this.formFieldCompMapEntry?.layoutRef?.location?.nativeElement, observerConfig);
+    // TODO: createFieldMetaChangedEvent
   }
 
   /**

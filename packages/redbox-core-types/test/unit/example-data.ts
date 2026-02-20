@@ -1,84 +1,4 @@
-import { FormConfigFrame, ReusableFormDefinitions } from "@researchdatabox/sails-ng-common";
-
-
-export const reusableDefinitionsExample1: ReusableFormDefinitions = {
-    // definition of a reusable form config - standard component definitions
-    // The standard people field
-    "standard-contributor-field": [
-        {
-            name: "name",
-            component: { class: "SimpleInputComponent", config: { type: "text" } }
-        },
-        {
-            name: "email",
-            component: { class: "SimpleInputComponent", config: { type: "text" } }
-        },
-        {
-            name: "orcid",
-            component: {
-                class: "GroupComponent",
-                config: {
-                    componentDefinitions: [
-                        {
-                            name: "example1",
-                            component: { class: "SimpleInputComponent", config: { type: "text" } },
-                        }
-                    ]
-                }
-            }
-        },
-    ],
-    // TODO: The standard people fields - ci, data manager, supervisor, contributor.
-    // definition of a reusable form config that refers to another reusable form config
-    // the component definition can be either a standard component def or the 'reusableName' format
-    "standard-people-fields": [
-        {
-            // this element in the array is replaced by the 3 items in the "standard-contributor-field" array
-            overrides: { reusableFormName: "standard-contributor-field" },
-            // Name does not matter, this array element will be replaced
-            name: "",
-            component: {
-                class: "ReusableComponent",
-                config: {
-                    componentDefinitions: [
-                        {
-                            // for the item in the array that matches the match name, change the name to replace
-                            // merge all other properties, preferring the definitions here
-                            overrides: { replaceName: "contributor_ci_name" },
-                            name: "name",
-                            component: { class: "SimpleInputComponent", config: { type: "tel" } },
-                        },
-                        {
-                            // refer to the item without changing it
-                            // this is useful for referring to an item that has nested components that will be changed
-                            name: "orcid",
-                            component: {
-                                class: "GroupComponent",
-                                config: {
-                                    componentDefinitions: [
-                                        {
-                                            overrides: { replaceName: "orcid_nested_example1" },
-                                            name: "example1",
-                                            component: { class: "ContentComponent", config: {} },
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                        // the 'email' item in the reusable definition array is copied with no changes
-                    ]
-                }
-            },
-        },
-        {
-            // this element is used as-is
-            name: "contributor_data_manager",
-            component: { class: "SimpleInputComponent", config: { type: "text" } }
-        }
-    ],
-    // TODO: The standard project info fields: title, description, keywords, SEO codes, FOR codes
-    "standard-project-info-fields": [],
-};
+import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 
 /**
  * A general form config with examples of most of the component types and nested components.
@@ -398,11 +318,17 @@ export const formConfigExample1: FormConfigFrame = {
                                             component: {
                                                 class: 'SimpleInputComponent'
                                             },
-                                            // expressions: {
-                                            //     'model.value': {
-                                            //         template: `<%= _.get(model,'text_1_event','') %>`
-                                            //     }
-                                            // }
+                                          expressions: [
+                                            {
+                                              name: 'text_7_text_1_event_expr',
+                                              config: {
+                                                template: `value & "__suffix"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/text_1_event::field.value.changed`,
+                                                target: `model.value`,
+                                              },
+                                            },
+                                          ],
                                         },
                                         {
                                             name: 'text_2_event',
@@ -446,15 +372,17 @@ export const formConfigExample1: FormConfigFrame = {
                                                     type: 'text'
                                                 }
                                             },
-                                            //                     expressions: {
-                                            //                         'component.visible': {
-                                            //                             template: `<% if(_.isEmpty(_.get(model,'text_2_event',''))) {
-                                            //     return false;
-                                            //   } else {
-                                            //     return true;
-                                            //   } %>`
-                                            //                         }
-                                            //                     }
+                                          expressions: [
+                                            {
+                                              name: 'text_2_component_event_text_2_event_expr',
+                                              config: {
+                                                template: `value = "hide text_2_component_event"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/text_2_event::field.value.changed`,
+                                                target: `component.visible`,
+                                              },
+                                            },
+                                          ]
                                         },
                                         {
                                             name: 'text_3_event',
@@ -489,15 +417,17 @@ export const formConfigExample1: FormConfigFrame = {
                                             component: {
                                                 class: 'SimpleInputComponent'
                                             },
-                                            // expressions: {
-                                            //     'layout.visible': {
-                                            //         template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                                            //         return false;
-                                            //     } else {
-                                            //         return true;
-                                            //     } %>`
-                                            //     }
-                                            // }
+                                          expressions: [
+                                            {
+                                              name: 'text_3_layout_event_text_3_event_expr',
+                                              config: {
+                                                template: `value = "hide text_3_layout_event"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/text_3_event::field.value.changed`,
+                                                target: `layout.visible`,
+                                              },
+                                            },
+                                          ]
                                         },
                                     ]
                                 }
@@ -623,15 +553,17 @@ export const formConfigExample1: FormConfigFrame = {
                                                     ]
                                                 }
                                             },
-                                            //                     expressions: {
-                                            //                         'layout.visible': {
-                                            //                             template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                                            //     return false;
-                                            //   } else {
-                                            //     return true;
-                                            //   } %>`
-                                            //                         }
-                                            //                     }
+                                          expressions: [
+                                            {
+                                              name: 'group_1_component_text_3_event_expr',
+                                              config: {
+                                                template: `value = "hide group_1_component"`,
+                                                conditionKind: 'jsonpointer',
+                                                condition: `/main_tab/tab_1/text_3_event::field.value.changed`,
+                                                target: `layout.visible`,
+                                              },
+                                            },
+                                          ]
                                         },
                                         {
                                             name: 'repeatable_textfield_1',
@@ -689,17 +621,53 @@ export const formConfigExample1: FormConfigFrame = {
                                                     helpText: 'Repeatable component help text',
                                                 }
                                             },
-                                            // expressions: {
-                                            //     'layout.visible': {
-                                            //         template: `<% if(_.isEmpty(_.get(model,'text_3_event',''))) {
-                                            //         return false;
-                                            //     } else {
-                                            //         return true;
-                                            //     } %>`
-                                            //     }
-                                            // }
+                                            expressions: [
+                                              {
+                                                name: 'repeatable_textfield_1_text_3_event_expr',
+                                                config: {
+                                                  template: `value = "hide repeatable_textfield_1"`,
+                                                  conditionKind: 'jsonpointer',
+                                                  condition: `/main_tab/tab_1/text_3_event::field.value.changed`,
+                                                  target: `layout.visible`,
+                                                },
+                                              },
+                                            ]
                                         },
-
+                                      {
+                                        name: "questiontree_1",
+                                        component: {
+                                          class: "QuestionTreeComponent",
+                                          config: {
+                                            availableOutcomes: [
+                                              {value: "value1", label: "@outcomes-value1"},
+                                              {value: "value2", label: "@outcomes-value2"},
+                                            ],
+                                            availableMeta: {
+                                              prop2: {
+                                                value1: "@outcomes-prop2-value1",
+                                                value2: "@outcomes-prop2-value2",
+                                              },
+                                        },
+                                            questions: [
+                                              {
+                                                id: "question_1",
+                                                answersMin: 1,
+                                                answersMax: 1,
+                                                answers: [{value: "yes"}, {value: "no"}],
+                                                rules: {op: "true"},
+                                              },
+                                              {
+                                                id: "question_2",
+                                                answersMin: 1,
+                                                answersMax: 2,
+                                                answers: [{value: "yes"}, {value: "no", meta: {prop2: "value1"}, outcome: "value1"}],
+                                                rules: {op: "in", q: "question_1", a: ["no"]}
+                                              }
+                                            ],
+                                            componentDefinitions: [],
+                                          }
+                                        },
+                                      }
                                     ]
                                 }
                             }

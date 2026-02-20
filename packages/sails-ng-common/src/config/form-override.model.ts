@@ -67,7 +67,7 @@ import {
     QuestionTreeQuestionAnswer, QuestionTreeQuestionRuleIn, QuestionTreeQuestionRules
 } from "./component/question-tree.outline";
 import {guessType} from "./helpers";
-import {LineagePaths} from "./names/naming-helpers";
+import {LineagePath, LineagePaths} from "./names/naming-helpers";
 import {FormExpressionsConfigFrame} from "./form-component.outline";
 
 
@@ -441,18 +441,42 @@ export class FormOverride {
               name, lineagePath, item
             })}`);
           }
-          const expressions: FormExpressionsConfigFrame[] | undefined = isVisible ? undefined : [{
-            name: `${id}-questiontree`,
-            config: {
-              // use formData in the template
-              template: ruleExpression,
-              conditionKind: 'jsonpointer',
-              // condition is always executed, should be true or false, if true, then evals template
-              // The condition should restrict to the question tree.
-              condition: `${lineagePath.angularComponentsJsonPointer}::field.value.changed`,
-              target: `layout.visible`
-            }
-          }];
+
+          // Notes:
+          // - condition is always executed, should be true or false, if true, then evals template
+          // - The condition should restrict to the question tree.
+          // - use formData in the template to get the current value of a component of the question tree
+          // - Both the layout and component have `visible` properties, so they both need to be set.
+
+          const expressions: FormExpressionsConfigFrame[] | undefined = isVisible ? undefined : [
+            {
+              name: `${id}-layoutvis-qt`,
+              config: {
+                template: ruleExpression,
+                conditionKind: 'jsonpointer',
+                condition: `${lineagePath.angularComponentsJsonPointer}::field.value.changed`,
+                target: `layout.visible`
+              }
+            },
+            {
+              name: `${id}-compvis-qt`,
+              config: {
+                template: ruleExpression,
+                conditionKind: 'jsonpointer',
+                condition: `${lineagePath.angularComponentsJsonPointer}::field.value.changed`,
+                target: `component.visible`
+              }
+            },
+            {
+              name: `${id}-modval-qt`,
+              config: {
+                template: ``,
+                conditionKind: 'jsonpointer',
+                condition: `${lineagePath.angularComponentsJsonPointer}::field.meta.changed`,
+                target: `model.value`
+              }
+            },
+          ];
 
             // build reusable component
             const hasOneAnswer = answersMax === 1;
@@ -552,10 +576,7 @@ export class FormOverride {
         // Build the jsonata format identifier.
         // Use the question tree angular component path, plus the question id as the path.
         const path = [...lineagePath.dataModel, rule.q]
-        // Escape unexpected characters.
-        const pathFieldRefs = path.map(i => this.toFieldReference(i));
-        // Use backticks to build each item in the jsonata identifier.
-        const identifierString = ['formData', ...pathFieldRefs.map(i => `\`${i}\``)].join('.');
+        const identifierString = this.lineagePathToExpressionIdentifiers(['formData', ...path]);
         // The value can be converted to a json array for the jsonata expression.
         const values = (Array.isArray(rule.a) ? rule.a : [rule.a]).map(i => this.toFieldReference(i));
         const valueString = JSON.stringify(values);
@@ -570,6 +591,16 @@ export class FormOverride {
       default:
         throw new Error(`${this.logName} unknown rule ${JSON.stringify(rule)}.`);
     }
+  }
+
+  private lineagePathToExpressionIdentifiers(path: LineagePath): string {
+    // Escape unexpected characters.
+    const pathFieldRefs = path.map(i => this.toFieldReference(i));
+    // Use backticks to build each item in the jsonata identifier.
+    const identifiers = pathFieldRefs.map(i => `\`${i}\``);
+    // Join identifiers using dot.
+    const identifierString = identifiers.join('.');
+    return identifierString;
   }
 
     /**
