@@ -210,4 +210,29 @@ describe('FormComponent', () => {
     expect(replaceStateSpy).toHaveBeenCalledWith('/default/rdmp/record/edit/oid-123');
   });
 
+  it('should render debug sections inside rb-form-debug-panel wrappers', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'debug-layout',
+      debugValue: true,
+      componentDefinitions: [
+        {
+          name: 'text_debug_layout',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const debugPanels = fixture.nativeElement.querySelectorAll('.rb-form-debug-panel');
+    expect(debugPanels.length).toBe(2);
+  });
+
 });

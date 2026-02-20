@@ -62,7 +62,7 @@ describe('CancelButtonComponent', () => {
 
   it('should show confirmation dialog only when dirty', async () => {
     const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true } as any);
-    const button = fixture.nativeElement.querySelector('button.btn.btn-secondary') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('button.btn.btn-warning') as HTMLButtonElement;
     expect(button).toBeTruthy();
 
     button.click();
@@ -86,7 +86,7 @@ describe('CancelButtonComponent', () => {
     spyOn(facade, 'isSaving').and.returnValue(true as any);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('button.btn.btn-secondary') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('button.btn.btn-warning') as HTMLButtonElement;
     expect(button.disabled).toBeTrue();
   });
 });

@@ -47,6 +47,12 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { DefaultFieldLayoutConfig } from '@researchdatabox/sails-ng-common';
 import {
+  ActionRowFieldLayoutDefinitionFrame,
+  ActionRowFieldLayoutDefinitionOutline,
+  ActionRowLayoutName,
+} from '@researchdatabox/sails-ng-common';
+import { ActionRowFieldLayoutConfig } from '@researchdatabox/sails-ng-common';
+import {
   InlineFieldLayoutDefinitionFrame,
   InlineFieldLayoutDefinitionOutline,
   InlineLayoutName,
@@ -542,6 +548,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(formComponent)
     );
 
+    // Repeatable elements must use RepeatableElementLayout so item rows render remove controls.
+    if (formComponent.layout) {
+      formComponent.layout.class = RepeatableElementLayoutName;
+    }
+
     // After the construction is done, apply any transforms
     const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
 
@@ -754,6 +765,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, config);
 
     this.sharedProps.setPropOverride('buttonSectionCssClass', item.config, config);
+    this.sharedProps.setPropOverride('tabShellCssClass', item.config, config);
+    this.sharedProps.setPropOverride('tabNavWrapperCssClass', item.config, config);
+    this.sharedProps.setPropOverride('tabPanelWrapperCssClass', item.config, config);
     this.sharedProps.setPropOverride('tabPaneCssClass', item.config, config);
     this.sharedProps.setPropOverride('tabPaneActiveCssClass', item.config, config);
     this.sharedProps.setPropOverride('buttonSectionAriaOrientation', item.config, config);
@@ -969,6 +983,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('forceSave', item.config, config);
     this.sharedProps.setPropOverride('enabledValidationGroups', item.config, config);
     this.sharedProps.setPropOverride('labelSaving', item.config, config);
+    this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
   }
 
   visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
@@ -996,6 +1011,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('confirmationTitle', item.config, config);
     this.sharedProps.setPropOverride('cancelButtonMessage', item.config, config);
     this.sharedProps.setPropOverride('confirmButtonMessage', item.config, config);
+    this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
   }
 
   visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
@@ -1230,6 +1246,23 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     item.config = new InlineFieldLayoutConfig();
     this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
+  }
+
+  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<ActionRowFieldLayoutDefinitionFrame>(currentData, ActionRowLayoutName)) {
+      throw new Error(
+        `Invalid ${ActionRowLayoutName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+    item.config = new ActionRowFieldLayoutConfig();
+    this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, config);
+    this.sharedProps.setPropOverride('containerCssClass', item.config, config);
+    this.sharedProps.setPropOverride('alignment', item.config, config);
+    this.sharedProps.setPropOverride('wrap', item.config, config);
+    this.sharedProps.setPropOverride('slotCssClass', item.config, config);
+    this.sharedProps.setPropOverride('compact', item.config, config);
   }
 
   /* Checkbox Input */

@@ -10,6 +10,7 @@ import { TabComponent, TabContentComponent, TabSelectionErrorType } from './tab.
 
 let formConfig: FormConfigFrame;
 let formConfigNoSelectedTab: FormConfigFrame;
+let formConfigWithMinimalLayout: FormConfigFrame;
 
 describe('TabComponent', () => {
   beforeEach(async () => {
@@ -199,6 +200,41 @@ describe('TabComponent', () => {
       ]
     };
 
+    formConfigWithMinimalLayout = {
+      name: 'testing-minimal-layout',
+      componentDefinitions: [
+        {
+          name: 'main_tab',
+          layout: {
+            class: 'TabLayout',
+          },
+          component: {
+            class: 'TabComponent',
+            config: {
+              tabs: [
+                {
+                  name: 'tab1',
+                  layout: {
+                    class: 'TabContentLayout',
+                    config: {
+                      buttonLabel: 'Tab 1',
+                    },
+                  },
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      selected: true,
+                      componentDefinitions: [],
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
   });
 
   it('should create component', () => {
@@ -278,6 +314,20 @@ describe('TabComponent', () => {
     expectedClasses.forEach((expectedClass:string) => {
       expect(classList).toContain(expectedClass);
     });
+  });
+
+  it('should apply tab layout convention defaults when config is minimal', async () => {
+    const { fixture } = await createFormAndWaitForReady(formConfigWithMinimalLayout);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const tabShell = compiled.querySelector('.rb-form-tab-shell');
+    const navWrapper = compiled.querySelector('.rb-form-tab-nav-wrapper');
+    const panelWrapper = compiled.querySelector('.rb-form-tab-panel-wrapper');
+    const nav = compiled.querySelector('[role=\"tablist\"]');
+    expect(tabShell).toBeTruthy();
+    expect(navWrapper).toBeTruthy();
+    expect(panelWrapper).toBeTruthy();
+    expect(nav).toBeTruthy();
+    expect(nav?.getAttribute('aria-orientation')).toBe('vertical');
   });
 
   it('should select the last tab with an "selected" equal to true on init and do the same on the new tab selected', async () => {

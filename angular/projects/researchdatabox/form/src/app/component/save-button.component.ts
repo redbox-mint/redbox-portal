@@ -10,7 +10,9 @@ import { FormStateFacade } from '../form-state';
   template:`
   @if (isVisible) {
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-    <button type="button" class="btn btn-primary" (click)="save()" [innerHtml]="currentLabel()" [disabled]="disabled()"></button>
+    <div class="rb-form-save-button">
+      <button type="button" [class]="buttonCssClasses" (click)="save()" [innerHtml]="currentLabel()" [disabled]="disabled()"></button>
+    </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   }
   `,
@@ -25,6 +27,11 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   protected currentLabel = signal<string | undefined>(this.componentDefinition?.config?.label);
   protected formStateFacade = inject(FormStateFacade);
   private _injector = inject(Injector);
+  
+  get buttonCssClasses(): string {
+    const configuredClasses = (this.componentDefinition?.config as Record<string, unknown> | undefined)?.['buttonCssClasses'];
+    return this.resolveButtonCssClasses(typeof configuredClasses === 'string' ? configuredClasses : undefined, 'btn-primary');
+  }
 
   constructor() {
     super();
@@ -72,6 +79,15 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
 
   private get getFormComponent(): FormComponent {
     return this._injector.get(FormComponent);
+  }
+
+  private resolveButtonCssClasses(configured: string | undefined, fallbackVariantClass: string): string {
+    const normalized = (configured ?? '').trim().replace(/\s+/g, ' ');
+    if (!normalized) {
+      return `btn ${fallbackVariantClass}`;
+    }
+    const classTokens = normalized.split(/\s+/);
+    return classTokens.includes('btn') ? normalized : `btn ${normalized}`;
   }
 
 }

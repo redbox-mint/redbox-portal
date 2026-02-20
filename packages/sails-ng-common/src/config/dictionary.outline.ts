@@ -18,6 +18,7 @@ import { TabTypes } from './component/tab.outline';
 import { AccordionTypes } from './component/accordion.outline';
 import { DefaultLayoutTypes } from './component/default-layout.outline';
 import { InlineLayoutTypes } from './component/inline-layout.outline';
+import { ActionRowLayoutTypes } from './component/action-row-layout.outline';
 
 import {
   FieldLayoutDefinitionFrameKindType,
@@ -45,6 +46,7 @@ import { TabNavButtonTypes } from './component/tab-nav-button.outline';
 export type AllTypes =
   | DefaultLayoutTypes
   | InlineLayoutTypes
+  | ActionRowLayoutTypes
   | RepeatableTypes
   | GroupTypes
   | SaveButtonTypes
