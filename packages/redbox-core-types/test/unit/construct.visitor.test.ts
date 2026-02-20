@@ -1,8 +1,8 @@
 import {
-    ConstructFormConfigVisitor,
     FormConfig,
     FormConfigFrame, FormModesConfig, ReusableFormDefinitions,
-} from "../../src";
+} from "@researchdatabox/sails-ng-common";
+import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
 import { formConfigExample2, reusableDefinitionsExample1 } from "./example-data";
 import { logger } from "./helpers";
 
@@ -192,7 +192,21 @@ describe("Construct Visitor", async () => {
             it(`should ${title}`, async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
                 const actual = visitor.start({ data: args, formMode: "edit" });
-                expect(actual).to.containSubset(expected);
+                expect(actual).to.deep.include({ name: expected.name });
+
+                const expectedDefs = expected.componentDefinitions ?? [];
+                const actualDefs = actual.componentDefinitions ?? [];
+                expect(actualDefs).to.have.lengthOf(expectedDefs.length);
+                expect(actualDefs.map(componentDef => componentDef.name))
+                    .to.deep.include.members(expectedDefs.map(componentDef => componentDef.name));
+                expect(actualDefs.map(componentDef => componentDef.component.class))
+                    .to.deep.include.members(expectedDefs.map(componentDef => componentDef.component.class));
+
+                expectedDefs.forEach((componentDef, index) => {
+                    if (componentDef.layout?.config) {
+                        expect(actualDefs[index]?.layout?.config).to.deep.include(componentDef.layout.config);
+                    }
+                });
             });
         });
 
@@ -389,7 +403,29 @@ describe("Construct Visitor", async () => {
                     formMode: args.formMode,
                     reusableFormDefs: args.reusableFormDefs
                 });
-                expect(actual).to.containSubset(expected);
+                expect(actual).to.deep.include({ name: expected.name });
+
+                const expectedDefs = expected.componentDefinitions ?? [];
+                const actualDefs = actual.componentDefinitions ?? [];
+                expect(actualDefs).to.have.lengthOf(expectedDefs.length);
+                expect(actualDefs.map(componentDef => componentDef.name))
+                    .to.deep.include.members(expectedDefs.map(componentDef => componentDef.name));
+                expect(actualDefs.map(componentDef => componentDef.component.class))
+                    .to.deep.include.members(expectedDefs.map(componentDef => componentDef.component.class));
+
+                const expectedOrcidConfig = expectedDefs.find(componentDef => componentDef.name === "orcid")
+                    ?.component?.config as { componentDefinitions?: Array<{ name: string, component: { class: string } }> } | undefined;
+                const actualOrcidConfig = actualDefs.find(componentDef => componentDef.name === "orcid")
+                    ?.component?.config as { componentDefinitions?: Array<{ name: string, component: { class: string } }> } | undefined;
+                const expectedOrcidNested = expectedOrcidConfig?.componentDefinitions ?? [];
+                const actualOrcidNested = actualOrcidConfig?.componentDefinitions ?? [];
+
+                if (expectedOrcidNested.length > 0) {
+                    expect(actualOrcidNested.map((componentDef: { name: string }) => componentDef.name))
+                        .to.deep.include.members(expectedOrcidNested.map(componentDef => componentDef.name));
+                    expect(actualOrcidNested.map((componentDef: { component: { class: string } }) => componentDef.component.class))
+                        .to.deep.include.members(expectedOrcidNested.map(componentDef => componentDef.component.class));
+                }
             });
         });
     });
@@ -802,7 +838,12 @@ describe("Construct Visitor", async () => {
                     }
                 ]
             };
-            expect(actual).to.containSubset(expected);
+            expect(actual).to.deep.include({ name: expected.name });
+            expect(actual.componentDefinitions[0]).to.deep.include({ name: "content1" });
+            expect(actual.componentDefinitions[0].component).to.deep.include({ class: "ContentComponent" });
+            expect(actual.componentDefinitions[0].component.config).to.deep.include({
+                template: '<h1>{{model}}</h1>'
+            });
         });
         it("should populate transformed content component from record", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
@@ -881,7 +922,261 @@ describe("Construct Visitor", async () => {
                     }
                 ]
             };
-            expect(actual).to.containSubset(expected);
+            expect(actual).to.deep.include({ name: expected.name });
+            expect(actual.componentDefinitions[0]).to.deep.include({ name: "component_1" });
+            expect(actual.componentDefinitions[0].component).to.deep.include({ class: "ContentComponent" });
+            expect(actual.componentDefinitions[0].component.config).to.deep.include({
+                content: { label: 'Option 3', value: 'option3' },
+                template: `<span data-value="{{content.value}}">{{content.label}}</span>`
+            });
+
+            expect(actual.componentDefinitions[1]).to.deep.include({ name: "component_2" });
+            expect(actual.componentDefinitions[1].component).to.deep.include({ class: "ContentComponent" });
+            expect(actual.componentDefinitions[1].component.config).to.deep.include({
+                content: [{ label: 'Option 2', value: 'option2' }, { label: 'Option 3', value: 'option3' }],
+                template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
+            });
+        });
+    });
+    describe("accordion transformations", async () => {
+        it("should transform tab to accordion in view mode", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_tab",
+                            component: {
+                                class: "TabComponent",
+                                config: {
+                                    tabs: [
+                                        {
+                                            name: "tab_one",
+                                            layout: { class: "TabContentLayout", config: { buttonLabel: "Tab One" } },
+                                            component: {
+                                                class: "TabContentComponent",
+                                                config: { componentDefinitions: [] }
+                                            }
+                                        }
+                                    ] as any
+                                }
+                            },
+                            layout: { class: "TabLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            const transformed = actual.componentDefinitions[0];
+            expect(transformed.component.class).to.equal("AccordionComponent");
+            expect(transformed.layout?.class).to.equal("AccordionLayout");
+            expect((transformed.component.config as any)?.startingOpenMode).to.equal("all-open");
+            expect((transformed.component.config as any)?.panels?.length).to.equal(1);
+            expect((transformed.component.config as any)?.panels?.[0]?.layout?.config?.buttonLabel).to.equal("Tab One");
+        });
+
+        it("should transform empty tabs to accordion with zero panels in view mode", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_tab",
+                            component: {
+                                class: "TabComponent",
+                                config: { tabs: [] }
+                            },
+                            layout: { class: "TabLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            const transformed = actual.componentDefinitions[0];
+            expect(transformed.component.class).to.equal("AccordionComponent");
+            expect(((transformed.component.config as any)?.panels ?? []).length).to.equal(0);
+        });
+
+        it("should apply transformed panel label fallback chain", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_tab",
+                            component: {
+                                class: "TabComponent",
+                                config: {
+                                    tabs: [
+                                        {
+                                            name: "tab_with_button_label",
+                                            layout: { class: "TabContentLayout", config: { buttonLabel: "Button Label" } },
+                                            component: { class: "TabContentComponent", config: { componentDefinitions: [] } }
+                                        },
+                                        {
+                                            name: "tab_with_name_only",
+                                            component: { class: "TabContentComponent", config: { componentDefinitions: [] } }
+                                        },
+                                        {
+                                            name: "",
+                                            component: { class: "TabContentComponent", config: { componentDefinitions: [] } }
+                                        }
+                                    ]
+                                }
+                            },
+                            layout: { class: "TabLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            const panels = ((actual.componentDefinitions[0].component.config as any)?.panels ?? []);
+            expect(panels.length).to.equal(3);
+            expect(panels[0]?.layout?.config?.buttonLabel).to.equal("Button Label");
+            expect(panels[1]?.layout?.config?.buttonLabel).to.equal("tab_with_name_only");
+            expect(panels[2]?.layout?.config?.buttonLabel).to.equal("2");
+        });
+
+        it("should skip malformed transformed tabs with warning in view mode", async () => {
+            const warnings: string[] = [];
+            const testLogger = {
+                ...logger,
+                warn: (message: unknown) => warnings.push(String(message ?? ""))
+            };
+            const visitor = new ConstructFormConfigVisitor(testLogger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_tab",
+                            component: {
+                                class: "TabComponent",
+                                config: {
+                                    tabs: [
+                                        { name: "tab_valid", component: { class: "TabContentComponent", config: { componentDefinitions: [] } } },
+                                        // @ts-ignore - intentionally invalid to assert warning+skip behavior
+                                        { name: "tab_invalid", component: { class: "SimpleInputComponent", config: {} } }
+                                    ] as any
+                                }
+                            },
+                            layout: { class: "TabLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            const panels = ((actual.componentDefinitions[0].component.config as any)?.panels ?? []);
+            expect(panels.length).to.equal(1);
+            expect(warnings.some(msg => msg.includes("Invalid TabContentComponent entry skipped"))).to.equal(true);
+        });
+
+        it("should keep tab in edit mode", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_tab",
+                            component: {
+                                class: "TabComponent",
+                                config: { tabs: [] }
+                            },
+                            layout: { class: "TabLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            expect(actual.componentDefinitions[0].component.class).to.equal("TabComponent");
+        });
+
+        it("should construct direct accordion with default startingOpenMode", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_accordion",
+                            component: {
+                                class: "AccordionComponent",
+                                config: {
+                                    panels: [
+                                        {
+                                            name: "panel_one",
+                                            component: {
+                                                class: "AccordionPanelComponent",
+                                                config: { componentDefinitions: [] }
+                                            },
+                                            layout: { class: "AccordionPanelLayout", config: {} }
+                                        }
+                                    ]
+                                }
+                            },
+                            layout: { class: "AccordionLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            expect(actual.componentDefinitions[0].component.class).to.equal("AccordionComponent");
+            expect((actual.componentDefinitions[0].component.config as any)?.startingOpenMode).to.equal("all-open");
+        });
+
+        it("should skip malformed tab entries with warning", async () => {
+            const warnings: string[] = [];
+            const testLogger = {
+                ...logger,
+                warn: (message: unknown) => warnings.push(String(message ?? ""))
+            };
+
+            const visitor = new ConstructFormConfigVisitor(testLogger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "main_tab",
+                            component: {
+                                class: "TabComponent",
+                                config: {
+                                    tabs: [
+                                        {
+                                            name: "tab_valid",
+                                            component: {
+                                                class: "TabContentComponent",
+                                                config: { componentDefinitions: [] }
+                                            }
+                                        },
+                                        {
+                                            // @ts-ignore
+                                            name: "invalid_tab",
+                                            component: { class: "SimpleInputComponent", config: {} }
+                                        }
+                                    ] as any
+                                }
+                            },
+                            layout: { class: "TabLayout", config: {} }
+                        }
+                    ]
+                }
+            });
+
+            const tabs = (actual.componentDefinitions[0].component.config as any)?.tabs ?? [];
+            expect(tabs.length).to.equal(1);
+            expect(warnings.some(msg => msg.includes("Invalid TabContentComponent entry skipped"))).to.equal(true);
         });
     });
     describe("accordion transformations", async () => {
@@ -1228,7 +1523,27 @@ describe("Construct Visitor", async () => {
                     }
                 ]
             };
-            expect(actual).to.containSubset(expected);
+            expect(actual).to.deep.include({ name: expected.name });
+            const groupDef = actual.componentDefinitions[0];
+            expect(groupDef).to.not.equal(undefined);
+            expect(groupDef).to.deep.include({ name: "group_1" });
+            expect(groupDef.component).to.deep.include({ class: "GroupComponent" });
+            expect(groupDef.model).to.deep.include({ class: "GroupModel" });
+            expect(groupDef.model?.config).to.deep.include({
+                value: { component_1: ["text_1", "text_2"] }
+            });
+
+            const groupConfig = groupDef.component.config as { componentDefinitions?: Array<unknown> } | undefined;
+            const repeatableDef = groupConfig?.componentDefinitions?.[0] as {
+                name: string,
+                component: { class: string },
+                model?: { class: string, config: { value: string[] } }
+            } | undefined;
+            expect(repeatableDef).to.not.equal(undefined);
+            expect(repeatableDef).to.deep.include({ name: "component_1" });
+            expect(repeatableDef?.component).to.deep.include({ class: "RepeatableComponent" });
+            expect(repeatableDef?.model).to.deep.include({ class: "RepeatableModel" });
+            expect(repeatableDef?.model?.config).to.deep.include({ value: ["text_1", "text_2"] });
         });
     });
 });

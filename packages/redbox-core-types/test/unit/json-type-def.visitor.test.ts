@@ -1,4 +1,6 @@
-import {ConstructFormConfigVisitor, FormConfigFrame, JsonTypeDefSchemaFormConfigVisitor} from "../../src";
+import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
+import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
+import { JsonTypeDefSchemaFormConfigVisitor } from "../../src/visitor/json-type-def.visitor";
 
 import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";

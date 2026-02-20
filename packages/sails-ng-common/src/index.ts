@@ -34,13 +34,6 @@ export * from './config/names/naming-helpers';
 export * from './config/visitor/base.outline';
 export * from './config/visitor/base.model';
 export * from './config/visitor/common.model';
-export * from './config/visitor/client.visitor';
-export * from './config/visitor/construct.visitor';
-export * from './config/visitor/data-value.visitor';
-export * from './config/visitor/json-type-def.visitor';
-export * from './config/visitor/migrate-config-v4-v5.visitor';
-export * from './config/visitor/template.visitor';
-export * from './config/visitor/validator.visitor';
 export * from './logger.interface';
 // config/component
 export * from './config/component/checkbox-input.model';
@@ -91,6 +84,8 @@ export * from './config/component/map.model';
 export * from './config/component/map.outline';
 export * from './config/component/file-upload.model';
 export * from './config/component/file-upload.outline';
+export * from './config/component/reusable.model';
+export * from './config/component/reusable.outline';
 // validation
 export * from './validation/helpers';
 export * from './validation/form.model';

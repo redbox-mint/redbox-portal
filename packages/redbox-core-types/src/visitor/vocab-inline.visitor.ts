@@ -1,24 +1,29 @@
-import { ILogger } from '../Logger';
+import type { ILogger } from '../Logger';
 import {
-  CheckboxInputComponentName,
+  AccordionFieldComponentDefinitionOutline,
+  AccordionFormComponentDefinitionOutline,
+  AccordionPanelFieldComponentDefinitionOutline,
+  AccordionPanelFormComponentDefinitionOutline,
+  CheckboxInputFormComponentDefinitionOutline,
   CheckboxOption,
-  CheckboxTreeComponentName,
+  CheckboxTreeFormComponentDefinitionOutline,
   CheckboxTreeNode,
-  DropdownInputComponentName,
+  DropdownInputFormComponentDefinitionOutline,
   DropdownOption,
-  FormComponentDefinitionOutline,
   FormConfigOutline,
-  GroupFieldComponentName,
+  FormConfigVisitor,
+  GroupFieldComponentDefinitionOutline,
   GroupFormComponentDefinitionOutline,
-  RadioInputComponentName,
+  RadioInputFormComponentDefinitionOutline,
   RadioOption,
-  RepeatableComponentName,
+  RepeatableFieldComponentDefinitionOutline,
   RepeatableFormComponentDefinitionOutline,
-  TabComponentName,
-  TabContentComponentName,
+  TabContentFieldComponentDefinitionOutline,
   TabContentFormComponentDefinitionOutline,
+  TabFieldComponentDefinitionOutline,
   TabFormComponentDefinitionOutline
 } from '@researchdatabox/sails-ng-common';
+import { VocabularyEntryAttributes } from '../waterline-models';
 
 type ComponentConfigWithInlineVocab = {
   options?: DropdownOption[] | RadioOption[] | CheckboxOption[];
@@ -27,16 +32,14 @@ type ComponentConfigWithInlineVocab = {
   inlineVocab?: boolean;
 };
 
-type VocabularyEntry = NonNullable<Awaited<ReturnType<typeof VocabularyService.getEntries>>>['entries'][number];
 
-/**
- * Resolve vocab-backed options into form component configs at build time.
- */
-export class VocabInlineFormConfigVisitor {
-  private logger: ILogger;
+export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
+  protected override logName = 'VocabInlineFormConfigVisitor';
+  private branding = '';
+  private pendingResolutions: Promise<void>[] = [];
 
   constructor(logger: ILogger) {
-    this.logger = logger;
+    super(logger);
   }
 
   public async resolveVocabs(form: FormConfigOutline, brandingOverride?: string): Promise<void> {
@@ -45,121 +48,136 @@ export class VocabInlineFormConfigVisitor {
       return;
     }
 
-    await this.resolveOnDefinitions(form?.componentDefinitions ?? [], branding);
+    this.branding = branding;
+    this.pendingResolutions = [];
+    form.accept(this);
+    await Promise.all(this.pendingResolutions);
   }
 
-  private async resolveOnDefinitions(definitions: FormComponentDefinitionOutline[], branding: string): Promise<void> {
-    for (const definition of definitions) {
-      await this.resolveOnDefinition(definition, branding);
-    }
+  protected override notImplemented(): void {
+    // No-op for components that are irrelevant to inline vocab resolution.
   }
 
-  private async resolveOnDefinition(definition: FormComponentDefinitionOutline, branding: string): Promise<void> {
-    const componentClass = String(definition?.component?.class ?? '');
-
-    if (
-      componentClass === DropdownInputComponentName ||
-      componentClass === RadioInputComponentName ||
-      componentClass === CheckboxInputComponentName
-    ) {
-      await this.resolveComponentVocab(definition, branding);
-      return;
-    }
-
-    if (componentClass === CheckboxTreeComponentName) {
-      await this.resolveTreeComponentVocab(definition, branding);
-      return;
-    }
-
-    if (componentClass === GroupFieldComponentName) {
-      const groupDefinition = definition as GroupFormComponentDefinitionOutline;
-      const children = groupDefinition?.component?.config?.componentDefinitions;
-      await this.resolveOnDefinitions(children ?? [], branding);
-      return;
-    }
-
-    if (componentClass === TabComponentName) {
-      const tabDefinition = definition as TabFormComponentDefinitionOutline;
-      const tabs = tabDefinition?.component?.config?.tabs;
-      await this.resolveOnDefinitions(tabs ?? [], branding);
-      return;
-    }
-
-    if (componentClass === TabContentComponentName) {
-      const tabContentDefinition = definition as TabContentFormComponentDefinitionOutline;
-      const children = tabContentDefinition?.component?.config?.componentDefinitions;
-      await this.resolveOnDefinitions(children ?? [], branding);
-      return;
-    }
-
-    if (componentClass === RepeatableComponentName) {
-      const repeatableDefinition = definition as RepeatableFormComponentDefinitionOutline;
-      const elementTemplate = repeatableDefinition?.component?.config?.elementTemplate;
-      if (elementTemplate) {
-        await this.resolveOnDefinition(elementTemplate, branding);
-      }
-    }
+  visitFormConfig(item: FormConfigOutline): void {
+    item.componentDefinitions.forEach((component) => {
+      component.accept(this);
+    });
   }
 
-  private async resolveComponentVocab(definition: FormComponentDefinitionOutline, branding: string): Promise<void> {
-    const config = definition?.component?.config as ComponentConfigWithInlineVocab | undefined;
-    if (!config?.inlineVocab || !config.vocabRef) {
+  visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
+    this.enqueueIfInlineVocab(item.name, item.component?.config, false);
+  }
+
+  visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
+    this.enqueueIfInlineVocab(item.name, item.component?.config, false);
+  }
+
+  visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
+    this.enqueueIfInlineVocab(item.name, item.component?.config, false);
+  }
+
+  visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
+    this.enqueueIfInlineVocab(item.name, item.component?.config, true);
+  }
+
+  visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
+    item.component.accept(this);
+  }
+
+  visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
+    item.config?.componentDefinitions?.forEach((def) => def.accept(this));
+  }
+
+  visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
+    item.component.accept(this);
+  }
+
+  visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
+    item.config?.tabs?.forEach((tab) => tab.accept(this));
+  }
+
+  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
+    item.component.accept(this);
+  }
+
+  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
+    item.config?.panels?.forEach((panel) => panel.accept(this));
+  }
+
+  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
+    item.component.accept(this);
+  }
+
+  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
+    item.config?.componentDefinitions?.forEach((def) => def.accept(this));
+  }
+
+  visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
+    item.component.accept(this);
+  }
+
+  visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
+    item.config?.componentDefinitions?.forEach((def) => def.accept(this));
+  }
+
+  visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
+    item.component.accept(this);
+  }
+
+  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
+    item.config?.elementTemplate?.accept(this);
+  }
+
+  private enqueueIfInlineVocab(
+    name: string | undefined,
+    componentConfig: ComponentConfigWithInlineVocab | undefined,
+    treeMode: boolean
+  ): void {
+    if (!componentConfig?.inlineVocab || !componentConfig.vocabRef) {
       return;
     }
 
-    const vocabService = this.getVocabularyService();
-    if (!vocabService?.getEntries) {
-      this.logger.warn('VocabularyService.getEntries is not available, skipping inline vocab resolution');
-      return;
-    }
+    this.pendingResolutions.push(
+      this.resolveInlineVocab({ config: componentConfig, name: String(name ?? '') }, componentConfig, treeMode)
+    );
+  }
+
+  private async resolveInlineVocab(
+    definition: { config?: ComponentConfigWithInlineVocab; name?: string },
+    componentConfig: ComponentConfigWithInlineVocab,
+    treeMode: boolean
+  ): Promise<void> {
 
     try {
-      const entries = await this.fetchAllEntries(vocabService, branding, config.vocabRef);
-      config.options = entries.map((entry) => ({
+      const entries = await this.fetchAllEntries(this.branding, String(componentConfig.vocabRef ?? ''));
+      if (treeMode) {
+        componentConfig.treeData = this.buildTreeData(entries);
+        return;
+      }
+      componentConfig.options = entries.map((entry) => ({
         label: String(entry?.label ?? ''),
         value: String(entry?.value ?? '')
       }));
     } catch (error) {
-      this.logger.warn(`Failed to resolve inline vocab '${config.vocabRef}' for component '${definition?.name ?? ''}'`);
-      this.logger.debug(error);
-      throw error;
-    }
-  }
-
-  private async resolveTreeComponentVocab(definition: FormComponentDefinitionOutline, branding: string): Promise<void> {
-    const config = definition?.component?.config as ComponentConfigWithInlineVocab | undefined;
-    if (!config?.inlineVocab || !config.vocabRef) {
-      return;
-    }
-
-    const vocabService = this.getVocabularyService();
-    if (!vocabService?.getEntries) {
-      this.logger.warn('VocabularyService.getEntries is not available, skipping inline vocab resolution');
-      return;
-    }
-
-    try {
-      const entries = await this.fetchAllEntries(vocabService, branding, config.vocabRef);
-      config.treeData = this.buildTreeData(entries);
-    } catch (error) {
-      this.logger.warn(`Failed to resolve inline vocab '${config.vocabRef}' for component '${definition?.name ?? ''}'`);
+      this.logger.warn(
+        `Failed to resolve inline vocab '${componentConfig.vocabRef}' for component '${definition?.name ?? ''}'`
+      );
       this.logger.debug(error);
       throw error;
     }
   }
 
   private async fetchAllEntries(
-    vocabService: Pick<typeof VocabularyService, 'getEntries'>,
     branding: string,
     vocabRef: string
-  ): Promise<VocabularyEntry[]> {
-    const allEntries: VocabularyEntry[] = [];
+  ): Promise<VocabularyEntryAttributes[]> {
+    const allEntries: VocabularyEntryAttributes[] = [];
     const limit = 1000;
     let offset = 0;
     let total: number | null = null;
 
     while (total === null || allEntries.length < total) {
-      const response = await vocabService.getEntries(branding, vocabRef, { limit, offset });
+      const response = await VocabularyService.getEntries(branding, vocabRef, { limit, offset });
       if (!response) {
         throw new Error(`Inline vocabulary '${vocabRef}' was not found for branding '${branding}'`);
       }
@@ -182,7 +200,7 @@ export class VocabInlineFormConfigVisitor {
     return allEntries;
   }
 
-  private buildTreeData(entries: VocabularyEntry[]): CheckboxTreeNode[] {
+  private buildTreeData(entries: VocabularyEntryAttributes[]): CheckboxTreeNode[] {
     const nodeById = new Map<string, CheckboxTreeNode>();
     const entryIds = new Set<string>();
     const rootNodes: CheckboxTreeNode[] = [];
@@ -197,8 +215,8 @@ export class VocabInlineFormConfigVisitor {
         id,
         label: String(entry?.label ?? ''),
         value: String(entry?.value ?? ''),
-        notation: String((entry as any)?.identifier ?? '').trim() || String(entry?.value ?? '').trim() || undefined,
-        parent: String((entry as any)?.parent ?? '').trim() || null,
+        notation: String(entry.identifier ?? '').trim() || String(entry?.value ?? '').trim() || undefined,
+        parent: String(entry.parent ?? '').trim() || null,
         children: [],
         hasChildren: false
       });
@@ -226,20 +244,7 @@ export class VocabInlineFormConfigVisitor {
     if (normalizedOverride) {
       return normalizedOverride;
     }
-    return String((globalThis as any)?.sails?.config?.auth?.defaultBrand ?? '').trim();
+    return String(sails?.config?.auth?.defaultBrand ?? '').trim();
   }
 
-  private getVocabularyService(): Pick<typeof VocabularyService, 'getEntries'> | undefined {
-    const globals = globalThis as any;
-    if (globals?.VocabularyService?.getEntries) {
-      return globals.VocabularyService as Pick<typeof VocabularyService, 'getEntries'>;
-    }
-
-    const service = globals?.sails?.services?.vocabularyservice;
-    if (service?.getEntries) {
-      return service as Pick<typeof VocabularyService, 'getEntries'>;
-    }
-
-    return undefined;
-  }
 }

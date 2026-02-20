@@ -101,5 +101,12 @@ export { ControllerExports, WebserviceControllerExports, ControllerNames, Webser
 export * from './controllers';
 
 // Visitors
+export * from './visitor/attachment-fields.visitor';
+export * from './visitor/client.visitor';
+export * from './visitor/construct.visitor';
+export * from './visitor/data-value.visitor';
+export * from './visitor/json-type-def.visitor';
+export * from './visitor/migrate-config-v4-v5.visitor';
+export * from './visitor/template.visitor';
+export * from './visitor/validator.visitor';
 export * from './visitor/vocab-inline.visitor';
-

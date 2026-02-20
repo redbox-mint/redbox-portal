@@ -1,4 +1,5 @@
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import { sessionAuth } from '../../src/policies/sessionAuth';
 
 describe('sessionAuth policy', function () {

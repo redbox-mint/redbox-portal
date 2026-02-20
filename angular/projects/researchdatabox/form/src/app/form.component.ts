@@ -486,7 +486,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   @HostBinding('class') get hostClasses(): string {
-    const baselineClasses = 'rb-form-host';
+    const modeClass = this.editMode() ? 'rb-form-edit' : 'rb-form-view';
+    const baselineClasses = `rb-form-host ${modeClass}`.trim();
     if (!this.formDefMap?.formConfig) {
       return baselineClasses;
     }
