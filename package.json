@@ -36,7 +36,7 @@
     "ts-node": "^10.9.2",
     "typescript": "5.9",
     "typescript-require": "~0.3.0",
-    "zone.js": "^0.16.0"
+    "zone.js": "^0.16.1"
   },
   "scripts": {
     "debug": "node debug app.js",
