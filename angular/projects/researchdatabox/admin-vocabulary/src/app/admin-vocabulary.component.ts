@@ -326,31 +326,77 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
   }
 
   private asErrorMessage(err: unknown): string {
+    const fromPayload = this.extractErrorMessage(err);
+    if (fromPayload) {
+      return fromPayload;
+    }
     if (err instanceof Error) {
       return err.message;
     }
-    if (typeof err === 'object' && err !== null) {
-      const maybe = err as {
-        message?: string;
-        detail?: string;
-        userMessage?: string;
-        errors?: Array<{ message?: string; detail?: string; title?: string }>;
-      };
-      if (typeof maybe.message === 'string' && maybe.message.trim()) {
-        return maybe.message;
-      }
-      if (typeof maybe.detail === 'string' && maybe.detail.trim()) {
-        return maybe.detail;
-      }
-      if (typeof maybe.userMessage === 'string' && maybe.userMessage.trim()) {
-        return maybe.userMessage;
-      }
-      const firstError = maybe.errors?.[0];
-      if (firstError) {
-        return firstError.message || firstError.detail || firstError.title || this.t('admin-vocabulary-error-unknown', 'Unknown error');
+    return String(err);
+  }
+
+  private extractErrorMessage(err: unknown): string {
+    if (typeof err !== 'object' || err === null) {
+      return '';
+    }
+
+    type ErrorPayload = {
+      message?: string;
+      detail?: string;
+      userMessage?: string;
+      errors?: Array<{ message?: string; detail?: string; title?: string }>;
+      error?: unknown;
+    };
+
+    const maybe = err as ErrorPayload;
+    const candidates: unknown[] = [maybe.error, maybe];
+
+    for (const candidate of candidates) {
+      const message = this.extractErrorMessageFromCandidate(candidate);
+      if (message) {
+        return message;
       }
     }
-    return String(err);
+
+    return '';
+  }
+
+  private extractErrorMessageFromCandidate(candidate: unknown): string {
+    if (typeof candidate === 'string') {
+      return candidate.trim();
+    }
+    if (typeof candidate !== 'object' || candidate === null) {
+      return '';
+    }
+
+    const maybe = candidate as {
+      message?: string;
+      detail?: string;
+      userMessage?: string;
+      errors?: Array<{ message?: string; detail?: string; title?: string }>;
+    };
+
+    if (typeof maybe.userMessage === 'string' && maybe.userMessage.trim()) {
+      return maybe.userMessage;
+    }
+    if (typeof maybe.detail === 'string' && maybe.detail.trim()) {
+      return maybe.detail;
+    }
+
+    const firstError = maybe.errors?.[0];
+    if (firstError) {
+      const firstErrorMessage = firstError.message || firstError.detail || firstError.title || '';
+      if (firstErrorMessage) {
+        return firstErrorMessage;
+      }
+    }
+
+    if (typeof maybe.message === 'string' && maybe.message.trim()) {
+      return maybe.message;
+    }
+
+    return '';
   }
 
   private flattenEntries(entries: VocabularyEntry[]): VocabularyEntry[] {

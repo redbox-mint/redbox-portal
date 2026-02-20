@@ -1,7 +1,9 @@
 import {
-    ClientFormConfigVisitor, ConstructFormConfigVisitor, FormConfigFrame,
+    FormConfigFrame,
     TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
-} from "../../src";
+} from "@researchdatabox/sails-ng-common";
+import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
+import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
 import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
 

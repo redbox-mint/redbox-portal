@@ -1,4 +1,5 @@
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { Controllers } from '../../../src/controllers/webservice/VocabularyController';
 
@@ -18,7 +19,8 @@ describe('Webservice VocabularyController', () => {
         },
         brandingservice: {
           getBrandNameFromReq: sinon.stub().returns('default'),
-          getBrand: sinon.stub().returns({ id: 'default' })
+          getBrand: sinon.stub().returns({ id: 'default' }),
+          getBrandFromReq: sinon.stub().returns({ id: 'default' })
         },
         rvaimportservice: {
           importRvaVocabulary: sinon.stub().resolves({ id: 'v2' }),
@@ -63,5 +65,23 @@ describe('Webservice VocabularyController', () => {
     await controller.get(req, res);
 
     expect(sendResp.calledOnce).to.be.true;
+  });
+
+  it('returns display error detail when RVA import fails', async () => {
+    const req = {
+      body: { rvaId: '141' }
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    (global as any).sails.services.rvaimportservice.importRvaVocabulary.rejects(
+      new Error('RVA version 199 has no current concept tree artefact.')
+    );
+
+    await controller.import(req, res);
+
+    expect(sendResp.calledOnce).to.be.true;
+    const payload = sendResp.firstCall.args[2];
+    expect(payload?.status).to.equal(400);
+    expect(payload?.displayErrors?.[0]?.detail).to.contain('no current concept tree artefact');
   });
 });

@@ -26,6 +26,16 @@ function resolveMigrationVisitorConstructor(): MigrationVisitorConstructor {
   const candidates = [
     () => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pkg = require('@researchdatabox/redbox-core-types');
+      return pkg.MigrationV4ToV5FormConfigVisitor as MigrationVisitorConstructor | undefined;
+    },
+    () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pkg = require(path.resolve(__dirname, '..', '..', '..', 'redbox-core-types', 'dist', 'visitor', 'migrate-config-v4-v5.visitor.js'));
+      return pkg.MigrationV4ToV5FormConfigVisitor as MigrationVisitorConstructor | undefined;
+    },
+    () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const pkg = require('@researchdatabox/sails-ng-common');
       return pkg.MigrationV4ToV5FormConfigVisitor as MigrationVisitorConstructor | undefined;
     },
@@ -47,7 +57,9 @@ function resolveMigrationVisitorConstructor(): MigrationVisitorConstructor {
     }
   }
 
-  throw new Error('Could not load MigrationV4ToV5FormConfigVisitor. Compile packages/sails-ng-common or install a version that includes the migration visitor.');
+  throw new Error(
+    'Could not load MigrationV4ToV5FormConfigVisitor. Compile packages/redbox-core-types or install a version that includes the migration visitor.'
+  );
 }
 
 export function registerMigrateFormConfigCommand(program: Command): void {

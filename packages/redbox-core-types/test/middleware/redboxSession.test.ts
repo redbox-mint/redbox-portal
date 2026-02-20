@@ -1,4 +1,5 @@
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import { redboxSession } from '../../src/middleware/redboxSession';
 import * as sinon from 'sinon';
 

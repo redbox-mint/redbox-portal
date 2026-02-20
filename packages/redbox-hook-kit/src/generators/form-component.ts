@@ -787,22 +787,36 @@ describe("${serviceClassName}", () => {
   }
 
   private updateValidatorVisitor(): void {
-    const filePath = path.join(this.root, 'packages', 'sails-ng-common', 'src', 'config', 'visitor', 'validator.visitor.ts');
+    const corePath = path.join(this.root, 'packages', 'redbox-core-types', 'src', 'visitor', 'validator.visitor.ts');
+    const legacyPath = path.join(
+      this.root,
+      'packages',
+      'sails-ng-common',
+      'src',
+      'config',
+      'visitor',
+      'validator.visitor.ts'
+    );
+    const filePath = fs.existsSync(corePath) ? corePath : legacyPath;
     this.updateTextFile(filePath, (content) => {
-      let updated = this.ensureImport(
-        content,
-        `import {\n    ${this.pascalName}FieldComponentDefinitionOutline,\n    ${this.pascalName}FieldModelDefinitionOutline,\n    ${this.pascalName}FormComponentDefinitionOutline\n} from "../component/${this.kebabName}.outline";`
-      );
+      let updated = content;
+      const isCoreValidator = filePath === corePath;
+      if (!isCoreValidator) {
+        updated = this.ensureImport(
+          content,
+          `import {\n    ${this.pascalName}FieldComponentDefinitionOutline,\n    ${this.pascalName}FieldModelDefinitionOutline,\n    ${this.pascalName}FormComponentDefinitionOutline\n} from "../component/${this.kebabName}.outline";`
+        );
+      }
       const block = `
     /* ${this.pascalName} */
 
-    visit${this.pascalName}FieldComponentDefinition(item: ${this.pascalName}FieldComponentDefinitionOutline): void {
+    visit${this.pascalName}FieldComponentDefinition(item: ${isCoreValidator ? 'any' : `${this.pascalName}FieldComponentDefinitionOutline`}): void {
     }
 
-    visit${this.pascalName}FieldModelDefinition(item: ${this.pascalName}FieldModelDefinitionOutline): void {
+    visit${this.pascalName}FieldModelDefinition(item: ${isCoreValidator ? 'any' : `${this.pascalName}FieldModelDefinitionOutline`}): void {
     }
 
-    visit${this.pascalName}FormComponentDefinition(item: ${this.pascalName}FormComponentDefinitionOutline): void {
+    visit${this.pascalName}FormComponentDefinition(item: ${isCoreValidator ? 'any' : `${this.pascalName}FormComponentDefinitionOutline`}): void {
         this.acceptFormComponentDefinition(item);
     }
 `;

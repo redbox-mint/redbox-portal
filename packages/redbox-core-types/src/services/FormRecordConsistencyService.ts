@@ -21,12 +21,15 @@ import { Services as services } from '../CoreService';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import {
     guessType, FormValidatorSummaryErrors,
-    FormConfigFrame, DataValueFormConfigVisitor, JsonTypeDefSchemaFormConfigVisitor,
-    TemplateFormConfigVisitor, TemplateCompileInput, ConstructFormConfigVisitor, FormModesConfig,
+    FormConfigFrame, TemplateCompileInput, FormModesConfig,
     ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
 import {firstValueFrom} from "rxjs";
 import { ValidatorFormConfigVisitor } from "../visitor/validator.visitor";
+import { DataValueFormConfigVisitor } from "../visitor/data-value.visitor";
+import { JsonTypeDefSchemaFormConfigVisitor } from "../visitor/json-type-def.visitor";
+import { TemplateFormConfigVisitor } from "../visitor/template.visitor";
+import { ConstructFormConfigVisitor } from "../visitor/construct.visitor";
 
 
 

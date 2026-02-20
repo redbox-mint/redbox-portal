@@ -31,13 +31,13 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 		this.options = options;
 		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component?.model?.formControl;
 		if (!control) {
-			this.loggerService.debug(`FormComponentChangeEventProducer: No form control found for component '${options.component?.formFieldConfigName()}'. Change events will not be published.`, options.definition);
+			this.logDebug(`FormComponentChangeEventProducer: No form control found for component '${options.component?.formFieldConfigName()}'. Change events will not be published.`, options.definition);
 			return;
 		}
 
 		const fieldId = this.resolveFieldId(options);
 		if (!fieldId) {
-			this.loggerService.debug(`FormComponentChangeEventProducer: Unable to resolve field ID for component '${options.component?.formFieldConfigName()}'. Change events will not be published.`, options.definition);
+			this.logDebug(`FormComponentChangeEventProducer: Unable to resolve field ID for component '${options.component?.formFieldConfigName()}'. Change events will not be published.`, options.definition);
 			return;
 		}
 

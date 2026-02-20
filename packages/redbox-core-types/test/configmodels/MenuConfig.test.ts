@@ -1,4 +1,5 @@
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import { MenuConfig, DEFAULT_MENU_CONFIG, MENU_CONFIG_SCHEMA } from '../../src/configmodels/MenuConfig';
 
 describe('MenuConfig', function() {

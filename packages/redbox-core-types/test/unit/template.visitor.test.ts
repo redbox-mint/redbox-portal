@@ -1,9 +1,9 @@
 import {
-    ConstructFormConfigVisitor,
     FormConfigFrame,
     TemplateCompileInput,
-    TemplateFormConfigVisitor
-} from "../../src";
+} from "@researchdatabox/sails-ng-common";
+import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
+import { TemplateFormConfigVisitor } from "../../src/visitor/template.visitor";
 
 import { formConfigExample1 } from "./example-data";
 import { logger } from "./helpers";

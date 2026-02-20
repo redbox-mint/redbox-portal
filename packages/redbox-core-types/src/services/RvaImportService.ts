@@ -348,15 +348,27 @@ export namespace Services {
         });
         return this.parseConceptTreeResponse(response.data);
       } catch (error) {
-        if (!axios.isAxiosError(error) || error.response?.status !== 406) {
-          throw error;
-        }
+        if (axios.isAxiosError(error)) {
+          const status = error.response?.status;
+          if (status === 406) {
+            const fallbackResponse = await this.httpClient.get(
+              `${this.getLegacyBaseUrl()}/version/${encodeURIComponent(String(id))}/concept-tree`
+            );
+            return this.parseConceptTreeResponse(fallbackResponse.data);
+          }
 
-        const fallbackResponse = await this.httpClient.get(
-          `${this.getLegacyBaseUrl()}/version/${encodeURIComponent(String(id))}/concept-tree`
-        );
-        return this.parseConceptTreeResponse(fallbackResponse.data);
+          if (status === 400 && this.isNoCurrentConceptTreeError(error.response?.data)) {
+            throw new Error(
+              `RVA version ${id} has no current concept tree artefact. This vocabulary cannot be imported until RVA publishes a concept tree for that version.`
+            );
+          }
+        }
+        throw error;
       }
+    }
+
+    private isNoCurrentConceptTreeError(responseData: unknown): boolean {
+      return String(responseData ?? '').toLowerCase().includes('no current concept tree');
     }
 
     private getLegacyBaseUrl(): string {
@@ -421,12 +433,16 @@ export namespace Services {
       if (list.length === 0) {
         return '';
       }
-      const current = list.find((item) => String(item.status ?? '').toLowerCase() === 'current');
+
+      const importableVersions = list.filter((item) => item['do-import'] === true);
+      const preferredVersions = importableVersions.length > 0 ? importableVersions : list;
+
+      const current = preferredVersions.find((item) => String(item.status ?? '').toLowerCase() === 'current');
       if (current?.id) {
         return String(current.id);
       }
 
-      const sorted = [...list].sort((a, b) => {
+      const sorted = [...preferredVersions].sort((a, b) => {
         const aDate = Date.parse(String(a['release-date'] ?? '1970-01-01'));
         const bDate = Date.parse(String(b['release-date'] ?? '1970-01-01'));
         return bDate - aDate;
@@ -448,23 +464,50 @@ export namespace Services {
       return nodes.some((node) => this.getChildNodes(node).length > 0);
     }
 
-    private toVocabularyEntries(nodes: RvaConceptNode[], parentId: string | null = null, path: string = 'root'): VocabularyServiceModule.VocabularyEntryInput[] {
+    private makeUniqueIdentifier(identifier: string, used: Set<string>): string {
+      const normalized = String(identifier ?? '').trim();
+      if (!normalized) {
+        return '';
+      }
+
+      if (!used.has(normalized)) {
+        used.add(normalized);
+        return normalized;
+      }
+
+      let suffix = 2;
+      let candidate = `${normalized}#${suffix}`;
+      while (used.has(candidate)) {
+        suffix += 1;
+        candidate = `${normalized}#${suffix}`;
+      }
+      used.add(candidate);
+      return candidate;
+    }
+
+    private toVocabularyEntries(
+      nodes: RvaConceptNode[],
+      parentId: string | null = null,
+      path: string = 'root',
+      usedIdentifiers: Set<string> = new Set<string>()
+    ): VocabularyServiceModule.VocabularyEntryInput[] {
       const mapped: VocabularyServiceModule.VocabularyEntryInput[] = [];
       nodes.forEach((node, index) => {
         const id = `${path}-${index}`;
+        const rawIdentifier = String(node.identifier ?? node.iri ?? node.id ?? '');
         mapped.push({
           id,
           parent: parentId ?? undefined,
           label: String(node.label ?? node.prefLabel ?? node.id ?? node.iri ?? ''),
           value: String(node.notation ?? node.value ?? node.identifier ?? node.iri ?? node.id ?? ''),
-          identifier: String(node.identifier ?? node.iri ?? node.id ?? ''),
+          identifier: this.makeUniqueIdentifier(rawIdentifier, usedIdentifiers),
           order: index,
           historical: false
         });
 
         const children = this.getChildNodes(node);
         if (children.length > 0) {
-          mapped.push(...this.toVocabularyEntries(children, id, id));
+          mapped.push(...this.toVocabularyEntries(children, id, id, usedIdentifiers));
         }
       });
       return mapped;

@@ -1,4 +1,5 @@
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import { momentShim, mapMomentToLuxonFormat } from '../../src/shims';
 import { DateTime } from 'luxon';
 
