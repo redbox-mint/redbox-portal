@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import {Component, inject, Input} from '@angular/core';
 import { FormFieldBaseComponent,FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   CheckboxOption,
@@ -8,6 +8,7 @@ import {
   isTypeFieldDefinitionName,
   CheckboxInputFieldComponentDefinitionFrame,
 } from '@researchdatabox/sails-ng-common';
+import {FormService} from "../form.service";
 
 export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueType> {
   protected override logName = CheckboxInputModelName;
@@ -51,6 +52,8 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
   public options: CheckboxOption[] = [];
   public multipleValues: boolean = false;
 
+  protected formService = inject(FormService);
+
   /**
    * The model associated with this component.
    */
@@ -67,22 +70,7 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
     this.placeholder = config?.placeholder ?? "";
     this.multipleValues = config?.multipleValues ?? false;
 
-    const observer = new MutationObserver(mutations => {
-      mutations.forEach(mutation => console.log(mutation));
-    });
-    const observerConfig = {
-      subtree: false,
-      childList: false,
-      attributes: true,
-      attributeOldValue: false,
-      // attributeFilter: [],
-      characterData: false,
-      characterDataOldValue: false,
-    };
-
-    observer.observe(this.formFieldCompMapEntry?.componentRef?.location?.nativeElement, observerConfig);
-    observer.observe(this.formFieldCompMapEntry?.layoutRef?.location?.nativeElement, observerConfig);
-    // TODO: createFieldMetaChangedEvent
+    this.formService.setUpFieldMutationObserverToComponentEvents(this.formFieldCompMapEntry);
   }
 
   /**

@@ -94,7 +94,7 @@ export function migrateDataClassification(
 
   const tsContent = `import {QuestionTreeFieldComponentConfigFrame} from "@researchdatabox/sails-ng-common";
 const questionTreeConfig: QuestionTreeFieldComponentConfigFrame = ${JSON.stringify(migrated, null, 2)};
-module.exports = questionTreeConfig;
+export default questionTreeConfig;
 `;
 
   if (dryRun) {

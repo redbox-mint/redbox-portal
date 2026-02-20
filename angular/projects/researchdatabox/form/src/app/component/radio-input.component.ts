@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import {Component, inject, Input} from '@angular/core';
 import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   isTypeFieldDefinitionName,
@@ -8,6 +8,7 @@ import {
   RadioInputModelValueType,
   RadioOption
 } from '@researchdatabox/sails-ng-common';
+import {FormService} from "../form.service";
 
 export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
   protected override logName = RadioInputModelName;
@@ -50,6 +51,8 @@ export class RadioInputComponent extends FormFieldBaseComponent<RadioInputModelV
   public tooltip: string = '';
   public options: RadioOption[] = [];
 
+  protected formService = inject(FormService);
+
   /**
    * The model associated with this component.
    */
@@ -64,22 +67,7 @@ export class RadioInputComponent extends FormFieldBaseComponent<RadioInputModelV
     this.options = config?.options ?? [];
     this.tooltip = config?.tooltip ?? "";
 
-    const observer = new MutationObserver(mutations => {
-      mutations.forEach(mutation => console.log(mutation));
-    });
-    const observerConfig = {
-      subtree: false,
-      childList: false,
-      attributes: true,
-      attributeOldValue: false,
-      // attributeFilter: [],
-      characterData: false,
-      characterDataOldValue: false,
-    };
-
-    observer.observe(this.formFieldCompMapEntry?.componentRef?.location?.nativeElement, observerConfig);
-    observer.observe(this.formFieldCompMapEntry?.layoutRef?.location?.nativeElement, observerConfig);
-    // TODO: createFieldMetaChangedEvent
+    this.formService.setUpFieldMutationObserverToComponentEvents(this.formFieldCompMapEntry);
   }
 
   /**

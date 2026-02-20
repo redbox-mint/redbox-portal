@@ -91,7 +91,7 @@ export function registerMigrateFormConfigCommand(program: Command): void {
 
 
 
-export function registerMigrateDataClassificationCommand(program: Command) {
+export function registerMigrateDataClassificationCommand(program: Command): void {
   program
     .command('migrate-data-classification')
     .description('Migrate a legacy v4 JS data classification definition file to the v5 TS form framework format')

@@ -467,6 +467,7 @@ export class FormOverride {
             {
               name: `${id}-modval-qt`,
               config: {
+                // TODO: template should be something like: if visible, use existing value, if not visible, set to null / undefined
                 template: ``,
                 conditionKind: 'jsonpointer',
                 condition: `${lineagePath.angularComponentsJsonPointer}::field.meta.changed`,
