@@ -6,9 +6,7 @@ import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
 import {FormConfigFrame, FormModesConfig} from "@researchdatabox/sails-ng-common";
-import {
-  formConfigExample1,
-} from '@researchdatabox/sails-ng-common/dist/test/unit/example-data';
+import {formConfigExample1} from "../unit/example-data";
 
 describe('FormsService', function () {
   let mockSails: any;

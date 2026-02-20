@@ -4,13 +4,12 @@ import {
     formValidatorsSharedDefinitions,
     FormValidatorSummaryErrors
 } from "@researchdatabox/sails-ng-common";
-import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
-import { ValidatorFormConfigVisitor } from "../../src/visitor/validator.visitor";
+import { ConstructFormConfigVisitor, ValidatorFormConfigVisitor } from "../../src";
 import { logger } from "./helpers";
 import Services from "../../src/services/DomSanitizerService";
 import * as _ from "lodash";
-import {formConfigExample1} from "@researchdatabox/sails-ng-common/dist/test/unit/example-data";
 import { reusableFormDefinitions } from "../../src";
+import {formConfigExample1} from "./example-data";
 
 const DomSanitizerService = new Services.DomSanitizer();
 
