@@ -74,10 +74,7 @@ import {
   RichTextEditorFormComponentDefinitionOutline,
   RichTextEditorModelName,
 } from '@researchdatabox/sails-ng-common';
-import {
-  RichTextEditorFieldComponentConfig,
-  RichTextEditorFieldModelConfig,
-} from '@researchdatabox/sails-ng-common';
+import { RichTextEditorFieldComponentConfig, RichTextEditorFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import { ContentFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
   DropdownInputComponentName,
@@ -848,7 +845,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       this.isInsideButtonBarContainer = true;
     }
 
-    this.logger.debug(`${this.logName}: visitGroupFieldComponentDefinition for '${String(field?.definition?.name ?? field?.definition?.id ?? '')}'.`);
+    this.logger.debug(
+      `${this.logName}: visitGroupFieldComponentDefinition for '${String(field?.definition?.name ?? field?.definition?.id ?? '')}'.`
+    );
 
     const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
     // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
@@ -987,7 +986,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     item.config = new SaveButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, {
-      buttonCssClasses: this.normalizeLegacyButtonCssClasses(field?.definition?.cssClasses ?? field?.definition?.cssClass),
+      buttonCssClasses: this.normalizeLegacyButtonCssClasses(
+        field?.definition?.cssClasses ?? field?.definition?.cssClass
+      ),
     });
   }
 
@@ -1007,7 +1008,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('cancelButtonMessage', item.config, field?.definition);
     this.sharedProps.setPropOverride('confirmButtonMessage', item.config, field?.definition);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, {
-      buttonCssClasses: this.normalizeLegacyButtonCssClasses(field?.definition?.cssClasses ?? field?.definition?.cssClass),
+      buttonCssClasses: this.normalizeLegacyButtonCssClasses(
+        field?.definition?.cssClasses ?? field?.definition?.cssClass
+      ),
     });
   }
 
@@ -1416,7 +1419,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const label = fieldDefinition.label?.toString() ?? '';
       const help = fieldDefinition.help ?? '';
       const role = fieldDefinition.role ?? '';
-      const name = fieldDefinition.name?.toString() ?? '';
+      const name = fieldDefinition.name?.toString() ?? fieldDefinition.id?.toString() ?? '';
       const freeText = fieldDefinition.freeText ?? false;
       const forceLookupOnly = fieldDefinition?.forceLookupOnly ?? true;
       const vocabQueryId = fieldDefinition?.vocabQueryId ?? '';
@@ -1436,14 +1439,26 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const validation_required_email = fieldDefinition?.validation_required_email ?? '';
       const validation_invalid_email = fieldDefinition?.validation_invalid_email ?? '';
 
+      // The elementTemplate name must be falsy.
+      // If this ContributorField is inside a RepeatableContributor's elementTemplate,
+      // we must provide a falsy replaceName so the ConstructVisitor's validation passes.
+      const replaceName = this.isRepeatableElementTemplateDescendant() ? '' : name;
+
       // Use the same field, so don't change the lineage path.
       const reusableComponentItemData = {
         name: 'standard_contributor_fields_group',
-        overrides: { replaceName: '' },
+        overrides: { replaceName },
         layout: { class: 'DefaultLayout', config: {} },
         component: { class: 'GroupComponent', config: {} },
       };
       const reusableComponentItem = this.sharedProps.sharedConstructFormComponent(reusableComponentItemData);
+
+      if (reusableComponentItem.component?.config) {
+        this.sharedPopulateFieldComponentConfig(reusableComponentItem.component.config as any, field);
+      }
+      if (reusableComponentItem.layout?.config) {
+        this.sharedPopulateFieldLayoutConfig(reusableComponentItem.layout.config as any, field);
+      }
 
       // Visit children
       this.acceptV4FormConfigPath(
@@ -1581,8 +1596,20 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   protected sharedPopulateFieldComponentConfig(item: FieldComponentConfigFrame, field?: any) {
+    const isLegacyContributor = ['RepeatableContributor', 'ContributorField'].includes(`${field?.class ?? ''}`.trim());
+    let fallbackLabel: string | undefined = undefined;
+    if (isLegacyContributor) {
+      const innerFields = field?.definition?.fields;
+      if (Array.isArray(innerFields) && innerFields.length > 0) {
+        fallbackLabel = innerFields[0]?.definition?.label;
+      }
+      if (!fallbackLabel) {
+        fallbackLabel = field?.definition?.name;
+      }
+    }
+
     const config = {
-      label: field?.definition?.label || field?.definition?.name,
+      label: field?.definition?.label || field?.definition?.name || fallbackLabel,
     };
     this.sharedProps.sharedPopulateFieldComponentConfig(item, config);
   }
@@ -1609,11 +1636,22 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, field?: any) {
-    const isLegacyRepeatableContributor = `${field?.class ?? ''}`.trim() === 'RepeatableContributor';
+    const isLegacyContributor = ['RepeatableContributor', 'ContributorField'].includes(`${field?.class ?? ''}`.trim());
+    let fallbackLabel: string | undefined = undefined;
+    if (isLegacyContributor) {
+      const innerFields = field?.definition?.fields;
+      if (Array.isArray(innerFields) && innerFields.length > 0) {
+        fallbackLabel = innerFields[0]?.definition?.label;
+      }
+      if (!fallbackLabel) {
+        fallbackLabel = field?.definition?.name;
+      }
+    }
     const migratedLabel =
-      field?.definition?.label
+      field?.definition?.label ||
       // RepeatableContributor often only defines 'name'; preserve a section label on migration.
-      || (isLegacyRepeatableContributor ? field?.definition?.name : undefined);
+      fallbackLabel ||
+      field?.definition?.name;
     const config = {
       label: this.isInsideButtonBarContainer ? undefined : migratedLabel,
       helpText: field?.definition?.help,
@@ -1720,9 +1758,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       return undefined;
     }
     // Bootstrap 3 -> 5 compatibility for common legacy button class.
-    const migrated = normalized
-      .replace(/\bbtn-default\b/g, 'btn-secondary')
-      .trim();
+    const migrated = normalized.replace(/\bbtn-default\b/g, 'btn-secondary').trim();
     const classTokens = migrated.split(/\s+/);
     return classTokens.includes('btn') ? migrated : `btn ${migrated}`;
   }

@@ -49,6 +49,7 @@ const formConfig: FormConfigFrame = {
           "readonly": false,
           "visible": true,
           "editMode": true,
+          "label": "title",
           "disabled": false,
           "autofocus": false,
           "labelRequiredStr": "*",
@@ -362,6 +363,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "parameterRetriever",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -397,6 +399,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "rdmpGetter",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -642,6 +645,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "dc:coverage_vivo:DateTimeInterval_vivo:end",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -1320,7 +1324,7 @@ const formConfig: FormConfigFrame = {
                                 "allowModes": []
                               },
                               "overrides": {
-                                "replaceName": ""
+                                "replaceName": "contributor_ci"
                               },
                               "component": {
                                 "class": "GroupComponent",
@@ -1395,7 +1399,7 @@ const formConfig: FormConfigFrame = {
                                 "allowModes": []
                               },
                               "overrides": {
-                                "replaceName": ""
+                                "replaceName": "contributor_data_manager"
                               },
                               "component": {
                                 "class": "GroupComponent",
@@ -1548,7 +1552,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
-                          "label": "contributors",
+                          "label": "@dmpt-people-tab-contributors",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -1588,7 +1592,7 @@ const formConfig: FormConfigFrame = {
                                 "allowModes": []
                               },
                               "overrides": {
-                                "replaceName": ""
+                                "replaceName": "contributor_supervisor"
                               },
                               "component": {
                                 "class": "GroupComponent",
@@ -1661,6 +1665,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "dataowner_name",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -1702,6 +1707,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "dataowner_email",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -2194,6 +2200,7 @@ const formConfig: FormConfigFrame = {
                                 "readonly": false,
                                 "visible": true,
                                 "editMode": true,
+                                "label": "related_publication",
                                 "disabled": false,
                                 "autofocus": false,
                                 "labelRequiredStr": "*",
@@ -2342,6 +2349,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "dataLocations",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -2501,6 +2509,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "permissions",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",

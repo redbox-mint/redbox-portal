@@ -383,6 +383,7 @@ export class FormPathHelper {
 
   private getFormPathDataModel(item: FormComponentDefinitionOutline): string[] {
     const itemName = item?.name ?? '';
+    const className = item?.component?.class ?? '';
 
     // NOTE: The repeatable elementTemplate should not be part of the data model path.
     // This is done by also checking the name - it has a model, but it must have a 'falsy' name.
@@ -390,7 +391,8 @@ export class FormPathHelper {
     // TODO: does this need to cater for components that have no model but need the model data, like content component?
 
     const dataModel = [];
-    if (itemName && item.model !== undefined && item.model !== null) {
+    const isGroupWithoutModel = className === 'GroupComponent' && (item.model === undefined || item.model === null);
+    if (itemName && (item.model !== undefined && item.model !== null || isGroupWithoutModel)) {
       dataModel.push(itemName);
     }
 

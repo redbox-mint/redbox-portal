@@ -566,6 +566,71 @@ describe('The FormsService', function () {
             // confirm the client form config looks as expected
             expect(result).to.eql(expected);
         });
+
+        it('should hydrate group view-mode content from nested record data when group has no model', async function () {
+            const formConfig: FormConfigFrame = {
+                name: "basic-form",
+                type: "rdmp",
+                debugValue: true,
+                domElementType: 'form',
+                defaultComponentConfig: {
+                    defaultComponentCssClasses: 'row',
+                },
+                editCssClasses: "redbox-form form",
+                enabledValidationGroups: ["all"],
+                componentDefinitions: [
+                    {
+                        name: 'contributor_ci',
+                        component: {
+                            class: 'GroupComponent',
+                            config: {
+                                hostCssClasses: 'rb-form-contributor-inline',
+                                componentDefinitions: [
+                                    {
+                                        name: 'name',
+                                        layout: { class: 'InlineLayout', config: { label: 'Name' } },
+                                        model: { class: 'SimpleInputModel', config: {} },
+                                        component: { class: 'SimpleInputComponent', config: { type: 'text' } }
+                                    },
+                                    {
+                                        name: 'email',
+                                        layout: { class: 'InlineLayout', config: { label: 'Email' } },
+                                        model: { class: 'SimpleInputModel', config: {} },
+                                        component: { class: 'SimpleInputComponent', config: { type: 'text' } }
+                                    },
+                                    {
+                                        name: 'orcid',
+                                        layout: { class: 'InlineLayout', config: { label: 'ORCID' } },
+                                        model: { class: 'SimpleInputModel', config: {} },
+                                        component: { class: 'SimpleInputComponent', config: { type: 'text' } }
+                                    }
+                                ]
+                            }
+                        },
+                        layout: { class: 'DefaultLayout', config: { label: 'contributor_ci' } }
+                    }
+                ]
+            };
+
+            const recordMetadata = {
+                contributor_ci: {
+                    name: "Brazz",
+                    email: "b@b.com",
+                    orcid: "0000-0000-0000-0001"
+                }
+            };
+
+            const result = await FormsService.buildClientFormConfig(formConfig, "view", null, recordMetadata);
+            const contributor = result.componentDefinitions?.[0];
+            const content = (contributor?.component?.config as { content?: Record<string, string> } | undefined)?.content;
+
+            expect(contributor?.component?.class).to.equal('ContentComponent');
+            expect(content).to.deep.equal({
+                name: "Brazz",
+                email: "b@b.com",
+                orcid: "0000-0000-0000-0001"
+            });
+        });
         it('should remove the component because the user does not have the required roles', async function () {
             const formConfig: FormConfigFrame = {
                 name: "remove-item-constraint-roles",

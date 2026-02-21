@@ -1577,5 +1577,101 @@ describe("Construct Visitor", async () => {
             expect(repeatableDef?.model).to.deep.include({ class: "RepeatableModel" });
             expect(repeatableDef?.model?.config).to.deep.include({ value: ["text_1", "text_2"] });
         });
+
+        it("should set group model value from record metadata for tab descendants", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "edit",
+                record: {
+                    contributor_ci: {
+                        name: "Brazz",
+                        email: "b@b.com",
+                        orcid: "0000-0000-0000-0001",
+                    },
+                },
+                reusableFormDefs: {
+                    "standard-contributor-fields-group": [
+                        {
+                            name: "standard_contributor_fields_group",
+                            component: {
+                                class: "GroupComponent",
+                                config: {
+                                    componentDefinitions: [
+                                        {
+                                            name: "name",
+                                            component: { class: "SimpleInputComponent", config: {} },
+                                            model: { class: "SimpleInputModel", config: {} },
+                                        },
+                                        {
+                                            name: "email",
+                                            component: { class: "SimpleInputComponent", config: {} },
+                                            model: { class: "SimpleInputModel", config: {} },
+                                        },
+                                        {
+                                            name: "orcid",
+                                            component: { class: "SimpleInputComponent", config: {} },
+                                            model: { class: "SimpleInputModel", config: {} },
+                                        },
+                                    ],
+                                },
+                            },
+                            model: { class: "GroupModel", config: {} },
+                        },
+                    ],
+                },
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "tabs",
+                            component: {
+                                class: "TabComponent",
+                                config: {
+                                    tabs: [
+                                        {
+                                            name: "people",
+                                            component: {
+                                                class: "TabContentComponent",
+                                                config: {
+                                                    componentDefinitions: [
+                                                        {
+                                                            name: "contributor_ci",
+                                                            component: {
+                                                                class: "ReusableComponent",
+                                                                config: {
+                                                                    componentDefinitions: [
+                                                                        {
+                                                                            name: "standard_contributor_fields_group",
+                                                                            component: { class: "GroupComponent", config: { componentDefinitions: [] } },
+                                                                            model: { class: "GroupModel", config: {} },
+                                                                            overrides: { replaceName: "contributor_ci" },
+                                                                        },
+                                                                    ],
+                                                                },
+                                                            },
+                                                            overrides: { reusableFormName: "standard-contributor-fields-group" },
+                                                        },
+                                                    ],
+                                                },
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
+                        },
+                    ],
+                },
+            });
+
+            const tab = actual.componentDefinitions[0] as { component?: { config?: { tabs?: Array<any> } } };
+            const people = tab?.component?.config?.tabs?.[0];
+            const contributorCi = people?.component?.config?.componentDefinitions?.[0];
+            expect(contributorCi?.name).to.equal("contributor_ci");
+            expect(contributorCi?.model?.config?.value).to.deep.equal({
+                name: "Brazz",
+                email: "b@b.com",
+                orcid: "0000-0000-0000-0001",
+            });
+        });
     });
 });

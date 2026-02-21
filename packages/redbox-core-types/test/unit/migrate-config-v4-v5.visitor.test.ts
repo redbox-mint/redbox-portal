@@ -352,11 +352,45 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(typeaheadConfig.labelField).to.equal("dc_description");
     });
 
-    it('maps RepeatableContributor layout label from definition name when label is missing', async function () {
+    it('maps RepeatableContributor layout label from definition name when label is missing on both parent and child', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({
             data: {
                 name: "repeatable-contributor-label-fallback",
+                fields: [
+                    {
+                        class: "RepeatableContributor",
+                        compClass: "RepeatableContributorComponent",
+                        definition: {
+                            name: "contributor_oi",
+                            fields: [
+                                {
+                                    class: "ContributorField",
+                                    definition: {
+                                        help: "@dmpt-people-tab-otherdatacreators-help",
+                                        nameColHdr: "@dmpt-people-tab-name-hdr",
+                                        emailColHdr: "@dmpt-people-tab-email-hdr",
+                                        orcidColHdr: "@dmpt-people-tab-orcid-hdr",
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("RepeatableComponent");
+        expect(migratedField.layout?.class).to.equal("DefaultLayout");
+        expect((migratedField.layout?.config as Record<string, unknown>)?.label).to.equal("contributor_oi");
+    });
+
+    it('maps RepeatableContributor layout label from inner field label when parent label is missing', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "repeatable-contributor-label-inner-fallback",
                 fields: [
                     {
                         class: "RepeatableContributor",
@@ -384,7 +418,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
         const migratedField = migrated.componentDefinitions[0];
         expect(migratedField.component.class).to.equal("RepeatableComponent");
         expect(migratedField.layout?.class).to.equal("DefaultLayout");
-        expect((migratedField.layout?.config as Record<string, unknown>)?.label).to.equal("contributor_oi");
+        expect((migratedField.layout?.config as Record<string, unknown>)?.label).to.equal("@dmpt-people-tab-otherdatacreators");
     });
 
     it("maps legacy MapField to MapComponent and normalizes config/value", async function () {

@@ -200,25 +200,23 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     if (!Array.isArray(this.clientFormConfig.componentDefinitions)) {
       return;
     }
-    this.clientFormConfig.componentDefinitions = this.applyPostPruningTransforms(this.clientFormConfig.componentDefinitions, true);
+    this.clientFormConfig.componentDefinitions = this.applyPostPruningTransforms(this.clientFormConfig.componentDefinitions);
   }
 
   protected applyPostPruningTransforms(
-    items: AvailableFormComponentDefinitionOutlines[],
-    isTopLevel: boolean
+    items: AvailableFormComponentDefinitionOutlines[]
   ): AvailableFormComponentDefinitionOutlines[] {
-    return items.map(item => this.applyPostPruningTransformToComponent(item, isTopLevel));
+    return items.map(item => this.applyPostPruningTransformToComponent(item));
   }
 
   protected applyPostPruningTransformToComponent(
-    item: AvailableFormComponentDefinitionOutlines,
-    isTopLevel: boolean
+    item: AvailableFormComponentDefinitionOutlines
   ): AvailableFormComponentDefinitionOutlines {
     const className = item?.component?.class;
     const shouldTransformRepeatable = className === RepeatableComponentName;
-    const shouldTransformTopLevelGroup = isTopLevel && className === GroupFieldComponentName;
+    const shouldTransformGroup = className === GroupFieldComponentName;
 
-    if (shouldTransformRepeatable || shouldTransformTopLevelGroup) {
+    if (shouldTransformRepeatable || shouldTransformGroup) {
       const transformed = this.formOverride.applyOverrideTransform(item, this.formMode, { phase: "client" }) as AvailableFormComponentDefinitionOutlines;
       this.processFormComponentDefinition(transformed);
       return transformed;
@@ -231,20 +229,17 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     if (Array.isArray(config.componentDefinitions)) {
       config.componentDefinitions = this.applyPostPruningTransforms(
-        config.componentDefinitions as AvailableFormComponentDefinitionOutlines[],
-        false
+        config.componentDefinitions as AvailableFormComponentDefinitionOutlines[]
       );
     }
     if (Array.isArray(config.tabs)) {
       config.tabs = this.applyPostPruningTransforms(
-        config.tabs as AvailableFormComponentDefinitionOutlines[],
-        false
+        config.tabs as AvailableFormComponentDefinitionOutlines[]
       );
     }
     if (Array.isArray(config.panels)) {
       config.panels = this.applyPostPruningTransforms(
-        config.panels as AvailableFormComponentDefinitionOutlines[],
-        false
+        config.panels as AvailableFormComponentDefinitionOutlines[]
       );
     }
     return item;
