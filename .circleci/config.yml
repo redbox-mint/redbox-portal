@@ -445,20 +445,24 @@ jobs:
       - run:
           name: Install root dependencies
           command: |
+            nvm install
             npm install --no-save --ignore-scripts
       - run:
           name: Compile shared packages
           command: |
+            nvm install
             npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:core
       - run:
           name: Install redbox-hook-kit dependencies
           command: |
+            nvm install
             cd ./packages/redbox-hook-kit
             npm ci --include=dev
       - run:
           name: Run hook-kit CLI tests with coverage
           no_output_timeout: 30m
           command: |
+            nvm install
             cd ./packages/redbox-hook-kit
             mkdir -p coverage/redbox-hook-kit
             TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/nyc --no-clean --report-dir ./coverage/redbox-hook-kit --reporter=lcov --exclude-after-remap=false \
