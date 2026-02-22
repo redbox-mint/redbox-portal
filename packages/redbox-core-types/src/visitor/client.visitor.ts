@@ -745,7 +745,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   protected processFieldLayoutDefinition(item: FieldLayoutDefinitionOutline) {
-    if (this.formMode === 'view' && item?.config) {
+    if (this.formModeProvided && this.formMode === 'view' && item?.config) {
       delete item.config.helpText;
       delete item.config.helpTextVisibleOnInit;
       delete item.config.helpTextVisible;
@@ -754,17 +754,18 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.removePropsUndefined(item?.config ?? {});
   }
 
-  protected removePropsAll(item: any) {
-    for (const key of Object.keys(item ?? {})) {
-      delete (item as any)[key];
+  protected removePropsAll(item: object | null | undefined) {
+    const mutable = (item ?? {}) as globalThis.Record<string, unknown>;
+    for (const key of Object.keys(mutable)) {
+      delete mutable[key];
     }
   }
 
-  protected removePropsUndefined(item: any) {
-    // provide the item with asserted type any to allow deleting non-optional properties
-    for (const [key, value] of Object.entries(item ?? {})) {
+  protected removePropsUndefined(item: object | null | undefined) {
+    const mutable = (item ?? {}) as globalThis.Record<string, unknown>;
+    for (const [key, value] of Object.entries(mutable)) {
       if (value === undefined) {
-        delete item[key];
+        delete mutable[key];
       }
     }
   }
@@ -824,8 +825,8 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  protected hasObjectProps(item: any): boolean {
-    if (item === null || item === undefined) {
+  protected hasObjectProps(item: unknown): boolean {
+    if (!item || typeof item !== 'object') {
       return false;
     }
     return Object.keys(item).length > 0;

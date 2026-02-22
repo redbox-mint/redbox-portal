@@ -41,7 +41,6 @@ import type { DataStore } from '@tus/server';
 import { FileStore } from '@tus/file-store';
 import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
-import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { FormAttributes } from '../waterline-models/Form';
 
 type AnyRecord = Record<string, unknown>;

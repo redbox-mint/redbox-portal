@@ -430,8 +430,6 @@ function postProcessingFormConfigV4ToV5Mapping(
   v4ClassNames: V4ClassNames,
   v5ClassNames: V5ClassNames
 ): V5ClassNames {
-  const v4ClassName = v4ClassNames.v4ClassName;
-  const v4CompClassName = v4ClassNames.v4CompClassName;
   const fieldDefinition = (v4Field?.definition ?? {}) as Record<string, unknown>;
 
   let v5ComponentClassName = v5ClassNames.componentClassName || '';
@@ -509,7 +507,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps = new PropertiesHelper();
   }
 
-  start(options: { data: any }): FormConfigOutline {
+  start(options: { data: unknown }): FormConfigOutline {
     this.v4FormConfig = _cloneDeep(this.normaliseV4FormConfig(options.data));
     this.v5FormConfig = new FormConfig();
     this.v5FormConfig.debugValue = true;
@@ -1414,30 +1412,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const fieldDefinition = (field?.definition ?? {}) as Record<string, unknown>;
 
       // TODO: use more of the contributor field properties on the new component?
-      const showHeader = field.showHeader ?? true;
-      const required = fieldDefinition.required ?? false;
-      const label = fieldDefinition.label?.toString() ?? '';
-      const help = fieldDefinition.help ?? '';
-      const role = fieldDefinition.role ?? '';
       const name = fieldDefinition.name?.toString() ?? fieldDefinition.id?.toString() ?? '';
-      const freeText = fieldDefinition.freeText ?? false;
-      const forceLookupOnly = fieldDefinition?.forceLookupOnly ?? true;
-      const vocabQueryId = fieldDefinition?.vocabQueryId ?? '';
-      const sourceType = fieldDefinition?.sourceType ?? '';
-      const fieldNames = fieldDefinition?.fieldNames ?? [];
-      const searchFields = fieldDefinition?.searchFields ?? '';
-      const titleFieldArr = fieldDefinition?.titleFieldArr ?? [];
-      const titleFieldDelim = fieldDefinition?.titleFieldDelim ?? '';
-      const nameColHdr = fieldDefinition?.nameColHdr ?? '';
-      const emailColHdr = fieldDefinition?.emailColHdr ?? '';
-      const orcidColHdr = fieldDefinition?.orcidColHdr ?? '';
-      const showRole = fieldDefinition?.showRole ?? false;
-      const placeHolder = fieldDefinition?.placeHolder ?? '';
-      const activeValidators = fieldDefinition?.activeValidators ?? {};
-      const publish = fieldDefinition?.publish ?? {};
-      const validation_required_name = fieldDefinition?.validation_required_name ?? '';
-      const validation_required_email = fieldDefinition?.validation_required_email ?? '';
-      const validation_invalid_email = fieldDefinition?.validation_invalid_email ?? '';
 
       // The elementTemplate name must be falsy.
       // If this ContributorField is inside a RepeatableContributor's elementTemplate,
@@ -1454,10 +1429,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const reusableComponentItem = this.sharedProps.sharedConstructFormComponent(reusableComponentItemData);
 
       if (reusableComponentItem.component?.config) {
-        this.sharedPopulateFieldComponentConfig(reusableComponentItem.component.config as any, field);
+        this.sharedPopulateFieldComponentConfig(reusableComponentItem.component.config as FieldComponentConfigFrame, field);
       }
       if (reusableComponentItem.layout?.config) {
-        this.sharedPopulateFieldLayoutConfig(reusableComponentItem.layout.config as any, field);
+        this.sharedPopulateFieldLayoutConfig(reusableComponentItem.layout.config as FieldLayoutConfigFrame, field);
       }
 
       // Visit children
@@ -1512,13 +1487,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return postProcessingFormConfigV4ToV5Mapping(v4Field, v4ClassNames, matched);
   }
 
-  protected constructFormComponent(field: Record<string, any>, more?: LineagePath): AllFormComponentDefinitionOutlines {
+  protected constructFormComponent(field: Record<string, unknown>, more?: LineagePath): AllFormComponentDefinitionOutlines {
     let { componentClassName, modelClassName, layoutClassName } = this.mapV4ToV5(field);
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
 
-    const name =
-      field?.definition?.name ||
-      field?.definition?.id ||
-      [componentClassName, ...this.v4FormPath, ...(more ?? [])].join('-');
+    const name = String(definition.name ?? definition.id ?? [componentClassName, ...this.v4FormPath, ...(more ?? [])].join('-'));
 
     // Build the form component definition frame
     const currentData: FormComponentDefinitionFrame = {
@@ -1559,8 +1532,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     currentData.constraints.authorization = {};
     currentData.constraints.authorization.allowRoles = [];
-    if (field?.roles?.length > 0) {
-      currentData.constraints.authorization.allowRoles.push(...field?.roles);
+    const roles = Array.isArray(field?.roles) ? field.roles : [];
+    if (roles.length > 0) {
+      currentData.constraints.authorization.allowRoles.push(...roles as string[]);
     }
 
     // TODO: Set the expressions
@@ -1595,37 +1569,45 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     // }
   }
 
-  protected sharedPopulateFieldComponentConfig(item: FieldComponentConfigFrame, field?: any) {
+  protected sharedPopulateFieldComponentConfig(item: FieldComponentConfigFrame, field?: Record<string, unknown>) {
     const isLegacyContributor = ['RepeatableContributor', 'ContributorField'].includes(`${field?.class ?? ''}`.trim());
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
     let fallbackLabel: string | undefined = undefined;
     if (isLegacyContributor) {
-      const innerFields = field?.definition?.fields;
+      const innerFields = definition.fields;
       if (Array.isArray(innerFields) && innerFields.length > 0) {
-        fallbackLabel = innerFields[0]?.definition?.label;
+        const firstDefinition = ((innerFields[0] as Record<string, unknown>)?.definition ?? {}) as Record<string, unknown>;
+        fallbackLabel = typeof firstDefinition.label === 'string' ? firstDefinition.label : undefined;
       }
       if (!fallbackLabel) {
-        fallbackLabel = field?.definition?.name;
+        fallbackLabel = typeof definition.name === 'string' ? definition.name : undefined;
       }
     }
 
+    const label =
+      (typeof definition.label === 'string' ? definition.label : undefined) ||
+      (typeof definition.name === 'string' ? definition.name : undefined) ||
+      fallbackLabel;
+
     const config = {
-      label: field?.definition?.label || field?.definition?.name || fallbackLabel,
+      label,
     };
     this.sharedProps.sharedPopulateFieldComponentConfig(item, config);
   }
 
-  protected sharedPopulateFieldModelConfig(item: FieldModelConfigFrame<unknown>, field?: any) {
+  protected sharedPopulateFieldModelConfig(item: FieldModelConfigFrame<unknown>, field?: Record<string, unknown>) {
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
     if (!item.validators) {
       item.validators = [];
     }
-    if (field?.definition?.required === true) {
+    if (definition.required === true) {
       item.validators.push({ class: 'required' });
     }
-    if (field?.definition?.maxLength !== undefined) {
-      item.validators.push({ class: 'maxLength', config: { maxLength: field?.definition?.maxLength } });
+    if (definition.maxLength !== undefined) {
+      item.validators.push({ class: 'maxLength', config: { maxLength: definition.maxLength } });
     }
     const config = {
-      defaultValue: field?.definition?.value ?? field?.definition?.defaultValue,
+      defaultValue: definition.value ?? definition.defaultValue,
     };
     // TODO: Components that are a descendant of a repeatable element template cannot have a default value.
     //       The default values should be collected and set as the element template newEntryValue.
@@ -1635,26 +1617,28 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldModelConfig(item, config);
   }
 
-  protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, field?: any) {
+  protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, field?: Record<string, unknown>) {
     const isLegacyContributor = ['RepeatableContributor', 'ContributorField'].includes(`${field?.class ?? ''}`.trim());
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
     let fallbackLabel: string | undefined = undefined;
     if (isLegacyContributor) {
-      const innerFields = field?.definition?.fields;
+      const innerFields = definition.fields;
       if (Array.isArray(innerFields) && innerFields.length > 0) {
-        fallbackLabel = innerFields[0]?.definition?.label;
+        const firstDefinition = ((innerFields[0] as Record<string, unknown>)?.definition ?? {}) as Record<string, unknown>;
+        fallbackLabel = typeof firstDefinition.label === 'string' ? firstDefinition.label : undefined;
       }
       if (!fallbackLabel) {
-        fallbackLabel = field?.definition?.name;
+        fallbackLabel = typeof definition.name === 'string' ? definition.name : undefined;
       }
     }
     const migratedLabel =
-      field?.definition?.label ||
+      (typeof definition.label === 'string' ? definition.label : undefined) ||
       // RepeatableContributor often only defines 'name'; preserve a section label on migration.
       fallbackLabel ||
-      field?.definition?.name;
+      (typeof definition.name === 'string' ? definition.name : undefined);
     const config = {
       label: this.isInsideButtonBarContainer ? undefined : migratedLabel,
-      helpText: field?.definition?.help,
+      helpText: typeof definition.help === 'string' ? definition.help : undefined,
     };
     this.sharedProps.sharedPopulateFieldLayoutConfig(item, config);
   }
@@ -1675,26 +1659,30 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return result;
   }
 
-  private normaliseV4FormConfig(formConfig: any): Record<string, unknown> {
+  private normaliseV4FormConfig(formConfig: unknown): Record<string, unknown> {
+    let normalized: Record<string, unknown>;
     if (formConfig === undefined || formConfig === null) {
-      formConfig = {};
-    }
-
-    // If the top level is an array, assume it is an array of field definitions.
-    if (Array.isArray(formConfig)) {
-      formConfig = { fields: formConfig };
+      normalized = {};
+    } else if (Array.isArray(formConfig)) {
+      normalized = { fields: formConfig };
+    } else if (typeof formConfig === 'object') {
+      normalized = formConfig as Record<string, unknown>;
+    } else {
+      normalized = {};
     }
 
     // If the top level has a 'form' property, assume it is an export in the structure form.forms[formId] = formConfig.
-    if (Object.hasOwn(formConfig, 'form')) {
-      const formIds = Object.keys(formConfig.form.forms ?? {}).filter(formId => formId !== '_dontMerge');
+    if (Object.hasOwn(normalized, 'form')) {
+      const formContainer = (normalized.form ?? {}) as Record<string, unknown>;
+      const forms = (formContainer.forms ?? {}) as Record<string, unknown>;
+      const formIds = Object.keys(forms).filter(formId => formId !== '_dontMerge');
       if (formIds.length === 1) {
         this.logger.info(`Migrating form id: ${formIds[0]}`);
-        formConfig = formConfig.form.forms[formIds[0]];
+        normalized = (forms[formIds[0]] as Record<string, unknown>) ?? {};
       } else {
-        const topKeys = Object.keys(formConfig);
-        const formKeys = Object.keys(formConfig.form ?? {});
-        const formsKeys = Object.keys(formConfig.form?.forms ?? {});
+        const topKeys = Object.keys(normalized);
+        const formKeys = Object.keys(formContainer);
+        const formsKeys = Object.keys(forms);
         this.logger.error(
           `Cannot migrate due to more or less than one form id: ${JSON.stringify({
             topKeys,
@@ -1702,18 +1690,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             formsKeys,
           })}`
         );
-        formConfig = {};
+        normalized = {};
       }
     }
     // Set the form config name if there isn't one.
-    if (!formConfig.name) {
-      formConfig.name = 'v4FormConfig';
+    if (typeof normalized.name !== 'string' || normalized.name.length === 0) {
+      normalized.name = 'v4FormConfig';
     }
-    return formConfig;
+    return normalized;
   }
 
   protected migrateOptions(field: Record<string, unknown>) {
-    return (((field?.definition as Record<string, unknown>)?.options as string[]) ?? []).map((option: any) => {
+    return (((field?.definition as Record<string, unknown>)?.options as Array<Record<string, unknown>>) ?? []).map((option) => {
       return {
         label: option?.label ?? '',
         value: option?.value ?? '',

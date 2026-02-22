@@ -23,8 +23,6 @@ import { SearchService } from '../SearchService';
 import { VocabQueryConfig } from '../model/config/VocabQueryConfig';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as services } from '../CoreService';
-import type { VocabularyWaterlineModel } from '../waterline-models/Vocabulary';
-import type { VocabularyEntryWaterlineModel } from '../waterline-models/VocabularyEntry';
 import axios, { AxiosResponse } from 'axios';
 
 

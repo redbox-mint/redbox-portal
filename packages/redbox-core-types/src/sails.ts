@@ -195,8 +195,13 @@ declare global {
 
 		export interface NextFunction extends express.NextFunction { }
 
+		export interface ReqOptions {
+			locals?: globalThis.Record<string, unknown>;
+			[key: string]: unknown;
+		}
+
 		export interface Req extends express.Request {
-			options?: any;
+			options?: ReqOptions;
 			session: express.Request['session'];
 			user?: globalThis.Record<string, unknown>;
 			query: { [key: string]: string | undefined };

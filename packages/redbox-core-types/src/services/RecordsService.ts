@@ -168,7 +168,7 @@ export namespace Services {
         let recordTypeModel: unknown = null;
         try {
           recordTypeModel = await firstValueFrom(RecordTypesService.get(defaultBrand, recordType));
-        } catch (error) {
+        } catch (_error) {
           sails.log.warn(`Record type lookup failed for '${recordType}', using bootstrap-safe create path.`);
         }
         if (!recordTypeModel) {

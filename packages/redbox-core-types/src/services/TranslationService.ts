@@ -350,6 +350,8 @@ export namespace Services {
         req.session = {} as typeof req.session;
       }
       req.session.lang = resolvedLang;
+      req.options = req.options ?? {};
+      req.options.locals = req.options.locals ?? {};
       // set the locals lang code
       req.options.locals.lang = resolvedLang;
       // set the cookie

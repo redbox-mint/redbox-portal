@@ -1,8 +1,5 @@
 import { APIActionResponse, APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
 
-type BrandReqLike = { params?: globalThis.Record<string, unknown>; body?: globalThis.Record<string, unknown>; session?: globalThis.Record<string, unknown> };
-
-
 export namespace Controllers {
   /**
    * Webservice TranslationController: manage language content via REST.

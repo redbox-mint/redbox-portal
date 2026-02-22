@@ -253,7 +253,7 @@ export namespace Services {
       }
     }
 
-    public getFormByStartingWorkflowStep(branding: BrandingModel, recordType: string, editMode: boolean): Observable<FormAttributes> {
+    public getFormByStartingWorkflowStep(branding: BrandingModel, recordType: string, _editMode: boolean): Observable<FormAttributes> {
 
       const starting = true;
 

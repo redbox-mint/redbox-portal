@@ -1,7 +1,5 @@
 import { Controllers as controllers } from '../../index';
 
-type BrandReqLike = { params?: globalThis.Record<string, unknown>; body?: globalThis.Record<string, unknown>; session?: globalThis.Record<string, unknown> };
-
 function mapError(e: unknown): { status: number; body: unknown } {
   const msg = (e instanceof Error ? e.message : String(e)) || '';
   if (msg === 'unauthorized') return { status: 403, body: { error: 'forbidden' } };

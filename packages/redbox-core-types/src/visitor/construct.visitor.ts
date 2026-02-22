@@ -87,7 +87,6 @@ import {
   AccordionFieldComponentDefinitionOutline,
   AccordionFieldLayoutDefinitionFrame,
   AccordionFieldLayoutDefinitionOutline,
-  AccordionFormComponentDefinitionFrame,
   AccordionFormComponentDefinitionOutline,
   AccordionLayoutName,
   AccordionPanelComponentName,

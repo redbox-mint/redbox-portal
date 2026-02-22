@@ -21,7 +21,7 @@
 
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Controllers as controllers } from '../CoreController';
-import { TemplateCompileInput, FormConfigFrame } from "@researchdatabox/sails-ng-common";
+import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
 import { firstValueFrom } from "rxjs";
 import { FormAttributes } from '../waterline-models';
 

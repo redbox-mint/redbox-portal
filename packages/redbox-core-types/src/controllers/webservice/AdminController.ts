@@ -1,8 +1,5 @@
 import { APIActionResponse, APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
 
-type BrandReqLike = { params?: globalThis.Record<string, unknown>; body?: globalThis.Record<string, unknown>; session?: globalThis.Record<string, unknown> };
-
-
 export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard

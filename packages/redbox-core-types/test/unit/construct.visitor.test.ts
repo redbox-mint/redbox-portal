@@ -586,7 +586,7 @@ describe("Construct Visitor", async () => {
                                 name: "repeatable_test",
                                 component: {
                                     // Use ts-ignore to easily specify an incorrect class name.
-                                    // @ts-ignore
+                                    // @ts-expect-error - test fixture intentionally omits required typing
                                     class: 'NotAClass',
                                     config: {
                                         elementTemplate: {
@@ -612,7 +612,7 @@ describe("Construct Visitor", async () => {
                         name: "form",
                         componentDefinitions: [
                             // Use ts-ignore to easily specify an incorrect component.
-                            // @ts-ignore
+                            // @ts-expect-error - test fixture intentionally uses mismatched shape
                             {
                                 component: {
                                     class: 'RepeatableComponent',
@@ -1094,7 +1094,6 @@ describe("Construct Visitor", async () => {
                                 config: {
                                     tabs: [
                                         { name: "tab_valid", component: { class: "TabContentComponent", config: { componentDefinitions: [] } } },
-                                        // @ts-ignore - intentionally invalid to assert warning+skip behavior
                                         { name: "tab_invalid", component: { class: "SimpleInputComponent", config: {} } }
                                     ] as any
                                 }
@@ -1193,7 +1192,6 @@ describe("Construct Visitor", async () => {
                                             }
                                         },
                                         {
-                                            // @ts-ignore
                                             name: "invalid_tab",
                                             component: { class: "SimpleInputComponent", config: {} }
                                         }
@@ -1335,7 +1333,6 @@ describe("Construct Visitor", async () => {
                                 config: {
                                     tabs: [
                                         { name: "tab_valid", component: { class: "TabContentComponent", config: { componentDefinitions: [] } } },
-                                        // @ts-ignore - intentionally invalid to assert warning+skip behavior
                                         { name: "tab_invalid", component: { class: "SimpleInputComponent", config: {} } }
                                     ] as any
                                 }
@@ -1434,7 +1431,6 @@ describe("Construct Visitor", async () => {
                                             }
                                         },
                                         {
-                                            // @ts-ignore
                                             name: "invalid_tab",
                                             component: { class: "SimpleInputComponent", config: {} }
                                         }
