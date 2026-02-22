@@ -15,6 +15,83 @@ import { ReusableFormDefinitions } from "@researchdatabox/sails-ng-common";
 export { ReusableFormDefinitions };
 
 export const reusableFormDefinitions: ReusableFormDefinitions = {
+    "view-template-leaf-plain": [
+        {
+            name: "view_template_leaf_plain",
+            component: { class: "ContentComponent", config: { template: "<span>{{content}}</span>" } },
+        },
+    ],
+    "view-template-leaf-date": [
+        {
+            name: "view_template_leaf_date",
+            component: { class: "ContentComponent", config: { template: "<span data-value=\"{{content}}\">{{formatDate content}}</span>" } },
+        },
+    ],
+    "view-template-leaf-option-empty": [
+        {
+            name: "view_template_leaf_option_empty",
+            component: { class: "ContentComponent", config: { template: "<span></span>" } },
+        },
+    ],
+    "view-template-leaf-option-single": [
+        {
+            name: "view_template_leaf_option_single",
+            component: { class: "ContentComponent", config: { template: "<span data-value=\"{{content.value}}\">{{content.label}}</span>" } },
+        },
+    ],
+    "view-template-leaf-option-multi": [
+        {
+            name: "view_template_leaf_option_multi",
+            component: { class: "ContentComponent", config: { template: "<ul>{{#each content}}<li data-value=\"{{this.value}}\">{{this.label}}</li>{{/each}}</ul>" } },
+        },
+    ],
+    "view-template-leaf-rich-text": [
+        {
+            name: "view_template_leaf_rich_text",
+            component: { class: "ContentComponent", config: { template: "{{{markdownToHtml content outputFormat}}}" } },
+        },
+    ],
+    "view-template-leaf-file-upload": [
+        {
+            name: "view_template_leaf_file_upload",
+            component: {
+                class: "ContentComponent",
+                config: {
+                    template: "<ul class=\"rb-view-file-upload\">{{#each [[valueExpr]]}}<li>{{#if this.url}}<a href=\"{{this.url}}\" target=\"_blank\" rel=\"noopener\">{{default this.name this.fileId}}</a>{{else}}{{default this.name this.fileId}}{{/if}}{{#if this.notes}}<div class=\"text-muted\"><small>{{this.notes}}</small></div>{{/if}}</li>{{/each}}</ul>"
+                }
+            },
+        },
+    ],
+    "view-template-group-container": [
+        {
+            name: "view_template_group_container",
+            component: { class: "ContentComponent", config: { template: "<div class=\"rb-view-group\">[[rowsHtml]]</div>" } },
+        },
+    ],
+    "view-template-group-row-with-label": [
+        {
+            name: "view_template_group_row_with_label",
+            component: { class: "ContentComponent", config: { template: "<div class=\"rb-view-row\"><div class=\"rb-view-label\">[[labelHtml]]</div><div class=\"rb-view-value\">[[valueHtml]]</div></div>" } },
+        },
+    ],
+    "view-template-group-row-no-label": [
+        {
+            name: "view_template_group_row_no_label",
+            component: { class: "ContentComponent", config: { template: "<div class=\"rb-view-row\"><div class=\"rb-view-value\">[[valueHtml]]</div></div>" } },
+        },
+    ],
+    "view-template-repeatable-table": [
+        {
+            name: "view_template_repeatable_table",
+            component: { class: "ContentComponent", config: { template: "{{#if [[rootExpr]]}}<div class=\"rb-view-repeatable rb-view-repeatable-table-wrapper\"><table class=\"table table-striped table-sm rb-view-repeatable-table\"><thead><tr>[[headersHtml]]</tr></thead><tbody>{{#each [[rootExpr]]}}<tr>[[cellsHtml]]</tr>{{/each}}</tbody></table></div>{{/if}}" } },
+        },
+    ],
+    "view-template-repeatable-list": [
+        {
+            name: "view_template_repeatable_list",
+            component: { class: "ContentComponent", config: { template: "{{#if [[rootExpr]]}}<div class=\"rb-view-repeatable rb-view-repeatable-list\">{{#each [[rootExpr]]}}<div class=\"[[itemClass]]\">[[itemBodyHtml]]</div>{{/each}}</div>{{/if}}" } },
+        },
+    ],
 
     "standard-contributor-fields": [
         {

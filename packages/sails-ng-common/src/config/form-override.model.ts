@@ -51,18 +51,45 @@ import {
 import { RepeatableComponentName, RepeatableFormComponentDefinitionOutline } from './component/repeatable.outline';
 import { GroupFieldComponentName, GroupFormComponentDefinitionOutline } from './component/group.outline';
 import { CheckboxTreeComponentName } from './component/checkbox-tree.outline';
-import { TypeaheadInputComponentName } from './component/typeahead-input.outline';
-import { RichTextEditorComponentName } from './component/rich-text-editor.outline';
+import { TypeaheadInputComponentName, TypeaheadInputFormComponentDefinitionOutline } from './component/typeahead-input.outline';
+import { RichTextEditorComponentName, RichTextEditorFormComponentDefinitionOutline } from './component/rich-text-editor.outline';
 import { MapComponentName } from './component/map.outline';
-import { FileUploadComponentName } from './component/file-upload.outline';
+import { FileUploadComponentName, FileUploadFormComponentDefinitionOutline } from './component/file-upload.outline';
+import { TypeaheadInputModelOptionValue } from './component/typeahead-input.outline';
 
 export class FormOverride {
   private propertiesHelper: PropertiesHelper;
   private logger: ILogger;
+  private activeReusableFormDefs: ReusableFormDefinitions;
+  private readonly reusableFragmentSlotNames = new Set<string>([
+    'rootExpr',
+    'headersHtml',
+    'cellsHtml',
+    'rowsHtml',
+    'itemBodyHtml',
+    'labelHtml',
+    'valueHtml',
+    'valueExpr',
+  ]);
+  private readonly reusableViewTemplateKeys = {
+    leafPlain: 'view-template-leaf-plain',
+    leafDate: 'view-template-leaf-date',
+    leafOptionEmpty: 'view-template-leaf-option-empty',
+    leafOptionSingle: 'view-template-leaf-option-single',
+    leafOptionMulti: 'view-template-leaf-option-multi',
+    leafRichText: 'view-template-leaf-rich-text',
+    leafFileUpload: 'view-template-leaf-file-upload',
+    groupContainer: 'view-template-group-container',
+    groupRowWithLabel: 'view-template-group-row-with-label',
+    groupRowNoLabel: 'view-template-group-row-no-label',
+    repeatableTable: 'view-template-repeatable-table',
+    repeatableList: 'view-template-repeatable-list',
+  } as const;
 
   constructor(logger: ILogger) {
     this.logger = logger;
     this.propertiesHelper = new PropertiesHelper();
+    this.activeReusableFormDefs = {};
   }
 
   /**
@@ -87,6 +114,15 @@ export class FormOverride {
     },
     [DateInputComponentName]: {
       [ContentComponentName]: this.sourceDateInputComponentTargetContentComponent,
+    },
+    [TypeaheadInputComponentName]: {
+      [ContentComponentName]: this.sourceTypeaheadInputComponentTargetContentComponent,
+    },
+    [RichTextEditorComponentName]: {
+      [ContentComponentName]: this.sourceRichTextEditorComponentTargetContentComponent,
+    },
+    [FileUploadComponentName]: {
+      [ContentComponentName]: this.sourceFileUploadComponentTargetContentComponent,
     },
     [RepeatableComponentName]: {
       [ContentComponentName]: this.sourceRepeatableComponentTargetContentComponent,
@@ -131,6 +167,21 @@ export class FormOverride {
       },
     },
     [DateInputComponentName]: {
+      view: {
+        component: ContentComponentName,
+      },
+    },
+    [TypeaheadInputComponentName]: {
+      view: {
+        component: ContentComponentName,
+      },
+    },
+    [RichTextEditorComponentName]: {
+      view: {
+        component: ContentComponentName,
+      },
+    },
+    [FileUploadComponentName]: {
       view: {
         component: ContentComponentName,
       },
@@ -293,10 +344,11 @@ export class FormOverride {
   public applyOverrideTransform(
     source: AllFormComponentDefinitionOutlines,
     formMode: FormModesConfig,
-    options?: { phase?: 'construct' | 'client' }
+    options?: { phase?: 'construct' | 'client'; reusableFormDefs?: ReusableFormDefinitions }
   ): AllFormComponentDefinitionOutlines {
     const original: AllFormComponentDefinitionOutlines = _cloneDeep(source);
     const phase = options?.phase ?? 'construct';
+    this.activeReusableFormDefs = options?.reusableFormDefs ?? {};
 
     // Get the component class name, this is also used as the form component identifier.
     const originalComponentClassName = original.component.class;
@@ -380,6 +432,53 @@ export class FormOverride {
     return result;
   }
 
+  private resolveReusableViewTemplate(templateKey: string, fallbackTemplate: string): string {
+    const reusableDefs = this.activeReusableFormDefs ?? {};
+    const reusableEntry = reusableDefs[templateKey];
+    if (!Array.isArray(reusableEntry)) {
+      this.logger.debug(`Reusable view template key '${templateKey}' missing, using fallback template.`);
+      return fallbackTemplate;
+    }
+    if (reusableEntry.length !== 1) {
+      this.logger.debug(
+        `Reusable view template key '${templateKey}' must contain exactly one component definition, found ${reusableEntry.length}. Using fallback template.`
+      );
+      return fallbackTemplate;
+    }
+
+    const reusableDef = reusableEntry[0];
+    const reusableClassName = reusableDef?.component?.class;
+    if (reusableClassName !== ContentComponentName) {
+      this.logger.debug(
+        `Reusable view template key '${templateKey}' expected class '${ContentComponentName}', got '${reusableClassName ?? ''}'. Using fallback template.`
+      );
+      return fallbackTemplate;
+    }
+
+    const template = (reusableDef.component.config as { template?: string } | undefined)?.template?.trim?.() ?? '';
+    if (template.length === 0) {
+      this.logger.debug(
+        `Reusable view template key '${templateKey}' has empty ContentComponent template, using fallback template.`
+      );
+      return fallbackTemplate;
+    }
+
+    return template;
+  }
+
+  private substituteReusableTemplateSlots(template: string, slots: Record<string, string>): string {
+    let resolved = template;
+    for (const [slot, value] of Object.entries(slots)) {
+      if (!this.reusableFragmentSlotNames.has(slot)) {
+        continue;
+      }
+      resolved = resolved.split(`[[${slot}]]`).join(value);
+      resolved = resolved.split(`{{${slot}}}`).join(value);
+      resolved = resolved.split(`{{{${slot}}}}`).join(value);
+    }
+    return resolved;
+  }
+
   private sourceSimpleInputComponentTargetContentComponent(
     source: SimpleInputFormComponentDefinitionOutline,
     formMode: FormModesConfig
@@ -403,7 +502,16 @@ export class FormOverride {
     formMode: FormModesConfig
   ): ContentFormComponentDefinitionOutline {
     const target = this.commonContentComponent(source, formMode);
-    this.commonContentPlain(source, target);
+    if (target.component.config !== undefined && source.model?.config?.value !== undefined) {
+      const value = source.model.config.value;
+      const options = source.component.config?.options ?? [];
+      const option = options.find(item => item.value === value);
+      target.component.config.content = option?.label ?? value;
+      target.component.config.template = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafPlain,
+        `<span>{{content}}</span>`
+      );
+    }
     return target;
   }
 
@@ -461,11 +569,78 @@ export class FormOverride {
 
     if (target.component.config !== undefined && source.model?.config?.value !== undefined) {
       target.component.config.content = source.model.config.value;
-      // The content is provided via the context as a 'content' variable.
-      // Use the common handlebars formatDate helper
-      target.component.config.template = `<span data-value="{{content}}">{{formatDate content}}</span>`;
+      target.component.config.template = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafDate,
+        `<span data-value="{{content}}">{{formatDate content}}</span>`
+      );
     }
 
+    return target;
+  }
+
+  private sourceTypeaheadInputComponentTargetContentComponent(
+    source: TypeaheadInputFormComponentDefinitionOutline,
+    formMode: FormModesConfig
+  ): ContentFormComponentDefinitionOutline {
+    const target = this.commonContentComponent(source, formMode);
+    if (!target.component.config || source.model?.config?.value === undefined) {
+      return target;
+    }
+
+    const value = source.model.config.value;
+    const displayValue =
+      value && typeof value === 'object' && 'label' in value
+        ? (value as TypeaheadInputModelOptionValue).label
+        : typeof value === 'string'
+          ? value
+          : '';
+    target.component.config.content = displayValue;
+    target.component.config.template = this.resolveReusableViewTemplate(
+      this.reusableViewTemplateKeys.leafPlain,
+      `<span>{{content}}</span>`
+    );
+
+    return target;
+  }
+
+  private sourceRichTextEditorComponentTargetContentComponent(
+    source: RichTextEditorFormComponentDefinitionOutline,
+    formMode: FormModesConfig
+  ): ContentFormComponentDefinitionOutline {
+    const target = this.commonContentComponent(source, formMode);
+    const outputFormat = (source.component?.config as { outputFormat?: 'html' | 'markdown' } | undefined)?.outputFormat ?? 'html';
+    if (!target.component.config || source.model?.config?.value === undefined) {
+      return target;
+    }
+
+    target.component.config.content = source.model.config.value;
+    const fallbackTemplate = `{{{markdownToHtml content "${this.escapeForHandlebarsLiteral(outputFormat)}"}}}`;
+    target.component.config.template = this.resolveReusableViewTemplate(
+      this.reusableViewTemplateKeys.leafRichText,
+      fallbackTemplate
+    );
+    target.component.config = {
+      ...target.component.config,
+      outputFormat,
+    };
+
+    return target;
+  }
+
+  private sourceFileUploadComponentTargetContentComponent(
+    source: FileUploadFormComponentDefinitionOutline,
+    formMode: FormModesConfig
+  ): ContentFormComponentDefinitionOutline {
+    const target = this.commonContentComponent(source, formMode);
+    if (!target.component.config || source.model?.config?.value === undefined) {
+      return target;
+    }
+    target.component.config.content = source.model.config.value;
+    const uploadTemplate = this.resolveReusableViewTemplate(
+      this.reusableViewTemplateKeys.leafFileUpload,
+      `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{default this.name this.fileId}}</li>{{/each}}</ul>`
+    );
+    target.component.config.template = this.substituteReusableTemplateSlots(uploadTemplate, { valueExpr: 'content' });
     return target;
   }
 
@@ -572,7 +747,7 @@ export class FormOverride {
   private generateRepeatableTemplate(component: RepeatableFormComponentDefinitionOutline, rootExpr: string): string {
     const elementTemplate = component?.component?.config?.elementTemplate;
     if (!elementTemplate) {
-      return `<div class="rb-view-repeatable"></div>`;
+      return `<div class="rb-view-repeatable rb-view-repeatable-list"></div>`;
     }
 
     const groupChildren = this.getGroupChildren(elementTemplate);
@@ -590,18 +765,35 @@ export class FormOverride {
   private generateGroupTemplate(component: GroupFormComponentDefinitionOutline, rootExpr: string): string {
     const children = component?.component?.config?.componentDefinitions ?? [];
     const rows = children.map(child => this.renderLabelValueRow(child, rootExpr)).join('');
-    return `<div class="rb-view-group">${rows}</div>`;
+    const template = this.resolveReusableViewTemplate(
+      this.reusableViewTemplateKeys.groupContainer,
+      `<div class="rb-view-group">[[rowsHtml]]</div>`
+    );
+    return this.substituteReusableTemplateSlots(template, { rowsHtml: rows });
   }
 
   private renderRepeatableTable(children: AllFormComponentDefinitionOutlines[], rootExpr: string): string {
     const headers = children.map(child => `<th>${this.resolveTranslatedLabel(child)}</th>`).join('');
     const cells = children.map(child => `<td>${this.renderLeafValue(child, 'this', [child.name])}</td>`).join('');
-    return `{{#if ${rootExpr}}}<div class="rb-view-repeatable rb-view-repeatable-table-wrapper"><table class="table table-striped table-sm rb-view-repeatable-table"><thead><tr>${headers}</tr></thead><tbody>{{#each ${rootExpr}}}<tr>${cells}</tr>{{/each}}</tbody></table></div>{{/if}}`;
+    const template = this.resolveReusableViewTemplate(
+      this.reusableViewTemplateKeys.repeatableTable,
+      `{{#if [[rootExpr]]}}<div class="rb-view-repeatable rb-view-repeatable-table-wrapper"><table class="table table-striped table-sm rb-view-repeatable-table"><thead><tr>[[headersHtml]]</tr></thead><tbody>{{#each [[rootExpr]]}}<tr>[[cellsHtml]]</tr>{{/each}}</tbody></table></div>{{/if}}`
+    );
+    return this.substituteReusableTemplateSlots(template, { rootExpr, headersHtml: headers, cellsHtml: cells });
   }
 
   private renderRepeatableFallback(elementTemplate: AllFormComponentDefinitionOutlines, rootExpr: string): string {
     const itemBody = this.renderComponentBody(elementTemplate, 'this');
-    return `{{#if ${rootExpr}}}<div class="rb-view-repeatable rb-view-repeatable-list">{{#each ${rootExpr}}}<div class="rb-view-repeatable-card">${itemBody}</div>{{/each}}</div>{{/if}}`;
+    const elementClassName = elementTemplate?.component?.class ?? '';
+    const itemClass =
+      elementClassName === GroupFieldComponentName || elementClassName === RepeatableComponentName
+        ? 'rb-view-repeatable-card'
+        : 'rb-view-repeatable-card rb-view-repeatable-card--leaf';
+    const template = this.resolveReusableViewTemplate(
+      this.reusableViewTemplateKeys.repeatableList,
+      `{{#if [[rootExpr]]}}<div class="rb-view-repeatable rb-view-repeatable-list">{{#each [[rootExpr]]}}<div class="[[itemClass]]">[[itemBodyHtml]]</div>{{/each}}</div>{{/if}}`
+    );
+    return this.substituteReusableTemplateSlots(template, { rootExpr, itemBodyHtml: itemBody, itemClass });
   }
 
   private renderComponentBody(component: AllFormComponentDefinitionOutlines, rootExpr: string): string {
@@ -621,9 +813,17 @@ export class FormOverride {
     const label = this.resolveTranslatedLabel(component);
     const valueExpr = this.renderComponentBody(component, rootExpr);
     if (label.trim().length === 0) {
-      return `<div class="rb-view-row"><div class="rb-view-value">${valueExpr}</div></div>`;
+      const template = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.groupRowNoLabel,
+        `<div class="rb-view-row"><div class="rb-view-value">[[valueHtml]]</div></div>`
+      );
+      return this.substituteReusableTemplateSlots(template, { valueHtml: valueExpr });
     }
-    return `<div class="rb-view-row"><div class="rb-view-label">${label}</div><div class="rb-view-value">${valueExpr}</div></div>`;
+    const template = this.resolveReusableViewTemplate(
+      this.reusableViewTemplateKeys.groupRowWithLabel,
+      `<div class="rb-view-row"><div class="rb-view-label">[[labelHtml]]</div><div class="rb-view-value">[[valueHtml]]</div></div>`
+    );
+    return this.substituteReusableTemplateSlots(template, { labelHtml: label, valueHtml: valueExpr });
   }
 
   private renderLeafValue(
@@ -635,7 +835,11 @@ export class FormOverride {
     const expression = this.safeValueExpression(rootExpr, pathParts);
 
     if (className === FileUploadComponentName) {
-      return `<ul class="rb-view-file-upload">{{#each ${expression}}}<li>{{default this.name this.fileId}}</li>{{/each}}</ul>`;
+      const fileTemplate = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafFileUpload,
+        `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{default this.name this.fileId}}</li>{{/each}}</ul>`
+      );
+      return this.substituteReusableTemplateSlots(fileTemplate, { valueExpr: expression });
     }
     if (className === ContentComponentName) {
       const template =
@@ -906,13 +1110,16 @@ export class FormOverride {
     if (values.length === 0) {
       // Empty
       targetCompConf.content = undefined;
-      targetCompConf.template = `<span></span>`;
+      targetCompConf.template = this.resolveReusableViewTemplate(this.reusableViewTemplateKeys.leafOptionEmpty, `<span></span>`);
     } else if (values.length === 1) {
       // One value
       const value = values[0];
       const label = options?.find(option => option.value === value)?.label ?? value;
       targetCompConf.content = { value, label };
-      targetCompConf.template = `<span data-value="{{content.value}}">{{content.label}}</span>`;
+      targetCompConf.template = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafOptionSingle,
+        `<span data-value="{{content.value}}">{{content.label}}</span>`
+      );
     } else {
       // More than one value
       targetCompConf.content = values.map(
@@ -922,7 +1129,10 @@ export class FormOverride {
             value: value,
           }
       );
-      targetCompConf.template = `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`;
+      targetCompConf.template = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafOptionMulti,
+        `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
+      );
     }
   }
 
@@ -932,7 +1142,10 @@ export class FormOverride {
   ): void {
     if (target.component.config !== undefined && source.model?.config?.value !== undefined) {
       target.component.config.content = source.model.config.value;
-      target.component.config.template = `<span>{{content}}</span>`;
+      target.component.config.template = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafPlain,
+        `<span>{{content}}</span>`
+      );
     }
   }
 }

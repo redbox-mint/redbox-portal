@@ -1,6 +1,6 @@
 import {
     FormConfigFrame,
-    TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame, FormOverride
+    TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame, FormOverride, ReusableFormDefinitions
 } from "@researchdatabox/sails-ng-common";
 import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
 import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
@@ -1018,7 +1018,7 @@ describe("Client Visitor", async () => {
                                     {
                                         name: "name",
                                         component: { class: "SimpleInputComponent", config: {} },
-                                        model: { class: "SimpleInputModel", config: { defaultValue: "Brazz" } }
+                                        model: { class: "SimpleInputModel", config: { defaultValue: "TestContributor" } }
                                     },
                                     {
                                         name: "email",
@@ -1050,9 +1050,146 @@ describe("Client Visitor", async () => {
         const content = (transformed?.component?.config as { content?: Record<string, string> } | undefined)?.content;
 
         expect(content).to.exist;
-        expect(content?.name).to.equal("Brazz");
+        expect(content?.name).to.equal("TestContributor");
         expect(content?.email).to.equal("b@b.com");
         // ORCID lacked a defaultValue, so it should remain undefined.
         expect(content?.orcid).to.equal(undefined);
+    });
+
+    it(`should use reusable view template defs during deferred client transforms`, async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            formMode: "view",
+            data: {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "contributors",
+                        component: {
+                            class: "RepeatableComponent",
+                            config: {
+                                elementTemplate: {
+                                    name: "",
+                                    component: {
+                                        class: "GroupComponent",
+                                        config: {
+                                            componentDefinitions: [
+                                                {
+                                                    name: "title",
+                                                    component: { class: "SimpleInputComponent", config: {} },
+                                                    model: { class: "SimpleInputModel", config: {} }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    model: { class: "GroupModel", config: {} }
+                                }
+                            }
+                        },
+                        model: { class: "RepeatableModel", config: { defaultValue: [{ title: "Alice" }] } }
+                    }
+                ]
+            }
+        });
+
+        const reusableFormDefs: ReusableFormDefinitions = {
+            "view-template-repeatable-table": [
+                {
+                    name: "custom_repeatable_table",
+                    component: { class: "ContentComponent", config: { template: "{{#if [[rootExpr]]}}<section class=\"custom-repeat-table\"><table><thead><tr>[[headersHtml]]</tr></thead><tbody>{{#each [[rootExpr]]}}<tr>[[cellsHtml]]</tr>{{/each}}</tbody></table></section>{{/if}}" } }
+                }
+            ]
+        };
+        const visitor = new ClientFormConfigVisitor(logger);
+        const actual = visitor.start({ form: constructed, formMode: "view", reusableFormDefs });
+        const template = (actual.componentDefinitions?.[0]?.component?.config as { template?: string } | undefined)?.template ?? "";
+        expect(template).to.contain("custom-repeat-table");
+        expect(template).to.contain("<thead>");
+    });
+
+    it(`should fallback to hardcoded templates when reusable fragment schema is invalid`, async function () {
+        const formOverride = new FormOverride(logger);
+        const transformed = formOverride.applyOverrideTransform({
+            name: "contributors",
+            component: {
+                class: "RepeatableComponent",
+                config: {
+                    elementTemplate: {
+                        name: "",
+                        component: {
+                            class: "GroupComponent",
+                            config: {
+                                componentDefinitions: [
+                                    {
+                                        name: "title",
+                                        component: { class: "SimpleInputComponent", config: {} },
+                                        model: { class: "SimpleInputModel", config: {} }
+                                    }
+                                ]
+                            }
+                        },
+                        model: { class: "GroupModel", config: {} }
+                    }
+                }
+            },
+            model: { class: "RepeatableModel", config: { value: [{ title: "Alice" }] } }
+        } as any, "view", {
+            phase: "client",
+            reusableFormDefs: {
+                "view-template-repeatable-table": [
+                    {
+                        name: "invalid_not_content",
+                        component: { class: "SimpleInputComponent", config: { type: "text" } }
+                    }
+                ]
+            }
+        });
+        const template = (transformed.component?.config as { template?: string } | undefined)?.template ?? "";
+        expect(template).to.contain("rb-view-repeatable-table");
+        expect(template).to.not.contain("custom-repeat-table");
+    });
+
+    it(`should render dropdown labels, typeahead labels, rich text and file upload in view transforms`, async function () {
+        const formOverride = new FormOverride(logger);
+
+        const dropdown = formOverride.applyOverrideTransform({
+            name: "status",
+            component: {
+                class: "DropdownInputComponent",
+                config: { options: [{ label: "Draft Label", value: "draft" }] }
+            },
+            model: { class: "DropdownInputModel", config: { value: "draft" } }
+        } as any, "view");
+        const dropdownConfig = dropdown.component.config as { content?: unknown };
+        expect(dropdown.component.class).to.equal("ContentComponent");
+        expect(dropdownConfig.content).to.equal("Draft Label");
+
+        const typeahead = formOverride.applyOverrideTransform({
+            name: "person",
+            component: { class: "TypeaheadInputComponent", config: {} },
+            model: { class: "TypeaheadInputModel", config: { value: { label: "Jane Doe", value: "jane" } } }
+        } as any, "view");
+        const typeaheadConfig = typeahead.component.config as { content?: unknown };
+        expect(typeahead.component.class).to.equal("ContentComponent");
+        expect(typeaheadConfig.content).to.equal("Jane Doe");
+
+        const richText = formOverride.applyOverrideTransform({
+            name: "description",
+            component: { class: "RichTextEditorComponent", config: { outputFormat: "markdown" } },
+            model: { class: "RichTextEditorModel", config: { value: "**hello**" } }
+        } as any, "view");
+        const richTextConfig = richText.component.config as { template?: string; outputFormat?: string };
+        expect(richText.component.class).to.equal("ContentComponent");
+        expect(richTextConfig.template).to.contain("markdownToHtml");
+        expect(richTextConfig.outputFormat).to.equal("markdown");
+
+        const fileUpload = formOverride.applyOverrideTransform({
+            name: "files",
+            component: { class: "FileUploadComponent", config: {} },
+            model: { class: "FileUploadModel", config: { value: [{ name: "one.pdf", fileId: "f1" }] } }
+        } as any, "view");
+        const fileUploadConfig = fileUpload.component.config as { template?: string };
+        expect(fileUpload.component.class).to.equal("ContentComponent");
+        expect(fileUploadConfig.template).to.contain("rb-view-file-upload");
     });
 });

@@ -614,7 +614,7 @@ describe('The FormsService', function () {
 
             const recordMetadata = {
                 contributor_ci: {
-                    name: "Brazz",
+                    name: "TestContributor",
                     email: "b@b.com",
                     orcid: "0000-0000-0000-0001"
                 }
@@ -626,7 +626,7 @@ describe('The FormsService', function () {
 
             expect(contributor?.component?.class).to.equal('ContentComponent');
             expect(content).to.deep.equal({
-                name: "Brazz",
+                name: "TestContributor",
                 email: "b@b.com",
                 orcid: "0000-0000-0000-0001"
             });

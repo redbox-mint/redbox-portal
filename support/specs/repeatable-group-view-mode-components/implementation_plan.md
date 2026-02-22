@@ -1,290 +1,118 @@
-# Implementation Plan - Form View Mode Transforms for Repeatable and Group Components
+# Implementation Plan - Content View Fragments via ReusableFormDefinitions
 
-## Scope and Decisions
+## Scope
 
-This feature implements view-mode transforms for both:
+Implement a `ReusableFormDefinitions`-driven view fragment model for all existing `view -> ContentComponent` transforms, add view-mode transforms for `TypeaheadInputComponent` and `RichTextEditorComponent`, and upgrade Dropdown and FileUpload rendering — while preserving current rendering behavior for unchanged paths.
 
-- `RepeatableComponent` -> `ContentComponent`
-- top-level `GroupComponent` -> `ContentComponent`
+Impacted areas:
 
-Key decisions:
+- `packages/redbox-core-types/src/config/reusableFormDefinitions.config.ts`
+- `packages/sails-ng-common/src/config/form-override.model.ts`
+- `packages/redbox-core-types/src/visitor/construct.visitor.ts`
+- `packages/redbox-core-types/src/visitor/client.visitor.ts`
+- `assets/styles/default-theme.scss`
+- `assets/styles/default-responsive.scss`
+- Related unit tests in `packages/redbox-core-types/test/unit`
 
-- Top-level `GroupComponent` is in scope.
-- Authorization and mode constraints must still be enforced after transforms.
-- Column and field labels rendered in templates must be translated at runtime.
-- Missing/null/invalid data should render as an empty string.
+## Phase 1: Define Reusable View Fragments and Keys
 
-## Why Transform Timing Must Change
+1. Add namespaced view fragment entries in `reusableFormDefinitions.config.ts` with `ContentComponent` roots.
+2. Group entries by families: leaf/group/repeatable through naming convention.
+3. Add a transform-source to reusable key map for deterministic selection.
+4. Add/confirm type definitions for allowed template keys and slot names.
+5. Document Handlebars helper dependencies (`formatDate`, `join`, `default`, `t`, `get`, `markdownToHtml`) alongside the slot contract.
+6. Define and document reusable fragment schema invariants:
+   - exactly one form component definition
+   - `component.class === "ContentComponent"`
+   - non-empty `component.config.template`
 
-Current transform flow runs in construct visitor before client-side constraint pruning. That is not sufficient for this feature, because flattening `RepeatableComponent`/`GroupComponent` into a single `ContentComponent` too early removes descendant component boundaries needed for role/mode filtering.
+Outcome:
 
-To preserve correctness:
+- A single central source of default view fragments exists in reusable form definitions, coexisting with existing edit-mode entries.
 
-- Keep existing construct-time transforms as-is for current components.
-- Add a new client-visitor transform phase that runs only after constraint filtering has already removed unauthorized/out-of-mode descendants.
-- Perform `RepeatableComponent`/`GroupComponent` -> `ContentComponent` transform in this new phase.
+## Phase 2: Introduce Reusable Fragment Resolver in Transform Layer
 
-## Proposed Changes
+1. Add a resolver surface in `FormOverride` that requests reusable fragment templates by key.
+2. Keep existing hardcoded template strings as fallback defaults.
+3. Add bounded slot-substitution helper for known placeholders only.
+4. Wire current transform methods to fetch templates through reusable-key resolver:
+   - plain/date/option templates
+   - repeatable table/list shells
+   - group container/row shells
+   - file upload leaf output (read-only file list matching edit-mode appearance, no "add attachment" button, notes as read-only text)
+5. Respect two-phase transform timing: `RepeatableComponent` and `GroupComponent` fragment resolution runs at `client` phase only (deferred via `deferViewModeContentFlatteningAtConstruct` guard). All other transforms execute at `construct` phase.
+6. Wire reusable defs into both visitor phases:
+   - `ConstructFormConfigVisitor` passes `reusableFormDefs` to `FormOverride` for construct-phase transforms.
+   - `ClientFormConfigVisitor.start()` must be extended to accept `reusableFormDefs` (current signature: `{ form, formMode?, userRoles? }`).
+   - Extend `FormOverride.applyOverrideTransform()` to accept `reusableFormDefs` via the `options` parameter, constructor, or setter.
+   - No static import of core config from `sails-ng-common`.
+7. Add lookup validation/error handling:
+   - invalid/missing reusable fragment key -> fallback hardcoded template
+   - debug log includes key and failure reason
 
-### `packages/sails-ng-common`
+Outcome:
 
-#### [MODIFY] `src/config/form-override.model.ts`
+- Transform methods no longer own shell markup as primary source.
 
-Add transform support methods that can be used by both visitors:
+## Phase 3: Migrate Existing View Transform Paths
 
-- Add `knownTransforms` entry:
-  - `[RepeatableComponentName] -> [ContentComponentName]`
-  - `[GroupFieldComponentName] -> [ContentComponentName]`
-- Add `defaultTransforms` entries for `view` mode:
-  - `RepeatableComponentName: { component: ContentComponentName }`
-  - `GroupFieldComponentName: { component: ContentComponentName }`
-- Implement:
-  - `sourceRepeatableComponentTargetContentComponent(...)`
-  - `sourceGroupComponentTargetContentComponent(...)`
-  - `generateTemplateForComponent(...)`
-  - helper methods for table/list rendering and safe value/template extraction
+Migrate each existing content transform source:
 
-Important:
+- `SimpleInputComponent` -> `leaf.plain`
+- `TextAreaComponent` -> `leaf.plain`
+- `DropdownInputComponent` -> `leaf.plain` — upgraded to resolve and display the option **label** for the stored value, falling back to the raw value if no matching option is found.
+- `DateInputComponent` -> `leaf.date`
+- `CheckboxInputComponent` -> `leaf.optionEmpty|optionSingle|optionMulti`
+- `RadioInputComponent` -> `leaf.optionEmpty|optionSingle|optionMulti`
+- `GroupComponent` -> `group.container` + row templates
+- `RepeatableComponent` -> `repeatable.table|repeatable.list`
 
-- These methods must not assume every leaf has a model value.
-- Any unresolved value path must render empty string.
-- Unknown component classes must not throw by default; they must render with generic fallback in list layout.
+Add new view-mode transforms for components that currently lack them:
 
-#### [MODIFY] `src/config/visitor/client.visitor.ts`
+- `TypeaheadInputComponent` -> `leaf.plain` — add `knownTransforms`/`defaultTransforms` entries and `sourceTypeaheadInputComponentTargetContentComponent`. Handle value as `string | { label, value, sourceType? } | null`; extract display label before assigning content.
+- `RichTextEditorComponent` -> `leaf.richText` — add `knownTransforms`/`defaultTransforms` entries and `sourceRichTextEditorComponentTargetContentComponent`. Use `{{{markdownToHtml content outputFormat}}}` template with a new Handlebars helper. Add the `markdownToHtml` helper using `marked`. Angular's `[innerHtml]` sanitizes output client-side.
 
-Add a post-pruning transform step for `view` mode:
+Also preserve recursive leaf support used by repeatable/group rendering:
 
-- After constraints/user-role filtering has removed disallowed descendants, transform surviving `RepeatableComponent` and `GroupComponent` instances into `ContentComponent` using `FormOverride`.
-- Ensure transform is recursively applied to descendants before parent rendering so nested structures produce stable templates.
+- `ContentComponent` — passthrough (inline, no separate reusable fragment)
+- `CheckboxTreeComponent` — inline leaf using `{{join}}` helper (no separate reusable fragment)
+- `FileUploadComponent` — read-only view: file list with download links, no upload controls, notes as read-only text
 
-Acceptance condition:
+Outcome:
 
-- Unauthorized/disallowed descendant fields must not appear in generated template markup or output context.
+- All current view transforms participate in the same reusable fragment model.
+- Two new components now have proper view-mode rendering.
 
-#### [MODIFY] `src/config/visitor/construct.visitor.ts`
+## Phase 4: CSS and Styling
 
-Guard against double transform:
+1. Define view-mode CSS classes in `assets/styles/default-theme.scss`, mixing in Bootstrap styles by default.
+2. Classes to define/verify: `rb-view-repeatable`, `rb-view-repeatable-table-wrapper`, `rb-view-repeatable-table`, `rb-view-repeatable-list`, `rb-view-repeatable-card`, `rb-view-group`, `rb-view-row`, `rb-view-label`, `rb-view-value`, `rb-view-file-upload`.
+3. Add print-specific overrides in `assets/styles/default-responsive.scss` for view-mode components (view modes are commonly printed to generate PDFs).
 
-- Ensure `RepeatableComponent`/`GroupComponent` are not flattened at construct time if client visitor is responsible for this feature.
-- Existing behavior for other transforms remains unchanged.
+Outcome:
 
-### `angular/projects/researchdatabox/form`
+- View-mode components are styled consistently and render well in print.
 
-#### [MODIFY] `src/app/component/content.component.ts`
+## Phase 5: Verification and Parity Safety
 
-Pass translation service into handlebars context so template label translation works:
-
-- Current context: `{ content }`
-- Required context: `{ content, translationService }`
-
-This enables `{{t "translation.key"}}` to resolve localized labels in generated templates.
-
-## Rendering Strategy
-
-### 1. Data Root
-
-For transformed components:
-
-- `ContentComponent.config.content` receives source model value.
-- Templates iterate using `{{#each content}}...{{/each}}` for repeatables.
-- Group templates use `content` as object root.
-
-### 2. Empty Data Rules
-
-Render empty string for:
-
-- `content === undefined`
-- `content === null`
-- missing object key
-- non-array repeatable content
-- unsupported primitive/object shape mismatch
-
-For repeatables specifically:
-
-- Non-array content behaves as empty array.
-- Empty array renders structural container with no rows/items.
-
-### 3. Component Support Matrix
-
-#### Table-eligible leaf classes
-
-These can render as table cells when directly inside a flat group row:
-
-- `SimpleInputComponent`
-- `TextAreaComponent`
-- `DateInputComponent`
-- `DropdownInputComponent`
-- `CheckboxInputComponent`
-- `RadioInputComponent`
-- `TypeaheadInputComponent`
-- `RichTextEditorComponent`
-- `MapComponent`
-- `ContentComponent`
-- `CheckboxTreeComponent`
-
-Table eligibility requires all children in the row are leaf fields with unique, non-empty names and no nested `GroupComponent`/`RepeatableComponent`.
-
-#### Non-table / complex components
-
-- `FileUploadComponent` (file metadata is multi-attribute and should render as its own structure, not nested table cell content)
-- `GroupComponent`
-- `RepeatableComponent`
-- any unknown class
-
-These force list/card fallback layout.
-
-### 4. Header and Label Rules
-
-For table/list labels:
-
-- If `component.config.label` exists, render `{{t "<label-key>"}}`.
-- Else fallback to field `name` literal.
-- If neither usable, skip label text and render value only.
-
-### 5. Template Rebinding Rules (explicit)
-
-Do not perform arbitrary string rewriting of unknown templates.
-
-Supported behavior:
-
-- For known leaf components transformed to `ContentComponent` by existing logic, use direct generated value expressions rather than attempting to parse/patch nested templates.
-- For `ContentComponent` leaves encountered during recursive rendering:
-  - If template contains only `{{content}}` or `{{{content}}}`, rebind to current path expression.
-  - Otherwise wrap with safe fallback display using current value expression.
-
-This avoids brittle regex/template mutation.
-
-### 6. Value Extraction Rules
-
-- Primitive repeatable element: `{{this}}`
-- Object field: `{{this.fieldName}}`
-- Nested path: `{{this.parent.child}}`
-- All interpolations must use expressions that naturally resolve to empty string when path missing.
-
-### 7. Duplicate/Invalid Field Names
-
-Inside group-based rendering:
-
-- If any child has empty or duplicate `name`, skip table mode.
-- Use list fallback.
-- In list fallback, unnamed fields render value only (no label).
-
-## Template Layout Rules
-
-### Table Layout (flat repeatable of simple group)
-
-Use when all table eligibility rules pass.
-
-- Header row from translated labels.
-- Body row per array element.
-- Cell per child field.
-
-### List/Card Layout (fallback)
-
-Use when:
-
-- nested groups/repeatables exist,
-- unknown component class exists,
-- duplicate/empty names exist,
-- mixed incompatible shapes exist.
-
-Rendering pattern:
-
-- outer list of repeatable elements
-- card/item wrapper per element
-- field rows as `label: value`
-- nested collections recurse with additional nested list wrappers
-
-## Styling Rules
-
-- Classes for tables and other generated elements should be placed in `assets/styles/default-theme.scss`.
-- They should mixin Bootstrap styles by default.
-- We often print the view mode to make PDFs, so print CSS should also be considered in `assets/styles/default-responsive.scss`.
-
-## Constraint and Authorization Guarantees
-
-Required invariant:
-
-- Any field removed by mode or role constraints must not contribute labels, template fragments, or value bindings in output.
-
-Implementation guarantee:
-
-- Generate templates only from already-filtered component definitions in `ClientFormConfigVisitor`.
-
-## Detailed Task Breakdown
-
-1. Add transform entries and transform helpers in `form-override.model.ts` for repeatable/group.
-2. Add helper utilities in `form-override.model.ts`:
-   - component classification
-   - table eligibility check
-   - label resolution
-   - safe value expression building
-3. Add post-pruning transform phase in `client.visitor.ts` for view mode.
-4. Ensure recursion order in client visitor handles child transforms before parent template generation.
-5. Prevent conflicting construct-time flattening for repeatable/group in `construct.visitor.ts`.
-6. Update `content.component.ts` context to include `translationService`.
-7. Add focused logging (debug-level) for transform decisions (table vs list fallback, skipped fields).
-8. Update spec examples to reflect translated labels and empty-value behavior.
-
-## Comprehensive Test Plan
-
-### Unit Tests - `packages/sails-ng-common/test/unit/construct.visitor.test.ts`
-
-Add/extend tests covering:
-
-1. `RepeatableComponent` transforms to `ContentComponent` in `view` mode only.
-2. Top-level `GroupComponent` transforms to `ContentComponent` in `view` mode only.
-3. `edit` mode keeps `RepeatableComponent` and `GroupComponent` untransformed.
-4. Flat group repeatable renders table template.
-5. Nested group repeatable renders list/card fallback.
-6. Repeatable with unknown child class uses fallback layout and does not throw.
-7. Repeatable with `CheckboxTreeComponent` inside group renders successfully (table if eligible, otherwise fallback per rules).
-8. Repeatable/group row containing `FileUploadComponent` always uses list/card fallback (never table mode).
-9. Duplicate child names disable table mode and switch to fallback.
-10. Empty child names disable table mode and switch to fallback.
-11. Missing `label` falls back to field name.
-12. Labels render using translation helper markers (`{{t ...}}`) in template.
-13. `content: undefined|null` renders empty output path (no literal `undefined`/`null`).
-14. Repeatable with non-array content renders as empty list/container.
-15. Missing object keys render empty string and do not throw.
-16. Nested repeatable recursion produces stable template structure.
-17. Existing transforms (simple input, date, tab->accordion) still pass unchanged.
-18. Existing repeatable TODO case at line with TODO comments is replaced by explicit assertions for final behavior.
-
-### Unit Tests - `angular/projects/researchdatabox/form`
-
-Add `ContentComponent` tests:
-
-1. Handlebars context includes `translationService`.
-2. `{{t ...}}` in template resolves translated value when translation service returns value.
-3. `{{t ...}}` falls back to key when translation missing.
-
-### Authorization/Constraint Regression Tests
-
-In `construct.visitor.test.ts` or `client.visitor.test.ts` (whichever has role/mode pruning assertions):
-
-1. Group child disallowed by `allowModes` is excluded from generated template.
-2. Group child disallowed by `allowRoles` is excluded from generated template.
-3. Mixed allowed/disallowed children only render allowed subset.
-4. Nested disallowed descendants are excluded recursively.
-5. No unauthorized label keys appear in output template.
-
-### Snapshot/String Assertion Guidance
-
-When asserting templates:
-
-- Assert critical fragments (wrapper, each block, header/cell expressions, translation helper usage).
-- Normalize whitespace to avoid brittle failures.
-- Include negative assertions for unauthorized/disallowed fields.
-
-### Manual Verification
-
-1. Open a representative form in `view` mode containing:
-   - top-level group
-   - repeatable simple list
-   - repeatable group table
-   - repeatable with nested repeatable
-   - repeatable containing checkbox tree
-2. Verify labels are translated.
-3. Verify role/mode changes remove restricted fields from rendered output.
-4. Verify empty values display as blank (not `null`/`undefined`).
+1. Add tests confirming each transform path selects expected reusable fragment key.
+2. Add tests confirming fallback behavior when key missing.
+3. Keep existing output assertions for repeatable/group table/list behavior.
+4. Add focused tests for slot rendering and escaped values.
+5. Add tests for new transforms: `TypeaheadInputComponent`, `RichTextEditorComponent`.
+6. Add tests for `TypeaheadInputComponent` value-shape handling (string, object, null).
+7. Add tests for upgraded `DropdownInputComponent` label resolution.
+8. Add tests for `FileUploadComponent` read-only view output.
+9. Add tests for `markdownToHtml` Handlebars helper (markdown input, HTML passthrough, empty/null input).
+10. Add resolver wiring tests proving reusable defs are available in both construct and client phases.
+11. Add schema-validation tests for invalid reusable fragments (missing template, wrong class, multiple definitions) with fallback behavior.
+12. Validate no regressions in `edit` mode behavior.
+
+Outcome:
+
+- Functional parity retained and failure modes controlled.
+
+## Rollout Notes
+
+- Start with reusable fragment lookup + fallback enabled.
+- After stable test runs and downstream validation, optionally remove hardcoded fallback paths in a follow-up PR.

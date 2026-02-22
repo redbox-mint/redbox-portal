@@ -62,7 +62,10 @@
     display:none;
   }
 
-  .rb-view-repeatable-card, .rb-view-repeatable-table-wrapper {
+  .rb-view-repeatable,
+  .rb-view-repeatable-card,
+  .rb-view-repeatable-table-wrapper,
+  .rb-view-group {
     page-break-inside: avoid;
   }
 }

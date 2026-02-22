@@ -606,7 +606,7 @@ export namespace Services {
       await vocabVisitor.resolveVocabs(constructed, branding);
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
-      const result = visitor.start({ form: constructed, formMode, userRoles });
+      const result = visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs });
       if (!result) {
         throw new Error(`The form config is invalid because all form fields were removed, ` +
           `the form config must have at least one field the current user can view: ${JSON.stringify({

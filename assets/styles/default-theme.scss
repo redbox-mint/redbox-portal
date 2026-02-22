@@ -264,8 +264,17 @@ input[type="submit"]:hover, button[type=submit]:hover {background-color: $submit
     overflow-x: auto;
 }
 
+.rb-view-repeatable {
+    margin-bottom: 0.75rem;
+}
+
 .rb-view-repeatable-table {
     margin-bottom: 1rem;
+}
+
+.rb-view-repeatable-list {
+    display: grid;
+    gap: 0.75rem;
 }
 
 .rb-view-repeatable-card {
@@ -276,11 +285,24 @@ input[type="submit"]:hover, button[type=submit]:hover {background-color: $submit
     background-color: #fff;
 }
 
+.rb-view-repeatable-card--leaf {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    margin-bottom: 0;
+    background-color: transparent;
+}
+
 .rb-view-row {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
     margin-bottom: 0.5rem;
+}
+
+.rb-view-group {
+    display: grid;
+    gap: 0.25rem;
 }
 
 .rb-view-label {

@@ -226,7 +226,7 @@ describe("Construct Visitor", async () => {
                                     labelTemplate: "{{default (split notation '/' -1) notation}} - {{label}}"
                                 }
                             },
-                            model: {class: "CheckboxTreeModel", config: {}}
+                            model: { class: "CheckboxTreeModel", config: {} }
                         }
                     ]
                 }
@@ -252,7 +252,7 @@ describe("Construct Visitor", async () => {
                                     queryId: "contributors"
                                 }
                             },
-                            model: {class: "TypeaheadInputModel", config: {}}
+                            model: { class: "TypeaheadInputModel", config: {} }
                         }
                     ]
                 }
@@ -1421,6 +1421,39 @@ describe("Construct Visitor", async () => {
         });
     });
     describe("repeatable special cases", async () => {
+        it("should use reusable view fragments for construct-phase leaf transforms", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const reusableFormDefs: ReusableFormDefinitions = {
+                "view-template-leaf-plain": [
+                    {
+                        name: "custom_leaf_plain",
+                        component: {
+                            class: "ContentComponent",
+                            config: { template: "<span class=\"custom-leaf\">{{content}}</span>" }
+                        }
+                    }
+                ]
+            };
+            const actual = visitor.start({
+                formMode: "view",
+                reusableFormDefs,
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "title",
+                            component: { class: "SimpleInputComponent", config: {} },
+                            model: { class: "SimpleInputModel", config: { defaultValue: "Alpha" } }
+                        }
+                    ]
+                }
+            });
+            const transformed = actual.componentDefinitions[0];
+            const template = (transformed.component?.config as { template?: string } | undefined)?.template ?? "";
+            expect(transformed.component.class).to.equal("ContentComponent");
+            expect(template).to.contain("custom-leaf");
+        });
+
         it("should keep top-level repeatable and group untransformed in view mode during construct phase", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = visitor.start({
@@ -1526,9 +1559,9 @@ describe("Construct Visitor", async () => {
                                             config: {
                                                 elementTemplate: {
                                                     name: "",
-                                                component: {
-                                                    class: "ContentComponent",
-                                                    config: {}
+                                                    component: {
+                                                        class: "ContentComponent",
+                                                        config: {}
                                                     },
                                                 }
                                             }
@@ -1584,7 +1617,7 @@ describe("Construct Visitor", async () => {
                 formMode: "edit",
                 record: {
                     contributor_ci: {
-                        name: "Brazz",
+                        name: "TestContributor",
                         email: "b@b.com",
                         orcid: "0000-0000-0000-0001",
                     },
@@ -1668,7 +1701,7 @@ describe("Construct Visitor", async () => {
             const contributorCi = people?.component?.config?.componentDefinitions?.[0];
             expect(contributorCi?.name).to.equal("contributor_ci");
             expect(contributorCi?.model?.config?.value).to.deep.equal({
-                name: "Brazz",
+                name: "TestContributor",
                 email: "b@b.com",
                 orcid: "0000-0000-0000-0001",
             });

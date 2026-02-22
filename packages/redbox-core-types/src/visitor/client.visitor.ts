@@ -111,6 +111,7 @@ import { FormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common
 import { FieldComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { FieldModelDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { FieldLayoutDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { ReusableFormDefinitions } from '@researchdatabox/sails-ng-common';
 import { ILogger } from '@researchdatabox/sails-ng-common';
 import { FormConfig } from '@researchdatabox/sails-ng-common';
 import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
@@ -147,6 +148,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   private formMode: FormModesConfig;
   private formModeProvided: boolean;
   private userRoles: string[];
+  private reusableFormDefs: ReusableFormDefinitions;
 
   private constraintPath: FormConstraintConfig[];
 
@@ -160,6 +162,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.formMode = 'view';
     this.formModeProvided = false;
     this.userRoles = [];
+    this.reusableFormDefs = {};
 
     this.constraintPath = [];
 
@@ -178,11 +181,17 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
    * @param options.formMode The currently active form mode.
    * @param options.userRoles The current user's roles.
    */
-  start(options: { form: FormConfigOutline; formMode?: FormModesConfig; userRoles?: string[] }) {
+  start(options: {
+    form: FormConfigOutline;
+    formMode?: FormModesConfig;
+    userRoles?: string[];
+    reusableFormDefs?: ReusableFormDefinitions;
+  }) {
     this.clientFormConfig = options.form;
     this.formMode = options.formMode ?? 'view';
     this.formModeProvided = options.formMode !== undefined;
     this.userRoles = options.userRoles ?? [];
+    this.reusableFormDefs = options.reusableFormDefs ?? {};
 
     this.constraintPath = [];
     this.formPathHelper.reset();
@@ -217,7 +226,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const shouldTransformGroup = className === GroupFieldComponentName;
 
     if (shouldTransformRepeatable || shouldTransformGroup) {
-      const transformed = this.formOverride.applyOverrideTransform(item, this.formMode, { phase: "client" }) as AvailableFormComponentDefinitionOutlines;
+      const transformed = this.formOverride.applyOverrideTransform(item, this.formMode, {
+        phase: 'client',
+        reusableFormDefs: this.reusableFormDefs,
+      }) as AvailableFormComponentDefinitionOutlines;
       this.processFormComponentDefinition(transformed);
       return transformed;
     }

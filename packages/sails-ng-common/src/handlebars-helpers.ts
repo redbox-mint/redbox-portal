@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { DateTime } from 'luxon';
+import { marked } from 'marked';
 import {
     get as _get,
     isEmpty as _isEmpty,
@@ -351,6 +352,27 @@ export const handlebarsHelperDefinitions = {
      */
     default: function (value: unknown, defaultValue: unknown): unknown {
         return value || defaultValue;
+    },
+
+    /**
+     * Convert markdown to HTML when output format is markdown, otherwise pass HTML through.
+     *
+     * @example {{{markdownToHtml content outputFormat}}}
+     */
+    markdownToHtml: function (value: unknown, outputFormat?: string): string {
+        const input = String(value ?? '');
+        if (!input) {
+            return '';
+        }
+        if (outputFormat === 'markdown') {
+            try {
+                const converted = marked.parse(input);
+                return typeof converted === 'string' ? converted : input;
+            } catch {
+                return input;
+            }
+        }
+        return input;
     },
 
     /**

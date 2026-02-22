@@ -409,7 +409,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       this.formPathHelper.acceptFormPath(formComponent, testing);
 
       // After the construction is done, apply any transforms
-      const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
+      const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode, {
+        phase: 'construct',
+        reusableFormDefs: this.reusableFormDefs,
+      });
 
       // Store the instance on the item
       item.componentDefinitions.push(itemTransformed);
@@ -554,7 +557,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     // After the construction is done, apply any transforms
-    const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
+    const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode, {
+      phase: 'construct',
+      reusableFormDefs: this.reusableFormDefs,
+    });
 
     // Store the instance on the item
     item.config.elementTemplate = itemTransformed;
@@ -660,7 +666,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       );
 
       // After the construction is done, apply any transforms
-      const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
+      const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode, {
+        phase: 'construct',
+        reusableFormDefs: this.reusableFormDefs,
+      });
 
       // Store the instance on the item
       item.config?.componentDefinitions.push(itemTransformed);
@@ -740,7 +749,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         //  It currently maps string -> type union, which is too loose, as it doesn't imply that a particular string key maps to one type.
         const itemTransformed = this.formOverride.applyOverrideTransform(
           formComponent,
-          this.formMode
+          this.formMode,
+          { phase: 'construct', reusableFormDefs: this.reusableFormDefs }
         ) as TabContentFormComponentDefinition;
 
         // Store the instance on the item
@@ -826,7 +836,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         const itemTransformed = this.formOverride.applyOverrideTransform(
           formComponent,
-          this.formMode
+          this.formMode,
+          { phase: 'construct', reusableFormDefs: this.reusableFormDefs }
         ) as AccordionPanelFormComponentDefinition;
 
         item.config?.panels.push(itemTransformed);
@@ -875,7 +886,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(formComponent, index)
       );
 
-      const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
+      const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode, {
+        phase: 'construct',
+        reusableFormDefs: this.reusableFormDefs,
+      });
       item.config?.componentDefinitions.push(itemTransformed);
     });
   }
@@ -933,7 +947,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       );
 
       // After the construction is done, apply any transforms
-      const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode);
+      const itemTransformed = this.formOverride.applyOverrideTransform(formComponent, this.formMode, {
+        phase: 'construct',
+        reusableFormDefs: this.reusableFormDefs,
+      });
 
       // Store the instance on the item
       item.config?.componentDefinitions.push(itemTransformed);
