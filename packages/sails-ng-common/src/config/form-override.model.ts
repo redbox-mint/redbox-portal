@@ -226,7 +226,8 @@ export class FormOverride {
    */
   public applyOverridesReusable(
     items: AvailableFormComponentDefinitionFrames[],
-    reusableFormDefs: ReusableFormDefinitions
+    reusableFormDefs: ReusableFormDefinitions,
+    visitedReusableFormNames: Set<string> = new Set<string>()
   ): AvailableFormComponentDefinitionFrames[] {
     const reusableFormDefNames = Object.keys(reusableFormDefs ?? {}).sort();
     // Expanding the reusable form name to the associated form config requires replacing the item in the array.
@@ -242,7 +243,7 @@ export class FormOverride {
     // Update the items array to remove the reusable component and replace it with the form config it represents.
     const item = items[index];
     if (isTypeReusableComponent(item, reusableFormDefNames)) {
-      const expandedItems = this.applyOverrideReusableExpand(item, reusableFormDefs);
+      const expandedItems = this.applyOverrideReusableExpand(item, reusableFormDefs, visitedReusableFormNames);
       const newItems = [...items];
       newItems.splice(index, 1, ...expandedItems);
       items = newItems;
@@ -253,7 +254,7 @@ export class FormOverride {
     }
 
     // Continue until there are no more reusable components to expand.
-    return this.applyOverridesReusable(items, reusableFormDefs);
+    return this.applyOverridesReusable(items, reusableFormDefs, visitedReusableFormNames);
   }
 
   /**
@@ -264,75 +265,91 @@ export class FormOverride {
    */
   protected applyOverrideReusableExpand(
     item: ReusableFormComponentDefinitionFrame,
-    reusableFormDefs: ReusableFormDefinitions
+    reusableFormDefs: ReusableFormDefinitions,
+    visitedReusableFormNames: Set<string> = new Set<string>()
   ): AvailableFormComponentDefinitionFrames[] {
     const reusableFormName = item?.overrides?.reusableFormName ?? '';
-    const expandedItemsRaw = Object.keys(reusableFormDefs).includes(reusableFormName)
-      ? reusableFormDefs[reusableFormName]
-      : [];
-    const expandedItems = this.applyOverridesReusable(expandedItemsRaw, reusableFormDefs);
-    const additionalItemsRaw = item.component.config?.componentDefinitions ?? [];
-    const additionalItems = this.applyOverridesReusable(additionalItemsRaw, reusableFormDefs);
 
-    const expandedItemNames = expandedItems.map(i => i.name);
-    const extraAdditionalItems = additionalItems.filter(i => !expandedItemNames.includes(i.name));
-    if (extraAdditionalItems.length > 0) {
+    if (visitedReusableFormNames.has(reusableFormName)) {
+      const visitedPath = [...visitedReusableFormNames, reusableFormName].join(' -> ');
       throw new Error(
-        'Invalid usage of reusable form config. ' +
-        `Each item in the ${ReusableComponentName} componentDefinitions must have a name that matches an item in the reusable form config '${reusableFormName}'. ` +
-        `Names '${extraAdditionalItems.map(i => i.name)}' did not match any reusable form config items. ` +
-        `Available names are '${expandedItems
-          .map(i => i.name)
-          .sort()
-          .join(', ')}'.`
+        `Circular reusable form reference detected for '${reusableFormName}'. Expansion path: ${visitedPath}.`
       );
     }
 
-    const result = [];
-    for (const expandedItem of expandedItems) {
-      const additionalItemsMatched = additionalItems.filter(
-        additionalItem => expandedItem.name === additionalItem.name
-      );
-      if (additionalItemsMatched.length > 1) {
+    visitedReusableFormNames.add(reusableFormName);
+
+    const expandedItemsRaw = Object.keys(reusableFormDefs).includes(reusableFormName)
+      ? reusableFormDefs[reusableFormName]
+      : [];
+    try {
+      const expandedItems = this.applyOverridesReusable(expandedItemsRaw, reusableFormDefs, visitedReusableFormNames);
+      const additionalItemsRaw = item.component.config?.componentDefinitions ?? [];
+      const additionalItems = this.applyOverridesReusable(additionalItemsRaw, reusableFormDefs, visitedReusableFormNames);
+
+      const expandedItemNames = expandedItems.map(i => i.name);
+      const extraAdditionalItems = additionalItems.filter(i => !expandedItemNames.includes(i.name));
+      if (extraAdditionalItems.length > 0) {
         throw new Error(
           'Invalid usage of reusable form config. ' +
-          `Each item in the ${ReusableComponentName} componentDefinitions must have a unique name. ` +
-          `These names were not unique '${Array.from(new Set(additionalItemsMatched.map(i => i.name)))
+          `Each item in the ${ReusableComponentName} componentDefinitions must have a name that matches an item in the reusable form config '${reusableFormName}'. ` +
+          `Names '${extraAdditionalItems.map(i => i.name)}' did not match any reusable form config items. ` +
+          `Available names are '${expandedItems
+            .map(i => i.name)
             .sort()
             .join(', ')}'.`
         );
       }
 
-      if (additionalItemsMatched.length === 1) {
-        const additionalItem = additionalItemsMatched[0];
-        const known = {
-          component: { reusable: expandedItem.component.class, additional: additionalItem.component.class },
-          model: { reusable: expandedItem.model?.class, additional: additionalItem.model?.class },
-          layout: { reusable: expandedItem.layout?.class, additional: additionalItem.layout?.class },
-        };
-        for (const [key, values] of Object.entries(known)) {
-          const reusableValue = values.reusable;
-          const additionalValue = values.additional;
-          if (reusableValue && additionalValue && reusableValue !== additionalValue) {
-            throw new Error(
-              'Invalid usage of reusable form config. The class must match the reusable form config. ' +
-              "To change the class, use 'formModeClasses'. " +
-              `The ${key} class in reusable form config '${reusableFormName}' item '${expandedItem.name}' ` +
-              `is '${reusableValue}' given class was '${additionalValue}'.`
-            );
+      const result = [];
+      for (const expandedItem of expandedItems) {
+        const additionalItemsMatched = additionalItems.filter(
+          additionalItem => expandedItem.name === additionalItem.name
+        );
+        if (additionalItemsMatched.length > 1) {
+          throw new Error(
+            'Invalid usage of reusable form config. ' +
+            `Each item in the ${ReusableComponentName} componentDefinitions must have a unique name. ` +
+            `These names were not unique '${Array.from(new Set(additionalItemsMatched.map(i => i.name)))
+              .sort()
+              .join(', ')}'.`
+          );
+        }
+
+        if (additionalItemsMatched.length === 1) {
+          const additionalItem = additionalItemsMatched[0];
+          const known = {
+            component: { reusable: expandedItem.component.class, additional: additionalItem.component.class },
+            model: { reusable: expandedItem.model?.class, additional: additionalItem.model?.class },
+            layout: { reusable: expandedItem.layout?.class, additional: additionalItem.layout?.class },
+          };
+          for (const [key, values] of Object.entries(known)) {
+            const reusableValue = values.reusable;
+            const additionalValue = values.additional;
+            if (reusableValue && additionalValue && reusableValue !== additionalValue) {
+              throw new Error(
+                'Invalid usage of reusable form config. The class must match the reusable form config. ' +
+                "To change the class, use 'formModeClasses'. " +
+                `The ${key} class in reusable form config '${reusableFormName}' item '${expandedItem.name}' ` +
+                `is '${reusableValue}' given class was '${additionalValue}'.`
+              );
+            }
           }
         }
+
+        const newItem = _merge({}, expandedItem, additionalItemsMatched.length === 1 ? additionalItemsMatched[0] : {});
+        // Apply replaceName during reusable expansion so downstream data-model path binding
+        // uses the final component name rather than the reusable template name.
+        if (additionalItemsMatched.length === 1 && additionalItemsMatched[0].overrides?.replaceName !== undefined) {
+          newItem.name = additionalItemsMatched[0].overrides?.replaceName;
+        }
+        result.push(newItem);
       }
 
-      const newItem = _merge({}, expandedItem, additionalItemsMatched.length === 1 ? additionalItemsMatched[0] : {});
-      // Apply replaceName during reusable expansion so downstream data-model path binding
-      // uses the final component name rather than the reusable template name.
-      if (additionalItemsMatched.length === 1 && additionalItemsMatched[0].overrides?.replaceName !== undefined) {
-        newItem.name = additionalItemsMatched[0].overrides?.replaceName;
-      }
-      result.push(newItem);
+      return result;
+    } finally {
+      visitedReusableFormNames.delete(reusableFormName);
     }
-    return result;
   }
 
   /**

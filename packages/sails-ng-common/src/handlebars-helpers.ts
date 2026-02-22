@@ -356,6 +356,8 @@ export const handlebarsHelperDefinitions = {
 
     /**
      * Convert markdown to HTML when output format is markdown, otherwise pass HTML through.
+     * Note: This helper does not sanitize HTML output, we are currently only using it on the client side with Angular's DomSanitizer to ensure safe usage. 
+     * Do not use this helper with untrusted content in a server-side context without proper sanitization (see DOMSanitizerService as a way to sanitize the HTML on the server side).
      *
      * @example {{{markdownToHtml content outputFormat}}}
      */
