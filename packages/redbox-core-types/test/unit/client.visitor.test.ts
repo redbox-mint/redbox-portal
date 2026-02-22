@@ -666,6 +666,76 @@ describe("Client Visitor", async () => {
         expect(actual.componentDefinitions[0].component.class).to.eql("AccordionComponent");
     });
 
+    it(`should exclude edit-only tabs after tab-to-accordion transform in view mode`, async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            formMode: "view",
+            data: {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "main_tab",
+                        component: {
+                            class: "TabComponent",
+                            config: {
+                                tabs: [
+                                    {
+                                        name: "welcome",
+                                        constraints: {
+                                            authorization: { allowRoles: [] },
+                                            allowModes: ["edit"]
+                                        },
+                                        component: {
+                                            class: "TabContentComponent",
+                                            config: { componentDefinitions: [] }
+                                        }
+                                    },
+                                    {
+                                        name: "project",
+                                        constraints: {
+                                            authorization: { allowRoles: [] },
+                                            allowModes: []
+                                        },
+                                        component: {
+                                            class: "TabContentComponent",
+                                            config: {
+                                                componentDefinitions: [
+                                                    {
+                                                        name: "project_title",
+                                                        constraints: {
+                                                            authorization: { allowRoles: [] },
+                                                            allowModes: []
+                                                        },
+                                                        component: {
+                                                            class: "ContentComponent",
+                                                            config: {
+                                                                content: "Project",
+                                                                template: "<p>{{content}}</p>"
+                                                            }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        layout: { class: "TabLayout", config: {} }
+                    }
+                ]
+            }
+        });
+
+        const visitor = new ClientFormConfigVisitor(logger);
+        const actual = visitor.start({ form: constructed, formMode: "view" });
+        const panels = ((actual.componentDefinitions?.[0]?.component?.config as any)?.panels ?? []);
+
+        expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("AccordionComponent");
+        expect(panels.length).to.equal(1);
+        expect(panels[0]?.name).to.equal("project");
+    });
+
     it(`should keep tab in edit mode`, async function () {
         const constructor = new ConstructFormConfigVisitor(logger);
         const constructed = constructor.start({

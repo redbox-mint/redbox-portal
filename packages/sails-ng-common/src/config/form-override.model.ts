@@ -56,6 +56,7 @@ import { RichTextEditorComponentName, RichTextEditorFormComponentDefinitionOutli
 import { MapComponentName } from './component/map.outline';
 import { FileUploadComponentName, FileUploadFormComponentDefinitionOutline } from './component/file-upload.outline';
 import { TypeaheadInputModelOptionValue } from './component/typeahead-input.outline';
+import { FormConstraintConfigOutline } from './form-component.outline';
 
 export class FormOverride {
   private propertiesHelper: PropertiesHelper;
@@ -992,6 +993,9 @@ export class FormOverride {
         );
         return;
       }
+      if (!this.isModeAllowed(tab.constraints, formMode)) {
+        return;
+      }
 
       const buttonLabelCandidate = tab.layout?.config?.buttonLabel;
       const tabNameCandidate = tab.name;
@@ -1003,6 +1007,7 @@ export class FormOverride {
             : `${index}`;
       const panelFrame: AccordionPanelFormComponentDefinitionFrame = {
         name: tab.name ?? `panel-${index}`,
+        constraints: tab.constraints,
         component: {
           class: AccordionPanelComponentName,
           config: {
@@ -1048,6 +1053,14 @@ export class FormOverride {
     });
 
     return target;
+  }
+
+  private isModeAllowed(constraints: FormConstraintConfigOutline | undefined, formMode: FormModesConfig): boolean {
+    const allowModes = constraints?.allowModes;
+    if (!Array.isArray(allowModes) || allowModes.length === 0) {
+      return true;
+    }
+    return allowModes.includes(formMode);
   }
 
   private forceAllowModeForTransformedTree(componentDefinition: any, formMode: FormModesConfig): void {
