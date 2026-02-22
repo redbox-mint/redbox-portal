@@ -18,7 +18,6 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { DateTime } from 'luxon';
-import { marked } from 'marked';
 import {
     get as _get,
     isEmpty as _isEmpty,
@@ -26,6 +25,32 @@ import {
     isNull as _isNull,
     isArray as _isArray,
 } from 'lodash';
+
+/**
+ * Marked is an ESM module so cannot be imported synchronously in a CommonJS context. 
+ * We use dynamic import to load it when needed, and cache the parser function for future use. If the module cannot be loaded, the markdownToHtml helper will simply return the input string unmodified.
+ */
+let cachedMarkedParser: ((value: string) => string) | null | undefined;
+
+void import('marked')
+    .then((markedModule) => {
+        const parseFn = markedModule?.marked?.parse ?? markedModule?.parse;
+        if (typeof parseFn === 'function') {
+            cachedMarkedParser = (value: string): string => {
+                const result = parseFn(value);
+                return typeof result === 'string' ? result : value;
+            };
+            return;
+        }
+        cachedMarkedParser = null;
+    })
+    .catch(() => {
+        cachedMarkedParser = null;
+    });
+
+function resolveMarkedParser(): ((value: string) => string) | null {
+    return cachedMarkedParser ?? null;
+}
 
 /**
  * Shared Handlebars helper definitions for use in both server and client contexts.
@@ -367,11 +392,9 @@ export const handlebarsHelperDefinitions = {
             return '';
         }
         if (outputFormat === 'markdown') {
-            try {
-                const converted = marked.parse(input);
-                return typeof converted === 'string' ? converted : input;
-            } catch {
-                return input;
+            const parser = resolveMarkedParser();
+            if (parser) {
+                return parser(input);
             }
         }
         return input;
