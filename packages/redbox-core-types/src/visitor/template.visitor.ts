@@ -156,9 +156,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* SimpleInput */
 
-  visitSimpleInputFieldComponentDefinition(_item: SimpleInputFieldComponentDefinitionOutline): void {}
+  visitSimpleInputFieldComponentDefinition(_item: SimpleInputFieldComponentDefinitionOutline): void { }
 
-  visitSimpleInputFieldModelDefinition(_item: SimpleInputFieldModelDefinitionOutline): void {}
+  visitSimpleInputFieldModelDefinition(_item: SimpleInputFieldModelDefinitionOutline): void { }
 
   visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -193,9 +193,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitRepeatableFieldModelDefinition(_item: RepeatableFieldModelDefinitionOutline): void {}
+  visitRepeatableFieldModelDefinition(_item: RepeatableFieldModelDefinitionOutline): void { }
 
-  visitRepeatableElementFieldLayoutDefinition(_item: RepeatableElementFieldLayoutDefinitionOutline): void {}
+  visitRepeatableElementFieldLayoutDefinition(_item: RepeatableElementFieldLayoutDefinitionOutline): void { }
 
   visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -203,7 +203,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Validation Summary */
 
-  visitValidationSummaryFieldComponentDefinition(_item: ValidationSummaryFieldComponentDefinitionOutline): void {}
+  visitValidationSummaryFieldComponentDefinition(_item: ValidationSummaryFieldComponentDefinitionOutline): void { }
 
   visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -221,7 +221,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitGroupFieldModelDefinition(_item: GroupFieldModelDefinitionOutline): void {}
+  visitGroupFieldModelDefinition(_item: GroupFieldModelDefinitionOutline): void { }
 
   visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -239,7 +239,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitTabFieldLayoutDefinition(_item: TabFieldLayoutDefinitionOutline): void {}
+  visitTabFieldLayoutDefinition(_item: TabFieldLayoutDefinitionOutline): void { }
 
   visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -256,7 +256,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitAccordionFieldLayoutDefinition(_item: AccordionFieldLayoutDefinitionOutline): void {}
+  visitAccordionFieldLayoutDefinition(_item: AccordionFieldLayoutDefinitionOutline): void { }
 
   visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -271,7 +271,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitAccordionPanelFieldLayoutDefinition(_item: AccordionPanelFieldLayoutDefinitionOutline): void {}
+  visitAccordionPanelFieldLayoutDefinition(_item: AccordionPanelFieldLayoutDefinitionOutline): void { }
 
   visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -289,7 +289,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitTabContentFieldLayoutDefinition(_item: TabContentFieldLayoutDefinitionOutline): void {}
+  visitTabContentFieldLayoutDefinition(_item: TabContentFieldLayoutDefinitionOutline): void { }
 
   visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -297,7 +297,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Save Button  */
 
-  visitSaveButtonFieldComponentDefinition(_item: SaveButtonFieldComponentDefinitionOutline): void {}
+  visitSaveButtonFieldComponentDefinition(_item: SaveButtonFieldComponentDefinitionOutline): void { }
 
   visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -305,7 +305,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Cancel Button  */
 
-  visitCancelButtonFieldComponentDefinition(_item: CancelButtonFieldComponentDefinitionOutline): void {}
+  visitCancelButtonFieldComponentDefinition(_item: CancelButtonFieldComponentDefinitionOutline): void { }
 
   visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -313,7 +313,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Tab Nav Button  */
 
-  visitTabNavButtonFieldComponentDefinition(_item: TabNavButtonFieldComponentDefinitionOutline): void {}
+  visitTabNavButtonFieldComponentDefinition(_item: TabNavButtonFieldComponentDefinitionOutline): void { }
 
   visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -321,9 +321,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Text Area */
 
-  visitTextAreaFieldComponentDefinition(_item: TextAreaFieldComponentDefinitionOutline): void {}
+  visitTextAreaFieldComponentDefinition(_item: TextAreaFieldComponentDefinitionOutline): void { }
 
-  visitTextAreaFieldModelDefinition(_item: TextAreaFieldModelDefinitionOutline): void {}
+  visitTextAreaFieldModelDefinition(_item: TextAreaFieldModelDefinitionOutline): void { }
 
   visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -331,13 +331,13 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Default Layout  */
 
-  visitDefaultFieldLayoutDefinition(_item: DefaultFieldLayoutDefinitionOutline): void {}
+  visitDefaultFieldLayoutDefinition(_item: DefaultFieldLayoutDefinitionOutline): void { }
 
   /* Checkbox Input */
 
-  visitCheckboxInputFieldComponentDefinition(_item: CheckboxInputFieldComponentDefinitionOutline): void {}
+  visitCheckboxInputFieldComponentDefinition(_item: CheckboxInputFieldComponentDefinitionOutline): void { }
 
-  visitCheckboxInputFieldModelDefinition(_item: CheckboxInputFieldModelDefinitionOutline): void {}
+  visitCheckboxInputFieldModelDefinition(_item: CheckboxInputFieldModelDefinitionOutline): void { }
 
   visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -356,7 +356,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitCheckboxTreeFieldModelDefinition(_item: CheckboxTreeFieldModelDefinitionOutline): void {}
+  visitCheckboxTreeFieldModelDefinition(_item: CheckboxTreeFieldModelDefinitionOutline): void { }
 
   visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -364,9 +364,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Dropdown Input */
 
-  visitDropdownInputFieldComponentDefinition(_item: DropdownInputFieldComponentDefinitionOutline): void {}
+  visitDropdownInputFieldComponentDefinition(_item: DropdownInputFieldComponentDefinitionOutline): void { }
 
-  visitDropdownInputFieldModelDefinition(_item: DropdownInputFieldModelDefinitionOutline): void {}
+  visitDropdownInputFieldModelDefinition(_item: DropdownInputFieldModelDefinitionOutline): void { }
 
   visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -385,7 +385,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitTypeaheadInputFieldModelDefinition(_item: TypeaheadInputFieldModelDefinitionOutline): void {}
+  visitTypeaheadInputFieldModelDefinition(_item: TypeaheadInputFieldModelDefinitionOutline): void { }
 
   visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -393,9 +393,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Rich Text Editor */
 
-  visitRichTextEditorFieldComponentDefinition(_item: RichTextEditorFieldComponentDefinitionOutline): void {}
+  visitRichTextEditorFieldComponentDefinition(_item: RichTextEditorFieldComponentDefinitionOutline): void { }
 
-  visitRichTextEditorFieldModelDefinition(_item: RichTextEditorFieldModelDefinitionOutline): void {}
+  visitRichTextEditorFieldModelDefinition(_item: RichTextEditorFieldModelDefinitionOutline): void { }
 
   visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -403,9 +403,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Map */
 
-  visitMapFieldComponentDefinition(_item: MapFieldComponentDefinitionOutline): void {}
+  visitMapFieldComponentDefinition(_item: MapFieldComponentDefinitionOutline): void { }
 
-  visitMapFieldModelDefinition(_item: MapFieldModelDefinitionOutline): void {}
+  visitMapFieldModelDefinition(_item: MapFieldModelDefinitionOutline): void { }
 
   visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -413,9 +413,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* File Upload */
 
-  visitFileUploadFieldComponentDefinition(_item: FileUploadFieldComponentDefinitionOutline): void {}
+  visitFileUploadFieldComponentDefinition(_item: FileUploadFieldComponentDefinitionOutline): void { }
 
-  visitFileUploadFieldModelDefinition(_item: FileUploadFieldModelDefinitionOutline): void {}
+  visitFileUploadFieldModelDefinition(_item: FileUploadFieldModelDefinitionOutline): void { }
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -423,9 +423,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Radio Input */
 
-  visitRadioInputFieldComponentDefinition(_item: RadioInputFieldComponentDefinitionOutline): void {}
+  visitRadioInputFieldComponentDefinition(_item: RadioInputFieldComponentDefinitionOutline): void { }
 
-  visitRadioInputFieldModelDefinition(_item: RadioInputFieldModelDefinitionOutline): void {}
+  visitRadioInputFieldModelDefinition(_item: RadioInputFieldModelDefinitionOutline): void { }
 
   visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -433,9 +433,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Date Input */
 
-  visitDateInputFieldComponentDefinition(_item: DateInputFieldComponentDefinitionOutline): void {}
+  visitDateInputFieldComponentDefinition(_item: DateInputFieldComponentDefinitionOutline): void { }
 
-  visitDateInputFieldModelDefinition(_item: DateInputFieldModelDefinitionOutline): void {}
+  visitDateInputFieldModelDefinition(_item: DateInputFieldModelDefinitionOutline): void { }
 
   visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
