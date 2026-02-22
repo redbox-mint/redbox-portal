@@ -224,19 +224,41 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const className = item?.component?.class;
     const shouldTransformRepeatable = className === RepeatableComponentName;
     const shouldTransformGroup = className === GroupFieldComponentName;
+    const shouldSkipViewTransform = this.hasExplicitAllowedMode(item?.constraints, 'view');
 
     if (shouldTransformRepeatable || shouldTransformGroup) {
+      if (shouldSkipViewTransform) {
+        this.applyPostPruningTransformsToNestedChildren(item);
+        if ('constraints' in item) {
+          delete item['constraints'];
+        }
+        return item;
+      }
+
       const transformed = this.formOverride.applyOverrideTransform(item, this.formMode, {
         phase: 'client',
         reusableFormDefs: this.reusableFormDefs,
       }) as AvailableFormComponentDefinitionOutlines;
       this.processFormComponentDefinition(transformed);
+      if ('constraints' in transformed) {
+        delete transformed['constraints'];
+      }
       return transformed;
     }
 
+    this.applyPostPruningTransformsToNestedChildren(item);
+    return item;
+  }
+
+  protected hasExplicitAllowedMode(constraints: FormConstraintConfig | undefined, mode: FormModesConfig): boolean {
+    const allowModes = constraints?.allowModes;
+    return Array.isArray(allowModes) && allowModes.includes(mode);
+  }
+
+  protected applyPostPruningTransformsToNestedChildren(item: AvailableFormComponentDefinitionOutlines): void {
     const config = item?.component?.config as Record<string, unknown> | undefined;
     if (!config) {
-      return item;
+      return;
     }
 
     if (Array.isArray(config.componentDefinitions)) {
@@ -254,7 +276,6 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         config.panels as AvailableFormComponentDefinitionOutlines[]
       );
     }
-    return item;
   }
 
   visitFormConfig(item: FormConfigOutline): void {
@@ -688,9 +709,14 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   /* Shared */
 
   protected processFormComponentDefinition(item: FormComponentDefinitionOutline) {
+    const isPostPruningCandidate =
+      this.formMode === 'view' &&
+      this.formModeProvided &&
+      (item?.component?.class === RepeatableComponentName || item?.component?.class === GroupFieldComponentName);
+
     // Constraint define the criteria for including a component.
     // The client has no need for the constraints.
-    if ('constraints' in item) {
+    if ('constraints' in item && !isPostPruningCandidate) {
       delete item['constraints'];
     }
     // Expressions must be compiled on the server, then retrieved by the client.

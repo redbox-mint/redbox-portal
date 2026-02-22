@@ -329,6 +329,38 @@ describe("Construct Visitor", async () => {
             expect(enabledModes).to.deep.equal(["point", "polygon", "rectangle"]);
             expect(warnings.some((msg) => msg.includes("Map construct dropped unsupported enabledModes"))).to.equal(true);
         });
+
+        it("should not apply default view transform when allowModes explicitly includes view", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "top_action_like_component",
+                            constraints: {
+                                authorization: { allowRoles: [] },
+                                allowModes: ["view"]
+                            },
+                            component: {
+                                class: "SimpleInputComponent",
+                                config: {
+                                    label: "Action-like",
+                                    type: "text"
+                                }
+                            },
+                            model: {
+                                class: "SimpleInputModel",
+                                config: {}
+                            }
+                        }
+                    ]
+                }
+            });
+
+            expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("SimpleInputComponent");
+        });
     });
     describe("with overrides", async () => {
         const cases: {

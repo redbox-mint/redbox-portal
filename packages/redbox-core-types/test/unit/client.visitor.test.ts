@@ -871,6 +871,51 @@ describe("Client Visitor", async () => {
         expect(transformedConfig?.template).to.contain('{{join (get this "tree" "") ", "}}');
     });
 
+    it(`should not transform group in view mode when allowModes explicitly includes view`, async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            formMode: "view",
+            data: {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "GroupComponent-fields-2",
+                        constraints: {
+                            authorization: { allowRoles: [] },
+                            allowModes: ["view"]
+                        },
+                        component: {
+                            class: "GroupComponent",
+                            config: {
+                                componentDefinitions: [
+                                    {
+                                        name: "SaveButtonComponent-fields-2-definition-fields-0",
+                                        constraints: {
+                                            authorization: { allowRoles: [] },
+                                            allowModes: ["view"]
+                                        },
+                                        component: {
+                                            class: "SaveButtonComponent",
+                                            config: { label: "@dmp-edit-record-link" }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+
+        const visitor = new ClientFormConfigVisitor(logger);
+        const actual = visitor.start({ form: constructed, formMode: "view" });
+        const transformed = actual.componentDefinitions?.[0];
+
+        expect(transformed?.component?.class).to.equal("GroupComponent");
+        const nested = transformed?.component?.config as { componentDefinitions?: unknown[] } | undefined;
+        expect(Array.isArray(nested?.componentDefinitions)).to.equal(true);
+    });
+
     it(`should force repeatable fallback layout when row contains file upload`, async function () {
         const formOverride = new FormOverride(logger);
         const transformed = formOverride.applyOverrideTransform({
