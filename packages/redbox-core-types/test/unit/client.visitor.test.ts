@@ -868,7 +868,7 @@ describe("Client Visitor", async () => {
         expect(transformed?.component?.class).to.equal("ContentComponent");
         expect(transformedConfig?.template).to.contain("rb-view-repeatable-table");
         expect(transformedConfig?.template).to.contain('{{t "@label.title"}}');
-        expect(transformedConfig?.template).to.contain('{{join (get this "tree" "") ", "}}');
+        expect(transformedConfig?.template).to.contain('<ul>{{#each (get this "tree" "")}}<li>{{default this.label this.notation}}</li>{{/each}}</ul>');
     });
 
     it(`should not transform group in view mode when allowModes explicitly includes view`, async function () {
@@ -1353,5 +1353,16 @@ describe("Client Visitor", async () => {
         const fileUploadConfig = fileUpload.component.config as { template?: string };
         expect(fileUpload.component.class).to.equal("ContentComponent");
         expect(fileUploadConfig.template).to.contain("rb-view-file-upload");
+
+        const checkboxTree = formOverride.applyOverrideTransform({
+            name: "tree",
+            component: { class: "CheckboxTreeComponent", config: {} },
+            model: { class: "CheckboxTreeModel", config: { value: [{ notation: "B", label: "Child", genealogy: ["A", "B"] }] } }
+        } as any, "view");
+        const checkboxTreeConfig = checkboxTree.component.config as { content?: unknown, template?: string };
+        expect(checkboxTree.component.class).to.equal("ContentComponent");
+        expect(checkboxTreeConfig.template).to.contain("<ul>{{#each content}}<li>{{default this.label this.notation}}</li>{{/each}}</ul>");
+        expect(Array.isArray(checkboxTreeConfig.content)).to.equal(true);
+        expect((checkboxTreeConfig.content as any[])[0]?.notation).to.equal("B");
     });
 });

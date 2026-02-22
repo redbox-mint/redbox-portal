@@ -50,7 +50,7 @@ import {
 } from './component/accordion.model';
 import { RepeatableComponentName, RepeatableFormComponentDefinitionOutline } from './component/repeatable.outline';
 import { GroupFieldComponentName, GroupFormComponentDefinitionOutline } from './component/group.outline';
-import { CheckboxTreeComponentName } from './component/checkbox-tree.outline';
+import { CheckboxTreeComponentName, CheckboxTreeFormComponentDefinitionOutline } from './component/checkbox-tree.outline';
 import { TypeaheadInputComponentName, TypeaheadInputFormComponentDefinitionOutline } from './component/typeahead-input.outline';
 import { RichTextEditorComponentName, RichTextEditorFormComponentDefinitionOutline } from './component/rich-text-editor.outline';
 import { MapComponentName } from './component/map.outline';
@@ -80,6 +80,7 @@ export class FormOverride {
     leafOptionMulti: 'view-template-leaf-option-multi',
     leafRichText: 'view-template-leaf-rich-text',
     leafFileUpload: 'view-template-leaf-file-upload',
+    leafCheckboxTree: 'view-template-leaf-checkbox-tree',
     groupContainer: 'view-template-group-container',
     groupRowWithLabel: 'view-template-group-row-with-label',
     groupRowNoLabel: 'view-template-group-row-no-label',
@@ -133,6 +134,9 @@ export class FormOverride {
     },
     [TabComponentName]: {
       [AccordionComponentName]: this.sourceTabComponentTargetAccordionComponent,
+    },
+    [CheckboxTreeComponentName]: {
+      [ContentComponentName]: this.sourceCheckboxTreeComponentTargetContentComponent,
     },
   };
 
@@ -201,6 +205,11 @@ export class FormOverride {
       view: {
         component: AccordionComponentName,
         layout: AccordionLayoutName,
+      },
+    },
+    [CheckboxTreeComponentName]: {
+      view: {
+        component: ContentComponentName,
       },
     },
   };
@@ -668,6 +677,27 @@ export class FormOverride {
     return target;
   }
 
+  private sourceCheckboxTreeComponentTargetContentComponent(
+    source: CheckboxTreeFormComponentDefinitionOutline,
+    formMode: FormModesConfig
+  ): ContentFormComponentDefinitionOutline {
+    const target = this.commonContentComponent(source as any, formMode);
+    if (!target.component.config) {
+      return target;
+    }
+
+    if (source.model?.config?.value !== undefined) {
+      target.component.config.content = source.model.config.value;
+    }
+
+    target.component.config.template = this.resolveReusableViewTemplate(
+      this.reusableViewTemplateKeys.leafCheckboxTree,
+      `<ul>{{#each content}}<li>{{default this.label this.notation}}</li>{{/each}}</ul>`
+    );
+
+    return target;
+  }
+
   private isDeepEmpty(value: any): boolean {
     if (value === null || value === undefined || value === '') {
       return true;
@@ -871,6 +901,15 @@ export class FormOverride {
           ? (component.component.config as { template?: string }).template
           : undefined;
       const trimmedTemplate = (template ?? '').trim();
+
+      if (
+        trimmedTemplate === this.reusableViewTemplateKeys.leafCheckboxTree ||
+        trimmedTemplate === 'view-template-leaf-checkbox-tree' ||
+        trimmedTemplate.includes('<ul>{{#each content}}<li>{{default this.label this.notation}}</li>{{/each}}</ul>')
+      ) {
+        return `<ul>{{#each ${expression}}}<li>{{default this.label this.notation}}</li>{{/each}}</ul>`;
+      }
+
       if (
         trimmedTemplate === '{{content}}' ||
         trimmedTemplate === '{{{content}}}' ||
@@ -881,7 +920,11 @@ export class FormOverride {
       return `{{default ${expression} ""}}`;
     }
     if (className === CheckboxTreeComponentName) {
-      return `{{join ${expression} ", "}}`;
+      const template = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafCheckboxTree,
+        `<ul>{{#each [[valueExpr]]}}<li>{{default this.label this.notation}}</li>{{/each}}</ul>`
+      );
+      return this.substituteReusableTemplateSlots(template, { valueExpr: expression });
     }
     return `{{default ${expression} ""}}`;
   }

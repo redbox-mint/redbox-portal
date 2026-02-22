@@ -343,8 +343,8 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     if (checked) {
       this.selectedByNotation.set(notation, {
         notation,
-        label: node.label,
-        name: notation && node.label ? `${notation} - ${node.label}` : (node.label || notation),
+        label: node.displayLabel,
+        name: notation && node.displayLabel ? `${notation} - ${node.displayLabel}` : (node.displayLabel || notation),
         genealogy: this.getGenealogy(node)
       });
     } else {
