@@ -770,6 +770,53 @@ describe("Client Visitor", async () => {
         expect(actual.componentDefinitions[0].component.class).to.eql("TabComponent");
     });
 
+    it(`should strip layout help settings in view mode`, async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            formMode: "view",
+            data: {
+                name: "form",
+                componentDefinitions: [
+                    {
+                        name: "title",
+                        constraints: {
+                            authorization: { allowRoles: [] },
+                            allowModes: []
+                        },
+                        component: {
+                            class: "SimpleInputComponent",
+                            config: {
+                                label: "Title",
+                                type: "text"
+                            }
+                        },
+                        model: {
+                            class: "SimpleInputModel",
+                            config: {}
+                        },
+                        layout: {
+                            class: "DefaultLayout",
+                            config: {
+                                helpText: "show in edit only",
+                                helpTextVisibleOnInit: true,
+                                helpTextVisible: true
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+
+        const visitor = new ClientFormConfigVisitor(logger);
+        const actual = visitor.start({ form: constructed, formMode: "view" });
+        const layoutConfig = actual.componentDefinitions?.[0]?.layout?.config as any;
+
+        expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("ContentComponent");
+        expect(layoutConfig?.helpText).to.equal(undefined);
+        expect(layoutConfig?.helpTextVisibleOnInit).to.equal(undefined);
+        expect(layoutConfig?.helpTextVisible).to.equal(undefined);
+    });
+
     it(`should transform repeatable group to content table in view mode`, async function () {
         const constructor = new ConstructFormConfigVisitor(logger);
         const constructed = constructor.start({

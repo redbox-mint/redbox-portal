@@ -719,6 +719,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   protected processFieldLayoutDefinition(item: FieldLayoutDefinitionOutline) {
+    if (this.formMode === 'view' && item?.config) {
+      delete item.config.helpText;
+      delete item.config.helpTextVisibleOnInit;
+      delete item.config.helpTextVisible;
+    }
     this.removePropsUndefined(item);
     this.removePropsUndefined(item?.config ?? {});
   }
