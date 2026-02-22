@@ -18,7 +18,8 @@ import { getAdditionalErrorCount, getPrimaryError, hasMultipleErrors } from './f
                   [attr.aria-expanded]="isExpanded"
                   [attr.aria-controls]="detailPanelId"
                   [attr.aria-label]="'form.additionalErrorsButtonAriaLabel' | i18next: { count: additionalErrorCount }"
-              (click)="toggleExpanded()">
+                  (click)="toggleExpanded()"
+                  (keydown)="onToggleKeydown($event)">
             {{ 'form.additionalErrorsButtonLabel' | i18next: { count: additionalErrorCount } }}
           </button>
         }
@@ -85,6 +86,13 @@ export class FieldErrorSummaryComponent implements OnChanges {
       return;
     }
     this.isExpanded = !this.isExpanded;
+  }
+
+  public onToggleKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+      event.preventDefault();
+      this.toggleExpanded();
+    }
   }
 
   public trackError(error: FormValidatorComponentErrors, index: number): string {
