@@ -231,7 +231,7 @@ namespace.domain.action
 
 Examples:
 - `field.value.changed`
-- `field.meta.changed`
+- `field.ui-attribute.changed`
 - `field.dependency.trigger`
 - `field.request.focus`
 - `form.validation.broadcast`

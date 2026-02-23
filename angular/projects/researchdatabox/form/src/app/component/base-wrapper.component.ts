@@ -9,11 +9,12 @@ import {
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 
 import { set as _set, get as _get } from 'lodash-es';
-import {FormFieldBaseComponent, FormFieldCompMapEntry} from "@researchdatabox/portal-ng-common";
-import {KeyValueStringNested, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
+import { KeyValueStringNested, FormFieldComponentStatus } from "@researchdatabox/sails-ng-common";
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { FormComponentValueChangeEventProducer } from '../form-state/events/form-component-change-event-producer';
 import { FormComponentValueChangeEventConsumer } from '../form-state/events/form-component-change-event-consumer';
+import { FormComponentUIAttributeChangeEventProducer } from '../form-state/events/form-component-ui-attribute-change-event-producer';
 
 
 
@@ -32,22 +33,23 @@ import { FormComponentValueChangeEventConsumer } from '../form-state/events/form
  *
  */
 @Component({
-    selector: 'redbox-form-base-wrapper',
-    template: `
+  selector: 'redbox-form-base-wrapper',
+  template: `
     <ng-template redboxFormBaseWrapper></ng-template>
   `,
-    standalone: false
+  standalone: false
 })
 export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnDestroy {
   protected override logName = "FormBaseWrapperComponent";
   @Input() componentClass?: typeof FormFieldBaseComponent<ValueType>;
   @Input() defaultComponentConfig?: KeyValueStringNested = null;
 
-  @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
+  @ViewChild(FormBaseWrapperDirective, { static: true }) formFieldDirective!: FormBaseWrapperDirective;
 
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly valueChangeEventProducer = new FormComponentValueChangeEventProducer(this.eventBus);
   private readonly valueChangeEventConsumer = new FormComponentValueChangeEventConsumer(this.eventBus);
+  private readonly uiAttributeChangeEventProducer = new FormComponentUIAttributeChangeEventProducer(this.eventBus);
 
   public get componentRef() {
     return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
@@ -132,6 +134,14 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
       });
     }
 
+    // Bind the UI attribute change event producer alongside the value producer.
+    if (this.shouldAttachValueChangeProducer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.uiAttributeChangeEventProducer.bind({
+        component: compRef.instance,
+        definition: this.formFieldCompMapEntry
+      });
+    }
+
     this.loggerService.debug(`${this.logName}: Finished initComponent for '${componentName}'.`, this.formFieldCompMapEntry);
 
     // Set the host binding CSS classes for the wrapper element.
@@ -149,6 +159,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   ngOnDestroy() {
     this.valueChangeEventProducer.destroy();
     this.valueChangeEventConsumer.destroy();
+    this.uiAttributeChangeEventProducer.destroy();
     const compRef = this.componentRef;
     // Clean up the dynamically created component when the wrapper is destroyed
     if (compRef) {
