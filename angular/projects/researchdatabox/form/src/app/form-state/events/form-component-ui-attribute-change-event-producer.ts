@@ -37,9 +37,6 @@ const DEFAULT_UI_SNAPSHOT: Readonly<UIAttributeSnapshot> = Object.freeze({
  * An Angular `effect` watches the signal and defers event emission to
  * `afterNextRender`, ensuring DOM bindings reflect the new state before
  * downstream consumers react.
- *
- * The producer also emits on `FORM_DEFINITION_READY` so that consumers
- * always receive an initial set of UI attributes.
  */
 export class FormComponentUIAttributeChangeEventProducer extends FormComponentEventBaseProducerConsumer {
   private readonly injector = inject(Injector);
@@ -107,21 +104,8 @@ export class FormComponentUIAttributeChangeEventProducer extends FormComponentEv
       });
     this.subscriptions.set('ui-attr-value-change', valueSub);
 
-    // On form ready, publish the initial UI attributes — mirrors
-    // ValueChangeEventProducer.publishInitialValue().
-    const readySub = this.eventBus
-      .select$(FormComponentEventType.FORM_DEFINITION_READY)
-      .subscribe(() => {
-        setTimeout(() => {
-          this.refreshSnapshot();
-          this.publishUIAttributeChanged(this.uiAttributes());
-        }, 0);
-      });
-    this.subscriptions.set('ui-attr-form-ready', readySub);
-
     // Effect: signal → afterNextRender → emit.
-    // Skips the eager first run; the FORM_DEFINITION_READY handler
-    // is responsible for the initial emission.
+    // Skips the eager first run to avoid emitting the initial snapshot.
     this.effectRef = effect(() => {
       const snapshot = this.uiAttributes();
 

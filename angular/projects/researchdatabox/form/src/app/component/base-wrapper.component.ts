@@ -15,6 +15,7 @@ import { FormComponentEventBus } from '../form-state/events/form-component-event
 import { FormComponentValueChangeEventProducer } from '../form-state/events/form-component-change-event-producer';
 import { FormComponentValueChangeEventConsumer } from '../form-state/events/form-component-change-event-consumer';
 import { FormComponentUIAttributeChangeEventProducer } from '../form-state/events/form-component-ui-attribute-change-event-producer';
+import { FormComponentUIAttributeChangeEventConsumer } from '../form-state/events/form-component-ui-attribute-change-event-consumer';
 
 
 
@@ -50,6 +51,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   private readonly valueChangeEventProducer = new FormComponentValueChangeEventProducer(this.eventBus);
   private readonly valueChangeEventConsumer = new FormComponentValueChangeEventConsumer(this.eventBus);
   private readonly uiAttributeChangeEventProducer = new FormComponentUIAttributeChangeEventProducer(this.eventBus);
+  private readonly uiAttributeChangeEventConsumer = new FormComponentUIAttributeChangeEventConsumer(this.eventBus);
 
   public get componentRef() {
     return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
@@ -142,6 +144,14 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
       });
     }
 
+    if (this.shouldAttachValueChangeConsumer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.uiAttributeChangeEventConsumer.formComponent = this.getFormComponentFromAppRef()?.instance;
+      this.uiAttributeChangeEventConsumer.bind({
+        component: compRef.instance,
+        definition: this.formFieldCompMapEntry
+      });
+    }
+
     this.loggerService.debug(`${this.logName}: Finished initComponent for '${componentName}'.`, this.formFieldCompMapEntry);
 
     // Set the host binding CSS classes for the wrapper element.
@@ -160,6 +170,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     this.valueChangeEventProducer.destroy();
     this.valueChangeEventConsumer.destroy();
     this.uiAttributeChangeEventProducer.destroy();
+    this.uiAttributeChangeEventConsumer.destroy();
     const compRef = this.componentRef;
     // Clean up the dynamically created component when the wrapper is destroyed
     if (compRef) {

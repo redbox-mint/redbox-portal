@@ -15,7 +15,6 @@ describe('FormComponentUIAttributeChangeEventProducer', () => {
   let scopedBus: jasmine.SpyObj<ScopedEventBus>;
   let producer: FormComponentUIAttributeChangeEventProducer;
   let valueChangedSubject$: Subject<any>;
-  let formReadySubject$: Subject<any>;
   let appRef: ApplicationRef;
 
   beforeEach(() => {
@@ -24,7 +23,6 @@ describe('FormComponentUIAttributeChangeEventProducer', () => {
     });
 
     valueChangedSubject$ = new Subject();
-    formReadySubject$ = new Subject();
 
     eventBus = jasmine.createSpyObj<FormComponentEventBus>(
       'FormComponentEventBus', ['publish', 'scoped', 'select$']
@@ -37,8 +35,6 @@ describe('FormComponentUIAttributeChangeEventProducer', () => {
       switch (eventType) {
         case FormComponentEventType.FIELD_VALUE_CHANGED:
           return valueChangedSubject$.asObservable();
-        case FormComponentEventType.FORM_DEFINITION_READY:
-          return formReadySubject$.asObservable();
         default:
           return EMPTY;
       }
@@ -90,31 +86,11 @@ describe('FormComponentUIAttributeChangeEventProducer', () => {
     appRef.tick();
   }
 
-  it('should not emit events before FORM_DEFINITION_READY', fakeAsync(() => {
+  it('should not emit events when no value changes occur', fakeAsync(() => {
     const { component, definition } = createBindingOptions('f1');
     producer.bind({ component, definition });
     flushAndRender();
     expect(eventBus.publish).not.toHaveBeenCalled();
-  }));
-
-  it('should emit initial UI attributes on FORM_DEFINITION_READY', fakeAsync(() => {
-    const { component, definition } = createBindingOptions('f1');
-    producer.bind({ component, definition });
-
-    formReadySubject$.next({
-      type: FormComponentEventType.FORM_DEFINITION_READY,
-      timestamp: Date.now()
-    });
-    flushAndRender();
-
-    expect(eventBus.publish).toHaveBeenCalled();
-    const calls = eventBus.publish.calls.allArgs()
-      .filter(a => a[0].type === FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED);
-    expect(calls.length).toBeGreaterThan(0);
-    const event = calls[calls.length - 1][0] as FormComponentEventResult<FieldUIAttributeChangedEvent>;
-    expect(event.type).toBe(FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED);
-    expect(event.fieldId).toBe('f1');
-    expect(event.meta).toEqual({ visible: true, readonly: false, disabled: false });
   }));
 
   it('should emit when config.visible changes after a value change event', fakeAsync(() => {
@@ -206,12 +182,18 @@ describe('FormComponentUIAttributeChangeEventProducer', () => {
     expect(uiEvents.length).toBe(0);
   }));
 
-  it('should publish to both general and scoped buses on FORM_DEFINITION_READY', fakeAsync(() => {
-    const { component, definition } = createBindingOptions('f6');
+  it('should publish to both general and scoped buses', fakeAsync(() => {
+    const { component, definition, config } = createBindingOptions('f6');
     producer.bind({ component, definition });
+    flushAndRender();
+    eventBus.publish.calls.reset();
+    scopedBus.publish.calls.reset();
 
-    formReadySubject$.next({
-      type: FormComponentEventType.FORM_DEFINITION_READY,
+    config.visible = false;
+    valueChangedSubject$.next({
+      type: FormComponentEventType.FIELD_VALUE_CHANGED,
+      fieldId: 'trigger',
+      value: 1,
       timestamp: 0
     });
     flushAndRender();
@@ -264,13 +246,6 @@ describe('FormComponentUIAttributeChangeEventProducer', () => {
     flushAndRender();
 
     expect(eventBus.scoped).not.toHaveBeenCalled();
-
-    formReadySubject$.next({
-      type: FormComponentEventType.FORM_DEFINITION_READY,
-      timestamp: 0
-    });
-    flushAndRender();
-
     expect(eventBus.publish).not.toHaveBeenCalled();
   }));
 
@@ -287,8 +262,13 @@ describe('FormComponentUIAttributeChangeEventProducer', () => {
 
     producer.bind({ component, definition });
 
-    formReadySubject$.next({
-      type: FormComponentEventType.FORM_DEFINITION_READY,
+    // Trigger a value change that causes a config mutation to a non-UI-attribute key
+    // The snapshot should still use defaults for missing UI attributes
+    (componentDefinition.config as any).visible = false;
+    valueChangedSubject$.next({
+      type: FormComponentEventType.FIELD_VALUE_CHANGED,
+      fieldId: 'trigger',
+      value: 1,
       timestamp: 0
     });
     flushAndRender();
@@ -296,12 +276,10 @@ describe('FormComponentUIAttributeChangeEventProducer', () => {
     const calls = eventBus.publish.calls.allArgs()
       .filter(a => a[0].type === FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED);
     expect(calls.length).toBeGreaterThan(0);
-    // Defaults: visible=true, readonly=false, disabled=false
-    expect((calls[calls.length - 1][0] as FormComponentEventResult<FieldUIAttributeChangedEvent>).meta).toEqual({
-      visible: true,
-      readonly: false,
-      disabled: false
-    });
+    expect((calls[calls.length - 1][0] as FormComponentEventResult<FieldUIAttributeChangedEvent>).meta['visible']).toBe(false);
+    // readonly and disabled default to false
+    expect((calls[calls.length - 1][0] as FormComponentEventResult<FieldUIAttributeChangedEvent>).meta['readonly']).toBe(false);
+    expect((calls[calls.length - 1][0] as FormComponentEventResult<FieldUIAttributeChangedEvent>).meta['disabled']).toBe(false);
   }));
 
   it('should re-bind cleanly when bind is called again', fakeAsync(() => {
@@ -315,8 +293,12 @@ describe('FormComponentUIAttributeChangeEventProducer', () => {
     const opts2 = createBindingOptions('f10b', { visible: false });
     producer.bind({ component: opts2.component, definition: opts2.definition });
 
-    formReadySubject$.next({
-      type: FormComponentEventType.FORM_DEFINITION_READY,
+    // Trigger a config change on the new binding
+    opts2.config.disabled = true;
+    valueChangedSubject$.next({
+      type: FormComponentEventType.FIELD_VALUE_CHANGED,
+      fieldId: 'trigger',
+      value: 1,
       timestamp: 0
     });
     flushAndRender();
