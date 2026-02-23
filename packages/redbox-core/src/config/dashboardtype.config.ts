@@ -8,6 +8,7 @@
 export interface DashboardFilterField {
     name: string;
     path: string;
+    template?: string;
 }
 
 export interface DashboardQueryFilter {

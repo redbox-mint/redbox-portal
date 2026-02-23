@@ -15,6 +15,7 @@ export interface DashboardRowConfig {
     variable: string;
     template: string;
     initialSort?: 'asc' | 'desc';
+    defaultSort?: boolean;
 }
 
 export interface DashboardFormatRules {
