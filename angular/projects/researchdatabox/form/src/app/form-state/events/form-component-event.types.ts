@@ -54,11 +54,11 @@ export interface FormDefinitionReadyEvent extends FormComponentEventBase {
 }
 
 /**
- * Field metadata changed event
- * Published when field metadata (visibility, enabled state, etc.) changes
+ * Field UI attribute changed event
+ * Published when field UI-bound properties (visibility, enabled state, etc.) change
  */
-export interface FieldMetaChangedEvent extends FieldScopedEventBase {
-  readonly type: 'field.meta.changed';
+export interface FieldUIAttributeChangedEvent extends FieldScopedEventBase {
+  readonly type: 'field.ui-attribute.changed';
   readonly meta: Record<string, any>;
 }
 
@@ -142,7 +142,7 @@ export interface FormSaveFailureEvent extends FormComponentEventBase {
  */
 export type FormComponentEvent =
   | FieldValueChangedEvent
-  | FieldMetaChangedEvent
+  | FieldUIAttributeChangedEvent
   | FieldDependencyTriggerEvent
   | FieldFocusRequestEvent
   | FormValidationBroadcastEvent
@@ -159,7 +159,7 @@ export type FormComponentEvent =
  */
 export const FormComponentEventType = {
   FIELD_VALUE_CHANGED: 'field.value.changed' as const,
-  FIELD_META_CHANGED: 'field.meta.changed' as const,
+  FIELD_UI_ATTRIBUTE_CHANGED: 'field.ui-attribute.changed' as const,
   FORM_DEFINITION_CHANGE_REQUEST: 'form.definition.change.request' as const,
   FORM_DEFINITION_CHANGED: 'form.definition.changed' as const,
   FORM_DEFINITION_READY: 'form.definition.ready' as const,
@@ -182,7 +182,7 @@ This would ensure that only known names can be used and enforce this at compile 
  */
 export interface FormComponentEventMap {
   'field.value.changed': FieldValueChangedEvent;
-  'field.meta.changed': FieldMetaChangedEvent;
+  'field.ui-attribute.changed': FieldUIAttributeChangedEvent;
   'form.definition.change.request': FormDefinitionChangeRequestEvent;
   'form.definition.changed': FormDefinitionChangedEvent;
   'form.definition.ready': FormDefinitionReadyEvent;
@@ -225,13 +225,13 @@ export function createFieldValueChangedEvent(
 }
 
 /**
- * Helper factory for creating field meta changed events (R15.15)
+ * Helper factory for creating field UI attribute changed events (R15.15)
  */
-export function createFieldMetaChangedEvent(
-  options: FormComponentEventOptions<FieldMetaChangedEvent>
-): FormComponentEventResult<FieldMetaChangedEvent> {
-  return createEventResult<FieldMetaChangedEvent>(
-    FormComponentEventType.FIELD_META_CHANGED,
+export function createFieldUIAttributeChangedEvent(
+  options: FormComponentEventOptions<FieldUIAttributeChangedEvent>
+): FormComponentEventResult<FieldUIAttributeChangedEvent> {
+  return createEventResult<FieldUIAttributeChangedEvent>(
+    FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED,
     options
   );
 }
