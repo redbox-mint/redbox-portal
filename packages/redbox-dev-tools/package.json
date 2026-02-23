@@ -36,11 +36,8 @@
     "url": "https://github.com/redbox-mint/redbox-portal/issues"
   },
   "homepage": "https://github.com/redbox-mint/redbox-portal/tree/v4.5.1#readme",
-  "peerDependencies": {
-    "@researchdatabox/redbox-core": "^1.5.0"
-  },
   "dependencies": {
-    "@researchdatabox/redbox-core": "^1.5.0",
+    "@researchdatabox/redbox-core": "file:../redbox-core",
     "@researchdatabox/sails-ng-common": "file:../sails-ng-common",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.10.0",
