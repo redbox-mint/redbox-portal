@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { Services as RvaImportServiceModule } from '../../../packages/redbox-core-types/src/services/RvaImportService';
-import type { VocabularyEntryWaterlineModel } from '../../../packages/redbox-core-types/src/waterline-models/VocabularyEntry';
+import { Services as RvaImportServiceModule } from '../../../packages/redbox-core/src/services/RvaImportService';
+import type { VocabularyEntryWaterlineModel } from '../../../packages/redbox-core/src/waterline-models/VocabularyEntry';
 import axios from 'axios';
 
 declare const RvaImportService: RvaImportServiceModule.RvaImport;
@@ -18,7 +18,9 @@ describe('RvaImportService integration', function () {
       const code = axios.isAxiosError(error) ? error.code : undefined;
       const isDownstreamFailure = typeof status === 'number' || typeof code === 'string';
       if (isDownstreamFailure) {
-        console.warn(`Skipping RVA import integration assertion due to downstream RVA API failure (status=${status ?? 'n/a'}, code=${code ?? 'n/a'}).`);
+        console.warn(
+          `Skipping RVA import integration assertion due to downstream RVA API failure (status=${status ?? 'n/a'}, code=${code ?? 'n/a'}).`
+        );
         this.skip();
       }
       throw error;

@@ -1,9 +1,9 @@
 # Secure Uppy Companion Endpoint
 
 - [ ] Analyze current Companion configuration and usage <!-- id: 0 -->
-  - [ ] Review `packages/redbox-core-types/src/config/companion.config.ts` <!-- id: 1 -->
-  - [ ] Review `packages/redbox-core-types/src/config/http.config.ts` middleware setup <!-- id: 2 -->
-  - [ ] Review `packages/redbox-core-types/src/config/policies.config.ts` and related policies for upload/auth interaction <!-- id: 3 -->
+  - [ ] Review `packages/redbox-core/src/config/companion.config.ts` <!-- id: 1 -->
+  - [ ] Review `packages/redbox-core/src/config/http.config.ts` middleware setup <!-- id: 2 -->
+  - [ ] Review `packages/redbox-core/src/config/policies.config.ts` and related policies for upload/auth interaction <!-- id: 3 -->
   - [ ] Review `file-upload` component interaction <!-- id: 4 -->
 - [ ] Design security mechanism <!-- id: 5 -->
   - [ ] Define secure authenticated default for all `/companion/*` routes <!-- id: 6 -->

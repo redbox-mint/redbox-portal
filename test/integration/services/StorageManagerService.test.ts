@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Services as StorageManagerServices } from '../../../packages/redbox-core-types/src/services/StorageManagerService';
+import { Services as StorageManagerServices } from '../../../packages/redbox-core/src/services/StorageManagerService';
 import { Readable } from 'node:stream';
 
 describe('StorageManagerService', function () {

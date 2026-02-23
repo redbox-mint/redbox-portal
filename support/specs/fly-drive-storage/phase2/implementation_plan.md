@@ -6,9 +6,9 @@ Fix design issues in `fly-drive-storage` implementation. Specifically, make S3 d
 
 ## Proposed Changes
 
-### `packages/redbox-core-types`
+### `packages/redbox-core`
 
-#### [MODIFY] [services/StorageManagerService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core-types/src/services/StorageManagerService.ts)
+#### [MODIFY] [services/StorageManagerService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/services/StorageManagerService.ts)
 
 - Add global declaration at the end of the file:
 
@@ -18,17 +18,17 @@ declare global {
 }
 ```
 
-#### [MODIFY] [config/storage.config.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core-types/src/config/storage.config.ts)
+#### [MODIFY] [config/storage.config.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/config/storage.config.ts)
 
 - **Line 9**: Add `visibility?: string;` to `FSDriverOptions`.
 - **Line 17** (approx): Add `visibility?: string;` to `S3DriverOptions`.
 
-#### [MODIFY] [services/StorageManagerService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core-types/src/services/StorageManagerService.ts)
+#### [MODIFY] [services/StorageManagerService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/services/StorageManagerService.ts)
 
 - **Line 173**: Change to `visibility: diskConf.config.visibility || 'public',`
 - **Line 188**: Change to `visibility: diskConf.config.visibility || 'public',`
 
-#### [MODIFY] [services/StandardDatastreamService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core-types/src/services/StandardDatastreamService.ts)
+#### [MODIFY] [services/StandardDatastreamService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/services/StandardDatastreamService.ts)
 
 - **Line 9**: Remove `import type { Services as StorageManagerServices } ...`
 - **Line 10**: Remove `StorageManagerService` from import list.
@@ -39,14 +39,14 @@ declare global {
 - **Line 258**: `const primaryDisk = StorageManagerService.primaryDisk();`
 - **Line 291**: `const primaryDisk = StorageManagerService.primaryDisk();`
 
-### `packages/redbox-core-types`
+### `packages/redbox-core`
 
-#### [MODIFY] [DatastreamService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core-types/src/DatastreamService.ts)
+#### [MODIFY] [DatastreamService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/DatastreamService.ts)
 
 - **Import**: `import type { Services as StorageManagerServices } from './services/StorageManagerService';`
 - **Line 16**: Change `fileRoot: string` to `stagingDisk: StorageManagerServices.IDisk`.
 
-#### [MODIFY] [services/StandardDatastreamService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core-types/src/services/StandardDatastreamService.ts)
+#### [MODIFY] [services/StandardDatastreamService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/services/StandardDatastreamService.ts)
 
 - **Import**: Ensure `StorageManagerServices` is available (it was removed in previous step, might need to re-add or just use `Services.StorageManagerService.Services.IDisk` via import changes or `IDisk` type alias).
 - **Line 99**: Change `_fileRoot: string` to `stagingDisk: StorageManagerServices.IDisk` (or `IDisk`).
@@ -54,7 +54,7 @@ declare global {
 - **Line 186**: Update `addDatastream` signature to `addDatastream(oid: string, datastream: Datastream, stagingDisk?: StorageManagerServices.IDisk): Promise<unknown>`.
 - **Line 190**: Use passed `stagingDisk` or fallback to `StorageManagerService.stagingDisk()`.
 
-#### [MODIFY] [services/RecordsService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core-types/src/services/RecordsService.ts)
+#### [MODIFY] [services/RecordsService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/services/RecordsService.ts)
 
 - **Line 1826**: Update `updateDatastream` call. Instead of `attachmentsDir`, pass `StorageManagerService.stagingDisk()`. Remove logic that reads `attachmentsDir` from config.
 

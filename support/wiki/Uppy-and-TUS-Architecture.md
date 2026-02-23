@@ -100,13 +100,13 @@ flowchart TD
 ## Key Code Paths
 
 - Companion middleware orchestration:
-  - `packages/redbox-core-types/src/config/http.config.ts`
+  - `packages/redbox-core/src/config/http.config.ts`
 - Companion config defaults:
-  - `packages/redbox-core-types/src/config/companion.config.ts`
+  - `packages/redbox-core/src/config/companion.config.ts`
 - Attach endpoints:
-  - `packages/redbox-core-types/src/config/routes.config.ts`
+  - `packages/redbox-core/src/config/routes.config.ts`
 - Attach endpoint policies:
-  - `packages/redbox-core-types/src/config/policies.config.ts`
-  - `packages/redbox-core-types/src/policies/companionAttachmentUploadAuth.ts`
+  - `packages/redbox-core/src/config/policies.config.ts`
+  - `packages/redbox-core/src/policies/companionAttachmentUploadAuth.ts`
 - Uppy frontend integration:
   - `angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts`

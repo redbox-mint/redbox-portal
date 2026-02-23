@@ -12,13 +12,13 @@ Secure Uppy Companion endpoints (`/companion/*`) so only authenticated ReDBox us
 > - Unauthenticated requests to `/companion/*` return `401` (JSON), not login redirects.
 > - Authenticated users are allowed by default.
 > - Optional PathRules-based role restriction is supported for authenticated users when matching companion rules are configured.
-> - Companion authorization must be implemented in core source (`packages/redbox-core-types/src/...`), not generated shim files in `config/*.js`.
+> - Companion authorization must be implemented in core source (`packages/redbox-core/src/...`), not generated shim files in `config/*.js`.
 
 ## Proposed Changes
 
 ### Configuration
 
-#### [MODIFY] `packages/redbox-core-types/src/config/http.config.ts`
+#### [MODIFY] `packages/redbox-core/src/config/http.config.ts`
 
 - Add a dedicated companion auth guard at the start of the `companion` middleware flow:
   - Detect `/companion/*` requests.
@@ -27,7 +27,7 @@ Secure Uppy Companion endpoints (`/companion/*`) so only authenticated ReDBox us
 - Do not wrap Companion middleware directly with `checkAuth` to avoid HTML redirect behavior and branding/portal coupling for non-controller middleware routes.
 - Keep existing companion behavior intact (token restore, send-token page, lazy app/socket init).
 
-#### [ADD] `packages/redbox-core-types/src/services` or helper in `http.config.ts` (small scoped helper)
+#### [ADD] `packages/redbox-core/src/services` or helper in `http.config.ts` (small scoped helper)
 
 - Add optional role/path-rule refinement for authenticated users:
   - Resolve brand from `req.session.branding`.
@@ -38,9 +38,9 @@ Secure Uppy Companion endpoints (`/companion/*`) so only authenticated ReDBox us
 #### [NO CHANGE] `config/companion.js`, `config/policies.js`
 
 - These are generated shims and must not be directly edited.
-- If configuration defaults are needed, update `packages/redbox-core-types/src/config/*.ts` only.
+- If configuration defaults are needed, update `packages/redbox-core/src/config/*.ts` only.
 
-#### [OPTIONAL] `packages/redbox-core-types/src/config/auth.config.ts`
+#### [OPTIONAL] `packages/redbox-core/src/config/auth.config.ts`
 
 - Document an example companion rule pattern for admins who want role restrictions, e.g. `/:branding/:portal/companion(/*)`.
 
@@ -56,7 +56,7 @@ Secure Uppy Companion endpoints (`/companion/*`) so only authenticated ReDBox us
    - `companionAttachmentUploadAuth` policy tests.
    - `checkAuth` bypass-flag tests.
 3. Run:
-   - `cd packages/redbox-core-types && npm test`
+   - `cd packages/redbox-core && npm test`
    - `npm run test:mocha`
 
 ### Manual Verification

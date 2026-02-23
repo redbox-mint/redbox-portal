@@ -6,7 +6,7 @@ Centralize template structures used by `view` mode transforms that output `Conte
 
 Primary target config:
 
-- `packages/redbox-core-types/src/config/reusableFormDefinitions.config.ts`
+- `packages/redbox-core/src/config/reusableFormDefinitions.config.ts`
 
 Primary transform consumer:
 
@@ -66,7 +66,7 @@ Reusable fragment resolution must be wired explicitly in both visitor phases:
 
 - `construct` phase: `ConstructFormConfigVisitor` already has `reusableFormDefs`. It must pass these defs into `FormOverride` for leaf transforms that still execute during construct.
 - `client` phase: `ClientFormConfigVisitor` must receive the same `reusableFormDefs` input and pass them into `FormOverride` when applying deferred `RepeatableComponent`/`GroupComponent` transforms.
-- `FormOverride` API contract: the current `applyOverrideTransform(source, formMode, options?)` signature must be extended to accept the active reusable definitions for lookup. Options include: adding `reusableFormDefs` to the `options` parameter, passing via the constructor, or a setter method. No global/static import of `redbox-core-types` config from `sails-ng-common`.
+- `FormOverride` API contract: the current `applyOverrideTransform(source, formMode, options?)` signature must be extended to accept the active reusable definitions for lookup. Options include: adding `reusableFormDefs` to the `options` parameter, passing via the constructor, or a setter method. No global/static import of `redbox-core` config from `sails-ng-common`.
 - `ClientFormConfigVisitor.start()` API: the current signature `start({ form, formMode?, userRoles? })` must be extended to accept `reusableFormDefs` so they can be passed through to `FormOverride` during deferred transforms.
 - Failure behavior: if defs are absent, key is missing, or lookup fails, use hardcoded fallback templates and emit debug logging for traceability.
 
@@ -127,20 +127,20 @@ Rule: slot substitution is deterministic and limited to known placeholders; no a
 
 Reusable fragment templates depend on the following Handlebars helpers being registered at render time. Any custom templates defined via `ReusableFormDefinitions` must have access to these helpers:
 
-| Helper           | Usage                            | Example                        |
-| ---------------- | -------------------------------- | ------------------------------ |
-| `formatDate`     | Date formatting                  | `{{formatDate content}}`       |
-| `join`           | Array-to-string with delimiter   | `{{join expr ", "}}`           |
-| `default`        | Fallback for missing values      | `{{default expr ""}}`          |
-| `t`              | i18n translation                 | `{{t "label-key"}}`            |
-| `get`            | Safe nested property access      | `(get this "field" "")`        |
+| Helper           | Usage                            | Example                                     |
+| ---------------- | -------------------------------- | ------------------------------------------- |
+| `formatDate`     | Date formatting                  | `{{formatDate content}}`                    |
+| `join`           | Array-to-string with delimiter   | `{{join expr ", "}}`                        |
+| `default`        | Fallback for missing values      | `{{default expr ""}}`                       |
+| `t`              | i18n translation                 | `{{t "label-key"}}`                         |
+| `get`            | Safe nested property access      | `(get this "field" "")`                     |
 | `markdownToHtml` | Markdown → HTML conversion (new) | `{{{markdownToHtml content outputFormat}}}` |
 
 ## Rich Text Rendering and Sanitization
 
 `RichTextEditorComponent` view-mode output uses `{{{markdownToHtml content outputFormat}}}` with a new Handlebars helper. Sanitization is handled by existing layers:
 
-- **Server-side**: `DomSanitizerService` (in `redbox-core-types/src/services/DomSanitizerService.ts`) uses DOMPurify with configurable profiles. Rich-text content should be sanitized through this service during the transform if desired.
+- **Server-side**: `DomSanitizerService` (in `redbox-core/src/services/DomSanitizerService.ts`) uses DOMPurify with configurable profiles. Rich-text content should be sanitized through this service during the transform if desired.
 - **Client-side**: `ContentComponent` renders via `[innerHtml]` binding, which Angular's built-in `DomSanitizer` automatically sanitizes — stripping script tags, event-handler attributes, and dangerous URL protocols.
 
 The `markdownToHtml` Handlebars helper:
@@ -180,9 +180,9 @@ Print-specific overrides go in `assets/styles/default-responsive.scss`, since vi
 
 ## Package Boundary and Ownership
 
-- `redbox-core-types` owns default reusable fragment definitions.
+- `redbox-core` owns default reusable fragment definitions.
 - `sails-ng-common` owns transform algorithm and selection logic.
-- `sails-ng-common` consumes resolved reusable fragments via explicit input/resolution path rather than hard dependency on `redbox-core-types` internals.
+- `sails-ng-common` consumes resolved reusable fragments via explicit input/resolution path rather than hard dependency on `redbox-core` internals.
 
 ## Backward Compatibility Strategy
 

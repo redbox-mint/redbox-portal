@@ -6,13 +6,13 @@ Implement a `ReusableFormDefinitions`-driven view fragment model for all existin
 
 Impacted areas:
 
-- `packages/redbox-core-types/src/config/reusableFormDefinitions.config.ts`
+- `packages/redbox-core/src/config/reusableFormDefinitions.config.ts`
 - `packages/sails-ng-common/src/config/form-override.model.ts`
-- `packages/redbox-core-types/src/visitor/construct.visitor.ts`
-- `packages/redbox-core-types/src/visitor/client.visitor.ts`
+- `packages/redbox-core/src/visitor/construct.visitor.ts`
+- `packages/redbox-core/src/visitor/client.visitor.ts`
 - `assets/styles/default-theme.scss`
 - `assets/styles/default-responsive.scss`
-- Related unit tests in `packages/redbox-core-types/test/unit`
+- Related unit tests in `packages/redbox-core/test/unit`
 
 ## Phase 1: Define Reusable View Fragments and Keys
 

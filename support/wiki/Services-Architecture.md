@@ -4,7 +4,7 @@ This document provides a deep dive into the ReDBox Portal service layer architec
 
 ## Overview
 
-ReDBox Portal uses a service-oriented architecture where business logic is encapsulated in TypeScript services. All services are centralized in the `@researchdatabox/redbox-core-types` package and loaded into Sails.js via the [Redbox Loader](Redbox-Loader) shim generation system.
+ReDBox Portal uses a service-oriented architecture where business logic is encapsulated in TypeScript services. All services are centralized in the `@researchdatabox/redbox-core` package and loaded into Sails.js via the [Redbox Loader](Redbox-Loader) shim generation system.
 
 ## Service Lifecycle
 
@@ -13,7 +13,7 @@ ReDBox Portal uses a service-oriented architecture where business logic is encap
 │                    Service Lifecycle                                │
 ├─────────────────────────────────────────────────────────────────────┤
 │  1. Build Time: TypeScript services compiled to JavaScript          │
-│     └── packages/redbox-core-types/src/services/*.ts                │
+│     └── packages/redbox-core/src/services/*.ts                │
 │                                                                     │
 │  2. Pre-Lift: redbox-loader generates service shims                 │
 │     └── ServiceExports → api/services/*.js shims                    │
@@ -34,7 +34,7 @@ ReDBox Portal uses a service-oriented architecture where business logic is encap
 All services extend `Services.Core.Service` from `CoreService.ts`:
 
 ```typescript
-import { Services as services } from '@researchdatabox/redbox-core-types';
+import { Services as services } from '@researchdatabox/redbox-core';
 
 export module Services {
     export class MyService extends services.Core.Service {
@@ -193,7 +193,7 @@ export const ServiceExports = {
 Services are available as Sails.js globals after lift:
 
 ```typescript
-import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers } from '@researchdatabox/redbox-core';
 
 declare var sails;
 declare var RecordsService;
@@ -237,8 +237,8 @@ Hooks can provide custom services that override core services. Hook services tak
 
 ```typescript
 // typescript/services/CustomRecordsService.ts
-import { Services as services } from '@researchdatabox/redbox-core-types';
-import { RecordsService } from '@researchdatabox/redbox-core-types';
+import { Services as services } from '@researchdatabox/redbox-core';
+import { RecordsService } from '@researchdatabox/redbox-core';
 
 export module Services {
     export class CustomRecords extends RecordsService.Services.Records {
@@ -345,7 +345,7 @@ public isFeatureEnabled(): boolean {
 
 ## Testing Services
 
-Services have comprehensive unit tests in `packages/redbox-core-types/test/services/`:
+Services have comprehensive unit tests in `packages/redbox-core/test/services/`:
 
 ```typescript
 // test/services/CacheService.test.ts
@@ -374,7 +374,7 @@ describe('CacheService', () => {
 Run tests:
 
 ```bash
-cd packages/redbox-core-types
+cd packages/redbox-core
 npm test
 ```
 
@@ -408,7 +408,7 @@ cat api/services/RecordsService.js
 
 ## See Also
 
-- [Redbox Core Types](Redbox-Core-Types) - Package documentation and service list
+- [Redbox Core Types](redbox-core) - Package documentation and service list
 - [Redbox Loader](Redbox-Loader) - Shim generation system
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Hook development guide
 - [Architecture Overview](Architecture-Overview) - System architecture

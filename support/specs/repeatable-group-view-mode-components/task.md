@@ -2,7 +2,7 @@
 
 ## Phase 1: Design and Contracts
 
-- [ ] Add namespaced reusable view fragment entries to `packages/redbox-core-types/src/config/reusableFormDefinitions.config.ts` with `ContentComponent` roots.
+- [ ] Add namespaced reusable view fragment entries to `packages/redbox-core/src/config/reusableFormDefinitions.config.ts` with `ContentComponent` roots.
 - [ ] Define reusable fragment key mapping for all existing `view -> ContentComponent` sources.
 - [ ] Define slot contract and allowed placeholder keys used by transforms.
 - [ ] Document Handlebars helper dependencies (`formatDate`, `join`, `default`, `t`, `get`, `markdownToHtml`).
