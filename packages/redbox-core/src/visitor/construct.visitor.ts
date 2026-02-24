@@ -1619,8 +1619,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('availableMeta', item.config, configFrame);
     this.sharedProps.setPropOverride('questions', item.config, configFrame);
 
+    const lastPathPart = this.formPathHelper.formPath.dataModel.at(-1);
+    const questionTreeModelName = lastPathPart === undefined || lastPathPart === null ? null : lastPathPart.toString();
     configFrame.componentDefinitions = this.formOverride.applyQuestionTreeDsl(
-      this.formPathHelper.modelName,
+      questionTreeModelName,
       this.formPathHelper.formPath,
       item
     );

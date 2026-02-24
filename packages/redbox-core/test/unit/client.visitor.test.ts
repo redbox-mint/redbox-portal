@@ -43,7 +43,7 @@ describe("Client Visitor", async () => {
         // tab 2 component count
         const tabSecond = (formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs[1];
         expect(tabSecond.component.class).to.eql("TabContentComponent");
-        expect((tabSecond.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(2);
+        expect((tabSecond.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(3);
     });
 
     const cases: {

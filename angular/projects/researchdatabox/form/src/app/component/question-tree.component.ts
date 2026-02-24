@@ -7,7 +7,7 @@ import {
   QuestionTreeFieldComponentDefinitionFrame
 } from "@researchdatabox/sails-ng-common";
 import {Component, inject, Injector, ViewChild, ViewContainerRef} from "@angular/core";
-import {AbstractControl, FormGroup} from "@angular/forms";
+import {FormGroup} from "@angular/forms";
 import {FormComponentsMap, FormService} from "../form.service";
 import {FormComponent} from "../form.component";
 import {isEmpty as _isEmpty, isUndefined as _isUndefined} from "lodash-es";
@@ -18,22 +18,22 @@ export class QuestionTreeModel extends FormFieldModel<QuestionTreeModelValueType
   protected override logName = QuestionTreeModelName;
   public override formControl?: FormGroup;
 
-  protected override postCreateGetInitValue(): QuestionTreeModelValueType {
-    return this.fieldConfig.config?.value ?? {};
-  }
-
-  protected override postCreateGetFormControl(): FormGroup<{ [key: string]: AbstractControl<any> }> {
-    // Create the empty FormGroup here, not in the component.
-    // This is different from FormComponent, which has no model.
-    // Creating the FormGroup here allows encapsulating the FormGroup & children
-    // in the same way as other components.
-    const modelElems: { [key: string]: AbstractControl<any> } = {};
-    return new FormGroup(modelElems);
+  override postCreate(): void {
+    // Don't call the super method, as this model needs a FormGroup.
+    this.initValue = this.fieldConfig.config?.value;
+    this.formControl = new FormGroup({});
+    if (this.fieldConfig.config?.disabled) {
+      this.formControl.disable();
+    }
   }
 
   public addItem(name: string, targetModel?: FormFieldModel<unknown>) {
-    if (this.formControl && name && targetModel) {
-      this.formControl.addControl(name, targetModel.getFormControl());
+    const control = targetModel?.getFormControl();
+    if (this.formControl && name && control) {
+      if (this.formControl.disabled && control.enabled) {
+        control.disable();
+      }
+      this.formControl.addControl(name, control);
     } else {
       throw new Error(`${this.logName}: formControl or name or targetModel are not valid. Cannot add item.`);
     }

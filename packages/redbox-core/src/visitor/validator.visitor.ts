@@ -75,6 +75,9 @@ import {
     DateInputFieldComponentDefinitionOutline,
     DateInputFieldModelDefinitionOutline,
     DateInputFormComponentDefinitionOutline,
+    QuestionTreeFieldComponentDefinitionOutline,
+    QuestionTreeFieldModelDefinitionOutline,
+    QuestionTreeFormComponentDefinitionOutline,
     FormConfig,
     buildLineagePaths
 } from "@researchdatabox/sails-ng-common";
@@ -366,6 +369,24 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+        (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+            this.formPathHelper.acceptFormPath(
+                componentDefinition,
+                this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index)
+            );
+        });
+    }
+
+    visitQuestionTreeFieldModelDefinition(_item: QuestionTreeFieldModelDefinitionOutline): void {
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

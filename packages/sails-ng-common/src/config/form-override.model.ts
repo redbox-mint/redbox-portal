@@ -645,7 +645,34 @@ export class FormOverride {
           },
         },
       };
-      result.push(hasOneAnswer ? componentAnswerOne : componentAnswerMore);
+      const hasQuestionTreeReusableDefs =
+        Object.prototype.hasOwnProperty.call(this.activeReusableFormDefs ?? {}, 'questiontree-answer-one') &&
+        Object.prototype.hasOwnProperty.call(this.activeReusableFormDefs ?? {}, 'questiontree-answer-one-more');
+      if (hasQuestionTreeReusableDefs) {
+        result.push(hasOneAnswer ? componentAnswerOne : componentAnswerMore);
+      } else {
+        if (hasOneAnswer) {
+          result.push({
+            name: id,
+            layout: { class: 'DefaultLayout', config: { label: id, visible: isVisible } },
+            component: {
+              class: 'RadioInputComponent',
+              config: { options: componentOptions, visible: isVisible },
+            },
+            expressions,
+          });
+        } else {
+          result.push({
+            name: id,
+            layout: { class: 'DefaultLayout', config: { label: id, visible: isVisible } },
+            component: {
+              class: 'CheckboxInputComponent',
+              config: { options: componentOptions, visible: isVisible },
+            },
+            expressions,
+          });
+        }
+      }
     });
 
     if (errors.length > 0) {
@@ -696,11 +723,11 @@ export class FormOverride {
         const values = (Array.isArray(rule.a) ? rule.a : [rule.a]).map(i => this.toFieldReference(i));
         const valueString = JSON.stringify(values);
         if (rule.op === 'in') {
-          return `$count(${identifierString}[][$ in ${valueString}]) > 0`;
+          return `$count(formData.${identifierString}[][$ in ${valueString}]) > 0`;
         } else if (rule.op === 'only') {
-          return `${identifierString}[] = ${valueString}`;
+          return `formData.${identifierString}[] = ${valueString}`;
         } else if (rule.op === 'notin') {
-          return `$count(${identifierString}[][$not($ in ${valueString})]) = $count(${identifierString})`;
+          return `$count(formData.${identifierString}[][$not($ in ${valueString})]) = $count(formData.${identifierString})`;
         }
         throw new Error(`FormOverride unknown rule ${JSON.stringify(rule)}.`);
       default:

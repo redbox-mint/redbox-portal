@@ -3,11 +3,12 @@ import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
-import {FormConfigFrame, FormModesConfig, TemplateFormConfigVisitor} from "@researchdatabox/sails-ng-common";
+import {FormConfigFrame, FormModesConfig} from "@researchdatabox/sails-ng-common";
 import {
   formConfigExample1,
   reusableFormDefinitionsExample1
 } from "../unit/example-data";
+import { TemplateFormConfigVisitor } from "../../src";
 
 describe('FormsService', function () {
   let mockSails: any;
@@ -318,7 +319,7 @@ describe('FormsService', function () {
       const templates = visitor.start({form});
 
       expect(templates).to.have.length(7);
-      expect(templates.map(t => t.kind)).to.eql(["handlebars", "jsonata", "jsonata", "jsonata", "jsonata", "jsonata", "jsonata"]);
+      expect(templates.map((t: any) => t.kind)).to.eql(["handlebars", "jsonata", "jsonata", "jsonata", "jsonata", "jsonata", "jsonata"]);
     });
   });
 });

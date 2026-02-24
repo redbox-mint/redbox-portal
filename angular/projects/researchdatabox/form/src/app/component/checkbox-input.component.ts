@@ -19,11 +19,10 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
       @for (opt of options; track $index) {
-        <div class="form-check">;
+        <div class="form-check">
           <input
             type="checkbox"
             class="form-check-input"
-            [formControl]="this.formControl"
             [attr.name]="this.getOptionName($index)"
             [name]="this.getOptionName($index)"
             [attr.value]="opt.value"
@@ -66,23 +65,6 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
     this.tooltip = config?.tooltip ?? "";
     this.placeholder = config?.placeholder ?? "";
     this.multipleValues = config?.multipleValues ?? false;
-
-    const observer = new MutationObserver(mutations => {
-      mutations.forEach(mutation => console.log(mutation));
-    });
-    const observerConfig = {
-      subtree: false,
-      childList: false,
-      attributes: true,
-      attributeOldValue: false,
-      // attributeFilter: [],
-      characterData: false,
-      characterDataOldValue: false,
-    };
-
-    observer.observe(this.formFieldCompMapEntry?.componentRef?.location?.nativeElement, observerConfig);
-    observer.observe(this.formFieldCompMapEntry?.layoutRef?.location?.nativeElement, observerConfig);
-    // TODO: createFieldMetaChangedEvent
   }
 
   /**
@@ -129,5 +111,4 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
     return this.name ?? index?.toString();
   }
 }
-
 
