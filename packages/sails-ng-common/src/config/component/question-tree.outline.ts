@@ -200,8 +200,7 @@ export type QuestionTreeQuestionRules =
     | QuestionTreeQuestionRuleOnly
     ;
 
-export const QuestionTreeOutcomeComponentName = 'questiontree-outcome' as const;
-export const QuestionTreeOutcomeDetailsComponentName = 'questiontree-outcome-details' as const;
+export const QuestionTreeOutcomeInfoComponentName = 'questiontree-outcome-info' as const;
 
 /**
  * A question definition.

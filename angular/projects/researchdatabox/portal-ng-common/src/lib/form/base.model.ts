@@ -59,7 +59,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
     return this.fieldConfig.config?.value;
   }
 
-  protected postCreateGetFormControl(): AbstractControl<any> {
+  protected postCreateGetFormControl(): AbstractControl<ValueType> {
     // Create a form control with a type based on the ValueType and init value.
     const formControl = this.initValue === undefined
       ? new FormControl()

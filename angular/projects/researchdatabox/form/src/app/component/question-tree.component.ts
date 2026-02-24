@@ -6,8 +6,7 @@ import {
   isTypeFieldDefinitionName,
   QuestionTreeFieldComponentDefinitionFrame,
   QuestionTreeFieldComponentConfigFrame,
-  QuestionTreeOutcomeComponentName,
-  QuestionTreeOutcomeDetailsComponentName,
+  QuestionTreeOutcomeInfoComponentName,
 } from "@researchdatabox/sails-ng-common";
 import { Component, inject, Injector, ViewChild, ViewContainerRef } from "@angular/core";
 import {AbstractControl, FormGroup} from "@angular/forms";
@@ -169,13 +168,19 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       .subscribe(event => {
         // When a value in the question tree changes,
         // calculate the outcome and set the data model properties.
-        // The changes to the outcome properties must not trigger further value changed events.
-        const outcomeInfo = this.getOutcomeInfo();
-        const value: QuestionTreeModelValueType = {...(this.model?.getValue() ?? {})};
-        value[QuestionTreeOutcomeComponentName] = outcomeInfo.outcome;
-        value[QuestionTreeOutcomeDetailsComponentName] = outcomeInfo.meta;
-        this.model?.setValueDontEmitEvent(value);
-        console.warn('Question Tree -> eventbus -> field value changed:', JSON.parse(JSON.stringify({event, value: this.model?.getValue()})));
+        const newValue = this.getOutcomeInfo();
+        const modelValue: QuestionTreeModelValueType = {...(this.model?.getValue() ?? {})};
+        const currentValue = modelValue[QuestionTreeOutcomeInfoComponentName];
+        const hasChanged = JSON.stringify(newValue) !== JSON.stringify(currentValue);
+        if (hasChanged) {
+          // The model value is only updated if the outcome property changed.
+          // This change will trigger another `field.value.changed' event, which is what we want,
+          // because then other components can use the updated outcome value in that subsequent event.
+          modelValue[QuestionTreeOutcomeInfoComponentName] = newValue;
+          this.model?.setValue(modelValue);
+        }
+        console.warn(`Question Tree -> eventbus -> field value ${hasChanged ? 'has changed' : ' is the same'}:`,
+          JSON.parse(JSON.stringify({event, value: this.model?.getValue()})));
       });
   }
 
@@ -216,8 +221,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     const collectedDetails = [];
 
     const outcomeKeys: string[] = [
-      QuestionTreeOutcomeComponentName,
-      QuestionTreeOutcomeDetailsComponentName,
+      QuestionTreeOutcomeInfoComponentName,
     ];
 
     // Collect the outcomes and meta.
