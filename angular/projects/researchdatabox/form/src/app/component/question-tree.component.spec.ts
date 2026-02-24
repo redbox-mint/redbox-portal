@@ -130,4 +130,46 @@ describe('QuestionTreeComponent', () => {
     expect(q2CheckboxElem2.value).toBe("no");
     expect(q2CheckboxElem2.name).toBe("question_2");
   });
+
+  it('should build child components from questions when componentDefinitions are not provided', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [{
+        name: "questiontree_fallback",
+        model: {class: "QuestionTreeModel"},
+        component: {
+          class: "QuestionTreeComponent",
+          config: {
+            availableOutcomes: [
+              {value: "outcome1", label: "@outcomes-value1"},
+            ],
+            questions: [
+              {
+                id: "is-data-sensitive",
+                answersMin: 1,
+                answersMax: 1,
+                answers: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}],
+                rules: {op: "true"},
+              },
+            ],
+            componentDefinitions: [],
+          }
+        },
+      }]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    const radioElements = compiled.querySelectorAll('input[type="radio"]');
+    expect(radioElements.length).toEqual(2);
+    expect((radioElements[0] as HTMLInputElement).name).toBe("is-data-sensitive");
+    expect((radioElements[1] as HTMLInputElement).name).toBe("is-data-sensitive");
+  });
 });
