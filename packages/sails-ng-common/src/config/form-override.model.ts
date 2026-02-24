@@ -7,8 +7,6 @@ import {
 import {
   AllFormComponentDefinitionOutlines,
   AvailableFormComponentDefinitionFrames,
-  QuestionTreeFormComponentDefinitionFrames,
-  QuestionTreeFormComponentDefinitionOutlines,
   ReusableFormDefinitions,
 } from './dictionary.outline';
 import { TextAreaComponentName, TextAreaFormComponentDefinitionOutline } from './component/text-area.outline';
@@ -76,7 +74,7 @@ import { TypeaheadInputModelOptionValue } from './component/typeahead-input.outl
 import { FormConstraintConfigOutline, FormExpressionsConfigFrame } from './form-component.outline';
 import { SimpleInputFormComponentDefinitionFrame } from './component/simple-input.outline';
 import { guessType } from './helpers';
-import { LineagePaths } from './names/naming-helpers';
+import { LineagePaths, LineagePath } from './names/naming-helpers';
 
 export class FormOverride {
     private logName = "FormOverride";

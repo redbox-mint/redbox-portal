@@ -1619,13 +1619,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('availableMeta', item.config, configFrame);
     this.sharedProps.setPropOverride('questions', item.config, configFrame);
 
-    const lastPathPart = this.formPathHelper.formPath.dataModel.at(-1);
-    const questionTreeModelName = lastPathPart === undefined || lastPathPart === null ? null : lastPathPart.toString();
+        // Transform the question tree questions DSL into reusable components.
     configFrame.componentDefinitions = this.formOverride.applyQuestionTreeDsl(
-      questionTreeModelName,
-      this.formPathHelper.formPath,
-      item
+          this.formPathHelper.modelName, this.formPathHelper.formPath, item
     );
+
+        // Apply the reusable component overrides.
     configFrame.componentDefinitions = this.formOverride.applyQuestionTreeFrames(
       this.formOverride.applyOverridesReusable(configFrame?.componentDefinitions ?? [], this.reusableFormDefs)
     );
@@ -1634,12 +1633,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       const formComponent = this.constructFormComponent(componentDefinition);
       this.formPathHelper.acceptFormPath(
         formComponent,
-        this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, index)
+        this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(formComponent, index),
       );
 
-      const itemTransformed = this.formOverride.applyQuestionTreeOutline(
-        this.formOverride.applyOverrideTransform(formComponent, this.formMode)
-      );
+      // After the construction is done, apply any transforms
+      const itemTransformed = this.formOverride.applyOverrideTransform(
+        formComponent, this.formMode);
+
+            // Store the instance on the item
       item.config?.componentDefinitions.push(itemTransformed);
     });
   }
