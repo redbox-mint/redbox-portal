@@ -4,11 +4,8 @@ import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
 import {FormConfigFrame, FormModesConfig} from "@researchdatabox/sails-ng-common";
-import {
-  formConfigExample1,
-  reusableFormDefinitionsExample1
-} from "../unit/example-data";
-import { TemplateFormConfigVisitor } from "../../src";
+import {  formConfigExample1} from "../unit/example-data";
+import {reusableFormDefinitions, TemplateFormConfigVisitor} from "../../src";
 
 describe('FormsService', function () {
   let mockSails: any;
@@ -307,7 +304,7 @@ describe('FormsService', function () {
       const formMode: FormModesConfig = "edit";
       const userRoles: string[] = [];
       const recordMetadata: Record<string, unknown> = {};
-      const reusableFormDefs = reusableFormDefinitionsExample1;
+      const reusableFormDefs = reusableFormDefinitions;
 
       // see: Services.FormRecordConsistency.extractRawTemplates
       const form = await FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata, reusableFormDefs);
