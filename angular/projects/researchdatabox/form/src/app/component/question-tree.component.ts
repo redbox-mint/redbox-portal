@@ -1,4 +1,4 @@
-import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel} from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   QuestionTreeModelValueType,
   QuestionTreeComponentName,
@@ -9,12 +9,12 @@ import {
   QuestionTreeOutcomeComponentName,
   QuestionTreeOutcomeDetailsComponentName,
 } from "@researchdatabox/sails-ng-common";
-import {Component, inject, Injector, ViewChild, ViewContainerRef} from "@angular/core";
+import { Component, inject, Injector, ViewChild, ViewContainerRef } from "@angular/core";
 import {AbstractControl, FormGroup} from "@angular/forms";
-import {FormComponentsMap, FormService} from "../form.service";
-import {FormComponent} from "../form.component";
-import {isEmpty as _isEmpty, isUndefined as _isUndefined} from "lodash-es";
-import {FormBaseWrapperComponent} from "./base-wrapper.component";
+import { FormComponentsMap, FormService } from "../form.service";
+import { FormComponent } from "../form.component";
+import { isEmpty as _isEmpty, isUndefined as _isUndefined } from "lodash-es";
+import { FormBaseWrapperComponent } from "./base-wrapper.component";
 import {FormComponentEventBus, FormComponentEventType} from "../form-state";
 import {debounceTime, filter} from "rxjs";
 
@@ -62,7 +62,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
   private injector = inject(Injector);
   protected formComponentsMap?: FormComponentsMap;
 
-  @ViewChild('componentContainer', {read: ViewContainerRef, static: true})
+  @ViewChild('componentContainer', { read: ViewContainerRef, static: true })
   private componentContainer!: ViewContainerRef;
 
   private elementFormConfig?: FormConfigFrame;
@@ -78,7 +78,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       .filter(c => c !== undefined && c !== null);
   }
 
-  public override get formFieldCompMapEntries() : FormFieldCompMapEntry[] {
+  public override get formFieldCompMapEntries(): FormFieldCompMapEntry[] {
     return this.formComponentsMap?.components ?? [];
   }
 
@@ -90,12 +90,12 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
 
     const componentFormConfig = this.formFieldCompMapEntry?.compConfigJson?.component;
-    if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(componentFormConfig, QuestionTreeComponentName)){
+    if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(componentFormConfig, QuestionTreeComponentName)) {
       throw new Error(`Expected a question tree component, but got ${JSON.stringify(componentFormConfig)}`);
     }
 
     const componentConfigFormConfig = componentFormConfig.config;
-    if (!isTypeWithComponentDefinitions(componentConfigFormConfig) || componentConfigFormConfig.componentDefinitions?.length < 1){
+    if (!isTypeWithComponentDefinitions(componentConfigFormConfig) || componentConfigFormConfig.componentDefinitions?.length < 1) {
       throw new Error(`Expected a question tree component config with at least one componentDefinition, but got ${JSON.stringify(componentConfigFormConfig)}`);
     }
 
