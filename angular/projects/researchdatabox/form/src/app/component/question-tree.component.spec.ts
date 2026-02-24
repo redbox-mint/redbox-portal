@@ -69,33 +69,7 @@ describe('QuestionTreeComponent', () => {
                 rules: {op: "in", q: "question_2", a: ["yes"]},
               },
             ],
-            componentDefinitions: [
-              {
-                name: "question_1",
-                model: {
-                  class: "RadioInputModel",
-                },
-                component: {
-                  class: "RadioInputComponent",
-                  config: {
-                    options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}],
-                  },
-                },
-              },
-              {
-                name: "question_2",
-                model: {
-                  class: "CheckboxInputModel",
-                },
-                component: {
-                  class: "CheckboxInputComponent",
-                  config: {
-                    options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}],
-                    multipleValues: true,
-                  },
-                },
-              },
-            ],
+            componentDefinitions: [],
           }
         },
       }
@@ -111,7 +85,7 @@ describe('QuestionTreeComponent', () => {
     expect(qtElements).toHaveSize(1);
 
     const inputElementsInitial = compiled.querySelectorAll('input');
-    expect(inputElementsInitial.length).toEqual(4);
+    expect(inputElementsInitial.length).toEqual(2);
 
     // Check the question_1 options
     const q1RadioElem1 = inputElementsInitial[0] as HTMLInputElement;
@@ -122,6 +96,11 @@ describe('QuestionTreeComponent', () => {
     expect(q1RadioElem2.value).toBe("no");
     expect(q1RadioElem2.name).toBe("question_1");
 
+    // Select 'no' to show question_2
+    q1RadioElem2.checked = true;
+    fixture.detectChanges();
+    await fixture.whenStable();
+
     // Check question_2 options
     const q2CheckboxElem1 = inputElementsInitial[2] as HTMLInputElement;
     const q2CheckboxElem2 = inputElementsInitial[3] as HTMLInputElement;
@@ -129,5 +108,27 @@ describe('QuestionTreeComponent', () => {
     expect(q2CheckboxElem1.name).toBe("question_2");
     expect(q2CheckboxElem2.value).toBe("no");
     expect(q2CheckboxElem2.name).toBe("question_2");
+
+    const inputElementsWithOutcome = compiled.querySelectorAll('input');
+    expect(inputElementsWithOutcome).toHaveSize(4);
+
+    // Select 'no' to get an outcome
+    q2CheckboxElem2.checked = true;
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    // TODO: check outcome is set as expected - outcome 'outcome1' and prop2 'prop2Value1'
+    // TODO: check that the data model is as expected - q1 and q2 have values
+
+    // Change answer to question_1 to hide both question_2 and question_3
+    q1RadioElem2.checked = true;
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const inputElementsB = compiled.querySelectorAll('input');
+    expect(inputElementsB).toHaveSize(2);
+
+    // TODO: check outcome is set as expected - no outcome
+    // TODO: check that the data model is as expected - only first question has a value
   });
 });

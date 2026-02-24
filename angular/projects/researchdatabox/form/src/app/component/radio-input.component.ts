@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import {Component, Input} from '@angular/core';
 import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   isTypeFieldDefinitionName,
@@ -63,23 +63,6 @@ export class RadioInputComponent extends FormFieldBaseComponent<RadioInputModelV
     const config = formComponentFrame.config;
     this.options = config?.options ?? [];
     this.tooltip = config?.tooltip ?? "";
-
-    const observer = new MutationObserver(mutations => {
-      mutations.forEach(mutation => console.log(mutation));
-    });
-    const observerConfig = {
-      subtree: false,
-      childList: false,
-      attributes: true,
-      attributeOldValue: false,
-      // attributeFilter: [],
-      characterData: false,
-      characterDataOldValue: false,
-    };
-
-    observer.observe(this.formFieldCompMapEntry?.componentRef?.location?.nativeElement, observerConfig);
-    observer.observe(this.formFieldCompMapEntry?.layoutRef?.location?.nativeElement, observerConfig);
-    // TODO: createFieldMetaChangedEvent
   }
 
   /**

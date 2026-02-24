@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import {Component, Input} from '@angular/core';
 import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   CheckboxOption,
@@ -23,12 +23,12 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
           <input
             type="checkbox"
             class="form-check-input"
+            [formControl]="this.formControl"
             [attr.name]="this.getOptionName($index)"
             [name]="this.getOptionName($index)"
             [attr.value]="opt.value"
             [id]="this.getOptionId(opt)"
             [attr.id]="this.getOptionId(opt)"
-            [disabled]="isDisabled || !!opt.disabled"
             [checked]="isOptionSelected(opt.value)"
             (change)="onOptionChange($any($event.target).checked, opt.value)"
             [title]="tooltip">
