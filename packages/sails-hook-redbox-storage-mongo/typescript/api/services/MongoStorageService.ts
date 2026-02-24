@@ -20,19 +20,17 @@ import {
   Attachment,
   RecordAuditModel,
   RecordAuditParams,
-} from '@researchdatabox/redbox-core-types';
+} from '@researchdatabox/redbox-core';
 const {
   transforms: { unwind, flatten },
 } = require('json2csv');
-import { ExportJSONTransformer } from '@researchdatabox/redbox-core-types';
+import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
 
 const pipeline = util.promisify(stream.pipeline);
 
 declare var sails: Sails;
 declare var _;
 declare var Record: Model, DeletedRecord: Model, RecordTypesService, TranslationService, FormsService, RecordAudit;
-
-
 
 export module Services {
   /**

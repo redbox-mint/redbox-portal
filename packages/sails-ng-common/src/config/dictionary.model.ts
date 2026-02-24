@@ -6,6 +6,7 @@ import {
 } from './shared.outline';
 
 import { DefaultLayoutDefaults, DefaultLayoutMap } from './component/default-layout.model';
+import { ActionRowLayoutMap } from './component/action-row-layout.model';
 import { InlineLayoutMap } from './component/inline-layout.model';
 import { RepeatableDefaults, RepeatableMap } from './component/repeatable.model';
 import { GroupDefaults, GroupMap } from './component/group.model';
@@ -23,6 +24,7 @@ import { RadioInputDefaults, RadioInputMap } from './component/radio-input.model
 import { DateInputDefaults, DateInputMap } from './component/date-input.model';
 import { ReusableDefaults, ReusableMap } from './component/reusable.model';
 import { ReusableComponentName } from './component/reusable.outline';
+import { QuestionTreeDefaults, QuestionTreeMap } from './component/question-tree.model';
 import { CheckboxTreeDefaults, CheckboxTreeMap } from './component/checkbox-tree.model';
 import { TypeaheadInputDefaults, TypeaheadInputMap } from './component/typeahead-input.model';
 import { RichTextEditorDefaults, RichTextEditorMap } from './component/rich-text-editor.model';
@@ -30,7 +32,6 @@ import { MapDefaults, MapMap } from './component/map.model';
 import { FileUploadDefaults, FileUploadMap } from './component/file-upload.model';
 import { CancelButtonDefaults, CancelButtonMap } from './component/cancel-button.model';
 import { TabNavButtonDefaults, TabNavButtonMap } from './component/tab-nav-button.model';
-import {QuestionTreeDefaults, QuestionTreeMap} from './component/question-tree.model';
 
 /**
  * The static array of all available classes and the kind of class.
@@ -38,6 +39,7 @@ import {QuestionTreeDefaults, QuestionTreeMap} from './component/question-tree.m
  */
 export const AllDefs = [
   ...DefaultLayoutMap,
+  ...ActionRowLayoutMap,
   ...InlineLayoutMap,
   ...RepeatableMap,
   ...GroupMap,
@@ -56,12 +58,12 @@ export const AllDefs = [
   ...RadioInputMap,
   ...DateInputMap,
   ...ReusableMap,
+  ...QuestionTreeMap,
   ...CheckboxTreeMap,
   ...TypeaheadInputMap,
   ...RichTextEditorMap,
   ...MapMap,
   ...FileUploadMap,
-  ...QuestionTreeMap,
 ] as const;
 
 /**
@@ -87,12 +89,12 @@ const RawDefaults = [
   RadioInputDefaults,
   DateInputDefaults,
   ReusableDefaults,
+  QuestionTreeDefaults,
   CheckboxTreeDefaults,
   TypeaheadInputDefaults,
   RichTextEditorDefaults,
   MapDefaults,
   FileUploadDefaults,
-  QuestionTreeDefaults,
 ];
 
 /**

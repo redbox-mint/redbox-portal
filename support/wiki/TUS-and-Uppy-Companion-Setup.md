@@ -16,7 +16,7 @@ ReDBox file uploads use:
 
 Companion defaults are defined in:
 
-- `packages/redbox-core-types/src/config/companion.config.ts`
+- `packages/redbox-core/src/config/companion.config.ts`
 
 Set environment variables:
 
@@ -101,7 +101,7 @@ Notes:
 
 - Companion will fail startup if `UPPY_COMPANION_SECRET` is missing or shorter than 32 chars.
 - Companion requires at least one provider with a complete key+secret pair (`UPPY_GOOGLE_KEY` + `UPPY_GOOGLE_SECRET` and/or `UPPY_ONEDRIVE_KEY` + `UPPY_ONEDRIVE_SECRET`).
-- Do not edit generated shims in `config/*.js`; update `packages/redbox-core-types/src/config/*.ts` defaults or environment variables.
+- Do not edit generated shims in `config/*.js`; update `packages/redbox-core/src/config/*.ts` defaults or environment variables.
 
 ### What the two Companion secrets are for
 
@@ -172,7 +172,7 @@ Example:
 
 Routes are defined in:
 
-- `packages/redbox-core-types/src/config/routes.config.ts`
+- `packages/redbox-core/src/config/routes.config.ts`
 
 Endpoints:
 
@@ -189,7 +189,7 @@ These support TUS create/chunk flows used by Uppy.
 
 Companion middleware is in:
 
-- `packages/redbox-core-types/src/config/http.config.ts`
+- `packages/redbox-core/src/config/http.config.ts`
 
 Current behavior:
 
@@ -201,8 +201,8 @@ Current behavior:
 
 Attachment upload policies are configured in:
 
-- `packages/redbox-core-types/src/config/policies.config.ts`
-- `packages/redbox-core-types/src/policies/companionAttachmentUploadAuth.ts`
+- `packages/redbox-core/src/config/policies.config.ts`
+- `packages/redbox-core/src/policies/companionAttachmentUploadAuth.ts`
 
 Companion server-side create/chunk requests can bypass standard `checkAuth` only when shared-secret and locality checks pass.
 Bypass is route-scoped and is ignored on non-companion attachment routes (including CSRF-protected legacy endpoints).

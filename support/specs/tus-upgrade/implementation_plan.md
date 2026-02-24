@@ -26,12 +26,12 @@ graph LR
 
 ## API Compatibility Assumptions
 
-| Method | Purpose | Expected Status | Key Headers |
-|--------|---------|----------------|-------------|
-| POST | Create upload | 201 | `Location`, `Tus-Resumable: 1.0.0` |
-| PATCH | Send chunk | 204 | `Upload-Offset`, `Tus-Resumable` |
-| HEAD | Check offset (resume) | 200 | `Upload-Offset`, `Upload-Length` |
-| OPTIONS | Discover extensions | 204 | `Tus-Extension`, `Tus-Version` |
+| Method  | Purpose               | Expected Status | Key Headers                        |
+| ------- | --------------------- | --------------- | ---------------------------------- |
+| POST    | Create upload         | 201             | `Location`, `Tus-Resumable: 1.0.0` |
+| PATCH   | Send chunk            | 204             | `Upload-Offset`, `Tus-Resumable`   |
+| HEAD    | Check offset (resume) | 200             | `Upload-Offset`, `Upload-Length`   |
+| OPTIONS | Discover extensions   | 204             | `Tus-Extension`, `Tus-Version`     |
 
 > [!NOTE]
 > **DELETE/Termination**: `@tus/server` supports the termination extension by default. We will set `disableTerminationForFinishedUploads: true` since our upload lifecycle is managed by `DatastreamService` post-completion. DELETE is **not** exposed in our routes and is not tested.
@@ -45,7 +45,7 @@ graph LR
 
 ### Dependencies
 
-#### [MODIFY] [package.json](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core-types/package.json)
+#### [MODIFY] [package.json](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/package.json)
 
 ```diff
 - "tus-node-server": "^0.9.0",
@@ -58,7 +58,7 @@ graph LR
 
 ### Configuration
 
-#### [MODIFY] [record.config.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core-types/src/config/record.config.ts)
+#### [MODIFY] [record.config.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/config/record.config.ts)
 
 Restructure `RecordAttachmentsConfig` with storage-specific subobjects:
 
@@ -101,23 +101,26 @@ Default values:
 
 > [!WARNING]
 > The `stageDir` field is deprecated in favor of `file.directory`. To ease migration, the validation code will read `stageDir` as a fallback if `file.directory` is not set:
+>
 > ```ts
 > const dir = attachConfig.file?.directory ?? attachConfig.stageDir;
 > ```
+>
 > This provides backward compatibility for any env config files that still use `stageDir`. A deprecation warning will be logged at startup if the fallback is used.
 
 **Known env files to update** (non-exhaustive — grep for `stageDir` in `config/`):
+
 - `config/env/integrationtest.js` (line 98)
 - Any deployment-specific overrides
 
 #### Config Validation (at bootstrap)
 
-| `store` | `file.directory` or `stageDir` | `s3` block | Result |
-|---------|-------------------------------|-----------|--------|
-| `'file'` (default) | present | — | ✅ FileStore |
-| `'file'` | **missing** | — | ❌ Fail: `"file.directory required"` |
-| `'s3'` | — | bucket + region present | ✅ S3Store |
-| `'s3'` | — | **incomplete** | ❌ Fail: `"s3.bucket and s3.region required"` |
+| `store`            | `file.directory` or `stageDir` | `s3` block              | Result                                        |
+| ------------------ | ------------------------------ | ----------------------- | --------------------------------------------- |
+| `'file'` (default) | present                        | —                       | ✅ FileStore                                  |
+| `'file'`           | **missing**                    | —                       | ❌ Fail: `"file.directory required"`          |
+| `'s3'`             | —                              | bucket + region present | ✅ S3Store                                    |
+| `'s3'`             | —                              | **incomplete**          | ❌ Fail: `"s3.bucket and s3.region required"` |
 
 > [!IMPORTANT]
 > Validation runs in the controller's `bootstrap()` method (called at app lift), **not** lazily on first request. This ensures config errors surface immediately at startup rather than on the first upload attempt.
@@ -126,9 +129,10 @@ Default values:
 
 ### RecordController TUS Refactoring
 
-#### [MODIFY] [RecordController.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core-types/src/controllers/RecordController.ts)
+#### [MODIFY] [RecordController.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/controllers/RecordController.ts)
 
 **1. Imports** (line 39)
+
 ```diff
 - import * as tus from 'tus-node-server';
 + import { Server as TusServer, EVENTS } from '@tus/server';
@@ -146,6 +150,7 @@ interface TusRequestExtension {
 ```
 
 **3. Property type** (line 890)
+
 ```diff
 - protected tusServer: tus.Server | null = null;
 + protected tusServer: TusServer | null = null;
@@ -251,7 +256,7 @@ tusReq._tusOriginalUrl = req.url;
 tusReq._tusBaseUrl = prefix;
 
 if (req.url.startsWith(prefix)) {
-  req.url = req.url.slice(prefix.length);  // '/attach' or '/attach/:id'
+  req.url = req.url.slice(prefix.length); // '/attach' or '/attach/:id'
 }
 
 this.tusServer!.handle(req, res);
@@ -284,14 +289,14 @@ this.tusServer!.handle(req, res);
 
 ## Error Handling & Observability
 
-| Event | Logged | Sensitive data |
-|-------|--------|----------------|
-| `POST_CREATE` | Upload ID | None |
-| `POST_FINISH` | Upload ID, size | None |
-| Config validation failure | Missing field name | No credentials |
-| Permission denied | OID, username | None |
-| Disk space exceeded | Threshold, free, file size | None |
-| Deprecated `stageDir` used | Warning message | None |
+| Event                      | Logged                     | Sensitive data |
+| -------------------------- | -------------------------- | -------------- |
+| `POST_CREATE`              | Upload ID                  | None           |
+| `POST_FINISH`              | Upload ID, size            | None           |
+| Config validation failure  | Missing field name         | No credentials |
+| Permission denied          | OID, username              | None           |
+| Disk space exceeded        | Threshold, free, file size | None           |
+| Deprecated `stageDir` used | Warning message            | None           |
 
 `@tus/server` returns standard TUS error responses (400, 404, 409, 413) for protocol violations. These flow directly to the client. `onResponseError` hook available for custom mapping if needed later.
 
@@ -299,13 +304,13 @@ this.tusServer!.handle(req, res);
 
 ## Summary of Changes
 
-| File | Change | Risk |
-|------|--------|------|
-| `package.json` | Replace `tus-node-server` with `@tus/server` ^2.3.0 + stores | Low |
-| `record.config.ts` | Restructure config, `stageDir` deprecated with fallback | Low |
+| File                  | Change                                                                 | Risk       |
+| --------------------- | ---------------------------------------------------------------------- | ---------- |
+| `package.json`        | Replace `tus-node-server` with `@tus/server` ^2.3.0 + stores           | Low        |
+| `record.config.ts`    | Restructure config, `stageDir` deprecated with fallback                | Low        |
 | `RecordController.ts` | Imports, `bootstrap()` validation, `initTusServer()`, `doAttachment()` | **Medium** |
-| `integrationtest.js` | `stageDir` → `file.directory` | Low |
-| Bruno tests | May need tweaks for header/response differences | Low |
+| `integrationtest.js`  | `stageDir` → `file.directory`                                          | Low        |
+| Bruno tests           | May need tweaks for header/response differences                        | Low        |
 
 ---
 

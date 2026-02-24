@@ -5,6 +5,7 @@ import {
   RepeatableElementLayoutComponent,
 } from './component/repeatable.component';
 import { DefaultLayoutComponent } from './component/default-layout.component';
+import { ActionRowLayoutComponent } from './component/action-row-layout.component';
 import { InlineLayoutComponent } from './component/inline-layout.component';
 import { ValidationSummaryFieldComponent } from './component/validation-summary.component';
 import { GroupFieldModel, GroupFieldComponent } from './component/group.component';
@@ -19,6 +20,7 @@ import { DropdownInputComponent, DropdownInputModel } from './component/dropdown
 import { CheckboxInputComponent, CheckboxInputModel } from './component/checkbox-input.component';
 import { RadioInputComponent, RadioInputModel } from './component/radio-input.component';
 import { DateInputComponent, DateInputModel } from './component/date-input.component';
+import { QuestionTreeComponent, QuestionTreeModel } from './component/question-tree.component';
 import { CheckboxTreeComponent, CheckboxTreeModel } from './component/checkbox-tree.component';
 import { TypeaheadInputComponent, TypeaheadInputModel } from './component/typeahead-input.component';
 import { RichTextEditorComponent, RichTextEditorModel } from './component/rich-text-editor.component';
@@ -36,6 +38,7 @@ import {
   DropdownInputModelName,
   RadioInputModelName,
   DateInputModelName,
+  QuestionTreeModelName,
   GroupFieldModelName,
   CheckboxTreeModelName,
   TypeaheadInputModelName,
@@ -54,6 +57,7 @@ import {
   DropdownInputComponentName,
   RadioInputComponentName,
   DateInputComponentName,
+  QuestionTreeComponentName,
   CheckboxTreeComponentName,
   TypeaheadInputComponentName,
   RichTextEditorComponentName,
@@ -70,11 +74,10 @@ import {
   AccordionPanelLayoutName,
   RepeatableElementLayoutName,
   DefaultLayoutName,
+  ActionRowLayoutName,
   InlineLayoutName,
   StaticClassMapType,
-  QuestionTreeModelName, QuestionTreeComponentName,
 } from '@researchdatabox/sails-ng-common';
-import {QuestionTreeComponent, QuestionTreeModel} from "./component/question-tree.component";
 
 /*
  * The Component classes.
@@ -98,6 +101,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [DropdownInputComponentName]: DropdownInputComponent,
   [RadioInputComponentName]: RadioInputComponent,
   [DateInputComponentName]: DateInputComponent,
+  [QuestionTreeComponentName]: QuestionTreeComponent,
   [CheckboxTreeComponentName]: CheckboxTreeComponent,
   [TypeaheadInputComponentName]: TypeaheadInputComponent,
   [RichTextEditorComponentName]: RichTextEditorComponent,
@@ -105,7 +109,6 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [FileUploadComponentName]: FileUploadComponent,
   [CancelButtonComponentName]: CancelButtonComponent,
   [TabNavButtonComponentName]: TabNavButtonComponent,
-  [QuestionTreeComponentName]: QuestionTreeComponent,
 });
 
 /*
@@ -123,12 +126,12 @@ export const getStaticModelClassMap = (): StaticModelClassMapType => ({
   [DropdownInputModelName]: DropdownInputModel,
   [RadioInputModelName]: RadioInputModel,
   [DateInputModelName]: DateInputModel,
+  [QuestionTreeModelName]: QuestionTreeModel,
   [CheckboxTreeModelName]: CheckboxTreeModel,
   [TypeaheadInputModelName]: TypeaheadInputModel,
   [RichTextEditorModelName]: RichTextEditorModel,
   [MapModelName]: MapModel,
   [FileUploadModelName]: FileUploadModel,
-  [QuestionTreeModelName]: QuestionTreeModel,
 });
 
 /*
@@ -139,6 +142,7 @@ export type StaticLayoutClassMapType = StaticLayoutClassMapGenType<typeof FormFi
 export type AllLayoutClassMapType = StaticClassMapType<string, typeof FormFieldBaseComponent<unknown> | null>;
 export const getStaticLayoutClassMap = (): StaticLayoutClassMapType => ({
   [DefaultLayoutName]: DefaultLayoutComponent,
+  [ActionRowLayoutName]: ActionRowLayoutComponent,
   [InlineLayoutName]: InlineLayoutComponent,
   [RepeatableElementLayoutName]: RepeatableElementLayoutComponent,
   // The tab content layout is only used in the form config, it is not an angular component.

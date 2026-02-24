@@ -14,7 +14,7 @@ Migrate the legacy `angular-legacy/record_search` application to the modern Angu
 
 ### 1. New Angular Application
 
-- **Generate App**: Use `redbox-hook-kit` generator (or manual `ng generate application`) to create `record-search` in `angular/projects/researchdatabox/`.
+- **Generate App**: Use `redbox-dev-tools` generator (or manual `ng generate application`) to create `record-search` in `angular/projects/researchdatabox/`.
 - **Configuration**: Update `angular.json` to output assets to `assets/angular/record-search/browser` (checking `redbox-angular-apps` skill patterns).
 
 ### 2. Component Migration

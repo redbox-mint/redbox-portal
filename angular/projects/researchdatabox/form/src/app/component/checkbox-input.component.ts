@@ -1,5 +1,5 @@
-import {Component, inject, Input} from '@angular/core';
-import { FormFieldBaseComponent,FormFieldModel } from "@researchdatabox/portal-ng-common";
+import {Component, Input} from '@angular/core';
+import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   CheckboxOption,
   CheckboxInputModelValueType,
@@ -8,7 +8,6 @@ import {
   isTypeFieldDefinitionName,
   CheckboxInputFieldComponentDefinitionFrame,
 } from '@researchdatabox/sails-ng-common';
-import {FormService} from "../form.service";
 
 export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueType> {
   protected override logName = CheckboxInputModelName;
@@ -20,7 +19,7 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
       @for (opt of options; track $index) {
-        <div class="form-check">;
+        <div class="form-check">
           <input
             type="checkbox"
             class="form-check-input"
@@ -52,8 +51,6 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
   public options: CheckboxOption[] = [];
   public multipleValues: boolean = false;
 
-  protected formService = inject(FormService);
-
   /**
    * The model associated with this component.
    */
@@ -68,9 +65,8 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
     this.options = config?.options ?? [];
     this.tooltip = config?.tooltip ?? "";
     this.placeholder = config?.placeholder ?? "";
-    this.multipleValues = config?.multipleValues ?? false;
+    this.multipleValues = config?.multipleValues ?? true;
 
-    this.formService.setUpFieldMutationObserverToComponentEvents(this.formFieldCompMapEntry);
   }
 
   /**
@@ -117,5 +113,3 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
     return this.name ?? index?.toString();
   }
 }
-
-

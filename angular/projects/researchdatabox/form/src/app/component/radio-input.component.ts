@@ -1,4 +1,4 @@
-import {Component, inject, Input} from '@angular/core';
+import {Component, Input} from '@angular/core';
 import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   isTypeFieldDefinitionName,
@@ -8,7 +8,6 @@ import {
   RadioInputModelValueType,
   RadioOption
 } from '@researchdatabox/sails-ng-common';
-import {FormService} from "../form.service";
 
 export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
   protected override logName = RadioInputModelName;
@@ -51,8 +50,6 @@ export class RadioInputComponent extends FormFieldBaseComponent<RadioInputModelV
   public tooltip: string = '';
   public options: RadioOption[] = [];
 
-  protected formService = inject(FormService);
-
   /**
    * The model associated with this component.
    */
@@ -66,8 +63,6 @@ export class RadioInputComponent extends FormFieldBaseComponent<RadioInputModelV
     const config = formComponentFrame.config;
     this.options = config?.options ?? [];
     this.tooltip = config?.tooltip ?? "";
-
-    this.formService.setUpFieldMutationObserverToComponentEvents(this.formFieldCompMapEntry);
   }
 
   /**

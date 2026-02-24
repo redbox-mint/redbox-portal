@@ -58,6 +58,7 @@ import {
   TextAreaFormComponentDefinitionOutline,
 } from '../component/text-area.outline';
 import { DefaultFieldLayoutDefinitionOutline } from '../component/default-layout.outline';
+import { ActionRowFieldLayoutDefinitionOutline } from '../component/action-row-layout.outline';
 import { InlineFieldLayoutDefinitionOutline } from '../component/inline-layout.outline';
 import {
   CheckboxInputFieldComponentDefinitionOutline,
@@ -84,6 +85,11 @@ import {
   ReusableFormComponentDefinitionOutline,
 } from '../component/reusable.outline';
 import {
+  QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFieldModelDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
+} from '../component/question-tree.outline';
+import {
   CheckboxTreeFieldComponentDefinitionOutline,
   CheckboxTreeFieldModelDefinitionOutline,
   CheckboxTreeFormComponentDefinitionOutline,
@@ -108,10 +114,6 @@ import {
   FileUploadFieldModelDefinitionOutline,
   FileUploadFormComponentDefinitionOutline,
 } from '../component/file-upload.outline';
-import {
-    QuestionTreeFieldComponentDefinitionOutline, QuestionTreeFieldModelDefinitionOutline,
-    QuestionTreeFormComponentDefinitionOutline
-} from "../component/question-tree.outline";
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -233,6 +235,10 @@ export interface FormConfigVisitorOutline {
 
   visitInlineFieldLayoutDefinition(item: InlineFieldLayoutDefinitionOutline): void;
 
+  /* Action Row Layout  */
+
+  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void;
+
   /* Checkbox Input */
 
   visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void;
@@ -270,6 +276,14 @@ export interface FormConfigVisitorOutline {
   visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void;
 
   visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void;
+
+  /* Question Tree */
+
+  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void;
+
+  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void;
+
+  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void;
 
   /* Checkbox Tree */
 
@@ -310,13 +324,5 @@ export interface FormConfigVisitorOutline {
   visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void;
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void;
-
-  /* Question Tree */
-
-  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void;
-
-  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void;
-
-  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void;
 
 }

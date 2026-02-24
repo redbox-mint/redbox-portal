@@ -60,6 +60,7 @@ import {
   TextAreaFormComponentDefinitionOutline,
 } from '../component/text-area.outline';
 import { DefaultFieldLayoutDefinitionOutline } from '../component/default-layout.outline';
+import { ActionRowFieldLayoutDefinitionOutline } from '../component/action-row-layout.outline';
 import { InlineFieldLayoutDefinitionOutline } from '../component/inline-layout.outline';
 import {
   CheckboxInputFieldComponentDefinitionOutline,
@@ -87,6 +88,11 @@ import {
   ReusableFormComponentDefinitionOutline,
 } from '../component/reusable.outline';
 import {
+  QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFieldModelDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
+} from '../component/question-tree.outline';
+import {
   CheckboxTreeFieldComponentDefinitionOutline,
   CheckboxTreeFieldModelDefinitionOutline,
   CheckboxTreeFormComponentDefinitionOutline,
@@ -111,10 +117,6 @@ import {
   FileUploadFieldModelDefinitionOutline,
   FileUploadFormComponentDefinitionOutline,
 } from '../component/file-upload.outline';
-import {
-  QuestionTreeFieldComponentDefinitionOutline,
-  QuestionTreeFieldModelDefinitionOutline, QuestionTreeFormComponentDefinitionOutline
-} from "../component/question-tree.outline";
 
 /**
  * The form config visitor definition.
@@ -309,6 +311,10 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     this.visitDefaultFieldLayoutDefinition(item as any);
   }
 
+  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
+    this.visitDefaultFieldLayoutDefinition(item as any);
+  }
+
   /* Checkbox Input */
 
   visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {
@@ -372,6 +378,20 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   }
 
   visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Question Tree */
+
+  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
     this.notImplemented();
   }
 
@@ -442,20 +462,6 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   }
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
-    this.notImplemented();
-  }
-
-  /* Question Tree */
-
-  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
-    this.notImplemented();
-  }
-
-  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
-    this.notImplemented();
-  }
-
-  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
     this.notImplemented();
   }
 

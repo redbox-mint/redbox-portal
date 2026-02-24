@@ -177,6 +177,24 @@ describe('Shared Handlebars Helpers', function () {
         });
     });
 
+    describe('markdownToHtml', function () {
+        it('should convert markdown input when output format is markdown', function () {
+            const result = handlebarsHelperDefinitions.markdownToHtml('**bold**', 'markdown');
+            expect(result).to.contain('<strong>bold</strong>');
+        });
+
+        it('should pass html input through when output format is html', function () {
+            const html = '<p><em>hello</em></p>';
+            const result = handlebarsHelperDefinitions.markdownToHtml(html, 'html');
+            expect(result).to.equal(html);
+        });
+
+        it('should return empty string when value is nullish', function () {
+            const result = handlebarsHelperDefinitions.markdownToHtml(null, 'markdown');
+            expect(result).to.equal('');
+        });
+    });
+
     describe('comparison helpers', function () {
         it('gt should return true if first > second', function () {
             expect(handlebarsHelperDefinitions.gt(5, 3)).to.be.true;

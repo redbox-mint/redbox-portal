@@ -15,20 +15,20 @@ This involves creating a new `StorageManagerService` that wraps Flydrive, and a 
 
 ### Dependencies
 
-- Add `flydrive` (v2) to `packages/redbox-core-types`.
+- Add `flydrive` (v2) to `packages/redbox-core`.
 - Add `@flydrive/drivers-s3` (or equivalent for v2) if S3 support is needed immediately, otherwise ensure flexible driver registration.
 
 ### Packages
 
-#### [packages/redbox-core-types]
+#### [packages/redbox-core]
 
-##### [NEW] [StorageManagerService.ts](packages/redbox-core-types/src/services/StorageManagerService.ts)
+##### [NEW] [StorageManagerService.ts](packages/redbox-core/src/services/StorageManagerService.ts)
 
 - Wrapper around Flydrive `StorageManager`.
 - Configures generic disks based on `storage.config.ts`.
 - Exposes access to specific disks (e.g., `staging`, `primary`).
 
-##### [NEW] [StandardDatastreamService.ts](packages/redbox-core-types/src/services/StandardDatastreamService.ts)
+##### [NEW] [StandardDatastreamService.ts](packages/redbox-core/src/services/StandardDatastreamService.ts)
 
 - Implements `DatastreamService` interface.
 - **`addDatastreams` Logic**:
@@ -42,7 +42,7 @@ This involves creating a new `StorageManagerService` that wraps Flydrive, and a 
   1.  Uses `StorageManagerService` to get the `primary` disk.
   2.  Returns a stream/buffer of the file.
 
-##### [MODIFY] [config/storage.config.ts](packages/redbox-core-types/src/config/storage.config.ts)
+##### [MODIFY] [config/storage.config.ts](packages/redbox-core/src/config/storage.config.ts)
 
 - Update `StorageConfig` to support multiple disks.
 - Define `disks` map allowing arbitrary driver configuration.
@@ -77,7 +77,7 @@ export interface StorageConfig {
 > `FigshareService` currently manages its own file uploads from a temp directory.
 > The new `StorageManagerService` will handle the primary storage config, but `FigshareService` logic for reading from staging (which it expects to be local FS) should be preserved or updated to use `StorageManagerService.disk('staging')` if possible, or ensured to alignment with `RecordController`'s upload location.
 
-##### [MODIFY] [index.ts](packages/redbox-core-types/src/index.ts)
+##### [MODIFY] [index.ts](packages/redbox-core/src/index.ts)
 
 - Export `StorageManagerService` and `StandardDatastreamService`.
 
@@ -93,8 +93,8 @@ export interface StorageConfig {
 
 ### Automated Tests
 
-- **StorageManagerService**: Unit tests in `packages/redbox-core-types/test/services/StorageManagerService.test.ts`.
-- **StandardDatastreamService**: Unit tests in `packages/redbox-core-types/test/services/StandardDatastreamService.test.ts`, mocking Flydrive to verify move logic.
+- **StorageManagerService**: Unit tests in `packages/redbox-core/test/services/StorageManagerService.test.ts`.
+- **StandardDatastreamService**: Unit tests in `packages/redbox-core/test/services/StandardDatastreamService.test.ts`, mocking Flydrive to verify move logic.
 
 ### Manual Verification
 

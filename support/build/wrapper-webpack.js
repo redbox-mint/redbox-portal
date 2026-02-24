@@ -1,5 +1,5 @@
-// This file is a helper for dev only. It makes it easier to run webpack when parts of the mono repo are in different stages of being built. Refer to the redbox-core-types webpack.ts for how the hook runs webpack
-const redboxCore = require("@researchdatabox/redbox-core-types");
+// This file is a helper for dev only. It makes it easier to run webpack when parts of the mono repo are in different stages of being built. Refer to the redbox-core webpack.ts for how the hook runs webpack
+const redboxCore = require('@researchdatabox/redbox-core');
 
 const ensureTsNode = () => {
   try {
@@ -13,12 +13,12 @@ const ensureTsNode = () => {
 let defineWebpackHook = redboxCore.defineWebpackHook || (redboxCore.default && redboxCore.default.defineWebpackHook);
 if (!defineWebpackHook) {
   try {
-    defineWebpackHook = require("@researchdatabox/redbox-core-types/dist/hooks/webpack").defineWebpackHook;
+    defineWebpackHook = require('@researchdatabox/redbox-core/dist/hooks/webpack').defineWebpackHook;
   } catch (e) {}
 }
 if (!defineWebpackHook && ensureTsNode()) {
   try {
-    defineWebpackHook = require("@researchdatabox/redbox-core-types/src/hooks/webpack.ts").defineWebpackHook;
+    defineWebpackHook = require('@researchdatabox/redbox-core/src/hooks/webpack.ts').defineWebpackHook;
   } catch (e) {}
 }
 
@@ -47,14 +47,14 @@ if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 
 }
 if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 0)) {
   try {
-    const distWebpack = require('@researchdatabox/redbox-core-types/dist/config/webpack.config');
+    const distWebpack = require('@researchdatabox/redbox-core/dist/config/webpack.config');
     webpackConfig = distWebpack && distWebpack.webpack ? distWebpack.webpack.config : distWebpack.config || distWebpack;
   } catch (e) {}
 }
 if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 0)) {
   if (ensureTsNode()) {
     try {
-      const srcWebpack = require('@researchdatabox/redbox-core-types/src/config/webpack.config.ts');
+      const srcWebpack = require('@researchdatabox/redbox-core/src/config/webpack.config.ts');
       webpackConfig = srcWebpack && srcWebpack.webpack ? srcWebpack.webpack.config : srcWebpack.config || srcWebpack;
     } catch (e) {}
   }
@@ -63,24 +63,24 @@ if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 
 sails = {
   config: {
     webpack: {
-      config: webpackConfig
-    }
+      config: webpackConfig,
+    },
   },
   log: {
     info: function (msg, data = null) {
-      console.info(msg, data)
+      console.info(msg, data);
     },
     warn: function (msg, data = null) {
-      console.warn(msg, data)
+      console.warn(msg, data);
     },
     error: function (msg, data = null) {
-      console.error(msg, data)
-    }
-  }
+      console.error(msg, data);
+    },
+  },
 };
 async function main() {
   if (!defineWebpackHook) {
-    console.warn('defineWebpackHook not available from @researchdatabox/redbox-core-types; running webpack directly');
+    console.warn('defineWebpackHook not available from @researchdatabox/redbox-core; running webpack directly');
     // Fallback: run webpack directly using resolved config
     const webpack = require('webpack');
 
@@ -89,7 +89,10 @@ async function main() {
       return;
     }
 
-    if (!sails.config.webpack.config || (Array.isArray(sails.config.webpack.config) && sails.config.webpack.config.length === 0)) {
+    if (
+      !sails.config.webpack.config ||
+      (Array.isArray(sails.config.webpack.config) && sails.config.webpack.config.length === 0)
+    ) {
       sails.log.warn('sails-hook-webpack: Configure your config/webpack.js file.');
       return;
     }
@@ -134,7 +137,9 @@ async function main() {
     compiler.run(compileCallback);
     return;
   }
-  await defineWebpackHook(sails).initialize(() => { console.log("Webpack wrapper done!") });
+  await defineWebpackHook(sails).initialize(() => {
+    console.log('Webpack wrapper done!');
+  });
 }
 
 main();

@@ -8,9 +8,9 @@ import { SaveButtonTypes } from './component/save-button.outline';
 import { TextAreaTypes } from './component/text-area.outline';
 import { ContentTypes } from './component/content.outline';
 import {
-    SimpleInputFormComponentDefinitionFrame,
-    SimpleInputFormComponentDefinitionOutline,
-    SimpleInputTypes
+  SimpleInputFormComponentDefinitionFrame,
+  SimpleInputFormComponentDefinitionOutline,
+  SimpleInputTypes,
 } from './component/simple-input.outline';
 import { ValidationSummaryTypes } from './component/validation-summary.outline';
 import {
@@ -20,18 +20,34 @@ import {
 } from './component/tab-content.outline';
 import { TabTypes } from './component/tab.outline';
 import { AccordionTypes } from './component/accordion.outline';
-import { DefaultLayoutTypes } from './component/default-layout.outline';import { InlineLayoutTypes } from './component/inline-layout.outline';
+import { DefaultLayoutTypes } from './component/default-layout.outline';
+import { InlineLayoutTypes } from './component/inline-layout.outline';
+import { ActionRowLayoutTypes } from './component/action-row-layout.outline';
+
 import {
   FieldLayoutDefinitionFrameKindType,
   FieldLayoutDefinitionKindType,
   FormComponentDefinitionFrameKindType,
   FormComponentDefinitionKindType,
 } from './shared.outline';
-import { CheckboxInputTypes } from './component/checkbox-input.outline';
+import {
+  CheckboxInputFormComponentDefinitionFrame,
+  CheckboxInputFormComponentDefinitionOutline,
+  CheckboxInputTypes,
+} from './component/checkbox-input.outline';
 import { DropdownInputTypes } from './component/dropdown-input.outline';
-import { RadioInputTypes } from './component/radio-input.outline';
+import {
+  RadioInputFormComponentDefinitionFrame,
+  RadioInputFormComponentDefinitionOutline,
+  RadioInputTypes,
+} from './component/radio-input.outline';
 import { DateInputTypes } from './component/date-input.outline';
-import { ReusableTypes } from './component/reusable.outline';
+import {
+  ReusableFormComponentDefinitionFrame,
+  ReusableFormComponentDefinitionOutline,
+  ReusableTypes,
+} from './component/reusable.outline';
+import { QuestionTreeTypes } from './component/question-tree.outline';
 import { CheckboxTreeTypes } from './component/checkbox-tree.outline';
 import { TypeaheadInputTypes } from './component/typeahead-input.outline';
 import { RichTextEditorTypes } from './component/rich-text-editor.outline';
@@ -39,20 +55,6 @@ import { MapTypes } from './component/map.outline';
 import { FileUploadTypes } from './component/file-upload.outline';
 import { CancelButtonTypes } from './component/cancel-button.outline';
 import { TabNavButtonTypes } from './component/tab-nav-button.outline';
-import {
-  CheckboxInputFormComponentDefinitionFrame,
-  CheckboxInputFormComponentDefinitionOutline,
-} from "./component/checkbox-input.outline";
-import {
-  RadioInputFormComponentDefinitionFrame,
-  RadioInputFormComponentDefinitionOutline,
-} from "./component/radio-input.outline";
-import {
-  ReusableFormComponentDefinitionFrame,
-  ReusableFormComponentDefinitionOutline
-} from "./component/reusable.outline";
-import {QuestionTreeTypes} from "./component/question-tree.outline";
-
 
 /**
  * The static type union of all available interfaces that provides typing for the object literal and schema.
@@ -61,6 +63,7 @@ import {QuestionTreeTypes} from "./component/question-tree.outline";
 export type AllTypes =
   | DefaultLayoutTypes
   | InlineLayoutTypes
+  | ActionRowLayoutTypes
   | RepeatableTypes
   | GroupTypes
   | SaveButtonTypes
@@ -78,14 +81,12 @@ export type AllTypes =
   | RadioInputTypes
   | DateInputTypes
   | ReusableTypes
+  | QuestionTreeTypes
   | CheckboxTreeTypes
   | TypeaheadInputTypes
   | RichTextEditorTypes
   | MapTypes
-  | FileUploadTypes
-  | QuestionTreeTypes
-  ;
-
+  | FileUploadTypes;
 
 /*
  * The variables below here are conveniences that provide access to the various groups

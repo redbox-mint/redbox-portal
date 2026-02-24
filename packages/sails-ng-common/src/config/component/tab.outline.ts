@@ -52,6 +52,18 @@ export type ButtonSectionAriaOrientationOptionsType = typeof ButtonSectionAriaOr
 
 export interface TabFieldLayoutConfigFrame extends FieldLayoutConfigFrame {
     /**
+     * CSS class for the outer tab shell wrapper.
+     */
+    tabShellCssClass?: string;
+    /**
+     * CSS class for the tab nav wrapper column.
+     */
+    tabNavWrapperCssClass?: string;
+    /**
+     * CSS class for the tab panel wrapper column.
+     */
+    tabPanelWrapperCssClass?: string;
+    /**
      * CSS class for the tab buttons
      */
     buttonSectionCssClass?: string;

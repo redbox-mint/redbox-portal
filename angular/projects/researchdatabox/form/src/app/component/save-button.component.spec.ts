@@ -164,4 +164,10 @@ describe('SaveButtonComponent', () => {
       sub.unsubscribe();
     }
   });
+
+  it('should render save button wrapper class used by action row', async () => {
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const wrapper = fixture.nativeElement.querySelector('.rb-form-save-button');
+    expect(wrapper).toBeTruthy();
+  });
 });

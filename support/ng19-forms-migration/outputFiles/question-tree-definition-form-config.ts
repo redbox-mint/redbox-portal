@@ -96,4 +96,4 @@ const questionTreeConfig: QuestionTreeFieldComponentConfigFrame = {
   ],
   "componentDefinitions": []
 };
-module.exports = questionTreeConfig;
+export default questionTreeConfig;

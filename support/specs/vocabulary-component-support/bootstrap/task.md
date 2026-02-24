@@ -10,7 +10,7 @@
 - RVA imports can be disabled via `sails.config.vocab.bootstrapRvaImports: false`
 - Files are processed in sorted filename order for deterministic behavior
 - Each action is logged at `sails.log.verbose` (created/skipped) or `sails.log.error` (failure)
-- All unit tests pass: `cd packages/redbox-core-types && npm test`
+- All unit tests pass: `cd packages/redbox-core && npm test`
 - Integration test passes against live database
 
 ## Tasks

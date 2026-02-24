@@ -27,7 +27,8 @@ import {
   inject,
   effect,
   model,
-  OnDestroy
+  OnDestroy,
+  ViewEncapsulation
 } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
@@ -75,6 +76,7 @@ import { FormComponentValueChangeEventConsumer } from './form-state/events/';
     { provide: LocationStrategy, useClass: PathLocationStrategy },
     FormComponentFocusRequestCoordinator
   ],
+  encapsulation: ViewEncapsulation.None,
   standalone: false
 })
 export class FormComponent extends BaseComponent implements OnDestroy {
@@ -487,26 +489,29 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   @HostBinding('class') get hostClasses(): string {
+    const modeClass = this.editMode() ? 'rb-form-edit' : 'rb-form-view';
+    const baselineClasses = `rb-form-host ${modeClass}`.trim();
     if (!this.formDefMap?.formConfig) {
-      return '';
+      return baselineClasses;
     }
 
     const cssClasses = this.editMode() ? this.formDefMap.formConfig.editCssClasses : this.formDefMap.formConfig.viewCssClasses;
 
     if (!cssClasses) {
-      return '';
+      return baselineClasses;
     }
 
     if (_isString(cssClasses)) {
-      return cssClasses;
+      return `${baselineClasses} ${cssClasses}`.trim();
     }
 
     // If cssClasses is an object with key-value pairs, transform it to space-delimited string
     // where keys with truthy values become class names
-    return Object.entries(cssClasses)
+    const resolvedClasses = Object.entries(cssClasses)
       .filter(([_, value]) => value)
       .map(([className, _]) => className)
       .join(' ');
+    return `${baselineClasses} ${resolvedClasses}`.trim();
   }
 
   /**

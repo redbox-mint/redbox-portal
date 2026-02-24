@@ -261,6 +261,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     if (!this.inlineVocab && this.rootNodes.length === 0 && this.vocabRef) {
       await this.loadRootNodes();
     }
+    await this.expandToSelectedNodes();
     const visible = this.getVisibleNodes();
     this.focusedNodeId = visible[0]?.id ?? null;
   }
@@ -343,8 +344,8 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     if (checked) {
       this.selectedByNotation.set(notation, {
         notation,
-        label: node.label,
-        name: notation && node.label ? `${notation} - ${node.label}` : (node.label || notation),
+        label: node.displayLabel,
+        name: notation && node.displayLabel ? `${notation} - ${node.displayLabel}` : (node.displayLabel || notation),
         genealogy: this.getGenealogy(node)
       });
     } else {
@@ -581,6 +582,46 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       }
     }
     return false;
+  }
+
+  private async expandToSelectedNodes(): Promise<void> {
+    if (this.selectedByNotation.size === 0) {
+      return;
+    }
+
+    if (this.inlineVocab) {
+      const expandAncestors = (nodes: CheckboxTreeRenderNode[]): boolean => {
+        let treeHasSelected = false;
+        for (const node of nodes) {
+          const childHasSelected = expandAncestors(node.children ?? []);
+          const nodeIsSelected = this.isSelected(node);
+          if (childHasSelected || nodeIsSelected) {
+            this.expandedNodeIds.add(node.id);
+            treeHasSelected = true;
+          }
+        }
+        return treeHasSelected;
+      };
+      expandAncestors(this.rootNodes);
+    } else {
+      for (const selected of this.selectedByNotation.values()) {
+        const genealogy = selected.genealogy ?? [];
+        let currentNodes = this.rootNodes;
+
+        for (const notation of genealogy) {
+          const node = currentNodes.find(n => this.getNotation(n) === notation);
+          if (!node) {
+            break;
+          }
+
+          this.expandedNodeIds.add(node.id);
+          if (node.hasChildren && (node.children?.length ?? 0) === 0 && !this.loadedNodeIds.has(node.id)) {
+            await this.loadChildren(node);
+          }
+          currentNodes = node.children ?? [];
+        }
+      }
+    }
   }
 
   private getGenealogy(node: CheckboxTreeRenderNode): string[] {
