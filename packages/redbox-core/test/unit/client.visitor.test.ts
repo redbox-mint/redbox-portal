@@ -1,1368 +1,1000 @@
 import {
-    FormConfigFrame,
-    TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame, FormOverride, ReusableFormDefinitions
+  FormConfigFrame,
+  FormExpressionsTemplateConfigFrame, QuestionTreeMeta, QuestionTreeOutcome,
+  QuestionTreeQuestion,
+  TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
 } from "@researchdatabox/sails-ng-common";
 import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
 import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
-import { formConfigExample1 } from "./example-data";
-import { logger } from "./helpers";
+import {formConfigExample1} from "./example-data";
+import {logger} from "./helpers";
+import {reusableFormDefinitions} from "../../src";
 
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 describe("Client Visitor", async () => {
-    it(`should create full example form config`, async function () {
-        const args = formConfigExample1;
+  it(`should create full example form config`, async function () {
+    const args = formConfigExample1;
 
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({ data: args, formMode: "edit" });
-
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({ form: constructed });
-
-        const stringified = JSON.stringify(actual);
-
-        expect(stringified).to.not.contain("constraints");
-        expect(stringified).to.not.contain("defaultValue");
-
-        // top-level form config components
-        const formCompDefs = actual.componentDefinitions;
-        expect(formCompDefs).to.have.length(4);
-
-        // tab count
-        const formCompDefFirstTabs = actual.componentDefinitions[0].component;
-        expect(formCompDefFirstTabs.class).to.eql("TabComponent");
-        expect((formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs).to.have.length(2);
-
-        // tab 1 component count
-        const tabFirst = (formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs[0];
-        expect(tabFirst.component.class).to.eql("TabContentComponent");
-        expect((tabFirst.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(15);
-
-        // tab 2 component count
-        const tabSecond = (formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs[1];
-        expect(tabSecond.component.class).to.eql("TabContentComponent");
-        expect((tabSecond.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(3);
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      data: args,
+      formMode: "edit",
+      reusableFormDefs: reusableFormDefinitions,
     });
 
-    const cases: {
-        title: string,
-        args: FormConfigFrame;
-        expected: FormConfigFrame | {};
-    }[] = [
-            {
-                title: "create empty form config",
-                args: { name: '', componentDefinitions: [] },
-                expected: {},
-            },
-            {
-                title: "create basic form config",
-                args: {
-                    name: "basic-form",
-                    type: "rdmp",
-                    debugValue: true,
-                    domElementType: 'form',
-                    defaultComponentConfig: {
-                        defaultComponentCssClasses: 'row',
-                    },
-                    editCssClasses: "redbox-form form",
-                    componentDefinitions: [
-                        {
-                            name: 'text_2',
-                            layout: {
-                                class: 'DefaultLayout',
-                                config: {
-                                    label: 'TextField with default wrapper defined',
-                                    helpText: 'This is a help text',
-                                }
-                            },
-                            model: {
-                                class: 'SimpleInputModel',
-                                config: {
-                                    defaultValue: 'hello world 2!',
-                                }
-                            },
-                            component: {
-                                class: 'SimpleInputComponent',
-                            },
-                            constraints: {
-                                authorization: {
-                                    allowRoles: [],
-                                },
-                                allowModes: [],
-                            },
-                        }
-                    ]
-                },
-                expected: {
-                    name: "basic-form",
-                    type: "rdmp",
-                    debugValue: true,
-                    domElementType: 'form',
-                    defaultComponentConfig: {
-                        defaultComponentCssClasses: 'row',
-                    },
-                    editCssClasses: "redbox-form form",
-                    enabledValidationGroups: ["all"],
-                    validators: [],
-                    validationGroups: {
-                        all: { description: "Validate all fields with validators.", initialMembership: "all" },
-                        none: { description: "Validate none of the fields.", initialMembership: "none" },
-                    },
-                    componentDefinitions: [
-                        {
-                            name: 'text_2',
-                            layout: {
-                                class: 'DefaultLayout',
-                                config: {
-                                    autofocus: false,
-                                    cssClassesMap: {},
-                                    disabled: false,
-                                    editMode: true,
-                                    helpTextVisible: false,
-                                    helpTextVisibleOnInit: false,
-                                    label: 'TextField with default wrapper defined',
-                                    labelRequiredStr: '*',
-                                    readonly: false,
-                                    visible: true,
-                                    helpText: 'This is a help text',
-                                }
-                            },
-                            model: {
-                                class: 'SimpleInputModel',
-                                config: {
-                                    value: 'hello world 2!',
-                                }
-                            },
-                            component: {
-                                class: 'SimpleInputComponent',
-                                config: {
-                                    "autofocus": false,
-                                    "disabled": false,
-                                    "editMode": true,
-                                    "readonly": false,
-                                    "type": "text",
-                                    "visible": true,
-                                }
-                            },
-                        }
-                    ]
-                }
-            },
-            {
-                title: "remove the component because the user does not have the required roles",
-                args: {
-                    name: "remove-item-constraint-roles",
-                    type: "rdmp",
-                    debugValue: true,
-                    domElementType: 'form',
-                    defaultComponentConfig: {
-                        defaultComponentCssClasses: 'row',
-                    },
-                    editCssClasses: "redbox-form form",
-                    componentDefinitions: [
-                        {
-                            name: 'text_1',
-                            component: {
-                                class: 'SimpleInputComponent',
-                            },
-                        },
-                        {
-                            name: 'text_2',
-                            layout: {
-                                class: 'DefaultLayout',
-                                config: {
-                                    label: 'TextField with default wrapper defined',
-                                    helpText: 'This is a help text',
-                                }
-                            },
-                            model: {
-                                class: 'SimpleInputModel',
-                                config: {
-                                    defaultValue: 'hello world 2!',
-                                }
-                            },
-                            component: {
-                                class: 'SimpleInputComponent',
-                            },
-                            constraints: {
-                                authorization: {
-                                    allowRoles: ['Admin', 'Librarians'],
-                                },
-                                allowModes: [],
-                            },
-                        }
-                    ]
-                },
-                expected: {
-                    name: "remove-item-constraint-roles",
-                    type: "rdmp",
-                    debugValue: true,
-                    domElementType: 'form',
-                    defaultComponentConfig: {
-                        defaultComponentCssClasses: 'row',
-                    },
-                    editCssClasses: "redbox-form form",
-                    enabledValidationGroups: ["all"],
-                    validators: [],
-                    validationGroups: {
-                        all: { description: "Validate all fields with validators.", initialMembership: "all" },
-                        none: { description: "Validate none of the fields.", initialMembership: "none" },
-                    },
-                    componentDefinitions: [
-                        {
-                            name: 'text_1',
-                            component: {
-                                class: 'SimpleInputComponent',
-                                config: {
-                                    "autofocus": false,
-                                    "disabled": false,
-                                    "editMode": true,
-                                    "readonly": false,
-                                    "type": "text",
-                                    "visible": true,
-                                }
-                            },
-                            model: { class: "SimpleInputModel", config: {} }
-                        }
-                    ]
-                }
-            },
-            {
-                title: "remove the component because the client does not have the required mode",
-                args: {
-                    name: "remove-item-constraint-mode",
-                    type: "rdmp",
-                    debugValue: true,
-                    domElementType: 'form',
-                    defaultComponentConfig: {
-                        defaultComponentCssClasses: 'row',
-                    },
-                    editCssClasses: "redbox-form form",
-                    componentDefinitions: [
-                        {
-                            name: 'text_1',
-                            component: {
-                                class: 'SimpleInputComponent',
-                            },
-                            model: {
-                                class: "SimpleInputModel",
-                                config: {
-                                    validators: [{ class: 'required' }]
-                                }
-                            }
-                        },
-                        {
-                            name: 'text_2',
-                            layout: {
-                                class: 'DefaultLayout',
-                                config: {
-                                    label: 'TextField with default wrapper defined',
-                                    helpText: 'This is a help text',
-                                }
-                            },
-                            model: {
-                                class: 'SimpleInputModel',
-                                config: {
-                                    defaultValue: 'hello world 2!',
-                                }
-                            },
-                            component: {
-                                class: 'SimpleInputComponent',
-                            },
-                            expressions: [{
-                                name: 'model.value',
-                                config: {
-                                    template: `<%= _.get(model,'text_1_event','') %>`
-                                }
-                            }],
-                            constraints: {
-                                authorization: {
-                                    allowRoles: [],
-                                },
-                                allowModes: ['edit'],
-                            },
-                        }
-                    ]
-                },
-                expected: {
-                    name: "remove-item-constraint-mode",
-                    type: "rdmp",
-                    debugValue: true,
-                    domElementType: 'form',
-                    defaultComponentConfig: {
-                        defaultComponentCssClasses: 'row',
-                    },
-                    editCssClasses: "redbox-form form",
-                    enabledValidationGroups: ["all"],
-                    validators: [],
-                    validationGroups: {
-                        all: { description: "Validate all fields with validators.", initialMembership: "all" },
-                        none: { description: "Validate none of the fields.", initialMembership: "none" },
-                    },
-                    componentDefinitions: [
-                        {
-                            name: 'text_1',
-                            component: {
-                                class: 'SimpleInputComponent',
-                                config: {
-                                    autofocus: false,
-                                    disabled: false,
-                                    editMode: true,
-                                    readonly: false,
-                                    type: "text",
-                                    visible: true,
-                                },
-                            },
-                            model: {
-                                class: "SimpleInputModel",
-                                config: {
-                                    validators: [{ class: 'required' }]
-                                }
-                            }
-                        },
-                    ]
-                }
-            },
-            {
-                title: "remove the components nested in repeatable and group components when the constraints are not met",
-                args: {
-                    name: "remove-items-constrains-nested",
-                    type: "rdmp",
-                    debugValue: true,
-                    domElementType: 'form',
-                    defaultComponentConfig: {
-                        defaultComponentCssClasses: 'row',
-                    },
-                    editCssClasses: "redbox-form form",
-                    componentDefinitions: [
-                        {
-                            name: 'repeatable_group_1',
-                            model: {
-                                class: 'RepeatableModel',
-                                config: {
-                                    defaultValue: [{
-                                        text_1: "hello world from repeating groups",
-                                        text_2: 'hello world 2!',
-                                        repeatable_for_admin: ['hello world from repeatable for admin'],
-                                        removed_group: { removed_group_text: 'hello world 1!' },
-                                    }]
-                                }
-                            },
-                            component: {
-                                class: 'RepeatableComponent',
-                                config: {
-                                    elementTemplate: {
-                                        name: "",
-                                        model: {
-                                            class: 'GroupModel',
-                                            config: {
-                                                newEntryValue: {
-                                                    text_1: 'hello world 1!',
-                                                    text_2: "repeatable_group_1 elementTemplate text_2 default"
-                                                }
-                                            },
-                                        },
-                                        component: {
-                                            class: 'GroupComponent',
-                                            config: {
-                                                wrapperCssClasses: 'col',
-                                                componentDefinitions: [
-                                                    {
-                                                        // requires mode edit, so expect to be removed
-                                                        name: 'text_1',
-                                                        model: {
-                                                            class: 'SimpleInputModel',
-                                                            config: {}
-                                                        },
-                                                        component: { class: 'SimpleInputComponent' },
-                                                        constraints: { allowModes: ['edit'] },
-                                                    },
-                                                    {
-                                                        name: 'text_2',
-                                                        model: {
-                                                            class: 'SimpleInputModel',
-                                                            config: {}
-                                                        },
-                                                        component: { class: 'SimpleInputComponent' },
-                                                    },
-                                                    {
-                                                        // elementTemplate requires role 'Admin', so repeatable is removed
-                                                        name: 'repeatable_for_admin',
-                                                        model: { class: 'RepeatableModel', config: {} },
-                                                        component: {
-                                                            class: 'RepeatableComponent',
-                                                            config: {
-                                                                elementTemplate: {
-                                                                    name: "",
-                                                                    model: {
-                                                                        class: 'SimpleInputModel',
-                                                                        config: {}
-                                                                    },
-                                                                    component: { class: 'SimpleInputComponent' },
-                                                                    constraints: { authorization: { allowRoles: ['Admin'] } },
-                                                                }
-                                                            }
-                                                        },
-                                                    },
-                                                    {
-                                                        // all group components are removed, so group is removed
-                                                        name: "removed_group",
-                                                        model: {
-                                                            class: 'GroupModel', config: {}
-                                                        },
-                                                        component: {
-                                                            class: 'GroupComponent',
-                                                            config: {
-                                                                wrapperCssClasses: 'col',
-                                                                componentDefinitions: [
-                                                                    {
-                                                                        // requires mode edit, so expect to be removed
-                                                                        name: 'removed_group_text',
-                                                                        model: {
-                                                                            class: 'SimpleInputModel',
-                                                                            config: {}
-                                                                        },
-                                                                        component: { class: 'SimpleInputComponent' },
-                                                                        constraints: { allowModes: ['edit'] },
-                                                                    },
-                                                                ]
-                                                            }
-                                                        }
-                                                    }
-                                                ]
-                                            }
-                                        },
-                                        layout: {
-                                            class: 'RepeatableElementLayout',
-                                            config: { hostCssClasses: 'row align-items-start' }
-                                        },
-                                        // requires mode view, so is kept
-                                        constraints: { authorization: { allowRoles: [] }, allowModes: ['view'] }
-                                    }
-                                },
-                            },
-                            layout: {
-                                class: 'DefaultLayout',
-                                config: {
-                                    label: 'Repeatable TextField with default wrapper defined',
-                                    helpText: 'Repeatable component help text',
-                                }
-                            },
-                        },
-                    ]
-                },
-                expected: {
-                    name: "remove-items-constrains-nested",
-                    type: "rdmp",
-                    debugValue: true,
-                    domElementType: 'form',
-                    defaultComponentConfig: {
-                        defaultComponentCssClasses: 'row',
-                    },
-                    editCssClasses: "redbox-form form",
-                    enabledValidationGroups: ["all"],
-                    validators: [],
-                    validationGroups: {
-                        all: { description: "Validate all fields with validators.", initialMembership: "all" },
-                        none: { description: "Validate none of the fields.", initialMembership: "none" },
-                    },
-                    componentDefinitions: [
-                        {
-                            name: 'repeatable_group_1',
-                            model: {
-                                class: 'RepeatableModel',
-                                config: { value: [{ text_2: 'hello world 2!' }] }
-                            },
-                            component: {
-                                class: 'RepeatableComponent',
-                                config: {
-                                    autofocus: false,
-                                    disabled: false,
-                                    editMode: true,
-                                    readonly: false,
-                                    visible: true,
-                                    elementTemplate: {
-                                        name: "",
-                                        model: {
-                                            class: 'GroupModel',
-                                            config: {
-                                                newEntryValue: {
-                                                    text_2: "repeatable_group_1 elementTemplate text_2 default"
-                                                }
-                                            }
-                                        },
-                                        component: {
-                                            class: 'GroupComponent',
-                                            config: {
-                                                autofocus: false,
-                                                disabled: false,
-                                                editMode: true,
-                                                readonly: false,
-                                                visible: true,
-                                                wrapperCssClasses: 'col',
-                                                componentDefinitions: [
-                                                    // <-- requires mode edit, so expect to be removed
-                                                    {
-                                                        name: 'text_2',
-                                                        model: {
-                                                            class: 'SimpleInputModel',
-                                                            config: {}
-                                                        },
-                                                        component: {
-                                                            class: 'SimpleInputComponent',
-                                                            config: {
-                                                                autofocus: false,
-                                                                disabled: false,
-                                                                editMode: true,
-                                                                readonly: false,
-                                                                type: "text",
-                                                                visible: true,
-                                                            }
-                                                        },
-                                                    },
-                                                    // <-- requires role 'Admin', so is removed
-                                                ]
-                                            }
-                                        },
-                                        layout: {
-                                            class: 'RepeatableElementLayout',
-                                            config: {
-                                                hostCssClasses: 'row align-items-start',
-                                                autofocus: false,
-                                                cssClassesMap: {},
-                                                disabled: false,
-                                                editMode: true,
-                                                helpTextVisible: false,
-                                                helpTextVisibleOnInit: false,
-                                                labelRequiredStr: '*',
-                                                readonly: false,
-                                                visible: true,
-                                            }
-                                        },
-                                        // <-- requires mode view, so is kept, constraints removed
-                                    }
-                                },
-                            },
-                            layout: {
-                                class: 'DefaultLayout',
-                                config: {
-                                    label: 'Repeatable TextField with default wrapper defined',
-                                    helpText: 'Repeatable component help text',
-                                    autofocus: false,
-                                    cssClassesMap: {},
-                                    disabled: false,
-                                    editMode: true,
-                                    helpTextVisible: false,
-                                    helpTextVisibleOnInit: false,
-                                    labelRequiredStr: '*',
-                                    readonly: false,
-                                    visible: true,
-                                }
-                            },
-                        },
-                    ]
-                }
-            }
-        ];
-    cases.forEach(({ title, args, expected }) => {
-        it(`should ${title}`, async function () {
-            const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start({ data: args, formMode: "edit" });
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({form: constructed});
 
-            const visitor = new ClientFormConfigVisitor(logger);
-            const actual = visitor.start({ form: constructed });
-            expect(actual).to.eql(expected);
-        });
-    });
+    const stringified = JSON.stringify(actual);
 
-    it(`should result in an empty form config`, async function () {
-        const formConfig: FormConfigFrame = {
-            name: "basic-form",
-            type: "rdmp",
-            debugValue: true,
-            domElementType: 'form',
-            defaultComponentConfig: {
-                defaultComponentCssClasses: 'row',
+    expect(stringified).to.not.contain("constraints");
+    expect(stringified).to.not.contain("defaultValue");
+
+    // top-level form config components
+    const formCompDefs = actual.componentDefinitions;
+    expect(formCompDefs).to.have.length(4);
+
+    // tab count
+    const formCompDefFirstTabs = actual.componentDefinitions[0].component;
+    expect(formCompDefFirstTabs.class).to.eql("TabComponent");
+    expect((formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs).to.have.length(2);
+
+    // tab 1 component count
+    const tabFirst = (formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs[0];
+    expect(tabFirst.component.class).to.eql("TabContentComponent");
+    expect((tabFirst.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(15);
+
+    // tab 2 component count
+    const tabSecond = (formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs[1];
+    expect(tabSecond.component.class).to.eql("TabContentComponent");
+    expect((tabSecond.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(3);
+  });
+
+  const cases: {
+    title: string,
+    args: FormConfigFrame;
+    expected: FormConfigFrame | {};
+  }[] = [
+    {
+      title: "create empty form config",
+      args: {name: '', componentDefinitions: []},
+      expected: {},
+    },
+    {
+      title: "create basic form config",
+      args: {
+        name: "basic-form",
+        type: "rdmp",
+        debugValue: true,
+        domElementType: 'form',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: "redbox-form form",
+        componentDefinitions: [
+          {
+            name: 'text_1',
+            component: {class: 'SimpleInputComponent'},
+          },
+          {
+            name: 'text_2',
+            layout: {
+              class: 'DefaultLayout',
+              config: {
+                label: 'TextField with default wrapper defined',
+                helpText: 'This is a help text',
+              }
             },
-            editCssClasses: "redbox-form form",
-            componentDefinitions: [
-                {
-                    name: 'text_2',
-                    layout: {
-                        class: 'DefaultLayout',
-                        config: {
-                            label: 'TextField with default wrapper defined',
-                            helpText: 'This is a help text',
-                        }
-                    },
-                    model: {
-                        class: 'SimpleInputModel',
-                        config: {
-                            defaultValue: 'hello world 2!',
-                        }
-                    },
-                    component: {
-                        class: 'SimpleInputComponent',
-                    },
-                    constraints: {
-                        authorization: {
-                            allowRoles: ['Admin'],
-                        },
-                        allowModes: [],
-                    },
-                }
+            model: {
+              class: 'SimpleInputModel',
+              config: {
+                defaultValue: 'hello world 2!',
+              }
+            },
+            component: {
+              class: 'SimpleInputComponent',
+            },
+            constraints: {
+              authorization: {
+                allowRoles: [],
+              },
+              allowModes: [],
+            },
+            expressions: [
+              {
+                name: 'text_2_text_1_expr',
+                config: {
+                  template: `value & "__suffix"`,
+                  conditionKind: 'jsonpointer',
+                  condition: `/text_1::field.value.changed`,
+                  target: `model.value`,
+                },
+              },
+              {
+                name: 'text_2_no_template_expr',
+                config: {
+                  operation: "testing",
+                  conditionKind: 'jsonpointer',
+                  condition: `/text_1::field.value.changed`,
+                  target: `model.value`,
+                },
+              },
             ]
-        };
+          }
+        ]
+      },
+      expected: {
+        name: "basic-form",
+        type: "rdmp",
+        debugValue: true,
+        domElementType: 'form',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: "redbox-form form",
+        enabledValidationGroups: ["all"],
+        validators: [],
+        validationGroups: {
+          all: {description: "Validate all fields with validators.", initialMembership: "all"},
+          none: {description: "Validate none of the fields.", initialMembership: "none"},
+        },
+        componentDefinitions: [
+          {
+            name: "text_1",
+            component: {
+              class: 'SimpleInputComponent',
+              "config": {
+                "autofocus": false,
+                "disabled": false,
+                "editMode": true,
+                "readonly": false,
+                "type": "text",
+                "visible": true,
+              },
 
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
-            data: formConfig,
-            formMode: "edit",
-            record: { text_2: "text_2_value" }
-        });
+            },
+            model: {class: "SimpleInputModel", config: {}},
+          },
+          {
+            name: 'text_2',
+            layout: {
+              class: 'DefaultLayout',
+              config: {
+                autofocus: false,
+                cssClassesMap: {},
+                disabled: false,
+                editMode: true,
+                helpTextVisible: false,
+                helpTextVisibleOnInit: false,
+                label: 'TextField with default wrapper defined',
+                labelRequiredStr: '*',
+                readonly: false,
+                visible: true,
+                helpText: 'This is a help text',
+              }
+            },
+            model: {
+              class: 'SimpleInputModel',
+              config: {
+                value: 'hello world 2!',
+              }
+            },
+            component: {
+              class: 'SimpleInputComponent',
+              config: {
+                "autofocus": false,
+                "disabled": false,
+                "editMode": true,
+                "readonly": false,
+                "type": "text",
+                "visible": true,
+              }
+            },
+            expressions: [
+              {
+                name: 'text_2_text_1_expr',
+                config: {
+                  hasTemplate: true,
+                  conditionKind: 'jsonpointer',
+                  condition: `/text_1::field.value.changed`,
+                  target: `model.value`,
+                  template: `value & "__suffix"`,
+                },
+              },
 
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({
-            form: constructed,
-            formMode: "view",
-            userRoles: ["Librarian"],
-        });
-        expect(actual).to.eql({});
-    });
-
-    it(`should keep transformed accordion in view mode`, async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
-            formMode: "view",
-            data: {
-                name: "form",
-                componentDefinitions: [
-                    {
-                        name: "main_tab",
-                        component: {
-                            class: "TabComponent",
-                            config: {
-                                tabs: [
-                                    {
-                                        name: "tab1",
-                                        component: {
-                                            class: "TabContentComponent",
-                                            config: { componentDefinitions: [] }
-                                        }
-                                    }
-                                ]
-                            }
-                        },
-                        layout: { class: "TabLayout", config: {} }
-                    }
-                ]
+              {
+                name: 'text_2_no_template_expr',
+                config: {
+                  hasTemplate: false,
+                  operation: "testing",
+                  conditionKind: 'jsonpointer',
+                  condition: `/text_1::field.value.changed`,
+                  target: `model.value`,
+                },
+              },
+            ]
+          }
+        ]
+      }
+    },
+    {
+      title: "remove the component because the user does not have the required roles",
+      args: {
+        name: "remove-item-constraint-roles",
+        type: "rdmp",
+        debugValue: true,
+        domElementType: 'form',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: "redbox-form form",
+        componentDefinitions: [
+          {
+            name: 'text_1',
+            component: {
+              class: 'SimpleInputComponent',
+            },
+          },
+          {
+            name: 'text_2',
+            layout: {
+              class: 'DefaultLayout',
+              config: {
+                label: 'TextField with default wrapper defined',
+                helpText: 'This is a help text',
+              }
+            },
+            model: {
+              class: 'SimpleInputModel',
+              config: {
+                defaultValue: 'hello world 2!',
+              }
+            },
+            component: {
+              class: 'SimpleInputComponent',
+            },
+            constraints: {
+              authorization: {
+                allowRoles: ['Admin', 'Librarians'],
+              },
+              allowModes: [],
+            },
+          }
+        ]
+      },
+      expected: {
+        name: "remove-item-constraint-roles",
+        type: "rdmp",
+        debugValue: true,
+        domElementType: 'form',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: "redbox-form form",
+        enabledValidationGroups: ["all"],
+        validators: [],
+        validationGroups: {
+          all: {description: "Validate all fields with validators.", initialMembership: "all"},
+          none: {description: "Validate none of the fields.", initialMembership: "none"},
+        },
+        componentDefinitions: [
+          {
+            name: 'text_1',
+            component: {
+              class: 'SimpleInputComponent',
+              config: {
+                "autofocus": false,
+                "disabled": false,
+                "editMode": true,
+                "readonly": false,
+                "type": "text",
+                "visible": true,
+              }
+            },
+            model: {class: "SimpleInputModel", config: {}}
+          }
+        ]
+      }
+    },
+    {
+      title: "remove the component because the client does not have the required mode",
+      args: {
+        name: "remove-item-constraint-mode",
+        type: "rdmp",
+        debugValue: true,
+        domElementType: 'form',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: "redbox-form form",
+        componentDefinitions: [
+          {
+            name: 'text_1',
+            component: {
+              class: 'SimpleInputComponent',
+            },
+            model: {
+              class: "SimpleInputModel",
+              config: {
+                validators: [{class: 'required'}]
+              }
             }
-        });
-
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({ form: constructed, formMode: "view" });
-        expect(actual.componentDefinitions[0].component.class).to.eql("AccordionComponent");
-    });
-
-    it(`should exclude edit-only tabs after tab-to-accordion transform in view mode`, async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
-            formMode: "view",
-            data: {
-                name: "form",
-                componentDefinitions: [
-                    {
-                        name: "main_tab",
-                        component: {
-                            class: "TabComponent",
-                            config: {
-                                tabs: [
-                                    {
-                                        name: "welcome",
-                                        constraints: {
-                                            authorization: { allowRoles: [] },
-                                            allowModes: ["edit"]
-                                        },
-                                        component: {
-                                            class: "TabContentComponent",
-                                            config: { componentDefinitions: [] }
-                                        }
-                                    },
-                                    {
-                                        name: "project",
-                                        constraints: {
-                                            authorization: { allowRoles: [] },
-                                            allowModes: []
-                                        },
-                                        component: {
-                                            class: "TabContentComponent",
-                                            config: {
-                                                componentDefinitions: [
-                                                    {
-                                                        name: "project_title",
-                                                        constraints: {
-                                                            authorization: { allowRoles: [] },
-                                                            allowModes: []
-                                                        },
-                                                        component: {
-                                                            class: "ContentComponent",
-                                                            config: {
-                                                                content: "Project",
-                                                                template: "<p>{{content}}</p>"
-                                                            }
-                                                        }
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    }
-                                ]
-                            }
-                        },
-                        layout: { class: "TabLayout", config: {} }
-                    }
-                ]
+          },
+          {
+            name: 'text_2',
+            layout: {
+              class: 'DefaultLayout',
+              config: {
+                label: 'TextField with default wrapper defined',
+                helpText: 'This is a help text',
+              }
+            },
+            model: {
+              class: 'SimpleInputModel',
+              config: {
+                defaultValue: 'hello world 2!',
+              }
+            },
+            component: {
+              class: 'SimpleInputComponent',
+            },
+            constraints: {
+              authorization: {
+                allowRoles: [],
+              },
+              allowModes: ['edit'],
+            },
+          }
+        ]
+      },
+      expected: {
+        name: "remove-item-constraint-mode",
+        type: "rdmp",
+        debugValue: true,
+        domElementType: 'form',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: "redbox-form form",
+        enabledValidationGroups: ["all"],
+        validators: [],
+        validationGroups: {
+          all: {description: "Validate all fields with validators.", initialMembership: "all"},
+          none: {description: "Validate none of the fields.", initialMembership: "none"},
+        },
+        componentDefinitions: [
+          {
+            name: 'text_1',
+            component: {
+              class: 'SimpleInputComponent',
+              config: {
+                autofocus: false,
+                disabled: false,
+                editMode: true,
+                readonly: false,
+                type: "text",
+                visible: true,
+              },
+            },
+            model: {
+              class: "SimpleInputModel",
+              config: {
+                validators: [{class: 'required'}]
+              }
             }
-        });
-
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({ form: constructed, formMode: "view" });
-        const panels = ((actual.componentDefinitions?.[0]?.component?.config as any)?.panels ?? []);
-
-        expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("AccordionComponent");
-        expect(panels.length).to.equal(1);
-        expect(panels[0]?.name).to.equal("project");
-    });
-
-    it(`should keep tab in edit mode`, async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
-            formMode: "edit",
-            data: {
-                name: "form",
-                componentDefinitions: [
-                    {
-                        name: "main_tab",
-                        component: {
-                            class: "TabComponent",
-                            config: {
-                                tabs: [
-                                    {
-                                        name: "tab1",
-                                        component: {
-                                            class: "TabContentComponent",
-                                            config: { componentDefinitions: [] }
-                                        }
-                                    }
-                                ]
-                            }
-                        },
-                        layout: { class: "TabLayout", config: {} }
-                    }
-                ]
-            }
-        });
-
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({ form: constructed, formMode: "edit" });
-        expect(actual.componentDefinitions[0].component.class).to.eql("TabComponent");
-    });
-
-    it(`should strip layout help settings in view mode`, async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
-            formMode: "view",
-            data: {
-                name: "form",
-                componentDefinitions: [
-                    {
-                        name: "title",
-                        constraints: {
-                            authorization: { allowRoles: [] },
-                            allowModes: []
-                        },
-                        component: {
-                            class: "SimpleInputComponent",
-                            config: {
-                                label: "Title",
-                                type: "text"
-                            }
-                        },
-                        model: {
-                            class: "SimpleInputModel",
+          },
+        ]
+      }
+    },
+    {
+      title: "remove the components nested in repeatable and group components when the constraints are not met",
+      args: {
+        name: "remove-items-constrains-nested",
+        type: "rdmp",
+        debugValue: true,
+        domElementType: 'form',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: "redbox-form form",
+        componentDefinitions: [
+          {
+            name: 'repeatable_group_1',
+            model: {
+              class: 'RepeatableModel',
+              config: {
+                defaultValue: [{
+                  text_1: "hello world from repeating groups",
+                  text_2: 'hello world 2!',
+                  repeatable_for_admin: ['hello world from repeatable for admin'],
+                  removed_group: {removed_group_text: 'hello world 1!'},
+                }]
+              }
+            },
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                elementTemplate: {
+                  name: "",
+                  model: {
+                    class: 'GroupModel',
+                    config: {
+                      newEntryValue: {
+                        text_1: 'hello world 1!',
+                        text_2: "repeatable_group_1 elementTemplate text_2 default"
+                      }
+                    },
+                  },
+                  component: {
+                    class: 'GroupComponent',
+                    config: {
+                      wrapperCssClasses: 'col',
+                      componentDefinitions: [
+                        {
+                          // requires mode edit, so expect to be removed
+                          name: 'text_1',
+                          model: {
+                            class: 'SimpleInputModel',
                             config: {}
+                          },
+                          component: {class: 'SimpleInputComponent'},
+                          constraints: {allowModes: ['edit']},
                         },
-                        layout: {
-                            class: "DefaultLayout",
-                            config: {
-                                helpText: "show in edit only",
-                                helpTextVisibleOnInit: true,
-                                helpTextVisible: true
-                            }
-                        }
-                    }
-                ]
-            }
-        });
-
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({ form: constructed, formMode: "view" });
-        const layoutConfig = actual.componentDefinitions?.[0]?.layout?.config as any;
-
-        expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("ContentComponent");
-        expect(layoutConfig?.helpText).to.equal(undefined);
-        expect(layoutConfig?.helpTextVisibleOnInit).to.equal(undefined);
-        expect(layoutConfig?.helpTextVisible).to.equal(undefined);
-    });
-
-    it(`should transform repeatable group to content table in view mode`, async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
-            formMode: "view",
-            data: {
-                name: "form",
-                componentDefinitions: [
-                    {
-                        name: "contributors",
-                        component: {
-                            class: "RepeatableComponent",
-                            config: {
-                                elementTemplate: {
-                                    name: "",
-                                    component: {
-                                        class: "GroupComponent",
-                                        config: {
-                                            componentDefinitions: [
-                                                {
-                                                    name: "title",
-                                                    component: { class: "SimpleInputComponent", config: { label: "@label.title" } },
-                                                    model: { class: "SimpleInputModel", config: {} }
-                                                },
-                                                {
-                                                    name: "tree",
-                                                    component: { class: "CheckboxTreeComponent", config: { label: "@label.tree" } },
-                                                    model: { class: "CheckboxTreeModel", config: {} }
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    model: { class: "GroupModel", config: {} }
-                                }
-                            }
+                        {
+                          name: 'text_2',
+                          model: {
+                            class: 'SimpleInputModel',
+                            config: {}
+                          },
+                          component: {class: 'SimpleInputComponent'},
                         },
-                        model: {
-                            class: "RepeatableModel",
-                            config: { defaultValue: [{ title: "Alice", tree: "A" }] }
-                        }
-                    }
-                ]
-            }
-        });
-
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({ form: constructed, formMode: "view" });
-        const transformed = actual.componentDefinitions?.[0];
-        const transformedConfig = transformed?.component?.config as { template?: string } | undefined;
-        expect(transformed?.component?.class).to.equal("ContentComponent");
-        expect(transformedConfig?.template).to.contain("rb-view-repeatable-table");
-        expect(transformedConfig?.template).to.contain('{{t "@label.title"}}');
-        expect(transformedConfig?.template).to.contain('<ul>{{#each (get this "tree" "")}}<li>{{default this.label this.notation}}</li>{{/each}}</ul>');
-    });
-
-    it(`should not transform group in view mode when allowModes explicitly includes view`, async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
-            formMode: "view",
-            data: {
-                name: "form",
-                componentDefinitions: [
-                    {
-                        name: "GroupComponent-fields-2",
-                        constraints: {
-                            authorization: { allowRoles: [] },
-                            allowModes: ["view"]
+                        {
+                          // elementTemplate requires role 'Admin', so repeatable is removed
+                          name: 'repeatable_for_admin',
+                          model: {class: 'RepeatableModel', config: {}},
+                          component: {
+                            class: 'RepeatableComponent',
+                            config: {
+                              elementTemplate: {
+                                name: "",
+                                model: {
+                                  class: 'SimpleInputModel',
+                                  config: {}
+                                },
+                                component: {class: 'SimpleInputComponent'},
+                                constraints: {authorization: {allowRoles: ['Admin']}},
+                              }
+                            }
+                          },
                         },
-                        component: {
-                            class: "GroupComponent",
+                        {
+                          // all group components are removed, so group is removed
+                          name: "removed_group",
+                          model: {
+                            class: 'GroupModel', config: {}
+                          },
+                          component: {
+                            class: 'GroupComponent',
                             config: {
-                                componentDefinitions: [
-                                    {
-                                        name: "SaveButtonComponent-fields-2-definition-fields-0",
-                                        constraints: {
-                                            authorization: { allowRoles: [] },
-                                            allowModes: ["view"]
-                                        },
-                                        component: {
-                                            class: "SaveButtonComponent",
-                                            config: { label: "@dmp-edit-record-link" }
-                                        }
-                                    }
-                                ]
+                              wrapperCssClasses: 'col',
+                              componentDefinitions: [
+                                {
+                                  // requires mode edit, so expect to be removed
+                                  name: 'removed_group_text',
+                                  model: {
+                                    class: 'SimpleInputModel',
+                                    config: {}
+                                  },
+                                  component: {class: 'SimpleInputComponent'},
+                                  constraints: {allowModes: ['edit']},
+                                },
+                              ]
                             }
+                          }
                         }
+                      ]
                     }
-                ]
-            }
-        });
-
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({ form: constructed, formMode: "view" });
-        const transformed = actual.componentDefinitions?.[0];
-
-        expect(transformed?.component?.class).to.equal("GroupComponent");
-        const nested = transformed?.component?.config as { componentDefinitions?: unknown[] } | undefined;
-        expect(Array.isArray(nested?.componentDefinitions)).to.equal(true);
-    });
-
-    it(`should force repeatable fallback layout when row contains file upload`, async function () {
-        const formOverride = new FormOverride(logger);
-        const transformed = formOverride.applyOverrideTransform({
-            name: "attachments",
-            component: {
-                class: "RepeatableComponent",
-                config: {
-                    elementTemplate: {
-                        name: "",
-                        component: {
-                            class: "GroupComponent",
-                            config: {
-                                componentDefinitions: [
-                                    {
-                                        name: "files",
-                                        component: { class: "FileUploadComponent" }
-                                    }
-                                ]
-                            }
-                        }
-                    }
+                  },
+                  layout: {
+                    class: 'RepeatableElementLayout',
+                    config: {hostCssClasses: 'row align-items-start'}
+                  },
+                  // requires mode view, so is kept
+                  constraints: {authorization: {allowRoles: []}, allowModes: ['view']}
                 }
+              },
             },
-            model: { class: "RepeatableModel", config: { value: [{}] } }
-        } as any, "view", { phase: "client" });
-        const transformedConfig = transformed.component?.config as { template?: string } | undefined;
-        expect(transformedConfig?.template).to.contain("rb-view-repeatable-list");
-        expect(transformedConfig?.template).to.not.contain("rb-view-repeatable-table");
+            layout: {
+              class: 'DefaultLayout',
+              config: {
+                label: 'Repeatable TextField with default wrapper defined',
+                helpText: 'Repeatable component help text',
+              }
+            },
+          },
+        ]
+      },
+      expected: {
+        name: "remove-items-constrains-nested",
+        type: "rdmp",
+        debugValue: true,
+        domElementType: 'form',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: "redbox-form form",
+        enabledValidationGroups: ["all"],
+        validators: [],
+        validationGroups: {
+          all: {description: "Validate all fields with validators.", initialMembership: "all"},
+          none: {description: "Validate none of the fields.", initialMembership: "none"},
+        },
+        componentDefinitions: [
+          {
+            name: 'repeatable_group_1',
+            model: {
+              class: 'RepeatableModel',
+              config: {value: [{text_2: 'hello world 2!'}]}
+            },
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                autofocus: false,
+                disabled: false,
+                editMode: true,
+                readonly: false,
+                visible: true,
+                elementTemplate: {
+                  name: "",
+                  model: {
+                    class: 'GroupModel',
+                    config: {newEntryValue: {
+                        text_2: "repeatable_group_1 elementTemplate text_2 default"
+                      }}
+                  },
+                  component: {
+                    class: 'GroupComponent',
+                    config: {
+                      autofocus: false,
+                      disabled: false,
+                      editMode: true,
+                      readonly: false,
+                      visible: true,
+                      wrapperCssClasses: 'col',
+                      componentDefinitions: [
+                        // <-- requires mode edit, so expect to be removed
+                        {
+                          name: 'text_2',
+                          model: {
+                            class: 'SimpleInputModel',
+                            config: {}
+                          },
+                          component: {
+                            class: 'SimpleInputComponent',
+                            config: {
+                              autofocus: false,
+                              disabled: false,
+                              editMode: true,
+                              readonly: false,
+                              type: "text",
+                              visible: true,
+                            }
+                          },
+                        },
+                        // <-- requires role 'Admin', so is removed
+                      ]
+                    }
+                  },
+                  layout: {
+                    class: 'RepeatableElementLayout',
+                    config: {
+                      hostCssClasses: 'row align-items-start',
+                      autofocus: false,
+                      cssClassesMap: {},
+                      disabled: false,
+                      editMode: true,
+                      helpTextVisible: false,
+                      helpTextVisibleOnInit: false,
+                      labelRequiredStr: '*',
+                      readonly: false,
+                      visible: true,
+                    }
+                  },
+                  // <-- requires mode view, so is kept, constraints removed
+                }
+              },
+            },
+            layout: {
+              class: 'DefaultLayout',
+              config: {
+                label: 'Repeatable TextField with default wrapper defined',
+                helpText: 'Repeatable component help text',
+                autofocus: false,
+                cssClassesMap: {},
+                disabled: false,
+                editMode: true,
+                helpTextVisible: false,
+                helpTextVisibleOnInit: false,
+                labelRequiredStr: '*',
+                readonly: false,
+                visible: true,
+              }
+            },
+          },
+        ]
+      }
+    }
+  ];
+  cases.forEach(({title, args, expected}) => {
+    it(`should ${title}`, async function () {
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = constructor.start({data: args, formMode: "edit"});
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      const actual = visitor.start({form: constructed});
+      expect(actual).to.eql(expected);
+    });
+  });
+
+  it(`should result in an empty form config due to roles`, async function () {
+    const formConfig: FormConfigFrame = {
+      name: "basic-form",
+      type: "rdmp",
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_2',
+          layout: {
+            class: 'DefaultLayout',
+            config: {
+              label: 'TextField with default wrapper defined',
+              helpText: 'This is a help text',
+            }
+          },
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              defaultValue: 'hello world 2!',
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent',
+          },
+          constraints: {
+            authorization: {
+              allowRoles: ['Admin'],
+            },
+            allowModes: [],
+          },
+        }
+      ]
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      data: formConfig,
+      formMode: "edit",
+      record: {text_2: "text_2_value"}
     });
 
-    it(`should fallback from table layout for duplicate or empty child names`, async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
-            formMode: "view",
-            data: {
-                name: "form",
-                componentDefinitions: [
-                    {
-                        name: "dup_names",
-                        component: {
-                            class: "RepeatableComponent",
-                            config: {
-                                elementTemplate: {
-                                    name: "",
-                                    component: {
-                                        class: "GroupComponent",
-                                        config: {
-                                            componentDefinitions: [
-                                                {
-                                                    name: "dup",
-                                                    component: { class: "SimpleInputComponent", config: {} },
-                                                    model: { class: "SimpleInputModel", config: {} }
-                                                },
-                                                {
-                                                    name: "dup",
-                                                    component: { class: "SimpleInputComponent", config: {} },
-                                                    model: { class: "SimpleInputModel", config: {} }
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    model: { class: "GroupModel", config: {} }
-                                }
-                            }
-                        },
-                        model: { class: "RepeatableModel", config: { defaultValue: [{ dup: "x" }] } }
-                    },
-                    {
-                        name: "empty_name",
-                        component: {
-                            class: "RepeatableComponent",
-                            config: {
-                                elementTemplate: {
-                                    name: "",
-                                    component: {
-                                        class: "GroupComponent",
-                                        config: {
-                                            componentDefinitions: [
-                                                {
-                                                    name: "",
-                                                    component: { class: "SimpleInputComponent", config: {} },
-                                                    model: { class: "SimpleInputModel", config: {} }
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    model: { class: "GroupModel", config: {} }
-                                }
-                            }
-                        },
-                        model: { class: "RepeatableModel", config: { defaultValue: [{}] } }
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({
+      form: constructed,
+      formMode: "view",
+      userRoles: ["Librarian"],
+    });
+    expect(actual).to.eql({});
+  });
+
+  it(`should keep transformed accordion in view mode`, async function () {
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      formMode: "view",
+      data: {
+        name: "form",
+        componentDefinitions: [
+          {
+            name: "main_tab",
+            component: {
+              class: "TabComponent",
+              config: {
+                tabs: [
+                  {
+                    name: "tab1",
+                    component: {
+                      class: "TabContentComponent",
+                      config: { componentDefinitions: [] }
                     }
+                  }
                 ]
-            }
-        });
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({ form: constructed, formMode: "view" });
-        const firstTemplate = (actual.componentDefinitions?.[0]?.component?.config as { template?: string } | undefined)?.template ?? "";
-        const secondTemplate = (actual.componentDefinitions?.[1]?.component?.config as { template?: string } | undefined)?.template ?? "";
-        expect(firstTemplate).to.contain("rb-view-repeatable-list");
-        expect(secondTemplate).to.contain("rb-view-repeatable-list");
+              }
+            },
+            layout: { class: "TabLayout", config: {} }
+          }
+        ]
+      }
     });
 
-    it(`should transform top-level group to content in view mode`, async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
-            formMode: "view",
-            data: {
-                name: "form",
-                componentDefinitions: [
-                    {
-                        name: "details",
-                        component: {
-                            class: "GroupComponent",
-                            config: {
-                                componentDefinitions: [
-                                    {
-                                        name: "title",
-                                        component: { class: "SimpleInputComponent", config: { label: "@label.title" } },
-                                        model: { class: "SimpleInputModel", config: {} }
-                                    },
-                                    {
-                                        name: "description",
-                                        component: { class: "SimpleInputComponent", config: {} },
-                                        model: { class: "SimpleInputModel", config: {} }
-                                    }
-                                ]
-                            }
-                        },
-                        model: { class: "GroupModel", config: { defaultValue: { title: "T", description: "D" } } }
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed, formMode: "view" });
+    expect(actual.componentDefinitions[0].component.class).to.eql("AccordionComponent");
+  });
+
+  it(`should keep tab in edit mode`, async function () {
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      formMode: "edit",
+      data: {
+        name: "form",
+        componentDefinitions: [
+          {
+            name: "main_tab",
+            component: {
+              class: "TabComponent",
+              config: {
+                tabs: [
+                  {
+                    name: "tab1",
+                    component: {
+                      class: "TabContentComponent",
+                      config: { componentDefinitions: [] }
                     }
+                  }
                 ]
-            }
-        });
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({ form: constructed, formMode: "view" });
-        const transformed = actual.componentDefinitions?.[0];
-        const template = (transformed?.component?.config as { template?: string } | undefined)?.template ?? "";
-        expect(transformed?.component?.class).to.equal("ContentComponent");
-        expect(template).to.contain('{{t "@label.title"}}');
-        expect(template).to.contain("description");
+              }
+            },
+            layout: { class: "TabLayout", config: {} }
+          }
+        ]
+      }
     });
 
-    it(`should exclude role and mode disallowed descendants from generated transformed template`, async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
-            formMode: "view",
-            data: {
-                name: "form",
-                componentDefinitions: [
-                    {
-                        name: "contributors",
-                        component: {
-                            class: "RepeatableComponent",
-                            config: {
-                                elementTemplate: {
-                                    name: "",
-                                    component: {
-                                        class: "GroupComponent",
-                                        config: {
-                                            componentDefinitions: [
-                                                {
-                                                    name: "visible",
-                                                    component: { class: "SimpleInputComponent", config: { label: "@label.visible" } },
-                                                    model: { class: "SimpleInputModel", config: {} }
-                                                },
-                                                {
-                                                    name: "hiddenByMode",
-                                                    component: { class: "SimpleInputComponent", config: { label: "@label.hidden.mode" } },
-                                                    model: { class: "SimpleInputModel", config: {} },
-                                                    constraints: { allowModes: ["edit"] }
-                                                },
-                                                {
-                                                    name: "hiddenByRole",
-                                                    component: { class: "SimpleInputComponent", config: { label: "@label.hidden.role" } },
-                                                    model: { class: "SimpleInputModel", config: {} },
-                                                    constraints: { authorization: { allowRoles: ["Admin"] } }
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    model: { class: "GroupModel", config: {} }
-                                }
-                            }
-                        },
-                        model: {
-                            class: "RepeatableModel",
-                            config: { defaultValue: [{ visible: "A", hiddenByMode: "B", hiddenByRole: "C" }] }
-                        }
-                    }
-                ]
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed, formMode: "edit" });
+    expect(actual.componentDefinitions[0].component.class).to.eql("TabComponent");
+  });
+
+  it("should build the expected form config with question tree", async () => {
+    const availableOutcomes: QuestionTreeOutcome[] = [
+      {value: "value1", label: "@outcomes-value1"},
+      {value: "value2", label: "@outcomes-value2"},
+    ];
+    const availableMeta: QuestionTreeMeta = {
+      prop2: {
+        value1: "@outcomes-prop2-value1",
+        value2: "@outcomes-prop2-value2",
+      },
+    };
+    const questions: QuestionTreeQuestion[] = [
+      {
+        id: "question_1",
+        answersMin: 1,
+        answersMax: 1,
+        answers: [{value: "yes"}, {value: "no"}],
+        rules: {op: "true"},
+      },
+      {
+        id: "question_2",
+        answersMin: 1,
+        answersMax: 2,
+        answers: [{value: "yes"}, {value: "no"}],
+        rules: {op: "in", q: "question_1", a: ["no"]}
+      },
+      {
+        id: "question_3",
+        answersMin: 1,
+        answersMax: 2,
+        answers: [{value: "yes"}, {value: "maybe"}, {value: "no"}],
+        rules: {op: "in", q: "question_2", a: ["yes"]}
+      },
+      {
+        id: "question_4",
+        answersMin: 1,
+        answersMax: 1,
+        answers: [
+          {
+            value: "yes",
+            label: "@answer-yes",
+            outcome: "value1",
+            meta: {prop2: "value2"},
+          },
+          {
+            value: "no", label: "No",
+            outcome: "value2",
+            meta: {prop2: "value2"},
+          },
+        ],
+        rules: {
+          op: "or", args: [
+            {
+              op: "and", args: [
+                {op: "in", q: "question_1", a: ["no"]},
+                {op: "in", q: "question_2", a: ["no"]},
+              ]
+            },
+            {
+              op: "and", args: [
+                {op: "only", q: "question_1", a: ["no"]},
+                {op: "notin", q: "question_2", a: ["no"]},
+                {op: "in", q: "question_3", a: ["no", "maybe"]},
+              ]
             }
-        });
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({ form: constructed, formMode: "view", userRoles: ["User"] });
-        const template = (actual.componentDefinitions?.[0]?.component?.config as { template?: string } | undefined)?.template ?? "";
-        expect(template).to.contain("@label.visible");
-        expect(template).to.not.contain("@label.hidden.mode");
-        expect(template).to.not.contain("@label.hidden.role");
-    });
-
-    it(`should keep repeatable and group untransformed in edit mode`, async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
-            formMode: "edit",
-            data: {
-                name: "form",
-                componentDefinitions: [
-                    {
-                        name: "top_group",
-                        component: {
-                            class: "GroupComponent",
-                            config: {
-                                componentDefinitions: [
-                                    {
-                                        name: "group_field",
-                                        component: { class: "SimpleInputComponent", config: {} },
-                                        model: { class: "SimpleInputModel", config: {} }
-                                    }
-                                ]
-                            }
-                        },
-                        model: { class: "GroupModel", config: {} }
-                    },
-                    {
-                        name: "top_repeatable",
-                        component: {
-                            class: "RepeatableComponent",
-                            config: {
-                                elementTemplate: {
-                                    name: "",
-                                    component: { class: "SimpleInputComponent", config: {} },
-                                    model: { class: "SimpleInputModel", config: {} }
-                                }
-                            }
-                        },
-                        model: { class: "RepeatableModel", config: {} }
-                    }
-                ]
+          ]
+        },
+      }
+    ];
+    const formConfig: FormConfigFrame = {
+      name: "form",
+      componentDefinitions: [
+        {
+          name: "questiontree_1",
+          component: {
+            class: "QuestionTreeComponent",
+            config: {
+              availableOutcomes,
+              availableMeta,
+              questions,
+              componentDefinitions: [],
             }
-        });
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({ form: constructed, formMode: "edit" });
-        const classesByName = new Map((actual.componentDefinitions ?? []).map(item => [item.name, item.component.class]));
-        expect(classesByName.get("top_group")).to.equal("GroupComponent");
-        expect(classesByName.get("top_repeatable")).to.equal("RepeatableComponent");
-    });
-
-    it(`should extract child values into group content in view mode`, async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
-            formMode: "view",
-            data: {
-                name: "form",
-                componentDefinitions: [
-                    {
-                        name: "contributor_ci",
-                        component: {
-                            class: "GroupComponent",
-                            config: {
-                                componentDefinitions: [
-                                    {
-                                        name: "name",
-                                        component: { class: "SimpleInputComponent", config: {} },
-                                        model: { class: "SimpleInputModel", config: { defaultValue: "TestContributor" } }
-                                    },
-                                    {
-                                        name: "email",
-                                        component: { class: "SimpleInputComponent", config: {} },
-                                        model: { class: "SimpleInputModel", config: { defaultValue: "b@b.com" } }
-                                    },
-                                    {
-                                        name: "orcid",
-                                        component: { class: "SimpleInputComponent", config: {} },
-                                        // Demonstrate the case where value properties might be pruned/absent
-                                        model: { class: "SimpleInputModel", config: {} }
-                                    }
-                                ]
-                            }
-                        },
-                        model: { class: "GroupModel", config: {} }
-                    }
-                ]
-            }
-        });
-
-        // The construct visitor would normally wipe out `undefined` properties for `value` on simple inputs
-        // Client visitor may also prune things.
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({ form: constructed, formMode: "view" });
-        const transformed = actual.componentDefinitions?.[0];
-
-        expect(transformed?.component?.class).to.equal("ContentComponent");
-        const content = (transformed?.component?.config as { content?: Record<string, string> } | undefined)?.content;
-
-        expect(content).to.exist;
-        expect(content?.name).to.equal("TestContributor");
-        expect(content?.email).to.equal("b@b.com");
-        // ORCID lacked a defaultValue, so it should remain undefined.
-        expect(content?.orcid).to.equal(undefined);
-    });
-
-    it(`should use reusable view template defs during deferred client transforms`, async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
-            formMode: "view",
-            data: {
-                name: "form",
-                componentDefinitions: [
-                    {
-                        name: "contributors",
-                        component: {
-                            class: "RepeatableComponent",
-                            config: {
-                                elementTemplate: {
-                                    name: "",
-                                    component: {
-                                        class: "GroupComponent",
-                                        config: {
-                                            componentDefinitions: [
-                                                {
-                                                    name: "title",
-                                                    component: { class: "SimpleInputComponent", config: {} },
-                                                    model: { class: "SimpleInputModel", config: {} }
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    model: { class: "GroupModel", config: {} }
-                                }
-                            }
-                        },
-                        model: { class: "RepeatableModel", config: { defaultValue: [{ title: "Alice" }] } }
-                    }
-                ]
-            }
-        });
-
-        const reusableFormDefs: ReusableFormDefinitions = {
-            "view-template-repeatable-table": [
+          },
+        }
+      ]
+    };
+    const expressionBase: FormExpressionsTemplateConfigFrame = {
+      condition: "/questiontree_1::field.value.changed",
+      template: "",
+      conditionKind: 'jsonpointer',
+      target: `layout.visible`,
+    };
+    const expected: FormConfigFrame = {
+      name: "form",
+      componentDefinitions: [
+        {
+          name: "questiontree_1",
+          component: {
+            class: "QuestionTreeComponent",
+            config: {
+              availableOutcomes,
+              availableMeta,
+              questions,
+              componentDefinitions: [
                 {
-                    name: "custom_repeatable_table",
-                    component: { class: "ContentComponent", config: { template: "{{#if [[rootExpr]]}}<section class=\"custom-repeat-table\"><table><thead><tr>[[headersHtml]]</tr></thead><tbody>{{#each [[rootExpr]]}}<tr>[[cellsHtml]]</tr>{{/each}}</tbody></table></section>{{/if}}" } }
-                }
-            ]
-        };
-        const visitor = new ClientFormConfigVisitor(logger);
-        const actual = visitor.start({ form: constructed, formMode: "view", reusableFormDefs });
-        const template = (actual.componentDefinitions?.[0]?.component?.config as { template?: string } | undefined)?.template ?? "";
-        expect(template).to.contain("custom-repeat-table");
-        expect(template).to.contain("<thead>");
-    });
-
-    it(`should fallback to hardcoded templates when reusable fragment schema is invalid`, async function () {
-        const formOverride = new FormOverride(logger);
-        const transformed = formOverride.applyOverrideTransform({
-            name: "contributors",
-            component: {
-                class: "RepeatableComponent",
-                config: {
-                    elementTemplate: {
-                        name: "",
-                        component: {
-                            class: "GroupComponent",
-                            config: {
-                                componentDefinitions: [
-                                    {
-                                        name: "title",
-                                        component: { class: "SimpleInputComponent", config: {} },
-                                        model: { class: "SimpleInputModel", config: {} }
-                                    }
-                                ]
-                            }
-                        },
-                        model: { class: "GroupModel", config: {} }
+                  name: "question_1",
+                  component: {
+                    class: "RadioInputComponent",
+                    config: {
+                      options: [
+                        {value: "yes", label: "@questiontree_1-question_1-yes"},
+                        {value: "no", label: "@questiontree_1-question_1-no"},
+                      ]
                     }
-                }
-            },
-            model: { class: "RepeatableModel", config: { value: [{ title: "Alice" }] } }
-        } as any, "view", {
-            phase: "client",
-            reusableFormDefs: {
-                "view-template-repeatable-table": [
+                  },
+                  layout: {
+                    class: "DefaultLayout",
+                    config: {
+                      visible: true,
+                    }
+                  }
+                },
+                {
+                  name: "question_2",
+                  component: {
+                    class: "CheckboxInputComponent",
+                    config: {
+                      options: [
+                        {value: "yes", label: "@questiontree_1-question_2-yes"},
+                        {value: "no", label: "@questiontree_1-question_2-no"},
+                      ]
+                    }
+                  },
+                  layout: {
+                    class: "DefaultLayout",
+                    config: {
+                      visible: false,
+                    }
+                  },
+                  expressions: [
                     {
-                        name: "invalid_not_content",
-                        component: { class: "SimpleInputComponent", config: { type: "text" } }
+                      name: "question_2-layoutvis-qt", description: undefined,
+                      config: {
+                        ...expressionBase,
+                        template: "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0"
+                      }
                     }
-                ]
+                  ],
+                },
+                {
+                  name: "question_3",
+                  component: {
+                    class: "CheckboxInputComponent",
+                    config: {
+                      options: [
+                        {value: "yes", label: "@questiontree_1-question_3-yes"},
+                        {value: "maybe", label: "@questiontree_1-question_3-maybe"},
+                        {value: "no", label: "@questiontree_1-question_3-no"}]
+                    }
+                  },
+                  layout: {
+                    class: "DefaultLayout",
+                    config: {
+                      visible: false,
+                    }
+                  },
+                  expressions: [
+                    {
+                      name: "question_3-layoutvis-qt", description: undefined,
+                      config: {
+                        ...expressionBase,
+                        template: "$count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0"
+                      }
+                    }
+                  ],
+                },
+                {
+                  name: "question_4",
+                  component: {
+                    class: "RadioInputComponent",
+                    config: {
+                      options: [
+                        {value: "yes", label: "@answer-yes"},
+                        {value: "no", label: "No"},
+                      ]
+                    }
+                  },
+                  layout: {
+                    class: "DefaultLayout",
+                    config: {
+                      visible: false,
+                    }
+                  },
+                  expressions: [
+                    {
+                      name: "question_4-layoutvis-qt", description: undefined,
+                      config: {
+                        ...expressionBase, template: "(" +
+                          "(" +
+                          "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0" +
+                          ") and (" +
+                          "$count(formData.`questiontree_1`.`question_2`[][$ in [\"no\"]]) > 0" +
+                          ")" +
+                          ") or (" +
+                          "(" +
+                          "formData.`questiontree_1`.`question_1`[] = [\"no\"]" +
+                          ") and (" +
+                          "$count(formData.`questiontree_1`.`question_2`[][$not($ in [\"no\"])]) = $count(formData.`questiontree_1`.`question_2`)" +
+                          ") and (" +
+                          "$count(formData.`questiontree_1`.`question_3`[][$ in [\"no\",\"maybe\"]]) > 0" +
+                          ")" +
+                          ")"
+                      }
+                    }
+                  ],
+                },
+              ],
             }
-        });
-        const template = (transformed.component?.config as { template?: string } | undefined)?.template ?? "";
-        expect(template).to.contain("rb-view-repeatable-table");
-        expect(template).to.not.contain("custom-repeat-table");
+          },
+        }
+      ]
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      data: formConfig,
+      formMode: "edit",
+      reusableFormDefs: reusableFormDefinitions,
     });
 
-    it(`should render dropdown labels, typeahead labels, rich text and file upload in view transforms`, async function () {
-        const formOverride = new FormOverride(logger);
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({form: constructed});
 
-        const dropdown = formOverride.applyOverrideTransform({
-            name: "status",
-            component: {
-                class: "DropdownInputComponent",
-                config: { options: [{ label: "Draft Label", value: "draft" }] }
-            },
-            model: { class: "DropdownInputModel", config: { value: "draft" } }
-        } as any, "view");
-        const dropdownConfig = dropdown.component.config as { content?: unknown };
-        expect(dropdown.component.class).to.equal("ContentComponent");
-        expect(dropdownConfig.content).to.equal("Draft Label");
-
-        const typeahead = formOverride.applyOverrideTransform({
-            name: "person",
-            component: { class: "TypeaheadInputComponent", config: {} },
-            model: { class: "TypeaheadInputModel", config: { value: { label: "Jane Doe", value: "jane" } } }
-        } as any, "view");
-        const typeaheadConfig = typeahead.component.config as { content?: unknown };
-        expect(typeahead.component.class).to.equal("ContentComponent");
-        expect(typeaheadConfig.content).to.equal("Jane Doe");
-
-        const richText = formOverride.applyOverrideTransform({
-            name: "description",
-            component: { class: "RichTextEditorComponent", config: { outputFormat: "markdown" } },
-            model: { class: "RichTextEditorModel", config: { value: "**hello**" } }
-        } as any, "view");
-        const richTextConfig = richText.component.config as { template?: string; outputFormat?: string };
-        expect(richText.component.class).to.equal("ContentComponent");
-        expect(richTextConfig.template).to.contain("markdownToHtml");
-        expect(richTextConfig.outputFormat).to.equal("markdown");
-
-        const fileUpload = formOverride.applyOverrideTransform({
-            name: "files",
-            component: { class: "FileUploadComponent", config: {} },
-            model: { class: "FileUploadModel", config: { value: [{ name: "one.pdf", fileId: "f1" }] } }
-        } as any, "view");
-        const fileUploadConfig = fileUpload.component.config as { template?: string };
-        expect(fileUpload.component.class).to.equal("ContentComponent");
-        expect(fileUploadConfig.template).to.contain("rb-view-file-upload");
-
-        const checkboxTree = formOverride.applyOverrideTransform({
-            name: "tree",
-            component: { class: "CheckboxTreeComponent", config: {} },
-            model: { class: "CheckboxTreeModel", config: { value: [{ notation: "B", label: "Child", genealogy: ["A", "B"] }] } }
-        } as any, "view");
-        const checkboxTreeConfig = checkboxTree.component.config as { content?: unknown, template?: string };
-        expect(checkboxTree.component.class).to.equal("ContentComponent");
-        expect(checkboxTreeConfig.template).to.contain("<ul>{{#each content}}<li>{{default this.label this.notation}}</li>{{/each}}</ul>");
-        expect(Array.isArray(checkboxTreeConfig.content)).to.equal(true);
-        expect((checkboxTreeConfig.content as any[])[0]?.notation).to.equal("B");
-    });
+    expect(actual).to.containSubset(expected);
+  });
 });

@@ -127,6 +127,7 @@ describe("Template Visitor", async () => {
             const visitor = new TemplateFormConfigVisitor(logger);
             const actual = visitor.start({ form: constructed });
 
+            expect(actual).to.containSubset(expected);
             expect(actual).to.have.length(expected.length);
 
           expected.forEach((expectedItem, index) => {
