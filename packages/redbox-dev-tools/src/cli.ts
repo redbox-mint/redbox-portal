@@ -11,7 +11,10 @@ import { AngularServiceGenerator } from './generators/angular-service';
 import { FormComponentGenerator } from './generators/form-component';
 import { FormFieldGenerator } from './generators/form-field';
 import { ModelGenerator } from './generators/model';
-import { registerMigrateFormConfigCommand } from './commands/migrate-form-config';
+import {
+  registerMigrateDataClassificationCommand,
+  registerMigrateFormConfigCommand
+} from './commands/migrate-form-config';
 import { generateCompletionScript } from './completion';
 import {
   parseAttributes,
@@ -52,6 +55,7 @@ program
   });
 
 registerMigrateFormConfigCommand(program);
+registerMigrateDataClassificationCommand(program);
 
 program
   .command('init')

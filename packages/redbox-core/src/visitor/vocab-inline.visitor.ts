@@ -246,5 +246,4 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     }
     return String(sails?.config?.auth?.defaultBrand ?? '').trim();
   }
-
 }

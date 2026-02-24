@@ -26,11 +26,11 @@ describe('CheckboxInputComponent', () => {
         {
           name: 'checkbox_test',
           model: {
-            class: 'CheckboxInputModel',
-            config: {
-              value: 'b',
+              class: 'CheckboxInputModel',
+              config: {
+                value: ['b'],
+              },
             },
-          },
           component: {
             class: 'CheckboxInputComponent',
             config: {
@@ -101,4 +101,3 @@ describe('CheckboxInputComponent', () => {
     expect(checked.length).toEqual(2);
   });
 });
-

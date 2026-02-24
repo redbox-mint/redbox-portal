@@ -96,6 +96,7 @@ import { FieldErrorSummaryComponent } from './component/field-error-summary.comp
     RichTextEditorComponent,
     MapComponent,
     FileUploadComponent,
+    QuestionTreeComponent,
   ],
   imports: [
     CommonModule,

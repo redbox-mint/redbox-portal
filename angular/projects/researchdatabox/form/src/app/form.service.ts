@@ -818,6 +818,32 @@ export class FormService extends HttpClientService {
     }
     return returnArr;
   }
+
+  public setUpFieldMutationObserverToComponentEvents(formFieldCompMapEntry: FormFieldCompMapEntry | undefined) {
+    const observer = new MutationObserver(mutations => {
+      // TODO: createFieldMetaChangedEvent
+      mutations.forEach(mutation => console.log(mutation));
+    });
+    const observerConfig = {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeOldValue: true,
+      // attributeFilter: [],
+      characterData: false,
+      characterDataOldValue: false,
+    };
+
+    if (formFieldCompMapEntry?.componentRef?.location?.nativeElement) {
+      observer.observe(formFieldCompMapEntry?.componentRef?.location?.nativeElement, observerConfig);
+    }
+    if (formFieldCompMapEntry?.layoutRef?.location?.nativeElement) {
+      observer.observe(formFieldCompMapEntry?.layoutRef?.location?.nativeElement, observerConfig);
+    }
+
+    // TODO: register the mutation observer to the angular component,
+    //  so the component can destroy the MutationObserver when necessary
+  }
 }
 
 /**

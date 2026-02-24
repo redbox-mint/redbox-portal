@@ -143,13 +143,13 @@ export interface FormConfigVisitorOutline {
 
   visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
 
-  visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void;
+    visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void;
+
+    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
 
   /* Repeatable  */
 
-  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
-
-  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void;
+    visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void;
 
   visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void;
 
@@ -324,4 +324,5 @@ export interface FormConfigVisitorOutline {
   visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void;
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void;
+
 }
