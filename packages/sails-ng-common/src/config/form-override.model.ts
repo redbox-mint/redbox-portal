@@ -62,7 +62,8 @@ import {
     AccordionPanelFieldLayoutConfig
 } from "./component/accordion.model";
 import {
-    QuestionTreeFieldComponentDefinitionOutline,  QuestionTreeQuestionRules
+  QuestionTreeFieldComponentDefinitionOutline, QuestionTreeOutcomeComponentName,
+  QuestionTreeOutcomeDetailsComponentName, QuestionTreeQuestionRules
 } from "./component/question-tree.outline";
 import {LineagePath, LineagePaths} from "./names/naming-helpers";
 import {FormExpressionsConfigFrame} from "./form-component.outline";
@@ -524,6 +525,24 @@ export class FormOverride {
         if (errors.length > 0) {
             throw new Error(`${this.logName}: Question tree is not valid: ${errors.join(' ')}`);
         }
+
+        // Add hidden inputs for outcome and outcome-details.
+        // These components allow the outcome and details to be stored within the question tree data model.
+        // TODO: Really only need one of these components - store the outcome info data structure,
+        //       and other components can use expressions to extract the data they want as the value.
+        const outcomeComponents: AvailableFormComponentDefinitionFrames[] = [
+          {
+            name: QuestionTreeOutcomeComponentName,
+            component: {class: "SimpleInputComponent", config: {type: "hidden", visible: false}},
+            layout: {class: "DefaultLayout", config: {visible: false}},
+          },
+          {
+            name: QuestionTreeOutcomeDetailsComponentName,
+            component: {class: "SimpleInputComponent", config: {type: "hidden", visible: false}},
+            layout: {class: "DefaultLayout", config: {visible: false}},
+          }
+        ];
+        result.push(...outcomeComponents);
 
         return result;
     }
