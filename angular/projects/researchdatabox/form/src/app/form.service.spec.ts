@@ -1,5 +1,5 @@
-import {TestBed} from "@angular/core/testing";
-import {FormService} from "./form.service";
+import { TestBed } from "@angular/core/testing";
+import { FormService } from "./form.service";
 import {
   ConfigService,
   FormFieldCompMapEntry,
@@ -9,11 +9,11 @@ import {
   TranslationService,
   UtilityService
 } from "@researchdatabox/portal-ng-common";
-import {APP_BASE_HREF} from "@angular/common";
-import {Title} from "@angular/platform-browser";
-import {provideI18Next} from "angular-i18next";
-import {provideHttpClient} from "@angular/common/http";
-import {HttpTestingController, provideHttpClientTesting} from "@angular/common/http/testing";
+import { APP_BASE_HREF } from "@angular/common";
+import { Title } from "@angular/platform-browser";
+import { provideI18Next } from "angular-i18next";
+import { provideHttpClient } from "@angular/common/http";
+import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
 import { LineagePaths } from "@researchdatabox/sails-ng-common";
 
 
@@ -56,22 +56,23 @@ describe('The FormService', () => {
 
   it('should resolve accordion component classes from static map', async () => {
     const componentDefinitions = [
-        {
-          name: 'accordion_1',
-          component: { class: 'AccordionComponent', config: { panels: [] } },
-          layout: { class: 'AccordionLayout' },
-        },
-        {
-          name: 'accordion_panel_1',
-          component: { class: 'AccordionPanelComponent', config: { componentDefinitions: [] } },
-          layout: { class: 'AccordionPanelLayout' },
-        },
-      ] as any;
+      {
+        name: 'accordion_1',
+        component: { class: 'AccordionComponent', config: { panels: [] } },
+        layout: { class: 'AccordionLayout' },
+      },
+      {
+        name: 'accordion_panel_1',
+        component: { class: 'AccordionPanelComponent', config: { componentDefinitions: [] } },
+        layout: { class: 'AccordionPanelLayout' },
+      },
+    ] as any;
 
     const lineagePaths: LineagePaths = service.buildLineagePaths({
       angularComponents: [],
       dataModel: [],
       formConfig: [],
+      layout: []
     });
 
     const entries = await service.resolveFormComponentClasses(componentDefinitions, lineagePaths);
@@ -87,9 +88,9 @@ describe('The FormService', () => {
       pointer: string,
       children: FormFieldCompMapEntry[] = []
     ): FormFieldCompMapEntry => ({
-      compConfigJson: {name},
-      lineagePaths: {angularComponentsJsonPointer: pointer} as any,
-      component: {formFieldCompMapEntries: children} as any
+      compConfigJson: { name },
+      lineagePaths: { angularComponentsJsonPointer: pointer } as any,
+      component: { formFieldCompMapEntries: children } as any
     } as unknown as FormFieldCompMapEntry);
 
     it('transformIntoJSONataProperty should include nested children metadata', () => {
@@ -131,7 +132,7 @@ describe('The FormService', () => {
 
       const source = service.getJSONataQuerySource([parentEntry]);
 
-      expect(source.querySource.length).toBe(1);
+      expect(source.querySource.length).toBe(2);
       expect(source.querySource[0].name).toBe('parent');
       expect((source.jsonPointerSource as any)['0'].metadata.formFieldEntry).toBe(parentEntry);
       expect((source.jsonPointerSource as any)['0'].child.metadata.formFieldEntry).toBe(childEntry);
