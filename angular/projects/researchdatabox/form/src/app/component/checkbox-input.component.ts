@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { FormFieldBaseComponent,FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   CheckboxOption,
   CheckboxInputModelValueType,
@@ -28,6 +28,7 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
             [attr.value]="opt.value"
             [id]="this.getOptionId(opt)"
             [attr.id]="this.getOptionId(opt)"
+            [disabled]="isDisabled || !!opt.disabled"
             [checked]="isOptionSelected(opt.value)"
             (change)="onOptionChange($any($event.target).checked, opt.value)"
             [title]="tooltip">
@@ -64,7 +65,8 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
     this.options = config?.options ?? [];
     this.tooltip = config?.tooltip ?? "";
     this.placeholder = config?.placeholder ?? "";
-    this.multipleValues = config?.multipleValues ?? false;
+    this.multipleValues = config?.multipleValues ?? true;
+
   }
 
   /**
@@ -111,4 +113,3 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
     return this.name ?? index?.toString();
   }
 }
-
