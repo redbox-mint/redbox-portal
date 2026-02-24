@@ -33,7 +33,7 @@ export interface JSONataQuerySourceProperty {
   name: string;
   lineagePaths?: LineagePaths;
   jsonPointer?: string;
-  children?:  JSONataQuerySourceProperty[] ;
+  children?: JSONataQuerySourceProperty[];
 }
 
 export interface JSONataQuerySource {

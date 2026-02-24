@@ -106,6 +106,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       this.formFieldCompMapEntry?.lineagePaths,
       {
         angularComponents: [],
+        layout: [],
         dataModel: [],
         formConfig: ['component', 'config', 'componentDefinitions'],
       });

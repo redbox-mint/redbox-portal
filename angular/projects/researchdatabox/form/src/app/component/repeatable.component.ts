@@ -99,6 +99,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       this.formFieldCompMapEntry?.lineagePaths,
       {
         angularComponents: [],
+        layout: [],
         dataModel: [],
         formConfig: ['component', 'config', 'elementTemplate'],
       }
@@ -162,6 +163,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         this.formFieldCompMapEntry?.lineagePaths,
         {
           angularComponents: [indexStr],
+          layout: [indexStr],
           dataModel: [indexStr],
           formConfig: ['component', 'config', 'elementTemplate'],
         });

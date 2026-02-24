@@ -122,6 +122,7 @@ export class AccordionComponent extends FormFieldBaseComponent<undefined> {
         compConfigJson: panel,
         lineagePaths: this.formService.buildLineagePaths(this.formFieldCompMapEntry?.lineagePaths, {
           angularComponents: [panel?.name],
+          layout: [`${panel?.name}-layout`],
           dataModel: [],
           formConfig: ['component', 'config', 'panels', index],
         }),
@@ -432,6 +433,7 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> i
 
       const parentLineagePaths = this.formService.buildLineagePaths(this.formFieldCompMapEntry?.lineagePaths, {
         angularComponents: [],
+        layout: [],
         dataModel: [],
         formConfig: ['component', 'config', 'componentDefinitions'],
       });

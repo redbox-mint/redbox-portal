@@ -1,6 +1,6 @@
-import { signal, effect, EffectRef, Injector, afterNextRender, inject } from '@angular/core';
+import { afterEveryRender, AfterRenderRef, Injector, inject } from '@angular/core';
 import { FormComponentEventBus } from './form-component-event-bus.service';
-import { createFieldUIAttributeChangedEvent, FormComponentEventType } from './form-component-event.types';
+import { createFieldUIAttributeChangedEvent } from './form-component-event.types';
 import { FormComponentEventBaseProducerConsumer, FormComponentEventBindingOptions } from './form-component-base-event-producer-consumer';
 
 /**
@@ -20,58 +20,58 @@ const DEFAULT_UI_SNAPSHOT: Readonly<UIAttributeSnapshot> = Object.freeze({
 
 /**
  * Produces `field.ui-attribute.changed` events when DOM-bound UI attributes
- * (`visible`, `readonly`, `disabled`) on a component's config change.
+ * (`visible`, `readonly`, `disabled`) on a component's or layout's config
+ * change.
  *
- * Detection strategy:
- *   config mutation ─► signal update ─► effect ─► afterNextRender ─► emit
+ * ### Detection strategy
  *
- * The producer subscribes to `field.value.changed` events, which are the
- * events processed by `FormComponentValueChangeEventConsumer` that may
- * mutate config properties (e.g. `component.visible`).
+ *   config mutation ─► render cycle ─► afterRender ─► snapshot compare ─► emit
  *
- * After each event a macrotask (`setTimeout`) is scheduled to re-snapshot
- * the config—macrotask timing guarantees that all async consumer processing
- * (promise-based `_set()` calls) has settled before the snapshot is taken.
+ * The producer uses Angular's `afterRender` hook to poll the config after
+ * every render pass.  A simple equality comparison against the previous
+ * snapshot determines whether an event should be published.
  *
- * If the snapshot differs from the previous one, the signal is updated.
- * An Angular `effect` watches the signal and defers event emission to
- * `afterNextRender`, ensuring DOM bindings reflect the new state before
- * downstream consumers react.
+ * This design is intentionally **decoupled from upstream event types**.
+ * The producer does not subscribe to `FIELD_VALUE_CHANGED`,
+ * `FIELD_UI_ATTRIBUTE_CHANGED`, or any other specific event.  Any
+ * consumer — current or future — that mutates config properties will be
+ * detected after the next render pass, making the producer forward-
+ * compatible with arbitrary new producer / consumer pairs.
+ *
+ * ### Snapshot resolution
+ *
+ * When `options.isLayout` is `true`, the snapshot reads from the layout
+ * definition (`definition.layout.componentDefinition.config`); otherwise
+ * from the component definition
+ * (`definition.component.componentDefinition.config`).
+ *
+ * ### Convergence
+ *
+ * If the emitted event causes downstream consumers to mutate *this*
+ * producer's config again, the next `afterRender` invocation will detect
+ * and emit the change.  If the re-snapshot is identical to the previous
+ * one, no event is emitted, guaranteeing convergence and terminating any
+ * potential feedback loop.
  */
 export class FormComponentUIAttributeChangeEventProducer extends FormComponentEventBaseProducerConsumer {
   private readonly injector = inject(Injector);
 
-  /**
-   * Signal holding the current UI attribute projection.
-   * Custom equality prevents redundant effect runs when config hasn't
-   * actually changed.
-   */
-  private readonly uiAttributes = signal<UIAttributeSnapshot>(
-    { ...DEFAULT_UI_SNAPSHOT },
-    {
-      equal: (a, b) =>
-        a.visible === b.visible &&
-        a.readonly === b.readonly &&
-        a.disabled === b.disabled
-    }
-  );
+  /** Previous snapshot used for per-render-pass change detection. */
+  private previousSnapshot: UIAttributeSnapshot = { ...DEFAULT_UI_SNAPSHOT };
 
-  /** Tracks the effect lifecycle for cleanup on re-bind or destroy. */
-  private effectRef?: EffectRef;
-
-  /** Guards against scheduling duplicate afterNextRender callbacks. */
-  private renderCallbackPending = false;
-
-  /** Whether the first (eager) effect run has completed. */
-  private effectInitialised = false;
+  /** Cleanup handle returned by `afterRender`. */
+  private afterRenderRef?: AfterRenderRef;
 
   constructor(eventBus: FormComponentEventBus) {
     super(eventBus);
   }
 
   /**
-   * Connect the producer to a component instance.
-   * Replaces any existing subscriptions and effect.
+   * Connect the producer to a component or layout instance.
+   * Replaces any existing binding.
+   *
+   * When `options.isLayout` is `true` the producer reads UI attributes
+   * from the layout definition; otherwise from the component definition.
    */
   bind(options: FormComponentEventBindingOptions): void {
     this.destroy();
@@ -89,60 +89,38 @@ export class FormComponentUIAttributeChangeEventProducer extends FormComponentEv
     this.fieldId = fieldId;
     this.scopedBus = this.eventBus.scoped(fieldId);
 
-    // Snapshot the initial state without emitting.
-    this.uiAttributes.set(this.snapshotUIAttributes());
-    this.effectInitialised = false;
-    this.renderCallbackPending = false;
+    // Capture the initial state — no event emitted.
+    this.previousSnapshot = this.snapshotUIAttributes();
 
-    // Listen for value-change events that may trigger config mutations.
-    // setTimeout ensures all async consumer processing has settled
-    // (consumers use await internally) before we re-snapshot config.
-    const valueSub = this.eventBus
-      .select$(FormComponentEventType.FIELD_VALUE_CHANGED)
-      .subscribe(() => {
-        setTimeout(() => this.refreshSnapshot(), 0);
-      });
-    this.subscriptions.set('ui-attr-value-change', valueSub);
-
-    // Effect: signal → afterNextRender → emit.
-    // Skips the eager first run to avoid emitting the initial snapshot.
-    this.effectRef = effect(() => {
-      const snapshot = this.uiAttributes();
-
-      if (!this.effectInitialised) {
-        this.effectInitialised = true;
-        return;
-      }
-
-      // Coalesce: at most one afterNextRender callback at a time.
-      if (!this.renderCallbackPending) {
-        this.renderCallbackPending = true;
-        afterNextRender(() => {
-          this.renderCallbackPending = false;
-          this.publishUIAttributeChanged(this.uiAttributes());
-        }, { injector: this.injector });
+    // After every render cycle, re-snapshot and publish if changed.
+    this.afterRenderRef = afterEveryRender(() => {
+      const current = this.snapshotUIAttributes();
+      if (!this.snapshotsEqual(current, this.previousSnapshot)) {
+        this.previousSnapshot = current;
+        this.publishUIAttributeChanged(current);
       }
     }, { injector: this.injector });
   }
 
   /**
-   * Tear down subscriptions, effect, and pending state.
+   * Tear down the render hook and base subscriptions.
    */
   override destroy(): void {
-    this.effectRef?.destroy();
-    this.effectRef = undefined;
-    this.renderCallbackPending = false;
-    this.effectInitialised = false;
+    this.afterRenderRef?.destroy();
+    this.afterRenderRef = undefined;
+    this.previousSnapshot = { ...DEFAULT_UI_SNAPSHOT };
     super.destroy();
   }
 
+  // ── private helpers ──────────────────────────────────────────────────
+
   /**
-   * Reads the current UI-relevant properties from the component config.
+   * Reads the current UI-relevant properties from the component's or
+   * layout's config. `options.component` can be either instances.
+   *
    */
   private snapshotUIAttributes(): UIAttributeSnapshot {
-    const config =
-      this.options?.definition?.component?.componentDefinition?.config ??
-      this.options?.component?.componentDefinition?.config;
+    const config = this.options?.component?.componentDefinition?.config;
     return {
       visible: config?.visible ?? true,
       readonly: config?.readonly ?? false,
@@ -151,15 +129,17 @@ export class FormComponentUIAttributeChangeEventProducer extends FormComponentEv
   }
 
   /**
-   * Re-reads the config and pushes it into the signal.
-   * The signal's custom equality check prevents no-op updates.
+   * Value-equality check for two snapshots.
    */
-  private refreshSnapshot(): void {
-    this.uiAttributes.set(this.snapshotUIAttributes());
+  private snapshotsEqual(a: UIAttributeSnapshot, b: UIAttributeSnapshot): boolean {
+    return a.visible === b.visible &&
+      a.readonly === b.readonly &&
+      a.disabled === b.disabled;
   }
 
   /**
-   * Publishes the UI-attribute-changed event on both the general and scoped buses.
+   * Publishes the UI-attribute-changed event on both the general and
+   * scoped buses.
    */
   private publishUIAttributeChanged(snapshot: UIAttributeSnapshot): void {
     if (!this.fieldId) {

@@ -111,8 +111,10 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     }
 
     // Store a reference to the component instance.
+    let isLayout = false;
     if (compClass == this.formFieldCompMapEntry?.layoutClass) {
       this.formFieldCompMapEntry.layoutRef = compRef;
+      isLayout = true;
     } else {
       this.formFieldCompMapEntry.componentRef = compRef;
     }
@@ -123,6 +125,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     // Bind the change event producer if applicable.
     if (this.shouldAttachValueChangeProducer(this.formFieldCompMapEntry, compRef.instance)) {
       this.valueChangeEventProducer.bind({
+        isLayout: isLayout,
         component: compRef.instance,
         definition: this.formFieldCompMapEntry
       });
@@ -131,22 +134,25 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     if (this.shouldAttachValueChangeConsumer(this.formFieldCompMapEntry, compRef.instance)) {
       this.valueChangeEventConsumer.formComponent = this.getFormComponentFromAppRef()?.instance;
       this.valueChangeEventConsumer.bind({
+        isLayout: isLayout,
         component: compRef.instance,
         definition: this.formFieldCompMapEntry
       });
     }
 
     // Bind the UI attribute change event producer alongside the value producer.
-    if (this.shouldAttachValueChangeProducer(this.formFieldCompMapEntry, compRef.instance)) {
+    if (this.shouldAttachUIAttributeChangeProducer(this.formFieldCompMapEntry, compRef.instance)) {
       this.uiAttributeChangeEventProducer.bind({
+        isLayout: isLayout,
         component: compRef.instance,
         definition: this.formFieldCompMapEntry
       });
     }
 
-    if (this.shouldAttachValueChangeConsumer(this.formFieldCompMapEntry, compRef.instance)) {
+    if (this.shouldAttachUIAttributeChangeConsumer(this.formFieldCompMapEntry, compRef.instance)) {
       this.uiAttributeChangeEventConsumer.formComponent = this.getFormComponentFromAppRef()?.instance;
       this.uiAttributeChangeEventConsumer.bind({
+        isLayout: isLayout,
         component: compRef.instance,
         definition: this.formFieldCompMapEntry
       });
@@ -213,6 +219,41 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     instance: FormFieldBaseComponent<ValueType>
   ): boolean {
     return !!entry && entry.component === instance;
+  }
+
+  /**
+ *
+ * Returns true if this isn't a layout.
+ *
+ * TODO: Improve to have more explicit control over when to attach the producer.
+ *
+ * @param entry
+ * @param instance
+ * @returns
+ */
+  private shouldAttachUIAttributeChangeProducer(
+    entry: FormFieldCompMapEntry | undefined,
+    instance: FormFieldBaseComponent<ValueType>
+  ): boolean {
+    return !!entry && (entry.component === instance || entry.layout === instance);
+    // return !!entry && entry.component === instance;
+  }
+  /**
+   *
+   * Returns true if is a component.
+   *
+   * TODO: Improve to have more explicit control over when to attach the consumer.
+   *
+   * @param entry
+   * @param instance
+   * @returns
+   */
+  private shouldAttachUIAttributeChangeConsumer(
+    entry: FormFieldCompMapEntry | undefined,
+    instance: FormFieldBaseComponent<ValueType>
+  ): boolean {
+    return !!entry && (entry.component === instance || entry.layout === instance);
+    // return !!entry && entry.component === instance;
   }
 
 }
