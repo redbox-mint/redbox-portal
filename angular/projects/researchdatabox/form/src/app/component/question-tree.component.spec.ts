@@ -120,7 +120,7 @@ describe('QuestionTreeComponent', () => {
             // Set the component value to the question tree outcome label
             name: `data-classification-item-outcome-expr`,
             config: {
-              template: `formData.questiontree_1.${QuestionTreeOutcomeInfoKey}.outcome.label`,
+              template: `formData.questiontree_1.${QuestionTreeOutcomeInfoKey}.outcome.($.label ? $.label : $.value)`,
               conditionKind: 'jsonpointer',
               condition: `/questiontree_1::field.value.changed`,
               target: `model.value`
@@ -135,9 +135,56 @@ describe('QuestionTreeComponent', () => {
         expressions: [
           {
             // Set the component value to the question tree outcome meta, using only the labels for each property.
+
+            /*
+            template:
+$map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $i, $a) {
+    $v.$merge($keys().($entry := $lookup($v, $);{
+    $: $entry.label ? $entry.label : $entry.value
+}))
+})
+
+            converts data:
+{
+    "formData": {
+      "questiontree_1": {
+        "question_1": "no",
+        "question_2": "no",
+        "question_3": null,
+        "questiontree-outcome-info": {
+          "outcome": {"value": "outcome2", "label": "@outcomes-value2"}, "meta": [
+            {
+              "outcome": {"value": "outcome2", "label": "@outcomes-value2"},
+              "prop2": {"value": "prop2Value2", "label": "@outcomes-prop2-value2"}
+            },
+            {
+              "outcome": {"value": "outcome1", "label": "@outcomes-value1"},
+              "prop2": {"value": "prop2Value1", "label": null}
+            }
+          ]
+        }
+      }
+    }
+  }
+            to output:
+[
+  {
+    "outcome": "@outcomes-value2",
+    "prop2": "@outcomes-prop2-value2"
+  },
+  {
+    "outcome": "@outcomes-value1",
+    "prop2": "prop2Value1"
+  }
+]
+             */
             name: `data-classification-item-outcome-details-expr`,
             config: {
-              template: `formData.questiontree_1.${QuestionTreeOutcomeInfoKey}.meta[].`,
+              template: `$map(formData.questiontree_1.\`${QuestionTreeOutcomeInfoKey}\`.meta[], function ($v, $i, $a) {
+                    $v.$merge($keys().($entry := $lookup($v, $);{
+                    $: $entry.label ? $entry.label : $entry.value'
+                }))
+                })`,
               conditionKind: 'jsonpointer',
               condition: `/questiontree_1::field.value.changed`,
               target: `model.value`
@@ -395,3 +442,4 @@ describe('QuestionTreeComponent', () => {
     });
   });
 });
+
