@@ -677,31 +677,37 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
       const v4Value = field?.definition?.value ?? '';
       const v4Type = field?.definition?.type;
+      const v4ValueIsTranslationKey = this.isLegacyTranslationKey(v4Value);
+      const contentTemplateToken = v4ValueIsTranslationKey ? '{{t content}}' : '{{content}}';
+      const contentHtmlTemplateToken = v4ValueIsTranslationKey ? '{{{t content}}}' : '{{{content}}}';
+      const contentLabelTemplateToken = '{{t content.label}}';
+      const contentValueTemplateToken = v4ValueIsTranslationKey ? '{{t content.value}}' : '{{content.value}}';
+      const labelOnlyTemplateToken = this.isLegacyTranslationKey(item.config.label) ? '{{t content}}' : '{{content}}';
 
       switch (v4Type) {
         case 'h1':
           item.config.content = v4Value;
-          item.config.template = `<span role="heading" aria-level="1">{{content}}</span>`;
+          item.config.template = `<h1>${contentTemplateToken}</h1>`;
           break;
         case 'h2':
           item.config.content = v4Value;
-          item.config.template = `<span role="heading" aria-level="2">{{content}}</span>`;
+          item.config.template = `<h2>${contentTemplateToken}</h2>`;
           break;
         case 'h3':
           item.config.content = v4Value;
-          item.config.template = `<span role="heading" aria-level="3">{{content}}</span>`;
+          item.config.template = `<h3>${contentTemplateToken}</h3>`;
           break;
         case 'h4':
           item.config.content = v4Value;
-          item.config.template = `<span role="heading" aria-level="4">{{content}}</span>`;
+          item.config.template = `<h4>${contentTemplateToken}</h4>`;
           break;
         case 'h5':
           item.config.content = v4Value;
-          item.config.template = `<span role="heading" aria-level="5">{{content}}</span>`;
+          item.config.template = `<h5>${contentTemplateToken}</h5>`;
           break;
         case 'h6':
           item.config.content = v4Value;
-          item.config.template = `<span role="heading" aria-level="6">{{content}}</span>`;
+          item.config.template = `<h6>${contentTemplateToken}</h6>`;
           break;
         case 'hr':
           item.config.content = v4Value;
@@ -711,20 +717,20 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           const label = item.config.label;
           if (v4Value && label) {
             item.config.content = { value: v4Value, label: item.config.label };
-            item.config.template = `<span>{{content.label}}: {{content.value}}</span>`;
+            item.config.template = `<span>${contentLabelTemplateToken}: ${contentValueTemplateToken}</span>`;
           } else if (v4Value && !label) {
             item.config.content = v4Value;
-            item.config.template = `<span>{{content}}</span>`;
+            item.config.template = `<span>${contentTemplateToken}</span>`;
           } else if (!v4Value && label) {
             item.config.content = label;
-            item.config.template = `<span>{{content}}:</span>`;
+            item.config.template = `<span>${labelOnlyTemplateToken}:</span>`;
           } else {
             item.config.content = '';
           }
           break;
         default:
           item.config.content = v4Value;
-          item.config.template = `<p>{{content}}</p>`;
+          item.config.template = `<div>${contentHtmlTemplateToken}</div>`;
           break;
       }
     }
@@ -1784,6 +1790,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     // this.logger.info(JSON.stringify({path, result}));
     return result;
+  }
+
+  private isLegacyTranslationKey(value: unknown): value is string {
+    return typeof value === 'string' && value.trim().startsWith('@');
   }
 
   private normaliseV4FormConfig(formConfig: unknown): Record<string, unknown> {

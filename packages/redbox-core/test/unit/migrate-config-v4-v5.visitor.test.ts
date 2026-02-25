@@ -498,6 +498,83 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(childComponents[0].component.class).to.equal("SaveButtonComponent");
         expect(childComponents[0].layout?.class).to.equal("InlineLayout");
     });
+
+    it("uses Handlebars translation helper for migrated TextBlock translation keys", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "text-block-translation-key",
+                fields: [
+                    {
+                        class: "Container",
+                        compClass: "TextBlockComponent",
+                        definition: {
+                            name: "welcome_text",
+                            value: "@dmpt-welcome-par2"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("ContentComponent");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        expect(componentConfig.content).to.equal("@dmpt-welcome-par2");
+        expect(componentConfig.template).to.equal("<div>{{{t content}}}</div>");
+    });
+
+    it("uses heading wrapper from TextBlock type for heading content", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "text-block-heading-type",
+                fields: [
+                    {
+                        class: "Container",
+                        compClass: "TextBlockComponent",
+                        definition: {
+                            name: "welcome_heading",
+                            value: "@dmpt-welcome-heading",
+                            type: "h3"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("ContentComponent");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        expect(componentConfig.content).to.equal("@dmpt-welcome-heading");
+        expect(componentConfig.template).to.equal("<h3>{{t content}}</h3>");
+    });
+
+    it("keeps plain text TextBlock values as non-translated content templates", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "text-block-plain-text",
+                fields: [
+                    {
+                        class: "Container",
+                        compClass: "TextBlockComponent",
+                        definition: {
+                            name: "welcome_text_plain",
+                            value: "Welcome to the form"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("ContentComponent");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        expect(componentConfig.content).to.equal("Welcome to the form");
+        expect(componentConfig.template).to.equal("<div>{{{content}}}</div>");
+    });
+
     it("populates attachmentFields from FileUpload components", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({
