@@ -5,7 +5,8 @@
   "main": "index.js",
   "bin": {
     "redbox-dev-tools": "./bin/cli.js",
-    "redbox-tsc": "./bin/tsc.js"
+    "redbox-tsc": "./bin/tsc.js",
+    "redbox-webpack": "./bin/wrapper-webpack.js"
   },
   "files": [
     "bin/",
