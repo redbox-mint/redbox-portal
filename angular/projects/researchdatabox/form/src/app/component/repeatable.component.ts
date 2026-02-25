@@ -275,13 +275,10 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
     return this.fieldConfig.config?.value ?? [];
   }
 
-  protected override postCreateGetFormControl(): FormArray<AbstractControl<any>> {
+  protected override postCreateGetFormControl(): FormArray<AbstractControl<Array<unknown>>> {
     // not setting value yet, this will be done in the component for lazy init
     const modelElems: AbstractControl[] = [];
     const formControl = new FormArray(modelElems);
-    if (this.fieldConfig.config?.disabled) {
-      formControl.disable();
-    }
     return formControl;
   }
 

@@ -37,15 +37,8 @@ import { PropertiesHelper } from './visitor/common.model';
 import { ILogger } from '../logger.interface';
 import { ContentFieldComponentConfig } from './component/content.model';
 import {
-  QuestionTreeFieldComponentConfigFrame,
   QuestionTreeFieldComponentDefinitionOutline,
-  QuestionTreeMeta,
-  QuestionTreeOutcome,
   QuestionTreeOutcomeInfoKey,
-  QuestionTreeQuestion,
-  QuestionTreeQuestionAnswer,
-  QuestionTreeQuestionRuleIn,
-  QuestionTreeQuestionRules,
 } from './component/question-tree.outline';
 import { TabFormComponentDefinitionOutline, TabComponentName } from './component/tab.outline';
 import {
@@ -72,10 +65,10 @@ import { RichTextEditorComponentName, RichTextEditorFormComponentDefinitionOutli
 import { MapComponentName } from './component/map.outline';
 import { FileUploadComponentName, FileUploadFormComponentDefinitionOutline } from './component/file-upload.outline';
 import { TypeaheadInputModelOptionValue } from './component/typeahead-input.outline';
-import { FormConstraintConfigOutline, FormExpressionsConfigFrame } from './form-component.outline';
+import { FormConstraintConfigOutline } from './form-component.outline';
 import { SimpleInputFormComponentDefinitionFrame } from './component/simple-input.outline';
-import { guessType } from './helpers';
-import { LineagePaths, LineagePath } from './names/naming-helpers';
+import { LineagePaths } from './names/naming-helpers';
+import {QuestionTreeHelper} from "./component/question-tree.helper";
 
 export class FormOverride {
     private logName = "FormOverride";
@@ -107,11 +100,13 @@ export class FormOverride {
     repeatableTable: 'view-template-repeatable-table',
     repeatableList: 'view-template-repeatable-list',
   } as const;
+  private readonly questionTreeHelper: QuestionTreeHelper;
 
   constructor(logger: ILogger) {
     this.logger = logger;
     this.propertiesHelper = new PropertiesHelper();
     this.activeReusableFormDefs = {};
+    this.questionTreeHelper = new QuestionTreeHelper(logger);
   }
 
   /**
@@ -517,307 +512,57 @@ export class FormOverride {
 
     const result: AvailableFormComponentDefinitionFrames[] = [];
     questions.forEach((question, questionIndex) => {
-      const id = question.id;
-      const answersMin = question.answersMin;
-      const answersMax = question.answersMax;
-      const answers = question.answers;
-      const rules = question.rules;
-
-      // validate question structure
-      if (!id) {
-        errors.push(`Question ${questionIndex + 1} has no id.`);
-      }
-
-      const msgQ = `Question ${questionIndex + 1} '${id}'`;
-      if (answersMin < 1 || answersMin > answersMax) {
-        errors.push(`${msgQ} answer min (${answersMin}) must be 1 or greater and equal or less than max (${answersMax}).`);
-      }
-      if (answersMax < 1 || answersMin > answersMax || answersMax > answers.length) {
-        errors.push(
-          `${msgQ} answer max (${answersMax}) must be 1 or greater, equal or greater than min (${answersMin}), and equal or less than the number of answers (${answers.length}).`
-        );
-      }
-      if (answers.length < 1) {
-        errors.push(`${msgQ} must have at least one answer.`);
-      }
-      if (Object.keys(rules).length === 0) {
-        // Must have at least one rule - add a rule that always matches, so the question always shows.
-        rules.op = "true";
-      }
-
-      // All answer outcome property keys and values must match a defined outcome.
-      answers.forEach((answer, answerIndex) => {
-        const outcome = answer.outcome;
-        if (outcome && !availableOutcomeValues.includes(outcome)) {
-          errors.push(
-            `${msgQ} answer ${answerIndex + 1} '${answer.value}' outcome is unknown '${outcome}', available are '${availableOutcomeValues.join(', ')}'.`
-          );
-        }
-
-        const meta = answer.meta ?? {};
-        for (const [metaKey, metaValue] of Object.entries(meta)) {
-          if (!(metaKey in availableMeta)) {
-            errors.push(
-              `${msgQ} answer ${answerIndex + 1} '${answer.value}' meta key is unknown '${metaKey}', available are '${Object.keys(availableMeta).join(', ')}'.`
-            );
-          }
-          if (availableMeta[metaKey] && !(metaValue in availableMeta[metaKey])) {
-            errors.push(
-              `${msgQ} answer ${answerIndex + 1} '${answer.value}' meta key '${metaKey}' has unknown value '${metaValue}', available are '${Object.values(availableMeta).join(', ')}'.`
-            );
-          }
-        }
-      });
-
-      // All rules that reference questions or answer values must use valid values.
-      const rulesToCheck = [rules];
-      while (rulesToCheck.length > 0) {
-        const currentRule = rulesToCheck.shift();
-        if (!currentRule) {
-          continue;
-        }
-        switch (currentRule.op) {
-          case "true":
-            continue;
-          case "and":
-          case "or":
-            rulesToCheck.push(...currentRule.args);
-            break;
-          case "in":
-          case "notin":
-          case "only":
-            if (!(currentRule.q in questionAnswerValuesMap)) {
-              errors.push(`${msgQ} rule op '${currentRule.op}' references an invalid question id '${currentRule.q}'.`);
-            }
-            const questionAnswers = questionAnswerValuesMap[currentRule.q];
-            for (const ruleAnswerValue of currentRule.a) {
-              if (!questionAnswers.includes(ruleAnswerValue)) {
-                errors.push(
-                  `${msgQ} rule op '${currentRule.op}' question '${currentRule.q}' references an invalid answer value '${ruleAnswerValue}'.`
-                );
-              }
-            }
-            break;
-          default:
-            // Setting currentRule to a variable typed with never ensures that all possible switch cases
-            // are present. TypeScript compile will fail if there are any possible cases missing.
-            const _unexpected: never = currentRule;
-            errors.push(`${msgQ} unknown rule ${JSON.stringify(_unexpected)}.`);
-            break;
-        }
-      }
+      // validate
+      errors.push(...this.questionTreeHelper.validateQuestion(question, questionIndex, availableOutcomeValues, availableMeta, questionAnswerValuesMap));
 
       // Transform rules DSL to expressions.
-      const ruleExpression = this.questionTreeRuleToExpression(lineagePath, rules);
-      const isVisible = !ruleExpression || ruleExpression === 'true';
-      if (!lineagePath.angularComponentsJsonPointer) {
-        throw new Error(`${this.logName}: Did not provide lineage path JSON pointer ${JSON.stringify({
-          name, lineagePath, item
-        })}`);
-      }
-
-      // Notes:
-      // - condition is always executed, should be true or false, if true, then evals template
-      // - The condition should restrict to the question tree.
-      // - use formData in the template to get the current value of a component of the question tree
-      // - Both the layout and component have `visible` properties, so they both need to be set.
-
-      const expressions: FormExpressionsConfigFrame[] | undefined = isVisible ? undefined : [
-        {
-          name: `${id}-layoutvis-qt`,
-          config: {
-            template: ruleExpression,
-            conditionKind: 'jsonpointer',
-            condition: `${lineagePath.angularComponentsJsonPointer}::field.value.changed`,
-            target: `layout.visible`
-          }
-        },
-        {
-          name: `${id}-compvis-qt`,
-          config: {
-            template: ruleExpression,
-            conditionKind: 'jsonpointer',
-            condition: `${lineagePath.angularComponentsJsonPointer}::field.value.changed`,
-            target: `component.visible`
-          }
-        },
-        {
-          name: `${id}-modval-qt`,
-          config: {
-            // TODO: template should be something like: if visible, use existing value, if not visible, set to null / undefined
-            template: `event.meta.visible = true`,
-            conditionKind: 'jsonpointer',
-            condition: `${lineagePath.angularComponentsJsonPointer}::field.ui-attribute.changed`,
-            target: `model.value`
-          }
-        },
-      ];
-
-      // build reusable component
-      const hasOneAnswer = answersMax === 1;
-      const componentOptions = answers
-        .map(a => {
-          return {value: a.value, label: a.label ?? `@${name}-${id}-${a.value}`}
-        });
-      const componentAnswerOne: AvailableFormComponentDefinitionFrames = {
-        overrides: {reusableFormName: "questiontree-answer-one"},
-        name: "",
-        component: {
-          class: "ReusableComponent", config: {
-            componentDefinitions: [
-              {
-                name: "questiontree_answer_one",
-                overrides: {replaceName: id},
-                layout: {class: "DefaultLayout", config: {label: id, visible: isVisible}},
-                component: {class: "RadioInputComponent", config: {options: componentOptions, visible: isVisible}},
-                expressions: expressions,
-              },
-            ],
-          },
-        },
-      };
-      const componentAnswerMore: AvailableFormComponentDefinitionFrames = {
-        overrides: {reusableFormName: "questiontree-answer-one-more"},
-        name: "",
-        component: {
-          class: 'ReusableComponent',
-          config: {
-            componentDefinitions: [
-              {
-                name: 'questiontree_answer_one_more',
-                overrides: {replaceName: id},
-                layout: {class: 'DefaultLayout', config: {label: id, visible: isVisible}},
-                component: {class: 'CheckboxInputComponent', config: {options: componentOptions, visible: isVisible}},
-                expressions: expressions,
-              },
-            ],
-          },
-        },
-      };
-      result.push(hasOneAnswer ? componentAnswerOne : componentAnswerMore);
-
-
+      result.push(this.questionTreeHelper.transformQuestionConfig(name, lineagePath, item, question));
     });
 
       if (errors.length > 0) {
         throw new Error(`${this.logName}: Question tree is not valid: ${errors.join(' ')}`);
       }
 
-      // Add hidden inputs for outcome and outcome-details.
-      // These components allow the outcome and details to be stored within the question tree data model.
-      const outcomeComponents: AvailableFormComponentDefinitionFrames[] = [
-        {
-          name: QuestionTreeOutcomeInfoKey,
-          component: {class: "SimpleInputComponent", config: {type: "hidden", visible: false}},
-          layout: {class: "DefaultLayout", config: {visible: false}},
-        },
-      ];
-      result.push(...outcomeComponents);
+    // Add hidden inputs for outcome info.
+    // This component allows the outcome and details to be stored within the question tree data model.
+    const outcomeComponent: AvailableFormComponentDefinitionFrames = {
+      name: QuestionTreeOutcomeInfoKey,
+      component: {class: "SimpleInputComponent", config: {type: "hidden", visible: false}},
+      layout: {class: "DefaultLayout", config: {visible: false}},
+    };
+    result.push(outcomeComponent);
 
       return result;
     }
 
-  private toFieldReference(value: unknown): string {
-    // Normalise the string to a form useful for comparing identifiers.
-    const fieldRaw = value?.toString()?.normalize("NFKC") ?? "";
-    // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt
-    const fieldReference = [...fieldRaw].map((char) => {
-      const codePoint = char.codePointAt(0);
-      if (codePoint === undefined) {
-        return ''
+  /**
+   * Check that only the allowed form component frames have been used.
+   * @param items The form components after reusable components have been applied.
+   * @private
+   */
+  public applyQuestionTreeFrames(items: AvailableFormComponentDefinitionFrames[]): AvailableFormComponentDefinitionFrames[] {
+    const result: AvailableFormComponentDefinitionFrames[] = [];
+    for (const item of items) {
+      if (isTypeFormComponentDefinitionName<SimpleInputFormComponentDefinitionFrame>(item, SimpleInputComponentName)) {
+        result.push(item);
+        continue;
       }
-      // Numbers 0 - 9
-      if (codePoint >= 48 && codePoint <= 57) {
-        return char
+      if (isTypeFormComponentDefinitionName<CheckboxInputFormComponentDefinitionFrame>(item, CheckboxInputComponentName)) {
+        result.push(item);
+        continue;
       }
-      // Letters A - Z
-      if (codePoint >= 65 && codePoint <= 90) {
-        return char
+      if (isTypeFormComponentDefinitionName<RadioInputFormComponentDefinitionFrame>(item, RadioInputComponentName)) {
+        result.push(item);
+        continue;
       }
-      // Letters a - z
-      if (codePoint >= 97 && codePoint <= 122) {
-        return char
+      if (isTypeFormComponentDefinitionName<ReusableFormComponentDefinitionFrame>(item, ReusableComponentName)) {
+        result.push(item);
+        continue;
       }
-      // Selected punctuation used in identifiers - : colon 58, @ at sign 64,
-      // - hyphen minus 45, . full stop 46, _ low line 95
-      if ([58, 64, 45, 46, 95].includes(codePoint)) {
-        return char
-      }
-      // Anything else is replaced with '_'
-      return '_';
-    });
-    return fieldReference.join('');
-  }
-
-  private questionTreeRuleToExpression(lineagePath: LineagePaths, rule: QuestionTreeQuestionRules): string {
-    switch (rule.op) {
-      case "true":
-        return 'true';
-      case "and":
-        return rule.args.map(arg => `(${this.questionTreeRuleToExpression(lineagePath, arg)})`).join(' and ');
-      case "or":
-        return rule.args.map(arg => `(${this.questionTreeRuleToExpression(lineagePath, arg)})`).join(' or ');
-      case "in":
-      case "notin":
-      case "only":
-        // Build the jsonata format identifier.
-        // Use the question tree angular component path, plus the question id as the path.
-        const path = [...lineagePath.dataModel, rule.q]
-        const identifierString = `formData.${this.lineagePathToExpressionIdentifiers([...path])}`;
-        // The value can be converted to a json array for the jsonata expression.
-        const values = (Array.isArray(rule.a) ? rule.a : [rule.a]).map(i => this.toFieldReference(i));
-        const valueString = JSON.stringify(values);
-        if (rule.op === "in") {
-          return `$count(${identifierString}[][$ in ${valueString}]) > 0`;
-        } else if (rule.op === "only") {
-          return `${identifierString}[] = ${valueString}`;
-        } else if (rule.op === "notin") {
-          return `$count(${identifierString}[][$not($ in ${valueString})]) = $count(${identifierString})`;
-        }
-        throw new Error(`${this.logName} unknown rule ${JSON.stringify(rule)}.`);
-      default:
-        throw new Error(`${this.logName} unknown rule ${JSON.stringify(rule)}.`);
+      throw new Error(`${this.logName}: Invalid form component frame ${item.name} class ${item.component.class} in Question Tree.`);
     }
+    return result;
   }
-
-  private lineagePathToExpressionIdentifiers(path: LineagePath): string {
-    // Escape unexpected characters.
-    const pathFieldRefs = path.map(i => this.toFieldReference(i));
-    // Use backticks to build each item in the jsonata identifier.
-    const identifiers = pathFieldRefs.map(i => `\`${i}\``);
-    // Join identifiers using dot.
-    const identifierString = identifiers.join('.');
-    return identifierString;
-  }
-
-    /**
-     * Check that only the allowed form component frames have been used.
-     * @param items The form components after reusable components have been applied.
-     * @private
-     */
-    public applyQuestionTreeFrames(items: AvailableFormComponentDefinitionFrames[]): AvailableFormComponentDefinitionFrames[] {
-      const result: AvailableFormComponentDefinitionFrames[] = [];
-      for (const item of items) {
-        if (isTypeFormComponentDefinitionName<SimpleInputFormComponentDefinitionFrame>(item, SimpleInputComponentName)) {
-          result.push(item);
-          continue;
-        }
-        if (isTypeFormComponentDefinitionName<CheckboxInputFormComponentDefinitionFrame>(item, CheckboxInputComponentName)) {
-          result.push(item);
-          continue;
-        }
-        if (isTypeFormComponentDefinitionName<RadioInputFormComponentDefinitionFrame>(item, RadioInputComponentName)) {
-          result.push(item);
-          continue;
-        }
-        if (isTypeFormComponentDefinitionName<ReusableFormComponentDefinitionFrame>(item, ReusableComponentName)) {
-          result.push(item);
-          continue;
-        }
-        throw new Error(`${this.logName}: Invalid form component frame ${item.name} class ${item.component.class} in Question Tree.`);
-      }
-      return result;
-    }
 
   /* Transforms between components */
 
@@ -1499,82 +1244,6 @@ export class FormOverride {
     if (nested.elementTemplate) {
       this.forceAllowModeForTransformedTree(nested.elementTemplate, formMode);
     }
-  }
-
-  public migrateDataClassificationToQuestionTree(data: any): QuestionTreeFieldComponentConfigFrame {
-    const v4Definition = data.createDataClassificationStructure();
-    const v4OrderedOutcomes: string[] = data.orderedOutcomes ?? [];
-    const availableOutcomes: QuestionTreeOutcome[] = v4OrderedOutcomes.map(o => ({ value: o, label: o }));
-    const availableMeta: QuestionTreeMeta = {};
-    const questions: QuestionTreeQuestion[] = [];
-    const defaultOutcomePropName = 'classification';
-
-    for (const [questionId, questionInfo] of Object.entries(v4Definition)) {
-      const qInfo = questionInfo as Record<string, unknown>;
-      const rawConditions = qInfo?.conditions as Record<string, string[]>;
-      const rawAnswers = (Array.isArray(qInfo?.answers) ? qInfo?.answers : []) ?? [];
-      const rawMinAnswers = qInfo?.minAnswers;
-      const rawMaxAnswers = qInfo?.maxAnswers;
-      const questionAnswers: QuestionTreeQuestionAnswer[] = [];
-
-      for (const rawAnswer of rawAnswers as any[]) {
-        const answerValue = rawAnswer?.value;
-        const answerLabel = rawAnswer?.label;
-        const answerOutcome = rawAnswer?.outcome;
-        const answerOutcomeGuessedType = guessType(answerOutcome);
-        if (answerOutcomeGuessedType === 'string') {
-          questionAnswers.push({ value: answerValue, label: answerLabel, outcome: answerOutcome });
-        } else if (answerOutcomeGuessedType === 'object') {
-          const meta = Object.fromEntries(
-            Object.entries(answerOutcome)
-              .filter(([k, v]) => k !== defaultOutcomePropName && !!v)
-              .map(([k, v]) => [k, v?.toString() ?? ''])
-          );
-          questionAnswers.push({
-            value: answerValue,
-            label: answerLabel,
-            outcome: answerOutcome[defaultOutcomePropName],
-            meta: meta,
-          });
-          Object.entries(meta).forEach(([k, v]) => {
-            if (!(k in availableMeta)) {
-              availableMeta[k] = {};
-            }
-            if (!(v in availableMeta[k])) {
-              availableMeta[k][v] = v;
-            }
-          });
-        } else if (['undefined', 'null'].includes(answerOutcomeGuessedType)) {
-          questionAnswers.push({ value: answerValue, label: answerLabel });
-        } else {
-          throw new Error(JSON.stringify({ answerOutcomeGuessedType, rawAnswer }));
-        }
-      }
-
-      const rules: QuestionTreeQuestionRules = {
-        op: 'or',
-        args: [
-          ...Object.entries(rawConditions).map(([ruleQuestionId, ruleAnswerValue]) => {
-            return { op: 'in', q: ruleQuestionId, a: ruleAnswerValue } as QuestionTreeQuestionRuleIn;
-          }),
-        ],
-      };
-
-      questions.push({
-        id: questionId,
-        answersMin: parseInt(rawMinAnswers?.toString() ?? '1'),
-        answersMax: parseInt(rawMaxAnswers?.toString() ?? '1'),
-        answers: questionAnswers,
-        rules: rules,
-      });
-    }
-
-    return {
-      availableOutcomes,
-      availableMeta,
-      questions,
-      componentDefinitions: [],
-    };
   }
 
   private commonContentComponent(

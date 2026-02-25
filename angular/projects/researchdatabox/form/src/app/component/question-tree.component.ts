@@ -1,44 +1,50 @@
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel} from "@researchdatabox/portal-ng-common";
 import {
   QuestionTreeModelValueType,
   QuestionTreeComponentName,
-  QuestionTreeModelName, FormConfigFrame, isTypeWithComponentDefinitions,
+  QuestionTreeModelName,
+  FormConfigFrame,
+  isTypeWithComponentDefinitions,
   isTypeFieldDefinitionName,
   QuestionTreeFieldComponentDefinitionFrame,
   QuestionTreeFieldComponentConfigFrame,
   QuestionTreeOutcomeInfoKey,
   QuestionTreeOutcomeInfo,
+  QuestionTreeOutcome,
 } from "@researchdatabox/sails-ng-common";
-import { Component, inject, Injector, ViewChild, ViewContainerRef } from "@angular/core";
+import {Component, inject, Injector, ViewChild, ViewContainerRef} from "@angular/core";
 import {AbstractControl, FormGroup} from "@angular/forms";
-import { FormComponentsMap, FormService } from "../form.service";
-import { FormComponent } from "../form.component";
-import { isEmpty as _isEmpty, isUndefined as _isUndefined } from "lodash-es";
-import { FormBaseWrapperComponent } from "./base-wrapper.component";
+import {FormComponentsMap, FormService} from "../form.service";
+import {FormComponent} from "../form.component";
+import {isEmpty as _isEmpty, isUndefined as _isUndefined} from "lodash-es";
+import {FormBaseWrapperComponent} from "./base-wrapper.component";
 import {FormComponentEventBus, FormComponentEventType} from "../form-state";
 import {debounceTime, filter} from "rxjs";
 
+export type QuestionTreeFormControlValueType = { [key: string]: AbstractControl<unknown> };
+export type QuestionTreeFormControlType = FormGroup<QuestionTreeFormControlValueType>;
 
 export class QuestionTreeModel extends FormFieldModel<QuestionTreeModelValueType> {
   protected override logName = QuestionTreeModelName;
-  public override formControl?: FormGroup;
+  public override formControl?: QuestionTreeFormControlType;
 
   protected override postCreateGetInitValue(): QuestionTreeModelValueType {
     return this.fieldConfig.config?.value ?? {};
-    }
+  }
 
-  protected override postCreateGetFormControl(): FormGroup<{ [key: string]: AbstractControl<any> }> {
+  protected override postCreateGetFormControl(): QuestionTreeFormControlType {
     // Create the empty FormGroup here, not in the component.
     // This is different from FormComponent, which has no model.
     // Creating the FormGroup here allows encapsulating the FormGroup & children
     // in the same way as other components.
-    const modelElems: { [key: string]: AbstractControl<any> } = {};
+    const modelElems: QuestionTreeFormControlValueType = {};
     return new FormGroup(modelElems);
   }
 
   public addItem(name: string, targetModel?: FormFieldModel<unknown>) {
-    if (this.formControl && name && targetModel) {
-      this.formControl.addControl(name, targetModel.getFormControl());
+    const targetFormControl = targetModel?.getFormControl();
+    if (this.formControl && name && targetFormControl) {
+      this.formControl.addControl(name, targetFormControl);
     } else {
       throw new Error(`${this.logName}: formControl or name or targetModel are not valid. Cannot add item.`);
     }
@@ -62,7 +68,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
   private injector = inject(Injector);
   protected formComponentsMap?: FormComponentsMap;
 
-  @ViewChild('componentContainer', { read: ViewContainerRef, static: true })
+  @ViewChild('componentContainer', {read: ViewContainerRef, static: true})
   private componentContainer!: ViewContainerRef;
 
   private elementFormConfig?: FormConfigFrame;
@@ -72,6 +78,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
   protected get getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);
   }
+
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
     return this.formFieldCompMapEntries
       .map(c => c.component)
@@ -127,7 +134,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     }
 
     // Create the form fields from the form components map.
-    const elemVals = this.model.initValue ?? {};
+    const elemVals: QuestionTreeModelValueType = this.model.initValue ?? {};
     const formGroupMap = this.formService.groupComponentsByName(this.formComponentsMap);
     for (const key of Object.keys(formGroupMap.withFormControl ?? {})) {
       // Create the wrapper component.
@@ -171,10 +178,10 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
         // When a value in the question tree changes,
         // calculate the outcome and set the data model properties.
         const newValue = this.getOutcomeInfo();
-        const modelValue: QuestionTreeModelValueType = {...(this.model?.getValue() ?? {})};
-        const currentValue = modelValue[QuestionTreeOutcomeInfoKey];
+        const modelValue: QuestionTreeModelValueType = this.model?.getValue() ?? {};
+        const currentValue = modelValue?.[QuestionTreeOutcomeInfoKey];
         const hasChanged = JSON.stringify(newValue) !== JSON.stringify(currentValue);
-        if (hasChanged) {
+        if (hasChanged && modelValue) {
           // The model value is only updated if the outcome property changed.
           // This change will trigger another `field.value.changed' event, which is what we want,
           // because then other components can use the updated outcome value in that subsequent event.
@@ -198,7 +205,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
    * Get the current outcome info.
    * @protected
    */
-  protected getOutcomeInfo() {
+  protected getOutcomeInfo(): QuestionTreeOutcomeInfo | null {
     const config = this.getFieldComponentFrame().config;
     if (!config) {
       throw new Error(`${this.logName}: Could not get Question Tree component config.`);
@@ -213,21 +220,26 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
    * @param config The question tree component config that contains the available outcome and meta settings.
    * @param data The question tree data model.
    */
-  public calculateOutcomeInfo(config: QuestionTreeFieldComponentConfigFrame, data: QuestionTreeModelValueType): QuestionTreeOutcomeInfo {
-    const availableOutcomes = Object.fromEntries(config.availableOutcomes.map(
+  public calculateOutcomeInfo(config: QuestionTreeFieldComponentConfigFrame, data: QuestionTreeModelValueType): QuestionTreeOutcomeInfo | null {
+    const availableOutcomes = Object.fromEntries((config.availableOutcomes ?? []).map(
+      o => [o.value, o])
+    );
+    const availableMeta = config.availableMeta ?? {};
+
+    const availableOutcomeIndexes = Object.fromEntries(config.availableOutcomes.map(
       ((a, index) => [a.value, index])
     ));
     const questions = config.questions;
 
     const collectedOutcomes = new Set<string>();
-    const collectedDetails = [];
+    const collectedMeta: ({ outcome: QuestionTreeOutcome, [key: string]: QuestionTreeOutcome })[] = [];
 
     const outcomeKeys: string[] = [
       QuestionTreeOutcomeInfoKey,
     ];
 
     // Collect the outcomes and meta.
-    for (const [key, value] of Object.entries(data)) {
+    for (const [key, value] of Object.entries(data ?? {})) {
       if (outcomeKeys.includes(key)) {
         // ignore the outcome data model keys
         continue;
@@ -246,27 +258,36 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       for (const answer of answers) {
         if (answer.outcome) {
           collectedOutcomes.add(answer.outcome);
-          collectedDetails.push({...(answer.meta ?? {}), outcome: answer.outcome});
+          collectedMeta.push({
+            outcome: availableOutcomes[answer.outcome],
+            ...(Object.fromEntries(Object.entries(answer.meta ?? {}).map(
+              ([metaKey, metaValue]) => [
+                metaKey,
+                {value: metaValue, label: availableMeta[metaKey][metaValue]}
+              ]
+            ))),
+          });
         }
       }
     }
 
     // Calculate the most sensitive outcome (0 = least, length - 1 = most).
-    let outcome = null;
+    let outcome: QuestionTreeOutcome | null = null;
     for (const current of collectedOutcomes) {
       if (outcome === null) {
-        outcome = current;
+        outcome = availableOutcomes[current];
       } else {
-        const prevIndex = availableOutcomes[outcome];
-        const currentIndex = availableOutcomes[current];
+        const prevIndex = availableOutcomeIndexes[outcome.value];
+        const currentIndex = availableOutcomeIndexes[current];
         if (currentIndex > prevIndex) {
-          outcome = current;
+          outcome = availableOutcomes[current];
         }
       }
     }
 
-    return {outcome: outcome, meta: collectedDetails};
+    if (!outcome) {
+      return null;
+    }
+    return {outcome: outcome, meta: collectedMeta};
   }
-
 }
-

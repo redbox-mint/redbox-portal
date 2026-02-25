@@ -4,12 +4,11 @@ import {RadioInputComponent} from "./radio-input.component";
 import {QuestionTreeComponent} from "./question-tree.component";
 import {CheckboxInputComponent} from "./checkbox-input.component";
 import {
-  FormConfigFrame,
-  QuestionTreeFormComponentDefinitionFrame,
+  FormConfigFrame, QuestionTreeFieldComponentConfigFrame,
+  QuestionTreeModelValueType,
   QuestionTreeOutcomeInfo,
   QuestionTreeOutcomeInfoKey
 } from "@researchdatabox/sails-ng-common";
-import {GroupFieldComponent} from "./group.component";
 
 describe('QuestionTreeComponent', () => {
 
@@ -116,11 +115,35 @@ describe('QuestionTreeComponent', () => {
         "name": "data-classification-item-outcome",
         "component": {"class": "SimpleInputComponent", "config": {}},
         "model": {"class": "SimpleInputModel", "config": {"validators": [{"class": "required"}]}},
+        expressions: [
+          {
+            // Set the component value to the question tree outcome label
+            name: `data-classification-item-outcome-expr`,
+            config: {
+              template: `formData.questiontree_1.${QuestionTreeOutcomeInfoKey}.outcome.label`,
+              conditionKind: 'jsonpointer',
+              condition: `/questiontree_1::field.value.changed`,
+              target: `model.value`
+            }
+          },
+        ]
       },
       {
         "name": "data-classification-item-outcome-details",
         "component": {"class": "SimpleInputComponent", "config": {"type": "hidden"}},
         "model": {"class": "SimpleInputModel", "config": {}},
+        expressions: [
+          {
+            // Set the component value to the question tree outcome meta, using only the labels for each property.
+            name: `data-classification-item-outcome-details-expr`,
+            config: {
+              template: `formData.questiontree_1.${QuestionTreeOutcomeInfoKey}.meta[].`,
+              conditionKind: 'jsonpointer',
+              condition: `/questiontree_1::field.value.changed`,
+              target: `model.value`
+            }
+          },
+        ]
       }
     ]
   };
@@ -298,6 +321,77 @@ describe('QuestionTreeComponent', () => {
       },
       "data-classification-item-outcome": "",
       "data-classification-item-outcome-details": [],
+    });
+  });
+
+  const qtConfig = formConfig.componentDefinitions[0].component.config as QuestionTreeFieldComponentConfigFrame;
+  const outcomeInfoCases: {
+    config: QuestionTreeFieldComponentConfigFrame,
+    data: QuestionTreeModelValueType,
+    expected: QuestionTreeOutcomeInfo | null
+  }[] = [
+    {
+      config: {availableOutcomes: [], questions: [], componentDefinitions: []}, data: {}, expected: null,
+    },
+    {
+      config: {
+        availableOutcomes: qtConfig.availableOutcomes,
+        questions: qtConfig.questions,
+        componentDefinitions: qtConfig.componentDefinitions
+      },
+      data: {}, expected: null,
+    },
+    {
+      config: {
+        componentDefinitions: [],
+        availableOutcomes: [
+          {value: "outcome1", label: "@outcomes-value1"},
+          {value: "outcome2", label: "@outcomes-value2"},
+        ],
+        availableMeta: {
+          prop2: {
+            prop2Value1: null,
+            prop2Value2: "@outcomes-prop2-value2",
+          },
+        },
+        questions: [
+          {
+            id: "question_1",
+            answersMin: 1,
+            answersMax: 1,
+            answers: [{value: "yes"}, {value: "no", meta: {prop2: "prop2Value2"}, outcome: "outcome2"}],
+            rules: {op: "true"},
+          },
+          {
+            id: "question_2",
+            answersMin: 1,
+            answersMax: 2,
+            answers: [{value: "yes"}, {value: "no", meta: {prop2: "prop2Value1"}, outcome: "outcome1"}],
+            rules: {op: "in", q: "question_1", a: ["no"]},
+          },
+          {
+            id: "question_3",
+            answersMin: 1,
+            answersMax: 1,
+            answers: [{value: "yes"}, {value: "no"}],
+            rules: {op: "in", q: "question_2", a: ["yes"]},
+          },
+        ],
+      },
+      data: {question_1: "no", question_2: "no"}, expected: {
+        outcome: {value:"outcome2", label: "@outcomes-value2"}, meta: [
+          {outcome: {value:"outcome2", label: "@outcomes-value2"}, prop2: {value: "prop2Value2", label: "@outcomes-prop2-value2"}},
+          {outcome: {value:"outcome1", label: "@outcomes-value1"}, prop2: {value: "prop2Value1", label: null}},
+        ]
+      },
+    }
+  ];
+  outcomeInfoCases.forEach(({config, data, expected}) => {
+    it(`should calculate the expected outcome info ${JSON.stringify(expected)}`, () => {
+      let fixture = TestBed.createComponent(QuestionTreeComponent);
+      let component = fixture.componentInstance;
+      const actual = component.calculateOutcomeInfo(config, data);
+      expect(actual).toEqual(expected);
     });
   });
 });

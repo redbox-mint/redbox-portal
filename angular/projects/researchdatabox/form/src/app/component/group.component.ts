@@ -27,27 +27,28 @@ import {
 } from "lodash-es";
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
 
+
+export type GroupFormControlValueType = { [key: string]: AbstractControl<unknown> };
+export type GroupFormControlType = FormGroup<GroupFormControlValueType>;
+
 /**
  * The model for the Group Component.
  */
 export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
   protected override logName = GroupFieldModelName;
-  public override formControl?: FormGroup;
+  public override formControl?: GroupFormControlType;
 
   protected override postCreateGetInitValue(): GroupFieldModelValueType {
     return this.fieldConfig.config?.value ?? {};
   }
 
-  protected override postCreateGetFormControl(): FormGroup<{ [key: string]: AbstractControl<any> }> {
+  protected override postCreateGetFormControl(): GroupFormControlType {
     // Create the empty FormGroup here, not in the component.
     // This is different from FormComponent, which has no model.
     // Creating the FormGroup here allows encapsulating the FormGroup & children in the same way as other components.
     // in the same way as other components.
-    const modelElems: { [key: string]: AbstractControl<any> } = {};
+    const modelElems: GroupFormControlValueType = {};
     const formControl = new FormGroup(modelElems);
-    if (this.fieldConfig.config?.disabled) {
-      formControl.disable();
-    }
     return formControl;
   }
 

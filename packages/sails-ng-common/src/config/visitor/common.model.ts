@@ -6,14 +6,14 @@ import { FormComponentDefinitionFrame, FormComponentDefinitionOutline } from '..
 import { CanVisit, FormConfigVisitorOutline } from './base.outline';
 import { FormConstraintAuthorizationConfig, FormConstraintConfig } from '../form-component.model';
 import {
-  VisitorComponentClassDefMapType,
   FieldComponentDefinitionMap,
   FieldLayoutDefinitionMap,
   FieldModelDefinitionMap,
-  VisitorFormComponentClassDefMapType,
   FormComponentDefinitionMap,
   KindNameDefaultsMap,
   KindNameDefaultsMapType,
+  VisitorComponentClassDefMapType,
+  VisitorFormComponentClassDefMapType,
   VisitorLayoutClassDefMapType,
   VisitorModelClassDefMapType,
 } from '../dictionary.model';
@@ -217,6 +217,57 @@ export class PropertiesHelper {
     if (propValue !== undefined) {
       target[name] = propValue;
     }
+  }
+
+  /**
+   * Convert a value to a field reference that can be used in a JSONata expression.
+   * @param value The value to convert.
+   * @return The value ready to be used as a field reference in a JSON expression.
+   */
+  public toFieldReference(value: unknown): string {
+    // Normalise the string to a form useful for comparing identifiers.
+    const fieldRaw = value?.toString()?.normalize("NFKC") ?? "";
+    // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt
+    const fieldReference = [...fieldRaw].map((char) => {
+      const codePoint = char.codePointAt(0);
+      if (codePoint === undefined) {
+        return ''
+      }
+      // Numbers 0 - 9
+      if (codePoint >= 48 && codePoint <= 57) {
+        return char
+      }
+      // Letters A - Z
+      if (codePoint >= 65 && codePoint <= 90) {
+        return char
+      }
+      // Letters a - z
+      if (codePoint >= 97 && codePoint <= 122) {
+        return char
+      }
+      // Selected punctuation used in identifiers - : colon 58, @ at sign 64,
+      // - hyphen minus 45, . full stop 46, _ low line 95
+      if ([58, 64, 45, 46, 95].includes(codePoint)) {
+        return char
+      }
+      // Anything else is replaced with '_'
+      return '_';
+    });
+    return fieldReference.join('');
+  }
+
+  /**
+   * Convert a lineage path to a set of dot-separated field references for a JSONata expression.
+   * @param path The lineage path to convert.
+   * @return The path ready to be used as field references in a JSON expression.
+   */
+  public lineagePathToExpressionIdentifiers(path: LineagePath): string {
+    // Escape unexpected characters.
+    const pathFieldRefs = path.map(i => this.toFieldReference(i));
+    // Use backticks to build each item in the jsonata identifier.
+    const identifiers = pathFieldRefs.map(i => `\`${i}\``);
+    // Join identifiers using dot.
+    return identifiers.join('.');
   }
 
   private setFieldClassName(

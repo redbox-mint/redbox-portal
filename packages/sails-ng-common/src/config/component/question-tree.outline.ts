@@ -54,7 +54,7 @@ export interface QuestionTreeMeta {
         /**
          * The key is an available property value.
          * The optional value is the translation message id.
-         * Set value 'falsy' to use a translation message id of `${question-tree-name}-${outcome-meta-property0key}-${outcome-meta-property-value}`.
+         * Set value 'falsy' to use a translation message id of `${question-tree-name}-${outcome-meta-property-key}-${outcome-meta-property-value}`.
          */
         [key: string]: string | null,
     }
@@ -202,7 +202,17 @@ export type QuestionTreeQuestionRules =
 
 export const QuestionTreeOutcomeInfoKey = 'questiontree-outcome-info' as const;
 
-export type QuestionTreeOutcomeInfo = { outcome: string | null, meta: ({ outcome: string | null } & Record<string, string>)[] };
+export type QuestionTreeOutcomeInfo = {
+  /**
+   * The overall, most important / sensitive outcome.
+   */
+  outcome: QuestionTreeOutcome,
+  /**
+   * An array of all the outcomes and meta produced by the question tree component value selections.
+   * This data can be used as the input for the value of other component controls.
+   */
+  meta: ({ outcome: QuestionTreeOutcome, [key: string]: QuestionTreeOutcome })[]
+};
 
 /**
  * A question definition.
@@ -285,7 +295,7 @@ export interface QuestionTreeFieldComponentDefinitionOutline extends QuestionTre
 
 export const QuestionTreeModelName = `QuestionTreeModel` as const;
 export type QuestionTreeModelNameType = typeof QuestionTreeModelName;
-export type QuestionTreeModelValueType = {[QuestionTreeOutcomeInfoKey]: QuestionTreeOutcomeInfo} & Record<string, unknown>;
+export type QuestionTreeModelValueType = Record<string, unknown>;
 
 export interface QuestionTreeFieldModelConfigFrame extends FieldModelConfigFrame<QuestionTreeModelValueType> {
 

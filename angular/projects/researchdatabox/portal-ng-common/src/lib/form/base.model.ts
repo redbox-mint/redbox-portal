@@ -1,6 +1,6 @@
-import { cloneDeep as _cloneDeep } from 'lodash-es';
-import { AbstractControl, FormControl } from '@angular/forms';
-import { FieldModelDefinitionFrame, FormValidatorConfig, guessType } from "@researchdatabox/sails-ng-common";
+import {cloneDeep as _cloneDeep} from 'lodash-es';
+import {AbstractControl, FormControl} from '@angular/forms';
+import {FieldModelDefinitionFrame, FormValidatorConfig, guessType} from "@researchdatabox/sails-ng-common";
 
 /**
  * Core model for form elements.
@@ -50,6 +50,10 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
   protected override postCreate(): void {
     this.initValue = this.postCreateGetInitValue();
     this.formControl = this.postCreateGetFormControl();
+    // If the config specifies, disable the form control.
+    if (this.fieldConfig.config?.disabled) {
+      this.formControl.disable();
+    }
     console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value: ${JSON.stringify(this.initValue)}.`);
   }
 
@@ -61,13 +65,12 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
 
   protected postCreateGetFormControl(): AbstractControl<ValueType> {
     // Create a form control with a type based on the ValueType and init value.
-    const formControl = this.initValue === undefined
-      ? new FormControl()
-      : new FormControl<ValueType>(this.initValue);
-    if (this.fieldConfig.config?.disabled) {
-      formControl.disable();
+    if (this.initValue === undefined) {
+      return new FormControl();
+    } else {
+      // TODO: FormControl requires considering if ValueType can be null, but we don't do that yet.
+      return new FormControl<ValueType>(this.initValue) as FormControl<ValueType>;
     }
-    return formControl;
   }
 
   /**
