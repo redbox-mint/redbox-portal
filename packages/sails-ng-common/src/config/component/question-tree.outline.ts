@@ -200,7 +200,9 @@ export type QuestionTreeQuestionRules =
     | QuestionTreeQuestionRuleOnly
     ;
 
-export const QuestionTreeOutcomeInfoComponentName = 'questiontree-outcome-info' as const;
+export const QuestionTreeOutcomeInfoKey = 'questiontree-outcome-info' as const;
+
+export type QuestionTreeOutcomeInfo = { outcome: string | null, meta: ({ outcome: string | null } & Record<string, string>)[] };
 
 /**
  * A question definition.
@@ -283,7 +285,7 @@ export interface QuestionTreeFieldComponentDefinitionOutline extends QuestionTre
 
 export const QuestionTreeModelName = `QuestionTreeModel` as const;
 export type QuestionTreeModelNameType = typeof QuestionTreeModelName;
-export type QuestionTreeModelValueType = Record<string, unknown>;
+export type QuestionTreeModelValueType = {[QuestionTreeOutcomeInfoKey]: QuestionTreeOutcomeInfo} & Record<string, unknown>;
 
 export interface QuestionTreeFieldModelConfigFrame extends FieldModelConfigFrame<QuestionTreeModelValueType> {
 

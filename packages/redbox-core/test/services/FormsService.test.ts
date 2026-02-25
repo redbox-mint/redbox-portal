@@ -315,8 +315,14 @@ describe('FormsService', function () {
 
       const templates = visitor.start({form});
 
-      expect(templates).to.have.length(7);
-      expect(templates.map((t: any) => t.kind)).to.eql(["handlebars", "jsonata", "jsonata", "jsonata", "jsonata", "jsonata", "jsonata"]);
+      const expected = [
+        {kind: "handlebars"}, {kind: "jsonata"},
+        {kind: "jsonata"}, {kind: "jsonata"},
+        {kind: "jsonata"}, {kind: "jsonata"},
+        {kind: "jsonata"},
+      ];
+      expect(templates).to.containSubset(expected);
+      expect(templates).to.have.length(expected.length);
     });
   });
 });

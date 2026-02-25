@@ -263,6 +263,9 @@ describe("JSON Type Def Schema Visitor", async () => {
                         "type": "string"
                       }
                     },
+                    "questiontree-outcome-info": {
+                      "type": "string"
+                    },
                   },
                     "radio_1": {
                         "type": "string"

@@ -3,34 +3,30 @@ import {TestBed} from "@angular/core/testing";
 import {RadioInputComponent} from "./radio-input.component";
 import {QuestionTreeComponent} from "./question-tree.component";
 import {CheckboxInputComponent} from "./checkbox-input.component";
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import {
+  FormConfigFrame,
+  QuestionTreeFormComponentDefinitionFrame,
+  QuestionTreeOutcomeInfo,
+  QuestionTreeOutcomeInfoKey
+} from "@researchdatabox/sails-ng-common";
+import {GroupFieldComponent} from "./group.component";
 
 describe('QuestionTreeComponent', () => {
-  beforeEach(async () => {
-    await createTestbedModule({
-      declarations: {
-        "RadioInputComponent": RadioInputComponent,
-        "CheckboxInputComponent": CheckboxInputComponent,
-        "QuestionTreeComponent": QuestionTreeComponent,
-      }
-    });
-  });
-  it('should create component', () => {
-    let fixture = TestBed.createComponent(QuestionTreeComponent);
-    let component = fixture.componentInstance;
-    expect(component).toBeDefined();
-  });
-  it('should render the group and child components', async () => {
-    // arrange
-    const formConfig: FormConfigFrame = {
-      name: 'testing',
-      debugValue: true,
-      domElementType: 'form',
-      defaultComponentConfig: {
-        defaultComponentCssClasses: 'row',
-      },
-      editCssClasses: "redbox-form form",
-      componentDefinitions: [{
+
+  // question tree component with 3 questions
+  // question_1 is the start,
+  // question_2 shows only when question_1 is "no", and has an outcome & meta
+  // question_3 shows only when question_2 is "yes
+  const formConfig: FormConfigFrame = {
+    name: 'testing',
+    debugValue: true,
+    domElementType: 'form',
+    defaultComponentConfig: {
+      defaultComponentCssClasses: 'row',
+    },
+    editCssClasses: "redbox-form form",
+    componentDefinitions: [
+      {
         name: "questiontree_1",
         model: {class: "QuestionTreeModel"},
         component: {
@@ -69,108 +65,239 @@ describe('QuestionTreeComponent', () => {
                 rules: {op: "in", q: "question_2", a: ["yes"]},
               },
             ],
-            componentDefinitions: [],
+            componentDefinitions: [
+              {
+                name: "question_1",
+                model: {
+                  class: "RadioInputModel",
+                },
+                component: {
+                  class: "RadioInputComponent",
+                  config: {
+                    options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}],
+                  },
+                },
+              },
+              {
+                name: "question_2",
+                model: {
+                  class: "CheckboxInputModel",
+                },
+                component: {
+                  class: "CheckboxInputComponent",
+                  config: {
+                    options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}],
+                    multipleValues: true,
+                  },
+                },
+              },
+              {
+                name: "question_3",
+                model: {
+                  class: "RadioInputModel",
+                },
+                component: {
+                  class: "RadioInputComponent",
+                  config: {
+                    options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}],
+                  },
+                },
+              },
+              {
+                name: QuestionTreeOutcomeInfoKey,
+                component: {class: "SimpleInputComponent", config: {type: "hidden"}},
+                model: {class: "SimpleInputModel", config: {}},
+              }
+            ],
           }
         },
+      },
+      {
+        "name": "data-classification-item-outcome",
+        "component": {"class": "SimpleInputComponent", "config": {}},
+        "model": {"class": "SimpleInputModel", "config": {"validators": [{"class": "required"}]}},
+      },
+      {
+        "name": "data-classification-item-outcome-details",
+        "component": {"class": "SimpleInputComponent", "config": {"type": "hidden"}},
+        "model": {"class": "SimpleInputModel", "config": {}},
       }
-      ]
-    };
+    ]
+  };
 
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+  beforeEach(async () => {
+    await createTestbedModule({
+      declarations: {
+        "RadioInputComponent": RadioInputComponent,
+        "CheckboxInputComponent": CheckboxInputComponent,
+        "QuestionTreeComponent": QuestionTreeComponent,
+      }
+    });
+  });
+  it('should create component', () => {
+    let fixture = TestBed.createComponent(QuestionTreeComponent);
+    let component = fixture.componentInstance;
+    expect(component).toBeDefined();
+  });
 
-    // Ensure all expected html elements were created.
-    const compiled = fixture.nativeElement as HTMLElement;
+  it('should update the data model and component visibility as the answers are changed', async () => {
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const element = fixture.nativeElement as HTMLElement;
 
-    const qtElements = compiled.querySelectorAll('redbox-questiontreefield');
+    const qtElements = element.querySelectorAll('redbox-questiontreefield');
     expect(qtElements).toHaveSize(1);
+    const qtElement = qtElements[0];
 
-    const inputElementsInitial = compiled.querySelectorAll('input');
+    const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
+
+    // initial state
+    const inputElementsInitial = qtElement.querySelectorAll('input');
     expect(inputElementsInitial.length).toEqual(2);
 
     // Check the question_1 options
     const q1RadioElem1 = inputElementsInitial[0] as HTMLInputElement;
     const q1RadioElem2 = inputElementsInitial[1] as HTMLInputElement;
-
     expect(q1RadioElem1.value).toBe("yes");
     expect(q1RadioElem1.name).toBe("question_1");
     expect(q1RadioElem2.value).toBe("no");
     expect(q1RadioElem2.name).toBe("question_1");
 
-    // Select 'no' to show question_2
+    const modelInitial = questionTree.model?.getValue();
+    expect(modelInitial).toEqual({
+      question_1: null,
+      question_2: null,
+      question_3: null,
+      [QuestionTreeOutcomeInfoKey]: {outcome: null, meta: []},
+    });
+
+    // change state: Select 'no' to show question_2
     q1RadioElem2.checked = true;
     fixture.detectChanges();
     await fixture.whenStable();
 
+    const inputElementsStep1 = qtElement.querySelectorAll('input');
+    expect(inputElementsStep1.length).toEqual(4);
+
     // Check question_2 options
-    const q2CheckboxElem1 = inputElementsInitial[2] as HTMLInputElement;
-    const q2CheckboxElem2 = inputElementsInitial[3] as HTMLInputElement;
+    const q2CheckboxElem1 = inputElementsStep1[2] as HTMLInputElement;
+    const q2CheckboxElem2 = inputElementsStep1[3] as HTMLInputElement;
     expect(q2CheckboxElem1.value).toBe("yes");
     expect(q2CheckboxElem1.name).toBe("question_2");
     expect(q2CheckboxElem2.value).toBe("no");
     expect(q2CheckboxElem2.name).toBe("question_2");
 
-    const inputElementsWithOutcome = compiled.querySelectorAll('input');
-    expect(inputElementsWithOutcome).toHaveSize(4);
+    const modelStep1 = questionTree.model?.getValue();
+    expect(modelStep1).toEqual({
+      question_1: "no",
+      question_2: null,
+      question_3: null,
+      [QuestionTreeOutcomeInfoKey]: {outcome: null, meta: []},
+    });
 
-    // Select 'no' to get an outcome
+    // change state: Select question_2: 'no' to get an outcome
     q2CheckboxElem2.checked = true;
     fixture.detectChanges();
     await fixture.whenStable();
 
-    // TODO: check outcome is set as expected - outcome 'outcome1' and prop2 'prop2Value1'
-    // TODO: check that the data model is as expected - q1 and q2 have values
+    const inputElementsStep2 = qtElement.querySelectorAll('input');
+    expect(inputElementsStep2.length).toEqual(4);
 
-    // Change answer to question_1 to hide both question_2 and question_3
+    // check outcome is set as expected - outcome 'outcome1' and prop2 'prop2Value1'
+    // check that the data model is as expected - q1 and q2 have values
+    const modelStep2 = questionTree.model?.getValue();
+    expect(modelStep2).toEqual({
+      question_1: "no",
+      question_2: "no",
+      question_3: null,
+      [QuestionTreeOutcomeInfoKey]: {
+        outcome: "outcome1",
+        meta: [{outcome: "outcome1", prop2: "prop2Value1"}]
+      },
+    });
+
+    // Change state: answer to question_1 to hide both question_2 and question_3
     q1RadioElem2.checked = true;
     fixture.detectChanges();
     await fixture.whenStable();
 
-    const inputElementsB = compiled.querySelectorAll('input');
-    expect(inputElementsB).toHaveSize(2);
+    const inputElementsStep3 = element.querySelectorAll('input');
+    expect(inputElementsStep3).toHaveSize(2);
 
-    // TODO: check outcome is set as expected - no outcome
-    // TODO: check that the data model is as expected - only first question has a value
+    // check outcome is set as expected - no outcome
+    // check that the data model is as expected - only first question has a value
+    const modelStep3 = questionTree.model?.getValue();
+    expect(modelStep3).toEqual({
+      question_1: "no",
+      question_2: null,
+      question_3: null,
+      [QuestionTreeOutcomeInfoKey]: {outcome: null, meta: []},
+    });
   });
 
-  it('should build child components from questions when componentDefinitions are not provided', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'testing',
-      debugValue: true,
-      domElementType: 'form',
-      defaultComponentConfig: {
-        defaultComponentCssClasses: 'row',
+  it('should load as expected and update fields outside the question tree via expressions', async () => {
+    const formConfigWithModelValue: FormConfigFrame = JSON.parse(JSON.stringify(formConfig));
+    formConfigWithModelValue.componentDefinitions[0].model!.config!.value = {
+      question_1: "no",
+      question_2: "no",
+      question_3: null,
+      [QuestionTreeOutcomeInfoKey]: {
+        outcome: "outcome1",
+        meta: [{outcome: "outcome1", prop2: "prop2Value1"}]
       },
-      editCssClasses: "redbox-form form",
-      componentDefinitions: [{
-        name: "questiontree_fallback",
-        model: {class: "QuestionTreeModel"},
-        component: {
-          class: "QuestionTreeComponent",
-          config: {
-            availableOutcomes: [
-              {value: "outcome1", label: "@outcomes-value1"},
-            ],
-            questions: [
-              {
-                id: "is-data-sensitive",
-                answersMin: 1,
-                answersMax: 1,
-                answers: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}],
-                rules: {op: "true"},
-              },
-            ],
-            componentDefinitions: [],
-          }
-        },
-      }]
     };
+    formConfigWithModelValue.componentDefinitions[1].model!.config!.value = "@outcomes-value1";
+    formConfigWithModelValue.componentDefinitions[2].model!.config!.value = [{
+      outcome: "@outcomes-value1",
+      prop2: "@outcomes-prop2-value1"
+    }];
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
-    const compiled = fixture.nativeElement as HTMLElement;
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const element = fixture.nativeElement as HTMLElement;
 
-    const radioElements = compiled.querySelectorAll('input[type="radio"]');
-    expect(radioElements.length).toEqual(2);
-    expect((radioElements[0] as HTMLInputElement).name).toBe("is-data-sensitive");
-    expect((radioElements[1] as HTMLInputElement).name).toBe("is-data-sensitive");
+    const qtElements = element.querySelectorAll('redbox-questiontreefield');
+    expect(qtElements).toHaveSize(1);
+    const qtElement = qtElements[0];
+
+    const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
+
+    // initial state
+    const inputElementsInitial = qtElement.querySelectorAll('input');
+    expect(inputElementsInitial.length).toEqual(4);
+
+    const modelInitial = formComponent.form?.value;
+    expect(modelInitial).toEqual({
+      questiontree_1: {
+        question_1: "no",
+        question_2: "no",
+        question_3: null,
+        [QuestionTreeOutcomeInfoKey]: {
+          outcome: "outcome1",
+          meta: [{outcome: "outcome1", prop2: "prop2Value1"}]
+        },
+      },
+      "data-classification-item-outcome": "@outcomes-value1",
+      "data-classification-item-outcome-details": [{outcome: "@outcomes-value1", prop2: "@outcomes-prop2-value1"}],
+    });
+
+    // change state: select question_1 'yes'
+    const q1RadioElem1 = inputElementsInitial[0] as HTMLInputElement;
+    q1RadioElem1.checked = true;
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const inputElementsStep1 = qtElement.querySelectorAll('input');
+    expect(inputElementsStep1.length).toEqual(2);
+
+    const modelStep1 = formComponent.form?.value;
+    expect(modelStep1).toEqual({
+      questiontree_1: {
+        question_1: "yes",
+        question_2: null,
+        question_3: null,
+        [QuestionTreeOutcomeInfoKey]: {outcome: null, meta: []},
+      },
+      "data-classification-item-outcome": "",
+      "data-classification-item-outcome-details": [],
+    });
   });
 });

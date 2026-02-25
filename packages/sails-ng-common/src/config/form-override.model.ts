@@ -41,7 +41,7 @@ import {
   QuestionTreeFieldComponentDefinitionOutline,
   QuestionTreeMeta,
   QuestionTreeOutcome,
-  QuestionTreeOutcomeInfoComponentName,
+  QuestionTreeOutcomeInfoKey,
   QuestionTreeQuestion,
   QuestionTreeQuestionAnswer,
   QuestionTreeQuestionRuleIn,
@@ -707,7 +707,7 @@ export class FormOverride {
       // These components allow the outcome and details to be stored within the question tree data model.
       const outcomeComponents: AvailableFormComponentDefinitionFrames[] = [
         {
-          name: QuestionTreeOutcomeInfoComponentName,
+          name: QuestionTreeOutcomeInfoKey,
           component: {class: "SimpleInputComponent", config: {type: "hidden", visible: false}},
           layout: {class: "DefaultLayout", config: {visible: false}},
         },

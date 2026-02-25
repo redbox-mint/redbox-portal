@@ -128,16 +128,7 @@ describe("Template Visitor", async () => {
             const visitor = new TemplateFormConfigVisitor(logger);
             const actual = visitor.start({ form: constructed });
 
-            expect(actual).to.containSubset(expected);
-            expect(actual).to.have.length(expected.length);
-
-          expected.forEach((expectedItem, index) => {
-            const actualItem = actual[index];
-            expect(actualItem).to.not.eql(undefined, `index ${index}`);
-            expect(actualItem.key).to.eql(expectedItem.key);
-            expect(actualItem.kind).to.eql(expectedItem.kind);
-            expect(actualItem.value).to.eql(expectedItem.value);
-          });
+            expect(actual).to.eql(expected);
         });
     });
 });
