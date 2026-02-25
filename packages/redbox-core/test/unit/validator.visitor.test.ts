@@ -1,8 +1,9 @@
 import { cloneDeep as _cloneDeep } from "lodash";
 import {
-    FormConfigFrame,
-    formValidatorsSharedDefinitions,
-    FormValidatorSummaryErrors
+  buildLineagePaths,
+  FormConfigFrame,
+  formValidatorsSharedDefinitions,
+  FormValidatorSummaryErrors
 } from "@researchdatabox/sails-ng-common";
 import {ConstructFormConfigVisitor, reusableFormDefinitions, ValidatorFormConfigVisitor} from "../../src";
 import { logger } from "./helpers";
@@ -92,6 +93,8 @@ describe("Validator Visitor", async () => {
                     dataModel: ["text_7"],
                     angularComponents: ["text_7"],
                     angularComponentsJsonPointer: "/text_7",
+                    layout: ["text_7-layout"],
+                    layoutJsonPointer: "/text_7-layout",
                 },
             }
         ];
@@ -185,6 +188,8 @@ describe("Validator Visitor", async () => {
                     dataModel: ["text_7"],
                     angularComponents: ["text_7"],
                     angularComponentsJsonPointer: "/text_7",
+                    layout: ["text_7-layout"],
+                    layoutJsonPointer: "/text_7-layout",
                 },
             }
         ];
@@ -261,6 +266,8 @@ describe("Validator Visitor", async () => {
                     dataModel: ["text_7"],
                     angularComponents: ["text_7"],
                     angularComponentsJsonPointer: "/text_7",
+                    layout: ["text_7-layout"],
+                    layoutJsonPointer: "/text_7-layout",
                 },
             }
         ];
@@ -306,6 +313,8 @@ describe("Validator Visitor", async () => {
                     "dataModel": ["text_1_event"],
                     "angularComponents": ["main_tab", "tab_1", "text_1_event"],
                     "angularComponentsJsonPointer": "/main_tab/tab_1/text_1_event",
+                    layout: ["main_tab-layout", "tab_1-layout", "text_1_event-layout"],
+                    layoutJsonPointer: "/main_tab-layout/tab_1-layout/text_1_event-layout",
                 },
             },
             {
@@ -334,6 +343,8 @@ describe("Validator Visitor", async () => {
                     dataModel: ["text_2_event"],
                     angularComponents: ["main_tab", "tab_1", "text_2_event"],
                     angularComponentsJsonPointer: "/main_tab/tab_1/text_2_event",
+                    layout: ["main_tab-layout", "tab_1-layout", "text_2_event-layout"],
+                    layoutJsonPointer: "/main_tab-layout/tab_1-layout/text_2_event-layout",
                 },
             },
             {
@@ -362,6 +373,8 @@ describe("Validator Visitor", async () => {
                     dataModel: ["text_3_event"],
                     angularComponents: ["main_tab", "tab_1", "text_3_event"],
                     angularComponentsJsonPointer: "/main_tab/tab_1/text_3_event",
+                    layout: ["main_tab-layout", "tab_1-layout", "text_3_event-layout"],
+                    layoutJsonPointer: "/main_tab-layout/tab_1-layout/text_3_event-layout",
                 },
             },
             {
@@ -397,7 +410,9 @@ describe("Validator Visitor", async () => {
                     ],
                     dataModel: ["group_1_component", "group_2_component", "text_5"],
                     angularComponents: ["main_tab", "tab_2", "group_1_component", "group_2_component", "text_5"],
-                    angularComponentsJsonPointer: "/main_tab/tab_2/group_1_component/group_2_component/text_5"
+                    angularComponentsJsonPointer: "/main_tab/tab_2/group_1_component/group_2_component/text_5",
+                    layout: ["main_tab-layout", "tab_2-layout", "group_1_component-layout", "group_2_component-layout", "text_5-layout"],
+                    layoutJsonPointer: "/main_tab-layout/tab_2-layout/group_1_component-layout/group_2_component-layout/text_5-layout",
                 },
             },
             {
@@ -415,7 +430,7 @@ describe("Validator Visitor", async () => {
                 ],
                 "id": "default-1.0-draft",
                 "message": null,
-                lineagePaths: { formConfig: [], dataModel: [], angularComponents: [], angularComponentsJsonPointer: "" },
+                lineagePaths: buildLineagePaths(),
             },
         ];
 

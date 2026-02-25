@@ -9,6 +9,7 @@ import {
   QuestionTreeOutcomeInfo,
   QuestionTreeOutcomeInfoKey
 } from "@researchdatabox/sails-ng-common";
+import {SimpleInputComponent} from "./simple-input.component";
 
 describe('QuestionTreeComponent', () => {
 
@@ -27,7 +28,7 @@ describe('QuestionTreeComponent', () => {
     componentDefinitions: [
       {
         name: "questiontree_1",
-        model: {class: "QuestionTreeModel"},
+        model: {class: "QuestionTreeModel", config: {}},
         component: {
           class: "QuestionTreeComponent",
           config: {
@@ -120,7 +121,7 @@ describe('QuestionTreeComponent', () => {
             // Set the component value to the question tree outcome label
             name: `data-classification-item-outcome-expr`,
             config: {
-              template: `formData.questiontree_1.${QuestionTreeOutcomeInfoKey}.outcome.label`,
+              template: `formData.questiontree_1.${QuestionTreeOutcomeInfoKey}.outcome.($.label ? $.label : $.value)`,
               conditionKind: 'jsonpointer',
               condition: `/questiontree_1::field.value.changed`,
               target: `model.value`
@@ -135,9 +136,56 @@ describe('QuestionTreeComponent', () => {
         expressions: [
           {
             // Set the component value to the question tree outcome meta, using only the labels for each property.
+
+            /*
+            template:
+$map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $i, $a) {
+    $v.$merge($keys().($entry := $lookup($v, $);{
+    $: $entry.label ? $entry.label : $entry.value
+}))
+})
+
+            converts data:
+{
+    "formData": {
+      "questiontree_1": {
+        "question_1": "no",
+        "question_2": "no",
+        "question_3": null,
+        "questiontree-outcome-info": {
+          "outcome": {"value": "outcome2", "label": "@outcomes-value2"}, "meta": [
+            {
+              "outcome": {"value": "outcome2", "label": "@outcomes-value2"},
+              "prop2": {"value": "prop2Value2", "label": "@outcomes-prop2-value2"}
+            },
+            {
+              "outcome": {"value": "outcome1", "label": "@outcomes-value1"},
+              "prop2": {"value": "prop2Value1", "label": null}
+            }
+          ]
+        }
+      }
+    }
+  }
+            to output:
+[
+  {
+    "outcome": "@outcomes-value2",
+    "prop2": "@outcomes-prop2-value2"
+  },
+  {
+    "outcome": "@outcomes-value1",
+    "prop2": "prop2Value1"
+  }
+]
+             */
             name: `data-classification-item-outcome-details-expr`,
             config: {
-              template: `formData.questiontree_1.${QuestionTreeOutcomeInfoKey}.meta[].`,
+              template: `$map(formData.questiontree_1.\`${QuestionTreeOutcomeInfoKey}\`.meta[], function ($v, $i, $a) {
+                    $v.$merge($keys().($entry := $lookup($v, $);{
+                    $: $entry.label ? $entry.label : $entry.value'
+                }))
+                })`,
               conditionKind: 'jsonpointer',
               condition: `/questiontree_1::field.value.changed`,
               target: `model.value`
@@ -153,6 +201,7 @@ describe('QuestionTreeComponent', () => {
       declarations: {
         "RadioInputComponent": RadioInputComponent,
         "CheckboxInputComponent": CheckboxInputComponent,
+        "SimpleInputComponent": SimpleInputComponent,
         "QuestionTreeComponent": QuestionTreeComponent,
       }
     });
@@ -190,11 +239,12 @@ describe('QuestionTreeComponent', () => {
       question_1: null,
       question_2: null,
       question_3: null,
-      [QuestionTreeOutcomeInfoKey]: {outcome: null, meta: []},
+      [QuestionTreeOutcomeInfoKey]: null,
     });
 
     // change state: Select 'no' to show question_2
     q1RadioElem2.checked = true;
+    q1RadioElem2.dispatchEvent(new Event('changed'));
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -214,11 +264,12 @@ describe('QuestionTreeComponent', () => {
       question_1: "no",
       question_2: null,
       question_3: null,
-      [QuestionTreeOutcomeInfoKey]: {outcome: null, meta: []},
+      [QuestionTreeOutcomeInfoKey]: null,
     });
 
     // change state: Select question_2: 'no' to get an outcome
     q2CheckboxElem2.checked = true;
+    q2CheckboxElem2.dispatchEvent(new Event('changed'));
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -240,11 +291,12 @@ describe('QuestionTreeComponent', () => {
 
     // Change state: answer to question_1 to hide both question_2 and question_3
     q1RadioElem2.checked = true;
+    q1RadioElem2.dispatchEvent(new Event('changed'));
     fixture.detectChanges();
     await fixture.whenStable();
 
     const inputElementsStep3 = element.querySelectorAll('input');
-    expect(inputElementsStep3).toHaveSize(2);
+    expect(inputElementsStep3.length).toHaveSize(2);
 
     // check outcome is set as expected - no outcome
     // check that the data model is as expected - only first question has a value
@@ -253,7 +305,7 @@ describe('QuestionTreeComponent', () => {
       question_1: "no",
       question_2: null,
       question_3: null,
-      [QuestionTreeOutcomeInfoKey]: {outcome: null, meta: []},
+      [QuestionTreeOutcomeInfoKey]: null,
     });
   });
 
@@ -281,8 +333,6 @@ describe('QuestionTreeComponent', () => {
     expect(qtElements).toHaveSize(1);
     const qtElement = qtElements[0];
 
-    const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
-
     // initial state
     const inputElementsInitial = qtElement.querySelectorAll('input');
     expect(inputElementsInitial.length).toEqual(4);
@@ -305,6 +355,7 @@ describe('QuestionTreeComponent', () => {
     // change state: select question_1 'yes'
     const q1RadioElem1 = inputElementsInitial[0] as HTMLInputElement;
     q1RadioElem1.checked = true;
+    q1RadioElem1.dispatchEvent(new Event('changed'));
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -317,7 +368,7 @@ describe('QuestionTreeComponent', () => {
         question_1: "yes",
         question_2: null,
         question_3: null,
-        [QuestionTreeOutcomeInfoKey]: {outcome: null, meta: []},
+        [QuestionTreeOutcomeInfoKey]: null,
       },
       "data-classification-item-outcome": "",
       "data-classification-item-outcome-details": [],
@@ -331,7 +382,8 @@ describe('QuestionTreeComponent', () => {
     expected: QuestionTreeOutcomeInfo | null
   }[] = [
     {
-      config: {availableOutcomes: [], questions: [], componentDefinitions: []}, data: {}, expected: null,
+      config: {availableOutcomes: [], questions: [], componentDefinitions: []},
+      data: {}, expected: null,
     },
     {
       config: {
@@ -339,7 +391,7 @@ describe('QuestionTreeComponent', () => {
         questions: qtConfig.questions,
         componentDefinitions: qtConfig.componentDefinitions
       },
-      data: {}, expected: null,
+      data: {questiontree_1: {question_1: ['no']}}, expected: null,
     },
     {
       config: {
@@ -378,7 +430,8 @@ describe('QuestionTreeComponent', () => {
           },
         ],
       },
-      data: {question_1: "no", question_2: "no"}, expected: {
+      data: {question_1: "no", question_2: "no"},
+      expected: {
         outcome: {value:"outcome2", label: "@outcomes-value2"}, meta: [
           {outcome: {value:"outcome2", label: "@outcomes-value2"}, prop2: {value: "prop2Value2", label: "@outcomes-prop2-value2"}},
           {outcome: {value:"outcome1", label: "@outcomes-value1"}, prop2: {value: "prop2Value1", label: null}},
@@ -386,12 +439,13 @@ describe('QuestionTreeComponent', () => {
       },
     }
   ];
-  outcomeInfoCases.forEach(({config, data, expected}) => {
+  for (const {config, data, expected} of outcomeInfoCases) {
     it(`should calculate the expected outcome info ${JSON.stringify(expected)}`, () => {
       let fixture = TestBed.createComponent(QuestionTreeComponent);
       let component = fixture.componentInstance;
       const actual = component.calculateOutcomeInfo(config, data);
       expect(actual).toEqual(expected);
     });
-  });
+  }
 });
+

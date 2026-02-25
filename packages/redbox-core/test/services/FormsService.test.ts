@@ -319,6 +319,7 @@ describe('FormsService', function () {
         {kind: "handlebars"}, {kind: "jsonata"},
         {kind: "jsonata"}, {kind: "jsonata"},
         {kind: "jsonata"}, {kind: "jsonata"},
+        {kind: "jsonata"}, {kind: "jsonata"},
         {kind: "jsonata"},
       ];
       expect(templates).to.containSubset(expected);
