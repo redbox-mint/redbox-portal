@@ -223,7 +223,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
   /**
  *
- * Returns true if this isn't a layout.
+ * Returns true for both component and layout, as both can have UI attributes that need to be listened to.
  *
  * TODO: Improve to have more explicit control over when to attach the producer.
  *
@@ -236,7 +236,6 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     instance: FormFieldBaseComponent<ValueType>
   ): boolean {
     return !!entry && (entry.component === instance || entry.layout === instance);
-    // return !!entry && entry.component === instance;
   }
   /**
    *
@@ -253,7 +252,6 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     instance: FormFieldBaseComponent<ValueType>
   ): boolean {
     return !!entry && (entry.component === instance || entry.layout === instance);
-    // return !!entry && entry.component === instance;
   }
 
 }

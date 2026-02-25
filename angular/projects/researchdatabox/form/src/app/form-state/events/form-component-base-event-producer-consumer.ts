@@ -80,12 +80,11 @@ export abstract class FormComponentEventBaseProducerConsumer {
 	 */
 	protected resolveFieldId(options: FormComponentEventBindingOptions): string | undefined {
 		const jsonPointerProp = options.isLayout ? 'layoutJsonPointer' : 'angularComponentsJsonPointer';
-		const configName = options.isLayout ? `${options.definition?.compConfigJson?.name}-layout` : options.definition?.compConfigJson?.name;
+		const resolvedName = options.definition?.compConfigJson?.name ?? options.definition?.name ?? options.component?.formFieldConfigName();
+		const configName = options.isLayout && resolvedName ? `${resolvedName}-layout` : resolvedName;
 		return (
 			options.definition?.lineagePaths?.[jsonPointerProp] ||
-			configName ||
-			options.definition?.name ||
-			options.component?.formFieldConfigName()
+			configName
 		);
 	}
 	/**
