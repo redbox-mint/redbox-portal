@@ -9,6 +9,7 @@ import {
   QuestionTreeOutcomeInfo,
   QuestionTreeOutcomeInfoKey
 } from "@researchdatabox/sails-ng-common";
+import {SimpleInputComponent} from "./simple-input.component";
 
 describe('QuestionTreeComponent', () => {
 
@@ -27,7 +28,7 @@ describe('QuestionTreeComponent', () => {
     componentDefinitions: [
       {
         name: "questiontree_1",
-        model: {class: "QuestionTreeModel"},
+        model: {class: "QuestionTreeModel", config: {}},
         component: {
           class: "QuestionTreeComponent",
           config: {
@@ -200,6 +201,7 @@ $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $
       declarations: {
         "RadioInputComponent": RadioInputComponent,
         "CheckboxInputComponent": CheckboxInputComponent,
+        "SimpleInputComponent": SimpleInputComponent,
         "QuestionTreeComponent": QuestionTreeComponent,
       }
     });
@@ -237,11 +239,12 @@ $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $
       question_1: null,
       question_2: null,
       question_3: null,
-      [QuestionTreeOutcomeInfoKey]: {outcome: null, meta: []},
+      [QuestionTreeOutcomeInfoKey]: null,
     });
 
     // change state: Select 'no' to show question_2
     q1RadioElem2.checked = true;
+    q1RadioElem2.dispatchEvent(new Event('changed'));
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -261,11 +264,12 @@ $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $
       question_1: "no",
       question_2: null,
       question_3: null,
-      [QuestionTreeOutcomeInfoKey]: {outcome: null, meta: []},
+      [QuestionTreeOutcomeInfoKey]: null,
     });
 
     // change state: Select question_2: 'no' to get an outcome
     q2CheckboxElem2.checked = true;
+    q2CheckboxElem2.dispatchEvent(new Event('changed'));
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -287,11 +291,12 @@ $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $
 
     // Change state: answer to question_1 to hide both question_2 and question_3
     q1RadioElem2.checked = true;
+    q1RadioElem2.dispatchEvent(new Event('changed'));
     fixture.detectChanges();
     await fixture.whenStable();
 
     const inputElementsStep3 = element.querySelectorAll('input');
-    expect(inputElementsStep3).toHaveSize(2);
+    expect(inputElementsStep3.length).toHaveSize(2);
 
     // check outcome is set as expected - no outcome
     // check that the data model is as expected - only first question has a value
@@ -300,7 +305,7 @@ $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $
       question_1: "no",
       question_2: null,
       question_3: null,
-      [QuestionTreeOutcomeInfoKey]: {outcome: null, meta: []},
+      [QuestionTreeOutcomeInfoKey]: null,
     });
   });
 
@@ -328,8 +333,6 @@ $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $
     expect(qtElements).toHaveSize(1);
     const qtElement = qtElements[0];
 
-    const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
-
     // initial state
     const inputElementsInitial = qtElement.querySelectorAll('input');
     expect(inputElementsInitial.length).toEqual(4);
@@ -352,6 +355,7 @@ $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $
     // change state: select question_1 'yes'
     const q1RadioElem1 = inputElementsInitial[0] as HTMLInputElement;
     q1RadioElem1.checked = true;
+    q1RadioElem1.dispatchEvent(new Event('changed'));
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -364,7 +368,7 @@ $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $
         question_1: "yes",
         question_2: null,
         question_3: null,
-        [QuestionTreeOutcomeInfoKey]: {outcome: null, meta: []},
+        [QuestionTreeOutcomeInfoKey]: null,
       },
       "data-classification-item-outcome": "",
       "data-classification-item-outcome-details": [],
@@ -378,7 +382,8 @@ $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $
     expected: QuestionTreeOutcomeInfo | null
   }[] = [
     {
-      config: {availableOutcomes: [], questions: [], componentDefinitions: []}, data: {}, expected: null,
+      config: {availableOutcomes: [], questions: [], componentDefinitions: []},
+      data: {}, expected: null,
     },
     {
       config: {
@@ -386,7 +391,7 @@ $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $
         questions: qtConfig.questions,
         componentDefinitions: qtConfig.componentDefinitions
       },
-      data: {}, expected: null,
+      data: {questiontree_1: {question_1: ['no']}}, expected: null,
     },
     {
       config: {
@@ -425,7 +430,8 @@ $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $
           },
         ],
       },
-      data: {question_1: "no", question_2: "no"}, expected: {
+      data: {question_1: "no", question_2: "no"},
+      expected: {
         outcome: {value:"outcome2", label: "@outcomes-value2"}, meta: [
           {outcome: {value:"outcome2", label: "@outcomes-value2"}, prop2: {value: "prop2Value2", label: "@outcomes-prop2-value2"}},
           {outcome: {value:"outcome1", label: "@outcomes-value1"}, prop2: {value: "prop2Value1", label: null}},
@@ -433,13 +439,13 @@ $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $
       },
     }
   ];
-  outcomeInfoCases.forEach(({config, data, expected}) => {
+  for (const {config, data, expected} of outcomeInfoCases) {
     it(`should calculate the expected outcome info ${JSON.stringify(expected)}`, () => {
       let fixture = TestBed.createComponent(QuestionTreeComponent);
       let component = fixture.componentInstance;
       const actual = component.calculateOutcomeInfo(config, data);
       expect(actual).toEqual(expected);
     });
-  });
+  }
 });
 
