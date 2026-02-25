@@ -108,7 +108,9 @@ describe('ValidationSummaryFieldComponent', () => {
           formConfig: ['componentDefinitions', 0],
           dataModel: ['text_1_event'],
           angularComponents: ['text_1_event'],
-          angularComponentsJsonPointer: '/text_1_event'
+          angularComponentsJsonPointer: '/text_1_event',
+          layout: ['text_1_event-layout'],
+          layoutJsonPointer: '/text_1_event-layout'
         }
       }
     ]);

@@ -473,6 +473,17 @@ const formConfig: FormConfigFrame = {
                           enableTimePicker: true,
                         },
                       },
+                      expressions: [
+                        {
+                          name: 'listenToDate1UIChange',
+                          config: {
+                            template: `event.meta.visible = true`,
+                            conditionKind: 'jsonpointer',
+                            condition: `/main_tab-layout/tab_1-layout/date_1-layout::field.ui-attribute.changed`,
+                            target: `layout.visible`,
+                          },
+                        },
+                      ],
                     },
                     {
                       name: 'text_1_event',

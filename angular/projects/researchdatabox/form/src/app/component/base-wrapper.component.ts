@@ -9,11 +9,13 @@ import {
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 
 import { set as _set, get as _get } from 'lodash-es';
-import {FormFieldBaseComponent, FormFieldCompMapEntry} from "@researchdatabox/portal-ng-common";
-import {KeyValueStringNested, FormFieldComponentStatus} from "@researchdatabox/sails-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
+import { KeyValueStringNested, FormFieldComponentStatus } from "@researchdatabox/sails-ng-common";
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { FormComponentValueChangeEventProducer } from '../form-state/events/form-component-change-event-producer';
 import { FormComponentValueChangeEventConsumer } from '../form-state/events/form-component-change-event-consumer';
+import { FormComponentUIAttributeChangeEventProducer } from '../form-state/events/form-component-ui-attribute-change-event-producer';
+import { FormComponentUIAttributeChangeEventConsumer } from '../form-state/events/form-component-ui-attribute-change-event-consumer';
 
 
 
@@ -32,22 +34,24 @@ import { FormComponentValueChangeEventConsumer } from '../form-state/events/form
  *
  */
 @Component({
-    selector: 'redbox-form-base-wrapper',
-    template: `
+  selector: 'redbox-form-base-wrapper',
+  template: `
     <ng-template redboxFormBaseWrapper></ng-template>
   `,
-    standalone: false
+  standalone: false
 })
 export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnDestroy {
   protected override logName = "FormBaseWrapperComponent";
   @Input() componentClass?: typeof FormFieldBaseComponent<ValueType>;
   @Input() defaultComponentConfig?: KeyValueStringNested = null;
 
-  @ViewChild(FormBaseWrapperDirective, {static: true}) formFieldDirective!: FormBaseWrapperDirective;
+  @ViewChild(FormBaseWrapperDirective, { static: true }) formFieldDirective!: FormBaseWrapperDirective;
 
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly valueChangeEventProducer = new FormComponentValueChangeEventProducer(this.eventBus);
   private readonly valueChangeEventConsumer = new FormComponentValueChangeEventConsumer(this.eventBus);
+  private readonly uiAttributeChangeEventProducer = new FormComponentUIAttributeChangeEventProducer(this.eventBus);
+  private readonly uiAttributeChangeEventConsumer = new FormComponentUIAttributeChangeEventConsumer(this.eventBus);
 
   public get componentRef() {
     return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
@@ -107,8 +111,10 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     }
 
     // Store a reference to the component instance.
+    let isLayout = false;
     if (compClass == this.formFieldCompMapEntry?.layoutClass) {
       this.formFieldCompMapEntry.layoutRef = compRef;
+      isLayout = true;
     } else {
       this.formFieldCompMapEntry.componentRef = compRef;
     }
@@ -119,6 +125,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     // Bind the change event producer if applicable.
     if (this.shouldAttachValueChangeProducer(this.formFieldCompMapEntry, compRef.instance)) {
       this.valueChangeEventProducer.bind({
+        isLayout: isLayout,
         component: compRef.instance,
         definition: this.formFieldCompMapEntry
       });
@@ -127,6 +134,25 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     if (this.shouldAttachValueChangeConsumer(this.formFieldCompMapEntry, compRef.instance)) {
       this.valueChangeEventConsumer.formComponent = this.getFormComponentFromAppRef()?.instance;
       this.valueChangeEventConsumer.bind({
+        isLayout: isLayout,
+        component: compRef.instance,
+        definition: this.formFieldCompMapEntry
+      });
+    }
+
+    // Bind the UI attribute change event producer alongside the value producer.
+    if (this.shouldAttachUIAttributeChangeProducer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.uiAttributeChangeEventProducer.bind({
+        isLayout: isLayout,
+        component: compRef.instance,
+        definition: this.formFieldCompMapEntry
+      });
+    }
+
+    if (this.shouldAttachUIAttributeChangeConsumer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.uiAttributeChangeEventConsumer.formComponent = this.getFormComponentFromAppRef()?.instance;
+      this.uiAttributeChangeEventConsumer.bind({
+        isLayout: isLayout,
         component: compRef.instance,
         definition: this.formFieldCompMapEntry
       });
@@ -149,6 +175,8 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   ngOnDestroy() {
     this.valueChangeEventProducer.destroy();
     this.valueChangeEventConsumer.destroy();
+    this.uiAttributeChangeEventProducer.destroy();
+    this.uiAttributeChangeEventConsumer.destroy();
     const compRef = this.componentRef;
     // Clean up the dynamically created component when the wrapper is destroyed
     if (compRef) {
@@ -191,6 +219,39 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     instance: FormFieldBaseComponent<ValueType>
   ): boolean {
     return !!entry && entry.component === instance;
+  }
+
+  /**
+ *
+ * Returns true for both component and layout, as both can have UI attributes that need to be listened to.
+ *
+ * TODO: Improve to have more explicit control over when to attach the producer.
+ *
+ * @param entry
+ * @param instance
+ * @returns
+ */
+  private shouldAttachUIAttributeChangeProducer(
+    entry: FormFieldCompMapEntry | undefined,
+    instance: FormFieldBaseComponent<ValueType>
+  ): boolean {
+    return !!entry && (entry.component === instance || entry.layout === instance);
+  }
+  /**
+   *
+   * Returns true if is a component.
+   *
+   * TODO: Improve to have more explicit control over when to attach the consumer.
+   *
+   * @param entry
+   * @param instance
+   * @returns
+   */
+  private shouldAttachUIAttributeChangeConsumer(
+    entry: FormFieldCompMapEntry | undefined,
+    instance: FormFieldBaseComponent<ValueType>
+  ): boolean {
+    return !!entry && (entry.component === instance || entry.layout === instance);
   }
 
 }

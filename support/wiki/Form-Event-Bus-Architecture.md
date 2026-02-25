@@ -69,7 +69,7 @@ interface FormComponentEventBase {
 | Event | Interface | Description |
 |-------|-----------|-------------|
 | `field.value.changed` | `FieldValueChangedEvent` | Field value changed, includes `value` and `previousValue` |
-| `field.meta.changed` | `FieldMetaChangedEvent` | Field metadata changed (visibility, enabled, etc.) |
+| `field.ui-attribute.changed` | `FieldUIAttributeChangedEvent` | Field UI attribute changed (visibility, enabled, etc.) |
 | `field.dependency.trigger` | `FieldDependencyTriggerEvent` | Triggers dependent field updates |
 | `field.request.focus` | `FieldFocusRequestEvent` | Requests focus on a field |
 

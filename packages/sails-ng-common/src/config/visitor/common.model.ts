@@ -254,24 +254,26 @@ export class FormPathHelper {
   /**
      * Get the current form paths.
      */
-    get formPath(): LineagePaths {
-        // Return a copy so the current form paths cannot be changed.
-        return {
-            angularComponents: [...this._formPath.angularComponents],
-            angularComponentsJsonPointer: this._formPath.angularComponentsJsonPointer?.toString(),
-            dataModel: [...this._formPath.dataModel],
-            formConfig: [...this._formPath.formConfig],
-        };
-    }
+  get formPath(): LineagePaths {
+    // Return a copy so the current form paths cannot be changed.
+    return {
+      angularComponents: [...this._formPath.angularComponents],
+      angularComponentsJsonPointer: this._formPath.angularComponentsJsonPointer?.toString(),
+      dataModel: [...this._formPath.dataModel],
+      formConfig: [...this._formPath.formConfig],
+      layout: [...this._formPath.layout],
+      layoutJsonPointer: this._formPath.layoutJsonPointer?.toString(),
+    };
+  }
 
-    /**
-     * Get the current model name.
-     */
-    get modelName(): string | null {
-        if (this._formPath.dataModel.length > 0) {
-            return this._formPath.dataModel[this._formPath.dataModel.length - 1]?.toString();
-        }
-        return null;
+  /**
+   * Get the current model name.
+   */
+  get modelName(): string | null {
+    if (this._formPath.dataModel.length > 0) {
+      return this._formPath.dataModel[this._formPath.dataModel.length - 1]?.toString();
+    }
+    return null;
   }
 
   public reset() {
@@ -323,6 +325,7 @@ export class FormPathHelper {
       formConfig: ['componentDefinitions', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -334,6 +337,7 @@ export class FormPathHelper {
       formConfig: ['config', 'componentDefinitions', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -345,6 +349,7 @@ export class FormPathHelper {
       formConfig: ['config', 'tabs', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -356,6 +361,7 @@ export class FormPathHelper {
       formConfig: ['config', 'componentDefinitions', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -367,6 +373,7 @@ export class FormPathHelper {
       formConfig: ['config', 'panels', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -378,6 +385,7 @@ export class FormPathHelper {
       formConfig: ['config', 'componentDefinitions', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -386,6 +394,7 @@ export class FormPathHelper {
       formConfig: ['config', 'elementTemplate'],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -397,6 +406,7 @@ export class FormPathHelper {
       formConfig: ['config', 'componentDefinitions', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -408,6 +418,7 @@ export class FormPathHelper {
       formConfig: ['config', 'componentDefinitions', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -437,5 +448,14 @@ export class FormPathHelper {
       angularComponents.push(itemName);
     }
     return angularComponents;
+  }
+
+  private getFormPathLayout(item: FormComponentDefinitionOutline): LineagePath {
+    const itemName = item?.name ?? '';
+    const layout: LineagePath = [];
+    if (itemName) {
+      layout.push(`${itemName}-layout`);
+    }
+    return layout;
   }
 }

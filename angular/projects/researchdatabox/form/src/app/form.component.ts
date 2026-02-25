@@ -295,6 +295,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         angularComponents: [],
         dataModel: [],
         formConfig: ['componentDefinitions'],
+        layout: [],
       });
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig, parentLineagePaths);
     }

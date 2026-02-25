@@ -157,6 +157,7 @@ export class FormService extends HttpClientService {
       angularComponents: [],
       dataModel: [],
       formConfig: ['componentDefinitions'],
+      layout: [],
     });
 
     // Resolve the field and component pairs
@@ -314,6 +315,7 @@ export class FormService extends HttpClientService {
             angularComponents: [componentName],
             dataModel: modelClass ? [componentName] : [],
             formConfig: [index],
+            layout: [`${componentName}-layout`],
           }),
         });
         fieldArr.push(fieldDef as FormFieldCompMapEntry);
@@ -693,16 +695,27 @@ export class FormService extends HttpClientService {
    * @param item
    * @returns
    */
-  public transformIntoJSONataProperty(item: FormFieldCompMapEntry): JSONataClientQuerySourceProperty {
+  public transformIntoJSONataProperty(item: FormFieldCompMapEntry, isLayout?: boolean): JSONataClientQuerySourceProperty {
     if (!item) {
       throw new Error(`${this.logName}: Cannot get JSONata property entry for null or undefined item.`);
     }
     const jsonPointer = item.lineagePaths?.angularComponentsJsonPointer;
-    const property: JSONataClientQuerySourceProperty = {
+    let property: JSONataClientQuerySourceProperty = {
       name: item.compConfigJson?.name,
       lineagePaths: item.lineagePaths,
-      jsonPointer: jsonPointer,
+      jsonPointer: jsonPointer
     };
+    if (isLayout) {
+      // add layout 
+      const layoutJsonPointer = item.lineagePaths?.layoutJsonPointer;
+      property = {
+        name: item.compConfigJson.layout?.name ? item.compConfigJson.layout?.name : `${item.compConfigJson.name}-layout`,
+        lineagePaths: item.lineagePaths,
+        jsonPointer: layoutJsonPointer
+      };
+      // ignore children for layout 
+      return property;
+    }
     const children = item?.component?.formFieldCompMapEntries || [];
     if (!_isEmpty(children)) {
       // recursively get the query source for the child items
@@ -722,28 +735,32 @@ export class FormService extends HttpClientService {
    * @param formFieldEntry The form field entry associated with the JSONata entry.
    * @param jsonataEntry The JSONata entry to be transformed into a JSON Pointer friendly object.
    */
-  public transformJSONataEntryToJSONPointerSource(jsonDoc: Record<string, unknown>, formFieldEntry: FormFieldCompMapEntry, jsonataEntry: JSONataQuerySourceProperty): object {
+  public transformJSONataEntryToJSONPointerSource(jsonDoc: Record<string, unknown>, formFieldEntry: FormFieldCompMapEntry, jsonataEntry: JSONataQuerySourceProperty, isLayout?: boolean): object {
     const object: JSONataResultDoc = {
       metadata: {
         formFieldEntry: formFieldEntry,
         component: formFieldEntry.component,
+        layout: formFieldEntry.layout,
         model: formFieldEntry.model,
         lineagePaths: formFieldEntry.lineagePaths,
-        jsonPointer: jsonataEntry.jsonPointer
+        jsonPointer: isLayout ? jsonataEntry.lineagePaths?.layoutJsonPointer : jsonataEntry.jsonPointer
       }
     };
-
     // Recursively build the object structure if there are children
     if (jsonataEntry.children && jsonataEntry.children.length > 0) {
       for (let i = 0; i < jsonataEntry.children.length; i++) {
         const childEntry = jsonataEntry.children[i];
         const childFormFieldEntry = formFieldEntry?.component?.formFieldCompMapEntries?.find(c => c.compConfigJson?.name === childEntry.name);
         if (childFormFieldEntry) {
-          this.transformJSONataEntryToJSONPointerSource(object, childFormFieldEntry, childEntry);
+          this.transformJSONataEntryToJSONPointerSource(object, childFormFieldEntry, childEntry, isLayout);
         }
       }
     }
-    _set(jsonDoc, this.getPropertyNameFromJSONPointerAsNumber(jsonataEntry?.jsonPointer, jsonataEntry.name), object);
+    if (isLayout) {
+      _set(jsonDoc, this.getPropertyNameFromJSONPointerAsNumber(jsonataEntry.lineagePaths?.layoutJsonPointer, `${jsonataEntry.name}-layout`), object);
+    } else {
+      _set(jsonDoc, this.getPropertyNameFromJSONPointerAsNumber(jsonataEntry?.jsonPointer, jsonataEntry.name), object);
+    }
     return jsonDoc;
   }
 
@@ -776,7 +793,10 @@ export class FormService extends HttpClientService {
 
       const propertyEntry = this.transformIntoJSONataProperty(item);
       queryDoc.push(propertyEntry);
+      const layoutEntry = this.transformIntoJSONataProperty(item, true);
+      queryDoc.push(layoutEntry);
       this.transformJSONataEntryToJSONPointerSource(jsonPointerSource, item, propertyEntry);
+      this.transformJSONataEntryToJSONPointerSource(jsonPointerSource, item, propertyEntry, true);
     }
 
     const querySource: JSONataQuerySource = {
@@ -821,7 +841,7 @@ export class FormService extends HttpClientService {
 
   public setUpFieldMutationObserverToComponentEvents(formFieldCompMapEntry: FormFieldCompMapEntry | undefined) {
     const observer = new MutationObserver(mutations => {
-      // TODO: createFieldMetaChangedEvent
+      // TODO: createFieldUIAttributeChangedEvent
       mutations.forEach(mutation => console.log(mutation));
     });
     const observerConfig = {

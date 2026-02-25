@@ -5,7 +5,7 @@ import {
   ViewChild,
   ViewContainerRef
 } from '@angular/core';
-import { AbstractControl, FormGroup} from "@angular/forms";
+import { AbstractControl, FormGroup } from "@angular/forms";
 import {
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
@@ -133,6 +133,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       this.formFieldCompMapEntry?.lineagePaths,
       {
         angularComponents: [],
+        layout: [],
         dataModel: [],
         formConfig: ['component', 'config', 'componentDefinitions'],
       });
