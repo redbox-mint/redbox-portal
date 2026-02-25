@@ -5,8 +5,9 @@ import {
 import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
 import { TemplateFormConfigVisitor } from "../../src/visitor/template.visitor";
 
-import {formConfigExample1, reusableFormDefinitionsExample1} from "./example-data";
+import {formConfigExample1} from "./example-data";
 import { logger } from "./helpers";
+import {reusableFormDefinitions} from "../../src";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -121,22 +122,13 @@ describe("Template Visitor", async () => {
         it(`should ${title}`, async function () {
             const constructor = new ConstructFormConfigVisitor(logger);
             const constructed = constructor.start({
-              data: args, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1,
+              data: args, formMode: "edit", reusableFormDefs: reusableFormDefinitions,
             });
 
             const visitor = new TemplateFormConfigVisitor(logger);
             const actual = visitor.start({ form: constructed });
 
-            expect(actual).to.containSubset(expected);
-            expect(actual).to.have.length(expected.length);
-
-          expected.forEach((expectedItem, index) => {
-            const actualItem = actual[index];
-            expect(actualItem).to.not.eql(undefined, `index ${index}`);
-            expect(actualItem.key).to.eql(expectedItem.key);
-            expect(actualItem.kind).to.eql(expectedItem.kind);
-            expect(actualItem.value).to.eql(expectedItem.value);
-          });
+            expect(actual).to.eql(expected);
         });
     });
 });

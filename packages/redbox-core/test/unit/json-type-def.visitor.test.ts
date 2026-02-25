@@ -1,8 +1,10 @@
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
-import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
-import { JsonTypeDefSchemaFormConfigVisitor } from "../../src/visitor/json-type-def.visitor";
+import { ConstructFormConfigVisitor,
+  JsonTypeDefSchemaFormConfigVisitor ,
+  reusableFormDefinitions,
+} from "../../src";
 
-import {formConfigExample1, reusableFormDefinitionsExample1} from "./example-data";
+import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
 
 let expect: Chai.ExpectStatic;
@@ -261,6 +263,9 @@ describe("JSON Type Def Schema Visitor", async () => {
                         "type": "string"
                       }
                     },
+                    "questiontree-outcome-info": {
+                      "type": "string"
+                    },
                   },
                     "radio_1": {
                         "type": "string"
@@ -344,7 +349,7 @@ describe("JSON Type Def Schema Visitor", async () => {
         it(`should ${title}`, async function () {
             const constructor = new ConstructFormConfigVisitor(logger);
             const constructed = constructor.start({
-              data: args, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample1,
+              data: args, formMode: "edit", reusableFormDefs: reusableFormDefinitions,
             });
 
             const visitor = new JsonTypeDefSchemaFormConfigVisitor(logger);

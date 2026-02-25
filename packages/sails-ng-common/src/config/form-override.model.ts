@@ -40,7 +40,8 @@ import {
   QuestionTreeFieldComponentConfigFrame,
   QuestionTreeFieldComponentDefinitionOutline,
   QuestionTreeMeta,
-  QuestionTreeOutcome, QuestionTreeOutcomeComponentName, QuestionTreeOutcomeDetailsComponentName,
+  QuestionTreeOutcome,
+  QuestionTreeOutcomeInfoKey,
   QuestionTreeQuestion,
   QuestionTreeQuestionAnswer,
   QuestionTreeQuestionRuleIn,
@@ -487,23 +488,23 @@ export class FormOverride {
 
     /* Additional Question Tree */
 
-    /**
-     * Create reusable components from the question tree questions DSL.
-     * @param name The form component name.
-     * @param lineagePath The form component lineage path.
-     * @param item The question tree component.
-     * @private
-     */
+  /**
+   * Create reusable components from the question tree questions DSL.
+   * @param name The form component name.
+   * @param lineagePath The form component lineage path.
+   * @param item The question tree component.
+   * @private
+   */
   public applyQuestionTreeDsl(
     name: string | null,
     lineagePath: LineagePaths,
     item: QuestionTreeFieldComponentDefinitionOutline
-    ): AvailableFormComponentDefinitionFrames[] {
+  ): AvailableFormComponentDefinitionFrames[] {
     const availableOutcomeValues = (item.config?.availableOutcomes ?? []).map(i => i.value);
     const availableMeta = item.config?.availableMeta ?? {};
     const questions = item.config?.questions ?? [];
 
-        // Prepare question and answer info to assist checking for valid structure
+    // Prepare question and answer info to assist checking for valid structure
     const questionAnswerValuesMap = Object.fromEntries(
       questions?.map(question => [question.id, question.answers.map(answer => answer.value)])
     );
@@ -540,8 +541,8 @@ export class FormOverride {
         errors.push(`${msgQ} must have at least one answer.`);
       }
       if (Object.keys(rules).length === 0) {
-          // Must have at least one rule - add a rule that always matches, so the question always shows.
-          rules.op = "true";
+        // Must have at least one rule - add a rule that always matches, so the question always shows.
+        rules.op = "true";
       }
 
       // All answer outcome property keys and values must match a defined outcome.
@@ -568,23 +569,23 @@ export class FormOverride {
         }
       });
 
-            // All rules that reference questions or answer values must use valid values.
-            const rulesToCheck = [rules];
-            while (rulesToCheck.length > 0) {
-                const currentRule = rulesToCheck.shift();
+      // All rules that reference questions or answer values must use valid values.
+      const rulesToCheck = [rules];
+      while (rulesToCheck.length > 0) {
+        const currentRule = rulesToCheck.shift();
         if (!currentRule) {
           continue;
         }
         switch (currentRule.op) {
-                    case "true":
+          case "true":
             continue;
-                    case "and":
-                    case "or":
-                        rulesToCheck.push(...currentRule.args);
+          case "and":
+          case "or":
+            rulesToCheck.push(...currentRule.args);
             break;
-                    case "in":
-                    case "notin":
-                    case "only":
+          case "in":
+          case "notin":
+          case "only":
             if (!(currentRule.q in questionAnswerValuesMap)) {
               errors.push(`${msgQ} rule op '${currentRule.op}' references an invalid question id '${currentRule.q}'.`);
             }
@@ -598,128 +599,123 @@ export class FormOverride {
             }
             break;
           default:
-                        const _unexpected: never = currentRule;
-                        errors.push(`${msgQ} unknown rule ${JSON.stringify(_unexpected)}.`);
+            // Setting currentRule to a variable typed with never ensures that all possible switch cases
+            // are present. TypeScript compile will fail if there are any possible cases missing.
+            const _unexpected: never = currentRule;
+            errors.push(`${msgQ} unknown rule ${JSON.stringify(_unexpected)}.`);
             break;
         }
       }
 
-          // Transform rules DSL to expressions.
+      // Transform rules DSL to expressions.
       const ruleExpression = this.questionTreeRuleToExpression(lineagePath, rules);
-          const isVisible = !ruleExpression || ruleExpression === 'true';
+      const isVisible = !ruleExpression || ruleExpression === 'true';
       if (!lineagePath.angularComponentsJsonPointer) {
-            throw new Error(`${this.logName}: Did not provide lineage path JSON pointer ${JSON.stringify({
-              name, lineagePath, item
-            })}`);
-          }
-
-          // Notes:
-          // - condition is always executed, should be true or false, if true, then evals template
-          // - The condition should restrict to the question tree.
-          // - use formData in the template to get the current value of a component of the question tree
-          // - Both the layout and component have `visible` properties, so they both need to be set.
-
-          const expressions: FormExpressionsConfigFrame[] | undefined = isVisible ? undefined : [
-            {
-              name: `${id}-layoutvis-qt`,
-              config: {
-                template: ruleExpression,
-                conditionKind: 'jsonpointer',
-                condition: `${lineagePath.angularComponentsJsonPointer}::field.value.changed`,
-                target: `layout.visible`
+        throw new Error(`${this.logName}: Did not provide lineage path JSON pointer ${JSON.stringify({
+          name, lineagePath, item
+        })}`);
       }
-            },
-            {
-              name: `${id}-compvis-qt`,
-              config: {
-                template: ruleExpression,
-                conditionKind: 'jsonpointer',
-                condition: `${lineagePath.angularComponentsJsonPointer}::field.value.changed`,
-                target: `component.visible`
-              }
-              },
-            {
-              name: `${id}-modval-qt`,
-              config: {
-                // TODO: template should be something like: if visible, use existing value, if not visible, set to null / undefined
-                template: ``,
-                conditionKind: 'jsonpointer',
-                condition: `${lineagePath.angularComponentsJsonPointer}::field.meta.changed`,
-                target: `model.value`
-              }
-            },
-          ];
 
-            // build reusable component
+      // Notes:
+      // - condition is always executed, should be true or false, if true, then evals template
+      // - The condition should restrict to the question tree.
+      // - use formData in the template to get the current value of a component of the question tree
+      // - Both the layout and component have `visible` properties, so they both need to be set.
+
+      const expressions: FormExpressionsConfigFrame[] | undefined = isVisible ? undefined : [
+        {
+          name: `${id}-layoutvis-qt`,
+          config: {
+            template: ruleExpression,
+            conditionKind: 'jsonpointer',
+            condition: `${lineagePath.angularComponentsJsonPointer}::field.value.changed`,
+            target: `layout.visible`
+          }
+        },
+        {
+          name: `${id}-compvis-qt`,
+          config: {
+            template: ruleExpression,
+            conditionKind: 'jsonpointer',
+            condition: `${lineagePath.angularComponentsJsonPointer}::field.value.changed`,
+            target: `component.visible`
+          }
+        },
+        {
+          name: `${id}-modval-qt`,
+          config: {
+            // TODO: template should be something like: if visible, use existing value, if not visible, set to null / undefined
+            template: `event.meta.visible = true`,
+            conditionKind: 'jsonpointer',
+            condition: `${lineagePath.angularComponentsJsonPointer}::field.ui-attribute.changed`,
+            target: `model.value`
+          }
+        },
+      ];
+
+      // build reusable component
       const hasOneAnswer = answersMax === 1;
-            const componentOptions = answers
-                .map(a => {
-                    return {value: a.value, label: a.label ?? `@${name}-${id}-${a.value}`}
-                });
-            const componentAnswerOne: AvailableFormComponentDefinitionFrames = {
-                overrides: {reusableFormName: "questiontree-answer-one"},
-                name: "",
+      const componentOptions = answers
+        .map(a => {
+          return {value: a.value, label: a.label ?? `@${name}-${id}-${a.value}`}
+        });
+      const componentAnswerOne: AvailableFormComponentDefinitionFrames = {
+        overrides: {reusableFormName: "questiontree-answer-one"},
+        name: "",
         component: {
-                    class: "ReusableComponent", config: {
+          class: "ReusableComponent", config: {
             componentDefinitions: [
               {
-                                name: "questiontree_answer_one",
-                overrides: { replaceName: id },
-                                layout: {class: "DefaultLayout", config: {label: id, visible: isVisible}},
-                                component: {class: "RadioInputComponent", config: {options: componentOptions, visible: isVisible}},
+                name: "questiontree_answer_one",
+                overrides: {replaceName: id},
+                layout: {class: "DefaultLayout", config: {label: id, visible: isVisible}},
+                component: {class: "RadioInputComponent", config: {options: componentOptions, visible: isVisible}},
                 expressions: expressions,
               },
             ],
           },
         },
       };
-            const componentAnswerMore: AvailableFormComponentDefinitionFrames = {
-                overrides: {reusableFormName: "questiontree-answer-one-more"},
-                name: "",
+      const componentAnswerMore: AvailableFormComponentDefinitionFrames = {
+        overrides: {reusableFormName: "questiontree-answer-one-more"},
+        name: "",
         component: {
           class: 'ReusableComponent',
           config: {
             componentDefinitions: [
               {
                 name: 'questiontree_answer_one_more',
-                overrides: { replaceName: id },
-                layout: { class: 'DefaultLayout', config: { label: id, visible: isVisible } },
-                component: { class: 'CheckboxInputComponent', config: { options: componentOptions, visible: isVisible } },
+                overrides: {replaceName: id},
+                layout: {class: 'DefaultLayout', config: {label: id, visible: isVisible}},
+                component: {class: 'CheckboxInputComponent', config: {options: componentOptions, visible: isVisible}},
                 expressions: expressions,
               },
             ],
           },
         },
       };
-        result.push(hasOneAnswer ? componentAnswerOne : componentAnswerMore);
+      result.push(hasOneAnswer ? componentAnswerOne : componentAnswerMore);
 
 
     });
 
-    if (errors.length > 0) {
-            throw new Error(`${this.logName}: Question tree is not valid: ${errors.join(' ')}`);
+      if (errors.length > 0) {
+        throw new Error(`${this.logName}: Question tree is not valid: ${errors.join(' ')}`);
+      }
+
+      // Add hidden inputs for outcome and outcome-details.
+      // These components allow the outcome and details to be stored within the question tree data model.
+      const outcomeComponents: AvailableFormComponentDefinitionFrames[] = [
+        {
+          name: QuestionTreeOutcomeInfoKey,
+          component: {class: "SimpleInputComponent", config: {type: "hidden", visible: false}},
+          layout: {class: "DefaultLayout", config: {visible: false}},
+        },
+      ];
+      result.push(...outcomeComponents);
+
+      return result;
     }
-
-        // Add hidden inputs for outcome and outcome-details.
-        // These components allow the outcome and details to be stored within the question tree data model.
-        // TODO: Really only need one of these components - store the outcome info data structure,
-        //       and other components can use expressions to extract the data they want as the value.
-        const outcomeComponents: AvailableFormComponentDefinitionFrames[] = [
-          {
-            name: QuestionTreeOutcomeComponentName,
-            component: {class: "SimpleInputComponent", config: {type: "hidden", visible: false}},
-            layout: {class: "DefaultLayout", config: {visible: false}},
-          },
-          {
-            name: QuestionTreeOutcomeDetailsComponentName,
-            component: {class: "SimpleInputComponent", config: {type: "hidden", visible: false}},
-            layout: {class: "DefaultLayout", config: {visible: false}},
-          }
-        ];
-        result.push(...outcomeComponents);
-
-    return result;
-  }
 
   private toFieldReference(value: unknown): string {
     // Normalise the string to a form useful for comparing identifiers.
@@ -800,28 +796,28 @@ export class FormOverride {
      * @private
      */
     public applyQuestionTreeFrames(items: AvailableFormComponentDefinitionFrames[]): AvailableFormComponentDefinitionFrames[] {
-        const result: AvailableFormComponentDefinitionFrames[] = [];
-    for (const item of items) {
-      if (isTypeFormComponentDefinitionName<SimpleInputFormComponentDefinitionFrame>(item, SimpleInputComponentName)) {
-        result.push(item);
-        continue;
+      const result: AvailableFormComponentDefinitionFrames[] = [];
+      for (const item of items) {
+        if (isTypeFormComponentDefinitionName<SimpleInputFormComponentDefinitionFrame>(item, SimpleInputComponentName)) {
+          result.push(item);
+          continue;
+        }
+        if (isTypeFormComponentDefinitionName<CheckboxInputFormComponentDefinitionFrame>(item, CheckboxInputComponentName)) {
+          result.push(item);
+          continue;
+        }
+        if (isTypeFormComponentDefinitionName<RadioInputFormComponentDefinitionFrame>(item, RadioInputComponentName)) {
+          result.push(item);
+          continue;
+        }
+        if (isTypeFormComponentDefinitionName<ReusableFormComponentDefinitionFrame>(item, ReusableComponentName)) {
+          result.push(item);
+          continue;
+        }
+        throw new Error(`${this.logName}: Invalid form component frame ${item.name} class ${item.component.class} in Question Tree.`);
       }
-      if (isTypeFormComponentDefinitionName<CheckboxInputFormComponentDefinitionFrame>(item, CheckboxInputComponentName)) {
-        result.push(item);
-        continue;
-      }
-      if (isTypeFormComponentDefinitionName<RadioInputFormComponentDefinitionFrame>(item, RadioInputComponentName)) {
-        result.push(item);
-        continue;
-      }
-      if (isTypeFormComponentDefinitionName<ReusableFormComponentDefinitionFrame>(item, ReusableComponentName)) {
-        result.push(item);
-        continue;
-      }
-            throw new Error(`${this.logName}: Invalid form component frame ${item.name} class ${item.component.class} in Question Tree.`);
+      return result;
     }
-    return result;
-  }
 
   /* Transforms between components */
 
