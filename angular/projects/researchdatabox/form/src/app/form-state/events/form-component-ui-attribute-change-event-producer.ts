@@ -115,8 +115,7 @@ export class FormComponentUIAttributeChangeEventProducer extends FormComponentEv
   // ── private helpers ──────────────────────────────────────────────────
 
   /**
-   * Reads the current UI-relevant properties from the component's or
-   * layout's config. `options.component` can be either instances.
+   * Reads the current UI-relevant properties from the appropriate config based on `options.isLayout`.
    *
    */
   private snapshotUIAttributes(): UIAttributeSnapshot {
