@@ -15,7 +15,7 @@ import { APP_BASE_HREF, CommonModule } from "@angular/common";
 import { BrowserModule, Title } from "@angular/platform-browser";
 import { I18NextPipe, provideI18Next } from "angular-i18next";
 import { FormService } from "./form.service";
-import { FormConfigFrame, formValidatorsSharedDefinitions } from "@researchdatabox/sails-ng-common";
+import {FormConfigFrame, formValidatorsSharedDefinitions, ILogger} from "@researchdatabox/sails-ng-common";
 import { DefaultLayoutComponent } from "./component/default-layout.component";
 import { InlineLayoutComponent } from "./component/inline-layout.component";
 import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
@@ -31,7 +31,6 @@ import { FormComponentEventBus } from './form-state/events/form-component-event-
 import { FormComponentFocusRequestCoordinator } from './form-state/events/form-component-focus-request-coordinator.service';
 import { TiptapEditorDirective } from "ngx-tiptap";
 import { A11yModule } from "@angular/cdk/a11y";
-import type {ILogger} from "@researchdatabox/redbox-core";
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
