@@ -1,6 +1,7 @@
 import {
   FormConfigFrame,
-  FormExpressionsTemplateConfigFrame, QuestionTreeMeta, QuestionTreeOutcome,
+  FormExpressionsTemplateConfigFrame,
+  QuestionTreeFormComponentDefinitionOutline, QuestionTreeMeta, QuestionTreeOutcome, QuestionTreeOutcomeInfoKey,
   QuestionTreeQuestion,
   TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
 } from "@researchdatabox/sails-ng-common";
@@ -8,7 +9,7 @@ import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
 import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
 import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
-import {reusableFormDefinitions} from "../../src";
+import {reusableFormDefinitions, VocabInlineFormConfigVisitor} from "../../src";
 
 
 let expect: Chai.ExpectStatic;
@@ -903,7 +904,7 @@ describe("Client Visitor", async () => {
                   },
                   expressions: [
                     {
-                      name: "question_2-layoutvis-qt", description: undefined,
+                      name: "questiontree_1-question_2-layoutvis-qt", description: undefined,
                       config: {
                         ...expressionBase,
                         template: "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0"
@@ -930,7 +931,7 @@ describe("Client Visitor", async () => {
                   },
                   expressions: [
                     {
-                      name: "question_3-layoutvis-qt", description: undefined,
+                      name: "questiontree_1-question_3-layoutvis-qt", description: undefined,
                       config: {
                         ...expressionBase,
                         template: "$count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0"
@@ -957,7 +958,7 @@ describe("Client Visitor", async () => {
                   },
                   expressions: [
                     {
-                      name: "question_4-layoutvis-qt", description: undefined,
+                      name: "questiontree_1-question_4-layoutvis-qt", description: undefined,
                       config: {
                         ...expressionBase, template: "(" +
                           "(" +
@@ -996,5 +997,208 @@ describe("Client Visitor", async () => {
     const actual = visitor.start({form: constructed});
 
     expect(actual).to.containSubset(expected);
+  });
+
+  it("should construct the question tree config", async () => {
+
+    // question tree component with 3 questions
+    // question_1 is the start,
+    // question_2 shows only when question_1 is "no", and has an outcome & meta
+    // question_3 shows only when question_2 is "yes
+    const serverFormConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: "questiontree_1",
+          model: {class: "QuestionTreeModel", config: {}},
+          component: {
+            class: "QuestionTreeComponent",
+            config: {
+              availableOutcomes: [
+                {value: "outcome1", label: "@outcomes-value1"},
+                {value: "outcome2", label: "@outcomes-value2"},
+              ],
+              availableMeta: {
+                prop2: {
+                  prop2Value1: "@outcomes-prop2-value1",
+                  prop2Value2: "@outcomes-prop2-value2",
+                },
+              },
+              questions: [
+                {
+                  id: "question_1",
+                  answersMin: 1,
+                  answersMax: 1,
+                  answers: [{value: "yes"}, {value: "no"}],
+                  rules: {op: "true"},
+                },
+                {
+                  id: "question_2",
+                  answersMin: 1,
+                  answersMax: 2,
+                  answers: [{value: "yes"}, {value: "no", meta: {prop2: "prop2Value1"}, outcome: "outcome1"}],
+                  rules: {op: "in", q: "question_1", a: ["no"]},
+                },
+                {
+                  id: "question_3",
+                  answersMin: 1,
+                  answersMax: 1,
+                  answers: [{value: "yes"}, {value: "no"}],
+                  rules: {op: "in", q: "question_2", a: ["yes"]},
+                },
+              ],
+              componentDefinitions: [
+                {
+                  name: "question_1",
+                  model: {
+                    class: "RadioInputModel",
+                  },
+                  component: {
+                    class: "RadioInputComponent",
+                    config: {
+                      options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}],
+                    },
+                  },
+                },
+                {
+                  name: "question_2",
+                  model: {
+                    class: "CheckboxInputModel",
+                  },
+                  component: {
+                    class: "CheckboxInputComponent",
+                    config: {
+                      options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}],
+                      multipleValues: true,
+                    },
+                  },
+                },
+                {
+                  name: "question_3",
+                  model: {
+                    class: "RadioInputModel",
+                  },
+                  component: {
+                    class: "RadioInputComponent",
+                    config: {
+                      options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}],
+                    },
+                  },
+                },
+                {
+                  name: QuestionTreeOutcomeInfoKey,
+                  component: {class: "SimpleInputComponent", config: {type: "hidden"}},
+                  model: {class: "SimpleInputModel", config: {}},
+                }
+              ],
+            }
+          },
+        },
+        {
+          "name": "data-classification-item-outcome",
+          "component": {"class": "SimpleInputComponent", "config": {}},
+          "model": {"class": "SimpleInputModel", "config": {"validators": [{"class": "required"}]}},
+          expressions: [
+            {
+              // Set the component value to the question tree outcome label
+              name: `data-classification-item-outcome-expr`,
+              config: {
+                template: `formData.questiontree_1.${QuestionTreeOutcomeInfoKey}.outcome.($.label ? $.label : $.value)`,
+                conditionKind: 'jsonpointer',
+                condition: `/questiontree_1::field.value.changed`,
+                target: `model.value`
+              }
+            },
+          ]
+        },
+        {
+          "name": "data-classification-item-outcome-details",
+          "component": {"class": "SimpleInputComponent", "config": {"type": "hidden"}},
+          "model": {"class": "SimpleInputModel", "config": {}},
+          expressions: [
+            {
+              // Set the component value to the question tree outcome meta, using only the labels for each property.
+
+              /*
+              template:
+    $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $i, $a) {
+      $v.$merge($keys().($entry := $lookup($v, $);{
+      $: $entry.label ? $entry.label : $entry.value
+    }))
+    })
+
+              converts data:
+    {
+      "formData": {
+        "questiontree_1": {
+          "question_1": "no",
+          "question_2": "no",
+          "question_3": null,
+          "questiontree-outcome-info": {
+            "outcome": {"value": "outcome2", "label": "@outcomes-value2"}, "meta": [
+              {
+                "outcome": {"value": "outcome2", "label": "@outcomes-value2"},
+                "prop2": {"value": "prop2Value2", "label": "@outcomes-prop2-value2"}
+              },
+              {
+                "outcome": {"value": "outcome1", "label": "@outcomes-value1"},
+                "prop2": {"value": "prop2Value1", "label": null}
+              }
+            ]
+          }
+        }
+      }
+    }
+              to output:
+    [
+    {
+      "outcome": "@outcomes-value2",
+      "prop2": "@outcomes-prop2-value2"
+    },
+    {
+      "outcome": "@outcomes-value1",
+      "prop2": "prop2Value1"
+    }
+    ]
+               */
+              name: `data-classification-item-outcome-details-expr`,
+              config: {
+                template: `$map(formData.questiontree_1.\`${QuestionTreeOutcomeInfoKey}\`.meta[], function ($v, $i, $a) {
+                    $v.$merge($keys().($entry := $lookup($v, $);{
+                    $: $entry.label ? $entry.label : $entry.value'
+                }))
+                })`,
+                conditionKind: 'jsonpointer',
+                condition: `/questiontree_1::field.value.changed`,
+                target: `model.value`
+              }
+            },
+          ]
+        }
+      ]
+    };
+
+
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = constructor.start({
+        data: serverFormConfig,
+        formMode: "edit",
+        reusableFormDefs: reusableFormDefinitions,
+      });
+
+      const vocabVisitor = new VocabInlineFormConfigVisitor(logger);
+      await vocabVisitor.resolveVocabs(constructed, 'default');
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      const result = visitor.start({form: constructed});
+      expect(result.componentDefinitions).to.have.length(3);
+      const qt = result.componentDefinitions[0] as QuestionTreeFormComponentDefinitionOutline;
+      expect(qt.component.config?.componentDefinitions).to.have.length(4);
   });
 });

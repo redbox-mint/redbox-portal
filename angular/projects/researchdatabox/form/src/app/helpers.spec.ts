@@ -15,7 +15,7 @@ import { APP_BASE_HREF, CommonModule } from "@angular/common";
 import { BrowserModule, Title } from "@angular/platform-browser";
 import { I18NextPipe, provideI18Next } from "angular-i18next";
 import { FormService } from "./form.service";
-import { FormConfigFrame, formValidatorsSharedDefinitions } from "@researchdatabox/sails-ng-common";
+import {FormConfigFrame, formValidatorsSharedDefinitions, ILogger} from "@researchdatabox/sails-ng-common";
 import { DefaultLayoutComponent } from "./component/default-layout.component";
 import { InlineLayoutComponent } from "./component/inline-layout.component";
 import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
@@ -42,6 +42,21 @@ export interface FormComponentProps {
   formName: string;
   downloadAndCreateOnInit: boolean;
 }
+
+export const testLogger: ILogger = {
+  silly: () => undefined,
+  verbose: () => undefined,
+  trace: () => undefined,
+  debug: () => undefined,
+  log: () => undefined,
+  info: () => undefined,
+  warn: () => undefined,
+  error: () => undefined,
+  crit: () => undefined,
+  fatal: () => undefined,
+  silent: () => undefined,
+  blank: () => undefined,
+};
 
 export async function createFormAndWaitForReady(formConfig: FormConfigFrame, formComponentProps?: FormComponentProps) {
   console.log('createFormAndWaitForReady - starting');
@@ -149,7 +164,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "provideHttpClientTesting": provideHttpClientTesting(),
       "provideStore": provideStore(),  // Root store provider required for NgRx
       "provideEffects": provideEffects(),  // Root effects provider required for NgRx
-      "provideFormFeature": provideFormFeature(),  // Add form state providers 
+      "provideFormFeature": provideFormFeature(),  // Add form state providers
       "FormStateFacade": FormStateFacade,  // Provide the facade service
       "FormComponentEventBus": FormComponentEventBus,  // Provide the event bus service
       "FormComponentFocusRequestCoordinator": FormComponentFocusRequestCoordinator,
