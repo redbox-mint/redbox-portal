@@ -36,9 +36,11 @@ import { FormService } from "../form.service";
   template: `
   @if (componentDefinition) {
     <div class="rb-form-field-layout">
-      @if (getStringProperty('label') && isVisible) {
+      @if ((getStringProperty('label') || getStringProperty('helpText')) && isVisible) {
         <label class="form-label rb-form-field-label">
-          <span [innerHtml]="getStringProperty('label') | i18next" [title]="tooltip | i18next"></span>
+          @if (getStringProperty('label')) {
+            <span [innerHtml]="getStringProperty('label') | i18next" [title]="tooltip | i18next" [ngClass]="labelCssClasses"></span>
+          }
           @if (isRequired) {
             <span
               class="form-field-required-indicator"
@@ -165,5 +167,13 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   protected get componentName() {
     return this.formFieldConfigName();
+  }
+
+  protected get labelCssClasses(): string {
+    const classMap = this.componentDefinition?.config?.cssClassesMap;
+    if (classMap && typeof classMap === 'object' && typeof (classMap as Record<string, unknown>).label === 'string') {
+      return (classMap as Record<string, string>).label;
+    }
+    return '';
   }
 }

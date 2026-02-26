@@ -366,6 +366,42 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect((migratedField.layout?.config as Record<string, unknown>)?.label).to.equal("@dmpt-people-tab-otherdatacreators");
     });
 
+    it('preserves explicit empty RepeatableContributor label without falling back to definition name', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "repeatable-contributor-empty-label",
+                fields: [
+                    {
+                        class: "RepeatableContributor",
+                        compClass: "RepeatableContributorComponent",
+                        definition: {
+                            name: "contributor_ci",
+                            label: "",
+                            fields: [
+                                {
+                                    class: "ContributorField",
+                                    definition: {
+                                        help: "@dmpt-people-tab-contributors-help",
+                                        nameColHdr: "@dmpt-people-tab-name-hdr",
+                                        emailColHdr: "@dmpt-people-tab-email-hdr",
+                                        orcidColHdr: "@dmpt-people-tab-orcid-hdr",
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("RepeatableComponent");
+        expect(migratedField.layout?.class).to.equal("DefaultLayout");
+        expect((migratedField.layout?.config as Record<string, unknown>)?.label).to.equal("");
+        expect((migratedField.component?.config as Record<string, unknown>)?.label).to.equal("");
+    });
+
     it("maps legacy MapField to MapComponent and normalizes config/value", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({
@@ -573,6 +609,37 @@ describe("Migrate v4 to v5 Visitor", async () => {
         const componentConfig = migratedField.component.config as Record<string, unknown>;
         expect(componentConfig.content).to.equal("Welcome to the form");
         expect(componentConfig.template).to.equal("<div>{{{content}}}</div>");
+    });
+
+    it("promotes legacy TextBlock span label/help blocks into layout label config", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "text-block-span-label-help",
+                fields: [
+                    {
+                        class: "Container",
+                        compClass: "TextBlockComponent",
+                        definition: {
+                            value: "@dmpt-people-tab-ci",
+                            help: "@dmpt-people-tab-ci-help",
+                            type: "span",
+                            cssClasses: "label-font"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("ContentComponent");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        const layoutConfig = migratedField.layout?.config as Record<string, unknown>;
+
+        expect(componentConfig.content).to.equal("");
+        expect(layoutConfig.label).to.equal("@dmpt-people-tab-ci");
+        expect(layoutConfig.helpText).to.equal("@dmpt-people-tab-ci-help");
+        expect(layoutConfig.cssClassesMap).to.deep.equal({ label: "label-font" });
     });
 
     it("populates attachmentFields from FileUpload components", async function () {
