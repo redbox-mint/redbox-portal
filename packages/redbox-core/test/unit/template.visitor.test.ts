@@ -72,7 +72,7 @@ describe("Template Visitor", async () => {
                 {
                   key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "2", "component", "config", "componentDefinitions", "1", "expressions", "2", "config", "template",],
                   kind: "jsonata",
-                  value: "event.meta.visible = true",
+                  value: "($count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0 ? formData.`questiontree_1`.`question_2` : null)",
                 },
             ]
         },
