@@ -49,7 +49,7 @@ export const i18n: I18nConfig = {
             lowerCaseLng: true,
             initImmediate: false,
             skipOnVariables: false,
-            returnEmptyString: false,
+            returnEmptyString: true,
             ns: ['translation'],
             detection: {
                 order: ['cookie'],

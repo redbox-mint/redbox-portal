@@ -30,7 +30,7 @@ export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
             [value]="opt.value"
             [id]="this.getOptionId(opt)"
             [attr.id]="this.getOptionId(opt)"
-            [class.is-valid]="isValid"
+            [class.is-valid]="showValidState"
             [class.is-invalid]="!isValid"
             [title]="tooltip">
           <label

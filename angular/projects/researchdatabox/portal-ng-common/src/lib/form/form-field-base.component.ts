@@ -302,6 +302,14 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return Object.keys(this.formControl?.errors ?? {}).length === 0;
   }
 
+  get showValidIndicator(): boolean {
+    return this.getBooleanProperty('showValidIndicator', false);
+  }
+
+  get showValidState(): boolean {
+    return this.showValidIndicator && this.isValid;
+  }
+
   // Use @HostBinding to bind to the host element's class attribute
   // This getter returns an object similar to what you'd pass to [ngClass]
   @HostBinding('class') public get hostClasses() {

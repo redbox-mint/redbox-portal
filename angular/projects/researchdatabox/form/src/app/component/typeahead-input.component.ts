@@ -34,7 +34,7 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
         type="text"
         class="form-control"
         [formControl]="displayControl"
-        [class.is-valid]="isValid"
+        [class.is-valid]="showValidState"
         [class.is-invalid]="!isValid"
         [placeholder]="placeholder"
         [title]="tooltip"

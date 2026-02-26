@@ -12,7 +12,7 @@ import { FormComponentGenerator } from './generators/form-component';
 import { FormFieldGenerator } from './generators/form-field';
 import { ModelGenerator } from './generators/model';
 import {
-  registerMigrateDataClassificationCommand,
+  // registerMigrateDataClassificationCommand,
   registerMigrateFormConfigCommand
 } from './commands/migrate-form-config';
 import { generateCompletionScript } from './completion';
@@ -55,7 +55,7 @@ program
   });
 
 registerMigrateFormConfigCommand(program);
-registerMigrateDataClassificationCommand(program);
+// registerMigrateDataClassificationCommand(program);
 
 program
   .command('init')
