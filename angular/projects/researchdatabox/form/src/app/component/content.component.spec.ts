@@ -1,6 +1,6 @@
 import {FormConfigFrame, buildKeyString} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
-import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
+import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import { UtilityService, HandlebarsTemplateService, TranslationService } from "@researchdatabox/portal-ng-common";
 import Handlebars from "handlebars";
@@ -21,40 +21,31 @@ describe('ContentComponent', () => {
       declarations: {"ContentComponent": ContentComponent},
       providers: {
         "UtilityService": null,
-        "HandlebarsTemplateService": { provide: HandlebarsTemplateService, useValue: mockHandlebarsTemplateService }
+        "HandlebarsTemplateService": {provide: HandlebarsTemplateService, useValue: mockHandlebarsTemplateService}
       }
     });
     utilityService = TestBed.inject(UtilityService);
     translationService = TestBed.inject(TranslationService as any);
     translationService.translationMap['@dmpt-project-title'] = 'Project name';
     spyOn(translationService, 't').and.callFake((key: string) => translationService.translationMap[key] ?? key);
-    spyOn(utilityService, 'getDynamicImport').and.callFake(
-      async function (brandingAndPortalUrl: string, urlPath: string[], params?: {[key:string]: any}) {
-        const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? [])?.join('/')}`;
-        if (urlKey.startsWith("http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-")) {
-          return {
-            evaluate: function (key: string[], context: any, extra: any) {
-              lastTemplateContext = context;
-              // normalise the key the same way as the server
-              const keyStr = buildKeyString(key);
-              switch (keyStr) {
-                case "componentDefinitions__0__component__config__template":
-                  if (context?.content === 'USE_TRANSLATION_TEMPLATE') {
-                    return context?.translationService?.t?.('@dmpt-project-title') ?? '';
-                  }
-                  if (context?.content === 'USE_MISSING_TRANSLATION_TEMPLATE') {
-                    return context?.translationService?.t?.('@missing.translation.key') ?? '';
-                  }
-                  return Handlebars.compile('<h3>{{content}}</h3>')(context);
-                default:
-                  throw new Error(`Unknown key: ${keyStr}`);
-              }
+
+    setUpDynamicAssets({
+      callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+        lastTemplateContext = context;
+        switch (keyStr) {
+          case "componentDefinitions__0__component__config__template":
+            if (context?.content === 'USE_TRANSLATION_TEMPLATE') {
+              return context?.translationService?.t?.('@dmpt-project-title') ?? '';
             }
-          };
-        } else {
-          throw new Error(`Unknown url key: ${urlKey}`);
+            if (context?.content === 'USE_MISSING_TRANSLATION_TEMPLATE') {
+              return context?.translationService?.t?.('@missing.translation.key') ?? '';
+            }
+            return Handlebars.compile('<h3>{{content}}</h3>')(context);
+          default:
+            throw new Error(`Unknown key: ${keyStr}`);
         }
-      });
+      }
+    });
   });
 
   it('should create component', () => {
