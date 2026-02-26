@@ -31,6 +31,7 @@ import { FormComponentEventBus } from './form-state/events/form-component-event-
 import { FormComponentFocusRequestCoordinator } from './form-state/events/form-component-focus-request-coordinator.service';
 import { TiptapEditorDirective } from "ngx-tiptap";
 import { A11yModule } from "@angular/cdk/a11y";
+import type {ILogger} from "@researchdatabox/redbox-core";
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
@@ -42,6 +43,21 @@ export interface FormComponentProps {
   formName: string;
   downloadAndCreateOnInit: boolean;
 }
+
+export const testLogger: ILogger = {
+  silly: () => undefined,
+  verbose: () => undefined,
+  trace: () => undefined,
+  debug: () => undefined,
+  log: () => undefined,
+  info: () => undefined,
+  warn: () => undefined,
+  error: () => undefined,
+  crit: () => undefined,
+  fatal: () => undefined,
+  silent: () => undefined,
+  blank: () => undefined,
+};
 
 export async function createFormAndWaitForReady(formConfig: FormConfigFrame, formComponentProps?: FormComponentProps) {
   console.log('createFormAndWaitForReady - starting');
@@ -149,7 +165,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "provideHttpClientTesting": provideHttpClientTesting(),
       "provideStore": provideStore(),  // Root store provider required for NgRx
       "provideEffects": provideEffects(),  // Root effects provider required for NgRx
-      "provideFormFeature": provideFormFeature(),  // Add form state providers 
+      "provideFormFeature": provideFormFeature(),  // Add form state providers
       "FormStateFacade": FormStateFacade,  // Provide the facade service
       "FormComponentEventBus": FormComponentEventBus,  // Provide the event bus service
       "FormComponentFocusRequestCoordinator": FormComponentFocusRequestCoordinator,
