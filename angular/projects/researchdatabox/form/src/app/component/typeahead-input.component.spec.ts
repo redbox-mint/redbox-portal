@@ -2,9 +2,8 @@ import {TestBed} from "@angular/core/testing";
 import {TypeaheadModule} from "ngx-bootstrap/typeahead";
 import {By} from "@angular/platform-browser";
 import {firstValueFrom} from "rxjs";
-import {UtilityService} from "@researchdatabox/portal-ng-common";
-import {FormConfigFrame, buildKeyString} from "@researchdatabox/sails-ng-common";
-import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
+import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
 import {TypeaheadDataService} from "../service/typeahead-data.service";
 import {TypeaheadInputComponent} from "./typeahead-input.component";
 
@@ -119,22 +118,16 @@ describe("TypeaheadInputComponent", () => {
     });
 
     it("renders named query suggestions with labelTemplate from query response fields", async () => {
-        const utilityService = TestBed.inject(UtilityService);
-        spyOn(utilityService, "getDynamicImport").and.callFake(async (brandingAndPortalUrl: string, urlPath: string[]) => {
-            const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? []).join("/")}`;
-            if (urlKey.startsWith("http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-")) {
-                return {
-                    evaluate: (key: (string | number)[], context: any) => {
-                        const keyStr = buildKeyString(key as string[]);
-                        if (keyStr === "componentDefinitions__0__component__config__labelTemplate") {
-                            return `${context?.raw?.title ?? ""} (${context?.raw?.code ?? ""})`;
-                        }
-                        throw new Error(`Unknown key: ${keyStr}`);
-                    }
-                };
-            }
-            throw new Error(`Unknown url key: ${urlKey}`);
-        });
+      setUpDynamicAssets({
+        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+          switch (keyStr) {
+            case "componentDefinitions__0__component__config__labelTemplate":
+              return `${context?.raw?.title ?? ""} (${context?.raw?.code ?? ""})`;
+            default:
+              throw new Error(`Unknown key: ${keyStr}`);
+          }
+        }
+      });
 
         const typeaheadDataService = TestBed.inject(TypeaheadDataService);
         spyOn(typeaheadDataService, "searchNamedQuery").and.resolveTo([
