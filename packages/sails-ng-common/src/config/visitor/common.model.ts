@@ -137,6 +137,7 @@ export class PropertiesHelper {
     this.setPropOverride('disabled', item, config);
     this.setPropOverride('autofocus', item, config);
     this.setPropOverride('tooltip', item, config);
+    this.setPropOverride('onItemSelect', item, config);
   }
 
   /**
