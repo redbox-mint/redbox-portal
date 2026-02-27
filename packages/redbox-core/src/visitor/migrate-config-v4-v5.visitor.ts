@@ -1671,12 +1671,14 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     // Set the constraints
     currentData.constraints = {};
 
-    if (field?.editOnly === true || field?.viewOnly === true) {
+    const editOnly = field?.editOnly === true || definition?.editOnly === true;
+    const viewOnly = field?.viewOnly === true || definition?.viewOnly === true;
+    if (editOnly || viewOnly) {
       currentData.constraints.allowModes = [];
-      if (field?.editOnly === true) {
+      if (editOnly) {
         currentData.constraints.allowModes.push('edit');
       }
-      if (field?.viewOnly === true) {
+      if (viewOnly) {
         currentData.constraints.allowModes.push('view');
       }
     }

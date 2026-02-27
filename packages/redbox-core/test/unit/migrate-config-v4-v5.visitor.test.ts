@@ -297,6 +297,37 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(typeaheadConfig.labelField).to.equal("dc_description");
     });
 
+    it('maps legacy definition.editOnly to allowModes edit', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "definition-edit-only",
+                fields: [
+                    {
+                        class: "RepeatableContainer",
+                        compClass: "RepeatableTextfieldComponent",
+                        definition: {
+                            name: "keywords",
+                            editOnly: true,
+                            fields: [
+                                {
+                                    class: "TextField",
+                                    definition: {
+                                        type: "text"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("RepeatableComponent");
+        expect(migratedField.constraints?.allowModes).to.deep.equal(["edit"]);
+    });
+
     it('maps RepeatableContributor layout label from definition name when label is missing on both parent and child', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({
