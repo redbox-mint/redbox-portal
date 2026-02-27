@@ -619,6 +619,16 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
+
+    const field = this.getV4Data();
+    if (field?.class === 'HiddenValue' || field?.compClass === 'HiddenValueComponent') {
+      if (item.component?.config) {
+        item.component.config.visible = false;
+      }
+      if (item.layout?.config) {
+        item.layout.config.visible = false;
+      }
+    }
   }
 
   /* Content */
