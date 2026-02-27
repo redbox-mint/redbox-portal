@@ -1,11 +1,11 @@
 import path from "path";
 import { logger } from "./helpers";
-import { MigrationV4ToV5FormConfigVisitor } from "../../src";
 import {
+  MigrationV4ToV5FormConfigVisitor,
   migrateDataClassification,
   migrateFormConfigFile,
   migrateFormConfigVerify
-} from "../../src/visitor/migrate-config-helpers";
+} from "../../src";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);

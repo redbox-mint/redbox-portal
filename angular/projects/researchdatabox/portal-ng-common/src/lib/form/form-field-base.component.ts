@@ -315,7 +315,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
    * @returns The TemplateRef instance or null if not found.
    */
   getTemplateRef(templateName: string): TemplateRef<any> | null {
-    return _get(this.formFieldCompMapEntry, `componentTemplateRefMap.${templateName}`, null);
+    return this.formFieldCompMapEntry?.componentTemplateRefMap?.[templateName] ?? null;
   }
   /**
    * Convenience method to check if a template reference exists for the specified template name.

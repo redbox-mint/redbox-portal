@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';
-import { registerMigrateFormConfigCommand } from '../../src/commands/migrate-form-config';
+import { registerMigrateFormConfigCommand } from '../../src/commands/form-config';
 
 describe('migrate-form-config command', () => {
   let tempRoot: string;

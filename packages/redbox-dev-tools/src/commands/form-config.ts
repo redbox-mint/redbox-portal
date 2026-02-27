@@ -1,7 +1,11 @@
 import { Command } from 'commander';
-import * as fs from 'fs';
+import fs from "fs";
 import * as path from 'path';
-import { ILogger } from '@researchdatabox/sails-ng-common';
+import {FormModesConfig, ILogger, ReusableFormDefinitions} from '@researchdatabox/sails-ng-common';
+import {
+  migrateFormConfigFile, migrateDataClassification,
+  migrateFormConfigVerify, createClientFormConfig
+} from '@researchdatabox/redbox-core';
 
 const migrationLogger: ILogger = {
   silly: (...args: any[]) => console.debug(...args),
@@ -83,38 +87,17 @@ export function registerMigrateFormConfigCommand(program: Command): void {
     .description('Migrate a legacy v4 JS form config file to the v5 TS form framework format')
     .requiredOption('-i, --input <path>', 'Path to the legacy v4 form config JS file')
     .requiredOption('-o, --output <path>', 'Path to write the migrated v5 TypeScript config file')
-    .action(async options => {
+    .action(async (options) => {
       try {
         const globalOptions = program.opts();
         const inputPath = path.resolve(options.input);
         const outputPath = path.resolve(options.output);
 
-        if (!fs.existsSync(inputPath)) {
-          throw new Error(`Input file does not exist: ${inputPath}`);
-        }
-
-        console.log(`\n🛠️  Migrating form config: ${inputPath} -> ${outputPath}\n`);
-
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const v4FormConfig = require(inputPath);
         const MigrationVisitor = resolveMigrationVisitorConstructor();
         const migrateVisitor = new MigrationVisitor(migrationLogger);
-        const migrated = migrateVisitor.start({ data: v4FormConfig });
 
-        const tsContent = `import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
-
-const formConfig: FormConfigFrame = ${JSON.stringify(migrated, null, 2)};
-
-export default formConfig;
-`;
-
-        if (globalOptions.dryRun) {
-          console.log('[dry-run] Migration completed; no file written.');
-        } else {
-          fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-          fs.writeFileSync(outputPath, tsContent, 'utf8');
-          console.log(`✅ Wrote migrated form config: ${outputPath}`);
-        }
+        const migrated = await migrateFormConfigFile(migrateVisitor, inputPath, outputPath, globalOptions.dryRun);
+        await migrateFormConfigVerify(migrated, migrationLogger);
 
         console.log('\n✅ Done!\n');
       } catch (error: any) {
@@ -123,3 +106,82 @@ export default formConfig;
       }
     });
 }
+
+export function registerMigrateDataClassificationCommand(program: Command): void {
+  program
+    .command('migrate-data-classification')
+    .description('Migrate a legacy v4 JS data classification definition file to the v5 TS form framework format')
+    .requiredOption('-i, --input <path>', 'Path to the legacy v4 JS file')
+    .requiredOption('-o, --output <path>', 'Path to write the migrated v5 TypeScript config file')
+    .action(async (options) => {
+      try {
+        const globalOptions = program.opts();
+        const inputPath = path.resolve(options.input);
+        const outputPath = path.resolve(options.output);
+
+        const MigrationVisitor = resolveMigrationVisitorConstructor();
+        const migrateVisitor = new MigrationVisitor(migrationLogger);
+
+        const migrated = migrateDataClassification(migrateVisitor, inputPath, outputPath, globalOptions.dryRun);
+        await migrateFormConfigVerify(migrated.formConfig, migrationLogger);
+
+        console.log('\n✅ Done!\n');
+      } catch (error: any) {
+        console.error(`\n❌ Error: ${error.message}\n`);
+        process.exit(1);
+      }
+    });
+}
+
+export function registerClientFormConfigCommand(program: Command) {
+  program
+    .command('client-form-config')
+    .description('Process a form config to produce the client form config')
+    .requiredOption('-i, --input <path>', 'Path to read the server-side form config TypeScript file')
+    .requiredOption('-o, --output <path>', 'Path to write the client-side form config TypeSCript file')
+    .option('---formMode <formMode>', 'The form mode, either edit or view')
+    .option('--userRoles <userRoles...>', "The user roles, zero or more of 'Admin', 'Librarians', 'Researcher', 'Guest'")
+    .option('-r, --record <path>', "Path to read the data record")
+    .action(async (options) => {
+      try {
+        const globalOptions = program.opts();
+        const inputPath = path.resolve(options.input);
+        const outputPath = path.resolve(options.output);
+
+        const formMode = options.formMode ?? null;
+        const userRoles = options.userRoles ?? null;
+        const record = options.record ? require(path.resolve(options.record)) : null;
+
+        const serverFormConfig = require(inputPath);
+        const clientFormConfig = await createClientFormConfig(
+          serverFormConfig, migrationLogger, formMode, userRoles, undefined, record
+        );
+
+        const tsContent = `import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+const clientFormConfig: FormConfigFrame = ${JSON.stringify(clientFormConfig, null, 2)};
+export default clientFormConfig;`;
+
+        if (globalOptions.dryRun) {
+          console.log('[dry-run] Client form config created; no file written.');
+        } else {
+          fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+          fs.writeFileSync(outputPath, tsContent, 'utf8');
+          console.log(`✅ Wrote client form config: ${outputPath}`);
+        }
+
+        await migrateFormConfigVerify(clientFormConfig, migrationLogger);
+
+        console.log('\n✅ Done!\n');
+      } catch (error: any) {
+        console.error(`\n❌ Error: ${error.message}\n`);
+        process.exit(1);
+      }
+    });
+}
+
+
+export function registerQuestionTreeDiagramCommand(program: Command) {
+
+}
+
+

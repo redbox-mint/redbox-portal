@@ -12,9 +12,10 @@ import { FormComponentGenerator } from './generators/form-component';
 import { FormFieldGenerator } from './generators/form-field';
 import { ModelGenerator } from './generators/model';
 import {
+  registerClientFormConfigCommand,
   registerMigrateDataClassificationCommand,
-  registerMigrateFormConfigCommand
-} from './commands/migrate-form-config';
+  registerMigrateFormConfigCommand, registerQuestionTreeDiagramCommand
+} from './commands/form-config';
 import { generateCompletionScript } from './completion';
 import {
   parseAttributes,
@@ -56,6 +57,8 @@ program
 
 registerMigrateFormConfigCommand(program);
 registerMigrateDataClassificationCommand(program);
+registerClientFormConfigCommand(program);
+registerQuestionTreeDiagramCommand(program);
 
 program
   .command('init')

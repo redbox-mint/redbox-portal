@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import {
-  FormConfigFrame,
+  FormConfigFrame, FormModesConfig,
   formValidatorsSharedDefinitions,
-  ILogger
+  ILogger, ReusableFormDefinitions
 } from '@researchdatabox/sails-ng-common';
 import { MigrationV4ToV5FormConfigVisitor } from './migrate-config-v4-v5.visitor';
 import { TemplateFormConfigVisitor } from './template.visitor';
@@ -123,4 +123,32 @@ export function migrateDataClassification(
     formConfig,
     migratedConfig: migrated,
   };
+}
+
+export async function createClientFormConfig(
+  data: FormConfigFrame, logger: ILogger,
+  formMode?: FormModesConfig, userRoles?: string[], reusableFormDefs?: ReusableFormDefinitions,
+  record?: Record<string, unknown> | null
+) {
+
+  formMode = formMode ?? "edit";
+  userRoles = userRoles ?? ['Admin', 'Librarians', 'Researcher', 'Guest'];
+  reusableFormDefs = reusableFormDefs ?? reusableFormDefinitions;
+
+  const constructor = new ConstructFormConfigVisitor(logger);
+  const form = constructor.start({data, reusableFormDefs, formMode, record});
+
+  const vocabVisitor = new VocabInlineFormConfigVisitor(logger);
+  await vocabVisitor.resolveVocabs(form, 'default');
+
+  const visitor = new ClientFormConfigVisitor(logger);
+  const result = visitor.start({form, reusableFormDefs, formMode, userRoles});
+
+  if (!result) {
+    throw new Error(`The form config is invalid because all form fields were removed, ` +
+      `the form config must have at least one field: ` +
+      `${JSON.stringify({data, formMode, userRoles, record, reusableFormDefs})}`
+    );
+  }
+  return result;
 }
