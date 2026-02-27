@@ -947,7 +947,15 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     // Visit the components
     config?.componentDefinitions.forEach((componentDefinition, index) => {
-      const formComponent = this.constructFormComponent(componentDefinition);
+      let formComponent: AllFormComponentDefinitionOutlines;
+      try {
+        formComponent = this.constructFormComponent(componentDefinition);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : `${error}`;
+        throw new Error(
+          `Invalid tab-content component definition at '${this.formPathHelper.formPath.formConfig}' index ${index}: ${errorMessage}`
+        );
+      }
 
       // Continue the construction
       this.formPathHelper.acceptFormPath(
