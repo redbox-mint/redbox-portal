@@ -5,8 +5,9 @@ import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { GroupFieldComponent } from './component/group.component';
 import { createFormAndWaitForReady, createTestbedModule } from "./helpers.spec";
+import { FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
-import { createFormSaveExecuteEvent } from './form-state/events/form-component-event.types';
+import { createFormDefinitionChangedEvent, createFormSaveExecuteEvent } from './form-state/events/form-component-event.types';
 
 describe('FormComponent', () => {
   beforeEach(async () => {
@@ -232,7 +233,291 @@ describe('FormComponent', () => {
 
     const { fixture } = await createFormAndWaitForReady(formConfig);
     const debugPanels = fixture.nativeElement.querySelectorAll('.rb-form-debug-panel');
-    expect(debugPanels.length).toBe(2);
+    expect(debugPanels.length).toBe(3);
+  });
+
+  it('renders translated config debug section when debug mode is enabled', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'translated-config-debug',
+      debugValue: true,
+      componentDefinitions: [
+        {
+          name: 'text_translated_config',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const headings = Array.from(fixture.nativeElement.querySelectorAll('h4') as NodeListOf<HTMLHeadingElement>).map(item => item.textContent?.trim() ?? '');
+    expect(headings).toContain('Translated Form Config Debug');
+  });
+
+  it('hides all debug sections when debug mode is disabled', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'debug-hidden',
+      debugValue: false,
+      componentDefinitions: [
+        {
+          name: 'text_hidden',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    expect(fixture.nativeElement.querySelectorAll('.rb-form-debug-panel').length).toBe(0);
+    expect(fixture.nativeElement.querySelectorAll('.rb-form-debug-expand').length).toBe(0);
+  });
+
+  it('populates initial translated config snapshot for provided-config path', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'initial-snapshot-provided',
+      debugValue: true,
+      componentDefinitions: [
+        {
+          name: 'text_snapshot',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'snapshot value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { formComponent } = await createFormAndWaitForReady(formConfig);
+    const initialConfig = formComponent.debugTranslatedFormConfigInitial();
+    expect(initialConfig['name']).toBe('initial-snapshot-provided');
+  });
+
+  it('populates initial translated config snapshot for download path', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'initial-snapshot-download',
+      debugValue: true,
+      componentDefinitions: [
+        {
+          name: 'text_snapshot_download',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'snapshot value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.downloadAndCreateOnInit.set(false);
+    formComponent.oid.set('oid-download-path');
+    formComponent.recordType.set('rdmp');
+    formComponent.editMode.set(true);
+    formComponent.formName.set('default-1.0-draft');
+    fixture.autoDetectChanges();
+    await fixture.whenStable();
+
+    const formService = TestBed.inject(FormService);
+    const parentLineagePaths = formService.buildLineagePaths({
+      angularComponents: [],
+      dataModel: [],
+      formConfig: ['componentDefinitions'],
+      layout: [],
+    });
+    const map = await formService.createFormComponentsMap(formConfig, parentLineagePaths);
+    const downloadSpy = spyOn(formService, 'downloadFormComponents').and.resolveTo(map);
+
+    await formComponent.downloadAndCreateFormComponents();
+    await fixture.whenStable();
+
+    expect(downloadSpy).toHaveBeenCalled();
+    expect(formComponent.debugTranslatedFormConfigInitial()['name']).toBe('initial-snapshot-download');
+  });
+
+  it('updates translated config current snapshot on FORM_DEFINITION_CHANGED event', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'definition-change-debug',
+      debugValue: true,
+      componentDefinitions: [
+        {
+          name: 'text_initial',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const bus = TestBed.inject(FormComponentEventBus);
+    formComponent.formDefMap?.formConfig?.componentDefinitions?.push({
+      name: 'text_added',
+      model: {
+        class: 'SimpleInputModel',
+        config: {
+          value: 'new'
+        }
+      },
+      component: {
+        class: 'SimpleInputComponent'
+      }
+    } as any);
+
+    bus.publish(createFormDefinitionChangedEvent({}));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const current = formComponent.debugTranslatedFormConfigCurrent();
+    expect((current['componentDefinitions'] as unknown[]).length).toBe(2);
+  });
+
+  it('updates model current/previous snapshots and changed paths after value change', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'model-snapshots',
+      debugValue: true,
+      componentDefinitions: [
+        {
+          name: 'text_model',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'before'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    formComponent.form?.get('text_model')?.setValue('after');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(formComponent.debugModelCurrent()['text_model']).toBe('after');
+    expect(formComponent.debugModelPrevious()['text_model']).toBe('before');
+    expect(formComponent.debugModelChangedPaths()).toContain('text_model');
+  });
+
+  it('returns dotted/bracket changed paths for nested structures', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'path-diff-format',
+      debugValue: true,
+      componentDefinitions: [
+        {
+          name: 'text_diff_format',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'x'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { formComponent } = await createFormAndWaitForReady(formConfig);
+    const changedPaths = (formComponent as any).computeChangedPaths(
+      { contributors: [{ name: 'old' }] },
+      { contributors: [{ name: 'new' }] },
+      { maxDepth: 5, maxPaths: 200 }
+    );
+    expect(changedPaths).toContain('contributors[0].name');
+  });
+
+  it('renders expand controls and detail rows in component debug table', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'expand-row',
+      debugValue: true,
+      componentDefinitions: [
+        {
+          name: 'text_expand',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const expandButton = fixture.nativeElement.querySelector('.rb-form-debug-expand') as HTMLButtonElement;
+    expect(expandButton).toBeTruthy();
+    expandButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const detailRow = fixture.nativeElement.querySelector('.rb-form-debug-detail') as HTMLElement;
+    expect(detailRow).toBeTruthy();
+    expect(detailRow.textContent).toContain('Component Attributes');
+  });
+
+  it('tracks FORM_DEFINITION_CHANGED debug subscription in subMaps and cleans up on destroy', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'debug-subscription-cleanup',
+      debugValue: true,
+      componentDefinitions: [
+        {
+          name: 'text_sub_cleanup',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const bus = TestBed.inject(FormComponentEventBus);
+    expect(formComponent.subMaps['formDefinitionChangedDebugSub']).toBeTruthy();
+    formComponent.ngOnDestroy();
+    expect(() => bus.publish(createFormDefinitionChangedEvent({}))).not.toThrow();
+    fixture.destroy();
   });
 
 });

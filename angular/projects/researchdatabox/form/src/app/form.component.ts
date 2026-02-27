@@ -39,7 +39,8 @@ import {
   FormStatus,
   FormConfigFrame,
   JSONataQuerySource,
-  FormValidatorSummaryErrors
+  FormValidatorSummaryErrors,
+  LineagePaths
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
@@ -178,6 +179,38 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   debugUseRawValues = signal<boolean>(false);
   /**
+   * Toggle translated config debug view
+   */
+  debugShowTranslatedConfig = signal<boolean>(false);
+  /**
+   * Toggle changed model paths list in data model debug
+   */
+  debugShowModelChanges = signal<boolean>(true);
+  /**
+   * Initial translated form config snapshot
+   */
+  debugTranslatedFormConfigInitial = signal<Record<string, unknown>>({});
+  /**
+   * Current translated form config snapshot
+   */
+  debugTranslatedFormConfigCurrent = signal<Record<string, unknown>>({});
+  /**
+   * Current model snapshot
+   */
+  debugModelCurrent = signal<Record<string, unknown>>({});
+  /**
+   * Previous model snapshot
+   */
+  debugModelPrevious = signal<Record<string, unknown>>({});
+  /**
+   * Changed paths between previous and current model snapshots
+   */
+  debugModelChangedPaths = signal<string[]>([]);
+  /**
+   * Expand/collapse state map for debug rows
+   */
+  debugExpandedRows = signal<Record<string, boolean>>({});
+  /**
    * Reference container for dynamic components injection
    */
   @ViewChild('componentsContainer', { read: ViewContainerRef, static: false }) componentsContainer!: ViewContainerRef | undefined;
@@ -203,6 +236,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Debug info structure
    */
   formDebugInfo: DebugInfo = {
+    id: 'form|root',
+    kind: 'form',
     name: "",
     class: 'FormComponent',
     status: FormStatus.INIT,
@@ -300,6 +335,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig, parentLineagePaths);
     }
     this.componentDefArr = this.formDefMap.components;
+    this.refreshTranslatedConfigDebugInfo(true);
+    this.refreshComponentDebugInfo();
     const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
     if (!compContainerRef) {
       throw new Error(`${this.logName}: No component container found. Cannot load components.`);
@@ -405,6 +442,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }));
         }
       });
+    this.subMaps['formDefinitionChangedDebugSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_DEFINITION_CHANGED)
+      .subscribe(() => {
+        this.refreshTranslatedConfigDebugInfo(false);
+        this.refreshComponentDebugInfo();
+      });
 
     if (this.form) {
       // Wire the form events to update the formGroupStatus signal and publish validation events
@@ -425,16 +468,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
       this.subMaps['formValueChangesSub']?.unsubscribe();
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
-        this.debugFormComponents.set(this.getDebugInfo());
-        this.debugFormValues.set(this.getDebugFormValue());
-        this.debugRawFormValues.set(this.getDebugRawFormValue());
+        this.refreshAllDebugInfo({ captureModelPrevious: true });
       });
     }
     // set the initial signal values...
     this.formGroupStatus.set(this.dataStatus);
-    this.debugFormComponents.set(this.getDebugInfo());
-    this.debugFormValues.set(this.getDebugFormValue());
-    this.debugRawFormValues.set(this.getDebugRawFormValue());
+    this.refreshAllDebugInfo();
     // TODO: Placeholder for form-level expressions handling
     // Init the change event consumer
     // if (this.formDefMap?.formConfig.expressions){
@@ -532,7 +571,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.formDebugInfo.status = this.status();
     this.formDebugInfo.componentsLoaded = this.componentsLoaded();
     this.formDebugInfo.isReady = this.isReady;
-    this.formDebugInfo.children = this.componentDefArr?.map(i => this.getComponentDebugInfo(i));
+    this.formDebugInfo.children = this.componentDefArr?.map((i, siblingIndex) => this.getComponentDebugInfo(i, [], siblingIndex));
     return this.formDebugInfo;
   }
 
@@ -541,7 +580,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public getDebugRawFormValue(): Record<string, unknown> {
-    return structuredClone((this.form?.getRawValue?.() ?? {}) as Record<string, unknown>);
+    return this.safePlainObjectSnapshot((this.form?.getRawValue?.() ?? {}) as Record<string, unknown>);
   }
 
   private getPersistedFormValue(): Record<string, unknown> {
@@ -557,36 +596,342 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
 
-  private getComponentDebugInfo(formFieldCompMapEntry: FormFieldCompMapEntry): DebugInfo {
+  private getComponentDebugInfo(formFieldCompMapEntry: FormFieldCompMapEntry, parentNamePath: string[] = [], siblingIndex: number = 0): DebugInfo {
     const componentEntry = formFieldCompMapEntry;
     this.loggerService.debug('getComponentDebugInfo', formFieldCompMapEntry);
     const componentConfigClassName = formFieldCompMapEntry?.compConfigJson?.component?.class ?? "";
     const name = this.utilityService.formFieldConfigName(formFieldCompMapEntry);
+    const hierarchicalNamePath = [...parentNamePath, name];
+    const lineagePaths = formFieldCompMapEntry?.lineagePaths;
 
     const componentResult: DebugInfo = {
+      id: this.buildDebugRowId('component', formFieldCompMapEntry, hierarchicalNamePath, componentConfigClassName, siblingIndex),
+      kind: 'component',
       name: name,
       class: componentConfigClassName,
       status: componentEntry?.component?.status()?.toString() ?? "",
       viewInitialised: componentEntry?.component?.viewInitialised(),
+      lineagePaths,
+      componentAttributes: this.extractFieldRuntimeAttributes(componentEntry?.component),
+      modelAttributes: this.extractModelRuntimeAttributes(componentEntry?.model, componentEntry?.component)
     };
 
     // If the component has children components, recursively get their debug info. This used to be hardcoded for specific component types, but now it is generic.
     const component = formFieldCompMapEntry?.component;
     if (Array.isArray(component?.formFieldCompMapEntries)) {
-      componentResult.children = component?.formFieldCompMapEntries?.map((i: FormFieldCompMapEntry) => this.getComponentDebugInfo(i));
+      componentResult.children = component?.formFieldCompMapEntries?.map((i: FormFieldCompMapEntry, childIndex: number) => this.getComponentDebugInfo(i, hierarchicalNamePath, childIndex));
     }
 
     if (componentEntry?.layout) {
+      const layoutName = formFieldCompMapEntry?.compConfigJson?.layout?.name ?? `${name}-layout`;
+      const layoutNamePath = [...parentNamePath, layoutName];
       return {
-        name: formFieldCompMapEntry?.compConfigJson?.layout?.name ?? "",
+        id: this.buildDebugRowId('layout', formFieldCompMapEntry, layoutNamePath, formFieldCompMapEntry?.compConfigJson?.layout?.class ?? "", siblingIndex),
+        kind: 'layout',
+        lineagePaths,
+        name: layoutName,
         class: formFieldCompMapEntry?.compConfigJson?.layout?.class ?? "",
         status: componentEntry?.layout?.status()?.toString() ?? "",
         viewInitialised: componentEntry?.layout?.viewInitialised(),
+        layoutAttributes: this.extractFieldRuntimeAttributes(componentEntry?.layout),
         children: [componentResult],
       }
     } else {
       return componentResult;
     }
+  }
+
+  private refreshAllDebugInfo(opts?: { captureModelPrevious?: boolean; resetConfigInitial?: boolean }) {
+    this.refreshTranslatedConfigDebugInfo(!!opts?.resetConfigInitial);
+    this.refreshModelDebugInfo(!!opts?.captureModelPrevious);
+    this.refreshComponentDebugInfo();
+    this.debugFormValues.set(this.getDebugFormValue());
+    this.debugRawFormValues.set(this.getDebugRawFormValue());
+  }
+
+  private refreshTranslatedConfigDebugInfo(resetInitial: boolean) {
+    const currentConfigSnapshot = this.safePlainObjectSnapshot(this.formDefMap?.formConfig ?? {});
+    this.debugTranslatedFormConfigCurrent.set(currentConfigSnapshot);
+    if (resetInitial || Object.keys(this.debugTranslatedFormConfigInitial()).length === 0) {
+      this.debugTranslatedFormConfigInitial.set(this.safePlainObjectSnapshot(currentConfigSnapshot));
+    }
+  }
+
+  private refreshModelDebugInfo(captureModelPrevious: boolean) {
+    const currentSnapshot = this.getDebugFormValue();
+    const previousSnapshot = captureModelPrevious
+      ? this.safePlainObjectSnapshot(this.debugModelCurrent())
+      : this.debugModelPrevious();
+    this.debugModelPrevious.set(this.safePlainObjectSnapshot(previousSnapshot));
+    this.debugModelCurrent.set(this.safePlainObjectSnapshot(currentSnapshot));
+    this.debugModelChangedPaths.set(this.computeChangedPaths(previousSnapshot, currentSnapshot, { maxDepth: 5, maxPaths: 200 }));
+  }
+
+  private refreshComponentDebugInfo() {
+    const debugInfoSnapshot = this.safePlainObjectSnapshot(this.getDebugInfo());
+    this.debugFormComponents.set(debugInfoSnapshot);
+    const validIds = new Set<string>();
+    this.collectDebugRowIds(debugInfoSnapshot as DebugInfo, validIds);
+    const expandedRows = this.debugExpandedRows();
+    const prunedExpandedRows: Record<string, boolean> = {};
+    for (const [id, expanded] of Object.entries(expandedRows)) {
+      if (expanded && validIds.has(id)) {
+        prunedExpandedRows[id] = true;
+      }
+    }
+    this.debugExpandedRows.set(prunedExpandedRows);
+  }
+
+  public toggleDebugExpandedRow(rowId: string) {
+    const current = this.debugExpandedRows();
+    this.debugExpandedRows.set({
+      ...current,
+      [rowId]: !current[rowId]
+    });
+  }
+
+  public isDebugExpandedRow(rowId: string): boolean {
+    return !!this.debugExpandedRows()?.[rowId];
+  }
+
+  public isDebugRowExpandable(item?: DebugInfo): boolean {
+    if (!item) {
+      return false;
+    }
+    return !!(item.componentAttributes || item.layoutAttributes || item.modelAttributes || item.lineagePaths);
+  }
+
+  public computeChangedPaths(
+    previous: unknown,
+    current: unknown,
+    opts?: { maxDepth?: number; maxPaths?: number }
+  ): string[] {
+    const maxDepth = opts?.maxDepth ?? 5;
+    const maxPaths = opts?.maxPaths ?? 200;
+    const changedPaths: string[] = [];
+
+    const pushPath = (path: string) => {
+      if (changedPaths.length >= maxPaths) {
+        return;
+      }
+      changedPaths.push(path || '(root)');
+      if (changedPaths.length === maxPaths) {
+        changedPaths.push('...truncated');
+      }
+    };
+
+    const valuesDiffer = (left: unknown, right: unknown): boolean => {
+      if (left === right) {
+        return false;
+      }
+      if (typeof left !== 'object' || left === null || typeof right !== 'object' || right === null) {
+        return true;
+      }
+      try {
+        return JSON.stringify(left) !== JSON.stringify(right);
+      } catch {
+        return true;
+      }
+    };
+
+    const walk = (left: unknown, right: unknown, path: string, depth: number) => {
+      if (changedPaths.length >= maxPaths) {
+        return;
+      }
+
+      if (depth >= maxDepth) {
+        if (valuesDiffer(left, right)) {
+          pushPath(path);
+        }
+        return;
+      }
+
+      if (Array.isArray(left) || Array.isArray(right)) {
+        const leftArray = Array.isArray(left) ? left : [];
+        const rightArray = Array.isArray(right) ? right : [];
+        const maxLength = Math.max(leftArray.length, rightArray.length);
+        for (let index = 0; index < maxLength; index++) {
+          const nextPath = `${path}[${index}]`;
+          walk(leftArray[index], rightArray[index], nextPath, depth + 1);
+          if (changedPaths.length >= maxPaths) {
+            return;
+          }
+        }
+        return;
+      }
+
+      const leftIsObject = !!left && typeof left === 'object';
+      const rightIsObject = !!right && typeof right === 'object';
+      if (leftIsObject || rightIsObject) {
+        const leftObject = leftIsObject ? left as Record<string, unknown> : {};
+        const rightObject = rightIsObject ? right as Record<string, unknown> : {};
+        const keys = new Set([...Object.keys(leftObject), ...Object.keys(rightObject)]);
+        for (const key of keys) {
+          const nextPath = path ? `${path}.${key}` : key;
+          walk(leftObject[key], rightObject[key], nextPath, depth + 1);
+          if (changedPaths.length >= maxPaths) {
+            return;
+          }
+        }
+        return;
+      }
+
+      if (valuesDiffer(left, right)) {
+        pushPath(path);
+      }
+    };
+
+    walk(previous, current, '', 0);
+    return changedPaths;
+  }
+
+  private buildDebugRowId(
+    kind: DebugInfo['kind'],
+    entry: FormFieldCompMapEntry,
+    hierarchicalNamePath: string[],
+    className: string,
+    siblingIndex: number
+  ): string {
+    const lineagePointer = kind === 'layout'
+      ? entry?.lineagePaths?.layoutJsonPointer
+      : entry?.lineagePaths?.angularComponentsJsonPointer;
+    if (lineagePointer) {
+      return `${kind}|${lineagePointer}`;
+    }
+    const recordType = this.trimmedParams.recordType() || '';
+    const formName = this.trimmedParams.formName() || '';
+    return `${kind}|${recordType}|${formName}|${hierarchicalNamePath.join('/') || '(no-name)'}|${className || '(no-class)'}|${siblingIndex}`;
+  }
+
+  private extractFieldRuntimeAttributes(target?: unknown): Record<string, unknown> {
+    const typedTarget = target as Record<string, unknown> | undefined;
+    if (!typedTarget) {
+      return {};
+    }
+    return this.safePlainObjectSnapshot({
+      status: this.safeInvoke(() => (typedTarget['status'] as (() => unknown))?.()),
+      viewInitialised: this.safeInvoke(() => (typedTarget['viewInitialised'] as (() => unknown))?.()),
+      isVisible: this.safeInvoke(() => typedTarget['isVisible']),
+      isReadonly: this.safeInvoke(() => typedTarget['isReadonly']),
+      isDisabled: this.safeInvoke(() => typedTarget['isDisabled']),
+      isRequired: this.safeInvoke(() => typedTarget['isRequired']),
+      isValid: this.safeInvoke(() => typedTarget['isValid']),
+      showValidState: this.safeInvoke(() => typedTarget['showValidState']),
+      hostBindingCssClasses: this.safeInvoke(() => typedTarget['hostBindingCssClasses']),
+      name: this.safeInvoke(() => typedTarget['name']),
+      className: this.safeInvoke(() => typedTarget['className'])
+    });
+  }
+
+  private extractModelRuntimeAttributes(model?: unknown, component?: unknown): Record<string, unknown> {
+    if (!model) {
+      return {};
+    }
+    const typedModel = model as Record<string, unknown>;
+    const typedComponent = component as Record<string, unknown> | undefined;
+    const modelFormControl = this.safeInvoke(() => typedComponent?.['formControl']) ?? typedModel['formControl'];
+    const typedFormControl = (modelFormControl ?? {}) as Record<string, unknown>;
+    return this.safePlainObjectSnapshot({
+      name: typedModel['name'],
+      validators: typedModel['validators'],
+      value: this.safeInvoke(() => (typedModel['getValue'] as (() => unknown))?.()),
+      formControl: {
+        value: typedFormControl['value'],
+        status: typedFormControl['status'],
+        errors: typedFormControl['errors'],
+        pristine: typedFormControl['pristine'],
+        dirty: typedFormControl['dirty'],
+        touched: typedFormControl['touched'],
+        untouched: typedFormControl['untouched'],
+        disabled: typedFormControl['disabled'],
+        enabled: typedFormControl['enabled'],
+        pending: typedFormControl['pending'],
+        valid: typedFormControl['valid'],
+        invalid: typedFormControl['invalid']
+      }
+    });
+  }
+
+  private collectDebugRowIds(item: DebugInfo | undefined, result: Set<string>) {
+    if (!item) {
+      return;
+    }
+    if (item.id) {
+      result.add(item.id);
+    }
+    const children = item.children ?? [];
+    for (const child of children) {
+      this.collectDebugRowIds(child, result);
+    }
+  }
+
+  private safeInvoke<T>(callable: () => T): T | undefined {
+    try {
+      return callable();
+    } catch (error) {
+      this.loggerService.debug(`${this.logName}: debug safeInvoke failed`, error);
+      return undefined;
+    }
+  }
+
+  private safePlainObjectSnapshot(value: unknown): Record<string, unknown> {
+    const cleaned = this.stripNonSerializable(value);
+    if (!cleaned || typeof cleaned !== 'object') {
+      return {};
+    }
+    try {
+      return structuredClone(cleaned as Record<string, unknown>);
+    } catch (cloneError) {
+      this.loggerService.debug(`${this.logName}: structuredClone failed, falling back to JSON clone`, cloneError);
+      try {
+        return JSON.parse(JSON.stringify(cleaned)) as Record<string, unknown>;
+      } catch (jsonError) {
+        this.loggerService.debug(`${this.logName}: JSON clone fallback failed`, jsonError);
+        return {};
+      }
+    }
+  }
+
+  private stripNonSerializable(value: unknown, visited: WeakSet<object> = new WeakSet<object>()): unknown {
+    if (_isUndefined(value) || value === null) {
+      return value;
+    }
+    if (typeof value === 'function' || typeof value === 'symbol') {
+      return undefined;
+    }
+    if (typeof value === 'bigint') {
+      return value.toString();
+    }
+    if (typeof value !== 'object') {
+      return value;
+    }
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    if (value instanceof ElementRef) {
+      return undefined;
+    }
+    const asObject = value as object;
+    if (visited.has(asObject)) {
+      return undefined;
+    }
+    visited.add(asObject);
+
+    if (Array.isArray(value)) {
+      return value
+        .map(item => this.stripNonSerializable(item, visited))
+        .filter(item => !_isUndefined(item));
+    }
+
+    const candidate = value as Record<string, unknown>;
+    const result: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(candidate)) {
+      const cleanedValue = this.stripNonSerializable(item, visited);
+      if (!_isUndefined(cleanedValue)) {
+        result[key] = cleanedValue;
+      }
+    }
+    return result;
   }
 
   // Convenience method to find component definition by name, defaults to the this.componentDefArr if no array is provided.
@@ -778,11 +1123,17 @@ export interface FormGroupStatus {
 }
 
 type DebugInfo = {
+  id: string,
+  kind: 'form' | 'layout' | 'component',
   class: string,
   status: string,
   name: string,
+  lineagePaths?: LineagePaths,
+  componentAttributes?: Record<string, unknown>,
+  layoutAttributes?: Record<string, unknown>,
+  modelAttributes?: Record<string, unknown>,
   componentsLoaded?: boolean,
   viewInitialised?: boolean,
   isReady?: boolean,
-  children?: any[]
+  children?: DebugInfo[]
 };

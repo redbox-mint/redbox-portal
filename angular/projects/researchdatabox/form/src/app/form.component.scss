@@ -50,6 +50,32 @@
   width: 100%;
 }
 
+.rb-form-host .rb-form-debug-pre {
+  max-height: 18rem;
+  overflow-y: auto;
+  overflow-x: auto;
+  margin-bottom: var(--rb-form-gap-2);
+}
+
+.rb-form-host .rb-form-debug-detail td {
+  background: color-mix(in srgb, var(--rb-form-bg-muted) 68%, #ffffff);
+  border-top: none;
+  padding: var(--rb-form-gap-2);
+}
+
+.rb-form-host .rb-form-debug-paths ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  max-height: 10rem;
+  overflow-y: auto;
+}
+
+.rb-form-host .rb-form-debug-paths li {
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
 .rb-form-host.rb-form-edit .rb-form-tab-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
