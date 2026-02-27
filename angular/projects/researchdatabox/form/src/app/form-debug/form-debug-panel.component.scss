@@ -1,0 +1,161 @@
+:host {
+  display: contents;
+}
+
+.rb-form-host {
+  --rb-form-debug-z: 2147480000;
+}
+
+.rb-form-host.rb-form-debug-open {
+  position: relative;
+  z-index: var(--rb-form-debug-z);
+  isolation: isolate;
+}
+
+.rb-form-debug-shell {
+  position: fixed;
+  z-index: 2147483647 !important;
+}
+
+.rb-form-debug-backdrop {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.16);
+  z-index: 2147483646 !important;
+}
+
+.rb-form-debug-launch {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2147483647 !important;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.rb-form-debug-launch--side {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  min-height: 5.5rem;
+  padding: 0.55rem 0.35rem;
+  font-weight: 600;
+}
+
+.rb-form-debug-shell--dock {
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 560px;
+}
+
+.rb-form-debug-shell--overlay {
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(88vw, 560px);
+}
+
+.rb-form-debug-shell--sheet {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 60vh;
+}
+
+.rb-form-debug-resize-handle {
+  position: absolute;
+  top: 0;
+  left: -14px;
+  width: 14px;
+  height: 100%;
+  border: 1px solid color-mix(in srgb, var(--rb-form-border-color) 90%, #ffffff);
+  border-right: 0;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rb-form-debug-close {
+  margin-left: auto;
+}
+
+.rb-form-debug-panel {
+  height: 100%;
+  margin: 0;
+  border-radius: 0;
+  border-left: 1px solid color-mix(in srgb, var(--rb-form-border-color) 85%, #ffffff);
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+}
+
+.rb-form-debug-header {
+  position: sticky;
+  top: 0;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--rb-form-border-color);
+  display: grid;
+  gap: 0.6rem;
+}
+
+.rb-form-debug-header-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.rb-form-debug-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rb-form-debug-content {
+  overflow: auto;
+  min-height: 0;
+  padding: 0.75rem;
+}
+
+.rb-form-debug-content .rb-form-debug-event-controls {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-top: 0.25rem;
+  background: #f8fafc;
+}
+
+.rb-form-debug-content .rb-form-debug-event-filters {
+  position: sticky;
+  top: 3.2rem;
+  z-index: 1;
+  background: #f8fafc;
+  padding-bottom: 0.5rem;
+}
+
+@media (max-width: 1279px) {
+  .rb-form-debug-panel {
+    border-left: none;
+    box-shadow: -12px 0 26px -18px rgba(15, 23, 42, 0.45);
+  }
+
+  .rb-form-debug-resize-handle {
+    left: -10px;
+    width: 10px;
+  }
+}
+
+@media (max-width: 767px) {
+  .rb-form-debug-backdrop {
+    background: rgba(15, 23, 42, 0.24);
+  }
+}

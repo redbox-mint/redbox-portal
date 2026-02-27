@@ -20,7 +20,7 @@ describe('RadioInputComponent', () => {
   it('should render RadioInput component with options', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
@@ -70,7 +70,7 @@ describe('RadioInputComponent', () => {
   it('should resolve language-map labels for options', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },

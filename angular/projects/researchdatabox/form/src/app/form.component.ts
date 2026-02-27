@@ -33,14 +33,13 @@ import {
 import { Subscription } from 'rxjs';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup, FormControlStatus, StatusChangeEvent, PristineChangeEvent, ValueChangeEvent } from '@angular/forms';
-import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get, trim as _trim } from 'lodash-es';
+import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, get as _get, trim as _trim } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService, RecordService, RecordActionResult } from '@researchdatabox/portal-ng-common';
 import {
   FormStatus,
   FormConfigFrame,
   JSONataQuerySource,
-  FormValidatorSummaryErrors,
-  LineagePaths
+  FormValidatorSummaryErrors
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
@@ -51,6 +50,7 @@ import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
 import { FormComponentValueChangeEventConsumer } from './form-state/events/';
+import { DebugInfo, FormDebugStateService } from './form-debug/form-debug-state.service';
 
 
 /**
@@ -75,7 +75,8 @@ import { FormComponentValueChangeEventConsumer } from './form-state/events/';
   providers: [
     Location,
     { provide: LocationStrategy, useClass: PathLocationStrategy },
-    FormComponentFocusRequestCoordinator
+    FormComponentFocusRequestCoordinator,
+    FormDebugStateService
   ],
   encapsulation: ViewEncapsulation.None,
   standalone: false
@@ -162,54 +163,30 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Indicates whether the form components have been loaded
    */
   componentsLoaded = signal<boolean>(false);
-  /**
-   * Form component debug map
-   */
-  debugFormComponents = signal<Record<string, unknown>>({});
-  /**
-    * Form values debug map (actual payload)
-   */
-  debugFormValues = signal<Record<string, unknown>>({});
-  /**
-   * Raw form values debug map (includes disabled controls)
-   */
-  debugRawFormValues = signal<Record<string, unknown>>({});
-  /**
-   * Toggle for using raw form values in debug panel
-   */
-  debugUseRawValues = signal<boolean>(false);
-  /**
-   * Toggle translated config debug view
-   */
-  debugShowTranslatedConfig = signal<boolean>(false);
-  /**
-   * Toggle changed model paths list in data model debug
-   */
-  debugShowModelChanges = signal<boolean>(true);
-  /**
-   * Initial translated form config snapshot
-   */
-  debugTranslatedFormConfigInitial = signal<Record<string, unknown>>({});
-  /**
-   * Current translated form config snapshot
-   */
-  debugTranslatedFormConfigCurrent = signal<Record<string, unknown>>({});
-  /**
-   * Current model snapshot
-   */
-  debugModelCurrent = signal<Record<string, unknown>>({});
-  /**
-   * Previous model snapshot
-   */
-  debugModelPrevious = signal<Record<string, unknown>>({});
-  /**
-   * Changed paths between previous and current model snapshots
-   */
-  debugModelChangedPaths = signal<string[]>([]);
-  /**
-   * Expand/collapse state map for debug rows
-   */
-  debugExpandedRows = signal<Record<string, boolean>>({});
+  public readonly debugState = inject(FormDebugStateService);
+  // Backward-compatible aliases for existing tests and callers.
+  debugFormComponents = this.debugState.debugFormComponents;
+  debugFormValues = this.debugState.debugFormValues;
+  debugRawFormValues = this.debugState.debugRawFormValues;
+  debugUseRawValues = this.debugState.debugUseRawValues;
+  debugShowTranslatedConfig = this.debugState.debugShowTranslatedConfig;
+  debugShowModelChanges = this.debugState.debugShowModelChanges;
+  debugTranslatedFormConfigInitial = this.debugState.debugTranslatedFormConfigInitial;
+  debugTranslatedFormConfigCurrent = this.debugState.debugTranslatedFormConfigCurrent;
+  debugModelCurrent = this.debugState.debugModelCurrent;
+  debugModelPrevious = this.debugState.debugModelPrevious;
+  debugModelChangedPaths = this.debugState.debugModelChangedPaths;
+  debugExpandedRows = this.debugState.debugExpandedRows;
+  debugEventStreamEnabled = this.debugState.debugEventStreamEnabled;
+  debugEventPaused = this.debugState.debugEventPaused;
+  debugEventFilterType = this.debugState.debugEventFilterType;
+  debugEventFilterFieldId = this.debugState.debugEventFilterFieldId;
+  debugEventFilterSourceId = this.debugState.debugEventFilterSourceId;
+  debugEventAutoScroll = this.debugState.debugEventAutoScroll;
+  debugEventMaxItems = this.debugState.debugEventMaxItems;
+  debugEvents = this.debugState.debugEvents;
+  debugExpandedEventRows = this.debugState.debugExpandedEventRows;
+  readonly debugEventTypes = this.debugState.debugEventTypes;
   /**
    * Reference container for dynamic components injection
    */
@@ -448,6 +425,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.refreshTranslatedConfigDebugInfo(false);
         this.refreshComponentDebugInfo();
       });
+    this.subMaps['debugEventStreamSub']?.unsubscribe();
+    this.subMaps['debugEventStreamSub'] = this.eventBus
+      .selectAll$()
+      .subscribe((event: FormComponentEvent) => {
+        this.debugState.captureDebugEvent(event);
+      });
 
     if (this.form) {
       // Wire the form events to update the formGroupStatus signal and publish validation events
@@ -529,7 +512,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   @HostBinding('class') get hostClasses(): string {
     const modeClass = this.editMode() ? 'rb-form-edit' : 'rb-form-view';
-    const baselineClasses = `rb-form-host ${modeClass}`.trim();
+    const debugOpenClass = this.debugState.isDebugEnabled() && !this.debugState.panelCollapsed() ? 'rb-form-debug-open' : '';
+    const baselineClasses = `rb-form-host ${modeClass} ${debugOpenClass}`.trim();
     if (!this.formDefMap?.formConfig) {
       return baselineClasses;
     }
@@ -645,60 +629,19 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.refreshTranslatedConfigDebugInfo(!!opts?.resetConfigInitial);
     this.refreshModelDebugInfo(!!opts?.captureModelPrevious);
     this.refreshComponentDebugInfo();
-    this.debugFormValues.set(this.getDebugFormValue());
-    this.debugRawFormValues.set(this.getDebugRawFormValue());
+    this.debugState.setFormValueSnapshots(this.getDebugFormValue(), this.getDebugRawFormValue());
   }
 
   private refreshTranslatedConfigDebugInfo(resetInitial: boolean) {
-    const currentConfigSnapshot = this.safePlainObjectSnapshot(this.formDefMap?.formConfig ?? {});
-    this.debugTranslatedFormConfigCurrent.set(currentConfigSnapshot);
-    if (resetInitial || Object.keys(this.debugTranslatedFormConfigInitial()).length === 0) {
-      this.debugTranslatedFormConfigInitial.set(this.safePlainObjectSnapshot(currentConfigSnapshot));
-    }
+    this.debugState.setTranslatedConfigSnapshot(this.formDefMap?.formConfig ?? {}, resetInitial);
   }
 
   private refreshModelDebugInfo(captureModelPrevious: boolean) {
-    const currentSnapshot = this.getDebugFormValue();
-    const previousSnapshot = captureModelPrevious
-      ? this.safePlainObjectSnapshot(this.debugModelCurrent())
-      : this.debugModelPrevious();
-    this.debugModelPrevious.set(this.safePlainObjectSnapshot(previousSnapshot));
-    this.debugModelCurrent.set(this.safePlainObjectSnapshot(currentSnapshot));
-    this.debugModelChangedPaths.set(this.computeChangedPaths(previousSnapshot, currentSnapshot, { maxDepth: 5, maxPaths: 200 }));
+    this.debugState.setModelSnapshot(this.getDebugFormValue(), captureModelPrevious);
   }
 
   private refreshComponentDebugInfo() {
-    const debugInfoSnapshot = this.safePlainObjectSnapshot(this.getDebugInfo());
-    this.debugFormComponents.set(debugInfoSnapshot);
-    const validIds = new Set<string>();
-    this.collectDebugRowIds(debugInfoSnapshot as DebugInfo, validIds);
-    const expandedRows = this.debugExpandedRows();
-    const prunedExpandedRows: Record<string, boolean> = {};
-    for (const [id, expanded] of Object.entries(expandedRows)) {
-      if (expanded && validIds.has(id)) {
-        prunedExpandedRows[id] = true;
-      }
-    }
-    this.debugExpandedRows.set(prunedExpandedRows);
-  }
-
-  public toggleDebugExpandedRow(rowId: string) {
-    const current = this.debugExpandedRows();
-    this.debugExpandedRows.set({
-      ...current,
-      [rowId]: !current[rowId]
-    });
-  }
-
-  public isDebugExpandedRow(rowId: string): boolean {
-    return !!this.debugExpandedRows()?.[rowId];
-  }
-
-  public isDebugRowExpandable(item?: DebugInfo): boolean {
-    if (!item) {
-      return false;
-    }
-    return !!(item.componentAttributes || item.layoutAttributes || item.modelAttributes || item.lineagePaths);
+    this.debugState.setComponentDebugInfo(this.getDebugInfo());
   }
 
   public computeChangedPaths(
@@ -706,83 +649,19 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     current: unknown,
     opts?: { maxDepth?: number; maxPaths?: number }
   ): string[] {
-    const maxDepth = opts?.maxDepth ?? 5;
-    const maxPaths = opts?.maxPaths ?? 200;
-    const changedPaths: string[] = [];
+    return this.debugState.computeChangedPaths(previous, current, opts);
+  }
 
-    const pushPath = (path: string) => {
-      if (changedPaths.length >= maxPaths) {
-        return;
-      }
-      changedPaths.push(path || '(root)');
-      if (changedPaths.length === maxPaths) {
-        changedPaths.push('...truncated');
-      }
-    };
+  public clearDebugEvents(): void {
+    this.debugState.clearDebugEvents();
+  }
 
-    const valuesDiffer = (left: unknown, right: unknown): boolean => {
-      if (left === right) {
-        return false;
-      }
-      if (typeof left !== 'object' || left === null || typeof right !== 'object' || right === null) {
-        return true;
-      }
-      try {
-        return JSON.stringify(left) !== JSON.stringify(right);
-      } catch {
-        return true;
-      }
-    };
+  public getFilteredDebugEvents() {
+    return this.debugState.getFilteredDebugEvents();
+  }
 
-    const walk = (left: unknown, right: unknown, path: string, depth: number) => {
-      if (changedPaths.length >= maxPaths) {
-        return;
-      }
-
-      if (depth >= maxDepth) {
-        if (valuesDiffer(left, right)) {
-          pushPath(path);
-        }
-        return;
-      }
-
-      if (Array.isArray(left) || Array.isArray(right)) {
-        const leftArray = Array.isArray(left) ? left : [];
-        const rightArray = Array.isArray(right) ? right : [];
-        const maxLength = Math.max(leftArray.length, rightArray.length);
-        for (let index = 0; index < maxLength; index++) {
-          const nextPath = `${path}[${index}]`;
-          walk(leftArray[index], rightArray[index], nextPath, depth + 1);
-          if (changedPaths.length >= maxPaths) {
-            return;
-          }
-        }
-        return;
-      }
-
-      const leftIsObject = !!left && typeof left === 'object';
-      const rightIsObject = !!right && typeof right === 'object';
-      if (leftIsObject || rightIsObject) {
-        const leftObject = leftIsObject ? left as Record<string, unknown> : {};
-        const rightObject = rightIsObject ? right as Record<string, unknown> : {};
-        const keys = new Set([...Object.keys(leftObject), ...Object.keys(rightObject)]);
-        for (const key of keys) {
-          const nextPath = path ? `${path}.${key}` : key;
-          walk(leftObject[key], rightObject[key], nextPath, depth + 1);
-          if (changedPaths.length >= maxPaths) {
-            return;
-          }
-        }
-        return;
-      }
-
-      if (valuesDiffer(left, right)) {
-        pushPath(path);
-      }
-    };
-
-    walk(previous, current, '', 0);
-    return changedPaths;
+  public setDebugEventMaxItems(value: number | string): void {
+    this.debugState.setDebugEventMaxItems(value);
   }
 
   private buildDebugRowId(
@@ -852,19 +731,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     });
   }
 
-  private collectDebugRowIds(item: DebugInfo | undefined, result: Set<string>) {
-    if (!item) {
-      return;
-    }
-    if (item.id) {
-      result.add(item.id);
-    }
-    const children = item.children ?? [];
-    for (const child of children) {
-      this.collectDebugRowIds(child, result);
-    }
-  }
-
   private safeInvoke<T>(callable: () => T): T | undefined {
     try {
       return callable();
@@ -875,63 +741,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private safePlainObjectSnapshot(value: unknown): Record<string, unknown> {
-    const cleaned = this.stripNonSerializable(value);
-    if (!cleaned || typeof cleaned !== 'object') {
-      return {};
-    }
-    try {
-      return structuredClone(cleaned as Record<string, unknown>);
-    } catch (cloneError) {
-      this.loggerService.debug(`${this.logName}: structuredClone failed, falling back to JSON clone`, cloneError);
-      try {
-        return JSON.parse(JSON.stringify(cleaned)) as Record<string, unknown>;
-      } catch (jsonError) {
-        this.loggerService.debug(`${this.logName}: JSON clone fallback failed`, jsonError);
-        return {};
-      }
-    }
-  }
-
-  private stripNonSerializable(value: unknown, visited: WeakSet<object> = new WeakSet<object>()): unknown {
-    if (_isUndefined(value) || value === null) {
-      return value;
-    }
-    if (typeof value === 'function' || typeof value === 'symbol') {
-      return undefined;
-    }
-    if (typeof value === 'bigint') {
-      return value.toString();
-    }
-    if (typeof value !== 'object') {
-      return value;
-    }
-    if (value instanceof Date) {
-      return value.toISOString();
-    }
-    if (value instanceof ElementRef) {
-      return undefined;
-    }
-    const asObject = value as object;
-    if (visited.has(asObject)) {
-      return undefined;
-    }
-    visited.add(asObject);
-
-    if (Array.isArray(value)) {
-      return value
-        .map(item => this.stripNonSerializable(item, visited))
-        .filter(item => !_isUndefined(item));
-    }
-
-    const candidate = value as Record<string, unknown>;
-    const result: Record<string, unknown> = {};
-    for (const [key, item] of Object.entries(candidate)) {
-      const cleanedValue = this.stripNonSerializable(item, visited);
-      if (!_isUndefined(cleanedValue)) {
-        result[key] = cleanedValue;
-      }
-    }
-    return result;
+    return this.debugState.safePlainObjectSnapshot(value);
   }
 
   // Convenience method to find component definition by name, defaults to the this.componentDefArr if no array is provided.
@@ -1121,19 +931,3 @@ export interface FormGroupStatus {
   errors: any;
   status: FormControlStatus;
 }
-
-type DebugInfo = {
-  id: string,
-  kind: 'form' | 'layout' | 'component',
-  class: string,
-  status: string,
-  name: string,
-  lineagePaths?: LineagePaths,
-  componentAttributes?: Record<string, unknown>,
-  layoutAttributes?: Record<string, unknown>,
-  modelAttributes?: Record<string, unknown>,
-  componentsLoaded?: boolean,
-  viewInitialised?: boolean,
-  isReady?: boolean,
-  children?: DebugInfo[]
-};

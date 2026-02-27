@@ -24,7 +24,7 @@ describe('RepeatableComponent', () => {
   it('should render the repeatable and array components', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       domElementType: 'form',
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
@@ -101,7 +101,7 @@ describe('RepeatableComponent', () => {
   it('should emit FORM_DEFINITION_CHANGED event when an element is appended', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       domElementType: 'form',
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',

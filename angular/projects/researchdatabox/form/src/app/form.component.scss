@@ -76,6 +76,53 @@
   line-height: 1.35;
 }
 
+.rb-form-host .rb-form-debug-event-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rb-form-gap-2);
+  margin-bottom: var(--rb-form-gap-2);
+}
+
+.rb-form-host .rb-form-debug-event-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--rb-form-gap-2);
+  margin-bottom: var(--rb-form-gap-2);
+}
+
+.rb-form-host .rb-form-debug-event-list {
+  max-height: 22rem;
+  overflow: auto;
+}
+
+.rb-form-host .rb-form-debug-event-table {
+  margin-bottom: 0;
+}
+
+.rb-form-host .rb-form-debug-event-table th,
+.rb-form-host .rb-form-debug-event-table td {
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.rb-form-host .rb-form-debug-event-table td:nth-child(2),
+.rb-form-host .rb-form-debug-event-table td:nth-child(3) {
+  min-width: 11rem;
+}
+
+.rb-form-host .rb-form-debug-event-detail td {
+  border-top: none;
+  background: color-mix(in srgb, var(--rb-form-bg-muted) 70%, #ffffff);
+}
+
+.rb-form-host .rb-form-debug-event-payload {
+  max-height: 14rem;
+  margin-bottom: 0;
+}
+
 .rb-form-host.rb-form-edit .rb-form-tab-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

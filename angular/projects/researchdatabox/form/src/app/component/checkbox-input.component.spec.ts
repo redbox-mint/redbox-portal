@@ -20,7 +20,7 @@ describe('CheckboxInputComponent', () => {
   it('should render Checkbox input component', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
@@ -59,7 +59,7 @@ describe('CheckboxInputComponent', () => {
   it('should allow selecting multiple options when multipleValues is enabled', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
@@ -107,7 +107,7 @@ describe('CheckboxInputComponent', () => {
   it('should resolve language-map labels for options', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
