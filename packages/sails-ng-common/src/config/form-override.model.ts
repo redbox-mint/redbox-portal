@@ -403,13 +403,9 @@ export class FormOverride {
       phase === 'construct' &&
       formMode === 'view' &&
       new Set<string>([RepeatableComponentName, GroupFieldComponentName]).has(originalComponentClassName);
-    const skipAutomaticViewTransform =
-      formMode === 'view' && this.hasExplicitAllowedMode(original?.constraints, 'view');
-
     if (
       originalComponentClassName in this.defaultTransforms &&
-      !deferViewModeContentFlatteningAtConstruct &&
-      !skipAutomaticViewTransform
+      !deferViewModeContentFlatteningAtConstruct
     ) {
       const defaultTransform = this.defaultTransforms[originalComponentClassName] ?? {};
       if (formMode in defaultTransform) {
@@ -1213,13 +1209,7 @@ export class FormOverride {
     return allowModes.includes(formMode);
   }
 
-  private hasExplicitAllowedMode(
-    constraints: FormConstraintConfigOutline | undefined,
-    mode: FormModesConfig
-  ): boolean {
-    const allowModes = constraints?.allowModes;
-    return Array.isArray(allowModes) && allowModes.includes(mode);
-  }
+
 
   private forceAllowModeForTransformedTree(componentDefinition: any, formMode: FormModesConfig): void {
     if (!componentDefinition || typeof componentDefinition !== 'object') {
