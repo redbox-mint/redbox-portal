@@ -169,8 +169,9 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       .select$(FormComponentEventType.FIELD_VALUE_CHANGED)
       .pipe(
         filter(event =>
-          event.fieldId === this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer ||
-          event.fieldId.startsWith(this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer + '/')
+            (event.fieldId === this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer ||
+          event.fieldId.startsWith(this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer + '/'))
+          && event.sourceId !== '*'
         ),
         debounceTime(300)
       )

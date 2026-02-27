@@ -4,30 +4,36 @@ import {RadioInputComponent} from "./radio-input.component";
 import {QuestionTreeComponent} from "./question-tree.component";
 import {CheckboxInputComponent} from "./checkbox-input.component";
 import {
-  FormConfigFrame, QuestionTreeFieldComponentConfigFrame,
+  FormConfigFrame,
+  QuestionTreeFieldComponentConfigFrame,
   QuestionTreeModelValueType,
   QuestionTreeOutcomeInfo,
   QuestionTreeOutcomeInfoKey
 } from "@researchdatabox/sails-ng-common";
 import {SimpleInputComponent} from "./simple-input.component";
+import {FormComponentEventBus, FormComponentEventType} from "../form-state";
+import {filter} from "rxjs";
 
 describe('QuestionTreeComponent', async () => {
 
-  beforeEach(async () => {
-    await createTestbedModule({
-      declarations: {
-        "QuestionTreeComponent": QuestionTreeComponent,
-      }
+  describe("basic functionality", async () => {
+    beforeEach(async () => {
+      await createTestbedModule({
+        declarations: {
+          "QuestionTreeComponent": QuestionTreeComponent,
+        }
+      });
+    });
+
+    it('should create component', () => {
+      let fixture = TestBed.createComponent(QuestionTreeComponent);
+      let component = fixture.componentInstance;
+      expect(component).toBeDefined();
     });
   });
 
-  it('should create component', () => {
-    let fixture = TestBed.createComponent(QuestionTreeComponent);
-    let component = fixture.componentInstance;
-    expect(component).toBeDefined();
-  });
 
-  describe("functionality", async () => {
+  describe("complex functionality", async () => {
     // question tree component with 3 questions
     // question_1 is the start,
     // question_2 shows only when question_1 is "no", and has an outcome & meta
@@ -440,6 +446,12 @@ describe('QuestionTreeComponent', async () => {
 
     });
 
+    const toggleRadioButton = function (el: HTMLInputElement) {
+      el.checked = true;
+      el.dispatchEvent(new Event("change"));
+      expect(el.checked).toBe(true);
+    }
+
     it('should update the data model and component visibility as the answers are changed', async () => {
       setUpDynamicAssets({
         callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
@@ -450,103 +462,124 @@ describe('QuestionTreeComponent', async () => {
         }
       });
 
+
       const {fixture} = await createFormAndWaitForReady(clientFormConfig);
+      const eventBus = TestBed.inject(FormComponentEventBus);
       const element = fixture.nativeElement as HTMLElement;
 
-      const qtElements = element.querySelectorAll('redbox-questiontreefield');
-      expect(qtElements).toHaveSize(1);
-      const qtElement = qtElements[0];
+      const events: any[] = [];
+      const sub = eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED)
+        .pipe(filter(event => event.sourceId !== '*'))
+        .subscribe(e => events.push(e));
 
-      const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
+      try {
+        const qtElements = element.querySelectorAll('redbox-questiontreefield');
+        expect(qtElements).toHaveSize(1);
+        const qtElement = qtElements[0];
 
-      // initial state
-      const inputElementsInitial = qtElement.querySelectorAll('input');
-      expect(inputElementsInitial.length).toEqual(2);
+        const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
 
-      // Check the question_1 options
-      const q1RadioElem1 = inputElementsInitial[0] as HTMLInputElement;
-      const q1RadioElem2 = inputElementsInitial[1] as HTMLInputElement;
-      expect(q1RadioElem1.value).toBe("yes");
-      expect(q1RadioElem1.name).toBe("question_1");
-      expect(q1RadioElem2.value).toBe("no");
-      expect(q1RadioElem2.name).toBe("question_1");
+        // initial state
+        const inputElementsInitial = qtElement.querySelectorAll('input');
+        expect(inputElementsInitial.length).toEqual(2);
 
-      const modelInitial = questionTree.model?.getValue();
-      expect(modelInitial).toEqual({
-        question_1: null,
-        question_2: null,
-        question_3: null,
-        [QuestionTreeOutcomeInfoKey]: null,
-      });
+        // Check the question_1 options
+        const q1RadioElem1 = inputElementsInitial[0];
+        const q1RadioElem2 = inputElementsInitial[1];
+        expect(q1RadioElem1.value).toBe("yes");
+        expect(q1RadioElem1.name).toBe("question_1");
+        expect(q1RadioElem2.value).toBe("no");
+        expect(q1RadioElem2.name).toBe("question_1");
 
-      // change state: Select 'no' to show question_2
-      q1RadioElem2.click();
-      q1RadioElem2.dispatchEvent(new Event("change"));
-      fixture.detectChanges();
-      await fixture.whenStable();
+        const modelInitial = questionTree.model?.getValue();
+        expect(modelInitial).toEqual({
+          question_1: null,
+          question_2: null,
+          question_3: null,
+          [QuestionTreeOutcomeInfoKey]: null,
+        });
 
-      const inputElementsStep1 = qtElement.querySelectorAll('input');
-      expect(inputElementsStep1.length).toEqual(4);
+        // change state: Select 'no' to show question_2
+        toggleRadioButton(q1RadioElem2);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        expect(events.length).toEqual(2);
+        expect(events[0].fieldId).toEqual('/questiontree_1/question_1');
+        expect(events[1].fieldId).toEqual('/questiontree_1');
 
-      // Check question_2 options
-      const q2CheckboxElem1 = inputElementsStep1[2] as HTMLInputElement;
-      const q2CheckboxElem2 = inputElementsStep1[3] as HTMLInputElement;
-      expect(q2CheckboxElem1.value).toBe("yes");
-      expect(q2CheckboxElem1.name).toBe("question_2");
-      expect(q2CheckboxElem2.value).toBe("no");
-      expect(q2CheckboxElem2.name).toBe("question_2");
+        const q1RadioElem2Component = questionTree.formFieldCompMapEntries
+          .find(i => i.compConfigJson.name === "question_1");
+        expect(q1RadioElem2Component?.component?.componentDefinition?.config?.visible).toEqual(true);
+        expect(q1RadioElem2Component?.component?.isVisible).toEqual(true);
 
-      const modelStep1 = questionTree.model?.getValue();
-      expect(modelStep1).toEqual({
-        question_1: "no",
-        question_2: null,
-        question_3: null,
-        [QuestionTreeOutcomeInfoKey]: null,
-      });
+        // Detect changes again, the 'visible' property has changed, so the component should become visible.
+        fixture.detectChanges(); await fixture.whenStable();
 
-      // change state: Select question_2: 'no' to get an outcome
-      q2CheckboxElem2.click();
-      q2CheckboxElem2.dispatchEvent(new Event('change'));
-      fixture.detectChanges();
-      await fixture.whenStable();
+        const inputElementsStep1 = qtElement.querySelectorAll('input');
+        expect(inputElementsStep1.length).toEqual(4);
 
-      const inputElementsStep2 = qtElement.querySelectorAll('input');
-      expect(inputElementsStep2.length).toEqual(4);
+        // Check question_2 options
+        const q2CheckboxElem1 = inputElementsStep1[2];
+        const q2CheckboxElem2 = inputElementsStep1[3];
+        expect(q2CheckboxElem1.value).toBe("yes");
+        expect(q2CheckboxElem1.name).toBe("question_2");
+        expect(q2CheckboxElem2.value).toBe("no");
+        expect(q2CheckboxElem2.name).toBe("question_2");
 
-      // check outcome is set as expected - outcome 'outcome1' and prop2 'prop2Value1'
-      // check that the data model is as expected - q1 and q2 have values
-      const modelStep2 = questionTree.model?.getValue();
-      expect(modelStep2).toEqual({
-        question_1: "no",
-        question_2: "no",
-        question_3: null,
-        [QuestionTreeOutcomeInfoKey]: {
-          outcome: "outcome1",
-          meta: [{outcome: "outcome1", prop2: "prop2Value1"}]
-        },
-      });
+        const modelStep1 = questionTree.model?.getValue();
+        expect(modelStep1).toEqual({
+          question_1: "no",
+          question_2: null,
+          question_3: null,
+          [QuestionTreeOutcomeInfoKey]: null,
+        });
 
-      // Change state: answer to question_1 to hide both question_2 and question_3
-      q1RadioElem2.click();
-      q1RadioElem2.dispatchEvent(new Event('change'));
-      fixture.detectChanges();
-      await fixture.whenStable();
+        // change state: Select question_2: 'no' to get an outcome
+        toggleRadioButton(q2CheckboxElem2);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        expect(q2CheckboxElem2.checked).toBe(true);
 
-      const inputElementsStep3 = element.querySelectorAll('input');
-      expect(inputElementsStep3.length).toHaveSize(2);
+        const inputElementsStep2 = qtElement.querySelectorAll('input');
+        expect(inputElementsStep2.length).toEqual(4);
 
-      // check outcome is set as expected - no outcome
-      // check that the data model is as expected - only first question has a value
-      const modelStep3 = questionTree.model?.getValue();
-      expect(modelStep3).toEqual({
-        question_1: "no",
-        question_2: null,
-        question_3: null,
-        [QuestionTreeOutcomeInfoKey]: null,
-      });
+        // check outcome is set as expected - outcome 'outcome1' and prop2 'prop2Value1'
+        // check that the data model is as expected - q1 and q2 have values
+        const modelStep2 = questionTree.model?.getValue();
+        expect(modelStep2).toEqual({
+          question_1: "no",
+          question_2: "no",
+          question_3: null,
+          [QuestionTreeOutcomeInfoKey]: {
+            outcome: "outcome1",
+            meta: [{outcome: "outcome1", prop2: "prop2Value1"}]
+          },
+        });
+
+        // Change state: answer to question_1 to hide both question_2 and question_3
+        toggleRadioButton(q1RadioElem2);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        expect(q1RadioElem2.checked).toBe(true);
+
+        const inputElementsStep3 = element.querySelectorAll('input');
+        expect(inputElementsStep3.length).toHaveSize(2);
+
+        // check outcome is set as expected - no outcome
+        // check that the data model is as expected - only first question has a value
+        const modelStep3 = questionTree.model?.getValue();
+        expect(modelStep3).toEqual({
+          question_1: "no",
+          question_2: null,
+          question_3: null,
+          [QuestionTreeOutcomeInfoKey]: null,
+        });
+      } finally {
+        sub.unsubscribe();
+      }
     });
 
-    it('should load as expected and update fields outside the question tree via expressions', async () => {
+    it('should load a record and update fields outside the question tree via expressions', async () => {
       setUpDynamicAssets({
         callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
           switch (keyStr) {
@@ -599,9 +632,8 @@ describe('QuestionTreeComponent', async () => {
       });
 
       // change state: select question_1 'yes'
-      const q1RadioElem1 = inputElementsInitial[0] as HTMLInputElement;
-      q1RadioElem1.click();
-      q1RadioElem1.dispatchEvent(new Event('change'));
+      const q1RadioElem1 = inputElementsInitial[0];
+      toggleRadioButton(q1RadioElem1);
       fixture.detectChanges();
       await fixture.whenStable();
 
