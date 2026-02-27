@@ -13,6 +13,7 @@ import {FormExpressionsConfigFrame} from "../form-component.outline";
 
 export class QuestionTreeHelper {
   private readonly logName = "QuestionTreeHelper";
+  private readonly defaultQuestionTreeLabelPrefix = "questiontree";
   private readonly logger: ILogger;
   private readonly propertiesHelper: PropertiesHelper;
 

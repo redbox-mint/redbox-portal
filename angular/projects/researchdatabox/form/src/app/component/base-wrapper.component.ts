@@ -4,7 +4,8 @@ import {
   Input,
   ViewChild,
   OnDestroy,
-  inject
+  inject,
+  HostBinding
 } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 
@@ -55,6 +56,13 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
   public get componentRef() {
     return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
+  }
+
+  @HostBinding('style.display')
+  public get hostDisplay(): string | null {
+    const layoutVisible = this.formFieldCompMapEntry?.compConfigJson?.layout?.config?.visible;
+    const componentVisible = this.formFieldCompMapEntry?.compConfigJson?.component?.config?.visible;
+    return (layoutVisible ?? true) && (componentVisible ?? true) ? null : 'none';
   }
 
   public async initWrapperComponent(

@@ -1516,8 +1516,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const rawConditions = qInfo?.conditions as Record<string, string[]>;
       const rawAnswers = (Array.isArray(qInfo?.answers) ? qInfo?.answers : []) ?? [];
 
-      // TODO: are the label and help needed, or can the existing translations be used?
-      // const rawLabel = qInfo?.label;
+      const rawLabel = qInfo?.label;
       // const rawHelp = qInfo?.help;
 
       const rawMinAnswers = qInfo?.minAnswers;
@@ -1576,6 +1575,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
       questions.push({
         id: questionId,
+        label: typeof rawLabel === "string" ? rawLabel : undefined,
         answersMin: parseInt(rawMinAnswers?.toString() ?? "1"),
         answersMax: parseInt(rawMaxAnswers?.toString() ?? "1"),
         answers: questionAnswers,

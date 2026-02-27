@@ -48,7 +48,7 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
   public tooltip: string = '';
   public placeholder: string | undefined = '';
   public options: CheckboxOption[] = [];
-  public multipleValues: boolean = false;
+  public multipleValues: boolean = true;
 
   /**
    * The model associated with this component.

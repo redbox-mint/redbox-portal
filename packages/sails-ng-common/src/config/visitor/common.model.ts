@@ -44,6 +44,11 @@ export class PropertiesHelper {
   public sharedConstructFormComponent(currentData: FormComponentDefinitionFrame): AllFormComponentDefinitionOutlines {
     // The class to use is identified by the class property string values in the field definitions.
     const formComponentClassString = currentData?.component?.class;
+    if (typeof formComponentClassString !== 'string' || formComponentClassString.trim().length === 0) {
+      throw new Error(
+        `Missing required 'component.class' in form component '${currentData?.name ?? '<unknown>'}': ${JSON.stringify(currentData)}`
+      );
+    }
 
     // The class to use is identified by the class property string values in the field definitions.
     // The form component is identifier the component field class string
@@ -51,8 +56,11 @@ export class PropertiesHelper {
 
     // Create new instance
     if (!formComponentClass) {
+      const knownFormComponentClassNames = [...this.formComponentMap.keys()].sort().join(', ');
       throw new Error(
-        `Could not find class for form component class name '${currentData?.component?.class}': : ${JSON.stringify(currentData)}`
+        `Could not find class for form component class name '${formComponentClassString}'. ` +
+          `Known classes: [${knownFormComponentClassNames}]. ` +
+          `Item: ${JSON.stringify(currentData)}`
       );
     }
 

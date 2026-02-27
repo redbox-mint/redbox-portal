@@ -225,6 +225,11 @@ export interface QuestionTreeQuestion {
      */
     id: string;
     /**
+     * Optional question label.
+     * When set, this value is used directly for the rendered question label.
+     */
+    label?: string;
+    /**
      * The minimum number of answers that can be supplied.
      * Must be at least 1, up to the maximum or the number of answers.
      */
