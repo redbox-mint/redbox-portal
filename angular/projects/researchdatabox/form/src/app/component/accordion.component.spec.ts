@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { AccordionComponent, AccordionPanelComponent } from './accordion.component';
@@ -233,5 +234,23 @@ describe('AccordionComponent', () => {
     await fixture.whenStable();
 
     expect((firstLiveRegion.textContent ?? '')).toContain('expanded');
+  });
+
+  it('translates panel labels from translation keys', async () => {
+    const translationService = TestBed.inject(TranslationService) as any;
+    translationService.translationMap['@dmpt-project-tab'] = 'Project';
+
+    const formConfig = buildAccordionForm('all-open');
+    const panelConfig = (((formConfig.componentDefinitions?.[0]?.component as any)?.config?.panels?.[0]) as any);
+    panelConfig.layout = panelConfig.layout ?? {};
+    panelConfig.layout.config = panelConfig.layout.config ?? {};
+    panelConfig.layout.config.buttonLabel = '@dmpt-project-tab';
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const firstPanelButton = compiled.querySelector('.panel-heading button') as HTMLButtonElement;
+
+    expect(firstPanelButton.textContent).toContain('Project');
+    expect(firstPanelButton.textContent).not.toContain('@dmpt-project-tab');
   });
 });
