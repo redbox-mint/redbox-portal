@@ -184,6 +184,7 @@ import { AllFormComponentDefinitionOutlines } from '@researchdatabox/sails-ng-co
 import { CanVisit } from '@researchdatabox/sails-ng-common';
 import { LineagePath, LineagePathsPartial } from '@researchdatabox/sails-ng-common';
 import { VisitorFormComponentClassDefMapType, FormComponentDefinitionMap } from '@researchdatabox/sails-ng-common';
+import { ComponentClassNamesType } from '@researchdatabox/sails-ng-common';
 import { isTypeFormComponentDefinitionName } from '@researchdatabox/sails-ng-common';
 import { ILogger } from '@researchdatabox/sails-ng-common';
 import {
@@ -462,6 +463,12 @@ function postProcessingFormConfigV4ToV5Mapping(
     v5ModelClassName = 'RadioInputModel';
   }
 
+  // Anchor links should remain navigational links in view mode, not save actions.
+  if (v4ClassNames?.v4ClassName === 'AnchorOrButton' && fieldDefinition?.controlType === 'anchor') {
+    v5ComponentClassName = ContentComponentName;
+    v5ModelClassName = '';
+  }
+
   return {
     componentClassName: v5ComponentClassName,
     modelClassName: v5ModelClassName,
@@ -492,6 +499,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   private sharedProps: PropertiesHelper;
 
   private isInsideButtonBarContainer: boolean = false;
+  private legacyInlineContainerDepth: number = 0;
 
   constructor(logger: ILogger) {
     super(logger);
@@ -654,6 +662,21 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       item.config = new ContentFieldComponentConfig();
     }
     this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    if (this.isLegacyAnchorControl(field)) {
+      const definition = (field?.definition ?? {}) as Record<string, unknown>;
+      const href = typeof definition.value === 'string' ? definition.value : '';
+      let cssClasses = this.normalizeLegacyButtonCssClasses(definition.cssClasses ?? definition.cssClass) ?? 'btn btn-primary';
+      cssClasses = this.removeLegacyCssToken(cssClasses, 'margin-15');
+      const label = typeof definition.label === 'string' ? definition.label : '';
+      const showPencil = definition.showPencil === true;
+      const labelTemplateToken = this.isLegacyTranslationKey(label) ? '{{t content.label}}' : '{{content.label}}';
+
+      item.config.label = undefined;
+      item.config.content = { href, cssClasses, label, showPencil };
+      item.config.template = `<a href="${this.buildLegacyAnchorHrefTemplate(href)}" class="{{content.cssClasses}}">${showPencil ? '<i class="fa fa-pencil"></i> ' : ''}${labelTemplateToken}</a>`;
+      return;
+    }
 
     // TODO: form.customAngularApp?
     // TODO: form.requiredFieldIndicator?
@@ -901,53 +924,67 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     item.config = config;
     this.sharedPopulateFieldComponentConfig(item.config, field);
 
-    if (field?.class === 'ButtonBarContainer' || field?.compClass === 'ButtonBarContainerComponent') {
+    const isButtonBarContainer = field?.class === 'ButtonBarContainer' || field?.compClass === 'ButtonBarContainerComponent';
+    const isLegacyInlineContainer = this.isLegacyInlineContainer(field);
+    if (isButtonBarContainer) {
       this.isInsideButtonBarContainer = true;
     }
+    if (isLegacyInlineContainer) {
+      this.legacyInlineContainerDepth += 1;
+    }
 
-    this.logger.debug(
-      `${this.logName}: visitGroupFieldComponentDefinition for '${String(field?.definition?.name ?? field?.definition?.id ?? '')}'.`
-    );
-
-    const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
-    // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
-    fields.forEach((childField, index) => {
-      if (childField?.class === 'Spacer' || childField?.compClass === 'SpacerComponent') {
-        return;
-      }
-
-      const v4FormPathMore = ['definition', 'fields', index.toString()];
-      // Create the instance from the v4 config
-      const formComponent = this.constructFormComponent(childField, v4FormPathMore);
-
-      // Visit children
-      const componentIndex = config.componentDefinitions.length;
-      this.acceptV4FormConfigPath(
-        formComponent,
-        this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, componentIndex),
-        v4FormPathMore
+    try {
+      this.logger.debug(
+        `${this.logName}: visitGroupFieldComponentDefinition for '${String(field?.definition?.name ?? field?.definition?.id ?? '')}'.`
       );
 
-      // Store the instance on the item
-      config.componentDefinitions.push(formComponent);
+      const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
+      // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
+      fields.forEach((childField, index) => {
+        if (childField?.class === 'Spacer' || childField?.compClass === 'SpacerComponent') {
+          return;
+        }
 
-      const hiddenBinding = this.constructLegacyNameBindingCompanion(childField, v4FormPathMore);
-      if (hiddenBinding) {
-        this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
-        this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
-        const hiddenComponentIndex = config.componentDefinitions.length;
+        const v4FormPathMore = ['definition', 'fields', index.toString()];
+        // Create the instance from the v4 config
+        const formComponent = this.constructFormComponent(childField, v4FormPathMore);
+
+        // Visit children
+        const componentIndex = config.componentDefinitions.length;
         this.acceptV4FormConfigPath(
-          hiddenBinding.component,
-          this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
-          hiddenBinding.v4FormPathMore
+          formComponent,
+          this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, componentIndex),
+          v4FormPathMore
         );
-        this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
-        config.componentDefinitions.push(hiddenBinding.component);
-      }
-    });
 
-    if (field?.class === 'ButtonBarContainer' || field?.compClass === 'ButtonBarContainerComponent') {
-      this.isInsideButtonBarContainer = false;
+        if (isLegacyInlineContainer && formComponent.layout?.config) {
+          (formComponent.layout.config as Record<string, unknown>).label = undefined;
+        }
+
+        // Store the instance on the item
+        config.componentDefinitions.push(formComponent);
+
+        const hiddenBinding = this.constructLegacyNameBindingCompanion(childField, v4FormPathMore);
+        if (hiddenBinding) {
+          this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
+          this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
+          const hiddenComponentIndex = config.componentDefinitions.length;
+          this.acceptV4FormConfigPath(
+            hiddenBinding.component,
+            this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
+            hiddenBinding.v4FormPathMore
+          );
+          this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
+          config.componentDefinitions.push(hiddenBinding.component);
+        }
+      });
+    } finally {
+      if (isLegacyInlineContainer) {
+        this.legacyInlineContainerDepth = Math.max(0, this.legacyInlineContainerDepth - 1);
+      }
+      if (isButtonBarContainer) {
+        this.isInsideButtonBarContainer = false;
+      }
     }
   }
 
@@ -1271,12 +1308,26 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const field = this.getV4Data();
     item.config = new DefaultFieldLayoutConfig();
     this.sharedPopulateFieldLayoutConfig(item.config, field);
+
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    if (v4ClassName === 'AnchorOrButton' || this.isInsideLegacyInlineContainer()) {
+      item.config.label = undefined;
+    }
   }
 
   visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
     const field = this.getV4Data();
     item.config = new ActionRowFieldLayoutConfig();
     this.sharedPopulateFieldLayoutConfig(item.config, field);
+
+    if (this.isLegacyInlineContainer(field)) {
+      item.config.alignment = 'start';
+      item.config.compact = true;
+      item.config.containerCssClass = this.mergeCssClassTokens(
+        item.config.containerCssClass,
+        'rb-form-action-row--legacy-inline'
+      );
+    }
   }
 
   /* Checkbox Input */
@@ -1697,6 +1748,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   protected constructFormComponent(field: Record<string, unknown>, more?: LineagePath): AllFormComponentDefinitionOutlines {
     let { componentClassName, modelClassName, layoutClassName } = this.mapV4ToV5(field);
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const isLegacyInlineContainer = this.isLegacyInlineContainer(field);
 
     const name = String(definition.name ?? definition.id ?? [componentClassName, ...this.v4FormPath, ...(more ?? [])].join('-'));
 
@@ -1716,10 +1768,16 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     if (!layoutClassName) {
       layoutClassName = 'DefaultLayout';
     }
+    if (isLegacyInlineContainer && componentClassName === GroupFieldComponentName) {
+      layoutClassName = ActionRowLayoutName;
+    }
     if (this.shouldUseInlineLayoutForAnchorButton(field, componentClassName)) {
       layoutClassName = InlineLayoutName;
     }
     if (this.isInsideButtonBarContainer && this.shouldUseInlineLayoutInButtonBar(componentClassName)) {
+      layoutClassName = InlineLayoutName;
+    }
+    if (this.isInsideLegacyInlineContainer() && !isLegacyInlineContainer) {
       layoutClassName = InlineLayoutName;
     }
     currentData.layout = { class: layoutClassName, config: {} };
@@ -1736,7 +1794,32 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
       if (viewOnly) {
         currentData.constraints.allowModes.push('view');
+        if (currentData.component.class) {
+          currentData.overrides = {
+            ...(currentData.overrides ?? {}),
+            formModeClasses: {
+              ...(currentData.overrides?.formModeClasses ?? {}),
+              view: {
+                ...(currentData.overrides?.formModeClasses?.view ?? {}),
+                component: currentData.component.class as ComponentClassNamesType,
+              },
+            },
+          };
+        }
       }
+    }
+
+    if (isLegacyInlineContainer && currentData.component.class === GroupFieldComponentName) {
+      currentData.overrides = {
+        ...(currentData.overrides ?? {}),
+        formModeClasses: {
+          ...(currentData.overrides?.formModeClasses ?? {}),
+          view: {
+            ...(currentData.overrides?.formModeClasses?.view ?? {}),
+            component: GroupFieldComponentName,
+          },
+        },
+      };
     }
 
     currentData.constraints.authorization = {};
@@ -1759,6 +1842,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       currentData.model = undefined;
       if (!currentData.component.config) {
         currentData.component.config = {};
+      }
+      if (this.isInsideLegacyInlineContainer() && !isLegacyInlineContainer) {
+        currentData.layout = { class: InlineLayoutName, config: {} };
       }
     }
 
@@ -1955,7 +2041,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         ? { label: legacyCssClasses }
         : undefined;
     const config = {
-      label: this.isInsideButtonBarContainer ? undefined : migratedLabel,
+      label: (this.isInsideButtonBarContainer || this.isInsideLegacyInlineContainer()) ? undefined : migratedLabel,
       helpText: typeof definition.help === 'string' ? definition.help : undefined,
       cssClassesMap,
     };
@@ -2118,7 +2204,105 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   private shouldUseInlineLayoutForAnchorButton(field: Record<string, unknown>, componentClassName: string): boolean {
     const v4ClassName = `${field?.class ?? ''}`.trim();
-    return v4ClassName === 'AnchorOrButton' && componentClassName === SaveButtonComponentName;
+    return v4ClassName === 'AnchorOrButton' && (
+      componentClassName === SaveButtonComponentName ||
+      componentClassName === ContentComponentName
+    );
+  }
+
+  private isLegacyAnchorControl(field?: Record<string, unknown>): boolean {
+    if (!field) {
+      return false;
+    }
+    const definition = (field.definition ?? {}) as Record<string, unknown>;
+    return `${field.class ?? ''}`.trim() === 'AnchorOrButton' && `${definition.controlType ?? ''}`.trim() === 'anchor';
+  }
+
+  private isInsideLegacyInlineContainer(): boolean {
+    return this.legacyInlineContainerDepth > 0;
+  }
+
+  private isLegacyInlineContainer(field?: Record<string, unknown>): boolean {
+    if (!field) {
+      return false;
+    }
+    const v4ClassName = `${field.class ?? ''}`.trim();
+    const v4CompClassName = `${field.compClass ?? ''}`.trim();
+    if (v4ClassName !== 'Container' || v4CompClassName !== 'GenericGroupComponent') {
+      return false;
+    }
+    const definition = (field.definition ?? {}) as Record<string, unknown>;
+    return this.hasLegacyCssClass(definition.cssClasses, 'form-inline') || this.hasLegacyCssClass(definition.cssClass, 'form-inline');
+  }
+
+  private hasLegacyCssClass(value: unknown, token: string): boolean {
+    if (typeof value !== 'string') {
+      return false;
+    }
+    return value
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .includes(token);
+  }
+
+  private mergeCssClassTokens(baseCssClasses: unknown, appendCssClasses: string): string {
+    const classes = `${typeof baseCssClasses === 'string' ? baseCssClasses : ''} ${appendCssClasses}`
+      .split(/\s+/)
+      .map((cssClass) => cssClass.trim())
+      .filter(Boolean);
+    return Array.from(new Set(classes)).join(' ');
+  }
+
+  private removeLegacyCssToken(cssClasses: string, tokenToRemove: string): string {
+    return cssClasses
+      .split(/\s+/)
+      .map((cssClass) => cssClass.trim())
+      .filter((cssClass) => cssClass.length > 0 && cssClass !== tokenToRemove)
+      .join(' ');
+  }
+
+  private buildLegacyAnchorHrefTemplate(href: string): string {
+    const rawHref = String(href ?? '');
+    if (!rawHref.includes('@branding') && !rawHref.includes('@portal') && !rawHref.includes('@oid')) {
+      return '{{content.href}}';
+    }
+
+    const parts: string[] = [];
+    const tokenRegex = /@branding|@portal|@oid/g;
+    let cursor = 0;
+    let match: RegExpExecArray | null;
+    while ((match = tokenRegex.exec(rawHref)) !== null) {
+      const tokenIndex = match.index;
+      const literalPart = rawHref.slice(cursor, tokenIndex);
+      if (literalPart.length > 0) {
+        parts.push(`"${this.escapeHandlebarsStringLiteral(literalPart)}"`);
+      }
+      const matchedToken = match[0];
+      if (matchedToken === '@branding') {
+        parts.push('branding');
+      } else if (matchedToken === '@portal') {
+        parts.push('portal');
+      } else if (matchedToken === '@oid') {
+        parts.push('oid');
+      } else {
+        parts.push(`"${this.escapeHandlebarsStringLiteral(matchedToken)}"`);
+      }
+      cursor = tokenIndex + matchedToken.length;
+    }
+
+    const trailingPart = rawHref.slice(cursor);
+    if (trailingPart.length > 0) {
+      parts.push(`"${this.escapeHandlebarsStringLiteral(trailingPart)}"`);
+    }
+    if (parts.length === 0) {
+      return '{{content.href}}';
+    }
+    return `{{concat ${parts.join(' ')}}}`;
+  }
+
+  private escapeHandlebarsStringLiteral(value: string): string {
+    return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   }
 
   /**

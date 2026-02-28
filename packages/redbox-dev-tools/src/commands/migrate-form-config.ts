@@ -103,7 +103,7 @@ export function registerMigrateFormConfigCommand(program: Command): void {
 
         const tsContent = `import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 
-const formConfig: FormConfigFrame = ${JSON.stringify(migrated, null, 2)};
+const formConfig = ${JSON.stringify(migrated, null, 2)} as FormConfigFrame;
 
 export default formConfig;
 `;

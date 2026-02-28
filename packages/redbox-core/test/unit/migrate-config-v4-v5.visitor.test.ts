@@ -328,6 +328,30 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(migratedField.constraints?.allowModes).to.deep.equal(["edit"]);
     });
 
+    it('maps legacy viewOnly fields to view mode override component classes', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "definition-view-only",
+                fields: [
+                    {
+                        class: "AnchorOrButton",
+                        viewOnly: true,
+                        definition: {
+                            name: "edit_link",
+                            label: "@dmp-edit-record-link"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("SaveButtonComponent");
+        expect(migratedField.constraints?.allowModes).to.deep.equal(["view"]);
+        expect(migratedField.overrides?.formModeClasses?.view?.component).to.equal("SaveButtonComponent");
+    });
+
     it('maps RepeatableContributor layout label from definition name when label is missing on both parent and child', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({
@@ -532,7 +556,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(modelConfig.disabled).to.be.true;
     });
 
-    it("maps AnchorOrButton links to SaveButton with InlineLayout", async function () {
+    it("maps AnchorOrButton links to ContentComponent anchor links with InlineLayout", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({
             data: {
@@ -548,7 +572,10 @@ describe("Migrate v4 to v5 Visitor", async () => {
                                     class: "AnchorOrButton",
                                     definition: {
                                         name: "edit_link",
-                                        label: "@dmp-edit-record-link"
+                                        label: "@dmp-edit-record-link",
+                                        value: "/@branding/@portal/record/edit/@oid",
+                                        cssClasses: "btn btn-info",
+                                        controlType: "anchor"
                                     }
                                 }
                             ]
@@ -562,8 +589,60 @@ describe("Migrate v4 to v5 Visitor", async () => {
         const groupConfig = group.component.config as Record<string, unknown>;
         const childComponents = groupConfig.componentDefinitions as any[];
         expect(childComponents).to.have.length(1);
-        expect(childComponents[0].component.class).to.equal("SaveButtonComponent");
+        expect(childComponents[0].component.class).to.equal("ContentComponent");
+        expect(childComponents[0].component.config?.label).to.be.undefined;
+        expect(childComponents[0].component.config?.template).to.equal(
+          '<a href="{{concat "/" branding "/" portal "/record/edit/" oid}}" class="{{content.cssClasses}}">{{t content.label}}</a>'
+        );
         expect(childComponents[0].layout?.class).to.equal("InlineLayout");
+    });
+
+    it("maps legacy form-inline groups to ActionRowLayout with InlineLayout children", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "inline-group-migration",
+                fields: [
+                    {
+                        class: "Container",
+                        compClass: "GenericGroupComponent",
+                        definition: {
+                            name: "actions",
+                            cssClasses: "form-inline",
+                            fields: [
+                                {
+                                    class: "AnchorOrButton",
+                                    definition: {
+                                        name: "edit_link",
+                                        label: "@dmp-edit-record-link"
+                                    }
+                                },
+                                {
+                                    class: "PDFList",
+                                    definition: {
+                                        name: "pdf"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const group = migrated.componentDefinitions[0];
+        const groupConfig = group.component.config as Record<string, unknown>;
+        const childComponents = groupConfig.componentDefinitions as any[];
+
+        expect(group.layout?.class).to.equal("ActionRowLayout");
+        const groupLayoutConfig = (group.layout?.config ?? {}) as Record<string, unknown>;
+        expect(groupLayoutConfig.alignment).to.equal("start");
+        expect(groupLayoutConfig.compact).to.equal(true);
+        expect(groupLayoutConfig.containerCssClass).to.contain("rb-form-action-row--legacy-inline");
+        expect(group.overrides?.formModeClasses?.view?.component).to.equal("GroupComponent");
+        expect(childComponents).to.have.length(2);
+        expect(childComponents[0].layout?.class).to.equal("InlineLayout");
+        expect(childComponents[1].layout?.class).to.equal("InlineLayout");
     });
 
     it("uses Handlebars translation helper for migrated TextBlock translation keys", async function () {

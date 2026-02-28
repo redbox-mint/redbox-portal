@@ -461,8 +461,10 @@ export class FormOverride {
       result.name = original.overrides?.replaceName;
     }
 
-    // Remove the 'overrides' property, as it has been applied and so should not be present in the form config.
-    if ('overrides' in result) {
+    // Only remove overrides after client-phase transform application.
+    // During construct phase, deferred transforms (e.g. Group/Repeatable view flattening)
+    // still need access to formModeClasses in the later client phase.
+    if (phase === 'client' && 'overrides' in result) {
       delete result['overrides'];
     }
 

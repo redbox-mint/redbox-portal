@@ -78,8 +78,16 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
       try {
         const compiledItems = await this.getFormComponent.getRecordCompiledItems();
         const renderTemplate = (formData: Record<string, unknown> = {}) => {
+          const runtimeContext = this.getRuntimeTemplateContext();
           // Build the variables available to the template.
-          const context = {content: content, formData: formData, translationService: this.translationService};
+          const context = {
+            content: content,
+            formData: formData,
+            translationService: this.translationService,
+            branding: runtimeContext.branding,
+            portal: runtimeContext.portal,
+            oid: runtimeContext.oid
+          };
           const extra = {libraries: this.handlebarsTemplateService.getLibraries()};
           this.content = compiledItems.evaluate(templateLineagePath, context, extra);
         };
@@ -125,6 +133,13 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
     }
     const result = typeof translated === 'string' ? translated : String(translated);
     return result === 'undefined' ? value : result;
+  }
+
+  private getRuntimeTemplateContext(): { branding: string; portal: string; oid: string } {
+    const oid = String(this.getFormComponent.trimmedParams.oid() ?? '').trim();
+    const branding = String(this.getFormComponent.trimmedParams.branding() ?? '').trim();
+    const portal = String(this.getFormComponent.trimmedParams.portal() ?? '').trim();
+    return { branding, portal, oid };
   }
 
   ngOnDestroy(): void {

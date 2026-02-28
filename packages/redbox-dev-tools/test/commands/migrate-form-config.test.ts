@@ -43,7 +43,8 @@ describe('migrate-form-config command', () => {
     expect(fs.existsSync(outputPath)).to.be.true;
     const content = fs.readFileSync(outputPath, 'utf8');
     expect(content).to.contain("import { FormConfigFrame } from '@researchdatabox/sails-ng-common';");
-    expect(content).to.contain('const formConfig: FormConfigFrame = ');
+    expect(content).to.contain('const formConfig = ');
+    expect(content).to.contain(' as FormConfigFrame;');
     expect(content).to.contain('export default formConfig;');
   });
 
