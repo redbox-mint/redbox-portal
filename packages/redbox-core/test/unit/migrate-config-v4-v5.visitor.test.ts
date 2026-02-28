@@ -617,6 +617,45 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(componentConfig.template).to.equal("<h3>{{t content}}</h3>");
     });
 
+    it("binds TextBlock heading content from formData when value is missing and definition.name is present", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "text-block-heading-name-binding",
+                fields: [
+                    {
+                        class: "Container",
+                        compClass: "TextBlockComponent",
+                        viewOnly: true,
+                        definition: {
+                            name: "title",
+                            type: "h1"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        const hiddenBindingField = migrated.componentDefinitions[1];
+        expect(migratedField.component.class).to.equal("ContentComponent");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        const layoutConfig = migratedField.layout?.config as Record<string, unknown> | undefined;
+        expect(migratedField.name).to.not.equal("title");
+        expect(componentConfig.content).to.equal("title");
+        expect(componentConfig.template).to.equal('<h1>{{get formData content ""}}</h1>');
+        expect(layoutConfig?.label).to.equal(undefined);
+        expect(hiddenBindingField.name).to.equal("title");
+        expect(hiddenBindingField.component.class).to.equal("SimpleInputComponent");
+        expect((hiddenBindingField.constraints as Record<string, unknown>)?.allowModes).to.deep.equal(["view"]);
+        expect(
+            ((hiddenBindingField.constraints as Record<string, unknown>)?.authorization as Record<string, unknown>)?.allowRoles
+        ).to.deep.equal([]);
+        expect((hiddenBindingField.component.config as Record<string, unknown>)?.type).to.equal("hidden");
+        expect((hiddenBindingField.component.config as Record<string, unknown>)?.visible).to.equal(false);
+        expect((hiddenBindingField.layout?.config as Record<string, unknown>)?.visible).to.equal(false);
+    });
+
     it("keeps plain text TextBlock values as non-translated content templates", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({

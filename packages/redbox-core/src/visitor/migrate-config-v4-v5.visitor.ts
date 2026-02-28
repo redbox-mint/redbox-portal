@@ -579,14 +579,29 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const formComponent = this.constructFormComponent(field, v4FormPathMore);
 
       // Visit children
+      const componentIndex = item.componentDefinitions.length;
       this.acceptV4FormConfigPath(
         formComponent,
-        this.formPathHelper.lineagePathsForFormConfigComponentDefinition(formComponent, index),
+        this.formPathHelper.lineagePathsForFormConfigComponentDefinition(formComponent, componentIndex),
         v4FormPathMore
       );
 
       // Store the instance on the item
       item.componentDefinitions.push(formComponent);
+
+      const hiddenBinding = this.constructLegacyNameBindingCompanion(field, v4FormPathMore);
+      if (hiddenBinding) {
+        this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
+        this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
+        const hiddenComponentIndex = item.componentDefinitions.length;
+        this.acceptV4FormConfigPath(
+          hiddenBinding.component,
+          this.formPathHelper.lineagePathsForFormConfigComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
+          hiddenBinding.v4FormPathMore
+        );
+        this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
+        item.componentDefinitions.push(hiddenBinding.component);
+      }
     });
 
     // Add the validation summary.
@@ -688,39 +703,44 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const v4Value = field?.definition?.value ?? '';
       const v4Type = field?.definition?.type;
       const v4ValueIsTranslationKey = this.isLegacyTranslationKey(v4Value);
+      const v4Name = typeof field?.definition?.name === 'string' ? field.definition.name.trim() : '';
+      const bindContentFromFormData = v4Value === '' && v4Name.length > 0;
       const contentTemplateToken = v4ValueIsTranslationKey ? '{{t content}}' : '{{content}}';
       const contentHtmlTemplateToken = v4ValueIsTranslationKey ? '{{{t content}}}' : '{{{content}}}';
       const contentLabelTemplateToken = '{{t content.label}}';
       const contentValueTemplateToken = v4ValueIsTranslationKey ? '{{t content.value}}' : '{{content.value}}';
+      const contentBoundTemplateToken = '{{get formData content ""}}';
+      const contentBoundHtmlTemplateToken = '{{{get formData content ""}}}';
+      const contentBoundValueTemplateToken = '{{get formData content.value ""}}';
       const labelOnlyTemplateToken = this.isLegacyTranslationKey(item.config.label) ? '{{t content}}' : '{{content}}';
 
       switch (v4Type) {
         case 'h1':
-          item.config.content = v4Value;
-          item.config.template = `<h1>${contentTemplateToken}</h1>`;
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<h1>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h1>`;
           break;
         case 'h2':
-          item.config.content = v4Value;
-          item.config.template = `<h2>${contentTemplateToken}</h2>`;
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<h2>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h2>`;
           break;
         case 'h3':
-          item.config.content = v4Value;
-          item.config.template = `<h3>${contentTemplateToken}</h3>`;
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<h3>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h3>`;
           break;
         case 'h4':
-          item.config.content = v4Value;
-          item.config.template = `<h4>${contentTemplateToken}</h4>`;
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<h4>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h4>`;
           break;
         case 'h5':
-          item.config.content = v4Value;
-          item.config.template = `<h5>${contentTemplateToken}</h5>`;
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<h5>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h5>`;
           break;
         case 'h6':
-          item.config.content = v4Value;
-          item.config.template = `<h6>${contentTemplateToken}</h6>`;
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<h6>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h6>`;
           break;
         case 'hr':
-          item.config.content = v4Value;
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
           item.config.template = `<hr>`;
           break;
         case 'span':
@@ -732,6 +752,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           } else if (v4Value && label) {
             item.config.content = { value: v4Value, label: item.config.label };
             item.config.template = `<span>${contentLabelTemplateToken}: ${contentValueTemplateToken}</span>`;
+          } else if (bindContentFromFormData && label) {
+            item.config.content = { value: v4Name, label: item.config.label };
+            item.config.template = `<span>${contentLabelTemplateToken}: ${contentBoundValueTemplateToken}</span>`;
+          } else if (bindContentFromFormData && !label) {
+            item.config.content = v4Name;
+            item.config.template = `<span>${contentBoundTemplateToken}</span>`;
           } else if (v4Value && !label) {
             item.config.content = v4Value;
             item.config.template = `<span>${contentTemplateToken}</span>`;
@@ -743,8 +769,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           }
           break;
         default:
-          item.config.content = v4Value;
-          item.config.template = `<div>${contentHtmlTemplateToken}</div>`;
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<div>${bindContentFromFormData ? contentBoundHtmlTemplateToken : contentHtmlTemplateToken}</div>`;
           break;
       }
     }
@@ -895,14 +921,29 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const formComponent = this.constructFormComponent(childField, v4FormPathMore);
 
       // Visit children
+      const componentIndex = config.componentDefinitions.length;
       this.acceptV4FormConfigPath(
         formComponent,
-        this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, index),
+        this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, componentIndex),
         v4FormPathMore
       );
 
       // Store the instance on the item
       config.componentDefinitions.push(formComponent);
+
+      const hiddenBinding = this.constructLegacyNameBindingCompanion(childField, v4FormPathMore);
+      if (hiddenBinding) {
+        this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
+        this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
+        const hiddenComponentIndex = config.componentDefinitions.length;
+        this.acceptV4FormConfigPath(
+          hiddenBinding.component,
+          this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
+          hiddenBinding.v4FormPathMore
+        );
+        this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
+        config.componentDefinitions.push(hiddenBinding.component);
+      }
     });
 
     if (field?.class === 'ButtonBarContainer' || field?.compClass === 'ButtonBarContainerComponent') {
@@ -989,14 +1030,29 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const formComponent = this.constructFormComponent(field, v4FormPathMore);
 
       // Visit children
+      const componentIndex = config.componentDefinitions.length;
       this.acceptV4FormConfigPath(
         formComponent,
-        this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(formComponent, index),
+        this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(formComponent, componentIndex),
         ['definition', 'fields', index.toString()]
       );
 
       // Store the instance on the item
       config.componentDefinitions.push(formComponent);
+
+      const hiddenBinding = this.constructLegacyNameBindingCompanion(field, v4FormPathMore);
+      if (hiddenBinding) {
+        this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
+        this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
+        const hiddenComponentIndex = config.componentDefinitions.length;
+        this.acceptV4FormConfigPath(
+          hiddenBinding.component,
+          this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
+          hiddenBinding.v4FormPathMore
+        );
+        this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
+        config.componentDefinitions.push(hiddenBinding.component);
+      }
     });
   }
 
@@ -1710,6 +1766,102 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return this.sharedProps.sharedConstructFormComponent(currentData);
   }
 
+  protected constructLegacyNameBindingCompanion(
+    field: Record<string, unknown>,
+    v4FormPathMore: LineagePath
+  ): { component: AllFormComponentDefinitionOutlines; sourceName: string; allowRoles: string[]; v4FormPathMore: string[] } | undefined {
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const sourceName = typeof definition.name === 'string' ? definition.name.trim() : '';
+    const sourceType = typeof definition.type === 'string' ? definition.type.trim().toLowerCase() : '';
+    const sourceValue = definition.value;
+    const isLegacyHeadingTextBlock =
+      `${field?.class ?? ''}`.trim() === 'Container' &&
+      `${field?.compClass ?? ''}`.trim() === 'TextBlockComponent' &&
+      ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(sourceType) &&
+      sourceName.length > 0 &&
+      (sourceValue === undefined || sourceValue === null || sourceValue === '') &&
+      (field?.viewOnly === true || definition?.viewOnly === true);
+    if (!isLegacyHeadingTextBlock) {
+      return undefined;
+    }
+
+    const hiddenField: Record<string, unknown> = {
+      class: 'HiddenValue',
+      compClass: 'HiddenValueComponent',
+      viewOnly: true,
+      roles: Array.isArray(field?.roles) ? field.roles : [],
+      definition: {
+        name: sourceName,
+        type: 'hidden',
+      },
+    };
+    const hiddenPath = [...(v4FormPathMore ?? [])];
+    const hiddenComponent = this.constructFormComponent(hiddenField, hiddenPath);
+    hiddenComponent.name = sourceName;
+    const allowRoles = Array.isArray(field?.roles) ? (field.roles as string[]) : [];
+    this.enforceLegacyHiddenBindingConfig(hiddenComponent, allowRoles);
+    hiddenComponent.overrides = {
+      ...(hiddenComponent.overrides ?? {}),
+      formModeClasses: {
+        ...(hiddenComponent.overrides?.formModeClasses ?? {}),
+        view: {
+          component: SimpleInputComponentName,
+        },
+      },
+    };
+    return {
+      component: hiddenComponent,
+      sourceName,
+      allowRoles,
+      v4FormPathMore: hiddenPath.map(i => i.toString()),
+    };
+  }
+
+  protected enforceLegacyHiddenBindingConfig(component: AllFormComponentDefinitionOutlines, allowRoles: string[] = []): void {
+    if (component.component?.config) {
+      const hiddenComponentConfig = component.component.config as Record<string, unknown>;
+      hiddenComponentConfig.type = 'hidden';
+      hiddenComponentConfig.visible = false;
+    }
+    if (component.layout?.config) {
+      const hiddenLayoutConfig = component.layout.config as Record<string, unknown>;
+      hiddenLayoutConfig.visible = false;
+    }
+    component.constraints = {
+      authorization: {
+        allowRoles: [...allowRoles],
+      },
+      allowModes: ['view'],
+    };
+  }
+
+  protected retargetLegacyTextBlockBinding(
+    formComponent: AllFormComponentDefinitionOutlines,
+    sourceName: string,
+    bindingName: string
+  ): void {
+    const componentConfig = formComponent?.component?.config as Record<string, unknown> | undefined;
+    if (!componentConfig) {
+      return;
+    }
+    if (componentConfig.content === sourceName) {
+      componentConfig.content = bindingName;
+    }
+  }
+
+  protected ensureLegacyTextBlockComponentNameIsUnique(
+    formComponent: AllFormComponentDefinitionOutlines,
+    sourceName: string,
+    v4FormPathMore: LineagePath
+  ): void {
+    if ((formComponent?.name ?? '') !== sourceName) {
+      return;
+    }
+    const pathSuffix = (v4FormPathMore ?? []).map(i => `${i}`).join('-');
+    const fallback = sourceName.length > 0 ? sourceName : 'content';
+    formComponent.name = `ContentComponent-${pathSuffix || fallback}`;
+  }
+
   protected populateFormComponent(item: FormComponentDefinitionOutline): void {
     // Continue visiting
     this.formPathHelper.acceptFormComponentDefinition(item);
@@ -1787,7 +1939,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
     }
     const migratedLabel =
-      hasExplicitLabel
+      this.shouldSuppressLegacyTextBlockLayoutLabel(field)
+        ? undefined
+        : hasExplicitLabel
         ? (definition.label as string)
         : // RepeatableContributor often only defines 'name'; preserve a section label on migration.
         fallbackLabel ||
@@ -1848,6 +2002,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const hasHelpText = typeof definition.help === 'string' && definition.help.trim().length > 0;
     const hasLegacyCssClass = typeof definition.cssClasses === 'string' && definition.cssClasses.trim().length > 0;
     return hasHelpText || hasLegacyCssClass;
+  }
+
+  private shouldSuppressLegacyTextBlockLayoutLabel(field?: Record<string, unknown>): boolean {
+    if (!field) {
+      return false;
+    }
+    const definition = ((field.definition ?? {}) as Record<string, unknown>);
+    const isLegacyTextBlock =
+      `${field.class ?? ''}`.trim() === 'Container' && `${field.compClass ?? ''}`.trim() === 'TextBlockComponent';
+    const hasExplicitLabel = typeof definition.label === 'string' && definition.label.trim().length > 0;
+    const hasLegacyNameBinding = typeof definition.name === 'string' && definition.name.trim().length > 0;
+    return isLegacyTextBlock && hasLegacyNameBinding && !hasExplicitLabel && !this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field);
   }
 
   private normaliseV4FormConfig(formConfig: unknown): Record<string, unknown> {
