@@ -46,7 +46,6 @@ export class FormComponentItemSelectEventProducer extends FormComponentEventBase
     }
 
     this.fieldId = fieldId;
-    this.scopedBus = this.eventBus.scoped(fieldId);
 
     const sub = toObservable(component.selectedItem, { injector: options.injector })
       .pipe(skipWhile(v => v === null))
