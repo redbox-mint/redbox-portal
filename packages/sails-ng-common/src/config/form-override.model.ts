@@ -500,15 +500,7 @@ export class FormOverride {
     const questions = item.config?.questions ?? [];
 
     // Prepare question and answer info to assist checking for valid structure
-    const questionAnswerValuesMap = Object.fromEntries(
-      questions?.map(question => [question.id, question.answers.map(answer => answer.value)])
-    );
-
-    const errors: string[] = [];
-    const duplicateQuestionIds = new Set(Object.keys(questionAnswerValuesMap).filter((e, i, a) => a.indexOf(e) !== i));
-    if (duplicateQuestionIds.size > 0) {
-      errors.push(`Question ids must be unique, these were not ${Array.from(duplicateQuestionIds).sort().join(', ')}.`);
-    }
+    const {errors, questionAnswerValuesMap} = this.questionTreeHelper.validateQuestions(questions);
 
     const result: AvailableFormComponentDefinitionFrames[] = [];
     questions.forEach((question, questionIndex) => {

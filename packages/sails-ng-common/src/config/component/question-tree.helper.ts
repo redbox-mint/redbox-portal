@@ -90,6 +90,21 @@ export class QuestionTreeHelper {
     return `(${ruleExpression} ? ${questionReference} : null)`;
   }
 
+  public validateQuestions(questions: QuestionTreeQuestion[]) {
+    // Prepare question and answer info to assist checking for valid structure
+    const questionAnswerValuesMap = Object.fromEntries(
+      questions?.map(question => [question.id, question.answers.map(answer => answer.value)])
+    );
+
+    const errors: string[] = [];
+    const duplicateQuestionIds = new Set(Object.keys(questionAnswerValuesMap).filter((e, i, a) => a.indexOf(e) !== i));
+    if (duplicateQuestionIds.size > 0) {
+      errors.push(`Question ids must be unique, these were not ${Array.from(duplicateQuestionIds).sort().join(', ')}.`);
+    }
+
+    return {errors, questionAnswerValuesMap}
+  }
+
   /**
    * Validate a question tree's questions to ensure they are internally consistent.
    * @param question A question tree question definition.
@@ -278,10 +293,10 @@ export class QuestionTreeHelper {
 
     // build reusable component
     const hasOneAnswer = answersMax === 1;
-    const componentOptions = answers
-      .map(a => {
-        return {value: a.value, label: a.label ?? `@${name}-${id}-${a.value}`}
-      });
+    const componentOptions = answers.map(a => {
+      return {value: a.value, label: a.label ?? `@${name}-${id}-${a.value}`};
+    });
+    const questionLabel = question.label !== undefined ? question.label : this.questionLabelKey(name, id);
     const componentAnswerOne: AvailableFormComponentDefinitionFrames = {
       overrides: {reusableFormName: "questiontree-answer-one"},
       name: "",
@@ -291,7 +306,7 @@ export class QuestionTreeHelper {
             {
               name: "questiontree_answer_one",
               overrides: {replaceName: id},
-              layout: {class: "DefaultLayout", config: {label: id, visible: isVisible}},
+              layout: {class: "DefaultLayout", config: {label: questionLabel, visible: isVisible}},
               component: {class: "RadioInputComponent", config: {options: componentOptions, visible: isVisible}},
               expressions: expressions,
             },
@@ -309,7 +324,7 @@ export class QuestionTreeHelper {
             {
               name: 'questiontree_answer_one_more',
               overrides: {replaceName: id},
-              layout: {class: 'DefaultLayout', config: {label: id, visible: isVisible}},
+              layout: {class: 'DefaultLayout', config: {label: questionLabel, visible: isVisible}},
               component: {class: 'CheckboxInputComponent', config: {options: componentOptions, visible: isVisible}},
               expressions: expressions,
             },
@@ -319,4 +334,14 @@ export class QuestionTreeHelper {
     };
     return hasOneAnswer ? componentAnswerOne : componentAnswerMore;
   }
+
+  private questionLabelKey(componentName: string | null, label: string): string {
+    if (label.startsWith("@")) {
+      return label;
+    }
+
+    const keyPrefix = (componentName ?? "").trim().replace(/^@+/, "") || this.defaultQuestionTreeLabelPrefix;
+    return `@${keyPrefix}-item-${label}-label`;
+  }
+
 }

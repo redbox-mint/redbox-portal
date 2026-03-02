@@ -1,10 +1,11 @@
-import { Command } from 'commander';
+import {Command} from 'commander';
 import fs from "fs";
 import * as path from 'path';
-import {FormModesConfig, ILogger, ReusableFormDefinitions} from '@researchdatabox/sails-ng-common';
+import {ILogger} from '@researchdatabox/sails-ng-common';
 import {
   migrateFormConfigFile, migrateDataClassification,
-  migrateFormConfigVerify, createClientFormConfig
+  migrateFormConfigVerify, createClientFormConfig,
+  MigrationV4ToV5FormConfigVisitor, createQuestionTreeDiagram
 } from '@researchdatabox/redbox-core';
 
 const migrationLogger: ILogger = {
@@ -22,64 +23,6 @@ const migrationLogger: ILogger = {
   blank: () => undefined,
 };
 
-type MigrationVisitorConstructor = new (logger: any) => {
-  start: (params: { data: any }) => any;
-};
-
-function resolveMigrationVisitorConstructor(): MigrationVisitorConstructor {
-  const candidates = [
-    () => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pkg = require('@researchdatabox/redbox-core');
-      return pkg.MigrationV4ToV5FormConfigVisitor as MigrationVisitorConstructor | undefined;
-    },
-    () => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pkg = require(
-        path.resolve(__dirname, '..', '..', '..', 'redbox-core', 'dist', 'visitor', 'migrate-config-v4-v5.visitor.js')
-      );
-      return pkg.MigrationV4ToV5FormConfigVisitor as MigrationVisitorConstructor | undefined;
-    },
-    () => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pkg = require('@researchdatabox/sails-ng-common');
-      return pkg.MigrationV4ToV5FormConfigVisitor as MigrationVisitorConstructor | undefined;
-    },
-    () => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pkg = require(
-        path.resolve(
-          __dirname,
-          '..',
-          '..',
-          '..',
-          'sails-ng-common',
-          'dist',
-          'src',
-          'config',
-          'visitor',
-          'migrate-config-v4-v5.visitor.js'
-        )
-      );
-      return pkg.MigrationV4ToV5FormConfigVisitor as MigrationVisitorConstructor | undefined;
-    },
-  ];
-
-  for (const load of candidates) {
-    try {
-      const ctor = load();
-      if (ctor) {
-        return ctor;
-      }
-    } catch {
-      // try next candidate
-    }
-  }
-
-  throw new Error(
-    'Could not load MigrationV4ToV5FormConfigVisitor. Compile packages/redbox-core or install a version that includes the migration visitor.'
-  );
-}
 
 export function registerMigrateFormConfigCommand(program: Command): void {
   program
@@ -93,15 +36,25 @@ export function registerMigrateFormConfigCommand(program: Command): void {
         const inputPath = path.resolve(options.input);
         const outputPath = path.resolve(options.output);
 
-        const MigrationVisitor = resolveMigrationVisitorConstructor();
-        const migrateVisitor = new MigrationVisitor(migrationLogger);
+        console.log(`\n🛠️  Migrating form config: ${inputPath} -> ${outputPath}\n`);
 
-        const migrated = await migrateFormConfigFile(migrateVisitor, inputPath, outputPath, globalOptions.dryRun);
-        await migrateFormConfigVerify(migrated, migrationLogger);
+        const migrateVisitor = new MigrationV4ToV5FormConfigVisitor(migrationLogger);
+
+        const migrated = await migrateFormConfigFile(migrateVisitor, inputPath);
+
+        if (globalOptions.dryRun) {
+          console.log('[dry-run] Migration completed; no file written.');
+        } else {
+          fs.mkdirSync(path.dirname(outputPath), {recursive: true});
+          fs.writeFileSync(outputPath, migrated.tsContent, 'utf8');
+          console.log(`✅ Wrote migrated form config: ${outputPath}`);
+        }
+
+        await migrateFormConfigVerify(migrated.migrated, migrationLogger);
 
         console.log('\n✅ Done!\n');
       } catch (error: any) {
-        console.error(`\n❌ Error: ${error.message}\n`);
+        console.error(`\n❌ Error: `, error);
         process.exit(1);
       }
     });
@@ -111,23 +64,32 @@ export function registerMigrateDataClassificationCommand(program: Command): void
   program
     .command('migrate-data-classification')
     .description('Migrate a legacy v4 JS data classification definition file to the v5 TS form framework format')
-    .requiredOption('-i, --input <path>', 'Path to the legacy v4 JS file')
-    .requiredOption('-o, --output <path>', 'Path to write the migrated v5 TypeScript config file')
+    .requiredOption('-i, --input <path>', 'Path to the legacy v4 JS data classification definition file')
+    .requiredOption('-o, --output <path>', 'Path to write the migrated v5 TypeScript question tree config file')
     .action(async (options) => {
       try {
         const globalOptions = program.opts();
         const inputPath = path.resolve(options.input);
         const outputPath = path.resolve(options.output);
 
-        const MigrationVisitor = resolveMigrationVisitorConstructor();
-        const migrateVisitor = new MigrationVisitor(migrationLogger);
+        console.log(`\n🛠️  Migrating data classification to question tree: ${inputPath} -> ${outputPath}\n`);
 
-        const migrated = migrateDataClassification(migrateVisitor, inputPath, outputPath, globalOptions.dryRun);
+        const migrateVisitor = new MigrationV4ToV5FormConfigVisitor(migrationLogger);
+        const migrated = migrateDataClassification(migrateVisitor, inputPath);
+
+        if (globalOptions.dryRun) {
+          console.log('[dry-run] Migration completed; no file written.');
+        } else {
+          fs.mkdirSync(path.dirname(outputPath), {recursive: true});
+          fs.writeFileSync(outputPath, migrated.tsContent, 'utf8');
+          console.log(`✅ Wrote migrated question tree config: ${outputPath}`);
+        }
+
         await migrateFormConfigVerify(migrated.formConfig, migrationLogger);
 
         console.log('\n✅ Done!\n');
       } catch (error: any) {
-        console.error(`\n❌ Error: ${error.message}\n`);
+        console.error(`\n❌ Error: `, error);
         process.exit(1);
       }
     });
@@ -138,10 +100,10 @@ export function registerClientFormConfigCommand(program: Command) {
     .command('client-form-config')
     .description('Process a form config to produce the client form config')
     .requiredOption('-i, --input <path>', 'Path to read the server-side form config TypeScript file')
-    .requiredOption('-o, --output <path>', 'Path to write the client-side form config TypeSCript file')
-    .option('---formMode <formMode>', 'The form mode, either edit or view')
-    .option('--userRoles <userRoles...>', "The user roles, zero or more of 'Admin', 'Librarians', 'Researcher', 'Guest'")
-    .option('-r, --record <path>', "Path to read the data record")
+    .requiredOption('-o, --output <path>', 'Path to write the client-side form config TypeScript file')
+    .option('--formMode <name>', "The form mode, either 'edit' or 'view'")
+    .option('--userRoles <name...>', "The user roles, zero or more of 'Admin', 'Librarians', 'Researcher', 'Guest'")
+    .option('-r, --record <path>', "Path to read the data record file")
     .action(async (options) => {
       try {
         const globalOptions = program.opts();
@@ -151,6 +113,8 @@ export function registerClientFormConfigCommand(program: Command) {
         const formMode = options.formMode ?? null;
         const userRoles = options.userRoles ?? null;
         const record = options.record ? require(path.resolve(options.record)) : null;
+
+        console.log(`\n🛠️  Building client form config from server form config: ${inputPath} -> ${outputPath}\n`);
 
         const serverFormConfig = require(inputPath);
         const clientFormConfig = await createClientFormConfig(
@@ -162,9 +126,9 @@ const clientFormConfig: FormConfigFrame = ${JSON.stringify(clientFormConfig, nul
 export default clientFormConfig;`;
 
         if (globalOptions.dryRun) {
-          console.log('[dry-run] Client form config created; no file written.');
+          console.log('[dry-run] Client form config built from server form config; no file written.');
         } else {
-          fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+          fs.mkdirSync(path.dirname(outputPath), {recursive: true});
           fs.writeFileSync(outputPath, tsContent, 'utf8');
           console.log(`✅ Wrote client form config: ${outputPath}`);
         }
@@ -173,7 +137,7 @@ export default clientFormConfig;`;
 
         console.log('\n✅ Done!\n');
       } catch (error: any) {
-        console.error(`\n❌ Error: ${error.message}\n`);
+        console.error(`\n❌ Error: `, error);
         process.exit(1);
       }
     });
@@ -181,7 +145,35 @@ export default clientFormConfig;`;
 
 
 export function registerQuestionTreeDiagramCommand(program: Command) {
+  program
+    .command('question-tree-diagram')
+    .description('Convert a question tree config to a mermaid diagram text file')
+    .requiredOption('-i, --input <path>', 'Path to read the question tree form config TypeScript file')
+    .requiredOption('-o, --output <path>', 'Path to write the diagram text file')
+    .action(async (options) => {
+      try {
+        const globalOptions = program.opts();
+        const inputPath = path.resolve(options.input);
+        const outputPath = path.resolve(options.output);
 
+        console.log(`\n🛠️  Creating diagram from form config: ${inputPath} -> ${outputPath}\n`);
+
+        const componentConfig = require(inputPath);
+        const diagram = await createQuestionTreeDiagram(componentConfig, migrationLogger);
+
+        if (globalOptions.dryRun) {
+          console.log('[dry-run] Built diagram from form config; no file written.');
+        } else {
+          fs.mkdirSync(path.dirname(outputPath), {recursive: true});
+          fs.writeFileSync(outputPath, diagram, 'utf8');
+          console.log(`✅ Wrote diagram text file: ${outputPath}`);
+        }
+
+      } catch (error: any) {
+        console.error(`\n❌ Error: `, error);
+        process.exit(1);
+      }
+    });
 }
 
 
