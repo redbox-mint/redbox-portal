@@ -1199,6 +1199,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedPopulateFieldLayoutConfig(item.config, field);
   }
 
+  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new ActionRowFieldLayoutConfig();
+    this.sharedPopulateFieldLayoutConfig(item.config, field);
+  }
+
   /* Checkbox Input */
 
   visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {

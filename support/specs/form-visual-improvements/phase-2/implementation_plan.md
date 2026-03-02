@@ -176,6 +176,7 @@ Deliverable:
 ### Workstream 3: Form Config Migration (RDMP default)
 
 Files:
+- `packages/redbox-core-types/src/form-config/default-1.0-draft.ts`
 
 - `packages/redbox-core/src/form-config/default-1.0-draft.ts`
 

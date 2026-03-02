@@ -38,7 +38,7 @@ export class ActionRowLayoutComponent<ValueType> extends FormFieldBaseComponent<
   @ViewChild('componentContainer', { read: ViewContainerRef, static: false })
   componentContainer!: ViewContainerRef;
 
-  wrapperComponentRef?: ComponentRef<FormBaseWrapperComponent<ValueType>>;
+  wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass as typeof FormFieldBaseComponent<ValueType>;
