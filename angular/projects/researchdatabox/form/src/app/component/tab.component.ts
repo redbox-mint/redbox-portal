@@ -6,7 +6,7 @@ import {
   TabContentComponentName, TabContentFieldComponentDefinitionFrame,
   TabContentFormComponentDefinitionFrame,
   TabFieldComponentConfigFrame, TabFieldComponentDefinitionFrame,
-  TabFieldLayoutDefinitionFrame, TabLayoutName
+  TabFieldLayoutConfig, TabFieldLayoutDefinitionFrame, TabLayoutName
 } from '@researchdatabox/sails-ng-common';
 import { find as _find, merge as _merge } from 'lodash-es';
 import { FormComponent } from "../form.component";
@@ -22,24 +22,28 @@ import { DefaultLayoutComponent } from './default-layout.component';
 @Component({
   selector: 'redbox-form-tab-layout',
   template: `
-    <!-- Button Section -->
-    <div [class]="getStringProperty('buttonSectionCssClass')" role="tablist" [attr.aria-orientation]="getStringProperty('buttonSectionAriaOrientation')">
-      <!-- Loop through tabs and create buttons -->
-      @if (initialSelectionDone) {
-        @for (tab of tabConfig.tabs; track $index) {
-          <button class="nav-link"
-                  [class.active]="tabInstance && tab.name == tabInstance.selectedTabId"
-                  [attr.id]="tab.name + '-tab-button'"
-                  type="button"
-                  role="tab"
-                  [attr.aria-selected]="tabInstance && tab.name == tabInstance.selectedTabId"
-                  [attr.aria-controls]="tab.name + '-tab-content'"
-                  [innerHTML]="translateLabel(tab.layout?.config?.buttonLabel)" (click)="selectTab(tab.name)">
-          </button>
-        }
-      }
+    <div [class]="resolvedLayoutConfig.tabShellCssClass">
+      <div [class]="resolvedLayoutConfig.tabNavWrapperCssClass">
+        <div [class]="resolvedLayoutConfig.buttonSectionCssClass" role="tablist" [attr.aria-orientation]="resolvedLayoutConfig.buttonSectionAriaOrientation">
+          @if (initialSelectionDone) {
+            @for (tab of tabConfig.tabs; track $index) {
+              <button class="nav-link"
+                      [class.active]="tabInstance && tab.name == tabInstance.selectedTabId"
+                      [attr.id]="tab.name + '-tab-button'"
+                      type="button"
+                      role="tab"
+                      [attr.aria-selected]="tabInstance && tab.name == tabInstance.selectedTabId"
+                      [attr.aria-controls]="tab.name + '-tab-content'"
+                      [innerHTML]="translateLabel(tab.layout?.config?.buttonLabel)" (click)="selectTab(tab.name)">
+              </button>
+            }
+          }
+        </div>
+      </div>
+      <div [class]="resolvedLayoutConfig.tabPanelWrapperCssClass">
+        <ng-container #componentContainer></ng-container>
+      </div>
     </div>
-    <ng-container #componentContainer ></ng-container>
   `,
   standalone: false
 })
@@ -68,6 +72,14 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
       this.loggerService.warn(`${this.logName}: Expected instance to be TabComponent, but instance was:`, instance);
     }
     return null;
+  }
+
+  protected get resolvedLayoutConfig(): TabFieldLayoutConfig {
+    const defaults = new TabFieldLayoutConfig();
+    return {
+      ...defaults,
+      ...(this.componentDefinition?.config ?? {}),
+    };
   }
 
   private isTabComponent(item: unknown): item is TabComponent {
@@ -118,11 +130,12 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
       this.loggerService.debug(`${this.logName}: Tab selection changed`, selectionResult);
       // remove the 'show active' classes from all tabs
       selectionResult.wrappers?.forEach((instance: FormBaseWrapperComponent<unknown>) => {
-        instance.hostBindingCssClasses = this.componentDefinition?.config?.tabPaneCssClass;
+        instance.hostBindingCssClasses = this.resolvedLayoutConfig.tabPaneCssClass;
       });
       // add the 'show active' class to the selected tab
       if (selectionResult.selectedWrapper !== null && selectionResult.selectedWrapper !== undefined) {
-        selectionResult.selectedWrapper.hostBindingCssClasses = `${this.componentDefinition?.config?.tabPaneCssClass} ${this.componentDefinition?.config?.tabPaneActiveCssClass}`;
+        selectionResult.selectedWrapper.hostBindingCssClasses =
+          `${this.resolvedLayoutConfig.tabPaneCssClass} ${this.resolvedLayoutConfig.tabPaneActiveCssClass}`.trim();
       }
     }
   }
@@ -276,37 +289,23 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   }
 
   private applyTabPaneClasses(selectedWrapperRef: ComponentRef<FormBaseWrapperComponent<unknown>>): void {
-    const paneCssClasses = this.getPaneCssClasses();
-
     this.wrapperRefs.forEach((wrapperRef) => {
       const isSelected = wrapperRef === selectedWrapperRef;
-      if (paneCssClasses) {
-        wrapperRef.instance.hostBindingCssClasses = isSelected
-          ? `${paneCssClasses.tabPaneCssClass} ${paneCssClasses.tabPaneActiveCssClass}`.trim()
-          : paneCssClasses.tabPaneCssClass;
-      } else {
-        const existingClasses = `${wrapperRef.instance.hostBindingCssClasses || ''}`
-          .split(' ')
-          .map((cssClass) => cssClass.trim())
-          .filter((cssClass) => cssClass.length > 0 && !['active', 'show', 'd-none'].includes(cssClass));
-        const nextClasses = isSelected
-          ? [...existingClasses, 'active', 'show']
-          : [...existingClasses, 'd-none'];
-        wrapperRef.instance.hostBindingCssClasses = nextClasses.join(' ').trim();
-      }
+      const paneCssClasses = this.getPaneCssClasses();
+      wrapperRef.instance.hostBindingCssClasses = isSelected
+        ? `${paneCssClasses.tabPaneCssClass} ${paneCssClasses.tabPaneActiveCssClass}`.trim()
+        : paneCssClasses.tabPaneCssClass;
       wrapperRef.changeDetectorRef.detectChanges();
     });
   }
 
-  private getPaneCssClasses(): { tabPaneCssClass: string; tabPaneActiveCssClass: string } | null {
+  private getPaneCssClasses(): { tabPaneCssClass: string; tabPaneActiveCssClass: string } {
+    const defaults = new TabFieldLayoutConfig();
     const layoutRef = this.formFieldCompMapEntry?.layoutRef;
     const layoutConfig = (layoutRef?.instance as TabComponentLayout | undefined)?.componentDefinition?.config;
-    if (!layoutConfig) {
-      return null;
-    }
     return {
-      tabPaneCssClass: layoutConfig.tabPaneCssClass || '',
-      tabPaneActiveCssClass: layoutConfig.tabPaneActiveCssClass || '',
+      tabPaneCssClass: layoutConfig?.tabPaneCssClass ?? defaults.tabPaneCssClass ?? '',
+      tabPaneActiveCssClass: layoutConfig?.tabPaneActiveCssClass ?? defaults.tabPaneActiveCssClass ?? '',
     };
   }
 

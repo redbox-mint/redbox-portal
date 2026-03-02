@@ -65,7 +65,9 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
   selector: 'redbox-groupfield',
   template: `
     <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
-    <ng-container #componentContainer/>
+    <div class="rb-form-group">
+      <ng-container #componentContainer/>
+    </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
   `,
   standalone: false
