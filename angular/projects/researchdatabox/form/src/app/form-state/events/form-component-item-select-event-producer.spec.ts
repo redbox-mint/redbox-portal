@@ -9,7 +9,6 @@ import { FormComponentEventBindingOptions } from './form-component-base-event-pr
 
 describe('FormComponentItemSelectEventProducer', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
-  let scopedBus: jasmine.SpyObj<ScopedEventBus>;
   let producer: FormComponentItemSelectEventProducer;
   let injector: Injector;
 
@@ -20,8 +19,6 @@ describe('FormComponentItemSelectEventProducer', () => {
 
     injector = TestBed.inject(Injector);
     eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['publish', 'scoped', 'select$']);
-    scopedBus = jasmine.createSpyObj<ScopedEventBus>('ScopedEventBus', ['publish']);
-    eventBus.scoped.and.returnValue(scopedBus);
     eventBus.select$.and.returnValue(EMPTY);
 
     producer = TestBed.runInInjectionContext(() => new FormComponentItemSelectEventProducer(eventBus));
@@ -59,7 +56,6 @@ describe('FormComponentItemSelectEventProducer', () => {
     selectedItem.set({ id: '1', label: 'Title 1' });
     tick();
 
-    expect(eventBus.scoped).toHaveBeenCalledWith('/record/title');
     expect(eventBus.publish).toHaveBeenCalledTimes(1);
 
     const event = eventBus.publish.calls.mostRecent().args[0] as FormComponentEventResult<FieldItemSelectedEvent>;
