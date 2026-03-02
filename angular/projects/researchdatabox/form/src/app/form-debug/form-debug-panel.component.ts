@@ -63,6 +63,9 @@ export class FormDebugPanelComponent implements OnInit {
   }
 
   toggleCollapsed(): void {
+    if (this.debugState.isDebugPopoutWindow()) {
+      return;
+    }
     const willOpen = this.debugState.panelCollapsed();
     this.debugState.panelCollapsed.set(!this.debugState.panelCollapsed());
     if (willOpen) {
@@ -71,6 +74,10 @@ export class FormDebugPanelComponent implements OnInit {
   }
 
   closePanel(): void {
+    if (this.debugState.isDebugPopoutWindow()) {
+      window.close();
+      return;
+    }
     this.debugState.panelCollapsed.set(true);
   }
 
@@ -82,7 +89,7 @@ export class FormDebugPanelComponent implements OnInit {
   }
 
   startResize(event: MouseEvent): void {
-    if (this.mode() === 'sheet') {
+    if (this.mode() === 'sheet' || this.debugState.isDebugPopoutWindow()) {
       return;
     }
     event.preventDefault();
@@ -92,10 +99,24 @@ export class FormDebugPanelComponent implements OnInit {
   }
 
   getPanelWidthPx(): number | null {
-    if (this.mode() === 'sheet') {
+    if (this.mode() === 'sheet' || this.debugState.isDebugPopoutWindow()) {
       return null;
     }
     return Math.min(this.panelWidth(), this.getMaxResizableWidth());
+  }
+
+  openPopoutWindow(): void {
+    if (this.debugState.isDebugPopoutWindow()) {
+      return;
+    }
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set('formDebug', '1');
+    nextUrl.searchParams.set('formDebugPopout', '1');
+    window.open(
+      nextUrl.toString(),
+      'redbox-form-debug-popout',
+      'popup=yes,width=980,height=900,resizable=yes,scrollbars=yes'
+    );
   }
 
   private getMaxResizableWidth(): number {

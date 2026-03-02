@@ -19,6 +19,15 @@ describe('FormComponent', () => {
     window.history.replaceState({}, '', url.toString());
   };
 
+  const ensureDebugPanelOpen = async (fixture: { nativeElement: HTMLElement; detectChanges: () => void; whenStable: () => Promise<any> }) => {
+    const launchButton = fixture.nativeElement.querySelector('.rb-form-debug-launch') as HTMLButtonElement | null;
+    if (launchButton) {
+      launchButton.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+    }
+  };
+
   beforeEach(async () => {
     setFormDebugUrl('1');
     await createTestbedModule(
@@ -271,6 +280,7 @@ describe('FormComponent', () => {
     };
 
     const { fixture } = await createFormAndWaitForReady(formConfig);
+    await ensureDebugPanelOpen(fixture);
     const configTabButton = Array.from(fixture.nativeElement.querySelectorAll('.rb-form-debug-tabs button') as NodeListOf<HTMLButtonElement>)
       .find((button) => button.textContent?.trim() === 'Config');
     configTabButton?.click();
@@ -371,6 +381,7 @@ describe('FormComponent', () => {
     };
 
     const { fixture } = await createFormAndWaitForReady(formConfig);
+    await ensureDebugPanelOpen(fixture);
     const eventsTabButton = Array.from(fixture.nativeElement.querySelectorAll('.rb-form-debug-tabs button') as NodeListOf<HTMLButtonElement>)
       .find((button) => button.textContent?.trim() === 'Events');
     eventsTabButton?.click();
@@ -587,6 +598,7 @@ describe('FormComponent', () => {
       ]
     };
     const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    await ensureDebugPanelOpen(fixture);
     const bus = TestBed.inject(FormComponentEventBus);
     const dangerousPayload = '<img src=x onerror=alert(1)>';
     formComponent.clearDebugEvents();
@@ -806,6 +818,7 @@ describe('FormComponent', () => {
     };
 
     const { fixture } = await createFormAndWaitForReady(formConfig);
+    await ensureDebugPanelOpen(fixture);
     const expandButton = fixture.nativeElement.querySelector('.rb-form-debug-expand') as HTMLButtonElement;
     expect(expandButton).toBeTruthy();
     expandButton.click();

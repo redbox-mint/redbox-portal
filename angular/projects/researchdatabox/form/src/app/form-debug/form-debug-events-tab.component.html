@@ -1,4 +1,4 @@
-<section class="rb-form-debug-panel__section" role="region" aria-label="Event stream debug">
+<section class="rb-form-debug-panel__section rb-form-debug-panel__section--events" role="region" aria-label="Event stream debug">
   <h5>Event Stream Debug</h5>
 
   <div class="rb-form-debug-event-controls">
@@ -49,10 +49,26 @@
       <thead>
         <tr>
           <th scope="col"></th>
-          <th scope="col">Time</th>
-          <th scope="col">Type</th>
-          <th scope="col">Source ID</th>
-          <th scope="col">Field ID</th>
+          <th scope="col">
+            <button type="button" class="rb-form-debug-sort btn btn-link btn-sm p-0" (click)="debugState.toggleDebugEventSort('timestamp')">
+              Time {{ debugState.getDebugEventSortIndicator('timestamp') }}
+            </button>
+          </th>
+          <th scope="col">
+            <button type="button" class="rb-form-debug-sort btn btn-link btn-sm p-0" (click)="debugState.toggleDebugEventSort('type')">
+              Type {{ debugState.getDebugEventSortIndicator('type') }}
+            </button>
+          </th>
+          <th scope="col">
+            <button type="button" class="rb-form-debug-sort btn btn-link btn-sm p-0" (click)="debugState.toggleDebugEventSort('sourceId')">
+              Source ID {{ debugState.getDebugEventSortIndicator('sourceId') }}
+            </button>
+          </th>
+          <th scope="col">
+            <button type="button" class="rb-form-debug-sort btn btn-link btn-sm p-0" (click)="debugState.toggleDebugEventSort('fieldId')">
+              Field ID {{ debugState.getDebugEventSortIndicator('fieldId') }}
+            </button>
+          </th>
         </tr>
       </thead>
       <tbody>

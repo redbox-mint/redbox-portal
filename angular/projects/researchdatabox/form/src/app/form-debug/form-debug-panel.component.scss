@@ -15,6 +15,13 @@
 .rb-form-debug-shell {
   position: fixed;
   z-index: 2147483647 !important;
+  --rb-form-debug-events-max-h: calc(100vh - 15.5rem);
+}
+
+.rb-form-debug-shell--popout {
+  inset: 0;
+  width: 100vw !important;
+  height: 100vh !important;
 }
 
 .rb-form-debug-backdrop {
@@ -62,6 +69,7 @@
   right: 0;
   bottom: 0;
   height: 60vh;
+  --rb-form-debug-events-max-h: calc(60vh - 14rem);
 }
 
 .rb-form-debug-resize-handle {
@@ -88,6 +96,14 @@
   margin-left: auto;
 }
 
+.rb-form-debug-popout {
+  margin-left: auto;
+}
+
+.rb-form-debug-header-top .rb-form-debug-popout + .rb-form-debug-close {
+  margin-left: 0;
+}
+
 .rb-form-debug-panel {
   height: 100%;
   margin: 0;
@@ -96,6 +112,11 @@
   background: #f8fafc;
   display: flex;
   flex-direction: column;
+}
+
+.rb-form-debug-shell--popout .rb-form-debug-panel {
+  border-left: none;
+  box-shadow: none;
 }
 
 .rb-form-debug-header {
@@ -121,9 +142,33 @@
 }
 
 .rb-form-debug-content {
-  overflow: auto;
+  overflow: hidden;
   min-height: 0;
   padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+
+.rb-form-debug-panel__section {
+  min-height: 0;
+}
+
+.rb-form-debug-panel__section--events {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rb-form-debug-panel__section--events .rb-form-debug-event-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  max-height: var(--rb-form-debug-events-max-h);
+  overflow-y: auto;
+  overflow-x: auto;
 }
 
 .rb-form-debug-content .rb-form-debug-event-controls {

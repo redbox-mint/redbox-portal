@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { ElementRef, Injectable, WritableSignal, computed, inject, signal } from '@angular/core';
+import { ElementRef, Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
 import { isString as _isString, isUndefined as _isUndefined } from 'lodash-es';
 import { LineagePaths } from '@researchdatabox/sails-ng-common';
 import { FormComponentEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
@@ -30,13 +30,23 @@ export type DebugEventItem = {
 };
 
 const FORM_DEBUG_QUERY_PARAM = 'formDebug';
+const FORM_DEBUG_POPOUT_QUERY_PARAM = 'formDebugPopout';
 const FORM_DEBUG_ENABLED_VALUES = new Set(['1', 'true', 'yes']);
+const FORM_DEBUG_CHANNEL_NAME = 'rb-form-debug-events';
+
+type FormDebugBridgeMessage = {
+  scope: string;
+  event: DebugEventItem;
+};
 
 @Injectable()
-export class FormDebugStateService {
+export class FormDebugStateService implements OnDestroy {
   private readonly document = inject(DOCUMENT);
+  private readonly debugScope = this.readDebugScopeFromUrl();
+  private debugBroadcastChannel?: BroadcastChannel;
 
   isDebugEnabled = signal<boolean>(false);
+  isDebugPopoutWindow = signal<boolean>(false);
   panelCollapsed = signal<boolean>(true);
   activeTab = signal<'model' | 'config' | 'events'>('model');
 
@@ -59,6 +69,8 @@ export class FormDebugStateService {
   debugEventFilterSourceId = signal<string>('');
   debugEventAutoScroll = signal<boolean>(true);
   debugEventMaxItems = signal<number>(200);
+  debugEventSortField = signal<'timestamp' | 'type' | 'sourceId' | 'fieldId'>('timestamp');
+  debugEventSortDirection = signal<'asc' | 'desc'>('desc');
   debugEvents = signal<DebugEventItem[]>([]);
   debugExpandedEventRows = signal<Record<string, boolean>>({});
   readonly debugEventTypes = Object.values(FormComponentEventType);
@@ -67,7 +79,9 @@ export class FormDebugStateService {
     const typeFilter = this.debugEventFilterType().trim();
     const fieldFilter = this.debugEventFilterFieldId().trim().toLowerCase();
     const sourceFilter = this.debugEventFilterSourceId().trim().toLowerCase();
-    return this.debugEvents().filter((event) => {
+    const sortField = this.debugEventSortField();
+    const sortDirection = this.debugEventSortDirection();
+    const filtered = this.debugEvents().filter((event) => {
       if (typeFilter && event.type !== typeFilter) {
         return false;
       }
@@ -79,16 +93,27 @@ export class FormDebugStateService {
       }
       return true;
     });
+    return [...filtered].sort((left, right) => this.compareDebugEvents(left, right, sortField, sortDirection));
   });
 
   private debugEventCounter = 0;
 
   constructor() {
+    this.initBroadcastBridge();
     this.refreshFromUrl();
+  }
+
+  ngOnDestroy(): void {
+    this.debugBroadcastChannel?.close();
   }
 
   refreshFromUrl(): void {
     this.isDebugEnabled.set(this.readDebugEnabledFromUrl());
+    const isPopout = this.readDebugPopoutFromUrl();
+    this.isDebugPopoutWindow.set(isPopout);
+    if (isPopout) {
+      this.panelCollapsed.set(false);
+    }
   }
 
   setTranslatedConfigSnapshot(value: unknown, resetInitial: boolean): void {
@@ -148,24 +173,17 @@ export class FormDebugStateService {
 
     const timestamp = typeof event.timestamp === 'number' ? event.timestamp : Date.now();
     const id = `${timestamp}-${++this.debugEventCounter}`;
-    const next = [
-      ...this.debugEvents(),
-      {
-        id,
-        timestamp,
-        type: String(event.type ?? ''),
-        sourceId: _isString(event.sourceId) ? event.sourceId : undefined,
-        fieldId: _isString(event.fieldId) ? event.fieldId : undefined,
-        payload: this.extractDebugEventPayload(event)
-      }
-    ];
+    const eventItem: DebugEventItem = {
+      id,
+      timestamp,
+      type: String(event.type ?? ''),
+      sourceId: _isString(event.sourceId) ? event.sourceId : undefined,
+      fieldId: _isString(event.fieldId) ? event.fieldId : undefined,
+      payload: this.extractDebugEventPayload(event)
+    };
 
-    const maxItems = this.coerceDebugEventMaxItems(this.debugEventMaxItems());
-    if (next.length > maxItems) {
-      next.splice(0, next.length - maxItems);
-    }
-    this.debugEvents.set(next);
-    this.pruneDebugExpandedEventRows(next);
+    this.appendDebugEvent(eventItem);
+    this.publishDebugBridgeEvent(eventItem);
   }
 
   extractDebugEventPayload(event: FormComponentEvent): Record<string, unknown> {
@@ -209,6 +227,22 @@ export class FormDebugStateService {
       this.debugEvents.set(trimmed);
       this.pruneDebugExpandedEventRows(trimmed);
     }
+  }
+
+  toggleDebugEventSort(field: 'timestamp' | 'type' | 'sourceId' | 'fieldId'): void {
+    if (this.debugEventSortField() === field) {
+      this.debugEventSortDirection.set(this.debugEventSortDirection() === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+    this.debugEventSortField.set(field);
+    this.debugEventSortDirection.set(field === 'timestamp' ? 'desc' : 'asc');
+  }
+
+  getDebugEventSortIndicator(field: 'timestamp' | 'type' | 'sourceId' | 'fieldId'): string {
+    if (this.debugEventSortField() !== field) {
+      return '';
+    }
+    return this.debugEventSortDirection() === 'asc' ? '↑' : '↓';
   }
 
   formatDebugEventTimestamp(timestamp: number): string {
@@ -341,6 +375,97 @@ export class FormDebugStateService {
     } catch {
       return false;
     }
+  }
+
+  private readDebugPopoutFromUrl(): boolean {
+    const rawHref = this.document?.location?.href;
+    if (!rawHref) {
+      return false;
+    }
+    try {
+      const parsed = new URL(rawHref);
+      const rawValue = parsed.searchParams.get(FORM_DEBUG_POPOUT_QUERY_PARAM);
+      if (!rawValue) {
+        return false;
+      }
+      return FORM_DEBUG_ENABLED_VALUES.has(rawValue.trim().toLowerCase());
+    } catch {
+      return false;
+    }
+  }
+
+  private readDebugScopeFromUrl(): string {
+    const rawHref = this.document?.location?.href;
+    if (!rawHref) {
+      return '';
+    }
+    try {
+      const parsed = new URL(rawHref);
+      parsed.searchParams.delete(FORM_DEBUG_POPOUT_QUERY_PARAM);
+      return `${parsed.pathname}?${parsed.searchParams.toString()}`;
+    } catch {
+      return '';
+    }
+  }
+
+  private initBroadcastBridge(): void {
+    if (typeof BroadcastChannel === 'undefined') {
+      return;
+    }
+    this.debugBroadcastChannel = new BroadcastChannel(FORM_DEBUG_CHANNEL_NAME);
+    this.debugBroadcastChannel.onmessage = (msg: MessageEvent<FormDebugBridgeMessage>) => {
+      const data = msg?.data;
+      if (!data || data.scope !== this.debugScope) {
+        return;
+      }
+      if (!this.isDebugPopoutWindow()) {
+        return;
+      }
+      this.appendDebugEvent(data.event);
+    };
+  }
+
+  private publishDebugBridgeEvent(eventItem: DebugEventItem): void {
+    if (this.isDebugPopoutWindow()) {
+      return;
+    }
+    if (!this.debugBroadcastChannel || !this.debugScope) {
+      return;
+    }
+    this.debugBroadcastChannel.postMessage({
+      scope: this.debugScope,
+      event: eventItem
+    } as FormDebugBridgeMessage);
+  }
+
+  private appendDebugEvent(eventItem: DebugEventItem): void {
+    const next = [...this.debugEvents(), eventItem];
+    const maxItems = this.coerceDebugEventMaxItems(this.debugEventMaxItems());
+    if (next.length > maxItems) {
+      next.splice(0, next.length - maxItems);
+    }
+    this.debugEvents.set(next);
+    this.pruneDebugExpandedEventRows(next);
+  }
+
+  private compareDebugEvents(
+    left: DebugEventItem,
+    right: DebugEventItem,
+    field: 'timestamp' | 'type' | 'sourceId' | 'fieldId',
+    direction: 'asc' | 'desc'
+  ): number {
+    const directionFactor = direction === 'asc' ? 1 : -1;
+    if (field === 'timestamp') {
+      return (left.timestamp - right.timestamp) * directionFactor;
+    }
+
+    const leftValue = String(left[field] ?? '');
+    const rightValue = String(right[field] ?? '');
+    const compareResult = leftValue.localeCompare(rightValue, undefined, { sensitivity: 'base' });
+    if (compareResult !== 0) {
+      return compareResult * directionFactor;
+    }
+    return (left.timestamp - right.timestamp) * -1;
   }
 
   private collectDebugRowIds(item: DebugInfo | undefined, result: Set<string>): void {

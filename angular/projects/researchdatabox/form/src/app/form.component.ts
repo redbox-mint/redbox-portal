@@ -513,7 +513,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   @HostBinding('class') get hostClasses(): string {
     const modeClass = this.editMode() ? 'rb-form-edit' : 'rb-form-view';
     const debugOpenClass = this.debugState.isDebugEnabled() && !this.debugState.panelCollapsed() ? 'rb-form-debug-open' : '';
-    const baselineClasses = `rb-form-host ${modeClass} ${debugOpenClass}`.trim();
+    const debugPopoutClass = this.debugState.isDebugPopoutWindow() ? 'rb-form-debug-popout' : '';
+    const baselineClasses = `rb-form-host ${modeClass} ${debugOpenClass} ${debugPopoutClass}`.trim();
     if (!this.formDefMap?.formConfig) {
       return baselineClasses;
     }

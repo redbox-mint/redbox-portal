@@ -1,4 +1,4 @@
-@if (debugState.panelCollapsed()) {
+@if (debugState.panelCollapsed() && !debugState.isDebugPopoutWindow()) {
   <button
     type="button"
     class="rb-form-debug-launch rb-form-debug-launch--side btn btn-sm btn-primary"
@@ -6,19 +6,22 @@
     Debug
   </button>
 } @else {
-  <button
-    type="button"
-    class="rb-form-debug-backdrop"
-    aria-label="Close form debug panel"
-    (click)="closePanelFromBackdrop()"></button>
+  @if (!debugState.isDebugPopoutWindow()) {
+    <button
+      type="button"
+      class="rb-form-debug-backdrop"
+      aria-label="Close form debug panel"
+      (click)="closePanelFromBackdrop()"></button>
+  }
 
   <div
     class="rb-form-debug-shell"
     [class.rb-form-debug-shell--dock]="mode() === 'dock'"
     [class.rb-form-debug-shell--overlay]="mode() === 'overlay'"
     [class.rb-form-debug-shell--sheet]="mode() === 'sheet'"
+    [class.rb-form-debug-shell--popout]="debugState.isDebugPopoutWindow()"
     [style.width.px]="getPanelWidthPx()">
-    @if (mode() !== 'sheet') {
+    @if (mode() !== 'sheet' && !debugState.isDebugPopoutWindow()) {
       <button
         type="button"
         class="rb-form-debug-resize-handle"
@@ -33,6 +36,14 @@
       <header class="rb-form-debug-header">
         <div class="rb-form-debug-header-top">
           <h4 class="mb-0">Form Debug</h4>
+          @if (!debugState.isDebugPopoutWindow()) {
+            <button
+              type="button"
+              class="rb-form-debug-popout btn btn-sm btn-outline-secondary"
+              (click)="openPopoutWindow()">
+              Pop out
+            </button>
+          }
           <button
             type="button"
             class="rb-form-debug-close btn btn-sm btn-outline-secondary"
