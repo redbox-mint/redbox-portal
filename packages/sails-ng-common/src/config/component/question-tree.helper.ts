@@ -90,6 +90,21 @@ export class QuestionTreeHelper {
     return `(${ruleExpression} ? ${questionReference} : null)`;
   }
 
+  public validateQuestions(questions: QuestionTreeQuestion[]) {
+    // Prepare question and answer info to assist checking for valid structure
+    const questionAnswerValuesMap = Object.fromEntries(
+      questions?.map(question => [question.id, question.answers.map(answer => answer.value)])
+    );
+
+    const errors: string[] = [];
+    const duplicateQuestionIds = new Set(Object.keys(questionAnswerValuesMap).filter((e, i, a) => a.indexOf(e) !== i));
+    if (duplicateQuestionIds.size > 0) {
+      errors.push(`Question ids must be unique, these were not ${Array.from(duplicateQuestionIds).sort().join(', ')}.`);
+    }
+
+    return {errors, questionAnswerValuesMap}
+  }
+
   /**
    * Validate a question tree's questions to ensure they are internally consistent.
    * @param question A question tree question definition.

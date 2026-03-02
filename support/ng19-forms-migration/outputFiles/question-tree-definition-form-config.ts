@@ -18,6 +18,7 @@ const questionTreeConfig: QuestionTreeFieldComponentConfigFrame = {
   "questions": [
     {
       "id": "is-data-sensitive",
+      "label": "Is any of your research data sensitive?",
       "answersMin": 1,
       "answersMax": 1,
       "answers": [
@@ -41,6 +42,7 @@ const questionTreeConfig: QuestionTreeFieldComponentConfigFrame = {
     },
     {
       "id": "published-or-public-data",
+      "label": "Are you using published or publicly available data?",
       "answersMin": 1,
       "answersMax": 2,
       "answers": [
@@ -68,6 +70,7 @@ const questionTreeConfig: QuestionTreeFieldComponentConfigFrame = {
     },
     {
       "id": "data-from-or-about-individuals",
+      "label": "Does this data contain information from or about individuals?",
       "answersMin": 1,
       "answersMax": 1,
       "answers": [

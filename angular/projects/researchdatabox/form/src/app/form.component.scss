@@ -281,7 +281,8 @@
   display: none;
 }
 
-.rb-form-edit .rb-form-action-row {
+.rb-form-edit .rb-form-action-row,
+.rb-form-view .rb-form-action-row {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -292,7 +293,8 @@
   border-top: 1px solid var(--rb-form-border-color);
 }
 
-.rb-form-edit .rb-form-action-row .rb-form-group {
+.rb-form-edit .rb-form-action-row .rb-form-group,
+.rb-form-view .rb-form-action-row .rb-form-group {
   display: flex;
   flex-wrap: wrap;
   gap: var(--rb-form-gap-2);
@@ -300,18 +302,48 @@
   width: 100%;
 }
 
-.rb-form-edit .rb-form-action-row > * {
-  flex: 0 0 auto;
+.rb-form-edit .rb-form-action-row.rb-form-action-row--legacy-inline,
+.rb-form-view .rb-form-action-row.rb-form-action-row--legacy-inline {
+  justify-content: flex-start;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.rb-form-edit .rb-form-action-row.rb-form-action-row--legacy-inline .rb-form-group,
+.rb-form-view .rb-form-action-row.rb-form-action-row--legacy-inline .rb-form-group {
+  justify-content: flex-start;
   width: auto;
 }
 
-.rb-form-edit .rb-form-action-row .rb-form-action-slot {
+.rb-form-edit .rb-form-action-row > *,
+.rb-form-view .rb-form-action-row > * {
+  flex: 0 1 auto;
   width: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.rb-form-edit .rb-form-action-row .rb-form-action-slot,
+.rb-form-view .rb-form-action-row .rb-form-action-slot {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .rb-form-edit .rb-form-action-row .rb-form-action-slot .rb-form-inline-layout,
-.rb-form-edit .rb-form-action-row .rb-form-action-slot .rb-form-field-layout {
+.rb-form-edit .rb-form-action-row .rb-form-action-slot .rb-form-field-layout,
+.rb-form-view .rb-form-action-row .rb-form-action-slot .rb-form-inline-layout,
+.rb-form-view .rb-form-action-row .rb-form-action-slot .rb-form-field-layout {
   margin-bottom: 0;
+}
+
+.rb-form-edit .rb-form-action-row .container,
+.rb-form-view .rb-form-action-row .container {
+  width: auto;
+  max-width: 100%;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .rb-form-edit .rb-form-action-slot--start {

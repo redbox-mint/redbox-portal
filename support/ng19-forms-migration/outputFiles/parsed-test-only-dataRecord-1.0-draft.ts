@@ -38,7 +38,8 @@ const formConfig: FormConfigFrame = {
           "label": "title",
           "disabled": false,
           "autofocus": false,
-          "template": "<span role=\"heading\" aria-level=\"1\">{{content}}</span>",
+          "showValidIndicator": false,
+          "template": "<h1>{{content}}</h1>",
           "content": ""
         }
       },
@@ -51,6 +52,7 @@ const formConfig: FormConfigFrame = {
           "label": "title",
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "labelRequiredStr": "*",
           "cssClassesMap": {},
           "helpTextVisibleOnInit": false,
@@ -74,6 +76,7 @@ const formConfig: FormConfigFrame = {
           "editMode": true,
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "componentDefinitions": [
             {
               "name": "SaveButtonComponent-fields-1-definition-fields-0",
@@ -94,6 +97,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@data-record-edit-record-link",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "buttonCssClasses": "btn btn-large btn-info margin-15"
                 }
               },
@@ -106,6 +110,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@data-record-edit-record-link",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -132,6 +137,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dmp-associated-rdmp-link",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "buttonCssClasses": "btn btn-large btn-info margin-15"
                 }
               },
@@ -144,6 +150,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dmp-associated-rdmp-link",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -173,6 +180,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@view-record-audit-link",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "buttonCssClasses": "btn btn-large btn-info margin-15"
                 }
               },
@@ -185,6 +193,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@view-record-audit-link",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -211,6 +220,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dmp-create-datapublication-link",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "buttonCssClasses": "btn btn-large btn-info margin-15"
                 }
               },
@@ -223,6 +233,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dmp-create-datapublication-link",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -247,6 +258,7 @@ const formConfig: FormConfigFrame = {
           "editMode": true,
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "labelRequiredStr": "*",
           "cssClassesMap": {},
           "helpTextVisibleOnInit": false,
@@ -273,6 +285,7 @@ const formConfig: FormConfigFrame = {
           "label": "@dataRecord-description",
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "rows": 2,
           "cols": 20,
           "placeholder": ""
@@ -293,6 +306,7 @@ const formConfig: FormConfigFrame = {
           "label": "@dataRecord-description",
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "labelRequiredStr": "*",
           "cssClassesMap": {},
           "helpTextVisibleOnInit": false,
@@ -317,6 +331,7 @@ const formConfig: FormConfigFrame = {
           "hostCssClasses": "tab-content",
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "tabs": [
             {
               "name": "aim",
@@ -335,6 +350,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataRecord-aim-tab",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "componentDefinitions": [
                     {
                       "name": "parameterRetriever",
@@ -353,6 +369,7 @@ const formConfig: FormConfigFrame = {
                           "label": "parameterRetriever",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "content": "Not yet implemented in v5: v4ClassName \"ParameterRetriever\" v4CompClassName \"ParameterRetrieverComponent\" v4Name \"parameterRetriever\". At path '[\"fields\",\"3\",\"definition\",\"fields\",\"0\",\"definition\",\"fields\",\"0\"]'."
                         }
                       },
@@ -365,6 +382,7 @@ const formConfig: FormConfigFrame = {
                           "label": "parameterRetriever",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -389,6 +407,7 @@ const formConfig: FormConfigFrame = {
                           "label": "rdmpGetter",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "content": "Not yet implemented in v5: v4ClassName \"RecordMetadataRetriever\" v4CompClassName \"RecordMetadataRetrieverComponent\" v4Name \"rdmpGetter\". At path '[\"fields\",\"3\",\"definition\",\"fields\",\"0\",\"definition\",\"fields\",\"1\"]'."
                         }
                       },
@@ -401,6 +420,7 @@ const formConfig: FormConfigFrame = {
                           "label": "rdmpGetter",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -424,7 +444,8 @@ const formConfig: FormConfigFrame = {
                           "editMode": true,
                           "disabled": false,
                           "autofocus": false,
-                          "template": "<span role=\"heading\" aria-level=\"3\">{{content}}</span>",
+                          "showValidIndicator": false,
+                          "template": "<h3>{{t content}}</h3>",
                           "content": "@dataRecord-aim-heading"
                         }
                       },
@@ -436,6 +457,7 @@ const formConfig: FormConfigFrame = {
                           "editMode": true,
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -460,6 +482,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-selector-label",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "content": "Not yet implemented in v5: v4ClassName \"RelatedObjectSelector\" v4CompClassName \"RelatedObjectSelectorComponent\" v4Name \"rdmp\". At path '[\"fields\",\"3\",\"definition\",\"fields\",\"0\",\"definition\",\"fields\",\"3\"]'."
                         }
                       },
@@ -472,6 +495,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-selector-label",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -496,6 +520,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-aim-project-name",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "type": "text"
                         }
                       },
@@ -514,6 +539,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-aim-project-name",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -538,6 +564,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-foaf:fundedBy_foaf:Agent",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "elementTemplate": {
                             "name": "",
                             "constraints": {
@@ -554,6 +581,7 @@ const formConfig: FormConfigFrame = {
                                 "editMode": true,
                                 "disabled": false,
                                 "autofocus": false,
+                                "showValidIndicator": false,
                                 "sourceType": "vocabulary",
                                 "staticOptions": [],
                                 "vocabRef": "Funding Bodies",
@@ -580,6 +608,7 @@ const formConfig: FormConfigFrame = {
                                 "editMode": true,
                                 "disabled": false,
                                 "autofocus": false,
+                                "showValidIndicator": false,
                                 "labelRequiredStr": "*",
                                 "cssClassesMap": {},
                                 "helpTextVisibleOnInit": false,
@@ -604,6 +633,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-foaf:fundedBy_foaf:Agent",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "helpText": "@dmpt-foaf:fundedBy_foaf:Agent-help",
                           "cssClassesMap": {},
@@ -629,6 +659,7 @@ const formConfig: FormConfigFrame = {
                           "label": "dc:coverage_vivo:DateTimeInterval_vivo:end",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "type": "hidden"
                         }
                       },
@@ -647,6 +678,7 @@ const formConfig: FormConfigFrame = {
                           "label": "dc:coverage_vivo:DateTimeInterval_vivo:end",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -671,6 +703,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-foaf:fundedBy_vivo:Grant",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "elementTemplate": {
                             "name": "",
                             "constraints": {
@@ -687,6 +720,7 @@ const formConfig: FormConfigFrame = {
                                 "editMode": true,
                                 "disabled": false,
                                 "autofocus": false,
+                                "showValidIndicator": false,
                                 "sourceType": "vocabulary",
                                 "staticOptions": [],
                                 "vocabRef": "Research Activities",
@@ -713,6 +747,7 @@ const formConfig: FormConfigFrame = {
                                 "editMode": true,
                                 "disabled": false,
                                 "autofocus": false,
+                                "showValidIndicator": false,
                                 "labelRequiredStr": "*",
                                 "cssClassesMap": {},
                                 "helpTextVisibleOnInit": false,
@@ -737,6 +772,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-foaf:fundedBy_vivo:Grant",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "helpText": "@dmpt-foaf:fundedBy_vivo:Grant-help",
                           "cssClassesMap": {},
@@ -762,6 +798,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-project-anzsrcFor",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "vocabRef": "anzsrc-2020-for",
                           "treeData": [],
                           "leafOnly": true,
@@ -783,6 +820,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-project-anzsrcFor",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "helpText": "@dmpt-project-anzsrcFor-help",
                           "cssClassesMap": {},
@@ -808,6 +846,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-project-anzsrcSeo",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "vocabRef": "anzsrc-2020-seo",
                           "treeData": [],
                           "leafOnly": true,
@@ -829,6 +868,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-project-anzsrcSeo",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "helpText": "@dmpt-project-anzsrcSeo-help",
                           "cssClassesMap": {},
@@ -850,6 +890,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataRecord-aim-tab",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -875,6 +916,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataRecord-about-tab",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "componentDefinitions": [
                     {
                       "name": "ContentComponent-fields-3-definition-fields-1-definition-fields-0",
@@ -892,7 +934,8 @@ const formConfig: FormConfigFrame = {
                           "editMode": true,
                           "disabled": false,
                           "autofocus": false,
-                          "template": "<span role=\"heading\" aria-level=\"3\">{{content}}</span>",
+                          "showValidIndicator": false,
+                          "template": "<h3>{{t content}}</h3>",
                           "content": "@dataRecord-about-heading"
                         }
                       },
@@ -904,6 +947,7 @@ const formConfig: FormConfigFrame = {
                           "editMode": true,
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -928,6 +972,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-title",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "type": "text"
                         }
                       },
@@ -950,6 +995,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-title",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "helpText": "@dataRecord-title-help",
                           "cssClassesMap": {},
@@ -975,6 +1021,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-what-tab-description",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "rows": 2,
                           "cols": 20,
                           "placeholder": ""
@@ -999,6 +1046,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-what-tab-description",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "helpText": "@dataRecord-what-tab-description-help",
                           "cssClassesMap": {},
@@ -1024,6 +1072,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-datatype",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "options": [
                             {
                               "label": "@dataRecord-dataype-select:Empty",
@@ -1071,6 +1120,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-datatype",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "helpText": "@dataRecord-datatype-help",
                           "cssClassesMap": {},
@@ -1096,6 +1146,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-keywords",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "elementTemplate": {
                             "name": "",
                             "constraints": {
@@ -1112,6 +1163,7 @@ const formConfig: FormConfigFrame = {
                                 "editMode": true,
                                 "disabled": false,
                                 "autofocus": false,
+                                "showValidIndicator": false,
                                 "type": "text"
                               }
                             },
@@ -1133,6 +1185,7 @@ const formConfig: FormConfigFrame = {
                                 "editMode": true,
                                 "disabled": false,
                                 "autofocus": false,
+                                "showValidIndicator": false,
                                 "labelRequiredStr": "*",
                                 "cssClassesMap": {},
                                 "helpTextVisibleOnInit": false,
@@ -1161,6 +1214,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-keywords",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "helpText": "@dataRecord-keywords-help",
                           "cssClassesMap": {},
@@ -1186,6 +1240,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-dc_extent",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "type": "text"
                         }
                       },
@@ -1211,6 +1266,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-dc_extent",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "helpText": "@dataRecord-dc_extent-help",
                           "cssClassesMap": {},
@@ -1232,6 +1288,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataRecord-about-tab",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -1257,6 +1314,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataRecord-people-tab",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "componentDefinitions": [
                     {
                       "name": "ContentComponent-fields-3-definition-fields-2-definition-fields-0",
@@ -1274,7 +1332,8 @@ const formConfig: FormConfigFrame = {
                           "editMode": true,
                           "disabled": false,
                           "autofocus": false,
-                          "template": "<span role=\"heading\" aria-level=\"3\">{{content}}</span>",
+                          "showValidIndicator": false,
+                          "template": "<h3>{{t content}}</h3>",
                           "content": "@dataRecord-people-heading"
                         }
                       },
@@ -1286,6 +1345,7 @@ const formConfig: FormConfigFrame = {
                           "editMode": true,
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -1313,6 +1373,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-people-tab-ci",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "componentDefinitions": [
                             {
                               "name": "standard_contributor_fields_group",
@@ -1334,6 +1395,7 @@ const formConfig: FormConfigFrame = {
                                   "label": "@dmpt-people-tab-ci",
                                   "disabled": false,
                                   "autofocus": false,
+                                  "showValidIndicator": false,
                                   "componentDefinitions": []
                                 }
                               },
@@ -1356,6 +1418,7 @@ const formConfig: FormConfigFrame = {
                                   "label": "@dmpt-people-tab-ci",
                                   "disabled": false,
                                   "autofocus": false,
+                                  "showValidIndicator": false,
                                   "labelRequiredStr": "*",
                                   "helpText": "@dmpt-people-tab-ci-help",
                                   "cssClassesMap": {},
@@ -1388,6 +1451,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-people-tab-data-manager",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "componentDefinitions": [
                             {
                               "name": "standard_contributor_fields_group",
@@ -1409,6 +1473,7 @@ const formConfig: FormConfigFrame = {
                                   "label": "@dmpt-people-tab-data-manager",
                                   "disabled": false,
                                   "autofocus": false,
+                                  "showValidIndicator": false,
                                   "componentDefinitions": []
                                 }
                               },
@@ -1437,6 +1502,7 @@ const formConfig: FormConfigFrame = {
                                   "label": "@dmpt-people-tab-data-manager",
                                   "disabled": false,
                                   "autofocus": false,
+                                  "showValidIndicator": false,
                                   "labelRequiredStr": "*",
                                   "helpText": "@dmpt-people-tab-data-manager-help",
                                   "cssClassesMap": {},
@@ -1466,6 +1532,7 @@ const formConfig: FormConfigFrame = {
                           "label": "contributors",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "elementTemplate": {
                             "name": "",
                             "constraints": {
@@ -1486,6 +1553,7 @@ const formConfig: FormConfigFrame = {
                                 "label": "@dmpt-people-tab-contributors",
                                 "disabled": false,
                                 "autofocus": false,
+                                "showValidIndicator": false,
                                 "componentDefinitions": [
                                   {
                                     "name": "standard_contributor_fields_group",
@@ -1507,6 +1575,7 @@ const formConfig: FormConfigFrame = {
                                         "label": "@dmpt-people-tab-contributors",
                                         "disabled": false,
                                         "autofocus": false,
+                                        "showValidIndicator": false,
                                         "componentDefinitions": []
                                       }
                                     },
@@ -1525,6 +1594,7 @@ const formConfig: FormConfigFrame = {
                                         "label": "@dmpt-people-tab-contributors",
                                         "disabled": false,
                                         "autofocus": false,
+                                        "showValidIndicator": false,
                                         "labelRequiredStr": "*",
                                         "helpText": "@dmpt-people-tab-contributors-help",
                                         "cssClassesMap": {},
@@ -1554,6 +1624,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-people-tab-contributors",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -1581,6 +1652,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-people-tab-supervisor",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "componentDefinitions": [
                             {
                               "name": "standard_contributor_fields_group",
@@ -1602,6 +1674,7 @@ const formConfig: FormConfigFrame = {
                                   "label": "@dmpt-people-tab-supervisor",
                                   "disabled": false,
                                   "autofocus": false,
+                                  "showValidIndicator": false,
                                   "componentDefinitions": []
                                 }
                               },
@@ -1620,6 +1693,7 @@ const formConfig: FormConfigFrame = {
                                   "label": "@dmpt-people-tab-supervisor",
                                   "disabled": false,
                                   "autofocus": false,
+                                  "showValidIndicator": false,
                                   "labelRequiredStr": "*",
                                   "helpText": "@dmpt-people-tab-supervisor-help",
                                   "cssClassesMap": {},
@@ -1649,6 +1723,7 @@ const formConfig: FormConfigFrame = {
                           "label": "dataowner_name",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "type": "hidden"
                         }
                       },
@@ -1667,6 +1742,7 @@ const formConfig: FormConfigFrame = {
                           "label": "dataowner_name",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -1691,6 +1767,7 @@ const formConfig: FormConfigFrame = {
                           "label": "dataowner_email",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "type": "hidden"
                         }
                       },
@@ -1709,6 +1786,7 @@ const formConfig: FormConfigFrame = {
                           "label": "dataowner_email",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -1729,6 +1807,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataRecord-people-tab",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -1754,6 +1833,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataRecord-relationships-tab",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "componentDefinitions": [
                     {
                       "name": "ContentComponent-fields-3-definition-fields-3-definition-fields-0",
@@ -1771,7 +1851,8 @@ const formConfig: FormConfigFrame = {
                           "editMode": true,
                           "disabled": false,
                           "autofocus": false,
-                          "template": "<span role=\"heading\" aria-level=\"3\">{{content}}</span>",
+                          "showValidIndicator": false,
+                          "template": "<h3>{{t content}}</h3>",
                           "content": "@dataRecord-relationships-heading"
                         }
                       },
@@ -1783,6 +1864,7 @@ const formConfig: FormConfigFrame = {
                           "editMode": true,
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -1807,6 +1889,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-redbox:retentionPeriod_dc:date",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "options": [
                             {
                               "label": "@dmpt-select:Empty",
@@ -1858,6 +1941,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-redbox:retentionPeriod_dc:date",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "helpText": "@dmpt-redbox:retentionPeriod_dc:date-help",
                           "cssClassesMap": {},
@@ -1883,6 +1967,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord:retentionPeriod_dc:date_skos:note",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "options": [
                             {
                               "label": "@dmpt-select:Empty",
@@ -1926,6 +2011,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord:retentionPeriod_dc:date_skos:note",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -1950,6 +2036,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-disposalDate",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "placeholder": "",
                           "dateFormat": "DD/MM/YYYY",
                           "showWeekNumbers": false,
@@ -1973,6 +2060,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-disposalDate",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "helpText": "@dataRecord-disposalDate-help",
                           "cssClassesMap": {},
@@ -1998,6 +2086,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-related-publication",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "elementTemplate": {
                             "name": "",
                             "constraints": {
@@ -2015,6 +2104,7 @@ const formConfig: FormConfigFrame = {
                                 "label": "related_publication",
                                 "disabled": false,
                                 "autofocus": false,
+                                "showValidIndicator": false,
                                 "componentDefinitions": [
                                   {
                                     "name": "related_url",
@@ -2035,6 +2125,7 @@ const formConfig: FormConfigFrame = {
                                         "label": "@dmpt-related-publication-url",
                                         "disabled": false,
                                         "autofocus": false,
+                                        "showValidIndicator": false,
                                         "content": "Not yet implemented in v5: v4ClassName \"LinkValueComponent\" v4CompClassName \"\" v4Name \"related_url\". At path '[\"fields\",\"3\",\"definition\",\"fields\",\"3\",\"definition\",\"fields\",\"4\",\"definition\",\"fields\",\"0\",\"definition\",\"fields\",\"0\"]'."
                                       }
                                     },
@@ -2047,6 +2138,7 @@ const formConfig: FormConfigFrame = {
                                         "label": "@dmpt-related-publication-url",
                                         "disabled": false,
                                         "autofocus": false,
+                                        "showValidIndicator": false,
                                         "labelRequiredStr": "*",
                                         "cssClassesMap": {},
                                         "helpTextVisibleOnInit": false,
@@ -2073,6 +2165,7 @@ const formConfig: FormConfigFrame = {
                                         "label": "@dmpt-related-publication-url",
                                         "disabled": false,
                                         "autofocus": false,
+                                        "showValidIndicator": false,
                                         "type": "text"
                                       }
                                     },
@@ -2091,6 +2184,7 @@ const formConfig: FormConfigFrame = {
                                         "label": "@dmpt-related-publication-url",
                                         "disabled": false,
                                         "autofocus": false,
+                                        "showValidIndicator": false,
                                         "labelRequiredStr": "*",
                                         "cssClassesMap": {},
                                         "helpTextVisibleOnInit": false,
@@ -2115,6 +2209,7 @@ const formConfig: FormConfigFrame = {
                                         "label": "@dmpt-related-publication-title",
                                         "disabled": false,
                                         "autofocus": false,
+                                        "showValidIndicator": false,
                                         "type": "text"
                                       }
                                     },
@@ -2133,6 +2228,7 @@ const formConfig: FormConfigFrame = {
                                         "label": "@dmpt-related-publication-title",
                                         "disabled": false,
                                         "autofocus": false,
+                                        "showValidIndicator": false,
                                         "labelRequiredStr": "*",
                                         "cssClassesMap": {},
                                         "helpTextVisibleOnInit": false,
@@ -2157,6 +2253,7 @@ const formConfig: FormConfigFrame = {
                                         "label": "@dmpt-related-publication-notes",
                                         "disabled": false,
                                         "autofocus": false,
+                                        "showValidIndicator": false,
                                         "rows": 1,
                                         "cols": 20,
                                         "placeholder": ""
@@ -2177,6 +2274,7 @@ const formConfig: FormConfigFrame = {
                                         "label": "@dmpt-related-publication-notes",
                                         "disabled": false,
                                         "autofocus": false,
+                                        "showValidIndicator": false,
                                         "labelRequiredStr": "*",
                                         "cssClassesMap": {},
                                         "helpTextVisibleOnInit": false,
@@ -2202,6 +2300,7 @@ const formConfig: FormConfigFrame = {
                                 "label": "related_publication",
                                 "disabled": false,
                                 "autofocus": false,
+                                "showValidIndicator": false,
                                 "labelRequiredStr": "*",
                                 "cssClassesMap": {},
                                 "helpTextVisibleOnInit": false,
@@ -2226,6 +2325,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dmpt-related-publication",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "helpText": "@dmpt-related-publication-help",
                           "cssClassesMap": {},
@@ -2247,6 +2347,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataRecord-relationships-tab",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -2272,6 +2373,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataRecord-data-tab",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "componentDefinitions": [
                     {
                       "name": "ContentComponent-fields-3-definition-fields-4-definition-fields-0",
@@ -2289,7 +2391,8 @@ const formConfig: FormConfigFrame = {
                           "editMode": true,
                           "disabled": false,
                           "autofocus": false,
-                          "template": "<span role=\"heading\" aria-level=\"3\">{{content}}</span>",
+                          "showValidIndicator": false,
+                          "template": "<h3>{{t content}}</h3>",
                           "content": "@dataRecord-data-heading"
                         }
                       },
@@ -2301,6 +2404,7 @@ const formConfig: FormConfigFrame = {
                           "editMode": true,
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -2325,6 +2429,7 @@ const formConfig: FormConfigFrame = {
                           "label": "dataLocations",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "restrictions": {
                             "maxFileSize": 1073741824,
                             "minNumberOfFiles": 1,
@@ -2351,6 +2456,7 @@ const formConfig: FormConfigFrame = {
                           "label": "dataLocations",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "helpText": "@dataLocations-help",
                           "cssClassesMap": {},
@@ -2376,6 +2482,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-data-software",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "rows": 2,
                           "cols": 20,
                           "placeholder": ""
@@ -2396,6 +2503,7 @@ const formConfig: FormConfigFrame = {
                           "label": "@dataRecord-data-software",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -2416,6 +2524,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataRecord-data-tab",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -2446,6 +2555,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@record-permissions-tab",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "componentDefinitions": [
                     {
                       "name": "ContentComponent-fields-3-definition-fields-5-definition-fields-0",
@@ -2463,7 +2573,8 @@ const formConfig: FormConfigFrame = {
                           "editMode": true,
                           "disabled": false,
                           "autofocus": false,
-                          "template": "<span role=\"heading\" aria-level=\"3\">{{content}}</span>",
+                          "showValidIndicator": false,
+                          "template": "<h3>{{t content}}</h3>",
                           "content": "@record-permissions-tab-heading"
                         }
                       },
@@ -2475,6 +2586,7 @@ const formConfig: FormConfigFrame = {
                           "editMode": true,
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -2499,6 +2611,7 @@ const formConfig: FormConfigFrame = {
                           "label": "permissions",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "content": "Not yet implemented in v5: v4ClassName \"RecordPermissionsField\" v4CompClassName \"\" v4Name \"permissions\". At path '[\"fields\",\"3\",\"definition\",\"fields\",\"5\",\"definition\",\"fields\",\"1\"]'."
                         }
                       },
@@ -2511,6 +2624,7 @@ const formConfig: FormConfigFrame = {
                           "label": "permissions",
                           "disabled": false,
                           "autofocus": false,
+                          "showValidIndicator": false,
                           "labelRequiredStr": "*",
                           "cssClassesMap": {},
                           "helpTextVisibleOnInit": false,
@@ -2531,6 +2645,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@record-permissions-tab",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -2551,6 +2666,7 @@ const formConfig: FormConfigFrame = {
           "hostCssClasses": "rb-form-tab-layout",
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "labelRequiredStr": "*",
           "cssClassesMap": {},
           "helpTextVisibleOnInit": false,
@@ -2581,6 +2697,7 @@ const formConfig: FormConfigFrame = {
           "editMode": true,
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "componentDefinitions": [
             {
               "name": "mainTabNav",
@@ -2598,6 +2715,7 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "prevLabel": "@tab-nav-previous",
                   "nextLabel": "@tab-nav-next",
                   "targetTabContainerId": "mainTab"
@@ -2611,6 +2729,7 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -2635,6 +2754,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@save-button",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "buttonCssClasses": "btn btn-success"
                 }
               },
@@ -2646,6 +2766,7 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -2669,7 +2790,8 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "label": "@save-and-close-button",
                   "disabled": false,
-                  "autofocus": false
+                  "autofocus": false,
+                  "showValidIndicator": false
                 }
               },
               "layout": {
@@ -2680,6 +2802,7 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -2703,7 +2826,8 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "label": "@close-button",
                   "disabled": false,
-                  "autofocus": false
+                  "autofocus": false,
+                  "showValidIndicator": false
                 }
               },
               "layout": {
@@ -2714,6 +2838,7 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -2740,6 +2865,7 @@ const formConfig: FormConfigFrame = {
           "hostCssClasses": "rb-form-action-row-layout",
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "labelRequiredStr": "*",
           "cssClassesMap": {},
           "helpTextVisibleOnInit": false,
@@ -2769,6 +2895,7 @@ const formConfig: FormConfigFrame = {
           "label": "Test",
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "componentDefinitions": [
             {
               "name": "ContentComponent-fields-5-definition-fields-0",
@@ -2786,6 +2913,7 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "template": "<span>{{content}}</span>",
                   "content": "will be empty"
                 }
@@ -2798,6 +2926,7 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -2823,6 +2952,7 @@ const formConfig: FormConfigFrame = {
           "label": "Test",
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "labelRequiredStr": "*",
           "cssClassesMap": {},
           "helpTextVisibleOnInit": false,
@@ -2846,6 +2976,7 @@ const formConfig: FormConfigFrame = {
           "editMode": true,
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "content": "Not yet implemented in v5: v4ClassName \"EventHandler\" v4CompClassName \"\" v4Name undefined. At path '[\"fields\",\"6\"]'."
         }
       },
@@ -2857,6 +2988,7 @@ const formConfig: FormConfigFrame = {
           "editMode": true,
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "labelRequiredStr": "*",
           "cssClassesMap": {},
           "helpTextVisibleOnInit": false,

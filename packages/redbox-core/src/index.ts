@@ -110,3 +110,4 @@ export * from './visitor/migrate-config-v4-v5.visitor';
 export * from './visitor/template.visitor';
 export * from './visitor/validator.visitor';
 export * from './visitor/vocab-inline.visitor';
+export * from './visitor/visitor-helpers';

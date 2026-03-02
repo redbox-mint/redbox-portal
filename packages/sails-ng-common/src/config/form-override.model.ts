@@ -403,13 +403,9 @@ export class FormOverride {
       phase === 'construct' &&
       formMode === 'view' &&
       new Set<string>([RepeatableComponentName, GroupFieldComponentName]).has(originalComponentClassName);
-    const skipAutomaticViewTransform =
-      formMode === 'view' && this.hasExplicitAllowedMode(original?.constraints, 'view');
-
     if (
       originalComponentClassName in this.defaultTransforms &&
-      !deferViewModeContentFlatteningAtConstruct &&
-      !skipAutomaticViewTransform
+      !deferViewModeContentFlatteningAtConstruct
     ) {
       const defaultTransform = this.defaultTransforms[originalComponentClassName] ?? {};
       if (formMode in defaultTransform) {
@@ -465,8 +461,10 @@ export class FormOverride {
       result.name = original.overrides?.replaceName;
     }
 
-    // Remove the 'overrides' property, as it has been applied and so should not be present in the form config.
-    if ('overrides' in result) {
+    // Only remove overrides after client-phase transform application.
+    // During construct phase, deferred transforms (e.g. Group/Repeatable view flattening)
+    // still need access to formModeClasses in the later client phase.
+    if (phase === 'client' && 'overrides' in result) {
       delete result['overrides'];
     }
 
@@ -500,15 +498,7 @@ export class FormOverride {
     const questions = item.config?.questions ?? [];
 
     // Prepare question and answer info to assist checking for valid structure
-    const questionAnswerValuesMap = Object.fromEntries(
-      questions?.map(question => [question.id, question.answers.map(answer => answer.value)])
-    );
-
-    const errors: string[] = [];
-    const duplicateQuestionIds = new Set(Object.keys(questionAnswerValuesMap).filter((e, i, a) => a.indexOf(e) !== i));
-    if (duplicateQuestionIds.size > 0) {
-      errors.push(`Question ids must be unique, these were not ${Array.from(duplicateQuestionIds).sort().join(', ')}.`);
-    }
+    const {errors, questionAnswerValuesMap} = this.questionTreeHelper.validateQuestions(questions);
 
     const result: AvailableFormComponentDefinitionFrames[] = [];
     questions.forEach((question, questionIndex) => {
@@ -1213,13 +1203,7 @@ export class FormOverride {
     return allowModes.includes(formMode);
   }
 
-  private hasExplicitAllowedMode(
-    constraints: FormConstraintConfigOutline | undefined,
-    mode: FormModesConfig
-  ): boolean {
-    const allowModes = constraints?.allowModes;
-    return Array.isArray(allowModes) && allowModes.includes(mode);
-  }
+
 
   private forceAllowModeForTransformedTree(componentDefinition: any, formMode: FormModesConfig): void {
     if (!componentDefinition || typeof componentDefinition !== 'object') {
