@@ -110,7 +110,7 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
 
     const languageName = new Intl.DisplayNames(
       [this.translationService.getCurrentLanguage(), 'en'],
-      {type: 'language'}
+      { type: 'language' }
     ).of(normalizedCode);
 
     if (!languageName || languageName === normalizedCode) {

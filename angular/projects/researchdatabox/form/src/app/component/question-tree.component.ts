@@ -169,8 +169,9 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       .select$(FormComponentEventType.FIELD_VALUE_CHANGED)
       .pipe(
         filter(event =>
-          event.fieldId === this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer ||
-          event.fieldId.startsWith(this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer + '/')
+            (event.fieldId === this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer ||
+          event.fieldId.startsWith(this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer + '/'))
+          && event.sourceId !== '*'
         ),
         debounceTime(300)
       )
@@ -185,8 +186,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
           // The model value is only updated if the outcome property changed.
           // This change will trigger another `field.value.changed' event, which is what we want,
           // because then other components can use the updated outcome value in that subsequent event.
-          modelValue[QuestionTreeOutcomeInfoKey] = newValue;
-          this.model?.setValue(modelValue);
+          this.model?.setValue({...modelValue, [QuestionTreeOutcomeInfoKey]: newValue});
         }
         console.warn(`Question Tree -> eventbus -> field value ${hasChanged ? 'has changed' : ' is the same'}:`,
           JSON.parse(JSON.stringify({event, value: this.model?.getValue()})));
@@ -263,7 +263,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
             ...(Object.fromEntries(Object.entries(answer.meta ?? {}).map(
               ([metaKey, metaValue]) => [
                 metaKey,
-                {value: metaValue, label: availableMeta[metaKey][metaValue]}
+                {value: metaValue, label: availableMeta?.[metaKey]?.[metaValue] ?? null}
               ]
             ))),
           });

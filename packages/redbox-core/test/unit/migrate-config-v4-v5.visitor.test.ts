@@ -1,11 +1,11 @@
 import path from "path";
 import { logger } from "./helpers";
-import { MigrationV4ToV5FormConfigVisitor } from "../../src";
 import {
+  MigrationV4ToV5FormConfigVisitor,
   migrateDataClassification,
   migrateFormConfigFile,
   migrateFormConfigVerify
-} from "../../src/visitor/migrate-config-helpers";
+} from "../../src";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -30,25 +30,23 @@ describe("Migrate v4 to v5 Visitor", async () => {
     [
       {
         "in": "support/ng19-forms-migration/inputFiles/test-only-dataRecord-1.0-draft.js",
-        "out": "support/ng19-forms-migration/outputFiles/parsed-test-only-dataRecord-1.0-draft.ts",
       },
       {
         "in": "support/ng19-forms-migration/inputFiles/test-only-tab-citation-1.0.js",
-        "out": "support/ng19-forms-migration/outputFiles/parsed-test-only-tab-citation-1.0.ts",
       }
-    ].forEach((item: { in: string, out: string }) => {
-      it(`should migrate from ${item.in} to ${item.out}`, async function () {
+    ].forEach((item: { in: string}) => {
+      it(`should migrate from ${item.in}`, async function () {
         const inputFile = path.resolve(relPath, item.in);
-        const outputFile = path.resolve(relPath, item.out);
 
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const actual = await migrateFormConfigFile(visitor, inputFile, outputFile, false);
-        expect(actual).to.not.be.empty;
+        const actual = await migrateFormConfigFile(visitor, inputFile);
+        expect(actual.migrated).to.not.be.empty;
+        expect(actual.tsContent).to.not.be.empty;
 
         const serialised = JSON.stringify(actual);
         expect(serialised).to.not.contain('v4ClassName "ANDSVocab"');
 
-        await migrateFormConfigVerify(actual, logger);
+        await migrateFormConfigVerify(actual.migrated, logger);
       });
     });
 
@@ -56,15 +54,13 @@ describe("Migrate v4 to v5 Visitor", async () => {
     [
       {
         "in":"support/ng19-forms-migration/inputFiles/definition.js",
-        "out":"support/ng19-forms-migration/outputFiles/question-tree-definition-form-config.ts",
       }
-    ].forEach((item: { in: string, out: string }) => {
-      it(`should migrate data classification from ${item.in} to question tree config ${item.out}`, async function () {
+    ].forEach((item: { in: string }) => {
+      it(`should migrate data classification from ${item.in} to question tree config`, async function () {
         const inputFile = path.resolve(relPath, item.in);
-        const outputFile = path.resolve(relPath, item.out);
 
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const actual = migrateDataClassification(visitor, inputFile, outputFile, false);
+        const actual = migrateDataClassification(visitor, inputFile);
         expect(actual.formConfig).to.not.be.empty;
         expect(actual.migratedConfig).to.not.be.empty;
 
