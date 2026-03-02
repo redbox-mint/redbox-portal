@@ -54,7 +54,11 @@ export async function migrateFormConfigVerify(formConfig: FormConfigFrame, logge
   return constructResult;
 }
 
-export async function migrateFormConfigFile(migrateVisitor: MigrationV4ToV5FormConfigVisitor, inputPath: string) {
+export async function migrateFormConfigFile(
+  migrateVisitor: MigrationV4ToV5FormConfigVisitor,
+  inputPath: string,
+  outputFormat?: string | null
+) {
   if (!fs.existsSync(inputPath)) {
     throw new Error(`Input file does not exist: ${inputPath}`);
   }
@@ -63,9 +67,16 @@ export async function migrateFormConfigFile(migrateVisitor: MigrationV4ToV5FormC
   const v4FormConfig = require(inputPath);
   const migrated = migrateVisitor.start({data: v4FormConfig});
 
-  const tsContent = `import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+  let tsContent: string;
+  if (outputFormat === 'cjs') {
+    tsContent = `const dataClassification = require("./data-classification");
+const QuestionTreeOutcomeInfoKey = 'questiontree-outcome-info';
+module.exports = ${JSON.stringify(migrated, null, 2)};`;
+  } else {
+    tsContent = `import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 const formConfig: FormConfigFrame = ${JSON.stringify(migrated, null, 2)};
 export default formConfig;`;
+  }
 
   return {
     migrated,
@@ -73,7 +84,11 @@ export default formConfig;`;
   };
 }
 
-export function migrateDataClassification(migrateVisitor: MigrationV4ToV5FormConfigVisitor, inputPath: string) {
+export function migrateDataClassification(
+  migrateVisitor: MigrationV4ToV5FormConfigVisitor,
+  inputPath: string,
+  outputFormat?: string | null
+) {
   if (!fs.existsSync(inputPath)) {
     throw new Error(`Input file does not exist: ${inputPath}`);
   }
@@ -82,9 +97,14 @@ export function migrateDataClassification(migrateVisitor: MigrationV4ToV5FormCon
   const v4InputRequire = require(inputPath);
   const migrated = migrateVisitor.migrateDataClassificationToQuestionTree(v4InputRequire);
 
-  const tsContent = `import {QuestionTreeFieldComponentConfigFrame} from "@researchdatabox/sails-ng-common";
+  let tsContent: string;
+  if (outputFormat === 'cjs') {
+    tsContent = `module.exports = ${JSON.stringify(migrated, null, 2)};`;
+  } else {
+    tsContent = `import {QuestionTreeFieldComponentConfigFrame} from "@researchdatabox/sails-ng-common";
 const questionTreeConfig: QuestionTreeFieldComponentConfigFrame = ${JSON.stringify(migrated, null, 2)};
 export default questionTreeConfig;`;
+  }
 
   // Confirm the migration is valid.
   const formConfig: FormConfigFrame = {
@@ -189,7 +209,7 @@ export async function createQuestionTreeDiagram(componentConfig: QuestionTreeFie
 
     // represent answers with outcomes as links between nodes
     for (const answer of question.answers) {
-      if (!answer.outcome){
+      if (!answer.outcome) {
         continue;
       }
       const nodeId = [question.id, propertiesHelper.toFieldReference(answer.outcome)].join('-');

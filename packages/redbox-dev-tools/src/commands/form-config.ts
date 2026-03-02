@@ -30,17 +30,19 @@ export function registerMigrateFormConfigCommand(program: Command): void {
     .description('Migrate a legacy v4 JS form config file to the v5 TS form framework format')
     .requiredOption('-i, --input <path>', 'Path to the legacy v4 form config JS file')
     .requiredOption('-o, --output <path>', 'Path to write the migrated v5 TypeScript config file')
+    .option('--format <name>', "The output format, either 'esm' or 'cjs'")
     .action(async (options) => {
       try {
         const globalOptions = program.opts();
         const inputPath = path.resolve(options.input);
         const outputPath = path.resolve(options.output);
+        const outputFormat = options.format;
 
-        console.log(`\n🛠️  Migrating form config: ${inputPath} -> ${outputPath}\n`);
+        console.log(`\n🛠️  Migrating form config in ${outputFormat} format: ${inputPath} -> ${outputPath}\n`);
 
         const migrateVisitor = new MigrationV4ToV5FormConfigVisitor(migrationLogger);
 
-        const migrated = await migrateFormConfigFile(migrateVisitor, inputPath);
+        const migrated = await migrateFormConfigFile(migrateVisitor, inputPath, outputFormat);
 
         if (globalOptions.dryRun) {
           console.log('[dry-run] Migration completed; no file written.');
@@ -66,16 +68,18 @@ export function registerMigrateDataClassificationCommand(program: Command): void
     .description('Migrate a legacy v4 JS data classification definition file to the v5 TS form framework format')
     .requiredOption('-i, --input <path>', 'Path to the legacy v4 JS data classification definition file')
     .requiredOption('-o, --output <path>', 'Path to write the migrated v5 TypeScript question tree config file')
+    .option('--format <name>', "The output format, either 'esm' or 'cjs'")
     .action(async (options) => {
       try {
         const globalOptions = program.opts();
         const inputPath = path.resolve(options.input);
         const outputPath = path.resolve(options.output);
+        const outputFormat = options.format;
 
-        console.log(`\n🛠️  Migrating data classification to question tree: ${inputPath} -> ${outputPath}\n`);
+        console.log(`\n🛠️  Migrating data classification to question tree in ${outputFormat} format: ${inputPath} -> ${outputPath}\n`);
 
         const migrateVisitor = new MigrationV4ToV5FormConfigVisitor(migrationLogger);
-        const migrated = migrateDataClassification(migrateVisitor, inputPath);
+        const migrated = migrateDataClassification(migrateVisitor, inputPath, outputFormat);
 
         if (globalOptions.dryRun) {
           console.log('[dry-run] Migration completed; no file written.');
@@ -116,7 +120,7 @@ export function registerClientFormConfigCommand(program: Command) {
 
         console.log(`\n🛠️  Building client form config from server form config: ${inputPath} -> ${outputPath}\n`);
 
-        const serverFormConfig = require(inputPath);
+        const serverFormConfig = require(inputPath).default;
         const clientFormConfig = await createClientFormConfig(
           serverFormConfig, migrationLogger, formMode, userRoles, undefined, record
         );

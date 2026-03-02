@@ -683,6 +683,8 @@ describe('QuestionTreeComponent', async () => {
       const element = fixture.nativeElement as HTMLElement;
 
       const firstLabel = element.querySelector('.rb-form-field-label span');
+      expect(firstLabel).toBeTruthy();
+      expect(firstLabel?.innerHTML?.trim()).toBe('Direct Question Label');
       expect(firstLabel?.textContent?.trim()).toBe('Direct Question Label');
     });
 
