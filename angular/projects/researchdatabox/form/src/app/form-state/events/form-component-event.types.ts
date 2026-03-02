@@ -5,7 +5,7 @@
  * Per R15.1–R15.17, naming convention: namespace.domain.action
  */
 
-import { FormGroupStatus } from "../../form.component";
+import { FormGroupStatus } from '../../form.component';
 
 /**
  * Base event interface with common properties
@@ -17,7 +17,7 @@ export interface FormComponentEventBase {
   readonly fieldId?: string;
 }
 
-interface FieldScopedEventBase extends FormComponentEventBase {
+export interface FieldScopedEventBase extends FormComponentEventBase {
   readonly fieldId: string;
 }
 
@@ -138,6 +138,15 @@ export interface FormSaveFailureEvent extends FormComponentEventBase {
 }
 
 /**
+ * Field item selected event
+ * Published when a user selects (or clears) an item in a typeahead or similar component.
+ */
+export interface FieldItemSelectedEvent extends FieldScopedEventBase {
+  readonly type: 'field.item.selected';
+  readonly selectedItem: unknown | null;
+}
+
+/**
  * Discriminated union of all form component events
  */
 export type FormComponentEvent =
@@ -152,7 +161,8 @@ export type FormComponentEvent =
   | FormSaveFailureEvent
   | FormDefinitionChangeRequestEvent
   | FormDefinitionChangedEvent
-  | FormDefinitionReadyEvent;
+  | FormDefinitionReadyEvent
+  | FieldItemSelectedEvent;
 
 /**
  * Event type literals for type-safe subscriptions (R15.17)
@@ -169,10 +179,11 @@ export const FormComponentEventType = {
   FORM_SAVE_REQUESTED: 'form.save.requested' as const,
   FORM_SAVE_EXECUTE: 'form.save.execute' as const,
   FORM_SAVE_SUCCESS: 'form.save.success' as const,
-  FORM_SAVE_FAILURE: 'form.save.failure' as const
+  FORM_SAVE_FAILURE: 'form.save.failure' as const,
+  FIELD_ITEM_SELECTED: 'field.item.selected' as const,
 } as const;
 
-export type FormComponentEventTypeValue = typeof FormComponentEventType[keyof typeof FormComponentEventType];
+export type FormComponentEventTypeValue = (typeof FormComponentEventType)[keyof typeof FormComponentEventType];
 
 /**
  * Event type map for type-safe select operations
@@ -193,6 +204,7 @@ export interface FormComponentEventMap {
   'form.save.execute': FormSaveExecuteEvent;
   'form.save.success': FormSaveSuccessEvent;
   'form.save.failure': FormSaveFailureEvent;
+  'field.item.selected': FieldItemSelectedEvent;
 }
 
 /** Shared options bag for event helper factories */
@@ -208,7 +220,7 @@ function createEventResult<TEvent extends FormComponentEventBase>(
 ): FormComponentEventResult<TEvent> {
   return {
     type,
-    ...options
+    ...options,
   } as FormComponentEventResult<TEvent>;
 }
 
@@ -218,10 +230,7 @@ function createEventResult<TEvent extends FormComponentEventBase>(
 export function createFieldValueChangedEvent(
   options: FormComponentEventOptions<FieldValueChangedEvent>
 ): FormComponentEventResult<FieldValueChangedEvent> {
-  return createEventResult<FieldValueChangedEvent>(
-    FormComponentEventType.FIELD_VALUE_CHANGED,
-    options
-  );
+  return createEventResult<FieldValueChangedEvent>(FormComponentEventType.FIELD_VALUE_CHANGED, options);
 }
 
 /**
@@ -230,10 +239,7 @@ export function createFieldValueChangedEvent(
 export function createFieldMetaChangedEvent(
   options: FormComponentEventOptions<FieldMetaChangedEvent>
 ): FormComponentEventResult<FieldMetaChangedEvent> {
-  return createEventResult<FieldMetaChangedEvent>(
-    FormComponentEventType.FIELD_META_CHANGED,
-    options
-  );
+  return createEventResult<FieldMetaChangedEvent>(FormComponentEventType.FIELD_META_CHANGED, options);
 }
 
 /**
@@ -255,10 +261,7 @@ export function createFormDefinitionChangeRequestEvent(
 export function createFormDefinitionChangedEvent(
   options: FormComponentEventOptions<FormDefinitionChangedEvent>
 ): FormComponentEventResult<FormDefinitionChangedEvent> {
-  return createEventResult<FormDefinitionChangedEvent>(
-    FormComponentEventType.FORM_DEFINITION_CHANGED,
-    options
-  );
+  return createEventResult<FormDefinitionChangedEvent>(FormComponentEventType.FORM_DEFINITION_CHANGED, options);
 }
 
 /**
@@ -267,10 +270,7 @@ export function createFormDefinitionChangedEvent(
 export function createFormDefinitionReadyEvent(
   options: FormComponentEventOptions<FormDefinitionReadyEvent>
 ): FormComponentEventResult<FormDefinitionReadyEvent> {
-  return createEventResult<FormDefinitionReadyEvent>(
-    FormComponentEventType.FORM_DEFINITION_READY,
-    options
-  );
+  return createEventResult<FormDefinitionReadyEvent>(FormComponentEventType.FORM_DEFINITION_READY, options);
 }
 
 /**
@@ -279,10 +279,7 @@ export function createFormDefinitionReadyEvent(
 export function createFieldDependencyTriggerEvent(
   options: FormComponentEventOptions<FieldDependencyTriggerEvent>
 ): FormComponentEventResult<FieldDependencyTriggerEvent> {
-  return createEventResult<FieldDependencyTriggerEvent>(
-    FormComponentEventType.FIELD_DEPENDENCY_TRIGGER,
-    options
-  );
+  return createEventResult<FieldDependencyTriggerEvent>(FormComponentEventType.FIELD_DEPENDENCY_TRIGGER, options);
 }
 
 /**
@@ -291,10 +288,7 @@ export function createFieldDependencyTriggerEvent(
 export function createFieldFocusRequestEvent(
   options: FormComponentEventOptions<FieldFocusRequestEvent>
 ): FormComponentEventResult<FieldFocusRequestEvent> {
-  return createEventResult<FieldFocusRequestEvent>(
-    FormComponentEventType.FIELD_FOCUS_REQUEST,
-    options
-  );
+  return createEventResult<FieldFocusRequestEvent>(FormComponentEventType.FIELD_FOCUS_REQUEST, options);
 }
 
 /**
@@ -318,10 +312,7 @@ export function createLineageFieldFocusRequestEvent(
 export function createFormSaveRequestedEvent(
   options: FormComponentEventOptions<FormSaveRequestedEvent> = {}
 ): FormComponentEventResult<FormSaveRequestedEvent> {
-  return createEventResult<FormSaveRequestedEvent>(
-    FormComponentEventType.FORM_SAVE_REQUESTED,
-    options
-  );
+  return createEventResult<FormSaveRequestedEvent>(FormComponentEventType.FORM_SAVE_REQUESTED, options);
 }
 
 /**
@@ -330,10 +321,7 @@ export function createFormSaveRequestedEvent(
 export function createFormSaveExecuteEvent(
   options: FormComponentEventOptions<FormSaveExecuteEvent> = {}
 ): FormComponentEventResult<FormSaveExecuteEvent> {
-  return createEventResult<FormSaveExecuteEvent>(
-    FormComponentEventType.FORM_SAVE_EXECUTE,
-    options
-  );
+  return createEventResult<FormSaveExecuteEvent>(FormComponentEventType.FORM_SAVE_EXECUTE, options);
 }
 
 /**
@@ -342,10 +330,7 @@ export function createFormSaveExecuteEvent(
 export function createFormSaveSuccessEvent(
   options: FormComponentEventOptions<FormSaveSuccessEvent> = {}
 ): FormComponentEventResult<FormSaveSuccessEvent> {
-  return createEventResult<FormSaveSuccessEvent>(
-    FormComponentEventType.FORM_SAVE_SUCCESS,
-    options
-  );
+  return createEventResult<FormSaveSuccessEvent>(FormComponentEventType.FORM_SAVE_SUCCESS, options);
 }
 
 /**
@@ -354,18 +339,21 @@ export function createFormSaveSuccessEvent(
 export function createFormSaveFailureEvent(
   options: FormComponentEventOptions<FormSaveFailureEvent> = {}
 ): FormComponentEventResult<FormSaveFailureEvent> {
-  return createEventResult<FormSaveFailureEvent>(
-    FormComponentEventType.FORM_SAVE_FAILURE,
-    options
-  );
+  return createEventResult<FormSaveFailureEvent>(FormComponentEventType.FORM_SAVE_FAILURE, options);
 }
 
 /** Helper factory for creating validation broadcast events */
 export function createFormValidationBroadcastEvent(
   options: FormComponentEventOptions<FormValidationBroadcastEvent>
 ): FormComponentEventResult<FormValidationBroadcastEvent> {
-  return createEventResult<FormValidationBroadcastEvent>(
-    FormComponentEventType.FORM_VALIDATION_BROADCAST,
-    options
-  );
+  return createEventResult<FormValidationBroadcastEvent>(FormComponentEventType.FORM_VALIDATION_BROADCAST, options);
+}
+
+/**
+ * Helper factory for creating field item selected events
+ */
+export function createFieldItemSelectedEvent(
+  options: FormComponentEventOptions<FieldItemSelectedEvent>
+): FormComponentEventResult<FieldItemSelectedEvent> {
+  return createEventResult<FieldItemSelectedEvent>(FormComponentEventType.FIELD_ITEM_SELECTED, options);
 }
