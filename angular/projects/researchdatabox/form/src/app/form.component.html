@@ -1,60 +1,65 @@
-<ng-container #componentsContainer></ng-container>
-@if (componentDefArr.length > 0 && formDefMap?.formConfig?.debugValue) {
-  <div class="alert alert-secondary" role="alert">
-    <h4>Form Values Debug</h4>
-    <div class="mb-2">
-      <button type="button" class="btn btn-sm me-2" [class.btn-primary]="!debugUseRawValues()" [class.btn-outline-primary]="debugUseRawValues()" (click)="debugUseRawValues.set(false)">
-        Actual (`form.value`)
-      </button>
-      <button type="button" class="btn btn-sm" [class.btn-primary]="debugUseRawValues()" [class.btn-outline-primary]="!debugUseRawValues()" (click)="debugUseRawValues.set(true)">
-        Raw (`form.getRawValue()`)
-      </button>
-    </div>
-    <pre [innerHtml]="(debugUseRawValues() ? debugRawFormValues() : debugFormValues()) | json"></pre>
+<div class="rb-form-shell">
+  <div class="rb-form-shell__main">
+    <ng-container #componentsContainer></ng-container>
   </div>
-  <div class="alert alert-secondary" role="alert">
-    <h4>Form Components Debug</h4>
-    <table class="table table-striped table-hover">
-      <thead>
+
+  @if (componentDefArr.length > 0 && formDefMap?.formConfig?.debugValue) {
+    <section class="rb-form-debug-panel alert alert-secondary" role="alert">
+      <h4>Form Values Debug</h4>
+      <div class="mb-2">
+        <button type="button" class="btn btn-sm me-2" [class.btn-primary]="!debugUseRawValues()" [class.btn-outline-primary]="debugUseRawValues()" (click)="debugUseRawValues.set(false)">
+          Actual (`form.value`)
+        </button>
+        <button type="button" class="btn btn-sm" [class.btn-primary]="debugUseRawValues()" [class.btn-outline-primary]="!debugUseRawValues()" (click)="debugUseRawValues.set(true)">
+          Raw (`form.getRawValue()`)
+        </button>
+      </div>
+      <pre [innerHtml]="(debugUseRawValues() ? debugRawFormValues() : debugFormValues()) | json"></pre>
+    </section>
+    <section class="rb-form-debug-panel alert alert-secondary" role="alert">
+      <h4>Form Components Debug</h4>
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Level</th>
+            <th scope="col">Class</th>
+            <th scope="col">Status</th>
+            <th scope="col">Others</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container [ngTemplateOutlet]="componentDebugItem"
+          [ngTemplateOutletContext]="{item: debugFormComponents(), level: 0}"></ng-container>
+        </tbody>
+      </table>
+      <ng-template #componentDebugItem let-item="item" let-level="level">
         <tr>
-          <th scope="col">Name</th>
-          <th scope="col">Level</th>
-          <th scope="col">Class</th>
-          <th scope="col">Status</th>
-          <th scope="col">Others</th>
+          <th scope="row">
+            <span style="margin-left: {{level}}0px">
+              {{ item.name || '(no name)' }}
+            </span>
+          </th>
+          <td>{{level}}</td>
+          <td>{{ item.class || '(no class)' }}</td>
+          <td>{{ item.status }}</td>
+          <td>
+            @if (item.componentsLoaded !== undefined) {
+              componentsLoaded: {{ item.componentsLoaded }}
+            }
+            @if (item.isReady !== undefined) {
+              isReady: {{ item.isReady }}
+            }
+            @if (item.viewInitialised !== undefined) {
+              viewInitialised: {{ item.viewInitialised }}
+            }
+          </td>
         </tr>
-      </thead>
-      <tbody>
-        <ng-container [ngTemplateOutlet]="componentDebugItem"
-        [ngTemplateOutletContext]="{item: debugFormComponents(), level: 0}"></ng-container>
-      </tbody>
-    </table>
-    <ng-template #componentDebugItem let-item="item" let-level="level">
-      <tr>
-        <th scope="row">
-          <span style="margin-left: {{level}}0px">
-            {{ item.name || '(no name)' }}
-          </span>
-        </th>
-        <td>{{level}}</td>
-        <td>{{ item.class || '(no class)' }}</td>
-        <td>{{ item.status }}</td>
-        <td>
-          @if (item.componentsLoaded !== undefined) {
-            componentsLoaded: {{ item.componentsLoaded }}
-          }
-          @if (item.isReady !== undefined) {
-            isReady: {{ item.isReady }}
-          }
-          @if (item.viewInitialised !== undefined) {
-            viewInitialised: {{ item.viewInitialised }}
-          }
-        </td>
-      </tr>
-      @for (component of item.children; track $index) {
-        <ng-container [ngTemplateOutlet]="componentDebugItem"
-        [ngTemplateOutletContext]="{item: component, level: level + 1}"></ng-container>
-      }
-    </ng-template>
-  </div>
-}
+        @for (component of item.children; track $index) {
+          <ng-container [ngTemplateOutlet]="componentDebugItem"
+          [ngTemplateOutletContext]="{item: component, level: level + 1}"></ng-container>
+        }
+      </ng-template>
+    </section>
+  }
+</div>

@@ -40,6 +40,8 @@ export * from './config/component/checkbox-input.model';
 export * from './config/component/checkbox-input.outline';
 export * from './config/component/default-layout.model';
 export * from './config/component/default-layout.outline';
+export * from './config/component/action-row-layout.model';
+export * from './config/component/action-row-layout.outline';
 export * from './config/component/inline-layout.model';
 export * from './config/component/inline-layout.outline';
 export * from './config/component/dropdown-input.model';

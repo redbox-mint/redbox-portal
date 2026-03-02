@@ -250,4 +250,31 @@ describe('GroupFieldComponent', () => {
     const groupModel = fixture.componentInstance.componentDefArr[0].model;
     expect(groupModel?.formControl?.get('disabled_child_text')).toBeNull();
   });
+
+  it('should render rb-form-group container for child layout spacing', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_group_css',
+      componentDefinitions: [
+        {
+          name: 'parent_group',
+          model: {
+            class: 'GroupModel',
+            config: {
+              value: {},
+            }
+          },
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: []
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const groupContainer = fixture.nativeElement.querySelector('.rb-form-group');
+    expect(groupContainer).toBeTruthy();
+  });
 });

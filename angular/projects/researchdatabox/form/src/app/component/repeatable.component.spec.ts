@@ -167,4 +167,79 @@ describe('RepeatableComponent', () => {
     subscription.unsubscribe();
   });
 
+  it('should render repeatable wrapper classes', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_css',
+      componentDefinitions: [
+        {
+          name: 'repeatable_css',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          }
+        },
+      ]
+    };
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    expect(fixture.nativeElement.querySelector('.rb-form-repeatable')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.rb-form-repeatable-item')).toBeTruthy();
+  });
+
+  it('should render shared field error summary for repeatable element validation errors', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_validation',
+      componentDefinitions: [
+        {
+          name: 'repeatable_validation',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: '',
+                    validators: [{ class: 'required' }]
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          }
+        },
+      ]
+    };
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    expect(fixture.nativeElement.querySelector('redbox-field-error-summary')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.rb-form-field-error-summary')).toBeTruthy();
+  });
+
 });

@@ -15,7 +15,7 @@ import { FormStateFacade } from '../form-state';
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
       <button
         type="button"
-        class="btn btn-secondary"
+        [class]="buttonCssClasses"
         (click)="cancel()"
         [disabled]="isCancelDisabled"
         [innerHtml]="displayLabel"
@@ -69,6 +69,11 @@ export class CancelButtonComponent extends FormFieldBaseComponent<undefined> {
 
   showConfirmDialog = false;
 
+  get buttonCssClasses(): string {
+    const configuredClasses = (this.componentDefinition?.config as Record<string, unknown> | undefined)?.['buttonCssClasses'];
+    return this.resolveButtonCssClasses(typeof configuredClasses === 'string' ? configuredClasses : undefined, 'btn-warning');
+  }
+
   get displayLabel(): string {
     const label = (this.componentDefinition?.config?.label ?? '').trim();
     return label || 'Cancel';
@@ -117,5 +122,14 @@ export class CancelButtonComponent extends FormFieldBaseComponent<undefined> {
   public doCancel() {
     this.showConfirmDialog = false;
     this.location.back();
+  }
+
+  private resolveButtonCssClasses(configured: string | undefined, fallbackVariantClass: string): string {
+    const normalized = (configured ?? '').trim().replace(/\s+/g, ' ');
+    if (!normalized) {
+      return `btn ${fallbackVariantClass}`;
+    }
+    const classTokens = normalized.split(/\s+/);
+    return classTokens.includes('btn') ? normalized : `btn ${normalized}`;
   }
 }
