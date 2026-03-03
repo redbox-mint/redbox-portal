@@ -110,6 +110,81 @@ const formConfig: FormConfigFrame = {
                         },
                       },
                     },
+                    {
+                      "name": "contributor_ci",
+                      "constraints": {
+                        "authorization": {
+                          "allowRoles": []
+                        },
+                        "allowModes": []
+                      },
+                      "overrides": {
+                        "reusableFormName": "standard-contributor-fields-group"
+                      },
+                      "component": {
+                        "class": "ReusableComponent",
+                        "config": {
+                          "readonly": false,
+                          "visible": true,
+                          "editMode": true,
+                          "label": "contributor_ci",
+                          "disabled": false,
+                          "autofocus": false,
+                          "componentDefinitions": [
+                            {
+                              "name": "standard_contributor_fields_group",
+                              "constraints": {
+                                "authorization": {
+                                  "allowRoles": []
+                                },
+                                "allowModes": []
+                              },
+                              "overrides": {
+                                "replaceName": "contributor_ci"
+                              },
+                              "component": {
+                                "class": "GroupComponent",
+                                "config": {
+                                  "readonly": false,
+                                  "visible": true,
+                                  "editMode": true,
+                                  "label": "contributor_ci",
+                                  "disabled": false,
+                                  "autofocus": false,
+                                  "componentDefinitions": []
+                                }
+                              },
+                              "model": {
+                                "class": "GroupModel",
+                                "config": {
+                                  "validators": [
+                                    {
+                                      "class": "required"
+                                    }
+                                  ]
+                                }
+                              },
+                              "layout": {
+                                "class": "DefaultLayout",
+                                "config": {
+                                  "readonly": false,
+                                  "visible": true,
+                                  "editMode": true,
+                                  "label": "contributor_ci",
+                                  "disabled": false,
+                                  "autofocus": false,
+                                  "labelRequiredStr": "*",
+                                  "helpText": "",
+                                  "cssClassesMap": {},
+                                  "helpTextVisibleOnInit": false,
+                                  "helpTextVisible": false
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
                     // {
                     //     name: 'debug_checkbox',
                     //     layout: {

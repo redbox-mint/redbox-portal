@@ -97,7 +97,6 @@ const formConfig: FormConfigFrame = {
                   "label": "@data-record-edit-record-link",
                   "disabled": false,
                   "autofocus": false,
-                  "showValidIndicator": false,
                   "buttonCssClasses": "btn btn-large btn-info margin-15"
                 }
               },
@@ -137,7 +136,6 @@ const formConfig: FormConfigFrame = {
                   "label": "@dmp-associated-rdmp-link",
                   "disabled": false,
                   "autofocus": false,
-                  "showValidIndicator": false,
                   "buttonCssClasses": "btn btn-large btn-info margin-15"
                 }
               },
@@ -180,7 +178,6 @@ const formConfig: FormConfigFrame = {
                   "label": "@view-record-audit-link",
                   "disabled": false,
                   "autofocus": false,
-                  "showValidIndicator": false,
                   "buttonCssClasses": "btn btn-large btn-info margin-15"
                 }
               },
@@ -220,7 +217,6 @@ const formConfig: FormConfigFrame = {
                   "label": "@dmp-create-datapublication-link",
                   "disabled": false,
                   "autofocus": false,
-                  "showValidIndicator": false,
                   "buttonCssClasses": "btn btn-large btn-info margin-15"
                 }
               },
@@ -2754,7 +2750,6 @@ const formConfig: FormConfigFrame = {
                   "label": "@save-button",
                   "disabled": false,
                   "autofocus": false,
-                  "showValidIndicator": false,
                   "buttonCssClasses": "btn btn-success"
                 }
               },

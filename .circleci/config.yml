@@ -465,8 +465,9 @@ jobs:
             nvm install
             cd ./packages/redbox-dev-tools
             mkdir -p coverage/redbox-dev-tools
+            mkdir -p support/junit
             TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/nyc --no-clean --report-dir ./coverage/redbox-dev-tools --reporter=lcov --exclude-after-remap=false \
-              ./node_modules/.bin/mocha --require ts-node/register --extension ts --exit test/**/*.test.ts
+              ./node_modules/.bin/mocha --config .mocharc.js --exit test/**/*.test.ts
       - run:
           name: Upload redbox-dev-tools CLI code coverage
           command: |
@@ -475,6 +476,8 @@ jobs:
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-redbox-dev-tools-cli" --file "./coverage/redbox-dev-tools/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
+      - store_test_results:
+          path: packages/redbox-dev-tools/support/junit
   lint-redbox-core:
     docker:
       - image: 'cimg/node:24.11.1'

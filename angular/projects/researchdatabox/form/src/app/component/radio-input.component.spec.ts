@@ -1,13 +1,13 @@
-import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
-import {RadioInputComponent} from "./radio-input.component";
-import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {TestBed} from "@angular/core/testing";
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { RadioInputComponent } from "./radio-input.component";
+import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
+import { TestBed } from "@angular/core/testing";
 
 describe('RadioInputComponent', () => {
   let translationService: any;
 
   beforeEach(async () => {
-    ({translationService} = await createTestbedModule({declarations: {"RadioInputComponent": RadioInputComponent}}));
+    ({ translationService } = await createTestbedModule({ declarations: { "RadioInputComponent": RadioInputComponent } }));
     translationService.getCurrentLanguage = jasmine.createSpy('getCurrentLanguage').and.returnValue('en');
   });
 
@@ -48,7 +48,7 @@ describe('RadioInputComponent', () => {
       ]
     };
 
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
 
     const compiled = fixture.nativeElement as HTMLElement;
 
@@ -96,7 +96,7 @@ describe('RadioInputComponent', () => {
       ]
     };
 
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const labels = compiled.querySelectorAll<HTMLLabelElement>('label');
     expect(labels.length).toBeGreaterThan(0);

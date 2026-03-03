@@ -610,7 +610,7 @@ describe('QuestionTreeComponent', async () => {
       }];
 
       const { fixture, formComponent } = await createFormAndWaitForReady(formConfigWithModelValue);
-      await waitForQuestionTreeSettle();
+      await fixture.whenStable();
       fixture.detectChanges();
       await fixture.whenStable();
       const element = fixture.nativeElement as HTMLElement;
@@ -649,7 +649,7 @@ describe('QuestionTreeComponent', async () => {
       const q1RadioElem1 = inputElementsInitial[0];
       toggleRadioButton(q1RadioElem1);
       fixture.detectChanges();
-      await waitForQuestionTreeSettle();
+      await fixture.whenStable();
       fixture.detectChanges();
       await fixture.whenStable();
 
@@ -720,7 +720,7 @@ describe('QuestionTreeComponent', async () => {
       questionDefs[0]!.layout!.config!.label = "Direct Question Label";
 
       const { fixture } = await createFormAndWaitForReady(formConfigWithDirectQuestionLabel);
-      await waitForQuestionTreeSettle();
+      await fixture.whenStable();
       fixture.detectChanges();
       await fixture.whenStable();
       expect(questionDefs[0]?.layout?.config?.label).toBe('Direct Question Label');

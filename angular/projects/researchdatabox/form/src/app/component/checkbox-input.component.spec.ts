@@ -7,7 +7,7 @@ describe('CheckboxInputComponent', () => {
   let translationService: any;
 
   beforeEach(async () => {
-    ({translationService} = await createTestbedModule({declarations: {"CheckboxInputComponent": CheckboxInputComponent}}));
+    ({ translationService } = await createTestbedModule({ declarations: { "CheckboxInputComponent": CheckboxInputComponent } }));
     translationService.getCurrentLanguage = jasmine.createSpy('getCurrentLanguage').and.returnValue('en');
   });
 
@@ -29,11 +29,11 @@ describe('CheckboxInputComponent', () => {
         {
           name: 'checkbox_test',
           model: {
-              class: 'CheckboxInputModel',
-              config: {
-                value: ['b'],
-              },
+            class: 'CheckboxInputModel',
+            config: {
+              value: ['b'],
             },
+          },
           component: {
             class: 'CheckboxInputComponent',
             config: {

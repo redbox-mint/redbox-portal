@@ -76,6 +76,9 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
       const name = this.name;
       const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
       try {
+        // Build the variables available to the template.
+        const context = {content: content, translationService: this.translationService};
+        const extra = {libraries: this.handlebarsTemplateService.getLibraries()};
         const compiledItems = await this.getFormComponent.getRecordCompiledItems();
         const renderTemplate = (formData: Record<string, unknown> = {}) => {
           const runtimeContext = this.getRuntimeTemplateContext();

@@ -8,7 +8,6 @@
     "@researchdatabox/oni-ocfl": "^1.4.0",
     "@researchdatabox/raido-openapi-generated-node": "file:packages/raido",
     "@researchdatabox/redbox-core": "./packages/redbox-core",
-    "@researchdatabox/redbox-dev-tools": "file:packages/redbox-dev-tools",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "file:packages/sails-hook-redbox-storage-mongo",
     "@researchdatabox/sails-ng-common": "./packages/sails-ng-common",
     "@tsconfig/node24": "^24.0.1",
@@ -82,7 +81,7 @@
     "dev:run:build": "docker compose --profile build -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-build",
     "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down",
     "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run",
-    "webpack": "NODE_ENV=docker WEBPACK_CSS_MINI=true npx redbox-webpack",
+    "webpack": "NODE_ENV=docker WEBPACK_CSS_MINI=true node packages/redbox-dev-tools/bin/wrapper-webpack.js",
     "dev:prepare": "./support/development/prepareLocalDev.sh",
     "compile:jsonSchema": "./support/development/compileJsonSchema.sh",
     "nvm:install-all": "bash ./support/development/installAllNvmrc.sh"

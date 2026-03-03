@@ -152,7 +152,6 @@ describe("Client Visitor", async () => {
                 "disabled": false,
                 "editMode": true,
                 "readonly": false,
-                "showValidIndicator": false,
                 "type": "text",
                 "visible": true,
               },
@@ -174,7 +173,6 @@ describe("Client Visitor", async () => {
                 label: 'TextField with default wrapper defined',
                 labelRequiredStr: '*',
                 readonly: false,
-                showValidIndicator: false,
                 visible: true,
                 helpText: 'This is a help text',
               }
@@ -192,7 +190,6 @@ describe("Client Visitor", async () => {
                 "disabled": false,
                 "editMode": true,
                 "readonly": false,
-                "showValidIndicator": false,
                 "type": "text",
                 "visible": true,
               }
@@ -294,7 +291,6 @@ describe("Client Visitor", async () => {
                 "disabled": false,
                 "editMode": true,
                 "readonly": false,
-                "showValidIndicator": false,
                 "type": "text",
                 "visible": true,
               }
@@ -380,7 +376,6 @@ describe("Client Visitor", async () => {
                 disabled: false,
                 editMode: true,
                 readonly: false,
-                showValidIndicator: false,
                 type: "text",
                 visible: true,
               },
@@ -552,7 +547,6 @@ describe("Client Visitor", async () => {
                 disabled: false,
                 editMode: true,
                 readonly: false,
-                showValidIndicator: false,
                 visible: true,
                 elementTemplate: {
                   name: "",
@@ -569,7 +563,6 @@ describe("Client Visitor", async () => {
                       disabled: false,
                       editMode: true,
                       readonly: false,
-                      showValidIndicator: false,
                       visible: true,
                       wrapperCssClasses: 'col',
                       componentDefinitions: [
@@ -587,7 +580,6 @@ describe("Client Visitor", async () => {
                               disabled: false,
                               editMode: true,
                               readonly: false,
-                              showValidIndicator: false,
                               type: "text",
                               visible: true,
                             }
@@ -609,7 +601,6 @@ describe("Client Visitor", async () => {
                       helpTextVisibleOnInit: false,
                       labelRequiredStr: '*',
                       readonly: false,
-                      showValidIndicator: false,
                       visible: true,
                     }
                   },
@@ -630,7 +621,6 @@ describe("Client Visitor", async () => {
                 helpTextVisibleOnInit: false,
                 labelRequiredStr: '*',
                 readonly: false,
-                showValidIndicator: false,
                 visible: true,
               }
             },

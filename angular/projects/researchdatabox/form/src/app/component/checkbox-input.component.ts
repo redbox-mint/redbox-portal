@@ -1,5 +1,5 @@
-import { Component, inject, Input } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldModel, TranslationService } from "@researchdatabox/portal-ng-common";
+import { Component, Input } from '@angular/core';
+import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   CheckboxOption,
   CheckboxInputModelValueType,
@@ -34,7 +34,7 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
           <label
             class="form-check-label"
             [attr.for]="getOptionId(opt)">
-            {{ getOptionLabel(opt.label) }}
+            {{ opt.label | i18next }}
           </label>
         </div>
       }
@@ -48,8 +48,7 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
   public tooltip: string = '';
   public placeholder: string | undefined = '';
   public options: CheckboxOption[] = [];
-  public multipleValues: boolean = false;
-  private readonly translationService = inject(TranslationService);
+  public multipleValues: boolean = true;
 
   /**
    * The model associated with this component.
@@ -67,72 +66,6 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
     this.placeholder = config?.placeholder ?? "";
     this.multipleValues = config?.multipleValues ?? true;
 
-  }
-
-  protected getOptionLabel(label: string): string {
-    const labelFromLanguageMap = this.resolveLanguageMapLabel(label);
-    if (labelFromLanguageMap !== null) {
-      return this.translate(labelFromLanguageMap);
-    }
-    const labelFromLanguageCode = this.resolveLanguageCodeLabel(label);
-    if (labelFromLanguageCode !== null) {
-      return labelFromLanguageCode;
-    }
-    return this.translate(label);
-  }
-
-  private translate(value: string): string {
-    const translated = this.translationService.t(value);
-    if (translated === undefined || translated === null || translated === '') {
-      return value;
-    }
-    const result = typeof translated === 'string' ? translated : String(translated);
-    return (result === '' || result === 'undefined') ? value : result;
-  }
-
-  private resolveLanguageMapLabel(label: string): string | null {
-    const parsed = this.tryParseJsonObject(label);
-    if (!parsed) {
-      return null;
-    }
-
-    const currentLanguage = this.translationService.getCurrentLanguage();
-    const baseLanguage = currentLanguage.split('-')[0];
-    const value = parsed[currentLanguage] ?? parsed[baseLanguage] ?? parsed['en'] ?? Object.values(parsed).find((v) => !!v);
-    return typeof value === 'string' && value.trim().length > 0 ? value : null;
-  }
-
-  private resolveLanguageCodeLabel(label: string): string | null {
-    const normalizedCode = label.trim().replace('_', '-');
-    if (!/^[a-z]{2,3}(?:-[a-zA-Z]{2,4})?$/.test(normalizedCode)) {
-      return null;
-    }
-
-    const languageName = new Intl.DisplayNames(
-      [this.translationService.getCurrentLanguage(), 'en'],
-      { type: 'language' }
-    ).of(normalizedCode);
-
-    if (!languageName || languageName === normalizedCode) {
-      return null;
-    }
-    return languageName;
-  }
-
-  private tryParseJsonObject(value: string): Record<string, string> | null {
-    const trimmed = value?.trim?.();
-    if (!trimmed || !trimmed.startsWith('{') || !trimmed.endsWith('}')) {
-      return null;
-    }
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        return null;
-      }
-      return parsed as Record<string, string>;
-    } catch {
-      return null;
-    }
   }
 
   /**
