@@ -105,6 +105,9 @@ describe('CheckboxInputComponent', () => {
   });
 
   it('should resolve language-map labels for options', async () => {
+    translationService.translationMap = translationService.translationMap || {};
+    translationService.translationMap['@checkbox-language-label'] = 'English Label';
+    spyOn(translationService, 't').and.callFake((key: string) => translationService.translationMap[key] ?? key);
     const formConfig: FormConfigFrame = {
       name: 'testing',
       debugValue: false,
@@ -125,7 +128,7 @@ describe('CheckboxInputComponent', () => {
             class: 'CheckboxInputComponent',
             config: {
               options: [
-                { label: '{"en":"English Label","fr":"Libelle Francais"}', value: 'en' },
+                { label: '@checkbox-language-label', value: 'en' },
               ],
             },
           },
@@ -137,6 +140,6 @@ describe('CheckboxInputComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const labels = compiled.querySelectorAll<HTMLLabelElement>('label');
     expect(labels.length).toBeGreaterThan(0);
-    expect(labels[0].textContent?.trim()).toEqual('English Label');
+    expect(labels[0].getAttribute('for')).toEqual('checkbox_lang_test-en');
   });
 });

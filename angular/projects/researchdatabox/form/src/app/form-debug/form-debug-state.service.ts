@@ -39,7 +39,7 @@ type FormDebugBridgeMessage = {
   event: DebugEventItem;
 };
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class FormDebugStateService implements OnDestroy {
   private readonly document = inject(DOCUMENT);
   private readonly debugScope = this.readDebugScopeFromUrl();
