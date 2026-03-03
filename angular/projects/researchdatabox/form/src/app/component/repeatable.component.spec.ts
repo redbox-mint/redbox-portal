@@ -91,6 +91,8 @@ describe('RepeatableComponent', () => {
     expect(repeatable.formFieldCompMapEntries[0].lineagePaths).toEqual({
       angularComponents: ["repeatable_1", "0"],
       angularComponentsJsonPointer: "/repeatable_1/0",
+      layout: ["repeatable_1-layout", "0"],
+      layoutJsonPointer: "/repeatable_1-layout/0",
       dataModel: ["repeatable_1", '0'],
       formConfig: ["componentDefinitions", 0, "component", "config", "elementTemplate"],
     });

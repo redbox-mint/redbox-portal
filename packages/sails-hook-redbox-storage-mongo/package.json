@@ -51,7 +51,7 @@
     "util": "0.12.5"
   },
   "dependencies": {
-    "@researchdatabox/redbox-core-types": "file:../redbox-core-types",
+    "@researchdatabox/redbox-core": "file:../redbox-core",
     "json2csv": "^5.0.3",
     "lodash": "^4.17.21",
     "reflect-metadata": "^0.2.2",

@@ -54,13 +54,13 @@ describe('RadioInputComponent', () => {
     expect(checkedRadio).toBeTruthy();
     expect(checkedRadio.id).toEqual('radio_test-option1');
 
-    // Check that all options have proper labels
+    // Check that all options have proper label bindings
     const radioInputs = compiled.querySelectorAll('input[type="radio"]');
     expect(radioInputs.length).toEqual(3);
-    const labels = compiled.querySelectorAll('label');
+    const labels = compiled.querySelectorAll<HTMLLabelElement>('label');
     expect(labels.length).toEqual(3);
-    expect(labels[0].textContent?.trim()).toEqual('Option 1');
-    expect(labels[1].textContent?.trim()).toEqual('Option 2');
-    expect(labels[2].textContent?.trim()).toEqual('Option 3');
+    expect(labels[0].getAttribute('for')).toEqual('radio_test-option1');
+    expect(labels[1].getAttribute('for')).toEqual('radio_test-option2');
+    expect(labels[2].getAttribute('for')).toEqual('radio_test-option3');
   });
 });

@@ -6,7 +6,7 @@ Introduce a Flydrive v2-based storage abstraction that supports multiple disks (
 
 ## User Review Required
 
-- Introduces Flydrive v2 and driver packages into `@researchdatabox/redbox-core-types`.
+- Introduces Flydrive v2 and driver packages into `@researchdatabox/redbox-core`.
 - Requires explicit configuration of storage disks and `record.datastreamService` to enable the new datastream behavior.
 - Existing deployments using GridFS require a migration strategy if switching to the new datastream service.
 
@@ -41,11 +41,11 @@ Introduce a Flydrive v2-based storage abstraction that supports multiple disks (
 - Transaction boundaries and side effects: file move/copy between disks; optional deletion from staging.
 - Dependencies on models, configs, or external services: Flydrive v2, `sails.config.storage`, `sails.config.record.attachments` for staging alignment.
 - File locations and naming
-  - `packages/redbox-core-types/src/services/StorageManagerService.ts`
-  - `packages/redbox-core-types/src/services/StandardDatastreamService.ts`
-  - `packages/redbox-core-types/src/config/storage.config.ts`
+  - `packages/redbox-core/src/services/StorageManagerService.ts`
+  - `packages/redbox-core/src/services/StandardDatastreamService.ts`
+  - `packages/redbox-core/src/config/storage.config.ts`
 - Service conventions (extend `Services.Core.Service`, `_exportedMethods`, `bootstrap()`, RxJS, model globals): follow `Services.Core.Service`, declare `_exportedMethods`, use `bootstrap()` for Flydrive init.
-- Export/update requirements (ServiceExports index and hook overrides): add to `packages/redbox-core-types/src/services/index.ts` and `packages/redbox-core-types/src/index.ts`; hooks can override via `registerRedboxServices()` with same names.
+- Export/update requirements (ServiceExports index and hook overrides): add to `packages/redbox-core/src/services/index.ts` and `packages/redbox-core/src/index.ts`; hooks can override via `registerRedboxServices()` with same names.
 
 ## 3. Webservice Controllers (REST API)
 

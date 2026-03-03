@@ -28,6 +28,10 @@ export interface ContentFieldComponentConfigFrame extends FieldComponentConfigFr
      */
     content?: unknown;
     /**
+     * Optional auxiliary template context used by view-mode transforms.
+     */
+    outputFormat?: string;
+    /**
      * Whether the `content` value should be treated as a translation key.
      */
     contentIsTranslationCode?: boolean;

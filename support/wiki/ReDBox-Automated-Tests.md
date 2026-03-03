@@ -12,7 +12,7 @@ This repository uses a mix of testing strategies including unit, integration, an
 | `npm run test:bruno:oidc` | API / Auth | Specialized Bruno tests for OIDC flows. |
 | `npm run test:angular` | Frontend Unit | Runs Angular unit tests using `testDevAngular.sh`. |
 | `npm run test:sails-ng-common` | Package Unit | Runs tests for the `sails-ng-common` package. |
-| `cd packages/redbox-core-types && npm test` | Package Unit | Runs core-types unit tests (services and controllers). |
+| `cd packages/redbox-core && npm test` | Package Unit | Runs core-types unit tests (services and controllers). |
 
 ## Running Tests
 
@@ -20,7 +20,7 @@ Note on `:mount` variants: Commands with a `:mount` suffix (for example, `test:m
 
 ### 1. Preparation: Compile All Packages
 
-Before running any tests, ensure all local packages and the TypeScript backend are compiled. This is critical as tests rely on the built artifacts of `redbox-core-types` and `sails-ng-common`.
+Before running any tests, ensure all local packages and the TypeScript backend are compiled. This is critical as tests rely on the built artifacts of `redbox-core` and `sails-ng-common`.
 
 ```bash
 # Installs dependencies and compiles all local packages + backend typescript
@@ -71,7 +71,7 @@ Some packages have their own independent test suites.
 
 - **Redbox Core Types**:
   ```bash
-  cd packages/redbox-core-types
+  cd packages/redbox-core
   npm test
   ```
   Runs unit tests for controllers and services in the core-types package.

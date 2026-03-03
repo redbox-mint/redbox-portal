@@ -89,11 +89,10 @@ export class FieldErrorSummaryComponent implements OnChanges {
   }
 
   public onToggleKeydown(event: KeyboardEvent): void {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
-    }
+    if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
     event.preventDefault();
     this.toggleExpanded();
+  }
   }
 
   public trackError(error: FormValidatorComponentErrors, index: number): string {

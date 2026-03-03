@@ -38,7 +38,7 @@ export class ActionRowLayoutComponent<ValueType> extends FormFieldBaseComponent<
   @ViewChild('componentContainer', { read: ViewContainerRef, static: false })
   componentContainer!: ViewContainerRef;
 
-  wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
+  wrapperComponentRef?: ComponentRef<FormBaseWrapperComponent<ValueType>>;
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
     this.componentClass = formFieldCompMapEntry?.componentClass as typeof FormFieldBaseComponent<ValueType>;
@@ -80,6 +80,11 @@ export class ActionRowLayoutComponent<ValueType> extends FormFieldBaseComponent<
 
   override ngAfterViewInit() {
     this.status.set(FormFieldComponentStatus.INIT_VIEW_READY);
+  }
+
+  ngOnDestroy(): void {
+    this.wrapperComponentRef?.destroy();
+    this.wrapperComponentRef = undefined;
   }
 
   protected get justifyContent(): string {

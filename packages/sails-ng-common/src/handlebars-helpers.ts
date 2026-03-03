@@ -27,6 +27,32 @@ import {
 } from 'lodash';
 
 /**
+ * Marked is an ESM module so cannot be imported synchronously in a CommonJS context. 
+ * We use dynamic import to load it when needed, and cache the parser function for future use. If the module cannot be loaded, the markdownToHtml helper will simply return the input string unmodified.
+ */
+let cachedMarkedParser: ((value: string) => string) | null | undefined;
+
+void import('marked')
+    .then((markedModule) => {
+        const parseFn = markedModule?.marked?.parse ?? markedModule?.parse;
+        if (typeof parseFn === 'function') {
+            cachedMarkedParser = (value: string): string => {
+                const result = parseFn(value);
+                return typeof result === 'string' ? result : value;
+            };
+            return;
+        }
+        cachedMarkedParser = null;
+    })
+    .catch(() => {
+        cachedMarkedParser = null;
+    });
+
+function resolveMarkedParser(): ((value: string) => string) | null {
+    return cachedMarkedParser ?? null;
+}
+
+/**
  * Shared Handlebars helper definitions for use in both server and client contexts.
  * These helpers provide CSP-safe alternatives to lodash template expressions.
  * 
@@ -351,6 +377,27 @@ export const handlebarsHelperDefinitions = {
      */
     default: function (value: unknown, defaultValue: unknown): unknown {
         return value || defaultValue;
+    },
+
+    /**
+     * Convert markdown to HTML when output format is markdown, otherwise pass HTML through.
+     * Note: This helper does not sanitize HTML output, we are currently only using it on the client side with Angular's DomSanitizer to ensure safe usage. 
+     * Do not use this helper with untrusted content in a server-side context without proper sanitization (see DOMSanitizerService as a way to sanitize the HTML on the server side).
+     *
+     * @example {{{markdownToHtml content outputFormat}}}
+     */
+    markdownToHtml: function (value: unknown, outputFormat?: string): string {
+        const input = String(value ?? '');
+        if (!input) {
+            return '';
+        }
+        if (outputFormat === 'markdown') {
+            const parser = resolveMarkedParser();
+            if (parser) {
+                return parser(input);
+            }
+        }
+        return input;
     },
 
     /**

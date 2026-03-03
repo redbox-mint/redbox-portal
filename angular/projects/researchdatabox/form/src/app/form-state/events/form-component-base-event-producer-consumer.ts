@@ -11,6 +11,7 @@ import { FormComponent } from '../../form.component';
  * Options for binding event consumers/producers to components.
  */
 export interface FormComponentEventBindingOptions {
+	isLayout?: boolean;
   component?: FormFieldBaseComponent<unknown>;
   definition?: FormFieldCompMapEntry;
   formComponent?: FormComponent;
@@ -67,22 +68,23 @@ export abstract class FormComponentEventBaseProducerConsumer {
    */
   destroy(): void {
     this.subscriptions.forEach(sub => sub.unsubscribe());
-    this.subscriptions.clear();
-    this.scopedBus = undefined;
-    this.fieldId = undefined;
-  }
-  /**
-   * Helper to resolve field ID from options
-   *
-   * @param options
-   * @returns
-   */
-  protected resolveFieldId(options: FormComponentEventBindingOptions): string | undefined {
+		this.subscriptions.clear();
+		this.scopedBus = undefined;
+		this.fieldId = undefined;
+	}
+	/**
+	 * Helper to resolve field ID from options
+	 *
+	 * @param options
+	 * @returns
+	 */
+	protected resolveFieldId(options: FormComponentEventBindingOptions): string | undefined {
+		const jsonPointerProp = options.isLayout ? 'layoutJsonPointer' : 'angularComponentsJsonPointer';
+		const resolvedName = options.definition?.compConfigJson?.name ?? options.definition?.name ?? options.component?.formFieldConfigName();
+		const configName = options.isLayout && resolvedName ? `${resolvedName}-layout` : resolvedName;
     return (
-      options.definition?.lineagePaths?.angularComponentsJsonPointer ||
-      options.definition?.compConfigJson?.name ||
-      options.definition?.name ||
-      options.component?.formFieldConfigName()
+			options.definition?.lineagePaths?.[jsonPointerProp] ||
+			configName
     );
   }
   /**
@@ -96,32 +98,32 @@ export abstract class FormComponentEventBaseProducerConsumer {
     return {
       jsonPointer: parts[0],
       event: parts[1] || '*',
-    };
-  }
-  /**
-   *
-   * Combines the component query source with the event.
-   *
-   * @param event
-   * @returns
-   */
-  protected getEventQuerySource(event: FormComponentEventBase): FormComponentEventQuerySource | undefined {
-    if (!this.componentDefQuerySource) {
-      return undefined;
-    }
-    return {
-      ...this.componentDefQuerySource,
+		};
+	}
+	/**
+	 *
+	 * Combines the component query source with the event.
+	 *
+	 * @param event
+	 * @returns
+	 */
+	protected getEventQuerySource(event: FormComponentEventBase): FormComponentEventQuerySource | undefined {
+		if (!this.componentDefQuerySource) {
+			return undefined;
+		}
+		return {
+			...this.componentDefQuerySource,
       event,
-    };
-  }
-  /**
-   * Sets up listeners to update the component query source when the form definition changes.
-   */
-  protected setupQuerySourceUpdateListener(): void {
-    if (this.formComp) {
-      // Clean up existing subscriptions before creating new ones
-      this.subscriptions.get('componentQuerySourceReady')?.unsubscribe();
-      this.subscriptions.get('componentQuerySourceUpdated')?.unsubscribe();
+		};
+	}
+	/**
+	 * Sets up listeners to update the component query source when the form definition changes.
+	 */
+	protected setupQuerySourceUpdateListener(): void {
+		if (this.formComp) {
+			// Clean up existing subscriptions before creating new ones
+			this.subscriptions.get('componentQuerySourceReady')?.unsubscribe();
+			this.subscriptions.get('componentQuerySourceUpdated')?.unsubscribe();
 
       this.subscriptions.set(
         'componentQuerySourceReady',

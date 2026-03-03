@@ -1,5 +1,4 @@
-
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 const formConfig: FormConfigFrame = {
   "name": "v4FormConfig",
   "enabledValidationGroups": [
@@ -200,6 +199,7 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "requestIdentifier",
                   "disabled": false,
                   "autofocus": false,
                   "labelRequiredStr": "*",
@@ -252,7 +252,7 @@ const formConfig: FormConfigFrame = {
                       }
                     },
                     "layout": {
-                      "class": "DefaultLayout",
+                      "class": "RepeatableElementLayout",
                       "config": {
                         "readonly": false,
                         "visible": true,
@@ -440,6 +440,7 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "@dataPublication-creators",
                   "disabled": false,
                   "autofocus": false,
                   "labelRequiredStr": "*",
@@ -656,6 +657,7 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "dataowner_name",
                   "disabled": false,
                   "autofocus": false,
                   "labelRequiredStr": "*",
@@ -697,6 +699,7 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "dataowner_email",
                   "disabled": false,
                   "autofocus": false,
                   "labelRequiredStr": "*",
@@ -738,6 +741,7 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "contributor_ci",
                   "disabled": false,
                   "autofocus": false,
                   "labelRequiredStr": "*",
@@ -779,6 +783,7 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "contributor_data_manager",
                   "disabled": false,
                   "autofocus": false,
                   "labelRequiredStr": "*",
@@ -820,6 +825,7 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "contributor_supervisor",
                   "disabled": false,
                   "autofocus": false,
                   "labelRequiredStr": "*",
@@ -870,4 +876,4 @@ const formConfig: FormConfigFrame = {
   "debugValue": true,
   "attachmentFields": []
 };
-module.exports = formConfig;
+export default formConfig;

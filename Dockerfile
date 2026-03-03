@@ -30,7 +30,7 @@ FROM base AS builder
 COPY . .
 
 RUN npm ci \
- && (cd packages/redbox-core-types && npm ci) \
+ && (cd packages/redbox-core && npm ci) \
  && (cd packages/sails-ng-common && npm ci) \
  && (cd packages/raido && npm ci) \
  && (cd packages/rva-registry && npm ci) \
@@ -39,7 +39,7 @@ RUN npm ci \
 RUN cd packages/raido && npm run build
 RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
-RUN cd packages/redbox-core-types && npx tsc -p tsconfig.json
+RUN cd packages/redbox-core && npx tsc -p tsconfig.json
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
 
 RUN npx tsc --project tsconfig.json
@@ -55,7 +55,7 @@ RUN chmod +x support/build/api-descriptors/generateAPIDescriptors.sh \
 RUN npm prune --omit=dev \
  && npm cache clean --force \
  && rm -rf \
-    packages/redbox-core-types/node_modules \
+    packages/redbox-core/node_modules \
     packages/sails-ng-common/node_modules \
     packages/raido/node_modules \
     packages/rva-registry/node_modules \

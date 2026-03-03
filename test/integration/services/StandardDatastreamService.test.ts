@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { Readable } from 'node:stream';
-import { Datastream } from '../../../packages/redbox-core-types/src/Datastream';
-import { Services as StandardDatastreamServices } from '../../../packages/redbox-core-types/src/services/StandardDatastreamService';
+import { Datastream } from '../../../packages/redbox-core/src/Datastream';
+import { Services as StandardDatastreamServices } from '../../../packages/redbox-core/src/services/StandardDatastreamService';
 
 describe('StandardDatastreamService', function () {
   let originalServices: Record<string, unknown> | undefined;

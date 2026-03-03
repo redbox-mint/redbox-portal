@@ -1,4 +1,4 @@
-:host {
+.rb-form-host {
   --rb-form-max-width: 1120px;
   --rb-form-nav-width: 220px;
   --rb-form-gap-1: 0.5rem;
@@ -16,9 +16,21 @@
   display: block;
 }
 
-:host,
-:host * {
+.rb-form-host,
+.rb-form-host * {
   box-sizing: border-box;
+}
+
+.rb-form-host,
+.rb-form-host .rb-form-shell,
+.rb-form-host .rb-form-shell__main,
+.rb-form-host form,
+.rb-form-host .form-row,
+.rb-form-host input,
+.rb-form-host textarea,
+.rb-form-host select,
+.rb-form-host img,
+.rb-form-host .form-field {
   max-width: 100%;
 }
 
@@ -38,65 +50,65 @@
   width: 100%;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-tab-shell {
+.rb-form-host.rb-form-edit .rb-form-tab-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--rb-form-gap-4);
   align-items: start;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-tab-nav-wrapper {
+.rb-form-host.rb-form-edit .rb-form-tab-nav-wrapper {
   min-width: 0;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-tab-panel-wrapper {
+.rb-form-host.rb-form-edit .rb-form-tab-panel-wrapper {
   min-width: 0;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-tab-nav {
+.rb-form-host.rb-form-edit .rb-form-tab-nav {
   gap: var(--rb-form-gap-1);
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-tab-pane {
+.rb-form-host.rb-form-edit .rb-form-tab-pane {
   width: 100%;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-field-layout,
-:host(.rb-form-edit) ::ng-deep .rb-form-inline-layout {
+.rb-form-edit .rb-form-field-layout,
+.rb-form-edit .rb-form-inline-layout {
   display: flex;
   flex-direction: column;
   gap: var(--rb-form-gap-2);
   margin-bottom: var(--rb-form-gap-3);
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-inline-layout {
+.rb-form-edit .rb-form-inline-layout {
   gap: var(--rb-form-gap-1);
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-inline-layout__row {
+.rb-form-edit .rb-form-inline-layout__row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--rb-form-gap-2);
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-field-label,
-:host(.rb-form-edit) ::ng-deep .rb-form-inline-label {
+.rb-form-edit .rb-form-field-label,
+.rb-form-edit .rb-form-inline-label {
   margin-bottom: 0;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-group,
-:host(.rb-form-edit) ::ng-deep .rb-form-repeatable {
+.rb-form-edit .rb-form-group,
+.rb-form-edit .rb-form-repeatable {
   display: grid;
   gap: var(--rb-form-gap-3);
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-repeatable__items {
+.rb-form-edit .rb-form-repeatable__items {
   display: grid;
   gap: var(--rb-form-gap-3);
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-repeatable__add {
+.rb-form-edit .rb-form-repeatable__add {
   justify-self: start;
   display: inline-flex;
   align-items: center;
@@ -104,18 +116,18 @@
   font-weight: 600;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item {
+.rb-form-edit .rb-form-repeatable-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--rb-form-gap-2);
   align-items: start;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item__content {
+.rb-form-edit .rb-form-repeatable-item__content {
   min-width: 0;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item__remove {
+.rb-form-edit .rb-form-repeatable-item__remove {
   align-self: start;
   min-width: 3.1rem;
   min-height: 3.2rem;
@@ -127,27 +139,27 @@
   justify-content: center;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item:has(.rb-form-field-label) .rb-form-repeatable-item__remove {
+.rb-form-edit .rb-form-repeatable-item:has(.rb-form-field-label) .rb-form-repeatable-item__remove {
   margin-top: 2.25rem;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item:has(.rb-form-inline-label):not(:has(.rb-form-contributor-inline)) .rb-form-repeatable-item__remove {
+.rb-form-edit .rb-form-repeatable-item:has(.rb-form-inline-label):not(:has(.rb-form-contributor-inline)) .rb-form-repeatable-item__remove {
   margin-top: 0;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item.rb-form-repeatable-item--contributor .rb-form-repeatable-item__remove {
+.rb-form-edit .rb-form-repeatable-item.rb-form-repeatable-item--contributor .rb-form-repeatable-item__remove {
   margin-top: 2.25rem;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item__content .rb-form-field-label {
+.rb-form-edit .rb-form-repeatable-item__content .rb-form-field-label {
   display: block;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-repeatable-item__content .rb-form-contributor-inline .rb-form-inline-label {
+.rb-form-edit .rb-form-repeatable-item__content .rb-form-contributor-inline .rb-form-inline-label {
   display: none;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-action-row {
+.rb-form-edit .rb-form-action-row {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -158,7 +170,7 @@
   border-top: 1px solid var(--rb-form-border-color);
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-action-row .rb-form-group {
+.rb-form-edit .rb-form-action-row .rb-form-group {
   display: flex;
   flex-wrap: wrap;
   gap: var(--rb-form-gap-2);
@@ -166,47 +178,47 @@
   width: 100%;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-action-row > * {
+.rb-form-edit .rb-form-action-row > * {
   flex: 0 0 auto;
   width: auto;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-action-row .rb-form-action-slot {
+.rb-form-edit .rb-form-action-row .rb-form-action-slot {
   width: auto;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-action-row .rb-form-action-slot .rb-form-inline-layout,
-:host(.rb-form-edit) ::ng-deep .rb-form-action-row .rb-form-action-slot .rb-form-field-layout {
+.rb-form-edit .rb-form-action-row .rb-form-action-slot .rb-form-inline-layout,
+.rb-form-edit .rb-form-action-row .rb-form-action-slot .rb-form-field-layout {
   margin-bottom: 0;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-action-slot--start {
+.rb-form-edit .rb-form-action-slot--start {
   margin-right: auto;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-action-row--compact {
+.rb-form-edit .rb-form-action-row--compact {
   margin-top: var(--rb-form-gap-3);
   padding-top: var(--rb-form-gap-2);
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-tab-nav-buttons {
+.rb-form-host.rb-form-edit .rb-form-tab-nav-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: var(--rb-form-gap-2);
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-save-button {
+.rb-form-edit .rb-form-save-button {
   display: inline-flex;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-validation-summary {
+.rb-form-edit .rb-form-validation-summary {
   margin-bottom: var(--rb-form-gap-3);
   padding: var(--rb-form-gap-2);
   border: 1px solid var(--rb-form-border-color);
   background: var(--rb-form-bg-muted);
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-field-error-summary {
+.rb-form-edit .rb-form-field-error-summary {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -222,7 +234,7 @@
   box-shadow: 0 6px 16px -14px var(--rb-form-validation-shadow);
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-field-error-summary__primary {
+.rb-form-edit .rb-form-field-error-summary__primary {
   flex: 0 1 auto;
   color: var(--rb-form-validation-danger-strong);
   font-weight: 600;
@@ -231,7 +243,7 @@
   max-width: min(100%, 48rem);
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-field-error-toggle {
+.rb-form-edit .rb-form-field-error-toggle {
   flex: 0 0 auto;
   border: 1px solid color-mix(in srgb, var(--rb-form-validation-danger) 35%, #ffffff);
   background: #fff;
@@ -245,15 +257,15 @@
   transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-field-error-toggle:hover,
-:host(.rb-form-edit) ::ng-deep .rb-form-field-error-toggle:focus-visible {
+.rb-form-edit .rb-form-field-error-toggle:hover,
+.rb-form-edit .rb-form-field-error-toggle:focus-visible {
   background: color-mix(in srgb, var(--rb-form-validation-danger) 10%, #ffffff);
   box-shadow: 0 0 0 0.18rem color-mix(in srgb, var(--rb-form-validation-danger) 18%, transparent);
   transform: translateY(-1px);
   outline: none;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-field-error-panel {
+.rb-form-edit .rb-form-field-error-panel {
   margin-top: 0.45rem;
   padding: 0.68rem 0.75rem 0.7rem 0.85rem;
   border-radius: 0.68rem;
@@ -264,12 +276,12 @@
   overflow: auto;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-field-error-panel__list {
+.rb-form-edit .rb-form-field-error-panel__list {
   margin: 0;
   padding-left: 1rem;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-field-error-panel__title {
+.rb-form-edit .rb-form-field-error-panel__title {
   margin: 0 0 0.42rem 0;
   color: var(--rb-form-validation-danger-strong);
   font-size: 0.92rem;
@@ -277,7 +289,7 @@
   line-height: 1.3;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-field-error-panel__item {
+.rb-form-edit .rb-form-field-error-panel__item {
   margin: 0;
   color: var(--rb-form-validation-danger-strong);
   font-size: 0.92rem;
@@ -285,48 +297,48 @@
   line-height: 1.4;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-field-error-panel__item + .rb-form-field-error-panel__item {
+.rb-form-edit .rb-form-field-error-panel__item + .rb-form-field-error-panel__item {
   margin-top: 0.28rem;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-contributor-inline .rb-form-group {
+.rb-form-edit .rb-form-contributor-inline .rb-form-group {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--rb-form-gap-1);
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-contributor-inline .rb-form-contributor-inline__field {
+.rb-form-edit .rb-form-contributor-inline .rb-form-contributor-inline__field {
   width: 100%;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-contributor-inline .rb-form-field-layout,
-:host(.rb-form-edit) ::ng-deep .rb-form-contributor-inline .rb-form-inline-layout {
+.rb-form-edit .rb-form-contributor-inline .rb-form-field-layout,
+.rb-form-edit .rb-form-contributor-inline .rb-form-inline-layout {
   margin-bottom: 0;
 }
 
-:host(.rb-form-edit) ::ng-deep .rb-form-contributor-inline .rb-form-inline-layout,
-:host(.rb-form-edit) ::ng-deep .rb-form-contributor-inline .rb-form-inline-layout__control {
+.rb-form-edit .rb-form-contributor-inline .rb-form-inline-layout,
+.rb-form-edit .rb-form-contributor-inline .rb-form-inline-layout__control {
   width: 100%;
 }
 
 @media (min-width: 992px) {
-  :host(.rb-form-edit) ::ng-deep .rb-form-tab-shell {
+  .rb-form-host.rb-form-edit .rb-form-tab-shell {
     grid-template-columns: minmax(0, var(--rb-form-nav-width)) minmax(0, 1fr);
     column-gap: var(--rb-form-gap-5);
   }
 
-  :host(.rb-form-edit) ::ng-deep .rb-form-tab-nav {
+  .rb-form-host.rb-form-edit .rb-form-tab-nav {
     position: sticky;
     top: var(--rb-form-gap-3);
   }
 }
 
 @media (max-width: 575px) {
-  :host(.rb-form-edit) ::ng-deep .rb-form-action-row {
+  .rb-form-edit .rb-form-action-row {
     justify-content: flex-start;
   }
 
-  :host(.rb-form-edit) ::ng-deep .rb-form-action-slot--start {
+  .rb-form-edit .rb-form-action-slot--start {
     flex: 1 0 100%;
     margin-right: 0;
   }

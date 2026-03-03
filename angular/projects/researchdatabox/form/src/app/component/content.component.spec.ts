@@ -1,6 +1,6 @@
 import {FormConfigFrame, buildKeyString} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
-import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
+import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import { UtilityService, HandlebarsTemplateService, TranslationService } from "@researchdatabox/portal-ng-common";
 import Handlebars from "handlebars";
@@ -10,41 +10,42 @@ import Handlebars from "handlebars";
 describe('ContentComponent', () => {
   let utilityService: UtilityService;
   let translationService: any;
+  let lastTemplateContext: any;
   const mockHandlebarsTemplateService = {
     getLibraries: () => ({ Handlebars })
   };
 
   beforeEach(async () => {
+    lastTemplateContext = undefined;
     await createTestbedModule({
       declarations: {"ContentComponent": ContentComponent},
       providers: {
         "UtilityService": null,
-        "HandlebarsTemplateService": { provide: HandlebarsTemplateService, useValue: mockHandlebarsTemplateService }
+        "HandlebarsTemplateService": {provide: HandlebarsTemplateService, useValue: mockHandlebarsTemplateService}
       }
     });
     utilityService = TestBed.inject(UtilityService);
     translationService = TestBed.inject(TranslationService as any);
     translationService.translationMap['@dmpt-project-title'] = 'Project name';
-    spyOn(utilityService, 'getDynamicImport').and.callFake(
-      async function (brandingAndPortalUrl: string, urlPath: string[], params?: {[key:string]: any}) {
-        const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? [])?.join('/')}`;
-        if (urlKey.startsWith("http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-")) {
-          return {
-            evaluate: function (key: string[], context: any, extra: any) {
-              // normalise the key the same way as the server
-              const keyStr = buildKeyString(key);
-              switch (keyStr) {
-                case "componentDefinitions__0__component__config__template":
-                  return Handlebars.compile('<h3>{{content}}</h3>')(context);
-                default:
-                  throw new Error(`Unknown key: ${keyStr}`);
-              }
+    spyOn(translationService, 't').and.callFake((key: string) => translationService.translationMap[key] ?? key);
+
+    setUpDynamicAssets({
+      callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+        lastTemplateContext = context;
+        switch (keyStr) {
+          case "componentDefinitions__0__component__config__template":
+            if (context?.content === 'USE_TRANSLATION_TEMPLATE') {
+              return context?.translationService?.t?.('@dmpt-project-title') ?? '';
             }
-          };
-        } else {
-          throw new Error(`Unknown url key: ${urlKey}`);
+            if (context?.content === 'USE_MISSING_TRANSLATION_TEMPLATE') {
+              return context?.translationService?.t?.('@missing.translation.key') ?? '';
+            }
+            return Handlebars.compile('<h3>{{content}}</h3>')(context);
+          default:
+            throw new Error(`Unknown key: ${keyStr}`);
         }
-      });
+      }
+    });
   });
 
   it('should create component', () => {
@@ -149,6 +150,64 @@ describe('ContentComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const element = compiled.querySelector('span');
     expect((element as HTMLSpanElement)?.textContent).toEqual('Project name');
+  });
+
+  it('should pass translationService into template context', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          component: {
+            class: 'ContentComponent',
+            config: {
+              content: 'USE_TRANSLATION_TEMPLATE',
+              template: '{{t "@dmpt-project-title"}}'
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const element = compiled.querySelector('span');
+    expect((element as HTMLSpanElement)?.textContent).toEqual('Project name');
+    expect(lastTemplateContext?.translationService).toBeDefined();
+    expect(typeof lastTemplateContext?.translationService?.t).toEqual('function');
+  });
+
+  it('should fallback to translation key when template key is missing', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          component: {
+            class: 'ContentComponent',
+            config: {
+              content: 'USE_MISSING_TRANSLATION_TEMPLATE',
+              template: '{{t "@missing.translation.key"}}'
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const element = compiled.querySelector('span');
+    expect((element as HTMLSpanElement)?.textContent).toEqual('@missing.translation.key');
   });
 
 });

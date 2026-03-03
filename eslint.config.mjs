@@ -25,7 +25,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['packages/redbox-core-types/{src,test}/**/*.{ts,tsx}'],
+    files: ['packages/redbox-core/{src,test}/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
@@ -46,38 +46,38 @@ export default tseslint.config(
     },
   },
   {
-    files: ['packages/redbox-core-types/src/controllers/webservice/*.ts'],
+    files: ['packages/redbox-core/src/controllers/webservice/*.ts'],
     rules: {
       '@typescript-eslint/no-unused-vars': 'off',
     },
   },
   {
-    files: ['packages/redbox-core-types/src/sails.ts'],
+    files: ['packages/redbox-core/src/sails.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },
   {
-    files: ['packages/redbox-core-types/src/services/RecordsService.ts'],
+    files: ['packages/redbox-core/src/services/RecordsService.ts'],
     rules: {
       '@typescript-eslint/no-unused-vars': 'off',
     },
   },
   {
-    files: ['packages/redbox-core-types/src/services/VocabService.ts'],
+    files: ['packages/redbox-core/src/services/VocabService.ts'],
     rules: {
       '@typescript-eslint/no-unused-vars': 'off',
     },
   },
   {
-    files: ['packages/redbox-core-types/src/visitor/*.ts'],
+    files: ['packages/redbox-core/src/visitor/*.ts'],
     rules: {
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },
   {
-    files: ['packages/redbox-core-types/src/waterline-models/*.ts'],
+    files: ['packages/redbox-core/src/waterline-models/*.ts'],
     rules: {
       '@typescript-eslint/triple-slash-reference': 'off',
     },
@@ -96,7 +96,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['packages/redbox-hook-kit/**/*.{ts,tsx}', 'packages/rva-registry/**/*.{ts,tsx}'],
+    files: ['packages/redbox-dev-tools/**/*.{ts,tsx}', 'packages/rva-registry/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': 'off',

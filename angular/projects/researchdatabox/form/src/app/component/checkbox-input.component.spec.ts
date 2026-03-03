@@ -26,11 +26,11 @@ describe('CheckboxInputComponent', () => {
         {
           name: 'checkbox_test',
           model: {
-            class: 'CheckboxInputModel',
-            config: {
-              value: 'b',
+              class: 'CheckboxInputModel',
+              config: {
+                value: ['b'],
+              },
             },
-          },
           component: {
             class: 'CheckboxInputComponent',
             config: {
@@ -47,11 +47,57 @@ describe('CheckboxInputComponent', () => {
 
     const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
-    const selectEl = compiled.querySelector('input[type="checkbox"]:checked') as HTMLInputElement;
-    expect(selectEl).toBeTruthy();
-    const selectedText = selectEl.id;
+    const selectEls = compiled.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:checked');
+    expect(selectEls.length).toEqual(1);
+    const selectedText = selectEls[0].id;
     expect(selectedText).toEqual('checkbox_test-b');
   });
+
+  it('should allow selecting multiple options when multipleValues is enabled', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'checkbox_test_multiple',
+          model: {
+            class: 'CheckboxInputModel',
+            config: {
+              value: [],
+            },
+          },
+          component: {
+            class: 'CheckboxInputComponent',
+            config: {
+              multipleValues: true,
+              options: [
+                { label: 'Alpha', value: 'a' },
+                { label: 'Bravo', value: 'b' },
+                { label: 'Charlie', value: 'c' },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const checkboxEls = compiled.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+
+    checkboxEls[0].checked = true;
+    checkboxEls[0].dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    checkboxEls[1].checked = true;
+    checkboxEls[1].dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const checked = compiled.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:checked');
+    expect(checked.length).toEqual(2);
+  });
 });
-
-

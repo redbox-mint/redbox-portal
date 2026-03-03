@@ -14,7 +14,7 @@ import { LoggerService } from '@researchdatabox/portal-ng-common';
 import { Store } from '@ngrx/store';
 import {
   FormComponentEventType,
-  FieldMetaChangedEvent,
+  FieldUIAttributeChangedEvent,
   FormValidationBroadcastEvent,
   createFieldValueChangedEvent,
   createFieldDependencyTriggerEvent,
@@ -102,14 +102,14 @@ describe('FormComponentEventBus', () => {
       bus.publish(event);
     });
 
-    it('should publish field meta changed events (R15.17)', done => {
-      const event: Omit<FieldMetaChangedEvent, 'timestamp'> = {
-        type: FormComponentEventType.FIELD_META_CHANGED,
+    it('should publish field UI attribute changed events (R15.17)', done => {
+      const event: Omit<FieldUIAttributeChangedEvent, 'timestamp'> = {
+        type: FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED,
         fieldId: 'description',
         meta: { visible: false, required: true },
       };
 
-      bus.select$(FormComponentEventType.FIELD_META_CHANGED).subscribe({
+      bus.select$(FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED).subscribe({
         next: received => {
           expect(received.fieldId).toBe('description');
           expect(received.meta).toEqual({ visible: false, required: true });
@@ -415,7 +415,7 @@ describe('FormComponentEventBus', () => {
       // We intentionally trigger a subscriber error in AC34 and want to
       // validate bus resilience without failing the entire test run.
       originalOnUnhandledError = rxjsConfig.onUnhandledError;
-      rxjsConfig.onUnhandledError = () => {};
+      rxjsConfig.onUnhandledError = () => { };
     });
 
     afterAll(() => {
@@ -665,7 +665,7 @@ describe('FormComponentEventBus', () => {
   describe('Naming Convention (R15.16)', () => {
     it('should follow namespace.domain.action naming pattern', () => {
       expect(FormComponentEventType.FIELD_VALUE_CHANGED).toBe('field.value.changed');
-      expect(FormComponentEventType.FIELD_META_CHANGED).toBe('field.meta.changed');
+      expect(FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED).toBe('field.ui-attribute.changed');
       expect(FormComponentEventType.FIELD_DEPENDENCY_TRIGGER).toBe('field.dependency.trigger');
       expect(FormComponentEventType.FIELD_FOCUS_REQUEST).toBe('field.request.focus');
       expect(FormComponentEventType.FORM_VALIDATION_BROADCAST).toBe('form.validation.broadcast');
@@ -678,9 +678,9 @@ describe('FormComponentEventBus', () => {
   describe('Performance (R15.11, R15.24)', () => {
     it('should have O(1) publish cost relative to unrelated subscribers', done => {
       // Subscribe to different event types
-      bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(() => {});
-      bus.select$(FormComponentEventType.FIELD_FOCUS_REQUEST).subscribe(() => {});
-      bus.select$(FormComponentEventType.FIELD_META_CHANGED).subscribe(() => {});
+      bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(() => { });
+      bus.select$(FormComponentEventType.FIELD_FOCUS_REQUEST).subscribe(() => { });
+      bus.select$(FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED).subscribe(() => { });
 
       const startTime = performance.now();
 

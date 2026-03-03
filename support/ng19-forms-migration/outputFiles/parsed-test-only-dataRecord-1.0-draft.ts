@@ -1,10 +1,9 @@
-
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 const formConfig: FormConfigFrame = {
   "name": "dataRecord-1.0-draft",
   "type": "dataRecord",
-  "viewCssClasses": "row col-md-offset-1 col-md-10",
-  "editCssClasses": "row col-md-12",
+  "viewCssClasses": "redbox-form form rb-form-view",
+  "editCssClasses": "redbox-form form rb-form-edit",
   "enabledValidationGroups": [
     "all"
   ],
@@ -49,6 +48,7 @@ const formConfig: FormConfigFrame = {
           "readonly": false,
           "visible": true,
           "editMode": true,
+          "label": "title",
           "disabled": false,
           "autofocus": false,
           "labelRequiredStr": "*",
@@ -93,11 +93,12 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "label": "@data-record-edit-record-link",
                   "disabled": false,
-                  "autofocus": false
+                  "autofocus": false,
+                  "buttonCssClasses": "btn btn-large btn-info margin-15"
                 }
               },
               "layout": {
-                "class": "DefaultLayout",
+                "class": "InlineLayout",
                 "config": {
                   "readonly": false,
                   "visible": true,
@@ -130,11 +131,12 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "label": "@dmp-associated-rdmp-link",
                   "disabled": false,
-                  "autofocus": false
+                  "autofocus": false,
+                  "buttonCssClasses": "btn btn-large btn-info margin-15"
                 }
               },
               "layout": {
-                "class": "DefaultLayout",
+                "class": "InlineLayout",
                 "config": {
                   "readonly": false,
                   "visible": true,
@@ -170,11 +172,12 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "label": "@view-record-audit-link",
                   "disabled": false,
-                  "autofocus": false
+                  "autofocus": false,
+                  "buttonCssClasses": "btn btn-large btn-info margin-15"
                 }
               },
               "layout": {
-                "class": "DefaultLayout",
+                "class": "InlineLayout",
                 "config": {
                   "readonly": false,
                   "visible": true,
@@ -207,11 +210,12 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "label": "@dmp-create-datapublication-link",
                   "disabled": false,
-                  "autofocus": false
+                  "autofocus": false,
+                  "buttonCssClasses": "btn btn-large btn-info margin-15"
                 }
               },
               "layout": {
-                "class": "DefaultLayout",
+                "class": "InlineLayout",
                 "config": {
                   "readonly": false,
                   "visible": true,
@@ -358,6 +362,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "parameterRetriever",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -393,6 +398,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "rdmpGetter",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -567,7 +573,7 @@ const formConfig: FormConfigFrame = {
                               }
                             },
                             "layout": {
-                              "class": "DefaultLayout",
+                              "class": "RepeatableElementLayout",
                               "config": {
                                 "readonly": false,
                                 "visible": true,
@@ -638,6 +644,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "dc:coverage_vivo:DateTimeInterval_vivo:end",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -699,7 +706,7 @@ const formConfig: FormConfigFrame = {
                               }
                             },
                             "layout": {
-                              "class": "DefaultLayout",
+                              "class": "RepeatableElementLayout",
                               "config": {
                                 "readonly": false,
                                 "visible": true,
@@ -1119,7 +1126,7 @@ const formConfig: FormConfigFrame = {
                               }
                             },
                             "layout": {
-                              "class": "DefaultLayout",
+                              "class": "RepeatableElementLayout",
                               "config": {
                                 "readonly": false,
                                 "visible": true,
@@ -1316,7 +1323,7 @@ const formConfig: FormConfigFrame = {
                                 "allowModes": []
                               },
                               "overrides": {
-                                "replaceName": ""
+                                "replaceName": "contributor_ci"
                               },
                               "component": {
                                 "class": "GroupComponent",
@@ -1391,7 +1398,7 @@ const formConfig: FormConfigFrame = {
                                 "allowModes": []
                               },
                               "overrides": {
-                                "replaceName": ""
+                                "replaceName": "contributor_data_manager"
                               },
                               "component": {
                                 "class": "GroupComponent",
@@ -1544,6 +1551,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "@dmpt-people-tab-contributors",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -1583,7 +1591,7 @@ const formConfig: FormConfigFrame = {
                                 "allowModes": []
                               },
                               "overrides": {
-                                "replaceName": ""
+                                "replaceName": "contributor_supervisor"
                               },
                               "component": {
                                 "class": "GroupComponent",
@@ -1656,6 +1664,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "dataowner_name",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -1697,6 +1706,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "dataowner_email",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -2184,11 +2194,12 @@ const formConfig: FormConfigFrame = {
                               }
                             },
                             "layout": {
-                              "class": "DefaultLayout",
+                              "class": "RepeatableElementLayout",
                               "config": {
                                 "readonly": false,
                                 "visible": true,
                                 "editMode": true,
+                                "label": "related_publication",
                                 "disabled": false,
                                 "autofocus": false,
                                 "labelRequiredStr": "*",
@@ -2337,6 +2348,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "dataLocations",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -2496,6 +2508,7 @@ const formConfig: FormConfigFrame = {
                           "readonly": false,
                           "visible": true,
                           "editMode": true,
+                          "label": "permissions",
                           "disabled": false,
                           "autofocus": false,
                           "labelRequiredStr": "*",
@@ -2566,7 +2579,6 @@ const formConfig: FormConfigFrame = {
           "readonly": false,
           "visible": true,
           "editMode": true,
-          "hostCssClasses": "d-flex gap-3",
           "disabled": false,
           "autofocus": false,
           "componentDefinitions": [
@@ -2592,7 +2604,7 @@ const formConfig: FormConfigFrame = {
                 }
               },
               "layout": {
-                "class": "DefaultLayout",
+                "class": "InlineLayout",
                 "config": {
                   "readonly": false,
                   "visible": true,
@@ -2622,11 +2634,12 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "label": "@save-button",
                   "disabled": false,
-                  "autofocus": false
+                  "autofocus": false,
+                  "buttonCssClasses": "btn btn-success"
                 }
               },
               "layout": {
-                "class": "DefaultLayout",
+                "class": "InlineLayout",
                 "config": {
                   "readonly": false,
                   "visible": true,
@@ -2660,7 +2673,7 @@ const formConfig: FormConfigFrame = {
                 }
               },
               "layout": {
-                "class": "DefaultLayout",
+                "class": "InlineLayout",
                 "config": {
                   "readonly": false,
                   "visible": true,
@@ -2694,7 +2707,7 @@ const formConfig: FormConfigFrame = {
                 }
               },
               "layout": {
-                "class": "DefaultLayout",
+                "class": "InlineLayout",
                 "config": {
                   "readonly": false,
                   "visible": true,
@@ -2719,17 +2732,23 @@ const formConfig: FormConfigFrame = {
         }
       },
       "layout": {
-        "class": "DefaultLayout",
+        "class": "ActionRowLayout",
         "config": {
           "readonly": false,
           "visible": true,
           "editMode": true,
+          "hostCssClasses": "rb-form-action-row-layout",
           "disabled": false,
           "autofocus": false,
           "labelRequiredStr": "*",
           "cssClassesMap": {},
           "helpTextVisibleOnInit": false,
-          "helpTextVisible": false
+          "helpTextVisible": false,
+          "containerCssClass": "rb-form-action-row",
+          "alignment": "end",
+          "wrap": true,
+          "slotCssClass": "rb-form-action-slot",
+          "compact": false
         }
       }
     },
@@ -2863,4 +2882,4 @@ const formConfig: FormConfigFrame = {
     "dataLocations"
   ]
 };
-module.exports = formConfig;
+export default formConfig;

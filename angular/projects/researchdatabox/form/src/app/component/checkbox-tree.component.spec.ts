@@ -1,7 +1,6 @@
 import { TestBed } from "@angular/core/testing";
-import { FormConfigFrame, buildKeyString } from "@researchdatabox/sails-ng-common";
-import { UtilityService } from "@researchdatabox/portal-ng-common";
-import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
+import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
+import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
 import { CheckboxTreeComponent } from "./checkbox-tree.component";
 import { VocabTreeService } from "../service/vocab-tree.service";
 
@@ -75,22 +74,16 @@ describe("CheckboxTreeComponent", () => {
     expect((compiled.textContent ?? "").includes("Leaf")).toBeTrue();
   });
 
-  it("renders templated visible labels while preserving selected item label value", async () => {
-    const utilityService = TestBed.inject(UtilityService);
-    spyOn(utilityService, "getDynamicImport").and.callFake(async (brandingAndPortalUrl: string, urlPath: string[]) => {
-      const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? []).join("/")}`;
-      if (urlKey.startsWith("http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-")) {
-        return {
-          evaluate: (key: (string | number)[], context: any) => {
-            const keyStr = buildKeyString(key as string[]);
-            if (keyStr === "componentDefinitions__0__component__config__labelTemplate") {
-              return `${String(context?.notation ?? "").split("/").at(-1)} - ${context?.label ?? ""}`;
-            }
+  it("renders templated visible labels and updates selected item label value", async () => {
+    setUpDynamicAssets({
+      callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+        switch (keyStr) {
+          case "componentDefinitions__0__component__config__labelTemplate":
+            return `${String(context?.notation ?? "").split("/").at(-1)} - ${context?.label ?? ""}`;
+          default:
             throw new Error(`Unknown key: ${keyStr}`);
-          }
-        };
+        }
       }
-      throw new Error(`Unknown url key: ${urlKey}`);
     });
 
     const formConfig: FormConfigFrame = {
@@ -131,8 +124,8 @@ describe("CheckboxTreeComponent", () => {
 
     const formValue = (formComponent as any).form.value?.anzsrc ?? [];
     expect(formValue.length).toBe(1);
-    expect(formValue[0]?.label).toBe("Agricultural biotechnology diagnostics (incl. biosensors)");
-    expect(formValue[0]?.name).toBe("https://linked.data.gov.au/def/anzsrc-for/2020/300101 - Agricultural biotechnology diagnostics (incl. biosensors)");
+    expect(formValue[0]?.label).toBe("300101 - Agricultural biotechnology diagnostics (incl. biosensors)");
+    expect(formValue[0]?.name).toBe("https://linked.data.gov.au/def/anzsrc-for/2020/300101 - 300101 - Agricultural biotechnology diagnostics (incl. biosensors)");
   });
 
   it("does not cascade selection and sets parent indeterminate for selected descendants", async () => {

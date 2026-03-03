@@ -6,7 +6,7 @@ The `redbox-loader.js` module generates shim files for models, services, policie
 
 When ReDBox Portal starts, the loader runs **before** `sails.lift()` to:
 1. Scan dependencies for registered hooks
-2. Generate shim files that bridge Sails.js to `@researchdatabox/redbox-core-types`
+2. Generate shim files that bridge Sails.js to `@researchdatabox/redbox-core`
 3. Ensure all components are in place before the ORM, services, and policies load
 
 ## How It Works
@@ -54,7 +54,7 @@ In production mode, shims are cached unless explicitly triggered.
 
 ```javascript
 // Example: api/models/User.js
-const { WaterlineModels } = require('@researchdatabox/redbox-core-types');
+const { WaterlineModels } = require('@researchdatabox/redbox-core');
 module.exports = { ...WaterlineModels['User'], globalId: 'User' };
 ```
 
@@ -62,17 +62,17 @@ module.exports = { ...WaterlineModels['User'], globalId: 'User' };
 
 ```javascript
 // Example: api/policies/isAuthenticated.js
-const { Policies } = require('@researchdatabox/redbox-core-types');
+const { Policies } = require('@researchdatabox/redbox-core');
 module.exports = Policies['isAuthenticated'];
 ```
 
 ### Service Shims (`api/services/`)
 
-Service shims expose the core services from `@researchdatabox/redbox-core-types` to Sails.js. These include business logic for records, workflows, users, integrations, and more.
+Service shims expose the core services from `@researchdatabox/redbox-core` to Sails.js. These include business logic for records, workflows, users, integrations, and more.
 
 ```javascript
 // Example: api/services/RecordsService.js
-const { ServiceExports } = require('@researchdatabox/redbox-core-types');
+const { ServiceExports } = require('@researchdatabox/redbox-core');
 module.exports = ServiceExports['RecordsService'];
 ```
 
@@ -91,21 +91,21 @@ Services are lazy-instantiated when first accessed, ensuring proper initializati
 | `CacheService` | In-memory and database caching |
 | ... | 32 additional services |
 
-See [Redbox Core Types - Services](Redbox-Core-Types#core-services) for the complete service list.
+See [Redbox Core Types - Services](redbox-core#core-services) for the complete service list.
 
 ### Controller Shims (`api/controllers/`)
 
-Controller shims expose controllers from `@researchdatabox/redbox-core-types` to Sails.js. Webservice controllers are generated under `api/controllers/webservice/`.
+Controller shims expose controllers from `@researchdatabox/redbox-core` to Sails.js. Webservice controllers are generated under `api/controllers/webservice/`.
 
 ```javascript
 // Example: api/controllers/RecordController.js
-const { ControllerExports } = require('@researchdatabox/redbox-core-types');
+const { ControllerExports } = require('@researchdatabox/redbox-core');
 module.exports = ControllerExports['RecordController'];
 ```
 
 ```javascript
 // Example: api/controllers/webservice/RecordController.js
-const { WebserviceControllerExports } = require('@researchdatabox/redbox-core-types');
+const { WebserviceControllerExports } = require('@researchdatabox/redbox-core');
 module.exports = WebserviceControllerExports['RecordController'];
 ```
 
@@ -115,7 +115,7 @@ Controller shim generation uses `ControllerNames` and `WebserviceControllerNames
 
 ```javascript
 // Example: config/appmode.js
-const { Config } = require('@researchdatabox/redbox-core-types');
+const { Config } = require('@researchdatabox/redbox-core');
 module.exports.appmode = Config.appmode;
 ```
 
@@ -129,7 +129,7 @@ generated `api/form-config/index.js` provides a map compatible with legacy
 
 ```javascript
 // Example: api/form-config/default-1.0-draft.js
-const { FormConfigExports } = require('@researchdatabox/redbox-core-types');
+const { FormConfigExports } = require('@researchdatabox/redbox-core');
 module.exports = FormConfigExports['default-1.0-draft'];
 ```
 
@@ -239,6 +239,6 @@ const redboxLoader = require('./redbox-loader');
 
 ## See Also
 
-- [Redbox Core Types](Redbox-Core-Types) - Source of models, policies, and config
+- [Redbox Core Types](redbox-core) - Source of models, policies, and config
 - [Controllers Architecture](Controllers-Architecture) - Controller exports, shims, and lifecycle
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Creating hooks

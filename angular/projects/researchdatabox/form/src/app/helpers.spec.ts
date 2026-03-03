@@ -15,7 +15,11 @@ import { APP_BASE_HREF, CommonModule } from "@angular/common";
 import { BrowserModule, Title } from "@angular/platform-browser";
 import { I18NextPipe, provideI18Next } from "angular-i18next";
 import { FormService } from "./form.service";
-import { FormConfigFrame, formValidatorsSharedDefinitions } from "@researchdatabox/sails-ng-common";
+import {
+  buildKeyString,
+  FormConfigFrame,
+  formValidatorsSharedDefinitions,
+} from "@researchdatabox/sails-ng-common";
 import { DefaultLayoutComponent } from "./component/default-layout.component";
 import { InlineLayoutComponent } from "./component/inline-layout.component";
 import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
@@ -149,7 +153,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "provideHttpClientTesting": provideHttpClientTesting(),
       "provideStore": provideStore(),  // Root store provider required for NgRx
       "provideEffects": provideEffects(),  // Root effects provider required for NgRx
-      "provideFormFeature": provideFormFeature(),  // Add form state providers 
+      "provideFormFeature": provideFormFeature(),  // Add form state providers
       "FormStateFacade": FormStateFacade,  // Provide the facade service
       "FormComponentEventBus": FormComponentEventBus,  // Provide the event bus service
       "FormComponentFocusRequestCoordinator": FormComponentFocusRequestCoordinator,
@@ -159,4 +163,34 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
     configService: configService,
     translationService: translationService,
   }
+}
+
+export function setUpDynamicAssets(opts?: {
+  urlKeyStart?: string,
+  callable?: (keyString: string, key: (string | number)[], context: any, extra?: any) => void
+}) {
+  if (!opts) {
+    opts = {};
+  }
+  if (!opts.urlKeyStart) {
+    opts.urlKeyStart = "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-";
+  }
+  const utilityService = TestBed.inject(UtilityService);
+  spyOn(utilityService, "getDynamicImport").and.callFake(
+    async (brandingAndPortalUrl: string, urlPath: string[], params?: { [key: string]: any }) => {
+      const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? []).join("/")}`;
+      if (!opts.urlKeyStart || !urlKey.startsWith(opts.urlKeyStart)) {
+        throw new Error(`Expected url key '${opts.urlKeyStart}', but got unknown url key: ${urlKey}`);
+      }
+
+      return {
+        evaluate: (key: (string | number)[], context: any, extra: any) => {
+          const keyStr = buildKeyString(key as string[]);
+          if (opts.callable) {
+            return opts.callable(keyStr, key, context, extra);
+          }
+          throw new Error(`Unknown key: ${keyStr}`);
+        }
+      };
+    });
 }

@@ -44,6 +44,7 @@ import { TextAreaComponent } from './component/text-area.component';
 import { DropdownInputComponent } from './component/dropdown-input.component';
 import { CheckboxInputComponent } from './component/checkbox-input.component';
 import { RadioInputComponent } from './component/radio-input.component';
+import { QuestionTreeComponent } from './component/question-tree.component';
 import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
 import { provideFormFeature } from './form-state';
@@ -89,11 +90,13 @@ import { FieldErrorSummaryComponent } from './component/field-error-summary.comp
     CheckboxInputComponent,
     RadioInputComponent,
     DateInputComponent,
+    QuestionTreeComponent,
     CheckboxTreeComponent,
     TypeaheadInputComponent,
     RichTextEditorComponent,
     MapComponent,
     FileUploadComponent,
+    QuestionTreeComponent,
   ],
   imports: [
     CommonModule,

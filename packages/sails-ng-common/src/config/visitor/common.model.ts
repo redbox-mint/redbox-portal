@@ -6,14 +6,14 @@ import { FormComponentDefinitionFrame, FormComponentDefinitionOutline } from '..
 import { CanVisit, FormConfigVisitorOutline } from './base.outline';
 import { FormConstraintAuthorizationConfig, FormConstraintConfig } from '../form-component.model';
 import {
-  VisitorComponentClassDefMapType,
   FieldComponentDefinitionMap,
   FieldLayoutDefinitionMap,
   FieldModelDefinitionMap,
-  VisitorFormComponentClassDefMapType,
   FormComponentDefinitionMap,
   KindNameDefaultsMap,
   KindNameDefaultsMapType,
+  VisitorComponentClassDefMapType,
+  VisitorFormComponentClassDefMapType,
   VisitorLayoutClassDefMapType,
   VisitorModelClassDefMapType,
 } from '../dictionary.model';
@@ -44,6 +44,11 @@ export class PropertiesHelper {
   public sharedConstructFormComponent(currentData: FormComponentDefinitionFrame): AllFormComponentDefinitionOutlines {
     // The class to use is identified by the class property string values in the field definitions.
     const formComponentClassString = currentData?.component?.class;
+    if (typeof formComponentClassString !== 'string' || formComponentClassString.trim().length === 0) {
+      throw new Error(
+        `Missing required 'component.class' in form component '${currentData?.name ?? '<unknown>'}': ${JSON.stringify(currentData)}`
+      );
+    }
 
     // The class to use is identified by the class property string values in the field definitions.
     // The form component is identifier the component field class string
@@ -51,8 +56,11 @@ export class PropertiesHelper {
 
     // Create new instance
     if (!formComponentClass) {
+      const knownFormComponentClassNames = [...this.formComponentMap.keys()].sort().join(', ');
       throw new Error(
-        `Could not find class for form component class name '${currentData?.component?.class}': : ${JSON.stringify(currentData)}`
+        `Could not find class for form component class name '${formComponentClassString}'. ` +
+          `Known classes: [${knownFormComponentClassNames}]. ` +
+          `Item: ${JSON.stringify(currentData)}`
       );
     }
 
@@ -220,6 +228,57 @@ export class PropertiesHelper {
     }
   }
 
+  /**
+   * Convert a value to a field reference that can be used in a JSONata expression.
+   * @param value The value to convert.
+   * @return The value ready to be used as a field reference in a JSON expression.
+   */
+  public toFieldReference(value: unknown): string {
+    // Normalise the string to a form useful for comparing identifiers.
+    const fieldRaw = value?.toString()?.normalize("NFKC") ?? "";
+    // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt
+    const fieldReference = [...fieldRaw].map((char) => {
+      const codePoint = char.codePointAt(0);
+      if (codePoint === undefined) {
+        return ''
+      }
+      // Numbers 0 - 9
+      if (codePoint >= 48 && codePoint <= 57) {
+        return char
+      }
+      // Letters A - Z
+      if (codePoint >= 65 && codePoint <= 90) {
+        return char
+      }
+      // Letters a - z
+      if (codePoint >= 97 && codePoint <= 122) {
+        return char
+      }
+      // Selected punctuation used in identifiers - : colon 58, @ at sign 64,
+      // - hyphen minus 45, . full stop 46, _ low line 95
+      if ([58, 64, 45, 46, 95].includes(codePoint)) {
+        return char
+      }
+      // Anything else is replaced with '_'
+      return '_';
+    });
+    return fieldReference.join('');
+  }
+
+  /**
+   * Convert a lineage path to a set of dot-separated field references for a JSONata expression.
+   * @param path The lineage path to convert.
+   * @return The path ready to be used as field references in a JSON expression.
+   */
+  public lineagePathToExpressionIdentifiers(path: LineagePath): string {
+    // Escape unexpected characters.
+    const pathFieldRefs = path.map(i => this.toFieldReference(i));
+    // Use backticks to build each item in the jsonata identifier.
+    const identifiers = pathFieldRefs.map(i => `\`${i}\``);
+    // Join identifiers using dot.
+    return identifiers.join('.');
+  }
+
   private setFieldClassName(
     currentData: FormComponentDefinitionFrame,
     fieldTypeName: 'model' | 'layout',
@@ -252,8 +311,29 @@ export class FormPathHelper {
     this._formPath = buildLineagePaths();
   }
 
+  /**
+     * Get the current form paths.
+     */
   get formPath(): LineagePaths {
-    return this._formPath;
+    // Return a copy so the current form paths cannot be changed.
+    return {
+      angularComponents: [...this._formPath.angularComponents],
+      angularComponentsJsonPointer: this._formPath.angularComponentsJsonPointer?.toString(),
+      dataModel: [...this._formPath.dataModel],
+      formConfig: [...this._formPath.formConfig],
+      layout: [...this._formPath.layout],
+      layoutJsonPointer: this._formPath.layoutJsonPointer?.toString(),
+    };
+  }
+
+  /**
+   * Get the current model name.
+   */
+  get modelName(): string | null {
+    if (this._formPath.dataModel.length > 0) {
+      return this._formPath.dataModel[this._formPath.dataModel.length - 1]?.toString();
+    }
+    return null;
   }
 
   public reset() {
@@ -305,6 +385,7 @@ export class FormPathHelper {
       formConfig: ['componentDefinitions', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -316,6 +397,7 @@ export class FormPathHelper {
       formConfig: ['config', 'componentDefinitions', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -327,6 +409,7 @@ export class FormPathHelper {
       formConfig: ['config', 'tabs', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -338,6 +421,7 @@ export class FormPathHelper {
       formConfig: ['config', 'componentDefinitions', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -349,6 +433,7 @@ export class FormPathHelper {
       formConfig: ['config', 'panels', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -360,6 +445,7 @@ export class FormPathHelper {
       formConfig: ['config', 'componentDefinitions', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -368,6 +454,7 @@ export class FormPathHelper {
       formConfig: ['config', 'elementTemplate'],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
@@ -379,11 +466,25 @@ export class FormPathHelper {
       formConfig: ['config', 'componentDefinitions', index.toString()],
       dataModel: this.getFormPathDataModel(item),
       angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
+    };
+  }
+
+  public lineagePathsForQuestionTreeFieldComponentDefinition(
+    item: FormComponentDefinitionOutline,
+    index: number
+  ): LineagePathsPartial {
+    return {
+      formConfig: ['config', 'componentDefinitions', index.toString()],
+      dataModel: this.getFormPathDataModel(item),
+      angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
     };
   }
 
   private getFormPathDataModel(item: FormComponentDefinitionOutline): string[] {
     const itemName = item?.name ?? '';
+    const className = item?.component?.class ?? '';
 
     // NOTE: The repeatable elementTemplate should not be part of the data model path.
     // This is done by also checking the name - it has a model, but it must have a 'falsy' name.
@@ -391,7 +492,8 @@ export class FormPathHelper {
     // TODO: does this need to cater for components that have no model but need the model data, like content component?
 
     const dataModel = [];
-    if (itemName && item.model !== undefined && item.model !== null) {
+    const isGroupWithoutModel = className === 'GroupComponent' && (item.model === undefined || item.model === null);
+    if (itemName && (item.model !== undefined && item.model !== null || isGroupWithoutModel)) {
       dataModel.push(itemName);
     }
 
@@ -406,5 +508,14 @@ export class FormPathHelper {
       angularComponents.push(itemName);
     }
     return angularComponents;
+  }
+
+  private getFormPathLayout(item: FormComponentDefinitionOutline): LineagePath {
+    const itemName = item?.name ?? '';
+    const layout: LineagePath = [];
+    if (itemName) {
+      layout.push(`${itemName}-layout`);
+    }
+    return layout;
   }
 }

@@ -21,6 +21,7 @@ export class ContentFieldComponentConfig extends FieldComponentConfig implements
     template?: string;
     content?: unknown;
     contentIsTranslationCode?: boolean;
+    outputFormat?: string;
 
     constructor() {
         super();

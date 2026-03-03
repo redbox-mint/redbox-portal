@@ -166,4 +166,12 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   protected get componentName() {
     return this.formFieldConfigName();
   }
+
+  protected get labelCssClasses(): string {
+    const classMap = this.componentDefinition?.config?.cssClassesMap;
+    if (classMap && typeof classMap === 'object' && typeof (classMap as Record<string, unknown>)['label'] === 'string') {
+      return (classMap as Record<string, string>)['label'];
+    }
+    return '';
+  }
 }

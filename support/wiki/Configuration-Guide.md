@@ -17,23 +17,23 @@ There are several configuration items that are specific to the ReDBox Portal:
 3. [emailnotification.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Email-Notifications) manages configuration of email notifications
 4. [form.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms) manages form configuration
 
-## Configuration Defaults (redbox-core-types)
+## Configuration Defaults (redbox-core)
 
-All core configuration defaults are now centralized in the `@researchdatabox/redbox-core-types` package:
+All core configuration defaults are now centralized in the `@researchdatabox/redbox-core` package:
 
-- **Location**: `packages/redbox-core-types/src/config/`
+- **Location**: `packages/redbox-core/src/config/`
 - **65+ config modules** define TypeScript interfaces and default values
 - **Shim generation**: The [Redbox Loader](Redbox-Loader) generates `config/*.js` shims that export these defaults
 
 This means:
 - Core defaults are type-safe and documented in TypeScript
-- Changes to defaults are made in `redbox-core-types`
+- Changes to defaults are made in `redbox-core`
 - Environment or deployment-specific overrides still work via `config/env/*.js`
 
 ### Example Config Structure
 
 ```typescript
-// packages/redbox-core-types/src/config/appmode.config.ts
+// packages/redbox-core/src/config/appmode.config.ts
 export interface AppModeConfig {
     bootstrapAlways: boolean;
     bootstrapOnce?: boolean;
@@ -48,7 +48,7 @@ The loader generates a shim:
 
 ```javascript
 // config/appmode.js (auto-generated)
-const { Config } = require('@researchdatabox/redbox-core-types');
+const { Config } = require('@researchdatabox/redbox-core');
 module.exports.appmode = Config.appmode;
 ```
 
@@ -107,6 +107,6 @@ Compare these files to identify where a setting is being overwritten.
 
 ## See Also
 
-- [Redbox Core Types](Redbox-Core-Types) - Where config defaults are defined
+- [Redbox Core Types](redbox-core) - Where config defaults are defined
 - [Redbox Loader](Redbox-Loader) - How config shims are generated
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Adding config via hooks

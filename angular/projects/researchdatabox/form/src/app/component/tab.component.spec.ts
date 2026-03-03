@@ -265,6 +265,8 @@ describe('TabComponent', () => {
     expect(tabContent2?.formFieldCompMapEntries[0]?.lineagePaths).toEqual({
       angularComponents: ["main_tab", "tab2", "textfield_2"],
       angularComponentsJsonPointer: "/main_tab/tab2/textfield_2",
+      layout: ["main_tab-layout", "tab2-layout", "textfield_2-layout"],
+      layoutJsonPointer: "/main_tab-layout/tab2-layout/textfield_2-layout",
       dataModel: ["textfield_2"],
       formConfig: ["componentDefinitions", 0, "component", "config", "tabs", 1, "component", "config", "componentDefinitions", 0],
     });

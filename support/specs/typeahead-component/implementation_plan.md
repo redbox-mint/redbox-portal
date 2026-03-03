@@ -12,7 +12,7 @@
 
 ## Step 2: Verify generator availability + fallback
 - Attempt scaffold:
-  - `redbox-hook-kit generate form-component typeahead-input --app form`
+  - `redbox-dev-tools generate form-component typeahead-input --app form`
 - If generator output is unsuitable/missing, manually scaffold using `dropdown-input` + `checkbox-tree` patterns.
 - Skills: `Redbox Form Components`
 

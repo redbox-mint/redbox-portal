@@ -27,7 +27,8 @@ import {
   inject,
   effect,
   model,
-  OnDestroy
+  OnDestroy,
+  ViewEncapsulation
 } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
@@ -75,6 +76,7 @@ import { FormComponentValueChangeEventConsumer } from './form-state/events/';
     { provide: LocationStrategy, useClass: PathLocationStrategy },
     FormComponentFocusRequestCoordinator
   ],
+  encapsulation: ViewEncapsulation.None,
   standalone: false
 })
 export class FormComponent extends BaseComponent implements OnDestroy {
@@ -293,6 +295,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         angularComponents: [],
         dataModel: [],
         formConfig: ['componentDefinitions'],
+        layout: [],
       });
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig, parentLineagePaths);
     }

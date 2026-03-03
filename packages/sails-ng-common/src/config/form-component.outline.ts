@@ -189,9 +189,6 @@ export interface FormComponentDefinitionFrame {
     layout?: FieldLayoutDefinitionFrame;
     /**
      * A record with string keys and expression template values for defining expressions.
-     *
-     * TODO: 'template' is a lodash template for now, but it should become a function like FormValidatorDefinition.create.
-     *   Expression functions will participate in a similar process as the validation functions to get to the client.
      */
     expressions?: FormExpressionsConfigFrame[];
     /**
