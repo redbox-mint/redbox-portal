@@ -955,7 +955,7 @@ describe('The FormRecordConsistencyService', function () {
               params: {
                 actual: 'some text',
                 description: "must start with 'other'",
-                requiredPattern: '/^other.*$/',
+                requiredPattern: '^other.*$',
               },
             },
             {
