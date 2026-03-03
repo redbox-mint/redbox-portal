@@ -1,7 +1,4 @@
-#!/usr/bin/env node
-
 // This file is a helper for dev only. It makes it easier to run webpack when parts of the mono repo are in different stages of being built. Refer to the redbox-core webpack.ts for how the hook runs webpack
-const path = require('path');
 const redboxCore = require('@researchdatabox/redbox-core');
 
 const ensureTsNode = () => {
@@ -140,14 +137,9 @@ async function main() {
     compiler.run(compileCallback);
     return;
   }
-  const hook = await defineWebpackHook(sails);
-  if (hook && hook.initialize) {
-    await hook.initialize(() => {
-      console.log('Webpack wrapper done!');
-    });
-  } else {
-    console.log('Webpack hook skipped (likely due to NODE_ENV or WEBPACK_SKIP).');
-  }
+  await defineWebpackHook(sails).initialize(() => {
+    console.log('Webpack wrapper done!');
+  });
 }
 
 main();

@@ -1,34 +1,26 @@
-import {
-  Component,
-  Type,
-  Input,
-  ViewChild,
-  OnDestroy,
-  inject,
-  HostBinding
-} from '@angular/core';
+import { Component, Type, Input, ViewChild, OnDestroy, inject, Injector, Signal, HostBinding } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 
 import { set as _set, get as _get } from 'lodash-es';
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
-import { KeyValueStringNested, FormFieldComponentStatus } from "@researchdatabox/sails-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
+import { KeyValueStringNested, FormFieldComponentStatus } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { FormComponentValueChangeEventProducer } from '../form-state/events/form-component-change-event-producer';
 import { FormComponentValueChangeEventConsumer } from '../form-state/events/form-component-change-event-consumer';
 import { FormComponentUIAttributeChangeEventProducer } from '../form-state/events/form-component-ui-attribute-change-event-producer';
 import { FormComponentUIAttributeChangeEventConsumer } from '../form-state/events/form-component-ui-attribute-change-event-consumer';
-
-
+import { FormComponentItemSelectEventProducer } from '../form-state/events/form-component-item-select-event-producer';
+import { FormComponentItemSelectEventConsumer } from '../form-state/events/form-component-item-select-event-consumer';
 
 /**
  * Form Component Wrapper.
  *
-* This component is used to instantiate a form field based on the provided configuration.
+ * This component is used to instantiate a form field based on the provided configuration.
  * It is meant to be a a thin wrapper around the individual form component,
  * offering the FormComponent and layout components an abstraction,
  * rather than individual components.
-*
-* For simplicity, the wrapper component extends the FormFieldBaseComponent,
+ *
+ * For simplicity, the wrapper component extends the FormFieldBaseComponent,
  * which provides the basic functionality for form components.
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
@@ -36,23 +28,24 @@ import { FormComponentUIAttributeChangeEventConsumer } from '../form-state/event
  */
 @Component({
   selector: 'redbox-form-base-wrapper',
-  template: `
-    <ng-template redboxFormBaseWrapper></ng-template>
-  `,
-  standalone: false
+  template: ` <ng-template redboxFormBaseWrapper></ng-template> `,
+  standalone: false,
 })
 export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnDestroy {
-  protected override logName = "FormBaseWrapperComponent";
+  protected override logName = 'FormBaseWrapperComponent';
   @Input() componentClass?: typeof FormFieldBaseComponent<ValueType>;
   @Input() defaultComponentConfig?: KeyValueStringNested = null;
 
   @ViewChild(FormBaseWrapperDirective, { static: true }) formFieldDirective!: FormBaseWrapperDirective;
 
   private readonly eventBus = inject(FormComponentEventBus);
+  private readonly injector = inject(Injector);
   private readonly valueChangeEventProducer = new FormComponentValueChangeEventProducer(this.eventBus);
   private readonly valueChangeEventConsumer = new FormComponentValueChangeEventConsumer(this.eventBus);
   private readonly uiAttributeChangeEventProducer = new FormComponentUIAttributeChangeEventProducer(this.eventBus);
   private readonly uiAttributeChangeEventConsumer = new FormComponentUIAttributeChangeEventConsumer(this.eventBus);
+  private readonly itemSelectEventProducer = new FormComponentItemSelectEventProducer(this.eventBus);
+  private readonly itemSelectEventConsumer = new FormComponentItemSelectEventConsumer(this.eventBus);
 
   public get componentRef() {
     return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
@@ -69,6 +62,10 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     formFieldCompMapEntry?: FormFieldCompMapEntry,
     omitLayout: boolean = false
   ): Promise<FormFieldBaseComponent<ValueType> | null> {
+    this.loggerService.debug(
+      `${this.logName}: Starting initWrapperComponent for '${this.formFieldConfigName()}'.`,
+      this.formFieldCompMapEntry
+    );
 
     // Ensure the initialisation details are available.
     if (!formFieldCompMapEntry) {
@@ -104,7 +101,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     }
 
     // Select which class to use.
-    const compClass = omitLayout ? this.componentClass : (this.formFieldCompMapEntry?.layoutClass || this.componentClass);
+    const compClass = omitLayout ? this.componentClass : this.formFieldCompMapEntry?.layoutClass || this.componentClass;
     // TODO: can typescript typeof be converted to angular Type?
     //       Casting to unknown then to the angular Type is bit odd?
     const comClassTyped = compClass as unknown as Type<FormFieldBaseComponent<ValueType>>;
@@ -135,7 +132,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
       this.valueChangeEventProducer.bind({
         isLayout: isLayout,
         component: compRef.instance,
-        definition: this.formFieldCompMapEntry
+        definition: this.formFieldCompMapEntry,
       });
     }
 
@@ -153,7 +150,24 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
       this.uiAttributeChangeEventProducer.bind({
         isLayout: isLayout,
         component: compRef.instance,
-        definition: this.formFieldCompMapEntry
+        definition: this.formFieldCompMapEntry,
+      });
+    }
+
+    // Bind the item select event producer if applicable.
+    if (this.shouldAttachItemSelectProducer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.itemSelectEventProducer.bind({
+        component: compRef.instance,
+        definition: this.formFieldCompMapEntry,
+        injector: this.injector,
+      });
+    }
+
+    // Bind the item select event consumer if applicable.
+    if (this.shouldAttachItemSelectConsumer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.itemSelectEventConsumer.bind({
+        component: compRef.instance,
+        definition: this.formFieldCompMapEntry,
       });
     }
 
@@ -174,7 +188,6 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
       this.hostBindingCssClasses = wrapperCssClasses;
     }
 
-
     // After the component is initialised, this wrapper is now ready.
     this.status.set(FormFieldComponentStatus.READY);
     return compRef.instance;
@@ -185,6 +198,8 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     this.valueChangeEventConsumer.destroy();
     this.uiAttributeChangeEventProducer.destroy();
     this.uiAttributeChangeEventConsumer.destroy();
+    this.itemSelectEventProducer.destroy();
+    this.itemSelectEventConsumer.destroy();
     const compRef = this.componentRef;
     // Clean up the dynamically created component when the wrapper is destroyed
     if (compRef) {
@@ -262,4 +277,29 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     return !!entry && (entry.component === instance || entry.layout === instance);
   }
 
+  /**
+   * Returns true if the component exposes a `selectedItem` signal.
+   */
+  private shouldAttachItemSelectProducer(
+    entry: FormFieldCompMapEntry | undefined,
+    instance: FormFieldBaseComponent<ValueType>
+  ): boolean {
+    if (!entry || entry.component !== instance) {
+      return false;
+    }
+    return !!(instance as unknown as { selectedItem?: Signal<unknown> }).selectedItem;
+  }
+
+  /**
+   * Returns true if the component's config includes an `onItemSelect` definition.
+   */
+  private shouldAttachItemSelectConsumer(
+    entry: FormFieldCompMapEntry | undefined,
+    instance: FormFieldBaseComponent<ValueType>
+  ): boolean {
+    if (!entry || entry.component !== instance) {
+      return false;
+    }
+    return !!entry.compConfigJson?.component?.config?.onItemSelect;
+  }
 }

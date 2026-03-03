@@ -933,9 +933,26 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       this.legacyInlineContainerDepth += 1;
     }
 
-    try {
-      this.logger.debug(
-        `${this.logName}: visitGroupFieldComponentDefinition for '${String(field?.definition?.name ?? field?.definition?.id ?? '')}'.`
+    this.logger.debug(
+      `${this.logName}: visitGroupFieldComponentDefinition for '${String(field?.definition?.name ?? field?.definition?.id ?? '')}'.`
+    );
+
+    const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
+    // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
+    fields.forEach((childField, index) => {
+      if (childField?.class === 'Spacer' || childField?.compClass === 'SpacerComponent') {
+        return;
+      }
+
+      const v4FormPathMore = ['definition', 'fields', index.toString()];
+      // Create the instance from the v4 config
+      const formComponent = this.constructFormComponent(childField, v4FormPathMore);
+
+      // Visit children
+      this.acceptV4FormConfigPath(
+        formComponent,
+        this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, index),
+        v4FormPathMore
       );
 
       const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
@@ -1748,7 +1765,6 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   protected constructFormComponent(field: Record<string, unknown>, more?: LineagePath): AllFormComponentDefinitionOutlines {
     let { componentClassName, modelClassName, layoutClassName } = this.mapV4ToV5(field);
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
-    const isLegacyInlineContainer = this.isLegacyInlineContainer(field);
 
     const name = String(definition.name ?? definition.id ?? [componentClassName, ...this.v4FormPath, ...(more ?? [])].join('-'));
 
@@ -1963,7 +1979,6 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   protected sharedPopulateFieldComponentConfig(item: FieldComponentConfigFrame, field?: Record<string, unknown>) {
     const isLegacyContributor = ['RepeatableContributor', 'ContributorField'].includes(`${field?.class ?? ''}`.trim());
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
-    const hasExplicitLabel = typeof definition.label === 'string';
     let fallbackLabel: string | undefined = undefined;
     if (isLegacyContributor) {
       const innerFields = definition.fields;
@@ -1977,9 +1992,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
 
     const label =
-      hasExplicitLabel
-        ? (definition.label as string)
-        : (typeof definition.name === 'string' ? definition.name : undefined) || fallbackLabel;
+      (typeof definition.label === 'string' ? definition.label : undefined) ||
+      (typeof definition.name === 'string' ? definition.name : undefined) ||
+      fallbackLabel;
 
     const config = {
       label,
@@ -2012,7 +2027,6 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, field?: Record<string, unknown>) {
     const isLegacyContributor = ['RepeatableContributor', 'ContributorField'].includes(`${field?.class ?? ''}`.trim());
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
-    const hasExplicitLabel = typeof definition.label === 'string';
     let fallbackLabel: string | undefined = undefined;
     if (isLegacyContributor) {
       const innerFields = definition.fields;
@@ -2025,25 +2039,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
     }
     const migratedLabel =
-      this.shouldSuppressLegacyTextBlockLayoutLabel(field)
-        ? undefined
-        : hasExplicitLabel
-        ? (definition.label as string)
-        : // RepeatableContributor often only defines 'name'; preserve a section label on migration.
-        fallbackLabel ||
-          (typeof definition.name === 'string' ? definition.name : undefined) ||
-          (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && typeof definition.value === 'string'
-            ? definition.value
-            : undefined);
-    const legacyCssClasses = typeof definition.cssClasses === 'string' ? definition.cssClasses.trim() : '';
-    const cssClassesMap =
-      this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && legacyCssClasses
-        ? { label: legacyCssClasses }
-        : undefined;
+      (typeof definition.label === 'string' ? definition.label : undefined) ||
+      // RepeatableContributor often only defines 'name'; preserve a section label on migration.
+      fallbackLabel ||
+      (typeof definition.name === 'string' ? definition.name : undefined);
     const config = {
-      label: (this.isInsideButtonBarContainer || this.isInsideLegacyInlineContainer()) ? undefined : migratedLabel,
+      label: this.isInsideButtonBarContainer ? undefined : migratedLabel,
       helpText: typeof definition.help === 'string' ? definition.help : undefined,
-      cssClassesMap,
     };
     this.sharedProps.sharedPopulateFieldLayoutConfig(item, config);
   }
@@ -2062,44 +2064,6 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     // this.logger.info(JSON.stringify({path, result}));
     return result;
-  }
-
-  private isLegacyTranslationKey(value: unknown): value is string {
-    return typeof value === 'string' && value.trim().startsWith('@');
-  }
-
-  private isLegacyTextBlockSpanField(field?: Record<string, unknown>): boolean {
-    if (!field) {
-      return false;
-    }
-    const definition = (field.definition ?? {}) as Record<string, unknown>;
-    return (
-      `${field.class ?? ''}`.trim() === 'Container' &&
-      `${field.compClass ?? ''}`.trim() === 'TextBlockComponent' &&
-      `${definition.type ?? ''}`.trim() === 'span'
-    );
-  }
-
-  private shouldPromoteLegacyTextBlockSpanToLayoutLabel(field?: Record<string, unknown>): boolean {
-    if (!this.isLegacyTextBlockSpanField(field)) {
-      return false;
-    }
-    const definition = ((field?.definition ?? {}) as Record<string, unknown>);
-    const hasHelpText = typeof definition.help === 'string' && definition.help.trim().length > 0;
-    const hasLegacyCssClass = typeof definition.cssClasses === 'string' && definition.cssClasses.trim().length > 0;
-    return hasHelpText || hasLegacyCssClass;
-  }
-
-  private shouldSuppressLegacyTextBlockLayoutLabel(field?: Record<string, unknown>): boolean {
-    if (!field) {
-      return false;
-    }
-    const definition = ((field.definition ?? {}) as Record<string, unknown>);
-    const isLegacyTextBlock =
-      `${field.class ?? ''}`.trim() === 'Container' && `${field.compClass ?? ''}`.trim() === 'TextBlockComponent';
-    const hasExplicitLabel = typeof definition.label === 'string' && definition.label.trim().length > 0;
-    const hasLegacyNameBinding = typeof definition.name === 'string' && definition.name.trim().length > 0;
-    return isLegacyTextBlock && hasLegacyNameBinding && !hasExplicitLabel && !this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field);
   }
 
   private normaliseV4FormConfig(formConfig: unknown): Record<string, unknown> {

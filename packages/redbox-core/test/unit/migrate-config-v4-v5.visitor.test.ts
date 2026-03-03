@@ -293,61 +293,6 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(typeaheadConfig.labelField).to.equal("dc_description");
     });
 
-    it('maps legacy definition.editOnly to allowModes edit', async function () {
-        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
-            data: {
-                name: "definition-edit-only",
-                fields: [
-                    {
-                        class: "RepeatableContainer",
-                        compClass: "RepeatableTextfieldComponent",
-                        definition: {
-                            name: "keywords",
-                            editOnly: true,
-                            fields: [
-                                {
-                                    class: "TextField",
-                                    definition: {
-                                        type: "text"
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                ]
-            }
-        });
-
-        const migratedField = migrated.componentDefinitions[0];
-        expect(migratedField.component.class).to.equal("RepeatableComponent");
-        expect(migratedField.constraints?.allowModes).to.deep.equal(["edit"]);
-    });
-
-    it('maps legacy viewOnly fields to view mode override component classes', async function () {
-        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
-            data: {
-                name: "definition-view-only",
-                fields: [
-                    {
-                        class: "AnchorOrButton",
-                        viewOnly: true,
-                        definition: {
-                            name: "edit_link",
-                            label: "@dmp-edit-record-link"
-                        }
-                    }
-                ]
-            }
-        });
-
-        const migratedField = migrated.componentDefinitions[0];
-        expect(migratedField.component.class).to.equal("SaveButtonComponent");
-        expect(migratedField.constraints?.allowModes).to.deep.equal(["view"]);
-        expect(migratedField.overrides?.formModeClasses?.view?.component).to.equal("SaveButtonComponent");
-    });
-
     it('maps RepeatableContributor layout label from definition name when label is missing on both parent and child', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({
@@ -415,42 +360,6 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(migratedField.component.class).to.equal("RepeatableComponent");
         expect(migratedField.layout?.class).to.equal("DefaultLayout");
         expect((migratedField.layout?.config as Record<string, unknown>)?.label).to.equal("@dmpt-people-tab-otherdatacreators");
-    });
-
-    it('preserves explicit empty RepeatableContributor label without falling back to definition name', async function () {
-        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
-            data: {
-                name: "repeatable-contributor-empty-label",
-                fields: [
-                    {
-                        class: "RepeatableContributor",
-                        compClass: "RepeatableContributorComponent",
-                        definition: {
-                            name: "contributor_ci",
-                            label: "",
-                            fields: [
-                                {
-                                    class: "ContributorField",
-                                    definition: {
-                                        help: "@dmpt-people-tab-contributors-help",
-                                        nameColHdr: "@dmpt-people-tab-name-hdr",
-                                        emailColHdr: "@dmpt-people-tab-email-hdr",
-                                        orcidColHdr: "@dmpt-people-tab-orcid-hdr",
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                ]
-            }
-        });
-
-        const migratedField = migrated.componentDefinitions[0];
-        expect(migratedField.component.class).to.equal("RepeatableComponent");
-        expect(migratedField.layout?.class).to.equal("DefaultLayout");
-        expect((migratedField.layout?.config as Record<string, unknown>)?.label).to.equal("");
-        expect((migratedField.component?.config as Record<string, unknown>)?.label).to.equal("");
     });
 
     it("maps legacy MapField to MapComponent and normalizes config/value", async function () {

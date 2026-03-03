@@ -8,7 +8,6 @@
     "@researchdatabox/oni-ocfl": "^1.4.0",
     "@researchdatabox/raido-openapi-generated-node": "file:packages/raido",
     "@researchdatabox/redbox-core": "./packages/redbox-core",
-    "@researchdatabox/redbox-dev-tools": "file:packages/redbox-dev-tools",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "file:packages/sails-hook-redbox-storage-mongo",
     "@researchdatabox/sails-ng-common": "./packages/sails-ng-common",
     "@tsconfig/node24": "^24.0.1",

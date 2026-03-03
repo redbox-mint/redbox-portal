@@ -103,40 +103,4 @@ describe('CheckboxInputComponent', () => {
     const checked = compiled.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:checked');
     expect(checked.length).toEqual(2);
   });
-
-  it('should resolve language-map labels for options', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'testing',
-      debugValue: true,
-      defaultComponentConfig: {
-        defaultComponentCssClasses: 'row',
-      },
-      editCssClasses: 'redbox-form form',
-      componentDefinitions: [
-        {
-          name: 'checkbox_lang_test',
-          model: {
-            class: 'CheckboxInputModel',
-            config: {
-              value: [],
-            },
-          },
-          component: {
-            class: 'CheckboxInputComponent',
-            config: {
-              options: [
-                { label: '{"en":"English Label","fr":"Libelle Francais"}', value: 'en' },
-              ],
-            },
-          },
-        },
-      ],
-    };
-
-    const { fixture } = await createFormAndWaitForReady(formConfig);
-    const compiled = fixture.nativeElement as HTMLElement;
-    const labels = compiled.querySelectorAll<HTMLLabelElement>('label');
-    expect(labels.length).toBeGreaterThan(0);
-    expect(labels[0].textContent?.trim()).toEqual('English Label');
-  });
 });

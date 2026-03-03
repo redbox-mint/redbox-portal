@@ -403,9 +403,13 @@ export class FormOverride {
       phase === 'construct' &&
       formMode === 'view' &&
       new Set<string>([RepeatableComponentName, GroupFieldComponentName]).has(originalComponentClassName);
+    const skipAutomaticViewTransform =
+      formMode === 'view' && this.hasExplicitAllowedMode(original?.constraints, 'view');
+
     if (
       originalComponentClassName in this.defaultTransforms &&
-      !deferViewModeContentFlatteningAtConstruct
+      !deferViewModeContentFlatteningAtConstruct &&
+      !skipAutomaticViewTransform
     ) {
       const defaultTransform = this.defaultTransforms[originalComponentClassName] ?? {};
       if (formMode in defaultTransform) {
@@ -461,10 +465,8 @@ export class FormOverride {
       result.name = original.overrides?.replaceName;
     }
 
-    // Only remove overrides after client-phase transform application.
-    // During construct phase, deferred transforms (e.g. Group/Repeatable view flattening)
-    // still need access to formModeClasses in the later client phase.
-    if (phase === 'client' && 'overrides' in result) {
+    // Remove the 'overrides' property, as it has been applied and so should not be present in the form config.
+    if ('overrides' in result) {
       delete result['overrides'];
     }
 
@@ -1203,7 +1205,13 @@ export class FormOverride {
     return allowModes.includes(formMode);
   }
 
-
+  private hasExplicitAllowedMode(
+    constraints: FormConstraintConfigOutline | undefined,
+    mode: FormModesConfig
+  ): boolean {
+    const allowModes = constraints?.allowModes;
+    return Array.isArray(allowModes) && allowModes.includes(mode);
+  }
 
   private forceAllowModeForTransformedTree(componentDefinition: any, formMode: FormModesConfig): void {
     if (!componentDefinition || typeof componentDefinition !== 'object') {
