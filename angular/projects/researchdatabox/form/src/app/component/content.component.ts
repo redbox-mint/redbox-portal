@@ -1,5 +1,6 @@
 import {cloneDeep as _cloneDeep, set as _set} from "lodash";
-import {Component, inject, Injector, Input} from '@angular/core';
+import {Component, inject, Injector, Input, OnDestroy} from '@angular/core';
+import { Subscription } from "rxjs";
 import {FormFieldBaseComponent, HandlebarsTemplateService, TranslationService} from '@researchdatabox/portal-ng-common';
 import {FormComponent} from "../form.component";
 import {
@@ -47,6 +48,8 @@ import {
 export class ContentComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = ContentComponentName;
   public content:string = '';
+  private formValueChangesSub?: Subscription;
+  private formBindTimeoutId?: ReturnType<typeof setTimeout>;
 
   /**
    * The model associated with this component.
@@ -77,7 +80,40 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
         const context = {content: content, translationService: this.translationService};
         const extra = {libraries: this.handlebarsTemplateService.getLibraries()};
         const compiledItems = await this.getFormComponent.getRecordCompiledItems();
-        this.content = compiledItems.evaluate(templateLineagePath, context, extra);
+        const renderTemplate = (formData: Record<string, unknown> = {}) => {
+          const runtimeContext = this.getRuntimeTemplateContext();
+          // Build the variables available to the template.
+          const context = {
+            content: content,
+            formData: formData,
+            translationService: this.translationService,
+            branding: runtimeContext.branding,
+            portal: runtimeContext.portal,
+            oid: runtimeContext.oid
+          };
+          const extra = {libraries: this.handlebarsTemplateService.getLibraries()};
+          this.content = compiledItems.evaluate(templateLineagePath, context, extra);
+        };
+        const initialForm = this.getFormComponent.form;
+        renderTemplate(initialForm?.getRawValue?.() ?? initialForm?.value ?? {});
+
+        const bindRenderToForm = (attempt = 0) => {
+          const maxAttempts = 100;
+          const form = this.getFormComponent.form;
+          if (!form) {
+            if (attempt < maxAttempts) {
+              this.formBindTimeoutId = setTimeout(() => bindRenderToForm(attempt + 1), 50);
+            }
+            return;
+          }
+
+          // Build the variables available to the template.
+          renderTemplate(form.getRawValue?.() ?? form.value ?? {});
+          this.formValueChangesSub?.unsubscribe();
+          this.formValueChangesSub = form.valueChanges.subscribe(() => renderTemplate(form.getRawValue?.() ?? form.value ?? {}));
+        };
+
+        bindRenderToForm();
         this.loggerService.debug(`${this.logName}: Set content component '${name}' at ${JSON.stringify(templateLineagePath)} from handlebars template ${JSON.stringify({content, template})}`);
       } catch (error) {
         this.loggerService.error(`${this.logName}: Error loading content component '${name}' at ${JSON.stringify(templateLineagePath)}`, error);
@@ -100,5 +136,19 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
     }
     const result = typeof translated === 'string' ? translated : String(translated);
     return result === 'undefined' ? value : result;
+  }
+
+  private getRuntimeTemplateContext(): { branding: string; portal: string; oid: string } {
+    const oid = String(this.getFormComponent.trimmedParams.oid() ?? '').trim();
+    const branding = String(this.getFormComponent.trimmedParams.branding() ?? '').trim();
+    const portal = String(this.getFormComponent.trimmedParams.portal() ?? '').trim();
+    return { branding, portal, oid };
+  }
+
+  ngOnDestroy(): void {
+    if (this.formBindTimeoutId) {
+      clearTimeout(this.formBindTimeoutId);
+    }
+    this.formValueChangesSub?.unsubscribe();
   }
 }

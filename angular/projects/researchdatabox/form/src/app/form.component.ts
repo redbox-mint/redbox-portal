@@ -90,6 +90,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   oid = model<string>('');
   /**
+   * Branding passed by embedding view
+   */
+  branding = model<string>('');
+  /**
+   * Portal passed by embedding view
+   */
+  portal = model<string>('');
+  /**
    * The record type of this form
    */
   recordType = model<string>('');
@@ -110,6 +118,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   trimmedParams = {
     oid: this.utilityService.trimStringSignal(this.oid),
+    branding: this.utilityService.trimStringSignal(this.branding),
+    portal: this.utilityService.trimStringSignal(this.portal),
     recordType: this.utilityService.trimStringSignal(this.recordType),
     formName: this.utilityService.trimStringSignal(this.formName)
   }
@@ -238,6 +248,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Params can be injected via HTML if the app is used outside of Angular
     if (_isEmpty(this.trimmedParams.oid())) {
       this.oid.set(elementRef.nativeElement.getAttribute('oid'));
+    }
+    if (_isEmpty(this.trimmedParams.branding())) {
+      this.branding.set(elementRef.nativeElement.getAttribute('branding'));
+    }
+    if (_isEmpty(this.trimmedParams.portal())) {
+      this.portal.set(elementRef.nativeElement.getAttribute('portal'));
     }
     if (_isEmpty(this.trimmedParams.recordType())) {
       this.recordType.set(elementRef.nativeElement.getAttribute('recordType'));

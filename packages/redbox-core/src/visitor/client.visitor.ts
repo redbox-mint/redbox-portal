@@ -772,8 +772,16 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   protected processFieldComponentDefinition(item: FieldComponentDefinitionOutline) {
+    this.removeShowValidIndicatorIfDefault(item);
     this.removePropsUndefined(item);
     this.removePropsUndefined(item?.config ?? {});
+  }
+
+  protected removeShowValidIndicatorIfDefault(item: FieldComponentDefinitionOutline | FieldLayoutDefinitionOutline | null | undefined) {
+    const config = (item?.config ?? {}) as globalThis.Record<string, unknown>;
+    if (config.showValidIndicator === false) {
+      delete config.showValidIndicator;
+    }
   }
 
   protected processFieldModelDefinition(item: FieldModelDefinitionOutline<unknown>) {
@@ -782,6 +790,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   protected processFieldLayoutDefinition(item: FieldLayoutDefinitionOutline) {
+    this.removeShowValidIndicatorIfDefault(item);
     if (this.formModeProvided && this.formMode === 'view' && item?.config) {
       delete item.config.helpText;
       delete item.config.helpTextVisibleOnInit;

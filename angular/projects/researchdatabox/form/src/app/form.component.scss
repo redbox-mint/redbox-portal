@@ -185,6 +185,8 @@
 
 .rb-form-edit .rb-form-action-row .rb-form-action-slot {
   width: auto;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .rb-form-edit .rb-form-action-row .rb-form-action-slot .rb-form-inline-layout,

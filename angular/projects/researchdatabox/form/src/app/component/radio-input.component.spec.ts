@@ -4,8 +4,11 @@ import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 
 describe('RadioInputComponent', () => {
+  let translationService: any;
+
   beforeEach(async () => {
-    await createTestbedModule({declarations: {"RadioInputComponent": RadioInputComponent}});
+    ({translationService} = await createTestbedModule({declarations: {"RadioInputComponent": RadioInputComponent}}));
+    translationService.getCurrentLanguage = jasmine.createSpy('getCurrentLanguage').and.returnValue('en');
   });
 
   it('should create component', () => {

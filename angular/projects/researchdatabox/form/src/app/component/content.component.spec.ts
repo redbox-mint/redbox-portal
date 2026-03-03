@@ -1,5 +1,6 @@
 import {FormConfigFrame, buildKeyString} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
+import {SimpleInputComponent} from "./simple-input.component";
 import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import { UtilityService, HandlebarsTemplateService, TranslationService } from "@researchdatabox/portal-ng-common";
@@ -18,7 +19,7 @@ describe('ContentComponent', () => {
   beforeEach(async () => {
     lastTemplateContext = undefined;
     await createTestbedModule({
-      declarations: {"ContentComponent": ContentComponent},
+      declarations: {"ContentComponent": ContentComponent, "SimpleInputComponent": SimpleInputComponent},
       providers: {
         "UtilityService": null,
         "HandlebarsTemplateService": {provide: HandlebarsTemplateService, useValue: mockHandlebarsTemplateService}
@@ -112,7 +113,7 @@ describe('ContentComponent', () => {
     };
 
     // act
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const {fixture} = await createFormAndWaitForReady(formConfig, { editMode: true } as any);
 
     // assert
     const compiled = fixture.nativeElement as HTMLElement;

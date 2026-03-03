@@ -45,7 +45,7 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
           bsDatepicker
           [bsConfig]="bsConfig"
           [formControl]="formControl"
-          [class.is-valid]="isValid"
+          [class.is-valid]="showValidState"
           [class.is-invalid]="!isValid"
           [readonly]="isReadonly"
           [title]="tooltip"
@@ -162,5 +162,3 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
 
   @Input() public override model?: DateInputModel;
 }
-
-

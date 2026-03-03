@@ -1,2 +1,36 @@
-/* Basic spacing */
-.container { max-width: 900px; }
+/* Keep both admin panels comfortably wide on desktop while preserving mobile spacing */
+.translation-page-container {
+  max-width: min(96vw, 1500px);
+}
+
+/* Prevent translations panel from growing too tall; scroll within entries area */
+.manage-translations-panel .translation-table-scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.translation-entries-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.translation-entries-table .col-category {
+  width: 130px;
+}
+
+.translation-entries-table .col-key {
+  width: 34%;
+}
+
+.translation-entries-table .col-actions {
+  width: 100px;
+}
+
+.translation-entries-table .category-text,
+.translation-entries-table .key-text {
+  max-width: 100%;
+}
+
+.translation-entries-table .actions-cell {
+  white-space: nowrap;
+}

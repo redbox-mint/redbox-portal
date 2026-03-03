@@ -4,8 +4,11 @@ import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec'
 import { TestBed } from '@angular/core/testing';
 
 describe('CheckboxInputComponent', () => {
+  let translationService: any;
+
   beforeEach(async () => {
-    await createTestbedModule({declarations: {"CheckboxInputComponent": CheckboxInputComponent}});
+    ({translationService} = await createTestbedModule({declarations: {"CheckboxInputComponent": CheckboxInputComponent}}));
+    translationService.getCurrentLanguage = jasmine.createSpy('getCurrentLanguage').and.returnValue('en');
   });
 
   it('should create component', () => {
