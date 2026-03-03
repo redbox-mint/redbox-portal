@@ -49,7 +49,6 @@ export class RadioInputComponent extends FormFieldBaseComponent<RadioInputModelV
   protected override logName: string = RadioInputComponentName;
   public tooltip: string = '';
   public options: RadioOption[] = [];
-  private readonly translationService = inject(TranslationService);
 
   /**
    * The model associated with this component.
