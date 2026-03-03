@@ -53,7 +53,7 @@ describe("Validator Visitor", async () => {
                                 {
                                     class: 'pattern',
                                     config: {
-                                        pattern: /prefix.*/,
+                                        pattern: "^prefix.*$",
                                         description: "must start with prefix"
                                     },
                                     groups: { include: ["minimumCreate", "minimumUpdate"] },
@@ -82,7 +82,7 @@ describe("Validator Visitor", async () => {
                         params: {
                             actual: "hello world 2!",
                             description: "must start with prefix",
-                            requiredPattern: "/prefix.*/",
+                            requiredPattern: "^prefix.*$",
                         },
                     },
                 ],
@@ -141,7 +141,7 @@ describe("Validator Visitor", async () => {
                                 {
                                     class: 'pattern',
                                     config: {
-                                        pattern: /prefix.*/,
+                                        pattern: "^prefix.*$",
                                         description: "must start with prefix"
                                     },
                                     groups: { include: ['minimumCreate'] },
@@ -169,7 +169,7 @@ describe("Validator Visitor", async () => {
                         params: {
                             actual: "hello world 2!",
                             description: "must start with prefix",
-                            requiredPattern: "/prefix.*/",
+                            requiredPattern: "^prefix.*$",
                         },
                     },
                     {
@@ -226,7 +226,7 @@ describe("Validator Visitor", async () => {
                                 {
                                     class: 'pattern',
                                     config: {
-                                        pattern: /prefix.*/,
+                                        pattern: "^prefix.*$",
                                         description: "must start with prefix"
                                     },
                                 },
