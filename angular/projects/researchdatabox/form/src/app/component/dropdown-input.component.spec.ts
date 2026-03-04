@@ -2,12 +2,13 @@ import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { DropdownInputComponent } from './dropdown-input.component';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { TestBed } from '@angular/core/testing';
+import i18next from 'i18next';
 
 describe('DropdownInputComponent', () => {
   let translationService: any;
 
   beforeEach(async () => {
-    ({ translationService } = await createTestbedModule({declarations: {"DropdownInputComponent": DropdownInputComponent}}));
+    ({ translationService } = await createTestbedModule({ declarations: { "DropdownInputComponent": DropdownInputComponent } }));
     translationService.getCurrentLanguage = jasmine.createSpy('getCurrentLanguage').and.returnValue('en');
     translationService.translationMap = translationService.translationMap || {};
     translationService.t = jasmine.createSpy('t').and.callFake((key: string) => translationService.translationMap[key] ?? key);
@@ -58,6 +59,24 @@ describe('DropdownInputComponent', () => {
   });
 
   it('should translate placeholder and option labels', async () => {
+    if (!i18next.isInitialized) {
+      await i18next.init({
+        lng: 'en',
+        fallbackLng: 'en',
+        returnEmptyString: false,
+        resources: {
+          en: {
+            translation: {},
+          },
+        },
+      });
+    }
+    i18next.addResourceBundle('en', 'translation', {
+      '@dropdown-placeholder': 'Choose one',
+      '@dropdown-label-en': 'English Label',
+    }, true, true);
+    await i18next.changeLanguage('en');
+
     translationService.translationMap['@dropdown-placeholder'] = 'Choose one';
     translationService.translationMap['@dropdown-label-en'] = 'English Label';
 
@@ -94,6 +113,8 @@ describe('DropdownInputComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const selectEl = compiled.querySelector('select') as HTMLSelectElement;
     expect(selectEl.options.length).toBe(2);
+    expect(selectEl.options[0].text).toBe('Choose one');
+    expect(selectEl.options[1].text).toBe('English Label');
     expect(formComponent.form?.get('dropdown_lang_test')?.value).toEqual('en');
   });
 });
