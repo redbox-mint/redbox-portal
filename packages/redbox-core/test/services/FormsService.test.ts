@@ -3,9 +3,9 @@ import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
-import {FormConfigFrame, FormModesConfig} from "@researchdatabox/sails-ng-common";
-import {  formConfigExample1} from "../unit/example-data";
-import {reusableFormDefinitions, TemplateFormConfigVisitor} from "../../src";
+import { FormConfigFrame, FormModesConfig } from "@researchdatabox/sails-ng-common";
+import { formConfigExample1 } from "../unit/example-data";
+import { reusableFormDefinitions, TemplateFormConfigVisitor } from "../../src";
 
 describe('FormsService', function () {
   let mockSails: any;
@@ -298,8 +298,8 @@ describe('FormsService', function () {
     });
   });
 
-  describe('buildClientFormConfig', async function() {
-    it('should build the client form config for a basic form', async function() {
+  describe('buildClientFormConfig', async function () {
+    it('should build the client form config for a basic form', async function () {
       const item: FormConfigFrame = formConfigExample1;
       const formMode: FormModesConfig = "edit";
       const userRoles: string[] = [];
@@ -313,17 +313,66 @@ describe('FormsService', function () {
       expect(form).to.have.property('name');
       expect(form.name).to.eql(item.name);
 
-      const templates = visitor.start({form});
+      const templates = visitor.start({ form });
 
       const expected = [
-        {kind: "handlebars"}, {kind: "jsonata"},
-        {kind: "jsonata"}, {kind: "jsonata"},
-        {kind: "jsonata"}, {kind: "jsonata"},
-        {kind: "jsonata"}, {kind: "jsonata"},
-        {kind: "jsonata"},
+        { kind: "handlebars" }, { kind: "jsonata" },
+        { kind: "jsonata" }, { kind: "jsonata" },
+        { kind: "jsonata" }, { kind: "jsonata" },
+        { kind: "jsonata" }, { kind: "jsonata" },
+        { kind: "jsonata" },
       ];
       expect(templates).to.containSubset(expected);
       expect(templates).to.have.length(expected.length);
+    });
+
+    it('should apply context variables and include contextVariables in the returned form', async function () {
+      const item: FormConfigFrame = {
+        name: 'custom-fields-test',
+        componentDefinitions: [
+          {
+            name: 'intro',
+            component: {
+              class: 'ContentComponent',
+              config: {
+                content: 'Welcome @user_name'
+              }
+            }
+          },
+          {
+            name: 'title',
+            component: {
+              class: 'SimpleInputComponent',
+              config: {}
+            },
+            model: {
+              class: 'SimpleInputModel',
+              config: {
+                defaultValue: 'Title for @user_name'
+              }
+            }
+          }
+        ]
+      };
+
+      const contextVariablesMap = {
+        '@user_name': 'Alice'
+      };
+      const form = await FormsService.buildClientFormConfig(
+        item,
+        'edit',
+        [],
+        {},
+        {},
+        'default',
+        contextVariablesMap
+      );
+
+      const contentConfig = form.componentDefinitions?.[0]?.component?.config as { content?: string };
+      const titleConfig = form.componentDefinitions?.[1]?.model?.config as { defaultValue?: string };
+
+      expect(contentConfig.content).to.equal('Welcome Alice');
+      expect(form.contextVariables).to.deep.equal(contextVariablesMap);
     });
   });
 });

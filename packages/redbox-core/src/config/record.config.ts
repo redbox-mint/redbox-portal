@@ -19,7 +19,7 @@ export interface RecordAPIEndpoint {
     readTimeout?: number;
 }
 
-export interface RecordCustomFieldConfig {
+export interface RecordContextVariableConfig {
     source: 'request' | 'metadata' | 'record';
     type?: 'session' | 'param' | 'user' | 'header';
     field?: string;
@@ -71,7 +71,7 @@ export interface RecordConfig {
     checkTotalSizeOfFilesInRecordLogLevel?: string;
     processRecordCountersLogLevel?: string;
     api: Record<string, RecordAPIEndpoint>;
-    customFields: Record<string, RecordCustomFieldConfig>;
+    contextVariables: Record<string, RecordContextVariableConfig>;
     export: RecordExportConfig;
     transfer: RecordTransferConfig;
     search: RecordSearchConfig;
@@ -113,7 +113,7 @@ export const record: RecordConfig = {
         getRecordRelationships: { method: 'post', url: "/api/v2/recordmetadata/$oid/relationships" },
         delete: { method: 'delete', url: "/api/v1/object/$oid/delete" }
     },
-    customFields: {
+    contextVariables: {
         '@branding': {
             source: 'request',
             type: 'session',

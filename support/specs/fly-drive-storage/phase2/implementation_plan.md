@@ -8,7 +8,7 @@ Fix design issues in `fly-drive-storage` implementation. Specifically, make S3 d
 
 ### `packages/redbox-core`
 
-#### [MODIFY] [services/StorageManagerService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/services/StorageManagerService.ts)
+#### [MODIFY] [services/StorageManagerService.ts](../../../packages/redbox-core/src/services/StorageManagerService.ts)
 
 - Add global declaration at the end of the file:
 
@@ -18,17 +18,17 @@ declare global {
 }
 ```
 
-#### [MODIFY] [config/storage.config.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/config/storage.config.ts)
+#### [MODIFY] [config/storage.config.ts](../../../packages/redbox-core/src/config/storage.config.ts)
 
 - **Line 9**: Add `visibility?: string;` to `FSDriverOptions`.
 - **Line 17** (approx): Add `visibility?: string;` to `S3DriverOptions`.
 
-#### [MODIFY] [services/StorageManagerService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/services/StorageManagerService.ts)
+#### [MODIFY] [services/StorageManagerService.ts](../../../packages/redbox-core/src/services/StorageManagerService.ts)
 
 - **Line 173**: Change to `visibility: diskConf.config.visibility || 'public',`
 - **Line 188**: Change to `visibility: diskConf.config.visibility || 'public',`
 
-#### [MODIFY] [services/StandardDatastreamService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/services/StandardDatastreamService.ts)
+#### [MODIFY] [services/StandardDatastreamService.ts](../../../packages/redbox-core/src/services/StandardDatastreamService.ts)
 
 - **Line 9**: Remove `import type { Services as StorageManagerServices } ...`
 - **Line 10**: Remove `StorageManagerService` from import list.
@@ -41,12 +41,12 @@ declare global {
 
 ### `packages/redbox-core`
 
-#### [MODIFY] [DatastreamService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/DatastreamService.ts)
+#### [MODIFY] [DatastreamService.ts](../../../packages/redbox-core/src/DatastreamService.ts)
 
 - **Import**: `import type { Services as StorageManagerServices } from './services/StorageManagerService';`
 - **Line 16**: Change `fileRoot: string` to `stagingDisk: StorageManagerServices.IDisk`.
 
-#### [MODIFY] [services/StandardDatastreamService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/services/StandardDatastreamService.ts)
+#### [MODIFY] [services/StandardDatastreamService.ts](../../../packages/redbox-core/src/services/StandardDatastreamService.ts)
 
 - **Import**: Ensure `StorageManagerServices` is available (it was removed in previous step, might need to re-add or just use `Services.StorageManagerService.Services.IDisk` via import changes or `IDisk` type alias).
 - **Line 99**: Change `_fileRoot: string` to `stagingDisk: StorageManagerServices.IDisk` (or `IDisk`).
@@ -54,15 +54,15 @@ declare global {
 - **Line 186**: Update `addDatastream` signature to `addDatastream(oid: string, datastream: Datastream, stagingDisk?: StorageManagerServices.IDisk): Promise<unknown>`.
 - **Line 190**: Use passed `stagingDisk` or fallback to `StorageManagerService.stagingDisk()`.
 
-#### [MODIFY] [services/RecordsService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core/src/services/RecordsService.ts)
+#### [MODIFY] [services/RecordsService.ts](../../../packages/redbox-core/src/services/RecordsService.ts)
 
 - **Line 1826**: Update `updateDatastream` call. Instead of `attachmentsDir`, pass `StorageManagerService.stagingDisk()`. Remove logic that reads `attachmentsDir` from config.
 
 ### `packages/sails-hook-redbox-storage-mongo`
 
-#### [MODIFY] [api/services/MongoStorageService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/sails-hook-redbox-storage-mongo/typescript/api/services/MongoStorageService.ts)
+#### [MODIFY] [api/services/MongoStorageService.ts](../../../packages/sails-hook-redbox-storage-mongo/typescript/api/services/MongoStorageService.ts)
 
-- **Line 742**: Change signature to `updateDatastream(oid: string, record, newMetadata, stagingDisk: any, fileIdsAdded)` (use `IDisk` type if importable).
+-- **Line 742**: Change signature to `updateDatastream(oid: string, record, newMetadata, stagingDisk: StorageManagerServices.IDisk, fileIdsAdded)` — prefer the concrete `StorageManagerServices.IDisk` type. Add an import for `StorageManagerServices` from the module that exports it where possible; if the type is not exported or causes circular deps, fall back to `any` and add a `// TODO: replace 'any' with StorageManagerServices.IDisk from '<module>' when available` comment.
 - **Line 775**: Pass `stagingDisk` to `addAndRemoveDatastreams`.
 - **Line 845**: Update `addAndRemoveDatastreams` signature to accept `stagingDisk`.
 - **Line 847**: Pass `stagingDisk` to `addDatastream`.

@@ -31,6 +31,7 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { ConstructFormConfigVisitor } from '../visitor/construct.visitor';
+import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
 
 type WorkflowStepLike = {
   id: string;
@@ -303,7 +304,6 @@ export namespace Services {
         }
       }
 
-      let form: FormConfigFrame;
 
       const schema = this.inferSchemaFromMetadata(record) as { properties?: Record<string, unknown> };
 
@@ -540,7 +540,7 @@ export namespace Services {
           }]
       };
 
-      form = formObject as FormConfigFrame;
+      const form: FormConfigFrame = formObject as FormConfigFrame;
 
       return form;
     }
@@ -598,12 +598,15 @@ export namespace Services {
       userRoles?: string[],
       recordMetadata?: Record<string, unknown> | null,
       reusableFormDefs?: ReusableFormDefinitions,
-      branding?: string
+      branding?: string,
+      contextVariablesMap?: Record<string, unknown>
     ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
       const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
       await vocabVisitor.resolveVocabs(constructed, branding);
+      const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
+      contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       const result = visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs });
@@ -613,6 +616,11 @@ export namespace Services {
             item, formMode, userRoles, recordData: recordMetadata, reusableFormDefs
           })}`);
       }
+
+      if (contextVariablesMap && Object.keys(contextVariablesMap).length > 0) {
+        result.contextVariables = contextVariablesMap;
+      }
+
       return result;
     }
   }
