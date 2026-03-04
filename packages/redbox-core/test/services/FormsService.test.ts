@@ -325,5 +325,53 @@ describe('FormsService', function () {
       expect(templates).to.containSubset(expected);
       expect(templates).to.have.length(expected.length);
     });
+
+    it('should apply custom fields and include customFields in the returned form', async function () {
+      const item: FormConfigFrame = {
+        name: 'custom-fields-test',
+        componentDefinitions: [
+          {
+            name: 'intro',
+            component: {
+              class: 'ContentComponent',
+              config: {
+                content: 'Welcome @user_name'
+              }
+            }
+          },
+          {
+            name: 'title',
+            component: {
+              class: 'SimpleInputComponent',
+              config: {}
+            },
+            model: {
+              class: 'SimpleInputModel',
+              config: {
+                defaultValue: 'Title for @user_name'
+              }
+            }
+          }
+        ]
+      };
+
+      const customFieldsMap = {
+        '@user_name': 'Alice'
+      };
+      const form = await FormsService.buildClientFormConfig(
+        item,
+        'edit',
+        [],
+        {},
+        {},
+        'default',
+        customFieldsMap
+      );
+
+      const contentConfig = form.componentDefinitions?.[0]?.component?.config as { content?: string };
+
+      expect(contentConfig.content).to.equal('Welcome Alice');
+      expect(form.customFields).to.deep.equal(customFieldsMap);
+    });
   });
 });

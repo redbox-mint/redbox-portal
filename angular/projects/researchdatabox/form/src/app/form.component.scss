@@ -116,8 +116,7 @@
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto !important;
-  overflow-x: hidden;
+  overflow: hidden !important;
 }
 
 .rb-form-host .rb-form-debug-panel__section--events {

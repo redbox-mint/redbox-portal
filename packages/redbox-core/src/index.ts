@@ -104,6 +104,7 @@ export * from './controllers';
 export * from './visitor/attachment-fields.visitor';
 export * from './visitor/client.visitor';
 export * from './visitor/construct.visitor';
+export * from './visitor/custom-fields.visitor';
 export * from './visitor/data-value.visitor';
 export * from './visitor/json-type-def.visitor';
 export * from './visitor/migrate-config-v4-v5.visitor';

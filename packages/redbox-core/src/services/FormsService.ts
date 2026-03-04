@@ -31,6 +31,7 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { ConstructFormConfigVisitor } from '../visitor/construct.visitor';
+import { CustomFieldsFormConfigVisitor } from '../visitor/custom-fields.visitor';
 
 type WorkflowStepLike = {
   id: string;
@@ -598,12 +599,15 @@ export namespace Services {
       userRoles?: string[],
       recordMetadata?: Record<string, unknown> | null,
       reusableFormDefs?: ReusableFormDefinitions,
-      branding?: string
+      branding?: string,
+      customFieldsMap: Record<string, unknown> = {}
     ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
       const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
       await vocabVisitor.resolveVocabs(constructed, branding);
+      const customFieldsVisitor = new CustomFieldsFormConfigVisitor(this.logger);
+      customFieldsVisitor.applyCustomFields(constructed, customFieldsMap);
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       const result = visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs });
@@ -612,6 +616,9 @@ export namespace Services {
           `the form config must have at least one field the current user can view: ${JSON.stringify({
             item, formMode, userRoles, recordData: recordMetadata, reusableFormDefs
           })}`);
+      }
+      if (Object.keys(customFieldsMap).length > 0) {
+        result.customFields = customFieldsMap;
       }
       return result;
     }

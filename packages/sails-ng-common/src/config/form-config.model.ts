@@ -29,9 +29,9 @@ export class FormConfig implements FormConfigOutline {
     public expressions?: FormExpressionsConfigOutline[];
 
     public attachmentFields?: string[];
+    public customFields?: Record<string, unknown>;
 
     accept(visitor: FormConfigVisitorOutline): void {
         visitor.visitFormConfig(this);
     }
 }
-

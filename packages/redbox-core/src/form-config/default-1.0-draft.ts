@@ -157,11 +157,13 @@ const formConfig: FormConfigFrame = {
                               "model": {
                                 "class": "GroupModel",
                                 "config": {
-                                  "validators": [
-                                    {
-                                      "class": "required"
-                                    }
-                                  ]
+                                  "defaultValue": {
+                                    "name": "@user_name",
+                                    "email": "@user_email",
+                                    "username": "@user_username",
+                                    "text_full_name": "@user_name"
+                                  },
+                                  "validators": []
                                 }
                               },
                               "layout": {
