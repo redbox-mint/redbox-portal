@@ -599,7 +599,7 @@ export namespace Services {
       recordMetadata?: Record<string, unknown> | null,
       reusableFormDefs?: ReusableFormDefinitions,
       branding?: string,
-      contextVariablesMap: Record<string, unknown> = {}
+      contextVariablesMap?: Record<string, unknown>
     ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
@@ -617,7 +617,9 @@ export namespace Services {
           })}`);
       }
 
-      result.contextVariables = contextVariablesMap;
+      if (contextVariablesMap && Object.keys(contextVariablesMap).length > 0) {
+        result.contextVariables = contextVariablesMap;
+      }
 
       return result;
     }
