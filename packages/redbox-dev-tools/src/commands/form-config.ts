@@ -36,9 +36,9 @@ export function registerMigrateFormConfigCommand(program: Command): void {
         const globalOptions = program.opts();
         const inputPath = path.resolve(options.input);
         const outputPath = path.resolve(options.output);
-        const outputFormat = options.format;
+        const outputFormat = options.format || "esm";
 
-        console.log(`\n🛠️  Migrating form config in ${outputFormat} format: ${inputPath} -> ${outputPath}\n`);
+        console.log(`\n🛠️  Migrating form config to ${outputFormat} format: ${inputPath} -> ${outputPath}\n`);
 
         const migrateVisitor = new MigrationV4ToV5FormConfigVisitor(migrationLogger);
 
@@ -74,9 +74,9 @@ export function registerMigrateDataClassificationCommand(program: Command): void
         const globalOptions = program.opts();
         const inputPath = path.resolve(options.input);
         const outputPath = path.resolve(options.output);
-        const outputFormat = options.format;
+        const outputFormat = options.format || 'esm';
 
-        console.log(`\n🛠️  Migrating data classification to question tree in ${outputFormat} format: ${inputPath} -> ${outputPath}\n`);
+        console.log(`\n🛠️  Migrating data classification to question tree to ${outputFormat} format: ${inputPath} -> ${outputPath}\n`);
 
         const migrateVisitor = new MigrationV4ToV5FormConfigVisitor(migrationLogger);
         const migrated = migrateDataClassification(migrateVisitor, inputPath, outputFormat);
