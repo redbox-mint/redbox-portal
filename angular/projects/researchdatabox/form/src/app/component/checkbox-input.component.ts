@@ -30,6 +30,8 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
             [attr.id]="this.getOptionId(opt)"
             [checked]="isOptionSelected(opt.value)"
             (change)="onOptionChange($any($event.target).checked, opt.value)"
+            [class.is-valid]="showValidState"
+            [class.is-invalid]="!isValid"
             [title]="tooltip">
           <label
             class="form-check-label"
