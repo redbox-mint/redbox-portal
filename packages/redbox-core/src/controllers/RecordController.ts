@@ -42,7 +42,7 @@ import { FileStore } from '@tus/file-store';
 import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
-import { CustomFieldUtils } from '../utilities/CustomFieldUtils';
+import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -404,7 +404,7 @@ export namespace Controllers {
         const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[]).map((role: AnyRecord) => String(role['name'] ?? '')).filter((name: string) => !!name);
         const recordData = currentRec;
         const reusableFormDefs = sails.config.reusableFormDefinitions;
-        const customFieldsMap = CustomFieldUtils.evaluateCustomFields(req, currentRec);
+        const contextVariablesMap = ContextVariableUtils.evaluateContextVariables(req, currentRec);
         const formConfig = form?.configuration;
         if (!formConfig) {
           const msg = `Form configuration not found for form ${formParam}, record type ${recordType}, oid ${oid}`;
@@ -421,14 +421,14 @@ export namespace Controllers {
           recordData?.metadata ?? null,
           reusableFormDefs,
           String(brand?.name ?? ''),
-          customFieldsMap
+          contextVariablesMap
         );
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {
           return this.sendResp(req, res, {
             data: mergedForm,
-            meta: { formName: formParam, recordType: recordType, oid: oid, customFields: customFieldsMap },
+            meta: { formName: formParam, recordType: recordType, oid: oid, contextVariables: contextVariablesMap },
           });
         } else {
           const msg = `Failed to get form with name ${formParam} and record type ${recordType} and oid ${oid}`;

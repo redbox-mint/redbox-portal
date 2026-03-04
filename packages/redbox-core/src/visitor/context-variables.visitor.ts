@@ -36,19 +36,19 @@ import {
   TypeaheadInputFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 
-export class CustomFieldsFormConfigVisitor extends FormConfigVisitor {
-  protected override logName = 'CustomFieldsFormConfigVisitor';
+export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
+  protected override logName = 'ContextVariablesFormConfigVisitor';
 
-  private customFieldsMap: Record<string, string> = {};
+  private contextVariablesMap: Record<string, string> = {};
   private replacementRegex: RegExp | null = null;
 
   constructor(logger: ILogger) {
     super(logger);
   }
 
-  public applyCustomFields(form: FormConfigOutline, customFieldsMap?: Record<string, unknown>): void {
-    const normalizedMap = this.normalizeCustomFieldsMap(customFieldsMap);
-    this.customFieldsMap = normalizedMap;
+  public applyContextVariables(form: FormConfigOutline, contextVariablesMap?: Record<string, unknown>): void {
+    const normalizedMap = this.normalizeContextVariablesMap(contextVariablesMap);
+    this.contextVariablesMap = normalizedMap;
     this.replacementRegex = this.buildReplacementRegex(Object.keys(normalizedMap));
     if (!this.replacementRegex) {
       return;
@@ -57,11 +57,13 @@ export class CustomFieldsFormConfigVisitor extends FormConfigVisitor {
   }
 
   protected override notImplemented(): void {
-    // No-op for visitor methods not required by custom field substitutions.
+    // No-op for visitor methods not required by context variable substitutions.
   }
 
   visitFormConfig(item: FormConfigOutline): void {
-    item.componentDefinitions?.forEach(component => component.accept(this));
+    item.componentDefinitions?.forEach(component => {
+      component.accept(this);
+    });
   }
 
   visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
@@ -99,7 +101,6 @@ export class CustomFieldsFormConfigVisitor extends FormConfigVisitor {
   visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
     item.component?.accept(this);
   }
-
   visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
     item.component?.accept(this);
     item.model?.accept(this);
@@ -167,12 +168,10 @@ export class CustomFieldsFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
-    if (!item.config) {
-      return;
+    if (item.config && typeof item.config.content === 'string') {
+      item.config.content = this.replaceTokens(item.config.content);
     }
-    item.config.content = this.replaceTokens(item.config.content);
   }
-
   visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
     item.config?.componentDefinitions?.forEach(def => def.accept(this));
   }
@@ -194,15 +193,14 @@ export class CustomFieldsFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-    item.config?.elementTemplate?.accept(this);
+    super.visitRepeatableFieldComponentDefinition(item);
   }
-
   private replaceTokens(value: unknown): unknown {
     if (typeof value !== 'string' || !this.replacementRegex) {
       return value;
     }
     return value.replace(this.replacementRegex, (matched: string) => {
-      return this.customFieldsMap[matched] ?? matched;
+      return this.contextVariablesMap[matched] ?? matched;
     });
   }
 
@@ -236,8 +234,8 @@ export class CustomFieldsFormConfigVisitor extends FormConfigVisitor {
     return value;
   }
 
-  private normalizeCustomFieldsMap(customFieldsMap?: Record<string, unknown>): Record<string, string> {
-    const entries = Object.entries(customFieldsMap ?? {});
+  private normalizeContextVariablesMap(contextVariablesMap?: Record<string, unknown>): Record<string, string> {
+    const entries = Object.entries(contextVariablesMap ?? {});
     const normalized: Record<string, string> = {};
     for (const [key, value] of entries) {
       if (!key) {

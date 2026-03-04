@@ -31,7 +31,7 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { ConstructFormConfigVisitor } from '../visitor/construct.visitor';
-import { CustomFieldsFormConfigVisitor } from '../visitor/custom-fields.visitor';
+import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
 
 type WorkflowStepLike = {
   id: string;
@@ -304,7 +304,6 @@ export namespace Services {
         }
       }
 
-      let form: FormConfigFrame;
 
       const schema = this.inferSchemaFromMetadata(record) as { properties?: Record<string, unknown> };
 
@@ -541,7 +540,7 @@ export namespace Services {
           }]
       };
 
-      form = formObject as FormConfigFrame;
+      const form: FormConfigFrame = formObject as FormConfigFrame;
 
       return form;
     }
@@ -600,14 +599,14 @@ export namespace Services {
       recordMetadata?: Record<string, unknown> | null,
       reusableFormDefs?: ReusableFormDefinitions,
       branding?: string,
-      customFieldsMap: Record<string, unknown> = {}
+      contextVariablesMap: Record<string, unknown> = {}
     ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
       const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
       await vocabVisitor.resolveVocabs(constructed, branding);
-      const customFieldsVisitor = new CustomFieldsFormConfigVisitor(this.logger);
-      customFieldsVisitor.applyCustomFields(constructed, customFieldsMap);
+      const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
+      contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       const result = visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs });
@@ -617,9 +616,9 @@ export namespace Services {
             item, formMode, userRoles, recordData: recordMetadata, reusableFormDefs
           })}`);
       }
-      if (Object.keys(customFieldsMap).length > 0) {
-        result.customFields = customFieldsMap;
-      }
+
+      result.contextVariables = contextVariablesMap;
+
       return result;
     }
   }

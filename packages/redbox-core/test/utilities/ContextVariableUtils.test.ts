@@ -1,14 +1,14 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { CustomFieldUtils } from '../../src/utilities/CustomFieldUtils';
+import { ContextVariableUtils } from '../../src/utilities/ContextVariableUtils';
 
-describe('CustomFieldUtils', () => {
+describe('ContextVariableUtils', () => {
   beforeEach(() => {
     (globalThis as any).sails = {
       config: {
         record: {
-          customFields: {
+          contextVariables: {
             '@user_name': { source: 'request', type: 'user', field: 'name' },
             '@branding': { source: 'request', type: 'session', field: 'branding' },
             '@oid': { source: 'request', type: 'param', field: 'oid' },
@@ -34,7 +34,7 @@ describe('CustomFieldUtils', () => {
     delete (globalThis as any).sails;
   });
 
-  it('evaluates request-backed custom fields and escapes values', () => {
+  it('evaluates request-backed context variables and escapes values', () => {
     const req = {
       user: { name: '<Bob>' },
       session: { branding: 'default' },
@@ -45,7 +45,7 @@ describe('CustomFieldUtils', () => {
       param: sinon.stub().callsFake((key: string) => key === 'oid' ? 'x<y>' : undefined)
     } as unknown as Sails.Req;
 
-    const result = CustomFieldUtils.evaluateCustomFields(req, null);
+    const result = ContextVariableUtils.evaluateContextVariables(req, null);
 
     expect(result['@user_name']).to.equal('&lt;Bob&gt;');
     expect(result['@branding']).to.equal('default');
@@ -55,7 +55,7 @@ describe('CustomFieldUtils', () => {
   });
 
   it('returns empty value and warns on malformed URL parsing without leaking raw values', () => {
-    (globalThis as any).sails.config.record.customFields = {
+    (globalThis as any).sails.config.record.contextVariables = {
       '@referrer_rdmp': {
         source: 'request',
         type: 'header',
@@ -70,12 +70,12 @@ describe('CustomFieldUtils', () => {
       param: sinon.stub()
     } as unknown as Sails.Req;
 
-    const result = CustomFieldUtils.evaluateCustomFields(req, null);
+    const result = ContextVariableUtils.evaluateContextVariables(req, null);
 
     expect(result['@referrer_rdmp']).to.equal('');
     expect((globalThis as any).sails.log.warn.called).to.equal(true);
     const logMessage = String((globalThis as any).sails.log.warn.firstCall.args[0] ?? '');
-    expect(logMessage).to.contain('Failed to evaluate custom field: @referrer_rdmp.');
+    expect(logMessage).to.contain('Failed to evaluate context variable: @referrer_rdmp.');
     expect(logMessage).to.not.contain('raw-secret');
   });
 });

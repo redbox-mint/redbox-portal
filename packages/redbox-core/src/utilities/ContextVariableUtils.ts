@@ -1,34 +1,33 @@
 import { get as _get, escape as _escape } from 'lodash';
-import { RecordCustomFieldConfig } from '../config/record.config';
+import { RecordContextVariableConfig } from '../config/record.config';
 
-type RequestCustomFieldType = NonNullable<RecordCustomFieldConfig['type']>;
-type CustomFieldsConfigMap = Record<string, RecordCustomFieldConfig>;
+type ContextVariablesConfigMap = Record<string, RecordContextVariableConfig>;
 
-export class CustomFieldUtils {
-  public static evaluateCustomFields(req: Sails.Req, _recordData: unknown): Record<string, string> {
+export class ContextVariableUtils {
+  public static evaluateContextVariables(req: Sails.Req, _recordData: unknown): Record<string, string> {
     const result: Record<string, string> = {};
-    const customFieldsConfig = _get(sails, 'config.record.customFields', {}) as CustomFieldsConfigMap;
-    for (const [fieldKey, fieldConfig] of Object.entries(customFieldsConfig)) {
+    const contextVariablesConfig = _get(sails, 'config.record.contextVariables', {}) as ContextVariablesConfigMap;
+    for (const [fieldKey, fieldConfig] of Object.entries(contextVariablesConfig)) {
       if (!fieldConfig || fieldConfig.source !== 'request') {
         if (fieldConfig?.source && fieldConfig.source !== 'request') {
-          sails.log.warn(`Unsupported custom field source for ${fieldKey}: ${fieldConfig.source}`);
+          sails.log.warn(`Unsupported context variable source for ${fieldKey}: ${fieldConfig.source}`);
         }
         continue;
       }
 
       try {
         const rawValue = this.resolveFromRequest(req, fieldConfig);
-        result[fieldKey] = this.sanitizeCustomFieldValue(rawValue);
+        result[fieldKey] = this.sanitizeContextVariableValue(rawValue);
       } catch (error) {
         const errorType = error instanceof Error ? error.name : 'UnknownError';
-        sails.log.warn(`Failed to evaluate custom field: ${fieldKey}. Error: ${errorType}`);
+        sails.log.warn(`Failed to evaluate context variable: ${fieldKey}. Error: ${errorType}`);
         result[fieldKey] = '';
       }
     }
     return result;
   }
 
-  private static resolveFromRequest(req: Sails.Req, config: RecordCustomFieldConfig): unknown {
+  private static resolveFromRequest(req: Sails.Req, config: RecordContextVariableConfig): unknown {
     const sourceType = config.type;
     const field = String(config.field ?? '').trim();
     if (!sourceType) {
@@ -83,7 +82,7 @@ export class CustomFieldUtils {
     return url.searchParams.get(queryParam) ?? '';
   }
 
-  private static sanitizeCustomFieldValue(value: unknown): string {
+  private static sanitizeContextVariableValue(value: unknown): string {
     if (value === null || value === undefined) {
       return '';
     }

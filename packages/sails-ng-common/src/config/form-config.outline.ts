@@ -87,10 +87,8 @@ export interface FormConfigFrame {
      * This is automatically populated by the form config visitor.
      */
     attachmentFields?: string[];
-    /**
-     * Optional resolved custom fields (request scoped variables) available for this form response.
-     */
-    customFields?: Record<string, unknown>;
+    // Optional resolved context variables (request scoped variables) available for this form response.
+    contextVariables?: Record<string, unknown>;
 }
 
 export interface FormConfigOutline extends FormConfigFrame, CanVisit {

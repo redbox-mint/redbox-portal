@@ -3,9 +3,9 @@ import('chai').then(mod => expect = mod.expect);
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import type { ILogger } from '../../src/Logger';
 import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
-import { CustomFieldsFormConfigVisitor } from '../../src/visitor/custom-fields.visitor';
+import { ContextVariablesFormConfigVisitor } from '../../src/visitor/context-variables.visitor';
 
-describe('CustomFieldsFormConfigVisitor', () => {
+describe('ContextVariablesFormConfigVisitor', () => {
   const logger: ILogger = {
     silly: () => undefined,
     verbose: () => undefined,
@@ -108,8 +108,8 @@ describe('CustomFieldsFormConfigVisitor', () => {
     const constructor = new ConstructFormConfigVisitor(logger as any);
     const constructed = constructor.start({ data: input, formMode: 'edit' });
 
-    const visitor = new CustomFieldsFormConfigVisitor(logger);
-    visitor.applyCustomFields(constructed, { '@user': 'U', '@user_name': 'User Name', '@user_email': 'user@example.com' });
+    const visitor = new ContextVariablesFormConfigVisitor(logger);
+    visitor.applyContextVariables(constructed, { '@user': 'U', '@user_name': 'User Name', '@user_email': 'user@example.com' });
 
     const content = constructed.componentDefinitions?.[0]?.component?.config as { content?: string };
     const inputComponent = constructed.componentDefinitions?.[1] as {
