@@ -33,7 +33,7 @@ import {
   TextAreaFieldModelDefinitionOutline,
   TextAreaFormComponentDefinitionOutline,
   TypeaheadInputFieldModelDefinitionOutline,
-  TypeaheadInputFormComponentDefinitionOutline
+  TypeaheadInputFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 
 export class CustomFieldsFormConfigVisitor extends FormConfigVisitor {
@@ -61,7 +61,7 @@ export class CustomFieldsFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitFormConfig(item: FormConfigOutline): void {
-    item.componentDefinitions?.forEach((component) => component.accept(this));
+    item.componentDefinitions?.forEach(component => component.accept(this));
   }
 
   visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
@@ -174,23 +174,23 @@ export class CustomFieldsFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
-    item.config?.componentDefinitions?.forEach((def) => def.accept(this));
+    item.config?.componentDefinitions?.forEach(def => def.accept(this));
   }
 
   visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
-    item.config?.tabs?.forEach((tab) => tab.accept(this));
+    item.config?.tabs?.forEach(tab => tab.accept(this));
   }
 
   visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
-    item.config?.componentDefinitions?.forEach((def) => def.accept(this));
+    item.config?.componentDefinitions?.forEach(def => def.accept(this));
   }
 
   visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
-    item.config?.panels?.forEach((panel) => panel.accept(this));
+    item.config?.panels?.forEach(panel => panel.accept(this));
   }
 
   visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
-    item.config?.componentDefinitions?.forEach((def) => def.accept(this));
+    item.config?.componentDefinitions?.forEach(def => def.accept(this));
   }
 
   visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
@@ -227,7 +227,7 @@ export class CustomFieldsFormConfigVisitor extends FormConfigVisitor {
       return this.replaceTokens(value);
     }
     if (Array.isArray(value)) {
-      return value.map((item) => this.replaceTokensDeep(item));
+      return value.map(item => this.replaceTokensDeep(item));
     }
     if (value && typeof value === 'object') {
       const replacedEntries = Object.entries(value).map(([key, item]) => [key, this.replaceTokensDeep(item)]);
@@ -250,21 +250,18 @@ export class CustomFieldsFormConfigVisitor extends FormConfigVisitor {
 
   private buildReplacementRegex(keys: string[]): RegExp | null {
     const validKeys = keys
-      .filter((key) => key.length > 0)
+      .filter(key => key.length > 0)
       .sort((a, b) => b.length - a.length)
-      .map((key) => this.escapeRegex(key));
+      .map(key => this.escapeRegex(key));
     if (validKeys.length === 0) {
       return null;
     }
     return new RegExp(validKeys.join('|'), 'g');
   }
 
-        private escapeRegex(value: string): string {
-      const escape = (RegExp as RegExpConstructor & { escape?: (s: string) => string }).escape;
-      // Use built-in escape should be available, otherwise fall back to manual escaping.
-      return typeof escape === 'function'
-        ? escape(value)
-        : value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-  
+  private escapeRegex(value: string): string {
+    const escape = (RegExp as RegExpConstructor & { escape?: (s: string) => string }).escape;
+    // Use built-in escape should be available, otherwise fall back to manual escaping.
+    return typeof escape === 'function' ? escape(value) : value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
 }
