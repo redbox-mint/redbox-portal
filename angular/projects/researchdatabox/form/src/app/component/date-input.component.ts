@@ -115,8 +115,12 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   }
 
   onDateChange(dateValue: DateInputModelValueType) {
-    this.loggerService.info(`dateValue ${dateValue}`,'');
-    this.model?.setValue(dateValue);
+    const currentValue = this.model?.getValue();
+    // Protect against infinite loops, as `onDateChange` is called in `ngAfterViewInit`.
+    // `ngAfterViewInit` is run as part of change detection, such as when the model value is changed.
+    if (currentValue !== dateValue) {
+      this.model?.setValue(dateValue);
+    }
   }
 
   //Note there are at least two known issues with ngx timepicker plus the layout with arrows above and below the time input field
