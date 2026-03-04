@@ -461,7 +461,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(modelConfig.disabled).to.be.true;
     });
 
-    it("maps AnchorOrButton links to SaveButton with InlineLayout", async function () {
+    it("maps AnchorOrButton links to ContentComponent anchor links with InlineLayout", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({
             data: {
@@ -477,7 +477,10 @@ describe("Migrate v4 to v5 Visitor", async () => {
                                     class: "AnchorOrButton",
                                     definition: {
                                         name: "edit_link",
-                                        label: "@dmp-edit-record-link"
+                                        label: "@dmp-edit-record-link",
+                                        value: "/@branding/@portal/record/edit/@oid",
+                                        cssClasses: "btn btn-info",
+                                        controlType: "anchor"
                                     }
                                 }
                             ]
@@ -491,9 +494,208 @@ describe("Migrate v4 to v5 Visitor", async () => {
         const groupConfig = group.component.config as Record<string, unknown>;
         const childComponents = groupConfig.componentDefinitions as any[];
         expect(childComponents).to.have.length(1);
-        expect(childComponents[0].component.class).to.equal("SaveButtonComponent");
+        expect(childComponents[0].component.class).to.equal("ContentComponent");
+        expect(childComponents[0].component.config?.label).to.be.undefined;
+        expect(childComponents[0].component.config?.template).to.equal(
+          '<a href="{{concat "/" branding "/" portal "/record/edit/" oid}}" class="{{content.cssClasses}}">{{t content.label}}</a>'
+        );
         expect(childComponents[0].layout?.class).to.equal("InlineLayout");
     });
+
+    it("maps legacy form-inline groups to ActionRowLayout with InlineLayout children", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "inline-group-migration",
+                fields: [
+                    {
+                        class: "Container",
+                        compClass: "GenericGroupComponent",
+                        definition: {
+                            name: "actions",
+                            cssClasses: "form-inline",
+                            fields: [
+                                {
+                                    class: "AnchorOrButton",
+                                    definition: {
+                                        name: "edit_link",
+                                        label: "@dmp-edit-record-link"
+                                    }
+                                },
+                                {
+                                    class: "PDFList",
+                                    definition: {
+                                        name: "pdf"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const group = migrated.componentDefinitions[0];
+        const groupConfig = group.component.config as Record<string, unknown>;
+        const childComponents = groupConfig.componentDefinitions as any[];
+
+        expect(group.layout?.class).to.equal("ActionRowLayout");
+        const groupLayoutConfig = (group.layout?.config ?? {}) as Record<string, unknown>;
+        expect(groupLayoutConfig.alignment).to.equal("start");
+        expect(groupLayoutConfig.compact).to.equal(true);
+        expect(groupLayoutConfig.containerCssClass).to.contain("rb-form-action-row--legacy-inline");
+        expect(group.overrides?.formModeClasses?.view?.component).to.equal("GroupComponent");
+        expect(childComponents).to.have.length(2);
+        expect(childComponents[0].layout?.class).to.equal("InlineLayout");
+        expect(childComponents[1].layout?.class).to.equal("InlineLayout");
+    });
+
+    it("uses Handlebars translation helper for migrated TextBlock translation keys", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "text-block-translation-key",
+                fields: [
+                    {
+                        class: "Container",
+                        compClass: "TextBlockComponent",
+                        definition: {
+                            name: "welcome_text",
+                            value: "@dmpt-welcome-par2"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("ContentComponent");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        expect(componentConfig.content).to.equal("@dmpt-welcome-par2");
+        expect(componentConfig.template).to.equal("<div>{{{t content}}}</div>");
+    });
+
+    it("uses heading wrapper from TextBlock type for heading content", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "text-block-heading-type",
+                fields: [
+                    {
+                        class: "Container",
+                        compClass: "TextBlockComponent",
+                        definition: {
+                            name: "welcome_heading",
+                            value: "@dmpt-welcome-heading",
+                            type: "h3"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("ContentComponent");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        expect(componentConfig.content).to.equal("@dmpt-welcome-heading");
+        expect(componentConfig.template).to.equal("<h3>{{t content}}</h3>");
+    });
+
+    it("binds TextBlock heading content from formData when value is missing and definition.name is present", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "text-block-heading-name-binding",
+                fields: [
+                    {
+                        class: "Container",
+                        compClass: "TextBlockComponent",
+                        viewOnly: true,
+                        definition: {
+                            name: "title",
+                            type: "h1"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        const hiddenBindingField = migrated.componentDefinitions[1];
+        expect(migratedField.component.class).to.equal("ContentComponent");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        const layoutConfig = migratedField.layout?.config as Record<string, unknown> | undefined;
+        expect(migratedField.name).to.not.equal("title");
+        expect(componentConfig.content).to.equal("title");
+        expect(componentConfig.template).to.equal('<h1>{{get formData content ""}}</h1>');
+        expect(layoutConfig?.label).to.equal(undefined);
+        expect(hiddenBindingField.name).to.equal("title");
+        expect(hiddenBindingField.component.class).to.equal("SimpleInputComponent");
+        expect((hiddenBindingField.constraints as Record<string, unknown>)?.allowModes).to.deep.equal(["view"]);
+        expect(
+            ((hiddenBindingField.constraints as Record<string, unknown>)?.authorization as Record<string, unknown>)?.allowRoles
+        ).to.deep.equal([]);
+        expect((hiddenBindingField.component.config as Record<string, unknown>)?.type).to.equal("hidden");
+        expect((hiddenBindingField.component.config as Record<string, unknown>)?.visible).to.equal(false);
+        expect((hiddenBindingField.layout?.config as Record<string, unknown>)?.visible).to.equal(false);
+    });
+
+    it("keeps plain text TextBlock values as non-translated content templates", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "text-block-plain-text",
+                fields: [
+                    {
+                        class: "Container",
+                        compClass: "TextBlockComponent",
+                        definition: {
+                            name: "welcome_text_plain",
+                            value: "Welcome to the form"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("ContentComponent");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        expect(componentConfig.content).to.equal("Welcome to the form");
+        expect(componentConfig.template).to.equal("<div>{{{content}}}</div>");
+    });
+
+    it("promotes legacy TextBlock span label/help blocks into layout label config", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "text-block-span-label-help",
+                fields: [
+                    {
+                        class: "Container",
+                        compClass: "TextBlockComponent",
+                        definition: {
+                            value: "@dmpt-people-tab-ci",
+                            help: "@dmpt-people-tab-ci-help",
+                            type: "span",
+                            cssClasses: "label-font"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("ContentComponent");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        const layoutConfig = migratedField.layout?.config as Record<string, unknown>;
+
+        expect(componentConfig.content).to.equal("");
+        expect(layoutConfig.label).to.equal("@dmpt-people-tab-ci");
+        expect(layoutConfig.helpText).to.equal("@dmpt-people-tab-ci-help");
+        expect(layoutConfig.cssClassesMap).to.deep.equal({ label: "label-font" });
+    });
+
     it("populates attachmentFields from FileUpload components", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({

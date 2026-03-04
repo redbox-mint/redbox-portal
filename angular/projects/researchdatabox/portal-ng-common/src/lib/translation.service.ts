@@ -56,7 +56,10 @@ export class TranslationService extends HttpClientService implements Service {
     supportedLngs: ['en'],
     fallbackLng: 'en',
     debug: true,
-    returnEmptyString: false,
+    returnEmptyString: true,
+    // Legacy ReDBox keys often include ":" (e.g. "@dmpt-foaf:fundedBy_foaf:Agent"),
+    // so ":" cannot be treated as an i18next namespace separator.
+    nsSeparator: false,
     ns: [
       'translation'
     ],
@@ -109,6 +112,12 @@ export class TranslationService extends HttpClientService implements Service {
       }
       if (_isUndefined(_get(this.i18NextOpts, 'interpolation'))) {
         _set(this.i18NextOpts, 'interpolation', this.i18NextOptsDefault.interpolation);
+      }
+      // Preserve explicit empty-string translations across the portal.
+      // Some legacy bundles intentionally use "" to suppress a label.
+      _set(this.i18NextOpts, 'returnEmptyString', this.i18NextOptsDefault.returnEmptyString);
+      if (_isUndefined(_get(this.i18NextOpts, 'nsSeparator'))) {
+        _set(this.i18NextOpts, 'nsSeparator', this.i18NextOptsDefault.nsSeparator);
       }
     } else {
       // default value...

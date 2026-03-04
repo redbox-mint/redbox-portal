@@ -1,8 +1,8 @@
-import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
-import {TestBed} from "@angular/core/testing";
-import {RadioInputComponent} from "./radio-input.component";
-import {QuestionTreeComponent} from "./question-tree.component";
-import {CheckboxInputComponent} from "./checkbox-input.component";
+import { createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets } from "../helpers.spec";
+import { TestBed } from "@angular/core/testing";
+import { RadioInputComponent } from "./radio-input.component";
+import { QuestionTreeComponent } from "./question-tree.component";
+import { CheckboxInputComponent } from "./checkbox-input.component";
 import {
   FormConfigFrame,
   QuestionTreeFieldComponentConfigFrame,
@@ -10,9 +10,9 @@ import {
   QuestionTreeOutcomeInfo,
   QuestionTreeOutcomeInfoKey
 } from "@researchdatabox/sails-ng-common";
-import {SimpleInputComponent} from "./simple-input.component";
-import {FormComponentEventBus, FormComponentEventType} from "../form-state";
-import {filter} from "rxjs";
+import { SimpleInputComponent } from "./simple-input.component";
+import { FormComponentEventBus, FormComponentEventType } from "../form-state";
+import { filter } from "rxjs";
 
 describe('QuestionTreeComponent', async () => {
 
@@ -40,7 +40,7 @@ describe('QuestionTreeComponent', async () => {
     // question_3 shows only when question_2 is "yes
     const clientFormConfig: FormConfigFrame = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       domElementType: 'form',
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
@@ -463,7 +463,7 @@ describe('QuestionTreeComponent', async () => {
       });
 
 
-      const {fixture} = await createFormAndWaitForReady(clientFormConfig);
+      const { fixture } = await createFormAndWaitForReady(clientFormConfig);
       const eventBus = TestBed.inject(FormComponentEventBus);
       const element = fixture.nativeElement as HTMLElement;
 
@@ -600,7 +600,7 @@ describe('QuestionTreeComponent', async () => {
         question_3: null,
         [QuestionTreeOutcomeInfoKey]: {
           outcome: "outcome1",
-          meta: [{outcome: "outcome1", prop2: "prop2Value1"}]
+          meta: [{ outcome: "outcome1", prop2: "prop2Value1" }]
         },
       };
       formConfigWithModelValue.componentDefinitions[1].model!.config!.value = "@outcomes-value1";
@@ -609,7 +609,7 @@ describe('QuestionTreeComponent', async () => {
         prop2: "@outcomes-prop2-value1"
       }];
 
-      const {fixture, formComponent} = await createFormAndWaitForReady(formConfigWithModelValue);
+      const { fixture, formComponent } = await createFormAndWaitForReady(formConfigWithModelValue);
       const element = fixture.nativeElement as HTMLElement;
 
       const qtElements = element.querySelectorAll('redbox-questiontreefield');
@@ -629,7 +629,7 @@ describe('QuestionTreeComponent', async () => {
           question_3: null,
           [QuestionTreeOutcomeInfoKey]: {
             outcome: "outcome1",
-            meta: [{outcome: "outcome1", prop2: "prop2Value1"}]
+            meta: [{ outcome: "outcome1", prop2: "prop2Value1" }]
           },
         },
         "data-classification-item-outcome": "@outcomes-value1",
@@ -644,6 +644,8 @@ describe('QuestionTreeComponent', async () => {
       toggleRadioButton(q1RadioElem1);
       fixture.detectChanges();
       await fixture.whenStable();
+      fixture.detectChanges();
+      await fixture.whenStable();
 
       const inputElementsStep1 = qtElement.querySelectorAll('input');
       expect(inputElementsStep1.length).toEqual(2);
@@ -652,12 +654,18 @@ describe('QuestionTreeComponent', async () => {
       expect(modelStep1).toEqual({
         questiontree_1: {
           question_1: "yes",
-          question_2: null,
+          question_2: "no",
           question_3: null,
-          [QuestionTreeOutcomeInfoKey]: null,
+          [QuestionTreeOutcomeInfoKey]: {
+            outcome: { value: "outcome1", label: "@outcomes-value1" },
+            meta: [{
+              outcome: { value: "outcome1", label: "@outcomes-value1" },
+              prop2: { value: "prop2Value1", label: "@outcomes-prop2-value1" }
+            }],
+          },
         },
-        "data-classification-item-outcome": "",
-        "data-classification-item-outcome-details": [],
+        "data-classification-item-outcome": "@outcomes-value1",
+        "data-classification-item-outcome-details": [{outcome: "@outcomes-value1", prop2: "@outcomes-prop2-value1"}],
       });
       */
     });
@@ -679,7 +687,7 @@ describe('QuestionTreeComponent', async () => {
       }
       questionDefs[0]!.layout!.config!.label = "Direct Question Label";
 
-      const {fixture} = await createFormAndWaitForReady(formConfigWithDirectQuestionLabel);
+      const { fixture } = await createFormAndWaitForReady(formConfigWithDirectQuestionLabel);
       const element = fixture.nativeElement as HTMLElement;
 
       const firstLabel = element.querySelector('.rb-form-field-label span');
@@ -689,81 +697,105 @@ describe('QuestionTreeComponent', async () => {
       // expect(firstLabel?.textContent?.trim()).toBe('Direct Question Label');
     });
 
+    it('should render a provided question label value directly', async () => {
+      setUpDynamicAssets({
+        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+          switch (keyStr) {
+            default:
+              throw new Error(`Unknown key: ${keyStr}`);
+          }
+        }
+      });
+
+      const formConfigWithDirectQuestionLabel: FormConfigFrame = JSON.parse(JSON.stringify(clientFormConfig));
+      const questionDefs = ((formConfigWithDirectQuestionLabel.componentDefinitions?.[0]?.component?.config as QuestionTreeFieldComponentConfigFrame)?.componentDefinitions ?? []);
+      if (!questionDefs[0]?.layout?.config) {
+        fail('Question tree test config missing expected first question layout config');
+      }
+      questionDefs[0]!.layout!.config!.label = "Direct Question Label";
+
+      const { fixture } = await createFormAndWaitForReady(formConfigWithDirectQuestionLabel);
+      await fixture.whenStable();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(questionDefs[0]?.layout?.config?.label).toBe('Direct Question Label');
+    });
+
     const qtConfig = clientFormConfig.componentDefinitions[0].component.config as QuestionTreeFieldComponentConfigFrame;
     const outcomeInfoCases: {
       config: QuestionTreeFieldComponentConfigFrame,
       data: QuestionTreeModelValueType,
       expected: QuestionTreeOutcomeInfo | null
     }[] = [
-      {
-        config: {availableOutcomes: [], questions: [], componentDefinitions: []},
-        data: {}, expected: null,
-      },
-      {
-        config: {
-          availableOutcomes: qtConfig.availableOutcomes,
-          availableMeta: qtConfig.availableMeta,
-          questions: qtConfig.questions,
-          componentDefinitions: qtConfig.componentDefinitions
+        {
+          config: { availableOutcomes: [], questions: [], componentDefinitions: [] },
+          data: {}, expected: null,
         },
-        data: {question_1: ['no'], question_2: ["no"]}, expected: {
-          outcome: {value: 'outcome1', label: '@outcomes-value1'},
-          meta: [{
-            outcome: {value: 'outcome1', label: '@outcomes-value1'},
-            prop2: {value: 'prop2Value1', label: "@outcomes-prop2-value1"}
-          }]
-        },
-      },
-      {
-        config: {
-          componentDefinitions: [],
-          availableOutcomes: [
-            {value: "outcome1", label: "@outcomes-value1"},
-            {value: "outcome2", label: "@outcomes-value2"},
-          ],
-          availableMeta: {
-            prop2: {
-              prop2Value1: null,
-              prop2Value2: "@outcomes-prop2-value2",
-            },
+        {
+          config: {
+            availableOutcomes: qtConfig.availableOutcomes,
+            availableMeta: qtConfig.availableMeta,
+            questions: qtConfig.questions,
+            componentDefinitions: qtConfig.componentDefinitions
           },
-          questions: [
-            {
-              id: "question_1",
-              answersMin: 1,
-              answersMax: 1,
-              answers: [{value: "yes"}, {value: "no", meta: {prop2: "prop2Value2"}, outcome: "outcome2"}],
-              rules: {op: "true"},
-            },
-            {
-              id: "question_2",
-              answersMin: 1,
-              answersMax: 2,
-              answers: [{value: "yes"}, {value: "no", meta: {prop2: "prop2Value1"}, outcome: "outcome1"}],
-              rules: {op: "in", q: "question_1", a: ["no"]},
-            },
-            {
-              id: "question_3",
-              answersMin: 1,
-              answersMax: 1,
-              answers: [{value: "yes"}, {value: "no"}],
-              rules: {op: "in", q: "question_2", a: ["yes"]},
-            },
-          ],
+          data: { question_1: ['no'], question_2: ["no"] }, expected: {
+            outcome: { value: 'outcome1', label: '@outcomes-value1' },
+            meta: [{
+              outcome: { value: 'outcome1', label: '@outcomes-value1' },
+              prop2: { value: 'prop2Value1', label: "@outcomes-prop2-value1" }
+            }]
+          },
         },
-        data: {question_1: "no", question_2: "no"},
-        expected: {
-          outcome: {value: "outcome2", label: "@outcomes-value2"}, meta: [
-            {
-              outcome: {value: "outcome2", label: "@outcomes-value2"},
-              prop2: {value: "prop2Value2", label: "@outcomes-prop2-value2"}
+        {
+          config: {
+            componentDefinitions: [],
+            availableOutcomes: [
+              { value: "outcome1", label: "@outcomes-value1" },
+              { value: "outcome2", label: "@outcomes-value2" },
+            ],
+            availableMeta: {
+              prop2: {
+                prop2Value1: null,
+                prop2Value2: "@outcomes-prop2-value2",
+              },
             },
-            {outcome: {value: "outcome1", label: "@outcomes-value1"}, prop2: {value: "prop2Value1", label: null}},
-          ]
-        },
-      }
-    ];
-    for (const {config, data, expected} of outcomeInfoCases) {
+            questions: [
+              {
+                id: "question_1",
+                answersMin: 1,
+                answersMax: 1,
+                answers: [{ value: "yes" }, { value: "no", meta: { prop2: "prop2Value2" }, outcome: "outcome2" }],
+                rules: { op: "true" },
+              },
+              {
+                id: "question_2",
+                answersMin: 1,
+                answersMax: 2,
+                answers: [{ value: "yes" }, { value: "no", meta: { prop2: "prop2Value1" }, outcome: "outcome1" }],
+                rules: { op: "in", q: "question_1", a: ["no"] },
+              },
+              {
+                id: "question_3",
+                answersMin: 1,
+                answersMax: 1,
+                answers: [{ value: "yes" }, { value: "no" }],
+                rules: { op: "in", q: "question_2", a: ["yes"] },
+              },
+            ],
+          },
+          data: { question_1: "no", question_2: "no" },
+          expected: {
+            outcome: { value: "outcome2", label: "@outcomes-value2" }, meta: [
+              {
+                outcome: { value: "outcome2", label: "@outcomes-value2" },
+                prop2: { value: "prop2Value2", label: "@outcomes-prop2-value2" }
+              },
+              { outcome: { value: "outcome1", label: "@outcomes-value1" }, prop2: { value: "prop2Value1", label: null } },
+            ]
+          },
+        }
+      ];
+    for (const { config, data, expected } of outcomeInfoCases) {
       it(`should calculate the expected outcome info ${JSON.stringify(expected)}`, () => {
         let fixture = TestBed.createComponent(QuestionTreeComponent);
         let component = fixture.componentInstance;

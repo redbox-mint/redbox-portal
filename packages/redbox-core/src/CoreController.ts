@@ -74,18 +74,47 @@ export namespace Controllers.Core {
     // Namespaced logger for controllers
     private _logger: ILogger | null = null;
 
+    private getFallbackLogger(): ILogger {
+      const log = (...args: unknown[]): void => console.log(...args);
+      const noop = (): void => undefined;
+      return {
+        silly: log,
+        verbose: log,
+        trace: (...args: unknown[]): void => console.trace(...args),
+        debug: (...args: unknown[]): void => console.debug(...args),
+        log: (...args: unknown[]): void => console.log(...args),
+        info: (...args: unknown[]): void => console.info(...args),
+        warn: (...args: unknown[]): void => console.warn(...args),
+        error: (...args: unknown[]): void => console.error(...args),
+        crit: (...args: unknown[]): void => console.error(...args),
+        fatal: (...args: unknown[]): void => console.error(...args),
+        silent: noop,
+        blank: (): void => console.log(''),
+      };
+    }
+
     /**
      * Get a namespaced logger for this controller class.
      * Uses the class constructor name as the namespace.
      * Falls back to sails.log if pino namespaced logging is not available.
      */
     protected get logger(): ILogger {
+      if (typeof sails === 'undefined') {
+        return this.getFallbackLogger();
+      }
       if (this._logger === null && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
         const controllerName = this.constructor.name + 'Controller';
         this._logger = sails.config.log.createNamespaceLogger(controllerName, sails.config.log.customLogger);
       }
+      if (this._logger !== null) {
+        return this._logger;
+      }
+      const sailsLogger = sails?.log as Partial<ILogger> | undefined;
+      if (sailsLogger && typeof sailsLogger.verbose === 'function') {
+        return sailsLogger as ILogger;
+      }
       // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
-      return this._logger ?? (sails?.log as unknown as ILogger);
+      return this.getFallbackLogger();
     }
 
     /**

@@ -35,6 +35,10 @@ import { FormComponentEventBus } from './form-state/events/form-component-event-
 import { FormComponentFocusRequestCoordinator } from './form-state/events/form-component-focus-request-coordinator.service';
 import { TiptapEditorDirective } from "ngx-tiptap";
 import { A11yModule } from "@angular/cdk/a11y";
+import { FormDebugPanelComponent } from "./form-debug/form-debug-panel.component";
+import { FormDebugModelTabComponent } from "./form-debug/form-debug-model-tab.component";
+import { FormDebugConfigTabComponent } from "./form-debug/form-debug-config-tab.component";
+import { FormDebugEventsTabComponent } from "./form-debug/form-debug-events-tab.component";
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
@@ -47,8 +51,29 @@ export interface FormComponentProps {
   downloadAndCreateOnInit: boolean;
 }
 
-export async function createFormAndWaitForReady(formConfig: FormConfigFrame, formComponentProps?: FormComponentProps) {
+export interface FormDebugUrlOptions {
+  formDebugParam?: string | boolean;
+}
+
+function setFormDebugUrl(opts?: FormDebugUrlOptions): void {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('formDebug');
+  const formDebugParam = opts?.formDebugParam;
+  if (typeof formDebugParam === 'boolean') {
+    if (formDebugParam) {
+      url.searchParams.set('formDebug', '1');
+    }
+  } else if (typeof formDebugParam === 'string' && formDebugParam.trim()) {
+    url.searchParams.set('formDebug', formDebugParam.trim());
+  }
+  window.history.replaceState({}, '', url.toString());
+}
+
+export async function createFormAndWaitForReady(formConfig: FormConfigFrame, formComponentProps?: FormComponentProps, formDebugUrlOptions?: FormDebugUrlOptions) {
   console.log('createFormAndWaitForReady - starting');
+  if (formDebugUrlOptions) {
+    setFormDebugUrl(formDebugUrlOptions);
+  }
   // Set up the basic angular testing requirements.
   const fixture = TestBed.createComponent(FormComponent);
   const formComponent = fixture.componentInstance;
@@ -129,6 +154,10 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "FormBaseWrapperDirective": FormBaseWrapperDirective,
       "FieldErrorSummaryComponent": FieldErrorSummaryComponent,
       "FormComponent": FormComponent,
+      "FormDebugPanelComponent": FormDebugPanelComponent,
+      "FormDebugModelTabComponent": FormDebugModelTabComponent,
+      "FormDebugConfigTabComponent": FormDebugConfigTabComponent,
+      "FormDebugEventsTabComponent": FormDebugEventsTabComponent,
     }, testConfig.declarations ?? {}),
     imports: await createTestBedModuleConfig({
       "CommonModule": CommonModule,

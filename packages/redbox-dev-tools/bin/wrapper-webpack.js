@@ -26,7 +26,7 @@ if (!defineWebpackHook && ensureTsNode()) {
 let webpackConfig = [];
 try {
   // prefer repo config file
-  const repoWebpack = require('../../config/webpack');
+  const repoWebpack = require(path.resolve(process.cwd(), 'config/webpack'));
   if (repoWebpack && repoWebpack.webpack) {
     webpackConfig = repoWebpack.webpack.config ? repoWebpack.webpack.config : repoWebpack.webpack;
   } else {

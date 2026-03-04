@@ -20,7 +20,7 @@ export class DropdownInputModel extends FormFieldModel<DropdownInputModelValueTy
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
       <select [formControl]="formControl"
         class="form-select"
-        [class.is-valid]="isValid"
+        [class.is-valid]="showValidState"
         [class.is-invalid]="!isValid"
         [title]="tooltip">
         @if (placeholder) {
@@ -66,5 +66,3 @@ export class DropdownInputComponent extends FormFieldBaseComponent<DropdownInput
    */
   @Input() public override model?: DropdownInputModel;
 }
-
-

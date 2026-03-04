@@ -15,7 +15,7 @@ export const ActionRowLayoutName = 'ActionRowLayout' as const;
 export type ActionRowLayoutNameType = typeof ActionRowLayoutName;
 
 export const ActionRowAlignmentOptions = ['start', 'end', 'space-between'] as const;
-export type ActionRowAlignmentOptionsType = (typeof ActionRowAlignmentOptions)[number];
+export type ActionRowAlignmentOptionsType = typeof ActionRowAlignmentOptions[number];
 
 export interface ActionRowFieldLayoutConfigFrame extends FieldLayoutConfigFrame {
   containerCssClass?: string;

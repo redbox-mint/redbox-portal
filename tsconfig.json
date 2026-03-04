@@ -1,5 +1,5 @@
 {
-    "extends": "./typescript/tsconfig.base.json",
+    "extends": "./packages/redbox-dev-tools/config/tsconfig.base.json",
     "compilerOptions": {
       "outDir": "./",
       "rootDir": "./typescript",

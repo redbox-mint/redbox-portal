@@ -24,7 +24,7 @@ describe('GroupFieldComponent', () => {
     // arrange
     const formConfig: FormConfigFrame = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       domElementType: 'form',
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
