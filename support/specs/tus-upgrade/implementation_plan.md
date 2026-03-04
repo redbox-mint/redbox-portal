@@ -45,7 +45,7 @@ graph LR
 
 ### Dependencies
 
-#### [MODIFY] [package.json](../../..//packages/redbox-core/package.json)
+#### [MODIFY] [package.json](../../../packages/redbox-core/package.json)
 
 ```diff
 - "tus-node-server": "^0.9.0",
@@ -58,7 +58,7 @@ graph LR
 
 ### Configuration
 
-#### [MODIFY] [record.config.ts](../../..//packages/redbox-core/src/config/record.config.ts)
+#### [MODIFY] [record.config.ts](../../../packages/redbox-core/src/config/record.config.ts)
 
 Restructure `RecordAttachmentsConfig` with storage-specific subobjects:
 
@@ -129,7 +129,7 @@ Default values:
 
 ### RecordController TUS Refactoring
 
-#### [MODIFY] [RecordController.ts](../../..//packages/redbox-core/src/controllers/RecordController.ts)
+#### [MODIFY] [RecordController.ts](../../../packages/redbox-core/src/controllers/RecordController.ts)
 
 **1. Imports** (line 39)
 
@@ -272,7 +272,7 @@ this.tusServer!.handle(req, res);
 
 ### Environment Config Updates
 
-#### [MODIFY] [integrationtest.js](../../..//config/env/integrationtest.js)
+#### [MODIFY] [integrationtest.js](../../../config/env/integrationtest.js)
 
 ```diff
  record: {

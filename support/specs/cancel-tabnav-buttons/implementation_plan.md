@@ -14,50 +14,50 @@ The goal is to create new `CancelButtonComponent` and `TabNavButtonComponent` in
 
 ### 1. Define Component Contracts (`packages/sails-ng-common`)
 
-#### [NEW] [cancel-button.outline.ts](../../..//packages/sails-ng-common/src/config/component/cancel-button.outline.ts)
+#### [NEW] [cancel-button.outline.ts](../../../packages/sails-ng-common/src/config/component/cancel-button.outline.ts)
 
 - Define `CancelButtonFieldComponentConfigFrame`, `CancelButtonFieldComponentDefinitionFrame`, `CancelButtonFormComponentDefinitionFrame` and their outlines.
 - Define `CancelButtonTypes` union.
 
-#### [NEW] [cancel-button.model.ts](../../..//packages/sails-ng-common/src/config/component/cancel-button.model.ts)
+#### [NEW] [cancel-button.model.ts](../../../packages/sails-ng-common/src/config/component/cancel-button.model.ts)
 
 - Implement `CancelButtonFieldComponentConfig`, `CancelButtonFieldComponentDefinition`, `CancelButtonFormComponentDefinition` classes.
 - Implement `accept` methods for visitors.
 - Export `CancelButtonMap` and `CancelButtonDefaults`.
 
-#### [NEW] [tab-nav-button.outline.ts](../../..//packages/sails-ng-common/src/config/component/tab-nav-button.outline.ts)
+#### [NEW] [tab-nav-button.outline.ts](../../../packages/sails-ng-common/src/config/component/tab-nav-button.outline.ts)
 
 - Define config for `prevLabel`, `nextLabel`, `targetTabContainerId`, `endDisplayMode`.
 
-#### [NEW] [tab-nav-button.model.ts](../../..//packages/sails-ng-common/src/config/component/tab-nav-button.model.ts)
+#### [NEW] [tab-nav-button.model.ts](../../../packages/sails-ng-common/src/config/component/tab-nav-button.model.ts)
 
 - Implement model classes and visitor acceptance.
 
 ### 2. Register Dictionary and Exports (`packages/sails-ng-common`)
 
-#### [MODIFY] [index.ts](../../..//packages/sails-ng-common/src/index.ts)
+#### [MODIFY] [index.ts](../../../packages/sails-ng-common/src/index.ts)
 
 - Export new component files.
 
-#### [MODIFY] [dictionary.outline.ts](../../..//packages/sails-ng-common/src/config/dictionary.outline.ts)
+#### [MODIFY] [dictionary.outline.ts](../../../packages/sails-ng-common/src/config/dictionary.outline.ts)
 
 - Add `CancelButtonTypes` and `TabNavButtonTypes` to `AllTypes`.
 
-#### [MODIFY] [dictionary.model.ts](../../..//packages/sails-ng-common/src/config/dictionary.model.ts)
+#### [MODIFY] [dictionary.model.ts](../../../packages/sails-ng-common/src/config/dictionary.model.ts)
 
 - Add maps and defaults to `AllDefs` and `RawDefaults`.
 
 ### 3. Wire Visitor Infrastructure (`packages/sails-ng-common`)
 
-#### [MODIFY] [base.outline.ts](../../..//packages/sails-ng-common/src/config/visitor/base.outline.ts)
+#### [MODIFY] [base.outline.ts](../../../packages/sails-ng-common/src/config/visitor/base.outline.ts)
 
 - Add visit methods for `CancelButton` and `TabNavButton` definitions.
 
-#### [MODIFY] [base.model.ts](../../..//packages/sails-ng-common/src/config/visitor/base.model.ts)
+#### [MODIFY] [base.model.ts](../../../packages/sails-ng-common/src/config/visitor/base.model.ts)
 
 - Add default empty implementations for new visit methods.
 
-#### [MODIFY] [migrate-config-v4-v5.visitor.ts](../../..//packages/sails-ng-common/src/config/visitor/migrate-config-v4-v5.visitor.ts)
+#### [MODIFY] [migrate-config-v4-v5.visitor.ts](../../../packages/sails-ng-common/src/config/visitor/migrate-config-v4-v5.visitor.ts)
 
 - Add `CancelButton` and `TabNavButton` to `formConfigV4ToV5Mapping`.
   - `CancelButton` -> `CancelButtonComponent`
@@ -67,13 +67,13 @@ The goal is to create new `CancelButtonComponent` and `TabNavButtonComponent` in
 
 ### 4. Implement Angular Form Components (`angular/projects/researchdatabox/form`)
 
-#### [NEW] [cancel-button.component.ts](../../..//angular/projects/researchdatabox/form/src/app/component/cancel-button.component.ts)
+#### [NEW] [cancel-button.component.ts](../../../angular/projects/researchdatabox/form/src/app/component/cancel-button.component.ts)
 
 - Create `CancelButtonComponent` extending `FormFieldBaseComponent`.
 - Implement `cancel()` method to navigate back (e.g. using `Location.back()`).
 - Support `disabled` state similar to `SaveButtonComponent`.
 
-#### [NEW] [tab-nav-button.component.ts](../../..//angular/projects/researchdatabox/form/src/app/component/tab-nav-button.component.ts)
+#### [NEW] [tab-nav-button.component.ts](../../../angular/projects/researchdatabox/form/src/app/component/tab-nav-button.component.ts)
 
 - Create `TabNavButtonComponent`.
 - In `next()` and `prev()` methods:
@@ -84,11 +84,11 @@ The goal is to create new `CancelButtonComponent` and `TabNavButtonComponent` in
 
 ### 5. Register Angular Wiring
 
-#### [MODIFY] [form.module.ts](../../..//angular/projects/researchdatabox/form/src/app/form.module.ts)
+#### [MODIFY] [form.module.ts](../../../angular/projects/researchdatabox/form/src/app/form.module.ts)
 
 - Register new components.
 
-#### [MODIFY] [static-comp-field.dictionary.ts](../../..//angular/projects/researchdatabox/form/src/app/static-comp-field.dictionary.ts)
+#### [MODIFY] [static-comp-field.dictionary.ts](../../../angular/projects/researchdatabox/form/src/app/static-comp-field.dictionary.ts)
 
 - Map definitions to Angular components/models.
 

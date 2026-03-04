@@ -10,7 +10,7 @@ Replace CKEditor 5 with Tiptap as the rich text editor. This is a feature branch
 
 ### sails-ng-common — Config Contracts
 
-#### [MODIFY] [rich-text-editor.outline.ts](../../..//packages/sails-ng-common/src/config/component/rich-text-editor.outline.ts)
+#### [MODIFY] [rich-text-editor.outline.ts](../../../packages/sails-ng-common/src/config/component/rich-text-editor.outline.ts)
 
 Remove CKEditor-specific properties from both `Frame` and `Outline` interfaces:
 - `editorType` (and `RichTextEditorEditorType` type alias)
@@ -25,7 +25,7 @@ Remaining config:
 | `minHeight` | `string` | `'200px'` | CSS min-height |
 | `placeholder` | `string` | `''` | Placeholder text |
 
-#### [MODIFY] [rich-text-editor.model.ts](../../..//packages/sails-ng-common/src/config/component/rich-text-editor.model.ts)
+#### [MODIFY] [rich-text-editor.model.ts](../../../packages/sails-ng-common/src/config/component/rich-text-editor.model.ts)
 
 - Remove `editorType` and `removePlugins` from `RichTextEditorFieldComponentConfig`
 - Update `defaultToolbar` to Tiptap extension names:
@@ -34,7 +34,7 @@ Remaining config:
 const defaultToolbar = ['heading', 'bold', 'italic', 'link', 'bulletList', 'orderedList', 'blockquote', 'table', 'undo', 'redo'];
 ```
 
-#### [MODIFY] [construct.visitor.ts](../../..//packages/sails-ng-common/src/config/visitor/construct.visitor.ts)
+#### [MODIFY] [construct.visitor.ts](../../../packages/sails-ng-common/src/config/visitor/construct.visitor.ts)
 
 Remove `editorType` and `removePlugins` setPropOverride lines from `visitRichTextEditorFieldComponentDefinition`.
 
@@ -42,7 +42,7 @@ Remove `editorType` and `removePlugins` setPropOverride lines from `visitRichTex
 
 ### Angular — Dependencies
 
-#### [MODIFY] [package.json](../../..//angular/package.json)
+#### [MODIFY] [package.json](../../../angular/package.json)
 
 ```diff
 -"@ckeditor/ckeditor5-angular": "~11.0.0",
@@ -69,7 +69,7 @@ Remove `editorType` and `removePlugins` setPropOverride lines from `visitRichTex
 
 ### Angular — Form Module
 
-#### [MODIFY] [form.module.ts](../../..//angular/projects/researchdatabox/form/src/app/form.module.ts)
+#### [MODIFY] [form.module.ts](../../../angular/projects/researchdatabox/form/src/app/form.module.ts)
 
 ```diff
 -import { CKEditorModule } from "@ckeditor/ckeditor5-angular";
@@ -88,7 +88,7 @@ In the `imports` array:
 
 ### Angular — Component Rewrite
 
-#### [MODIFY] [rich-text-editor.component.ts](../../..//angular/projects/researchdatabox/form/src/app/component/rich-text-editor.component.ts)
+#### [MODIFY] [rich-text-editor.component.ts](../../../angular/projects/researchdatabox/form/src/app/component/rich-text-editor.component.ts)
 
 Full rewrite. Key design:
 
@@ -130,7 +130,7 @@ Full rewrite. Key design:
 
 ### Angular — Test Helpers
 
-#### [MODIFY] [helpers.spec.ts](../../..//angular/projects/researchdatabox/form/src/app/helpers.spec.ts)
+#### [MODIFY] [helpers.spec.ts](../../../angular/projects/researchdatabox/form/src/app/helpers.spec.ts)
 
 ```diff
 -import { CKEditorModule } from "@ckeditor/ckeditor5-angular";
@@ -147,7 +147,7 @@ In `createTestBedModuleConfig` imports:
 
 ### Angular — Tests
 
-#### [MODIFY] [rich-text-editor.component.spec.ts](../../..//angular/projects/researchdatabox/form/src/app/component/rich-text-editor.component.spec.ts)
+#### [MODIFY] [rich-text-editor.component.spec.ts](../../../angular/projects/researchdatabox/form/src/app/component/rich-text-editor.component.spec.ts)
 
 The existing 4 tests cover readonly/view mode and are editor-agnostic. Minimal changes needed (no CKEditor-specific imports in this file).
 
@@ -161,7 +161,7 @@ Add new tests for editable mode:
 
 ### Existing Form Config
 
-#### [MODIFY] [default-1.0-draft.ts](../../..//typescript/form-config/default-1.0-draft.ts)
+#### [MODIFY] [default-1.0-draft.ts](../../../typescript/form-config/default-1.0-draft.ts)
 
 Remove `editorType: 'classic'` from the `rich_text_1` component config (line 194):
 
@@ -178,7 +178,7 @@ Remove `editorType: 'classic'` from the `rich_text_1` component config (line 194
 
 ### Spec Document
 
-#### [MODIFY] [implementation_plan.md](../../..//support/specs/rich-text-editor-component/implementation_plan.md)
+#### [MODIFY] [implementation_plan.md](../../../support/specs/rich-text-editor-component/implementation_plan.md)
 
 Update to reflect Tiptap instead of CKEditor (replace after implementation is complete).
 
@@ -204,7 +204,7 @@ cd angular && npx ng test form --watch=false --browsers=ChromeHeadless
 
 ### Manual Verification
 
-Use [default-1.0-draft.ts](../../..//typescript/form-config/default-1.0-draft.ts) to test the editor. Use the `redbox-dev-login-browser` skill to log in and navigate to `http://localhost:1500/default/rdmp/record/rdmp/edit`:
+Use [default-1.0-draft.ts](../../../typescript/form-config/default-1.0-draft.ts) to test the editor. Use the `redbox-dev-login-browser` skill to log in and navigate to `http://localhost:1500/default/rdmp/record/rdmp/edit`:
 
 1. Editor renders with toolbar and editable area
 2. Typing and toolbar buttons work (bold, italic, headings, links, lists, etc.)
