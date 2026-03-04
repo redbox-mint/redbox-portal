@@ -830,6 +830,50 @@ describe('FormComponent', () => {
     expect(detailRow.textContent).toContain('Component Attributes');
   });
 
+  it('shows loading indicator before components are loaded', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.downloadAndCreateOnInit.set(false);
+    fixture.autoDetectChanges();
+    await fixture.whenStable();
+
+    const loadingElement = fixture.nativeElement.querySelector('.rb-form-loading');
+    expect(loadingElement).toBeTruthy();
+  });
+
+  it('hides loading indicator after components are loaded', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'loading-indicator-hidden',
+      componentDefinitions: [
+        {
+          name: 'text_loading_hidden',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.downloadAndCreateOnInit.set(false);
+    fixture.autoDetectChanges();
+    await fixture.whenStable();
+
+    await formComponent.downloadAndCreateFormComponents(formConfig);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const loadingElement = fixture.nativeElement.querySelector('.rb-form-loading');
+    expect(loadingElement).toBeNull();
+  });
+
   it('tracks FORM_DEFINITION_CHANGED debug subscription in subMaps and cleans up on destroy', async () => {
     const formConfig: FormConfigFrame = {
       name: 'debug-subscription-cleanup',

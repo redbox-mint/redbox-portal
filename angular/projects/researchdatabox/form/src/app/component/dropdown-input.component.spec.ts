@@ -4,8 +4,13 @@ import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec'
 import { TestBed } from '@angular/core/testing';
 
 describe('DropdownInputComponent', () => {
+  let translationService: any;
+
   beforeEach(async () => {
-    await createTestbedModule({declarations: {"DropdownInputComponent": DropdownInputComponent}});
+    ({ translationService } = await createTestbedModule({declarations: {"DropdownInputComponent": DropdownInputComponent}}));
+    translationService.getCurrentLanguage = jasmine.createSpy('getCurrentLanguage').and.returnValue('en');
+    translationService.translationMap = translationService.translationMap || {};
+    translationService.t = jasmine.createSpy('t').and.callFake((key: string) => translationService.translationMap[key] ?? key);
   });
 
   it('should create component', () => {
@@ -45,13 +50,50 @@ describe('DropdownInputComponent', () => {
       ],
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const selectEl = compiled.querySelector('select') as HTMLSelectElement;
     expect(selectEl).toBeTruthy();
-    const selectedText = selectEl.options[selectEl.selectedIndex]?.text;
-    expect(selectedText).toEqual('Bravo');
+    expect(formComponent.form?.get('dropdown_test')?.value).toEqual('b');
+  });
+
+  it('should translate placeholder and option labels', async () => {
+    translationService.translationMap['@dropdown-placeholder'] = 'Choose one';
+    translationService.translationMap['@dropdown-label-en'] = 'English Label';
+
+    const formConfig: FormConfigFrame = {
+      name: 'testing_dropdown_translation',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'dropdown_lang_test',
+          model: {
+            class: 'DropdownInputModel',
+            config: {
+              value: 'en',
+            },
+          },
+          component: {
+            class: 'DropdownInputComponent',
+            config: {
+              placeholder: '@dropdown-placeholder',
+              options: [
+                { label: '@dropdown-label-en', value: 'en' },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const selectEl = compiled.querySelector('select') as HTMLSelectElement;
+    expect(selectEl.options.length).toBe(2);
+    expect(formComponent.form?.get('dropdown_lang_test')?.value).toEqual('en');
   });
 });
-
-

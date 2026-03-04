@@ -223,6 +223,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const elemFieldEntry = elemEntry.defEntry;
     // Pushing early so rebuilding the lineage paths will be accurate
     this.compDefMapEntries.push(elemEntry);
+    this.updateCanRemoveFlags();
     this.rebuildLineagePaths();
     // Create a new component for the repeatable element
     const wrapperRef = this.repeatableContainer.createComponent(FormBaseWrapperComponent<unknown>);
@@ -231,6 +232,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
     const layoutInstance = ((compInstance as unknown) as RepeatableElementLayoutComponent<Array<unknown>>);
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
+    layoutInstance.canRemove = this.compDefMapEntries.length > 1;
+    elemEntry.layoutInstance = layoutInstance;
     if (this.model?.formControl && compInstance?.model) {
       if (!_isUndefined(elemEntry.value)) {
         compInstance.model.setValue(elemEntry.value);
@@ -258,7 +261,17 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       that.compDefMapEntries.splice(defIdx, 1);
       elemEntry.wrapperRef?.destroy();
       that.model?.removeElement(elemEntry.defEntry?.model);
+      that.updateCanRemoveFlags();
       that.rebuildLineagePaths();
+    }
+  }
+
+  protected updateCanRemoveFlags() {
+    const canRemove = this.compDefMapEntries.length > 1;
+    for (const entry of this.compDefMapEntries) {
+      if (entry.layoutInstance) {
+        entry.layoutInstance.canRemove = canRemove;
+      }
     }
   }
 }
@@ -315,6 +328,7 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
 export interface RepeatableElementEntry {
   defEntry: FormFieldCompMapEntry;
   wrapperRef: ComponentRef<FormBaseWrapperComponent<unknown>> | null | undefined;
+  layoutInstance?: RepeatableElementLayoutComponent<unknown>;
   // The unique ID of the repeatable element, used to identify it in the form. This is not meant to be persisted in the database, but rather to be used for dynamic operations in the form.
   localUniqueId?: string;
   // The value of the element. Unfortunately, in the group compoment, the structure of the data model is not known until after the component is initialised, so we store the value here to set afterwards.
@@ -328,7 +342,7 @@ export interface RepeatableElementEntry {
     <div class="rb-form-repeatable-item__content">
       <ng-container #componentContainer></ng-container>
     </div>
-    @if (isVisible) {
+    @if (isVisible && canRemove) {
       <button type="button" class="rb-form-repeatable-item__remove btn btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next">
         <span class="fa fa-minus-circle" aria-hidden="true"></span>
       </button>
@@ -346,6 +360,7 @@ export interface RepeatableElementEntry {
 export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
   protected override logName = RepeatableElementLayoutName;
   public removeFn?: () => void;
+  public canRemove = false;
 
   protected get isContributorInline(): boolean {
     const hostCssClasses = this.formFieldCompMapEntry?.compConfigJson?.component?.config?.hostCssClasses;
