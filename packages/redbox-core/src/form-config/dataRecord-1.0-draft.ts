@@ -510,7 +510,7 @@ const formConfig: FormConfigFrame = {
                         config: {
                           defaultValue: 'hello world 2!',
                           validators: [
-                            // {class: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"}},
+                            // {class: 'pattern', config: {pattern: "^prefix.*$", description: "must start with prefix"}},
                             // {class: 'minLength', message: "@validator-error-custom-text_2", config: {minLength: 3}},
                           ],
                         },

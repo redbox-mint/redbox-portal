@@ -100,7 +100,6 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     RichTextEditorComponent,
     MapComponent,
     FileUploadComponent,
-    QuestionTreeComponent,
     FormDebugPanelComponent,
     FormDebugModelTabComponent,
     FormDebugConfigTabComponent,

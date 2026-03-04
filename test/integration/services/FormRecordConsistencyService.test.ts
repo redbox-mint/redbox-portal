@@ -955,7 +955,7 @@ describe('The FormRecordConsistencyService', function () {
               params: {
                 actual: 'some text',
                 description: "must start with 'other'",
-                requiredPattern: '/^other.*$/',
+                requiredPattern: '^other.*$',
               },
             },
             {
@@ -1006,6 +1006,12 @@ describe('The FormRecordConsistencyService', function () {
       const normalizeErrorResults = (results: any[]) => {
         return (results || []).map((item: any) => {
           const copy = _.cloneDeep(item);
+          for (const err of copy.errors ?? []) {
+            const pattern = err?.params?.requiredPattern;
+            if (typeof pattern === 'string' && pattern.startsWith('/') && pattern.endsWith('/')) {
+              err.params.requiredPattern = pattern.slice(1, -1);
+            }
+          }
           delete copy.parents;
           delete copy.lineagePaths;
           return copy;

@@ -181,6 +181,8 @@ Files:
 
 - `packages/redbox-core/src/form-config/default-1.0-draft.ts`
 
+- `packages/redbox-core/src/form-config/default-1.0-draft.ts`
+
 Tasks:
 
 1. Update `GroupComponent-fields-5` to `ActionRowLayout`.
