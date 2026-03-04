@@ -23,7 +23,7 @@ describe('TabComponent', () => {
 
     formConfig = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       domElementType: 'form',
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
@@ -112,7 +112,7 @@ describe('TabComponent', () => {
     };
     formConfigNoSelectedTab = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       domElementType: 'form',
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',

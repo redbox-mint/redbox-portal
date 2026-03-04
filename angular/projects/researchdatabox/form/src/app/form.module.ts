@@ -62,6 +62,10 @@ import { MapComponent } from './component/map.component';
 import { FileUploadComponent } from './component/file-upload.component';
 import { A11yModule } from '@angular/cdk/a11y';
 import { FieldErrorSummaryComponent } from './component/field-error-summary.component';
+import { FormDebugPanelComponent } from './form-debug/form-debug-panel.component';
+import { FormDebugModelTabComponent } from './form-debug/form-debug-model-tab.component';
+import { FormDebugConfigTabComponent } from './form-debug/form-debug-config-tab.component';
+import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.component';
 @NgModule({
   declarations: [
     FieldErrorSummaryComponent,
@@ -97,6 +101,10 @@ import { FieldErrorSummaryComponent } from './component/field-error-summary.comp
     MapComponent,
     FileUploadComponent,
     QuestionTreeComponent,
+    FormDebugPanelComponent,
+    FormDebugModelTabComponent,
+    FormDebugConfigTabComponent,
+    FormDebugEventsTabComponent,
   ],
   imports: [
     CommonModule,

@@ -1,4 +1,4 @@
-import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel} from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   QuestionTreeModelValueType,
   QuestionTreeComponentName,
@@ -12,14 +12,14 @@ import {
   QuestionTreeOutcomeInfo,
   QuestionTreeOutcome,
 } from "@researchdatabox/sails-ng-common";
-import {Component, inject, Injector, ViewChild, ViewContainerRef} from "@angular/core";
-import {AbstractControl, FormGroup} from "@angular/forms";
-import {FormComponentsMap, FormService} from "../form.service";
-import {FormComponent} from "../form.component";
-import {isEmpty as _isEmpty, isUndefined as _isUndefined} from "lodash-es";
-import {FormBaseWrapperComponent} from "./base-wrapper.component";
-import {FormComponentEventBus, FormComponentEventType} from "../form-state";
-import {debounceTime, filter} from "rxjs";
+import { Component, inject, Injector, ViewChild, ViewContainerRef } from "@angular/core";
+import { AbstractControl, FormGroup } from "@angular/forms";
+import { FormComponentsMap, FormService } from "../form.service";
+import { FormComponent } from "../form.component";
+import { isEmpty as _isEmpty, isUndefined as _isUndefined } from "lodash-es";
+import { FormBaseWrapperComponent } from "./base-wrapper.component";
+import { FormComponentEventBus, FormComponentEventType } from "../form-state";
+import { debounceTime, filter } from "rxjs";
 
 export type QuestionTreeFormControlValueType = { [key: string]: AbstractControl<unknown> };
 export type QuestionTreeFormControlType = FormGroup<QuestionTreeFormControlValueType>;
@@ -68,7 +68,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
   private injector = inject(Injector);
   protected formComponentsMap?: FormComponentsMap;
 
-  @ViewChild('componentContainer', {read: ViewContainerRef, static: true})
+  @ViewChild('componentContainer', { read: ViewContainerRef, static: true })
   private componentContainer!: ViewContainerRef;
 
   private elementFormConfig?: FormConfigFrame;
@@ -169,8 +169,8 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       .select$(FormComponentEventType.FIELD_VALUE_CHANGED)
       .pipe(
         filter(event =>
-            (event.fieldId === this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer ||
-          event.fieldId.startsWith(this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer + '/'))
+          (event.fieldId === this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer ||
+            event.fieldId.startsWith(this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer + '/'))
           && event.sourceId !== '*'
         ),
         debounceTime(300)
@@ -183,13 +183,14 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
         const currentValue = modelValue?.[QuestionTreeOutcomeInfoKey];
         const hasChanged = JSON.stringify(newValue) !== JSON.stringify(currentValue);
         if (hasChanged && modelValue) {
+          const nextModelValue = structuredClone(modelValue);
           // The model value is only updated if the outcome property changed.
           // This change will trigger another `field.value.changed' event, which is what we want,
           // because then other components can use the updated outcome value in that subsequent event.
-          this.model?.setValue({...modelValue, [QuestionTreeOutcomeInfoKey]: newValue});
+          this.model?.setValue({ ...modelValue, [QuestionTreeOutcomeInfoKey]: newValue });
         }
         console.warn(`Question Tree -> eventbus -> field value ${hasChanged ? 'has changed' : ' is the same'}:`,
-          JSON.parse(JSON.stringify({event, value: this.model?.getValue()})));
+          JSON.parse(JSON.stringify({ event, value: this.model?.getValue() })));
       });
   }
 
@@ -263,7 +264,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
             ...(Object.fromEntries(Object.entries(answer.meta ?? {}).map(
               ([metaKey, metaValue]) => [
                 metaKey,
-                {value: metaValue, label: availableMeta?.[metaKey]?.[metaValue] ?? null}
+                { value: metaValue, label: availableMeta?.[metaKey]?.[metaValue] ?? null }
               ]
             ))),
           });
@@ -288,6 +289,6 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     if (!outcome) {
       return null;
     }
-    return {outcome: outcome, meta: collectedMeta};
+    return { outcome: outcome, meta: collectedMeta };
   }
 }

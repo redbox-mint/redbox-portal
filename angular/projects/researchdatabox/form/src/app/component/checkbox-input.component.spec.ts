@@ -7,7 +7,7 @@ describe('CheckboxInputComponent', () => {
   let translationService: any;
 
   beforeEach(async () => {
-    ({translationService} = await createTestbedModule({declarations: {"CheckboxInputComponent": CheckboxInputComponent}}));
+    ({ translationService } = await createTestbedModule({ declarations: { "CheckboxInputComponent": CheckboxInputComponent } }));
     translationService.getCurrentLanguage = jasmine.createSpy('getCurrentLanguage').and.returnValue('en');
   });
 
@@ -20,7 +20,7 @@ describe('CheckboxInputComponent', () => {
   it('should render Checkbox input component', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
@@ -29,11 +29,11 @@ describe('CheckboxInputComponent', () => {
         {
           name: 'checkbox_test',
           model: {
-              class: 'CheckboxInputModel',
-              config: {
-                value: ['b'],
-              },
+            class: 'CheckboxInputModel',
+            config: {
+              value: ['b'],
             },
+          },
           component: {
             class: 'CheckboxInputComponent',
             config: {
@@ -59,7 +59,7 @@ describe('CheckboxInputComponent', () => {
   it('should allow selecting multiple options when multipleValues is enabled', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
@@ -102,5 +102,44 @@ describe('CheckboxInputComponent', () => {
 
     const checked = compiled.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:checked');
     expect(checked.length).toEqual(2);
+  });
+
+  it('should resolve language-map labels for options', async () => {
+    translationService.translationMap = translationService.translationMap || {};
+    translationService.translationMap['@checkbox-language-label'] = 'English Label';
+    spyOn(translationService, 't').and.callFake((key: string) => translationService.translationMap[key] ?? key);
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'checkbox_lang_test',
+          model: {
+            class: 'CheckboxInputModel',
+            config: {
+              value: [],
+            },
+          },
+          component: {
+            class: 'CheckboxInputComponent',
+            config: {
+              options: [
+                { label: '@checkbox-language-label', value: 'en' },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const labels = compiled.querySelectorAll<HTMLLabelElement>('label');
+    expect(labels.length).toBeGreaterThan(0);
+    expect(labels[0].getAttribute('for')).toEqual('checkbox_lang_test-en');
   });
 });

@@ -33,7 +33,7 @@ import {
 import { Subscription } from 'rxjs';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup, FormControlStatus, StatusChangeEvent, PristineChangeEvent, ValueChangeEvent } from '@angular/forms';
-import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, isUndefined as _isUndefined, set as _set, get as _get, trim as _trim } from 'lodash-es';
+import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, get as _get, trim as _trim } from 'lodash-es';
 import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService, RecordService, RecordActionResult } from '@researchdatabox/portal-ng-common';
 import {
   FormStatus,
@@ -50,6 +50,7 @@ import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
 import { FormComponentValueChangeEventConsumer } from './form-state/events/';
+import { DebugInfo, FormDebugStateService } from './form-debug/form-debug-state.service';
 
 
 /**
@@ -74,7 +75,8 @@ import { FormComponentValueChangeEventConsumer } from './form-state/events/';
   providers: [
     Location,
     { provide: LocationStrategy, useClass: PathLocationStrategy },
-    FormComponentFocusRequestCoordinator
+    FormComponentFocusRequestCoordinator,
+    FormDebugStateService
   ],
   encapsulation: ViewEncapsulation.None,
   standalone: false
@@ -171,22 +173,30 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Indicates whether the form components have been loaded
    */
   componentsLoaded = signal<boolean>(false);
-  /**
-   * Form component debug map
-   */
-  debugFormComponents = signal<Record<string, unknown>>({});
-  /**
-    * Form values debug map (actual payload)
-   */
-  debugFormValues = signal<Record<string, unknown>>({});
-  /**
-   * Raw form values debug map (includes disabled controls)
-   */
-  debugRawFormValues = signal<Record<string, unknown>>({});
-  /**
-   * Toggle for using raw form values in debug panel
-   */
-  debugUseRawValues = signal<boolean>(false);
+  public readonly debugState = inject(FormDebugStateService);
+  // Backward-compatible aliases for existing tests and callers.
+  debugFormComponents = this.debugState.debugFormComponents;
+  debugFormValues = this.debugState.debugFormValues;
+  debugRawFormValues = this.debugState.debugRawFormValues;
+  debugUseRawValues = this.debugState.debugUseRawValues;
+  debugShowTranslatedConfig = this.debugState.debugShowTranslatedConfig;
+  debugShowModelChanges = this.debugState.debugShowModelChanges;
+  debugTranslatedFormConfigInitial = this.debugState.debugTranslatedFormConfigInitial;
+  debugTranslatedFormConfigCurrent = this.debugState.debugTranslatedFormConfigCurrent;
+  debugModelCurrent = this.debugState.debugModelCurrent;
+  debugModelPrevious = this.debugState.debugModelPrevious;
+  debugModelChangedPaths = this.debugState.debugModelChangedPaths;
+  debugExpandedRows = this.debugState.debugExpandedRows;
+  debugEventStreamEnabled = this.debugState.debugEventStreamEnabled;
+  debugEventPaused = this.debugState.debugEventPaused;
+  debugEventFilterType = this.debugState.debugEventFilterType;
+  debugEventFilterFieldId = this.debugState.debugEventFilterFieldId;
+  debugEventFilterSourceId = this.debugState.debugEventFilterSourceId;
+  debugEventAutoScroll = this.debugState.debugEventAutoScroll;
+  debugEventMaxItems = this.debugState.debugEventMaxItems;
+  debugEvents = this.debugState.debugEvents;
+  debugExpandedEventRows = this.debugState.debugExpandedEventRows;
+  readonly debugEventTypes = this.debugState.debugEventTypes;
   /**
    * Reference container for dynamic components injection
    */
@@ -213,6 +223,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Debug info structure
    */
   formDebugInfo: DebugInfo = {
+    id: 'form|root',
+    kind: 'form',
     name: "",
     class: 'FormComponent',
     status: FormStatus.INIT,
@@ -316,6 +328,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig, parentLineagePaths);
     }
     this.componentDefArr = this.formDefMap.components;
+    this.refreshTranslatedConfigDebugInfo(true);
+    this.refreshComponentDebugInfo();
     const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
     if (!compContainerRef) {
       throw new Error(`${this.logName}: No component container found. Cannot load components.`);
@@ -421,6 +435,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }));
         }
       });
+    this.subMaps['formDefinitionChangedDebugSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_DEFINITION_CHANGED)
+      .subscribe(() => {
+        this.refreshTranslatedConfigDebugInfo(false);
+        this.refreshComponentDebugInfo();
+      });
+    this.subMaps['debugEventStreamSub']?.unsubscribe();
+    this.subMaps['debugEventStreamSub'] = this.eventBus
+      .selectAll$()
+      .subscribe((event: FormComponentEvent) => {
+        this.debugState.captureDebugEvent(event);
+      });
 
     if (this.form) {
       // Wire the form events to update the formGroupStatus signal and publish validation events
@@ -441,16 +467,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
       this.subMaps['formValueChangesSub']?.unsubscribe();
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
-        this.debugFormComponents.set(this.getDebugInfo());
-        this.debugFormValues.set(this.getDebugFormValue());
-        this.debugRawFormValues.set(this.getDebugRawFormValue());
+        this.refreshAllDebugInfo({ captureModelPrevious: true });
       });
     }
     // set the initial signal values...
     this.formGroupStatus.set(this.dataStatus);
-    this.debugFormComponents.set(this.getDebugInfo());
-    this.debugFormValues.set(this.getDebugFormValue());
-    this.debugRawFormValues.set(this.getDebugRawFormValue());
+    this.refreshAllDebugInfo();
     // TODO: Placeholder for form-level expressions handling
     // Init the change event consumer
     // if (this.formDefMap?.formConfig.expressions){
@@ -506,7 +528,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   @HostBinding('class') get hostClasses(): string {
     const modeClass = this.editMode() ? 'rb-form-edit' : 'rb-form-view';
-    const baselineClasses = `rb-form-host ${modeClass}`.trim();
+    const debugOpenClass = this.debugState.isDebugEnabled() && !this.debugState.panelCollapsed() ? 'rb-form-debug-open' : '';
+    const debugPopoutClass = this.debugState.isDebugPopoutWindow() ? 'rb-form-debug-popout' : '';
+    const baselineClasses = `rb-form-host ${modeClass} ${debugOpenClass} ${debugPopoutClass}`.trim();
     if (!this.formDefMap?.formConfig) {
       return baselineClasses;
     }
@@ -548,7 +572,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.formDebugInfo.status = this.status();
     this.formDebugInfo.componentsLoaded = this.componentsLoaded();
     this.formDebugInfo.isReady = this.isReady;
-    this.formDebugInfo.children = this.componentDefArr?.map(i => this.getComponentDebugInfo(i));
+    this.formDebugInfo.children = this.componentDefArr?.map((i, siblingIndex) => this.getComponentDebugInfo(i, [], siblingIndex));
     return this.formDebugInfo;
   }
 
@@ -557,7 +581,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public getDebugRawFormValue(): Record<string, unknown> {
-    return structuredClone((this.form?.getRawValue?.() ?? {}) as Record<string, unknown>);
+    return this.safePlainObjectSnapshot((this.form?.getRawValue?.() ?? {}) as Record<string, unknown>);
   }
 
   private getPersistedFormValue(): Record<string, unknown> {
@@ -573,36 +597,168 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
 
-  private getComponentDebugInfo(formFieldCompMapEntry: FormFieldCompMapEntry): DebugInfo {
+  private getComponentDebugInfo(formFieldCompMapEntry: FormFieldCompMapEntry, parentNamePath: string[] = [], siblingIndex: number = 0): DebugInfo {
     const componentEntry = formFieldCompMapEntry;
     this.loggerService.debug('getComponentDebugInfo', formFieldCompMapEntry);
     const componentConfigClassName = formFieldCompMapEntry?.compConfigJson?.component?.class ?? "";
     const name = this.utilityService.formFieldConfigName(formFieldCompMapEntry);
+    const hierarchicalNamePath = [...parentNamePath, name];
+    const lineagePaths = formFieldCompMapEntry?.lineagePaths;
 
     const componentResult: DebugInfo = {
+      id: this.buildDebugRowId('component', formFieldCompMapEntry, hierarchicalNamePath, componentConfigClassName, siblingIndex),
+      kind: 'component',
       name: name,
       class: componentConfigClassName,
       status: componentEntry?.component?.status()?.toString() ?? "",
       viewInitialised: componentEntry?.component?.viewInitialised(),
+      lineagePaths,
+      componentAttributes: this.extractFieldRuntimeAttributes(componentEntry?.component),
+      modelAttributes: this.extractModelRuntimeAttributes(componentEntry?.model, componentEntry?.component)
     };
 
     // If the component has children components, recursively get their debug info. This used to be hardcoded for specific component types, but now it is generic.
     const component = formFieldCompMapEntry?.component;
     if (Array.isArray(component?.formFieldCompMapEntries)) {
-      componentResult.children = component?.formFieldCompMapEntries?.map((i: FormFieldCompMapEntry) => this.getComponentDebugInfo(i));
+      componentResult.children = component?.formFieldCompMapEntries?.map((i: FormFieldCompMapEntry, childIndex: number) => this.getComponentDebugInfo(i, hierarchicalNamePath, childIndex));
     }
 
     if (componentEntry?.layout) {
+      const layoutName = formFieldCompMapEntry?.compConfigJson?.layout?.name ?? `${name}-layout`;
+      const layoutNamePath = [...parentNamePath, layoutName];
       return {
-        name: formFieldCompMapEntry?.compConfigJson?.layout?.name ?? "",
+        id: this.buildDebugRowId('layout', formFieldCompMapEntry, layoutNamePath, formFieldCompMapEntry?.compConfigJson?.layout?.class ?? "", siblingIndex),
+        kind: 'layout',
+        lineagePaths,
+        name: layoutName,
         class: formFieldCompMapEntry?.compConfigJson?.layout?.class ?? "",
         status: componentEntry?.layout?.status()?.toString() ?? "",
         viewInitialised: componentEntry?.layout?.viewInitialised(),
+        layoutAttributes: this.extractFieldRuntimeAttributes(componentEntry?.layout),
         children: [componentResult],
       }
     } else {
       return componentResult;
     }
+  }
+
+  private refreshAllDebugInfo(opts?: { captureModelPrevious?: boolean; resetConfigInitial?: boolean }) {
+    this.refreshTranslatedConfigDebugInfo(!!opts?.resetConfigInitial);
+    this.refreshModelDebugInfo(!!opts?.captureModelPrevious);
+    this.refreshComponentDebugInfo();
+    this.debugState.setFormValueSnapshots(this.getDebugFormValue(), this.getDebugRawFormValue());
+  }
+
+  private refreshTranslatedConfigDebugInfo(resetInitial: boolean) {
+    this.debugState.setTranslatedConfigSnapshot(this.formDefMap?.formConfig ?? {}, resetInitial);
+  }
+
+  private refreshModelDebugInfo(captureModelPrevious: boolean) {
+    this.debugState.setModelSnapshot(this.getDebugFormValue(), captureModelPrevious);
+  }
+
+  private refreshComponentDebugInfo() {
+    this.debugState.setComponentDebugInfo(this.getDebugInfo());
+  }
+
+  public computeChangedPaths(
+    previous: unknown,
+    current: unknown,
+    opts?: { maxDepth?: number; maxPaths?: number }
+  ): string[] {
+    return this.debugState.computeChangedPaths(previous, current, opts);
+  }
+
+  public clearDebugEvents(): void {
+    this.debugState.clearDebugEvents();
+  }
+
+  public getFilteredDebugEvents() {
+    return this.debugState.getFilteredDebugEvents();
+  }
+
+  public setDebugEventMaxItems(value: number | string): void {
+    this.debugState.setDebugEventMaxItems(value);
+  }
+
+  private buildDebugRowId(
+    kind: DebugInfo['kind'],
+    entry: FormFieldCompMapEntry,
+    hierarchicalNamePath: string[],
+    className: string,
+    siblingIndex: number
+  ): string {
+    const lineagePointer = kind === 'layout'
+      ? entry?.lineagePaths?.layoutJsonPointer
+      : entry?.lineagePaths?.angularComponentsJsonPointer;
+    if (lineagePointer) {
+      return `${kind}|${lineagePointer}`;
+    }
+    const recordType = this.trimmedParams.recordType() || '';
+    const formName = this.trimmedParams.formName() || '';
+    return `${kind}|${recordType}|${formName}|${hierarchicalNamePath.join('/') || '(no-name)'}|${className || '(no-class)'}|${siblingIndex}`;
+  }
+
+  private extractFieldRuntimeAttributes(target?: unknown): Record<string, unknown> {
+    const typedTarget = target as Record<string, unknown> | undefined;
+    if (!typedTarget) {
+      return {};
+    }
+    return this.safePlainObjectSnapshot({
+      status: this.safeInvoke(() => (typedTarget['status'] as (() => unknown))?.()),
+      viewInitialised: this.safeInvoke(() => (typedTarget['viewInitialised'] as (() => unknown))?.()),
+      isVisible: this.safeInvoke(() => typedTarget['isVisible']),
+      isReadonly: this.safeInvoke(() => typedTarget['isReadonly']),
+      isDisabled: this.safeInvoke(() => typedTarget['isDisabled']),
+      isRequired: this.safeInvoke(() => typedTarget['isRequired']),
+      isValid: this.safeInvoke(() => typedTarget['isValid']),
+      showValidState: this.safeInvoke(() => typedTarget['showValidState']),
+      hostBindingCssClasses: this.safeInvoke(() => typedTarget['hostBindingCssClasses']),
+      name: this.safeInvoke(() => typedTarget['name']),
+      className: this.safeInvoke(() => typedTarget['className'])
+    });
+  }
+
+  private extractModelRuntimeAttributes(model?: unknown, component?: unknown): Record<string, unknown> {
+    if (!model) {
+      return {};
+    }
+    const typedModel = model as Record<string, unknown>;
+    const typedComponent = component as Record<string, unknown> | undefined;
+    const modelFormControl = this.safeInvoke(() => typedComponent?.['formControl']) ?? typedModel['formControl'];
+    const typedFormControl = (modelFormControl ?? {}) as Record<string, unknown>;
+    return this.safePlainObjectSnapshot({
+      name: typedModel['name'],
+      validators: typedModel['validators'],
+      value: this.safeInvoke(() => (typedModel['getValue'] as (() => unknown))?.()),
+      formControl: {
+        value: typedFormControl['value'],
+        status: typedFormControl['status'],
+        errors: typedFormControl['errors'],
+        pristine: typedFormControl['pristine'],
+        dirty: typedFormControl['dirty'],
+        touched: typedFormControl['touched'],
+        untouched: typedFormControl['untouched'],
+        disabled: typedFormControl['disabled'],
+        enabled: typedFormControl['enabled'],
+        pending: typedFormControl['pending'],
+        valid: typedFormControl['valid'],
+        invalid: typedFormControl['invalid']
+      }
+    });
+  }
+
+  private safeInvoke<T>(callable: () => T): T | undefined {
+    try {
+      return callable();
+    } catch (error) {
+      this.loggerService.debug(`${this.logName}: debug safeInvoke failed`, error);
+      return undefined;
+    }
+  }
+
+  private safePlainObjectSnapshot(value: unknown): Record<string, unknown> {
+    return this.debugState.safePlainObjectSnapshot(value);
   }
 
   // Convenience method to find component definition by name, defaults to the this.componentDefArr if no array is provided.
@@ -792,13 +948,3 @@ export interface FormGroupStatus {
   errors: any;
   status: FormControlStatus;
 }
-
-type DebugInfo = {
-  class: string,
-  status: string,
-  name: string,
-  componentsLoaded?: boolean,
-  viewInitialised?: boolean,
-  isReady?: boolean,
-  children?: any[]
-};

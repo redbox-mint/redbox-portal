@@ -1,0 +1,102 @@
+<section class="rb-form-debug-panel__section rb-form-debug-panel__section--events" role="region" aria-label="Event stream debug">
+  <h5>Event Stream Debug</h5>
+
+  <div class="rb-form-debug-event-controls">
+    <div class="form-check form-switch">
+      <input id="rb-debug-event-enabled" type="checkbox" class="form-check-input" [checked]="debugState.debugEventStreamEnabled()" (change)="debugState.debugEventStreamEnabled.set($any($event.target).checked)">
+      <label class="form-check-label" for="rb-debug-event-enabled">Capture enabled</label>
+    </div>
+    <div class="form-check form-switch">
+      <input id="rb-debug-event-pause" type="checkbox" class="form-check-input" [checked]="debugState.debugEventPaused()" (change)="debugState.debugEventPaused.set($any($event.target).checked)">
+      <label class="form-check-label" for="rb-debug-event-pause">Pause capture</label>
+    </div>
+    <div class="form-check form-switch">
+      <input id="rb-debug-event-autoscroll" type="checkbox" class="form-check-input" [checked]="debugState.debugEventAutoScroll()" (change)="debugState.debugEventAutoScroll.set($any($event.target).checked)">
+      <label class="form-check-label" for="rb-debug-event-autoscroll">Auto-scroll</label>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="debugState.clearDebugEvents()">Clear</button>
+  </div>
+
+  <div class="rb-form-debug-event-filters">
+    <div>
+      <label class="form-label mb-1" for="rb-debug-event-type">Type</label>
+      <select id="rb-debug-event-type" class="form-select form-select-sm" [value]="debugState.debugEventFilterType()" (change)="debugState.debugEventFilterType.set($any($event.target).value)">
+        <option value="">All</option>
+        @for (eventType of debugState.debugEventTypes; track eventType) {
+          <option [value]="eventType">{{ eventType }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
+      <label class="form-label mb-1" for="rb-debug-event-field-id">Field ID</label>
+      <input id="rb-debug-event-field-id" type="text" class="form-control form-control-sm" [value]="debugState.debugEventFilterFieldId()" (input)="debugState.debugEventFilterFieldId.set($any($event.target).value)">
+    </div>
+
+    <div>
+      <label class="form-label mb-1" for="rb-debug-event-source-id">Source ID</label>
+      <input id="rb-debug-event-source-id" type="text" class="form-control form-control-sm" [value]="debugState.debugEventFilterSourceId()" (input)="debugState.debugEventFilterSourceId.set($any($event.target).value)">
+    </div>
+
+    <div>
+      <label class="form-label mb-1" for="rb-debug-event-max-items">Max items</label>
+      <input id="rb-debug-event-max-items" type="number" min="1" max="2000" class="form-control form-control-sm" [value]="debugState.debugEventMaxItems()" (change)="debugState.setDebugEventMaxItems($any($event.target).value)">
+    </div>
+  </div>
+
+  <div class="rb-form-debug-event-list" #debugEventListContainer>
+    <table class="table table-sm table-striped table-hover rb-form-debug-event-table">
+      <thead>
+        <tr>
+          <th scope="col"></th>
+          <th scope="col">
+            <button type="button" class="rb-form-debug-sort btn btn-link btn-sm p-0" (click)="debugState.toggleDebugEventSort('timestamp')">
+              Time {{ debugState.getDebugEventSortIndicator('timestamp') }}
+            </button>
+          </th>
+          <th scope="col">
+            <button type="button" class="rb-form-debug-sort btn btn-link btn-sm p-0" (click)="debugState.toggleDebugEventSort('type')">
+              Type {{ debugState.getDebugEventSortIndicator('type') }}
+            </button>
+          </th>
+          <th scope="col">
+            <button type="button" class="rb-form-debug-sort btn btn-link btn-sm p-0" (click)="debugState.toggleDebugEventSort('sourceId')">
+              Source ID {{ debugState.getDebugEventSortIndicator('sourceId') }}
+            </button>
+          </th>
+          <th scope="col">
+            <button type="button" class="rb-form-debug-sort btn btn-link btn-sm p-0" (click)="debugState.toggleDebugEventSort('fieldId')">
+              Field ID {{ debugState.getDebugEventSortIndicator('fieldId') }}
+            </button>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (event of debugState.filteredDebugEvents(); track event.id) {
+          <tr>
+            <td>
+              <button type="button" class="btn btn-sm btn-outline-secondary rb-form-debug-event-expand" (click)="debugState.toggleDebugEventExpandedRow(event.id)">
+                {{ debugState.isDebugEventExpandedRow(event.id) ? '-' : '+' }}
+              </button>
+            </td>
+            <td>{{ debugState.formatDebugEventTimestamp(event.timestamp) }}</td>
+            <td>{{ event.type }}</td>
+            <td>{{ event.sourceId || '-' }}</td>
+            <td>{{ event.fieldId || '-' }}</td>
+          </tr>
+          @if (debugState.isDebugEventExpandedRow(event.id)) {
+            <tr class="rb-form-debug-event-detail">
+              <td [attr.colspan]="5">
+                <pre class="rb-form-debug-pre rb-form-debug-event-payload" [textContent]="event.payload | json"></pre>
+              </td>
+            </tr>
+          }
+        } @empty {
+          <tr>
+            <td colspan="5" class="text-muted">(no events matched current filters)</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

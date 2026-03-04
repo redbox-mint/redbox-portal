@@ -46,8 +46,131 @@
   width: 100%;
 }
 
+.rb-form-host.rb-form-debug-popout .rb-form-shell {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  gap: 0;
+}
+
+.rb-form-host.rb-form-debug-popout .rb-form-shell__main {
+  display: none;
+}
+
 .rb-form-debug-panel {
   width: 100%;
+}
+
+.rb-form-host .rb-form-debug-pre {
+  max-height: 18rem;
+  overflow-y: auto;
+  overflow-x: auto;
+  margin-bottom: var(--rb-form-gap-2);
+}
+
+.rb-form-host .rb-form-debug-detail td {
+  background: color-mix(in srgb, var(--rb-form-bg-muted) 68%, #ffffff);
+  border-top: none;
+  padding: var(--rb-form-gap-2);
+}
+
+.rb-form-host .rb-form-debug-paths ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  max-height: 10rem;
+  overflow-y: auto;
+}
+
+.rb-form-host .rb-form-debug-paths li {
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.rb-form-host .rb-form-debug-event-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rb-form-gap-2);
+  margin-bottom: var(--rb-form-gap-2);
+}
+
+.rb-form-host .rb-form-debug-event-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--rb-form-gap-2);
+  margin-bottom: var(--rb-form-gap-2);
+}
+
+.rb-form-host .rb-form-debug-event-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  max-height: none;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.rb-form-host .rb-form-debug-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+}
+
+.rb-form-host .rb-form-debug-panel__section--events {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rb-form-host .rb-form-debug-panel__section--events .rb-form-debug-event-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: var(--rb-form-debug-events-max-h, calc(100vh - 15.5rem));
+}
+
+.rb-form-host .rb-form-debug-event-table {
+  margin-bottom: 0;
+}
+
+.rb-form-host .rb-form-debug-sort {
+  text-decoration: none;
+  font-weight: 600;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.rb-form-host .rb-form-debug-sort:hover,
+.rb-form-host .rb-form-debug-sort:focus {
+  text-decoration: underline;
+}
+
+.rb-form-host .rb-form-debug-event-table th,
+.rb-form-host .rb-form-debug-event-table td {
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.rb-form-host .rb-form-debug-event-table td:nth-child(2),
+.rb-form-host .rb-form-debug-event-table td:nth-child(3) {
+  min-width: 11rem;
+}
+
+.rb-form-host .rb-form-debug-event-detail td {
+  border-top: none;
+  background: color-mix(in srgb, var(--rb-form-bg-muted) 70%, #ffffff);
+}
+
+.rb-form-host .rb-form-debug-event-payload {
+  max-height: 14rem;
+  margin-bottom: 0;
 }
 
 .rb-form-host.rb-form-edit .rb-form-tab-shell {
