@@ -259,7 +259,12 @@ export class CustomFieldsFormConfigVisitor extends FormConfigVisitor {
     return new RegExp(validKeys.join('|'), 'g');
   }
 
-  private escapeRegex(value: string): string {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
+        private escapeRegex(value: string): string {
+      const escape = (RegExp as RegExpConstructor & { escape?: (s: string) => string }).escape;
+      // Use built-in escape should be available, otherwise fall back to manual escaping.
+      return typeof escape === 'function'
+        ? escape(value)
+        : value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+  
 }
