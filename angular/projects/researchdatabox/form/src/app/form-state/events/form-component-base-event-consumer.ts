@@ -141,7 +141,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       // However, some jsonata expressions might involve trying to change the value, which will fail.
       // So convert to and then from JSON to get a fresh value.
       const valueOriginal = dataFieldId ? this.formComp?.form?.value[dataFieldId] : undefined;
-      const value = valueOriginal === undefined ? undefined : JSON.parse(JSON.stringify(valueOriginal));
+      const value = valueOriginal === undefined ? undefined : structuredClone(valueOriginal);
 
       // Build the context for JSONata evaluation
       // Include the event value and any additional data that may be useful
