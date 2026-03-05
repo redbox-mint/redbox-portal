@@ -1,6 +1,6 @@
 import { FormFieldModel } from './base.model';
 import { FormControl, FormGroup } from '@angular/forms';
-import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef, ApplicationRef, AfterViewInit } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
+import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef, ApplicationRef, AfterViewInit, effect, EffectRef, Injector } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
 import { LoggerService } from '../logger.service';
 import { get as _get, isEqual as _isEqual, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, isObject as _isObject, isArray as _isArray, cloneDeep as _cloneDeep } from 'lodash-es';
 import { UtilityService } from "../utility.service";
@@ -56,6 +56,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
 
   protected utilityService = inject(UtilityService);
   protected loggerService: LoggerService = inject(LoggerService);
+  private readonly viewReadyInjector: Injector = inject(Injector);
 
   /**
    * For obtaining a reference to the FormComponent instance.
@@ -345,17 +346,24 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   protected untilViewIsInitialised(): Promise<void> {
+    if (this.viewInitialised()) {
+      return Promise.resolve();
+    }
+
     return new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => reject('Timeout waiting for untilViewIsInitialised'), 2000);
-      const checkStatus = () => {
+      let effectRef: EffectRef | undefined;
+      const timeout = setTimeout(() => {
+        effectRef?.destroy();
+        reject('Timeout waiting for untilViewIsInitialised');
+      }, 2000);
+
+      effectRef = effect(() => {
         if (this.viewInitialised()) {
           clearTimeout(timeout);
+          effectRef?.destroy();
           resolve();
-        } else {
-          setTimeout(checkStatus, 10);
         }
-      };
-      checkStatus();
+      }, { injector: this.viewReadyInjector });
     });
   }
 
