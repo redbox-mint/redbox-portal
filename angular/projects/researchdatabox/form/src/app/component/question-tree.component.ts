@@ -173,7 +173,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
             event.fieldId.startsWith(this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer + '/'))
           && event.sourceId !== '*'
         ),
-        debounceTime(300)
+        debounceTime(100)
       )
       .subscribe(event => {
         // When a value in the question tree changes,
@@ -183,13 +183,12 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
         const currentValue = modelValue?.[QuestionTreeOutcomeInfoKey];
         const hasChanged = JSON.stringify(newValue) !== JSON.stringify(currentValue);
         if (hasChanged && modelValue) {
-          const nextModelValue = structuredClone(modelValue);
           // The model value is only updated if the outcome property changed.
           // This change will trigger another `field.value.changed' event, which is what we want,
           // because then other components can use the updated outcome value in that subsequent event.
           this.model?.setValue({ ...modelValue, [QuestionTreeOutcomeInfoKey]: newValue });
         }
-        console.warn(`Question Tree -> eventbus -> field value ${hasChanged ? 'has changed' : ' is the same'}:`,
+        this.loggerService.debug(`Question Tree -> eventbus -> field value ${hasChanged ? 'has changed' : ' is the same'}:`,
           JSON.parse(JSON.stringify({ event, value: this.model?.getValue() })));
       });
   }

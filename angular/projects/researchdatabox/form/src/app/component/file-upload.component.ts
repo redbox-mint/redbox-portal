@@ -470,7 +470,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
                 tusPlugin.opts["headers"] = headers;
             }
         }).catch((err: unknown) => {
-            console.error('ensureTusHeadersContainCsrf: failed to load config for CSRF token', err);
+            this.loggerService.error('ensureTusHeadersContainCsrf: failed to load config for CSRF token', err);
         });
     }
 

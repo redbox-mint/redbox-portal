@@ -461,7 +461,7 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> i
       }
       this.childrenInitialised = true;
     } catch (error) {
-      console.error('Failed to initialise accordion panel children', error);
+      this.loggerService.error('Failed to initialise accordion panel children', error);
       throw error;
     }
   }
