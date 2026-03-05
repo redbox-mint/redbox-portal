@@ -135,10 +135,18 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 
 		try {
       const dataFieldId = getLastSegmentFromJSONPointer(event.fieldId || '');
-			// Build the context for JSONata evaluation
-			// Include the event value and any additional data that may be useful
+
+      // The value from angular may be frozen (from Object.freeze).
+      // This is good, it reduces the chances of accidentally changing the value in the angular model.
+      // However, some jsonata expressions might involve trying to change the value, which will fail.
+      // So convert to and then from JSON to get a fresh value.
+      const valueOriginal = dataFieldId ? this.formComp?.form?.value[dataFieldId] : undefined;
+      const value = valueOriginal === undefined ? undefined : structuredClone(valueOriginal);
+
+      // Build the context for JSONata evaluation
+      // Include the event value and any additional data that may be useful
 			const context = {
-        value: dataFieldId ? this.formComp?.form?.value[dataFieldId] : undefined,
+        value: value,
 				event: event,
 				// Include the current form data if available
 				formData: this.formComp?.form?.value ?? {},
