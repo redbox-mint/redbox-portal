@@ -43,7 +43,39 @@
 }
 
 .rb-form-shell__main {
+  position: relative;
   width: 100%;
+  min-height: 14rem;
+}
+
+.rb-form-shell__main--loading .rb-form-components {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.rb-form-components {
+  width: 100%;
+}
+
+.rb-form-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: color-mix(in srgb, var(--bs-body-bg, #ffffff) 92%, transparent);
+}
+
+.rb-form-loading__spinner {
+  width: 120px;
+  height: 120px;
+  max-width: none;
+}
+
+.rb-form-host .rb-form-loading__spinner {
+  width: 120px !important;
+  height: 120px !important;
 }
 
 .rb-form-host.rb-form-debug-popout .rb-form-shell {
@@ -236,30 +268,38 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-weight: 600;
+  min-height: 34px;
+  padding: 6px 12px;
+  line-height: 1.42857143;
+  font-size: 14px;
 }
 
 .rb-form-edit .rb-form-repeatable-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  align-items: flex-start;
   gap: var(--rb-form-gap-2);
-  align-items: start;
 }
 
 .rb-form-edit .rb-form-repeatable-item__content {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .rb-form-edit .rb-form-repeatable-item__remove {
+  flex: 0 0 auto;
   align-self: start;
-  min-width: 3.1rem;
-  min-height: 3.2rem;
-  height: 3.2rem;
+  min-width: 34px;
+  min-height: 34px;
+  height: 34px;
   padding: 0;
-  line-height: 1;
+  line-height: 1.42857143;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.rb-form-edit select.form-select {
+  height: auto;
 }
 
 .rb-form-edit .rb-form-repeatable-item:has(.rb-form-field-label) .rb-form-repeatable-item__remove {

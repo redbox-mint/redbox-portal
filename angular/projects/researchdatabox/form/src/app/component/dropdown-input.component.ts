@@ -24,10 +24,10 @@ export class DropdownInputModel extends FormFieldModel<DropdownInputModelValueTy
         [class.is-invalid]="!isValid"
         [title]="tooltip">
         @if (placeholder) {
-          <option [ngValue]="null" disabled>{{placeholder}}</option>
+          <option [ngValue]="null" disabled>{{ placeholder | i18next }}</option>
         }
         @for (opt of options; track opt.value) {
-          <option [ngValue]="opt.value" [disabled]="opt.disabled === true">{{opt.label}}</option>
+          <option [ngValue]="opt.value" [disabled]="opt.disabled === true">{{ opt.label | i18next }}</option>
         }
       </select>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />

@@ -1,6 +1,13 @@
 <div class="rb-form-shell">
-  <div class="rb-form-shell__main">
-    <ng-container #componentsContainer></ng-container>
+  <div class="rb-form-shell__main" [class.rb-form-shell__main--loading]="!componentsLoaded()">
+    @if (!componentsLoaded()) {
+      <div class="rb-form-loading">
+        <img class="center-block rb-form-loading__spinner" src="/images/loading.svg" [attr.alt]="'loading-alt-text' | i18next" style="width: 120px; height: 120px;" />
+      </div>
+    }
+    <div class="rb-form-components" [attr.aria-hidden]="!componentsLoaded() ? 'true' : null">
+      <ng-container #componentsContainer></ng-container>
+    </div>
   </div>
 
   @if (componentDefArr.length > 0 && debugState.isDebugEnabled()) {

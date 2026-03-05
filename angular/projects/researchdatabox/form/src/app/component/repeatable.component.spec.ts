@@ -244,4 +244,130 @@ describe('RepeatableComponent', () => {
     expect(fixture.nativeElement.querySelector('.rb-form-field-error-summary')).toBeTruthy();
   });
 
+  it('hides remove button when only one repeatable item exists', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_single_item_remove',
+      componentDefinitions: [
+        {
+          name: 'repeatable_single',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const removeButtons = fixture.nativeElement.querySelectorAll('.rb-form-repeatable-item__remove');
+    expect(removeButtons.length).toBe(0);
+  });
+
+  it('shows remove buttons when repeatable item count is greater than one', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_multiple_item_remove',
+      componentDefinitions: [
+        {
+          name: 'repeatable_multi',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+    await repeatable.appendNewElement('two');
+    await fixture.whenStable();
+
+    const removeButtons = fixture.nativeElement.querySelectorAll('.rb-form-repeatable-item__remove');
+    expect(removeButtons.length).toBe(2);
+  });
+
+  it('hides remove buttons again after removing back to one item', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_remove_back_to_one',
+      componentDefinitions: [
+        {
+          name: 'repeatable_back_to_one',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+    await repeatable.appendNewElement('two');
+    await fixture.whenStable();
+
+    const removeButton = fixture.nativeElement.querySelector('.rb-form-repeatable-item__remove') as HTMLButtonElement;
+    removeButton.click();
+    await fixture.whenStable();
+
+    const removeButtons = fixture.nativeElement.querySelectorAll('.rb-form-repeatable-item__remove');
+    expect(removeButtons.length).toBe(0);
+  });
+
 });
