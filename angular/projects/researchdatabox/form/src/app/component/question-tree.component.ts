@@ -189,7 +189,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
           // because then other components can use the updated outcome value in that subsequent event.
           this.model?.setValue({ ...modelValue, [QuestionTreeOutcomeInfoKey]: newValue });
         }
-        console.warn(`Question Tree -> eventbus -> field value ${hasChanged ? 'has changed' : ' is the same'}:`,
+        this.loggerService.debug(`Question Tree -> eventbus -> field value ${hasChanged ? 'has changed' : ' is the same'}:`,
           JSON.parse(JSON.stringify({ event, value: this.model?.getValue() })));
       });
   }
