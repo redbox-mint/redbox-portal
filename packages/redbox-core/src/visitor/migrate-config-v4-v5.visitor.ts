@@ -1462,8 +1462,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
     }
 
-    const allowFreeText = this.parseLegacyTypeaheadBoolean(definition.freeText, false, 'freeText');
-    this.sharedProps.setPropOverride('allowFreeText', item.config, { allowFreeText });
+    const requireSelection = !this.parseLegacyTypeaheadBoolean(definition.freeText, false, 'freeText');
+    this.sharedProps.setPropOverride('requireSelection', item.config, { requireSelection });
 
     const storeLabelOnly = this.parseLegacyTypeaheadBoolean(definition.storeLabelOnly, true, 'storeLabelOnly');
     const valueMode = storeLabelOnly ? 'value' : 'optionObject';

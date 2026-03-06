@@ -51,7 +51,7 @@ export interface TypeaheadInputFieldComponentConfigFrame extends FieldComponentC
     minChars?: number;
     debounceMs?: number;
     maxResults?: number;
-    allowFreeText?: boolean;
+    requireSelection?: boolean;
     valueMode?: TypeaheadValueMode;
     cacheResults?: boolean;
     multiSelect?: boolean;

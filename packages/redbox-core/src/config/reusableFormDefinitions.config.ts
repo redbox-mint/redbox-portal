@@ -133,7 +133,6 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
           minChars: 1,
           debounceMs: 250,
           maxResults: 25,
-          allowFreeText: false,
           valueMode: 'value',
         }
       },

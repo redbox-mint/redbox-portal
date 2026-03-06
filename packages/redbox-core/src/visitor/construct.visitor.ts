@@ -1464,7 +1464,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('minChars', item.config, config);
     this.sharedProps.setPropOverride('debounceMs', item.config, config);
     this.sharedProps.setPropOverride('maxResults', item.config, config);
-    this.sharedProps.setPropOverride('allowFreeText', item.config, config);
+    this.sharedProps.setPropOverride('requireSelection', item.config, config);
     this.sharedProps.setPropOverride('valueMode', item.config, config);
     this.sharedProps.setPropOverride('cacheResults', item.config, config);
     this.sharedProps.setPropOverride('multiSelect', item.config, config);
@@ -1499,7 +1499,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       item.config.maxResults = 25;
     }
 
-    item.config.allowFreeText = Boolean(item.config.allowFreeText);
+    item.config.requireSelection = Boolean(item.config.requireSelection);
     item.config.multiSelect = Boolean(item.config.multiSelect);
   }
 

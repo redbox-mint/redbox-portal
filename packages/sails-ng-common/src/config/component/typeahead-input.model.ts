@@ -35,7 +35,7 @@ export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig imp
     minChars = 2;
     debounceMs = 250;
     maxResults = 25;
-    allowFreeText = false;
+    requireSelection = false;
     valueMode: "value" | "optionObject" = "value";
     cacheResults = true;
     multiSelect = false;
