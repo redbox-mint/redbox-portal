@@ -117,4 +117,83 @@ describe('DropdownInputComponent', () => {
     expect(selectEl.options[1].text).toBe('English Label');
     expect(formComponent.form?.get('dropdown_lang_test')?.value).toEqual('en');
   });
+
+  it('should default to the empty option when the model value is unset', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_dropdown_default_empty',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'dropdown_default_empty',
+          model: {
+            class: 'DropdownInputModel',
+            config: {
+              validators: [],
+            },
+          },
+          component: {
+            class: 'DropdownInputComponent',
+            config: {
+              options: [
+                { label: 'Please select', value: '' },
+                { label: 'Alpha', value: 'a' },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const selectEl = compiled.querySelector('select') as HTMLSelectElement;
+
+    expect(selectEl.selectedIndex).toBe(0);
+    expect(selectEl.value).toBe('');
+    expect(formComponent.form?.get('dropdown_default_empty')?.value).toBe('');
+  });
+
+  it('should preserve an empty-string option value on existing blank values', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_dropdown_existing_empty',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'dropdown_existing_empty',
+          model: {
+            class: 'DropdownInputModel',
+            config: {
+              value: '',
+              validators: [],
+            },
+          },
+          component: {
+            class: 'DropdownInputComponent',
+            config: {
+              options: [
+                { label: 'Please select', value: '' },
+                { label: 'Less than 10 GB', value: 'lt10' },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const selectEl = compiled.querySelector('select') as HTMLSelectElement;
+
+    expect(selectEl.selectedIndex).toBe(0);
+    expect(selectEl.value).toBe('');
+    expect(formComponent.form?.get('dropdown_existing_empty')?.value).toBe('');
+  });
 });
