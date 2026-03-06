@@ -188,8 +188,8 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
         class: "SimpleInputComponent",
         config: {
           type: "text",
-          hostCssClasses: "flex-grow-1 d-block",
-          wrapperCssClasses: "rb-form-contributor-inline__field",
+          hostCssClasses: "d-block",
+          wrapperCssClasses: "rb-form-contributor-inline__field rb-form-contributor-inline__field--title",
           onItemSelect: { rawPath: 'metadata.title' },
         }
       },
@@ -239,7 +239,7 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
       component: {
         class: "GroupComponent",
         config: {
-          hostCssClasses: "rb-form-contributor-inline",
+          hostCssClasses: "rb-form-contributor-inline rb-form-contributor-inline--with-title",
           componentDefinitions: [
             {
               overrides: {reusableFormName: "standard-contributor-fields-with-title"},
