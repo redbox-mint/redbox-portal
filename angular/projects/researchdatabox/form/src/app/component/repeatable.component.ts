@@ -34,7 +34,7 @@ import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '.
         <ng-container #repeatableContainer></ng-container>
       </div>
       @if (isStatusReady() && isVisible && addButtonShow && (!hideWhenZeroRows || compDefMapEntries.length > 0)) {
-        <button type="button" class="rb-form-repeatable__add btn btn-primary" (click)="appendNewElement()" [attr.aria-label]="'add-button-label' | i18next">
+        <button type="button" class="rb-form-repeatable__add btn btn-success" (click)="appendNewElement()" [attr.aria-label]="'add-button-label' | i18next">
           <span class="fa fa-plus-circle" aria-hidden="true"></span>
           <span>{{ 'add-button-label' | i18next }}</span>
         </button>
