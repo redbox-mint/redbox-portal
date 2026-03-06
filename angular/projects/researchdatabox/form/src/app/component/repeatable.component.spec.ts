@@ -206,6 +206,49 @@ describe('RepeatableComponent', () => {
     expect(fixture.nativeElement.querySelector('.rb-form-repeatable-item')).toBeTruthy();
   });
 
+  it('should support zero-row repeatables with hidden add button', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_zero_rows',
+      componentDefinitions: [
+        {
+          name: 'repeatable_zero_rows',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: []
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              addButtonShow: false,
+              allowZeroRows: true,
+              hideWhenZeroRows: true,
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: '',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          }
+        },
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelectorAll('input[type="text"]')).toHaveSize(0);
+    expect(compiled.querySelector('.rb-form-repeatable__add')).toBeFalsy();
+  });
+
   it('should render shared field error summary for repeatable element validation errors', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing_repeatable_validation',

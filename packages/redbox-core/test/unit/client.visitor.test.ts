@@ -3,6 +3,7 @@ import {
   FormExpressionsTemplateConfigFrame,
   QuestionTreeFormComponentDefinitionOutline, QuestionTreeMeta, QuestionTreeOutcome, QuestionTreeOutcomeInfoKey,
   QuestionTreeQuestion,
+  RepeatableFieldComponentConfigFrame,
   TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
 } from "@researchdatabox/sails-ng-common";
 import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
@@ -16,6 +17,46 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 describe("Client Visitor", async () => {
+  it(`should preserve repeatable zero-row config in client output`, async function () {
+    const args: FormConfigFrame = {
+      name: "repeatable-config-preserve",
+      componentDefinitions: [
+        {
+          name: "legacy_repeatable",
+          component: {
+            class: "RepeatableComponent",
+            config: {
+              addButtonShow: false,
+              allowZeroRows: true,
+              hideWhenZeroRows: true,
+              elementTemplate: {
+                name: "",
+                component: {
+                  class: "SimpleInputComponent",
+                },
+              },
+            } as RepeatableFieldComponentConfigFrame,
+          },
+        },
+      ],
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      data: args,
+      formMode: "edit",
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed });
+    const repeatableConfig = actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame;
+
+    expect(repeatableConfig.addButtonShow).to.equal(false);
+    expect(repeatableConfig.allowZeroRows).to.equal(true);
+    expect(repeatableConfig.hideWhenZeroRows).to.equal(true);
+  });
+
   it(`should create full example form config`, async function () {
     const args = formConfigExample1;
 

@@ -40,6 +40,9 @@ export type RepeatableComponentNameType = typeof RepeatableComponentName;
 
 export interface RepeatableFieldComponentConfigFrame extends FieldComponentConfigFrame {
     elementTemplate: AvailableFormComponentDefinitionFrames;
+    addButtonShow?: boolean;
+    allowZeroRows?: boolean;
+    hideWhenZeroRows?: boolean;
 }
 
 export interface RepeatableFieldComponentConfigOutline extends RepeatableFieldComponentConfigFrame, FieldComponentConfigOutline {

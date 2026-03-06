@@ -37,6 +37,9 @@ import {
 /* Repeatable Component */
 export class RepeatableFieldComponentConfig extends FieldComponentConfig implements RepeatableFieldComponentConfigOutline {
     elementTemplate!: AvailableFormComponentDefinitionOutlines;
+    addButtonShow = true;
+    allowZeroRows = false;
+    hideWhenZeroRows = false;
 
     constructor() {
         super();
@@ -143,4 +146,3 @@ export const RepeatableDefaults = {
         },
     },
 };
-

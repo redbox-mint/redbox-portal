@@ -512,6 +512,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     item.config = new RepeatableFieldComponentConfig();
 
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, frame);
+    this.sharedProps.setPropOverride('addButtonShow', item.config, frame);
+    this.sharedProps.setPropOverride('allowZeroRows', item.config, frame);
+    this.sharedProps.setPropOverride('hideWhenZeroRows', item.config, frame);
 
     const currentFormConfigPath = this.formPathHelper.formPath.formConfig;
 

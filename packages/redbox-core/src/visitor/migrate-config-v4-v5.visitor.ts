@@ -809,6 +809,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const field = this.getV4Data();
     item.config = new RepeatableFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    this.sharedProps.setPropOverride('addButtonShow', item.config, definition);
+    this.sharedProps.setPropOverride('allowZeroRows', item.config, definition);
+    this.sharedProps.setPropOverride('hideWhenZeroRows', item.config, definition);
     const currentFormConfigPath = this.formPathHelper.formPath.formConfig;
 
     const fields = field?.definition?.fields ?? [];

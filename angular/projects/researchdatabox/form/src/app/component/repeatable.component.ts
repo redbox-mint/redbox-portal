@@ -30,10 +30,10 @@ import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '.
     `
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
     <div class="rb-form-repeatable">
-      <div class="rb-form-repeatable__items">
+      <div class="rb-form-repeatable__items" [class.d-none]="hideWhenZeroRows && compDefMapEntries.length === 0">
         <ng-container #repeatableContainer></ng-container>
       </div>
-      @if (isStatusReady() && isVisible) {
+      @if (isStatusReady() && isVisible && addButtonShow && (!hideWhenZeroRows || compDefMapEntries.length > 0)) {
         <button type="button" class="rb-form-repeatable__add btn btn-primary" (click)="appendNewElement()" [attr.aria-label]="'add-button-label' | i18next">
           <span class="fa fa-plus-circle" aria-hidden="true"></span>
           <span>{{ 'add-button-label' | i18next }}</span>
@@ -47,6 +47,9 @@ import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '.
 export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> {
   protected override logName = RepeatableComponentName;
   public override model?: RepeatableComponentModel;
+  protected addButtonShow = true;
+  protected allowZeroRows = false;
+  protected hideWhenZeroRows = false;
 
   protected formService = inject(FormService);
   private injector = inject(Injector);
@@ -86,6 +89,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     const componentConfigFormConfig = componentFormConfig.config;
+    this.addButtonShow = componentConfigFormConfig?.addButtonShow ?? true;
+    this.allowZeroRows = componentConfigFormConfig?.allowZeroRows ?? false;
+    this.hideWhenZeroRows = componentConfigFormConfig?.hideWhenZeroRows ?? false;
     const elementTemplate = componentConfigFormConfig?.elementTemplate;
     if (!elementTemplate) {
       throw new Error(`${this.logName}: elementTemplate is not defined in the component definition for '${formComponentName}'.`);
@@ -131,8 +137,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       throw new Error(`${this.logName}: model value is not an array. Cannot initialize the component for '${formComponentName}'.`);
     }
 
-    // A repeatable needs at least one item.
-    if (elemVals.length === 0) {
+    // By default a repeatable creates one row. Legacy configs can opt into zero-row behavior.
+    if (elemVals.length === 0 && !this.allowZeroRows) {
       // If we get here, there is no default from the repeatable or an ancestor.
       // Use the default value from the elementTemplate, because elementTemplate defines the default for new entries.
       // If there is no model value, use undefined.
@@ -267,7 +273,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   }
 
   protected updateCanRemoveFlags() {
-    const canRemove = this.compDefMapEntries.length > 1;
+    const canRemove = this.allowZeroRows ? this.compDefMapEntries.length > 0 : this.compDefMapEntries.length > 1;
     for (const entry of this.compDefMapEntries) {
       if (entry.layoutInstance) {
         entry.layoutInstance.canRemove = canRemove;
