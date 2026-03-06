@@ -21,8 +21,8 @@ import {
 
 
 export class DateInputFieldComponentConfig extends FieldComponentConfig implements DateInputFieldComponentConfigOutline {
-    placeholder?: string = '';
-    dateFormat?: string = 'DD/MM/YYYY';
+    placeholder?: string = 'yyyy/mm/dd';
+    dateFormat?: string = 'YYYY/MM/DD';
     showWeekNumbers?: boolean = false;
     containerClass?: string = 'theme-dark-blue';
     enableTimePicker?: boolean = false;

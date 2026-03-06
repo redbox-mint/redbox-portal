@@ -81,8 +81,8 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
 export class DateInputComponent extends FormFieldBaseComponent<DateInputModelValueType> {
   protected override logName = DateInputComponentName;
   public tooltip: string = '';
-  public placeholder: string | undefined = 'DD/MM/YYYY';
-  private dateFormatDefault: string = 'DD/MM/YYYY';
+  public placeholder: string | undefined = 'yyyy/mm/dd';
+  private dateFormatDefault: string = 'YYYY/MM/DD';
   private showWeekNumbers: boolean = false;
   private containerClass: string = 'theme-dark-blue';
   private bsFullConfig: any = {};
@@ -104,7 +104,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     let dateConfig = this.componentDefinition?.config as DateInputFieldComponentConfigFrame;
     let defaultConfig = new DateInputFieldComponentConfig();
     let cfg = (_isUndefined(dateConfig) || _isEmpty(dateConfig)) ? defaultConfig : dateConfig;
-    this.placeholder = cfg.placeholder ?? defaultConfig.placeholder;
+    this.placeholder = cfg.placeholder ?? defaultConfig.placeholder ?? this.placeholder;
     this.showWeekNumbers = cfg.showWeekNumbers ?? defaultConfig.showWeekNumbers ?? this.showWeekNumbers;
     this.containerClass = cfg.containerClass ?? defaultConfig.containerClass ?? this.containerClass;
     this.bsFullConfig = cfg.bsFullConfig ?? {};
