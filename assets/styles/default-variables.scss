@@ -145,6 +145,16 @@ $anchor-color: #337ab7;
 $anchor-color-hover: #23527c;
 $anchor-color-focus: #23527c;
 
+/* RDMP form tabs */
+$rdmp-tab-link-color: $anchor-color;
+$rdmp-tab-link-hover-color: $anchor-color-hover;
+$rdmp-tab-link-hover-background-color: rgba($anchor-color, 0.1);
+$rdmp-tab-link-hover-border-color: rgba($anchor-color, 0.2);
+$rdmp-tab-link-focus-shadow-color: rgba($anchor-color, 0.25);
+$rdmp-tab-link-active-color: #fff;
+$rdmp-tab-link-active-background-color: $anchor-color;
+$rdmp-tab-link-active-border-color: $anchor-color;
+
 /* Misc global tweaks */
 $nonlink-anchor-color: $anchor-color;   // a:not([href]):not([class])
 $mark-text-color: #000;                 // text color inside <mark>

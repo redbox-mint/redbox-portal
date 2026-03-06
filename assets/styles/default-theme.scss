@@ -4533,6 +4533,31 @@ tbody.collapse.in {
     background-color: #337ab7
 }
 
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link {
+    color: $rdmp-tab-link-color;
+    background-color: transparent;
+}
+
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link:hover:not(.active),
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link:focus-visible:not(.active) {
+    color: $rdmp-tab-link-hover-color;
+    background-color: $rdmp-tab-link-hover-background-color;
+    border-color: $rdmp-tab-link-hover-border-color;
+}
+
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 .2rem $rdmp-tab-link-focus-shadow-color;
+}
+
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link.active,
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link.active:hover,
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link.active:focus-visible {
+    color: $rdmp-tab-link-active-color;
+    background-color: $rdmp-tab-link-active-background-color;
+    border-color: $rdmp-tab-link-active-border-color;
+}
+
 .nav-stacked>li {
     float: none
 }

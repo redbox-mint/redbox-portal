@@ -224,6 +224,18 @@
   gap: var(--rb-form-gap-1);
 }
 
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  text-align: left;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease;
+}
+
 .rb-form-host.rb-form-edit .rb-form-tab-pane {
   width: 100%;
 }
