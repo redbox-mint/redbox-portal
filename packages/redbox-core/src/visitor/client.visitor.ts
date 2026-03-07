@@ -129,6 +129,7 @@ import { guessType } from '@researchdatabox/sails-ng-common';
 import { FormOverride } from '@researchdatabox/sails-ng-common';
 import { GroupFieldComponentName } from '@researchdatabox/sails-ng-common';
 import { RepeatableComponentName } from '@researchdatabox/sails-ng-common';
+import { QuestionTreeComponentName } from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config class type and build the form config for the client-side.
@@ -231,9 +232,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const shouldTransformRepeatable = className === RepeatableComponentName;
     const shouldTransformGroup =
       className === GroupFieldComponentName && item?.layout?.class !== ActionRowLayoutName;
+    const shouldTransformQuestionTree = className === QuestionTreeComponentName;
     const shouldSkipViewTransform = this.hasExplicitAllowedMode(item, 'view');
 
-    if (shouldTransformRepeatable || shouldTransformGroup) {
+    if (shouldTransformRepeatable || shouldTransformGroup || shouldTransformQuestionTree) {
       if (shouldSkipViewTransform) {
         this.applyPostPruningTransformsToNestedChildren(item);
         if ('constraints' in item) {
@@ -757,7 +759,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const isPostPruningCandidate =
       this.formMode === 'view' &&
       this.formModeProvided &&
-      (item?.component?.class === RepeatableComponentName || item?.component?.class === GroupFieldComponentName);
+      (
+        item?.component?.class === RepeatableComponentName ||
+        item?.component?.class === GroupFieldComponentName ||
+        item?.component?.class === QuestionTreeComponentName
+      );
 
     // Constraint define the criteria for including a component.
     // The client has no need for the constraints.

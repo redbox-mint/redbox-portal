@@ -1,6 +1,7 @@
 import {
   FormConfigFrame,
   FormExpressionsTemplateConfigFrame,
+  QuestionTreeFieldComponentDefinitionOutline,
   QuestionTreeFormComponentDefinitionOutline, QuestionTreeMeta, QuestionTreeOutcome, QuestionTreeOutcomeInfoKey,
   QuestionTreeQuestion,
   RepeatableFieldComponentConfigFrame,
@@ -1184,6 +1185,111 @@ describe("Client Visitor", async () => {
     const actual = visitor.start({form: constructed});
 
     expect(actual).to.containSubset(expected);
+  });
+
+  it("should transform question tree answers to content in view mode", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "question-tree-view-transform",
+      componentDefinitions: [
+        {
+          name: "questiontree_1",
+          model: {
+            class: "QuestionTreeModel",
+            config: {
+              defaultValue: {
+                question_1: "no",
+                question_2: ["yes", "maybe"],
+                [QuestionTreeOutcomeInfoKey]: {
+                  outcome: { value: "restricted", label: "@outcome-restricted" },
+                  meta: [],
+                },
+              },
+            },
+          },
+          component: {
+            class: "QuestionTreeComponent",
+            config: {
+              availableOutcomes: [{ value: "restricted", label: "@outcome-restricted" }],
+              availableMeta: {},
+              questions: [
+                {
+                  id: "question_1",
+                  label: "Primary question",
+                  answersMin: 1,
+                  answersMax: 1,
+                  answers: [
+                    { value: "yes", label: "Yes" },
+                    { value: "no", label: "No" },
+                  ],
+                  rules: { op: "true" },
+                },
+                {
+                  id: "question_2",
+                  answersMin: 1,
+                  answersMax: 2,
+                  answers: [
+                    { value: "yes", label: "Yes" },
+                    { value: "maybe", label: "@questiontree_1-data-not-from-or-about-individuals-data-about-individuals-label" },
+                    { value: "no", label: "No" },
+                  ],
+                  rules: { op: "in", q: "question_1", a: ["no"] },
+                },
+              ],
+              componentDefinitions: [],
+            },
+          },
+        },
+      ],
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      data: formConfig,
+      formMode: "view",
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    const constructedQuestionTree = constructed.componentDefinitions[0];
+    if (constructedQuestionTree.model?.config) {
+      constructedQuestionTree.model.config.value = {
+        [QuestionTreeOutcomeInfoKey]: {
+          outcome: { value: "restricted", label: "@outcome-restricted" },
+          meta: [],
+        },
+      };
+    }
+    const constructedQuestions =
+      ((constructedQuestionTree.component.config as QuestionTreeFieldComponentDefinitionOutline["config"])?.componentDefinitions ?? []);
+    const questionOne = constructedQuestions.find((component) => component.name === "question_1");
+    const questionTwo = constructedQuestions.find((component) => component.name === "question_2");
+    if (questionOne?.model?.config) {
+      questionOne.model.config.value = "no";
+    }
+    if (questionTwo?.model?.config) {
+      questionTwo.model.config.value = ["yes", "maybe"];
+    }
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed, formMode: "view" });
+    const transformed = actual.componentDefinitions[0];
+
+    expect(transformed.component.class).to.equal("ContentComponent");
+    expect(transformed.component.config).to.containSubset({
+      content: [
+        {
+          questionLabel: "Primary question",
+          answerLabel: "No",
+        },
+        {
+          questionLabel: "@questiontree_1-item-question_2-label",
+          answerLabels: [
+            { label: "Yes" },
+            { label: "@questiontree_1-data-not-from-or-about-individuals-data-about-individuals-label" },
+          ],
+        },
+      ],
+    });
+    expect((transformed.component.config as { template?: string }).template).to.contain("rb-view-group");
   });
 
   it("should construct the question tree config", async () => {

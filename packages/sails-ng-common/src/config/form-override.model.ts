@@ -38,6 +38,10 @@ import { ILogger } from '../logger.interface';
 import { ContentFieldComponentConfig } from './component/content.model';
 import {
   QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
+  QuestionTreeQuestion,
+  QuestionTreeQuestionAnswer,
+  QuestionTreeComponentName,
   QuestionTreeOutcomeInfoKey,
 } from './component/question-tree.outline';
 import { TabFormComponentDefinitionOutline, TabComponentName } from './component/tab.outline';
@@ -154,6 +158,9 @@ export class FormOverride {
     [CheckboxTreeComponentName]: {
       [ContentComponentName]: this.sourceCheckboxTreeComponentTargetContentComponent,
     },
+    [QuestionTreeComponentName]: {
+      [ContentComponentName]: this.sourceQuestionTreeComponentTargetContentComponent,
+    },
   };
 
   /**
@@ -224,6 +231,11 @@ export class FormOverride {
       },
     },
     [CheckboxTreeComponentName]: {
+      view: {
+        component: ContentComponentName,
+      },
+    },
+    [QuestionTreeComponentName]: {
       view: {
         component: ContentComponentName,
       },
@@ -796,6 +808,22 @@ export class FormOverride {
     return target;
   }
 
+  private sourceQuestionTreeComponentTargetContentComponent(
+    source: QuestionTreeFormComponentDefinitionOutline,
+    formMode: FormModesConfig
+  ): ContentFormComponentDefinitionOutline {
+    const target = this.commonContentComponent(source as unknown as AllFormComponentDefinitionOutlines, formMode);
+    if (!target.component.config) {
+      return target;
+    }
+
+    const answers = this.buildQuestionTreeViewRows(source);
+    target.component.config.content = answers;
+    target.component.config.template =
+      '{{#if content}}<div class="rb-view-group">{{#each content}}<div class="rb-view-row"><div class="rb-view-label">{{#with @root}}{{t ../questionLabel}}{{/with}}</div><div class="rb-view-value">{{#if answerLabels}}<ul>{{#each answerLabels}}<li>{{#with @root}}{{t ../label}}{{/with}}</li>{{/each}}</ul>{{else}}{{#with @root}}{{t ../answerLabel}}{{/with}}{{/if}}</div></div>{{/each}}</div>{{/if}}';
+    return target;
+  }
+
   private isDeepEmpty(value: any): boolean {
     if (value === null || value === undefined || value === '') {
       return true;
@@ -807,6 +835,94 @@ export class FormOverride {
       return Object.values(value).every(val => this.isDeepEmpty(val));
     }
     return false;
+  }
+
+  private buildQuestionTreeViewRows(source: QuestionTreeFormComponentDefinitionOutline): Array<{
+    questionLabel: string;
+    answerLabel?: string;
+    answerLabels?: Array<{ label: string }>;
+  }> {
+    const questions = source.component?.config?.questions ?? [];
+    const valueMap = (source.model?.config?.value ?? {}) as Record<string, unknown>;
+    const childComponentMap = new Map(
+      (source.component?.config?.componentDefinitions ?? []).map((componentDefinition) => [componentDefinition.name, componentDefinition])
+    );
+    const rows: Array<{ questionLabel: string; answerLabel?: string; answerLabels?: Array<{ label: string }> }> = [];
+
+    for (const question of questions) {
+      const childComponent = childComponentMap.get(question.id);
+      const selectedValues = this.normaliseQuestionTreeAnswerValues(
+        valueMap[question.id] ??
+          childComponent?.model?.config?.value ??
+          (childComponent?.component?.config as { content?: unknown } | undefined)?.content
+      );
+      if (selectedValues.length === 0) {
+        continue;
+      }
+
+      const answerLabels = selectedValues.map((value) =>
+        this.resolveQuestionTreeAnswerLabel(source.name, question, childComponent, value)
+      );
+      if (answerLabels.length === 0) {
+        continue;
+      }
+
+      rows.push({
+        questionLabel: this.resolveQuestionTreeQuestionLabel(source.name, question),
+        ...(answerLabels.length === 1 ? { answerLabel: answerLabels[0] } : { answerLabels: answerLabels.map((label) => ({ label })) }),
+      });
+    }
+
+    return rows;
+  }
+
+  private normaliseQuestionTreeAnswerValues(value: unknown): string[] {
+    if (Array.isArray(value)) {
+      return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+    }
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return [value];
+    }
+    return [];
+  }
+
+  private resolveQuestionTreeQuestionLabel(componentName: string | undefined, question: QuestionTreeQuestion): string {
+    if (typeof question.label === 'string' && question.label.trim().length > 0) {
+      return question.label;
+    }
+    const keyPrefix = (componentName ?? '').trim().replace(/^@+/, '') || 'questiontree';
+    return `@${keyPrefix}-item-${question.id}-label`;
+  }
+
+  private resolveQuestionTreeAnswerLabel(
+    componentName: string | undefined,
+    question: QuestionTreeQuestion,
+    childComponent: AvailableFormComponentDefinitionFrames | AvailableFormComponentDefinitionOutlines | undefined,
+    answerValue: string
+  ): string {
+    const generatedOptionLabel = (childComponent?.component?.config as { options?: Array<{ value?: string; label?: string | null }> } | undefined)
+      ?.options
+      ?.find((option) => option.value === answerValue)?.label;
+    if (typeof generatedOptionLabel === 'string' && generatedOptionLabel.trim().length > 0) {
+      return generatedOptionLabel;
+    }
+    const matchedAnswer = question.answers.find((answer) => answer.value === answerValue);
+    if (!matchedAnswer) {
+      return answerValue;
+    }
+    return this.resolveQuestionTreeAnswerLabelFromConfig(componentName, question.id, matchedAnswer);
+  }
+
+  private resolveQuestionTreeAnswerLabelFromConfig(
+    componentName: string | undefined,
+    questionId: string,
+    answer: QuestionTreeQuestionAnswer
+  ): string {
+    if (typeof answer.label === 'string' && answer.label.trim().length > 0) {
+      return answer.label;
+    }
+    const keyPrefix = (componentName ?? '').trim().replace(/^@+/, '') || 'questiontree';
+    return `@${keyPrefix}-${questionId}-${answer.value}`;
   }
 
   private sourceRepeatableComponentTargetContentComponent(
