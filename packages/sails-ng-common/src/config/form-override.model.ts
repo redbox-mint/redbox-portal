@@ -101,6 +101,7 @@ export class FormOverride {
     repeatableList: 'view-template-repeatable-list',
   } as const;
   private readonly questionTreeHelper: QuestionTreeHelper;
+  private readonly forcedViewTransformOverrideKey = '__forceViewTransform';
 
   constructor(logger: ILogger) {
     this.logger = logger;
@@ -403,9 +404,11 @@ export class FormOverride {
       phase === 'construct' &&
       formMode === 'view' &&
       new Set<string>([RepeatableComponentName, GroupFieldComponentName]).has(originalComponentClassName);
+    const shouldForceViewTransform =
+      (original?.overrides as Record<string, unknown> | undefined)?.[this.forcedViewTransformOverrideKey] === true;
     const skipAutomaticViewTransform =
       formMode === 'view' &&
-      phase !== 'client' &&
+      !shouldForceViewTransform &&
       this.hasExplicitAllowedMode(original?.constraints, 'view');
 
     if (
@@ -1224,6 +1227,9 @@ export class FormOverride {
     constraints.allowModes = Array.isArray(constraints.allowModes) ? constraints.allowModes : [];
     if (constraints.allowModes.length > 0 && !constraints.allowModes.includes(formMode)) {
       constraints.allowModes.push(formMode);
+      const overrides = componentDefinition.overrides ?? {};
+      overrides[this.forcedViewTransformOverrideKey] = true;
+      componentDefinition.overrides = overrides;
     }
     componentDefinition.constraints = constraints;
 

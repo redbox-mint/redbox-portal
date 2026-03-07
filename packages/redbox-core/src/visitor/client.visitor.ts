@@ -60,6 +60,7 @@ import {
   TextAreaFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import { DefaultFieldLayoutDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { ActionRowLayoutName } from '@researchdatabox/sails-ng-common';
 import {
   CheckboxInputFieldComponentDefinitionOutline,
   CheckboxInputFieldModelDefinitionOutline,
@@ -228,9 +229,19 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   ): AvailableFormComponentDefinitionOutlines {
     const className = item?.component?.class;
     const shouldTransformRepeatable = className === RepeatableComponentName;
-    const shouldTransformGroup = className === GroupFieldComponentName;
+    const shouldTransformGroup =
+      className === GroupFieldComponentName && item?.layout?.class !== ActionRowLayoutName;
+    const shouldSkipViewTransform = this.hasExplicitAllowedMode(item, 'view');
 
     if (shouldTransformRepeatable || shouldTransformGroup) {
+      if (shouldSkipViewTransform) {
+        this.applyPostPruningTransformsToNestedChildren(item);
+        if ('constraints' in item) {
+          delete item['constraints'];
+        }
+        return item;
+      }
+
       const transformed = this.formOverride.applyOverrideTransform(item, this.formMode, {
         phase: 'client',
         reusableFormDefs: this.reusableFormDefs,
@@ -244,6 +255,18 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     this.applyPostPruningTransformsToNestedChildren(item);
     return item;
+  }
+
+  protected hasExplicitAllowedMode(
+    item: AvailableFormComponentDefinitionOutlines,
+    mode: FormModesConfig
+  ): boolean {
+    const overrides = item?.overrides as Record<string, unknown> | undefined;
+    if (overrides?.__forceViewTransform === true) {
+      return false;
+    }
+    const allowModes = item?.constraints?.allowModes;
+    return Array.isArray(allowModes) && allowModes.includes(mode);
   }
 
   protected applyPostPruningTransformsToNestedChildren(item: AvailableFormComponentDefinitionOutlines): void {

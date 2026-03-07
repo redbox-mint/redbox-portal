@@ -837,6 +837,85 @@ describe("Client Visitor", async () => {
     expect(nested?.component?.class).to.eql("ContentComponent");
   });
 
+  it(`should keep explicit view repeatables in view mode`, async function () {
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      formMode: "view",
+      record: { actions: ["Edit this plan", "Create a data record from this plan"] },
+      data: {
+        name: "form",
+        componentDefinitions: [
+          {
+            name: "actions",
+            constraints: {
+              authorization: { allowRoles: [] },
+              allowModes: ["view"],
+            },
+            component: {
+              class: "RepeatableComponent",
+              config: {
+                elementTemplate: {
+                  name: "",
+                  component: { class: "ContentComponent", config: { template: "<div>{{content}}</div>" } },
+                },
+              },
+            },
+            model: {
+              class: "RepeatableModel",
+              config: {},
+            },
+          },
+        ]
+      }
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed, formMode: "view" });
+    expect(actual.componentDefinitions[0].component.class).to.eql("RepeatableComponent");
+  });
+
+  it(`should keep action row groups in view mode`, async function () {
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      formMode: "view",
+      data: {
+        name: "form",
+        componentDefinitions: [
+          {
+            name: "actions",
+            component: {
+              class: "GroupComponent",
+              config: {
+                componentDefinitions: [
+                  {
+                    name: "edit_link",
+                    component: {
+                      class: "ContentComponent",
+                      config: {
+                        template: "<a class=\"btn btn-info\">Edit this plan</a>",
+                      },
+                    },
+                    layout: { class: "InlineLayout", config: {} },
+                  },
+                ],
+              },
+            },
+            model: {
+              class: "GroupModel",
+              config: {},
+            },
+            layout: { class: "ActionRowLayout", config: {} },
+          },
+        ]
+      }
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed, formMode: "view" });
+    expect(actual.componentDefinitions[0].component.class).to.eql("GroupComponent");
+    expect(actual.componentDefinitions[0].layout?.class).to.eql("ActionRowLayout");
+  });
+
   it(`should keep tab in edit mode`, async function () {
     const constructor = new ConstructFormConfigVisitor(logger);
     const constructed = constructor.start({
