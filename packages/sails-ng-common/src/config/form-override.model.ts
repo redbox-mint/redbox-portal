@@ -897,7 +897,7 @@ export class FormOverride {
   private resolveQuestionTreeAnswerLabel(
     componentName: string | undefined,
     question: QuestionTreeQuestion,
-    childComponent: AvailableFormComponentDefinitionFrames | AvailableFormComponentDefinitionOutlines | undefined,
+    childComponent: AvailableFormComponentDefinitionFrames | AllFormComponentDefinitionOutlines | undefined,
     answerValue: string
   ): string {
     const generatedOptionLabel = (childComponent?.component?.config as { options?: Array<{ value?: string; label?: string | null }> } | undefined)
