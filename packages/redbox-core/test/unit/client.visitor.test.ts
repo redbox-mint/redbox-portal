@@ -584,10 +584,13 @@ describe("Client Visitor", async () => {
             component: {
               class: 'RepeatableComponent',
               config: {
+                addButtonShow: true,
+                allowZeroRows: false,
                 autofocus: false,
                 disabled: false,
                 editMode: true,
                 readonly: false,
+                hideWhenZeroRows: false,
                 visible: true,
                 elementTemplate: {
                   name: "",
