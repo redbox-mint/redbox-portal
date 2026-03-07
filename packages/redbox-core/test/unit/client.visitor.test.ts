@@ -1069,6 +1069,7 @@ describe("Client Visitor", async () => {
                   layout: {
                     class: "DefaultLayout",
                     config: {
+                      helpText: "@questiontree_1-item-question_1-help",
                       visible: true,
                     }
                   }
@@ -1087,6 +1088,7 @@ describe("Client Visitor", async () => {
                   layout: {
                     class: "DefaultLayout",
                     config: {
+                      helpText: "@questiontree_1-item-question_2-help",
                       visible: false,
                     }
                   },
@@ -1114,6 +1116,7 @@ describe("Client Visitor", async () => {
                   layout: {
                     class: "DefaultLayout",
                     config: {
+                      helpText: "@questiontree_1-item-question_3-help",
                       visible: false,
                     }
                   },
@@ -1141,6 +1144,7 @@ describe("Client Visitor", async () => {
                   layout: {
                     class: "DefaultLayout",
                     config: {
+                      helpText: "@questiontree_1-item-question_4-help",
                       visible: false,
                     }
                   },
