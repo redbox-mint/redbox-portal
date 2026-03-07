@@ -404,7 +404,9 @@ export class FormOverride {
       formMode === 'view' &&
       new Set<string>([RepeatableComponentName, GroupFieldComponentName]).has(originalComponentClassName);
     const skipAutomaticViewTransform =
-      formMode === 'view' && this.hasExplicitAllowedMode(original?.constraints, 'view');
+      formMode === 'view' &&
+      phase !== 'client' &&
+      this.hasExplicitAllowedMode(original?.constraints, 'view');
 
     if (
       originalComponentClassName in this.defaultTransforms &&

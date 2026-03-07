@@ -229,17 +229,8 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const className = item?.component?.class;
     const shouldTransformRepeatable = className === RepeatableComponentName;
     const shouldTransformGroup = className === GroupFieldComponentName;
-    const shouldSkipViewTransform = this.hasExplicitAllowedMode(item?.constraints, 'view');
 
     if (shouldTransformRepeatable || shouldTransformGroup) {
-      if (shouldSkipViewTransform) {
-        this.applyPostPruningTransformsToNestedChildren(item);
-        if ('constraints' in item) {
-          delete item['constraints'];
-        }
-        return item;
-      }
-
       const transformed = this.formOverride.applyOverrideTransform(item, this.formMode, {
         phase: 'client',
         reusableFormDefs: this.reusableFormDefs,
@@ -253,11 +244,6 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     this.applyPostPruningTransformsToNestedChildren(item);
     return item;
-  }
-
-  protected hasExplicitAllowedMode(constraints: FormConstraintConfig | undefined, mode: FormModesConfig): boolean {
-    const allowModes = constraints?.allowModes;
-    return Array.isArray(allowModes) && allowModes.includes(mode);
   }
 
   protected applyPostPruningTransformsToNestedChildren(item: AvailableFormComponentDefinitionOutlines): void {

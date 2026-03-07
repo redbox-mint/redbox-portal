@@ -773,6 +773,70 @@ describe("Client Visitor", async () => {
     expect(actual.componentDefinitions[0].component.class).to.eql("AccordionComponent");
   });
 
+  it(`should transform edit-only repeatables nested in transformed tabs for view mode`, async function () {
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      formMode: "view",
+      record: { finalKeywords: ["alpha", "beta"] },
+      data: {
+        name: "form",
+        componentDefinitions: [
+          {
+            name: "main_tab",
+            component: {
+              class: "TabComponent",
+              config: {
+                tabs: [
+                  {
+                    name: "tab1",
+                    component: {
+                      class: "TabContentComponent",
+                      config: {
+                        componentDefinitions: [
+                          {
+                            name: "finalKeywords",
+                            constraints: {
+                              authorization: { allowRoles: [] },
+                              allowModes: ["edit"],
+                            },
+                            component: {
+                              class: "RepeatableComponent",
+                              config: {
+                                elementTemplate: {
+                                  name: "",
+                                  component: { class: "SimpleInputComponent", config: {} },
+                                  model: { class: "SimpleInputModel", config: {} },
+                                },
+                              },
+                            },
+                            model: {
+                              class: "RepeatableModel",
+                              config: {},
+                            },
+                          },
+                        ],
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            layout: { class: "TabLayout", config: {} }
+          }
+        ]
+      }
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed, formMode: "view" });
+    const accordion = actual.componentDefinitions[0];
+    expect(accordion.component.class).to.eql("AccordionComponent");
+    const panel = (accordion.component.config as any).panels?.[0];
+    const nested = panel?.component?.config?.componentDefinitions?.[0];
+    expect(nested?.name).to.eql("finalKeywords");
+    expect(nested?.component?.class).to.eql("ContentComponent");
+  });
+
   it(`should keep tab in edit mode`, async function () {
     const constructor = new ConstructFormConfigVisitor(logger);
     const constructed = constructor.start({
