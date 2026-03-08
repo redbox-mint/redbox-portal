@@ -1,8 +1,10 @@
 import {
   FormConfigFrame,
   FormExpressionsTemplateConfigFrame,
+  QuestionTreeFieldComponentDefinitionOutline,
   QuestionTreeFormComponentDefinitionOutline, QuestionTreeMeta, QuestionTreeOutcome, QuestionTreeOutcomeInfoKey,
   QuestionTreeQuestion,
+  RepeatableFieldComponentConfigFrame,
   TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
 } from "@researchdatabox/sails-ng-common";
 import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
@@ -16,6 +18,46 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 describe("Client Visitor", async () => {
+  it(`should preserve repeatable zero-row config in client output`, async function () {
+    const args: FormConfigFrame = {
+      name: "repeatable-config-preserve",
+      componentDefinitions: [
+        {
+          name: "legacy_repeatable",
+          component: {
+            class: "RepeatableComponent",
+            config: {
+              addButtonShow: false,
+              allowZeroRows: true,
+              hideWhenZeroRows: true,
+              elementTemplate: {
+                name: "",
+                component: {
+                  class: "SimpleInputComponent",
+                },
+              },
+            } as RepeatableFieldComponentConfigFrame,
+          },
+        },
+      ],
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      data: args,
+      formMode: "edit",
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed });
+    const repeatableConfig = actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame;
+
+    expect(repeatableConfig.addButtonShow).to.equal(false);
+    expect(repeatableConfig.allowZeroRows).to.equal(true);
+    expect(repeatableConfig.hideWhenZeroRows).to.equal(true);
+  });
+
   it(`should create full example form config`, async function () {
     const args = formConfigExample1;
 
@@ -543,10 +585,13 @@ describe("Client Visitor", async () => {
             component: {
               class: 'RepeatableComponent',
               config: {
+                addButtonShow: true,
+                allowZeroRows: false,
                 autofocus: false,
                 disabled: false,
                 editMode: true,
                 readonly: false,
+                hideWhenZeroRows: false,
                 visible: true,
                 elementTemplate: {
                   name: "",
@@ -729,6 +774,149 @@ describe("Client Visitor", async () => {
     expect(actual.componentDefinitions[0].component.class).to.eql("AccordionComponent");
   });
 
+  it(`should transform edit-only repeatables nested in transformed tabs for view mode`, async function () {
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      formMode: "view",
+      record: { finalKeywords: ["alpha", "beta"] },
+      data: {
+        name: "form",
+        componentDefinitions: [
+          {
+            name: "main_tab",
+            component: {
+              class: "TabComponent",
+              config: {
+                tabs: [
+                  {
+                    name: "tab1",
+                    component: {
+                      class: "TabContentComponent",
+                      config: {
+                        componentDefinitions: [
+                          {
+                            name: "finalKeywords",
+                            constraints: {
+                              authorization: { allowRoles: [] },
+                              allowModes: ["edit"],
+                            },
+                            component: {
+                              class: "RepeatableComponent",
+                              config: {
+                                elementTemplate: {
+                                  name: "",
+                                  component: { class: "SimpleInputComponent", config: {} },
+                                  model: { class: "SimpleInputModel", config: {} },
+                                },
+                              },
+                            },
+                            model: {
+                              class: "RepeatableModel",
+                              config: {},
+                            },
+                          },
+                        ],
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            layout: { class: "TabLayout", config: {} }
+          }
+        ]
+      }
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed, formMode: "view" });
+    const accordion = actual.componentDefinitions[0];
+    expect(accordion.component.class).to.eql("AccordionComponent");
+    const panel = (accordion.component.config as any).panels?.[0];
+    const nested = panel?.component?.config?.componentDefinitions?.[0];
+    expect(nested?.name).to.eql("finalKeywords");
+    expect(nested?.component?.class).to.eql("ContentComponent");
+  });
+
+  it(`should keep explicit view repeatables in view mode`, async function () {
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      formMode: "view",
+      record: { actions: ["Edit this plan", "Create a data record from this plan"] },
+      data: {
+        name: "form",
+        componentDefinitions: [
+          {
+            name: "actions",
+            constraints: {
+              authorization: { allowRoles: [] },
+              allowModes: ["view"],
+            },
+            component: {
+              class: "RepeatableComponent",
+              config: {
+                elementTemplate: {
+                  name: "",
+                  component: { class: "ContentComponent", config: { template: "<div>{{content}}</div>" } },
+                },
+              },
+            },
+            model: {
+              class: "RepeatableModel",
+              config: {},
+            },
+          },
+        ]
+      }
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed, formMode: "view" });
+    expect(actual.componentDefinitions[0].component.class).to.eql("RepeatableComponent");
+  });
+
+  it(`should keep action row groups in view mode`, async function () {
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      formMode: "view",
+      data: {
+        name: "form",
+        componentDefinitions: [
+          {
+            name: "actions",
+            component: {
+              class: "GroupComponent",
+              config: {
+                componentDefinitions: [
+                  {
+                    name: "edit_link",
+                    component: {
+                      class: "ContentComponent",
+                      config: {
+                        template: "<a class=\"btn btn-info\">Edit this plan</a>",
+                      },
+                    },
+                    layout: { class: "InlineLayout", config: {} },
+                  },
+                ],
+              },
+            },
+            model: {
+              class: "GroupModel",
+              config: {},
+            },
+            layout: { class: "ActionRowLayout", config: {} },
+          },
+        ]
+      }
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed, formMode: "view" });
+    expect(actual.componentDefinitions[0].component.class).to.eql("GroupComponent");
+    expect(actual.componentDefinitions[0].layout?.class).to.eql("ActionRowLayout");
+  });
+
   it(`should keep tab in edit mode`, async function () {
     const constructor = new ConstructFormConfigVisitor(logger);
     const constructed = constructor.start({
@@ -881,6 +1069,7 @@ describe("Client Visitor", async () => {
                   layout: {
                     class: "DefaultLayout",
                     config: {
+                      helpText: "@questiontree_1-item-question_1-help",
                       visible: true,
                     }
                   }
@@ -899,6 +1088,7 @@ describe("Client Visitor", async () => {
                   layout: {
                     class: "DefaultLayout",
                     config: {
+                      helpText: "@questiontree_1-item-question_2-help",
                       visible: false,
                     }
                   },
@@ -926,6 +1116,7 @@ describe("Client Visitor", async () => {
                   layout: {
                     class: "DefaultLayout",
                     config: {
+                      helpText: "@questiontree_1-item-question_3-help",
                       visible: false,
                     }
                   },
@@ -953,6 +1144,7 @@ describe("Client Visitor", async () => {
                   layout: {
                     class: "DefaultLayout",
                     config: {
+                      helpText: "@questiontree_1-item-question_4-help",
                       visible: false,
                     }
                   },
@@ -997,6 +1189,111 @@ describe("Client Visitor", async () => {
     const actual = visitor.start({form: constructed});
 
     expect(actual).to.containSubset(expected);
+  });
+
+  it("should transform question tree answers to content in view mode", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "question-tree-view-transform",
+      componentDefinitions: [
+        {
+          name: "questiontree_1",
+          model: {
+            class: "QuestionTreeModel",
+            config: {
+              defaultValue: {
+                question_1: "no",
+                question_2: ["yes", "maybe"],
+                [QuestionTreeOutcomeInfoKey]: {
+                  outcome: { value: "restricted", label: "@outcome-restricted" },
+                  meta: [],
+                },
+              },
+            },
+          },
+          component: {
+            class: "QuestionTreeComponent",
+            config: {
+              availableOutcomes: [{ value: "restricted", label: "@outcome-restricted" }],
+              availableMeta: {},
+              questions: [
+                {
+                  id: "question_1",
+                  label: "Primary question",
+                  answersMin: 1,
+                  answersMax: 1,
+                  answers: [
+                    { value: "yes", label: "Yes" },
+                    { value: "no", label: "No" },
+                  ],
+                  rules: { op: "true" },
+                },
+                {
+                  id: "question_2",
+                  answersMin: 1,
+                  answersMax: 2,
+                  answers: [
+                    { value: "yes", label: "Yes" },
+                    { value: "maybe", label: "@questiontree_1-data-not-from-or-about-individuals-data-about-individuals-label" },
+                    { value: "no", label: "No" },
+                  ],
+                  rules: { op: "in", q: "question_1", a: ["no"] },
+                },
+              ],
+              componentDefinitions: [],
+            },
+          },
+        },
+      ],
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      data: formConfig,
+      formMode: "view",
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    const constructedQuestionTree = constructed.componentDefinitions[0];
+    if (constructedQuestionTree.model?.config) {
+      constructedQuestionTree.model.config.value = {
+        [QuestionTreeOutcomeInfoKey]: {
+          outcome: { value: "restricted", label: "@outcome-restricted" },
+          meta: [],
+        },
+      };
+    }
+    const constructedQuestions =
+      ((constructedQuestionTree.component.config as QuestionTreeFieldComponentDefinitionOutline["config"])?.componentDefinitions ?? []);
+    const questionOne = constructedQuestions.find((component) => component.name === "question_1");
+    const questionTwo = constructedQuestions.find((component) => component.name === "question_2");
+    if (questionOne?.model?.config) {
+      questionOne.model.config.value = "no";
+    }
+    if (questionTwo?.model?.config) {
+      questionTwo.model.config.value = ["yes", "maybe"];
+    }
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed, formMode: "view" });
+    const transformed = actual.componentDefinitions[0];
+
+    expect(transformed.component.class).to.equal("ContentComponent");
+    expect(transformed.component.config).to.containSubset({
+      content: [
+        {
+          questionLabel: "Primary question",
+          answerLabel: "No",
+        },
+        {
+          questionLabel: "@questiontree_1-item-question_2-label",
+          answerLabels: [
+            { label: "Yes" },
+            { label: "@questiontree_1-data-not-from-or-about-individuals-data-about-individuals-label" },
+          ],
+        },
+      ],
+    });
+    expect((transformed.component.config as { template?: string }).template).to.contain("rb-view-group");
   });
 
   it("should construct the question tree config", async () => {

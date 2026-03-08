@@ -322,5 +322,25 @@ describe('I18nEntriesService', function() {
       
       expect(mockI18nTranslation.create.called).to.be.true;
     });
+
+    it('should preserve empty-string translations', async function() {
+      const bundle = {
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'ns',
+        data: { key: '' }
+      };
+
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
+      mockI18nTranslation.find.resolves([]);
+      mockI18nTranslation.findOne.resolves(null);
+      mockI18nTranslation.create.resolves({});
+
+      await I18nEntriesService.syncEntriesFromBundle(bundle);
+
+      expect(mockI18nTranslation.create.called).to.be.true;
+      expect(mockI18nTranslation.create.firstCall.args[0].value).to.equal('');
+    });
   });
 });

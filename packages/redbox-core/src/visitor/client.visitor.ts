@@ -60,6 +60,7 @@ import {
   TextAreaFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import { DefaultFieldLayoutDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { ActionRowLayoutName } from '@researchdatabox/sails-ng-common';
 import {
   CheckboxInputFieldComponentDefinitionOutline,
   CheckboxInputFieldModelDefinitionOutline,
@@ -128,6 +129,7 @@ import { guessType } from '@researchdatabox/sails-ng-common';
 import { FormOverride } from '@researchdatabox/sails-ng-common';
 import { GroupFieldComponentName } from '@researchdatabox/sails-ng-common';
 import { RepeatableComponentName } from '@researchdatabox/sails-ng-common';
+import { QuestionTreeComponentName } from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config class type and build the form config for the client-side.
@@ -228,10 +230,12 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   ): AvailableFormComponentDefinitionOutlines {
     const className = item?.component?.class;
     const shouldTransformRepeatable = className === RepeatableComponentName;
-    const shouldTransformGroup = className === GroupFieldComponentName;
-    const shouldSkipViewTransform = this.hasExplicitAllowedMode(item?.constraints, 'view');
+    const shouldTransformGroup =
+      className === GroupFieldComponentName && item?.layout?.class !== ActionRowLayoutName;
+    const shouldTransformQuestionTree = className === QuestionTreeComponentName;
+    const shouldSkipViewTransform = this.hasExplicitAllowedMode(item, 'view');
 
-    if (shouldTransformRepeatable || shouldTransformGroup) {
+    if (shouldTransformRepeatable || shouldTransformGroup || shouldTransformQuestionTree) {
       if (shouldSkipViewTransform) {
         this.applyPostPruningTransformsToNestedChildren(item);
         if ('constraints' in item) {
@@ -255,8 +259,15 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     return item;
   }
 
-  protected hasExplicitAllowedMode(constraints: FormConstraintConfig | undefined, mode: FormModesConfig): boolean {
-    const allowModes = constraints?.allowModes;
+  protected hasExplicitAllowedMode(
+    item: AvailableFormComponentDefinitionOutlines,
+    mode: FormModesConfig
+  ): boolean {
+    const overrides = item?.overrides as Record<string, unknown> | undefined;
+    if (overrides?.__forceViewTransform === true) {
+      return false;
+    }
+    const allowModes = item?.constraints?.allowModes;
     return Array.isArray(allowModes) && allowModes.includes(mode);
   }
 
@@ -748,7 +759,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const isPostPruningCandidate =
       this.formMode === 'view' &&
       this.formModeProvided &&
-      (item?.component?.class === RepeatableComponentName || item?.component?.class === GroupFieldComponentName);
+      (
+        item?.component?.class === RepeatableComponentName ||
+        item?.component?.class === GroupFieldComponentName ||
+        item?.component?.class === QuestionTreeComponentName
+      );
 
     // Constraint define the criteria for including a component.
     // The client has no need for the constraints.

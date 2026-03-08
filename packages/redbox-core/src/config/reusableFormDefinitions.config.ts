@@ -133,7 +133,6 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
           minChars: 1,
           debounceMs: 250,
           maxResults: 25,
-          allowFreeText: false,
           valueMode: 'value',
         }
       },
@@ -179,6 +178,33 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
     },
   ],
   /**
+   * Standard contributor form fields with title for JCU people sections.
+   */
+  "standard-contributor-fields-with-title": [
+    {
+      name: "title",
+      component: {
+        class: "SimpleInputComponent",
+        config: {
+          type: "text",
+          hostCssClasses: "d-block",
+          wrapperCssClasses: "rb-form-contributor-inline__field rb-form-contributor-inline__field--title",
+          onItemSelect: { rawPath: 'metadata.title' },
+        }
+      },
+      model: {class: "SimpleInputModel", config: {}},
+      layout: {
+        class: "InlineLayout",
+        config: {label: "Title", hostCssClasses: "d-flex align-items-center gap-2"}
+      },
+    },
+    {
+      overrides: {reusableFormName: "standard-contributor-fields"},
+      name: "standard_contributor_fields_reusable_with_title",
+      component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+    },
+  ],
+  /**
    * Standard contributor form fields group to match the v4 ContributorField.
    */
   "standard-contributor-fields-group": [
@@ -194,6 +220,29 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
             {
               overrides: {reusableFormName: "standard-contributor-fields"},
               name: "standard_contributor_fields_reusable",
+              component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+            },
+          ],
+        },
+      },
+    },
+  ],
+  /**
+   * Standard contributor form fields group with title for JCU people sections.
+   */
+  "standard-contributor-fields-with-title-group": [
+    {
+      name: "standard_contributor_fields_with_title_group",
+      layout: {class: "DefaultLayout", config: {label: "Standard Contributor"}},
+      model: {class: "GroupModel", config: {}},
+      component: {
+        class: "GroupComponent",
+        config: {
+          hostCssClasses: "rb-form-contributor-inline rb-form-contributor-inline--with-title",
+          componentDefinitions: [
+            {
+              overrides: {reusableFormName: "standard-contributor-fields-with-title"},
+              name: "standard_contributor_fields_with_title_reusable",
               component: {class: "ReusableComponent", config: {componentDefinitions: []}},
             },
           ],

@@ -24,10 +24,10 @@ export class DropdownInputModel extends FormFieldModel<DropdownInputModelValueTy
         [class.is-invalid]="!isValid"
         [title]="tooltip">
         @if (placeholder) {
-          <option [ngValue]="null" disabled>{{ placeholder | i18next }}</option>
+          <option [value]="''" disabled>{{ placeholder | i18next }}</option>
         }
         @for (opt of options; track opt.value) {
-          <option [ngValue]="opt.value" [disabled]="opt.disabled === true">{{ opt.label | i18next }}</option>
+          <option [value]="opt.value" [disabled]="opt.disabled === true">{{ opt.label | i18next }}</option>
         }
       </select>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
@@ -58,6 +58,18 @@ export class DropdownInputComponent extends FormFieldBaseComponent<DropdownInput
       this.options = cfgOptions;
     } else {
       this.options = defaultConfig.options;
+    }
+    this.setDefaultSelection();
+  }
+
+  private setDefaultSelection(): void {
+    const currentValue = this.formControl?.value;
+    if (!_isUndefined(currentValue) && currentValue !== null) {
+      return;
+    }
+
+    if (this.options.some((option) => option.value === '') || this.placeholder) {
+      this.formControl?.setValue('', { emitEvent: false });
     }
   }
 

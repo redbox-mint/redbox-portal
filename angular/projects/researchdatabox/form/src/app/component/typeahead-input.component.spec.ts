@@ -57,7 +57,7 @@ describe("TypeaheadInputComponent", () => {
         expect(input.value).toBe("Jane Doe");
     });
 
-    it("stores free text as optionObject when enabled", async () => {
+    it("stores free text as optionObject by default", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",
             componentDefinitions: [
@@ -68,7 +68,6 @@ describe("TypeaheadInputComponent", () => {
                         config: {
                             sourceType: "static",
                             valueMode: "optionObject",
-                            allowFreeText: true,
                             staticOptions: [{label: "Alpha", value: "alpha"}]
                         }
                     },
@@ -93,6 +92,38 @@ describe("TypeaheadInputComponent", () => {
             value: "Custom Person",
             sourceType: "freeText"
         });
+    });
+
+    it("does not store free text when selection is required", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            requireSelection: true,
+                            staticOptions: [{label: "Alpha", value: "alpha"}]
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {}
+                    }
+                }
+            ]
+        };
+
+        const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+        input.value = "Custom Person";
+        input.dispatchEvent(new Event("input"));
+        input.dispatchEvent(new Event("blur"));
+        await fixture.whenStable();
+
+        expect((formComponent as any).form.value?.person_lookup).toBeNull();
     });
 
     it("shows misconfiguration message when named query source lacks queryId", async () => {

@@ -809,6 +809,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const field = this.getV4Data();
     item.config = new RepeatableFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    this.sharedProps.setPropOverride('addButtonShow', item.config, definition);
+    this.sharedProps.setPropOverride('allowZeroRows', item.config, definition);
+    this.sharedProps.setPropOverride('hideWhenZeroRows', item.config, definition);
     const currentFormConfigPath = this.formPathHelper.formPath.formConfig;
 
     const fields = field?.definition?.fields ?? [];
@@ -1462,8 +1466,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
     }
 
-    const allowFreeText = this.parseLegacyTypeaheadBoolean(definition.freeText, false, 'freeText');
-    this.sharedProps.setPropOverride('allowFreeText', item.config, { allowFreeText });
+    const requireSelection = !this.parseLegacyTypeaheadBoolean(definition.freeText, false, 'freeText');
+    this.sharedProps.setPropOverride('requireSelection', item.config, { requireSelection });
 
     const storeLabelOnly = this.parseLegacyTypeaheadBoolean(definition.storeLabelOnly, true, 'storeLabelOnly');
     const valueMode = storeLabelOnly ? 'value' : 'optionObject';

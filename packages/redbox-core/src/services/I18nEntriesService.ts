@@ -423,8 +423,8 @@ public async syncEntriesFromBundle(bundleOrId: I18nBundleAttributes | string | n
         if (existing && !overwrite) continue;
 
         try {
-          if(val === '' || val === null || val === undefined) {
-            val = key; // default empty values to the key itself
+          if (val === null || val === undefined) {
+            val = key; // preserve intentional empty strings, but avoid nullish bundle values
           }
           await this.setEntry(brandingModel, safeLocale, safeNamespace, key, val, { bundleId: bundleId != null ? String(bundleId) : undefined, category: meta?.[key]?.category, description: meta?.[key]?.description, noReload: true });
         } catch (e) {

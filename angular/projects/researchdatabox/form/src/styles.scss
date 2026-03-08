@@ -10,6 +10,30 @@
 }
 
 /* Global action-row safety rules for migrated legacy inline/button groups in view mode. */
+.rb-form-host .rb-form-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rb-form-gap-2, 0.75rem);
+}
+
+.rb-form-host .rb-form-action-row .rb-form-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--rb-form-gap-2, 0.75rem);
+  width: fit-content;
+  max-width: 100%;
+  justify-content: flex-start;
+}
+
+.rb-form-host .rb-form-action-row .rb-form-group > * {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: fit-content !important;
+  max-width: 100%;
+  min-width: 0;
+}
+
 .rb-form-host .rb-form-action-row > * {
   flex: 0 1 auto;
   width: auto;
@@ -18,8 +42,30 @@
 }
 
 .rb-form-host .rb-form-action-row .rb-form-action-slot {
+  display: inline-flex;
   max-width: 100%;
   min-width: 0;
+}
+
+.rb-form-host .rb-form-action-row .rb-form-action-slot .rb-form-inline-layout,
+.rb-form-host .rb-form-action-row .rb-form-action-slot .rb-form-field-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rb-form-gap-1, 0.5rem);
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 0;
+}
+
+.rb-form-host .rb-form-action-row .rb-form-inline-layout__control {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.rb-form-host .rb-form-action-row a.btn,
+.rb-form-host .rb-form-action-row button.btn {
+  display: inline-flex;
+  width: fit-content;
 }
 
 .rb-form-host .rb-form-action-row .container {

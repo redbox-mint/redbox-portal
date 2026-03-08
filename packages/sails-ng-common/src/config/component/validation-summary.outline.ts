@@ -22,6 +22,11 @@ export interface ValidationSummaryFieldComponentConfigFrame extends FieldCompone
      * Group labels are always included.
      */
     includeTabLabel?: boolean;
+    /**
+     * Whether to render the informational success message when the form has no validation errors.
+     * Defaults to false.
+     */
+    showWhenValid?: boolean;
 }
 
 export interface ValidationSummaryFieldComponentConfigOutline extends ValidationSummaryFieldComponentConfigFrame, FieldComponentConfigOutline {

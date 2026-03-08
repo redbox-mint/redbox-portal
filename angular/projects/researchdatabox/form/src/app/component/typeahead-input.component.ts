@@ -95,7 +95,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   public minChars = 2;
   public debounceMs = 250;
   public maxResults = 25;
-  public allowFreeText = false;
+  public allowFreeText = true;
   public searchState: TypeaheadStatus = 'idle';
   public statusMessage = '';
   public statusElementId = 'typeahead-status';
@@ -157,7 +157,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.minChars = Number.isInteger(cfg.minChars) && (cfg.minChars ?? 0) >= 0 ? Number(cfg.minChars) : 2;
     this.debounceMs = Number.isInteger(cfg.debounceMs) && (cfg.debounceMs ?? 0) >= 0 ? Number(cfg.debounceMs) : 250;
     this.maxResults = Number.isInteger(cfg.maxResults) && (cfg.maxResults ?? 0) > 0 ? Number(cfg.maxResults) : 25;
-    this.allowFreeText = Boolean(cfg.allowFreeText);
+    this.allowFreeText = cfg.requireSelection !== true;
     this.valueMode = cfg.valueMode === 'optionObject' ? 'optionObject' : 'value';
     this.cacheResults = cfg.cacheResults ?? this.sourceType !== 'namedQuery';
     this.readOnlyAfterSelectLocked = Boolean(cfg.readOnlyAfterSelect) && Boolean(this.model?.getValue());

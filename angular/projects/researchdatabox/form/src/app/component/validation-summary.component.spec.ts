@@ -26,7 +26,7 @@ describe('ValidationSummaryFieldComponent', () => {
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
   });
-  it('should display "The form is valid."', async () => {
+  it('should hide the valid banner by default when the form has no errors', async () => {
     // arrange
     const formConfig: FormConfigFrame = {
       name: 'testing',
@@ -49,8 +49,36 @@ describe('ValidationSummaryFieldComponent', () => {
 
     // assert
     const nativeEl: HTMLElement = fixture.nativeElement;
-    const el = nativeEl.querySelector('div.alert-info')!;
-    expect(el.textContent).toContain('The form is valid.');
+    expect(nativeEl.querySelector('div.alert-info')).toBeNull();
+  });
+
+  it('should display "The form is valid." when showWhenValid is enabled', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'validation_summary_1',
+          component: {
+            class: "ValidationSummaryComponent",
+            config: {
+              showWhenValid: true
+            }
+          }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    const el = nativeEl.querySelector('div.alert-info');
+    expect(el?.textContent).toContain('The form is valid.');
   });
   it('should contain one failed validation for the required text field that is empty', async () => {
     // arrange

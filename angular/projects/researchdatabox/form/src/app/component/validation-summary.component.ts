@@ -22,7 +22,7 @@ import { createLineageFieldFocusRequestEvent } from '../form-state/events/form-c
   selector: 'redbox-validation-summary-field',
   template: `
     @let validationList = allValidationErrorsDisplay;
-    @if (validationList.length === 0) {
+    @if (validationList.length === 0 && showWhenValid) {
       <div class="alert alert-info" role="alert">
         The form is valid.
       </div>
@@ -334,6 +334,11 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   private get includeTabLabel(): boolean {
     const config = this.formFieldCompMapEntry?.compConfigJson?.component?.config as { includeTabLabel?: boolean } | undefined;
     return config?.includeTabLabel === true;
+  }
+
+  public get showWhenValid(): boolean {
+    const config = this.formFieldCompMapEntry?.compConfigJson?.component?.config as { showWhenValid?: boolean } | undefined;
+    return config?.showWhenValid === true;
   }
 
   private getLeafValidationLabel(summary: FormValidatorSummaryErrors): string {

@@ -297,6 +297,7 @@ export class QuestionTreeHelper {
       return {value: a.value, label: a.label ?? `@${name}-${id}-${a.value}`};
     });
     const questionLabel = question.label !== undefined ? question.label : this.questionLabelKey(name, id);
+    const questionHelpText = this.questionHelpKey(name, id);
     const componentAnswerOne: AvailableFormComponentDefinitionFrames = {
       overrides: {reusableFormName: "questiontree-answer-one"},
       name: "",
@@ -306,7 +307,7 @@ export class QuestionTreeHelper {
             {
               name: "questiontree_answer_one",
               overrides: {replaceName: id},
-              layout: {class: "DefaultLayout", config: {label: questionLabel, visible: isVisible}},
+              layout: {class: "DefaultLayout", config: {label: questionLabel, helpText: questionHelpText, visible: isVisible}},
               component: {class: "RadioInputComponent", config: {options: componentOptions, visible: isVisible}},
               expressions: expressions,
             },
@@ -324,7 +325,7 @@ export class QuestionTreeHelper {
             {
               name: 'questiontree_answer_one_more',
               overrides: {replaceName: id},
-              layout: {class: 'DefaultLayout', config: {label: questionLabel, visible: isVisible}},
+              layout: {class: 'DefaultLayout', config: {label: questionLabel, helpText: questionHelpText, visible: isVisible}},
               component: {class: 'CheckboxInputComponent', config: {options: componentOptions, visible: isVisible}},
               expressions: expressions,
             },
@@ -342,6 +343,11 @@ export class QuestionTreeHelper {
 
     const keyPrefix = (componentName ?? "").trim().replace(/^@+/, "") || this.defaultQuestionTreeLabelPrefix;
     return `@${keyPrefix}-item-${label}-label`;
+  }
+
+  private questionHelpKey(componentName: string | null, questionId: string): string {
+    const keyPrefix = (componentName ?? "").trim().replace(/^@+/, "") || this.defaultQuestionTreeLabelPrefix;
+    return `@${keyPrefix}-item-${questionId}-help`;
   }
 
 }
