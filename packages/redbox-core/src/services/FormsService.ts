@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable, of, firstValueFrom } from 'rxjs';
-import { mergeMap as flatMap, last, filter } from 'rxjs/operators';
+import { mergeMap as flatMap, take, tap, map, catchError } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { FormAttributes } from '../waterline-models/Form';
@@ -261,8 +261,8 @@ export namespace Services {
       return super.getObservable<Record<string, unknown> | null>(RecordType.findOne({
         key: branding.id + "_" + recordType
       })).pipe(
-        flatMap(recordType => {
-          const recordTypeId = String((recordType as Record<string, unknown>)?.id ?? '');
+        flatMap(recordTypeRecord => {
+          const recordTypeId = String((recordTypeRecord as Record<string, unknown>)?.id ?? '');
           return super.getObservable<WorkflowStepLike | null>(WorkflowStep.findOne({
             recordType: recordTypeId,
             starting: starting
@@ -285,8 +285,18 @@ export namespace Services {
           }
           return of(null);
         }),
-        filter(result => result !== null),
-        last()
+        take(1),
+        tap((form) => {
+          if (!form) {
+            this.logger.warn(`No starting form found for branding '${String(branding?.id ?? '')}', recordType '${recordType}'`);
+          }
+        }),
+        map((form) => form as unknown as FormAttributes),
+        catchError((error: unknown) => {
+          const message = error instanceof Error ? error.message : String(error);
+          this.logger.error(`Error loading starting workflow form for branding '${String(branding?.id ?? '')}', recordType '${recordType}': ${message}`);
+          return of(null as unknown as FormAttributes);
+        })
       );
     }
 
