@@ -89,7 +89,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     const componentConfigFormConfig = componentFormConfig.config;
-    this.addButtonShow = componentConfigFormConfig?.addButtonShow ?? true;
+    this.addButtonShow = _isUndefined(componentConfigFormConfig?.addButtonShow) ? true : componentConfigFormConfig?.addButtonShow;
     this.allowZeroRows = componentConfigFormConfig?.allowZeroRows ?? false;
     this.hideWhenZeroRows = componentConfigFormConfig?.hideWhenZeroRows ?? false;
     const elementTemplate = componentConfigFormConfig?.elementTemplate;
