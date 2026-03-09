@@ -2,7 +2,7 @@ import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './simple-input.component';
 import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatable.component";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {TestBed} from "@angular/core/testing";
+import {fakeAsync, flushMicrotasks, TestBed, tick} from "@angular/core/testing";
 import {FormComponentEventBus, FormComponentEventType} from "../form-state";
 
 
@@ -147,9 +147,9 @@ describe('RepeatableComponent', () => {
     const {fixture} = await createFormAndWaitForReady(formConfig);
 
     // Get the event bus and subscribe to FORM_DEFINITION_CHANGED events
-    const eventBus = TestBed.inject(FormComponentEventBus);
+    const eventBus = TestBed.inject(FormComponentEventBus) as FormComponentEventBus;
     const emittedEvents: any[] = [];
-    const subscription = eventBus.select$(FormComponentEventType.FORM_DEFINITION_CHANGED).subscribe(event => {
+    const subscription = eventBus.select$(FormComponentEventType.FORM_DEFINITION_CHANGED).subscribe((event: unknown) => {
       emittedEvents.push(event);
     });
 
@@ -178,7 +178,7 @@ describe('RepeatableComponent', () => {
           model: {
             class: 'RepeatableModel',
             config: {
-              value: ['one']
+              value: ['one', 'two']
             }
           },
           component: {
@@ -412,5 +412,74 @@ describe('RepeatableComponent', () => {
     const removeButtons = fixture.nativeElement.querySelectorAll('.rb-form-repeatable-item__remove');
     expect(removeButtons.length).toBe(0);
   });
+
+  it('hides repeatable rows dynamically when the final row is deleted', fakeAsync(() => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_dynamic_hide',
+      componentDefinitions: [
+        {
+          name: 'repeatable_dynamic_hide',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              addButtonShow: false,
+              allowZeroRows: true,
+              hideWhenZeroRows: true,
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          },
+        },
+      ]
+    };
+
+    let fixture: any;
+    createFormAndWaitForReady(formConfig).then(result => {
+      fixture = result.fixture;
+    });
+    flushMicrotasks();
+    tick();
+
+    let rowsContainer = fixture.nativeElement.querySelector('.rb-form-repeatable__items') as HTMLElement;
+    expect(rowsContainer).toBeTruthy();
+    expect(rowsContainer.classList.contains('d-none')).toBeFalse();
+
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+    repeatable.appendNewElement('two');
+    tick();
+    flushMicrotasks();
+    fixture.detectChanges();
+    tick();
+
+    let repeatableEntries = (repeatable as any).compDefMapEntries as any[];
+    while (repeatableEntries.length > 0) {
+      (repeatable as any).removeElementFn(repeatableEntries[0])();
+      tick();
+      flushMicrotasks();
+      fixture.detectChanges();
+      tick();
+      repeatableEntries = (repeatable as any).compDefMapEntries as any[];
+    }
+
+    rowsContainer = fixture.nativeElement.querySelector('.rb-form-repeatable__items') as HTMLElement;
+    expect(rowsContainer.classList.contains('d-none')).toBeTrue();
+    expect(fixture.nativeElement.querySelectorAll('.rb-form-repeatable-item').length).toBe(0);
+  }));
 
 });

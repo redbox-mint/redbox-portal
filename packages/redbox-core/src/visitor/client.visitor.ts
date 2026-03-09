@@ -901,6 +901,8 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
    * @protected
    */
   protected updateRepeatableDataModels(item: RepeatableFormComponentDefinitionOutline): void {
+    this.updateLayoutVisibilityForZeroRows(item);
+
     const elementTemplate = item.component?.config?.elementTemplate;
     const elementTemplateCompConfig = elementTemplate?.component?.config;
 
@@ -924,6 +926,19 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     const newEntryValue = elementTemplate?.model?.config?.newEntryValue;
     this.updateRepeatableDataModel(toProcess, newEntryValue);
+  }
+
+  protected updateLayoutVisibilityForZeroRows(item: RepeatableFormComponentDefinitionOutline): void {
+    const hideWhenZeroRows = item.component?.config?.hideWhenZeroRows;
+    const valueLength = item.model?.config?.value?.length ?? 0;
+    if (hideWhenZeroRows && valueLength === 0) {
+      if (item.layout?.config) {
+        item.layout.config.visible = false;
+      }
+      if (item.component?.config) {
+        item.component.config.visible = false;
+      }
+    }
   }
 
   /**
@@ -988,19 +1003,20 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
             if (currentValueType !== 'array') {
               throw new Error(`${errMsg1} an array, ${errMsg2} ${JSON.stringify(currentValue)}`);
             }
-            // TODO: determine how elements will work
-            throw new Error(
-              `Not implemented updateRepeatableDataModel elements ${JSON.stringify({
-                schemaKey,
-                schemaValue,
-                currentValue,
-              })}`
-            );
-          // break;
+
+            (currentValue as unknown[]).forEach((_, index) => {
+              processing.push({
+                path: [...path, `${index}`],
+                schema: schemaCurrent,
+              });
+            });
+            break;
           case 'type':
             // TODO: do the json type def type names match the guessType names?
             // Allow null values
-            if (currentValueType !== schemaValue && currentValueType !== 'null') {
+            const schemaValueStr = String(schemaValue);
+            const isTimestampString = schemaValueStr === 'string' && currentValueType === 'timestamp';
+            if (currentValueType !== schemaValueStr && currentValueType !== 'null' && !isTimestampString) {
               throw new Error(`${errMsg1} ${schemaValue}, ${errMsg2} ${JSON.stringify(currentValue)}`);
             }
             // Nothing else to do.
