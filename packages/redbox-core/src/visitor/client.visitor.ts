@@ -983,11 +983,36 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
               currentValueType = 'object';
             }
             if (currentValueType !== 'object') {
+              const schemaNames = Object.keys(schemaCurrent);
+              const canCoerceToLegacyGroupRow =
+                schemaNames.includes('name') &&
+                ['string', 'timestamp', 'number', 'boolean'].includes(currentValueType);
+              if (canCoerceToLegacyGroupRow) {
+                currentValue = {
+                  name: String(currentValue),
+                };
+                if (path.length > 0) {
+                  _set(value as object, path, currentValue);
+                } else {
+                  value = currentValue;
+                }
+                currentValueType = 'object';
+              }
+            }
+            if (currentValueType !== 'object') {
               throw new Error(`${errMsg1} an object, ${errMsg2} ${JSON.stringify(currentValue)}`);
             }
             // Remove names missing in the schema.
             // Add names in the schema to the to-process array.
             const schemaNames = Object.keys(schemaCurrent);
+            if (schemaNames.includes('name')) {
+              const currentObj = currentValue as Record<string, unknown>;
+              const hasName = typeof currentObj.name === 'string' && currentObj.name.length > 0;
+              const legacyValue = currentObj.value;
+              if (!hasName && typeof legacyValue === 'string' && legacyValue.length > 0) {
+                currentObj.name = legacyValue;
+              }
+            }
             Object.keys(currentValue).forEach(name => {
               if (!schemaNames.includes(name)) {
                 delete currentValue[name];

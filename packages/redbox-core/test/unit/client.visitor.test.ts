@@ -178,6 +178,77 @@ describe("Client Visitor", async () => {
     });
   });
 
+  it('should map legacy value property to name for repeatable group rows', async function () {
+    const args: FormConfigFrame = {
+      name: 'repeatable-group-legacy-value-key',
+      componentDefinitions: [
+        {
+          name: 'dc:subject_anzsrc:for-2008',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              defaultValue: [
+                {
+                  value: '960808 - Marine Flora, Fauna and Biodiversity',
+                  notation: '960808',
+                },
+              ],
+            },
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              addButtonShow: false,
+              allowZeroRows: true,
+              hideWhenZeroRows: true,
+              elementTemplate: {
+                name: '',
+                component: {
+                  class: 'GroupComponent',
+                  config: {
+                    componentDefinitions: [
+                      {
+                        name: 'name',
+                        component: { class: 'SimpleInputComponent' },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                      {
+                        name: 'notation',
+                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                    ],
+                  },
+                },
+                model: {
+                  class: 'GroupModel',
+                  config: {},
+                },
+              },
+            } as RepeatableFieldComponentConfigFrame,
+          },
+        },
+      ],
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      data: args,
+      formMode: 'edit',
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed });
+    const value = actual.componentDefinitions?.[0]?.model?.config?.value as any[];
+
+    expect(value).to.have.length(1);
+    expect(value[0]).to.containSubset({
+      name: '960808 - Marine Flora, Fauna and Biodiversity',
+      notation: '960808',
+    });
+  });
+
   it('should hide repeatable layout at zero rows when hideWhenZeroRows is true', async function () {
     const args: FormConfigFrame = {
       name: 'repeatable-zero-row-layout-hidden',
@@ -340,6 +411,7 @@ describe("Client Visitor", async () => {
                   conditionKind: 'jsonpointer',
                   condition: `/text_1::field.value.changed`,
                   target: `model.value`,
+                  runOnFormReady: false,
                 },
               },
               {
@@ -349,6 +421,7 @@ describe("Client Visitor", async () => {
                   conditionKind: 'jsonpointer',
                   condition: `/text_1::field.value.changed`,
                   target: `model.value`,
+                  runOnFormReady: false,
                 },
               },
             ]
@@ -431,6 +504,7 @@ describe("Client Visitor", async () => {
                   condition: `/text_1::field.value.changed`,
                   target: `model.value`,
                   template: `value & "__suffix"`,
+                  runOnFormReady: false,
                 },
               },
 
@@ -442,6 +516,7 @@ describe("Client Visitor", async () => {
                   conditionKind: 'jsonpointer',
                   condition: `/text_1::field.value.changed`,
                   target: `model.value`,
+                  runOnFormReady: false,
                 },
               },
             ]

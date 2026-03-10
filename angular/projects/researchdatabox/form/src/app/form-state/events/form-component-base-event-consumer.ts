@@ -172,6 +172,9 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 		if (!querySource) {
 			return false;
 		}
+		if (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && opts.expression.config.runOnFormReady === false) {
+			return false;
+		} 
 		const pointerCondition = this.getEventJSONPointerCondition(opts.condition);
 		// Check if the pointer has a match in the query source, broadcasts will fail this check
 		const ref = getObjectWithJsonPointer(querySource.jsonPointerSource, pointerCondition.jsonPointer);
