@@ -938,7 +938,7 @@ describe("Construct Visitor", async () => {
                             class: 'ContentComponent',
                             config: {
                                 content: { label: 'Option 3', value: 'option3' },
-                                template: `<span data-value="{{content.value}}">{{content.label}}</span>`
+                                template: `<span data-value="{{content.value}}">{{#with @root}}{{t content.label}}{{/with}}</span>`
                             }
                         },
                     },
@@ -949,7 +949,7 @@ describe("Construct Visitor", async () => {
                             class: 'ContentComponent',
                             config: {
                                 content: [{ label: 'Option 2', value: 'option2' }, { label: 'Option 3', value: 'option3' }],
-                                template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
+                                template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{#with @root}}{{t ../label}}{{/with}}</li>{{/each}}</ul>`
                             }
                         },
                     }
@@ -960,14 +960,58 @@ describe("Construct Visitor", async () => {
             expect(actual.componentDefinitions[0].component).to.deep.include({ class: "ContentComponent" });
             expect(actual.componentDefinitions[0].component.config).to.deep.include({
                 content: { label: 'Option 3', value: 'option3' },
-                template: `<span data-value="{{content.value}}">{{content.label}}</span>`
+                template: `<span data-value="{{content.value}}">{{#with @root}}{{t content.label}}{{/with}}</span>`
             });
 
             expect(actual.componentDefinitions[1]).to.deep.include({ name: "component_2" });
             expect(actual.componentDefinitions[1].component).to.deep.include({ class: "ContentComponent" });
             expect(actual.componentDefinitions[1].component.config).to.deep.include({
                 content: [{ label: 'Option 2', value: 'option2' }, { label: 'Option 3', value: 'option3' }],
-                template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
+                template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{#with @root}}{{t ../label}}{{/with}}</li>{{/each}}</ul>`
+            });
+        });
+
+        it("should populate transformed dropdown content component from record array values", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "storage_location",
+                            component: {
+                                class: 'DropdownInputComponent',
+                                config: {
+                                    options: [
+                                        { label: '@dmpt-storage-onedrive', value: 'onedrive' },
+                                        { label: '@dmpt-storage-sharepoint', value: 'sharepoint' },
+                                        { label: '@dmpt-storage-research-drive', value: 'research-drive' },
+                                    ]
+                                }
+                            },
+                            model: {
+                                class: "DropdownInputModel",
+                                config: {
+                                    defaultValue: 'onedrive',
+                                }
+                            }
+                        }
+                    ]
+                },
+                formMode: "view",
+                reusableFormDefs: reusableFormDefinitions,
+                record: { storage_location: ['sharepoint', 'research-drive'] }
+            });
+
+            expect(actual).to.deep.include({ name: "form" });
+            expect(actual.componentDefinitions[0]).to.deep.include({ name: "storage_location" });
+            expect(actual.componentDefinitions[0].component).to.deep.include({ class: "ContentComponent" });
+            expect(actual.componentDefinitions[0].component.config).to.deep.include({
+                content: [
+                    { label: '@dmpt-storage-sharepoint', value: 'sharepoint' },
+                    { label: '@dmpt-storage-research-drive', value: 'research-drive' }
+                ],
+                template: `<ul>{{#each content}}<li data-value="{{this.value}}">{{#with @root}}{{t ../label}}{{/with}}</li>{{/each}}</ul>`
             });
         });
     });
