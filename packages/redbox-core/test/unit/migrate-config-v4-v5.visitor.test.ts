@@ -4,7 +4,8 @@ import {
   MigrationV4ToV5FormConfigVisitor,
   migrateDataClassification,
   migrateFormConfigFile,
-  migrateFormConfigVerify
+  migrateFormConfigVerify,
+  reusableFormDefinitions
 } from "../../src";
 
 let expect: Chai.ExpectStatic;
@@ -360,6 +361,49 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(migratedField.component.class).to.equal("RepeatableComponent");
         expect(migratedField.layout?.class).to.equal("DefaultLayout");
         expect((migratedField.layout?.config as Record<string, unknown>)?.label).to.equal("@dmpt-people-tab-otherdatacreators");
+    });
+
+    it('maps legacy ContributorField with forceLookupOnly to the lookup-only reusable definition', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "contributor-force-lookup-only",
+                fields: [
+                    {
+                        class: "ContributorField",
+                        definition: {
+                            name: "contributor_ci",
+                            forceLookupOnly: true
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("ReusableComponent");
+        expect(migratedField.overrides).to.deep.equal({
+            reusableFormName: "standard-contributor-fields-lookup-only-group"
+        });
+        expect(migratedField.layout).to.equal(undefined);
+    });
+
+    it('defines lookup-only contributor reusable fields with required selection and readonly email', async function () {
+        const lookupOnlyFields = reusableFormDefinitions["standard-contributor-fields-lookup-only"];
+        expect(lookupOnlyFields).to.have.length(3);
+
+        const nameField = lookupOnlyFields[0];
+        const emailField = lookupOnlyFields[1];
+        expect((nameField.component?.config as Record<string, unknown>)?.requireSelection).to.equal(true);
+        expect((emailField.component?.config as Record<string, unknown>)?.readonly).to.equal(true);
+
+        const withTitleGroup = reusableFormDefinitions["standard-contributor-fields-with-title-lookup-only-group"];
+        expect(withTitleGroup).to.have.length(1);
+        expect(
+            ((withTitleGroup[0].component?.config as Record<string, unknown>)?.componentDefinitions as Array<Record<string, unknown>>)?.[0]?.overrides
+        ).to.deep.equal({
+            reusableFormName: "standard-contributor-fields-with-title-lookup-only"
+        });
     });
 
     it("maps legacy MapField to MapComponent and normalizes config/value", async function () {
