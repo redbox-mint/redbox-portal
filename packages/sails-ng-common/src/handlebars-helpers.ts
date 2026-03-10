@@ -24,6 +24,7 @@ import {
     isUndefined as _isUndefined,
     isNull as _isNull,
     isArray as _isArray,
+    isPlainObject as _isPlainObject,
 } from 'lodash';
 
 /**
@@ -50,6 +51,105 @@ void import('marked')
 
 function resolveMarkedParser(): ((value: string) => string) | null {
     return cachedMarkedParser ?? null;
+}
+
+function escapeHtml(value: unknown): string {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function isPrimitiveMetadataValue(value: unknown): boolean {
+    return value === null || value === undefined || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
+}
+
+function isFlatObject(value: unknown): value is Record<string, unknown> {
+    if (!_isPlainObject(value)) {
+        return false;
+    }
+
+    return Object.values(value as Record<string, unknown>).every((entry) => isPrimitiveMetadataValue(entry));
+}
+
+function renderMetadataPrimitive(value: unknown): string {
+    if (_isUndefined(value) || _isNull(value) || value === '') {
+        return '<em class="text-muted">—</em>';
+    }
+
+    return escapeHtml(value);
+}
+
+function renderMetadataObjectEntries(value: Record<string, unknown>): string {
+    const entries = Object.entries(value);
+    if (entries.length === 0) {
+        return '<em class="text-muted">—</em>';
+    }
+
+    const rows = entries.map(([key, entryValue]) => {
+        return `<div class="rb-view-metadata__nested-row"><div class="rb-view-metadata__nested-key">${escapeHtml(key)}</div><div class="rb-view-metadata__nested-value">${renderMetadataValue(entryValue)}</div></div>`;
+    }).join('');
+
+    return `<div class="rb-view-metadata__nested">${rows}</div>`;
+}
+
+function renderMetadataTable(value: Record<string, unknown>[]): string {
+    if (value.length === 0) {
+        return '<em class="text-muted">—</em>';
+    }
+
+    const columns: string[] = [];
+    for (const row of value) {
+        for (const key of Object.keys(row)) {
+            if (!columns.includes(key)) {
+                columns.push(key);
+            }
+        }
+    }
+
+    if (columns.length === 0) {
+        return '<em class="text-muted">—</em>';
+    }
+
+    const headerHtml = columns.map((key) => `<th>${escapeHtml(key)}</th>`).join('');
+    const rowHtml = value.map((row) => {
+        const cells = columns.map((key) => `<td>${renderMetadataPrimitive(row[key])}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+    }).join('');
+
+    return `<div class="rb-view-metadata__table-wrapper"><table class="table table-striped table-sm rb-view-metadata__table"><thead><tr>${headerHtml}</tr></thead><tbody>${rowHtml}</tbody></table></div>`;
+}
+
+function renderMetadataArray(value: unknown[]): string {
+    if (value.length === 0) {
+        return '<em class="text-muted">—</em>';
+    }
+
+    if (value.every((entry) => typeof entry === 'string')) {
+        const items = value.map((entry) => `<li>${escapeHtml(entry)}</li>`).join('');
+        return `<ul class="rb-view-metadata__list">${items}</ul>`;
+    }
+
+    if (value.every((entry) => isFlatObject(entry))) {
+        return renderMetadataTable(value as Record<string, unknown>[]);
+    }
+
+    const items = value.map((entry) => `<li>${renderMetadataValue(entry)}</li>`).join('');
+    return `<ul class="rb-view-metadata__list">${items}</ul>`;
+}
+
+function renderMetadataValue(value: unknown): string {
+    if (_isArray(value)) {
+        return renderMetadataArray(value);
+    }
+
+    if (_isPlainObject(value)) {
+        return renderMetadataObjectEntries(value as Record<string, unknown>);
+    }
+
+    return renderMetadataPrimitive(value);
 }
 
 /**
@@ -206,6 +306,15 @@ export const handlebarsHelperDefinitions = {
      */
     isArray: function (value: unknown): boolean {
         return _isArray(value);
+    },
+
+    /**
+     * Check if a value is a plain object.
+     * 
+     * @example {{#if (isObject value)}}is object{{/if}}
+     */
+    isObject: function (value: unknown): boolean {
+        return _isPlainObject(value);
     },
 
     /**
@@ -411,6 +520,15 @@ export const handlebarsHelperDefinitions = {
         } catch {
             return String(value);
         }
+    },
+
+    /**
+     * Render metadata values into nested HTML suitable for generated view-only display.
+     *
+     * @example {{{renderMetadataValue metadata.someField}}}
+     */
+    renderMetadataValue: function (value: unknown): string {
+        return renderMetadataValue(value);
     },
 };
 

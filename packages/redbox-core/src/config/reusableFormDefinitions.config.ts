@@ -351,7 +351,7 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
    *
    * Renders all keys and values from the record metadata supplied as the content payload
    * definition list. Handles string, array, and object values using the available
-   * Handlebars helpers: `isArray`, `json`, `isEmpty`, `isDefined`.
+    * Handlebars helpers: `isArray`, `isObject`, `json`, `isEmpty`, `isDefined`.
    */
   "generated-view-only-metadata-display": [
     {
@@ -363,21 +363,7 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
 {{#each content}}
   <dt class="rb-view-metadata__key">{{@key}}</dt>
   <dd class="rb-view-metadata__value">
-    {{#if (isArray this)}}
-      {{#if (isEmpty this)}}
-        <em class="text-muted">—</em>
-      {{else}}
-        <ul class="rb-view-metadata__list">
-          {{#each this}}
-            <li>{{#if (isArray this)}}{{json this}}{{else if (isDefined this)}}{{this}}{{else}}<em class="text-muted">—</em>{{/if}}</li>
-          {{/each}}
-        </ul>
-      {{/if}}
-    {{else if (isDefined this)}}
-      {{this}}
-    {{else}}
-      <em class="text-muted">—</em>
-    {{/if}}
+    {{{renderMetadataValue this}}}
   </dd>
 {{/each}}
 </dl>`,
