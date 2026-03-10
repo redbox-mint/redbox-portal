@@ -668,7 +668,8 @@ export class FormService extends HttpClientService {
    * @param formMode The form mode.
    */
   public async getDynamicImportFormCompiledItems(recordType: string, oid?: string, formMode?: FormModesConfig) {
-    const path = ['dynamicAsset', 'formCompiledItems', recordType?.toString()];
+    const normalizedRecordType = String(recordType ?? '').trim() || (oid ? 'auto' : '');
+    const path = ['dynamicAsset', 'formCompiledItems', normalizedRecordType];
     if (oid) {
       path.push(oid?.toString());
     }
