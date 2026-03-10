@@ -7,6 +7,23 @@ import { FormConfigFrame, FormModesConfig } from "@researchdatabox/sails-ng-comm
 import { formConfigExample1 } from "../unit/example-data";
 import { reusableFormDefinitions, TemplateFormConfigVisitor } from "../../src";
 
+function findComponentDefinitionByName(componentDefinitions: unknown[] | undefined, targetName: string): any {
+  for (const componentDefinition of componentDefinitions ?? []) {
+    const typedDefinition = componentDefinition as any;
+    if (typedDefinition?.name === targetName) {
+      return typedDefinition;
+    }
+
+    const nestedDefinitions = typedDefinition?.component?.config?.componentDefinitions as unknown[] | undefined;
+    const nestedMatch = findComponentDefinitionByName(nestedDefinitions, targetName);
+    if (nestedMatch) {
+      return nestedMatch;
+    }
+  }
+
+  return undefined;
+}
+
 describe('FormsService', function () {
   let mockSails: any;
   let FormsService: any;
@@ -195,15 +212,31 @@ describe('FormsService', function () {
       expect(result).to.deep.equal({ name: 'form1' });
     });
 
-    it('should generate form from schema if form name is generated-view-only', async function () {
+    it('should look up generated-view-only form from the registry (no longer generates schema at runtime)', async function () {
       const record = { metaMetadata: { form: 'generated-view-only' } };
       const brand = { id: 'brand-1' };
-      sinon.stub(FormsService, 'generateFormFromSchema').resolves({ generated: true });
+      const mockFormResult = { name: 'generated-view-only', configuration: {} };
+      sinon.stub(FormsService, 'getFormByName').returns(of(mockFormResult));
 
-      const result = await FormsService.getForm(brand, undefined, false, 'type', record);
+      const result = await FormsService.getForm(brand, undefined, false, '', record);
 
-      expect(FormsService.generateFormFromSchema.called).to.be.true;
-      expect(result).to.deep.equal({ id: '', name: 'generated-view-only', branding: 'brand-1', configuration: { generated: true } });
+      expect(FormsService.getFormByName.calledWith('generated-view-only', false, 'brand-1')).to.be.true;
+      expect(result).to.deep.equal(mockFormResult);
+    });
+
+    it('should backfill the returned form configuration type from the record type when the stored form type is blank', async function () {
+      const record = { metaMetadata: { form: 'generated-view-only', type: 'party' } };
+      const brand = { id: 'brand-1' };
+      const mockFormResult = {
+        name: 'generated-view-only',
+        configuration: { type: '', componentDefinitions: [] }
+      };
+      sinon.stub(FormsService, 'getFormByName').returns(of(mockFormResult));
+
+      const result = await FormsService.getForm(brand, undefined, false, '', record);
+
+      expect(result?.configuration?.type).to.equal('party');
+      expect(mockFormResult.configuration.type).to.equal('');
     });
   });
 
@@ -373,6 +406,47 @@ describe('FormsService', function () {
 
       expect(contentConfig.content).to.equal('Welcome Alice');
       expect(form.contextVariables).to.deep.equal(contextVariablesMap);
+    });
+
+    it('should populate generated view-only metadata display content from the record metadata', async function () {
+      const form = await FormsService.buildClientFormConfig(
+        {
+          name: 'generated-view-only',
+          componentDefinitions: [
+            {
+              name: 'generated_view_only_metadata',
+              overrides: {
+                reusableFormName: 'generated-view-only-metadata-display'
+              },
+              component: {
+                class: 'ReusableComponent',
+                config: {
+                  componentDefinitions: []
+                }
+              }
+            }
+          ]
+        },
+        'view',
+        [],
+        {
+          title: 'Lecturer, Field Education',
+          nested: { school: 'JCU' }
+        },
+        reusableFormDefinitions
+      );
+
+      const metadataDisplay = findComponentDefinitionByName(
+        form.componentDefinitions as unknown[] | undefined,
+        'generated_view_only_metadata_display'
+      )?.component?.config as {
+        content?: Record<string, unknown>;
+      };
+
+      expect(metadataDisplay.content).to.deep.equal({
+        title: 'Lecturer, Field Education',
+        nested: { school: 'JCU' }
+      });
     });
   });
 });

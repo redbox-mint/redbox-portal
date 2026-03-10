@@ -345,4 +345,44 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
       component: {class: "CheckboxInputComponent", config: {options: []}}
     }
   ],
+
+  /**
+   * Generic metadata display for the "generated-view-only" form.
+   *
+   * Renders all keys and values from the record metadata supplied as the content payload
+   * definition list. Handles string, array, and object values using the available
+   * Handlebars helpers: `isArray`, `json`, `isEmpty`, `isDefined`.
+   */
+  "generated-view-only-metadata-display": [
+    {
+      name: "generated_view_only_metadata_display",
+      component: {
+        class: "ContentComponent",
+        config: {
+          template: `<dl class="rb-view-metadata">
+{{#each content}}
+  <dt class="rb-view-metadata__key">{{@key}}</dt>
+  <dd class="rb-view-metadata__value">
+    {{#if (isArray this)}}
+      {{#if (isEmpty this)}}
+        <em class="text-muted">—</em>
+      {{else}}
+        <ul class="rb-view-metadata__list">
+          {{#each this}}
+            <li>{{#if (isArray this)}}{{json this}}{{else if (isDefined this)}}{{this}}{{else}}<em class="text-muted">—</em>{{/if}}</li>
+          {{/each}}
+        </ul>
+      {{/if}}
+    {{else if (isDefined this)}}
+      {{this}}
+    {{else}}
+      <em class="text-muted">—</em>
+    {{/if}}
+  </dd>
+{{/each}}
+</dl>`,
+        },
+      },
+    },
+  ],
 };

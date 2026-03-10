@@ -51,6 +51,16 @@ type FormFieldLike = {
   [key: string]: unknown;
 };
 
+type FormComponentNodeLike = {
+  name?: string;
+  component?: {
+    config?: {
+      content?: unknown;
+      componentDefinitions?: unknown[];
+    };
+  };
+};
+
 export namespace Services {
   /**
    * Forms related functions...
@@ -59,6 +69,7 @@ export namespace Services {
    *
    */
   export class Forms extends services.Core.Service {
+    private readonly generatedViewOnlyMetadataComponentName = 'generated_view_only_metadata_display';
 
     protected override _exportedMethods: string[] = [
       'bootstrap',
@@ -233,25 +244,29 @@ export namespace Services {
       // allow client to set the form name to use
       const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata?.form : formParam;
 
-      if (formName == 'generated-view-only') {
-        const generatedConfig = await this.generateFormFromSchema(branding, recordType, currentRec);
-        // Wrap the generated FormConfigFrame into a FormAttributes structure
-        const defaultBrandingId = String(BrandingService.getDefault()?.id ?? '');
-        return {
-          id: '',
-          name: 'generated-view-only',
-          branding: String(branding?.id ?? defaultBrandingId),
-          configuration: generatedConfig as FormConfigFrame,
-        };
-      } else {
-
-        if (!formName) {
-          return null;
-        }
-        const defaultBrandingId = String(BrandingService.getDefault()?.id ?? '');
-        const brandingId = String(branding?.id ?? defaultBrandingId);
-        return await firstValueFrom(this.getFormByName(formName, editMode, brandingId || undefined));
+      if (!formName) {
+        return null;
       }
+      const defaultBrandingId = String(BrandingService.getDefault()?.id ?? '');
+      const brandingId = String(branding?.id ?? defaultBrandingId);
+      const form = await firstValueFrom(this.getFormByName(formName, editMode, brandingId || undefined));
+      if (!form?.configuration) {
+        return form;
+      }
+
+      const resolvedRecordType = String(recordType || currentRec.metaMetadata?.type || '').trim();
+      const currentFormType = String(form.configuration.type ?? '').trim();
+      if (currentFormType || !resolvedRecordType) {
+        return form;
+      }
+
+      return {
+        ...form,
+        configuration: {
+          ...form.configuration,
+          type: resolvedRecordType
+        }
+      } as FormAttributes;
     }
 
     public getFormByStartingWorkflowStep(branding: BrandingModel, recordType: string, _editMode: boolean): Observable<FormAttributes> {
@@ -627,11 +642,56 @@ export namespace Services {
           })}`);
       }
 
+      this.populateGeneratedViewOnlyMetadataContent(
+        result.componentDefinitions as unknown[] | undefined,
+        recordMetadata
+      );
+
       if (contextVariablesMap && Object.keys(contextVariablesMap).length > 0) {
         result.contextVariables = contextVariablesMap;
       }
 
       return result;
+    }
+
+    private populateGeneratedViewOnlyMetadataContent(
+      componentDefinitions: unknown[] | undefined,
+      recordMetadata?: Record<string, unknown> | null
+    ): void {
+      if (!componentDefinitions || !recordMetadata || Object.keys(recordMetadata).length === 0) {
+        return;
+      }
+
+      const metadataComponent = this.findComponentDefinitionByName(
+        componentDefinitions,
+        this.generatedViewOnlyMetadataComponentName
+      );
+
+      if (metadataComponent?.component?.config) {
+        metadataComponent.component.config.content = _.cloneDeep(recordMetadata);
+      }
+    }
+
+    private findComponentDefinitionByName(
+      componentDefinitions: unknown[],
+      targetName: string
+    ): FormComponentNodeLike | undefined {
+      for (const componentDefinition of componentDefinitions) {
+        const typedDefinition = componentDefinition as FormComponentNodeLike;
+        if (typedDefinition?.name === targetName) {
+          return typedDefinition;
+        }
+
+        const nestedDefinitions = typedDefinition?.component?.config?.componentDefinitions;
+        if (nestedDefinitions?.length) {
+          const nestedMatch = this.findComponentDefinitionByName(nestedDefinitions, targetName);
+          if (nestedMatch) {
+            return nestedMatch;
+          }
+        }
+      }
+
+      return undefined;
     }
   }
 }

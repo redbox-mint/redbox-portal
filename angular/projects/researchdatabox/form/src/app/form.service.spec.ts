@@ -14,7 +14,7 @@ import { Title } from "@angular/platform-browser";
 import { provideI18Next } from "angular-i18next";
 import { provideHttpClient } from "@angular/common/http";
 import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
-import { LineagePaths } from "@researchdatabox/sails-ng-common";
+import { FormModesConfig, LineagePaths } from "@researchdatabox/sails-ng-common";
 
 
 describe('The FormService', () => {
@@ -136,6 +136,51 @@ describe('The FormService', () => {
       expect(source.querySource[0].name).toBe('parent');
       expect((source.jsonPointerSource as any)['0'].metadata.formFieldEntry).toBe(parentEntry);
       expect((source.jsonPointerSource as any)['0'].child.metadata.formFieldEntry).toBe(childEntry);
+    });
+  });
+
+  describe('getDynamicImportFormCompiledItems', () => {
+    beforeEach(() => {
+      (service as any).brandingAndPortalUrl = 'http://localhost/default/rdmp';
+    });
+
+    it('should use the provided recordType when building the dynamic asset path', async () => {
+      const utilityService = TestBed.inject(UtilityService);
+      const getDynamicImportSpy = spyOn(utilityService, 'getDynamicImport').and.resolveTo({ evaluate: () => '' } as any);
+
+      await service.getDynamicImportFormCompiledItems('rdmp', 'oid-123', 'view');
+
+      expect(getDynamicImportSpy).toHaveBeenCalledWith(
+        'http://localhost/default/rdmp',
+        ['dynamicAsset', 'formCompiledItems', 'rdmp', 'oid-123'],
+        undefined
+      );
+    });
+
+    it('should fall back to auto recordType for existing records when the recordType is blank', async () => {
+      const utilityService = TestBed.inject(UtilityService);
+      const getDynamicImportSpy = spyOn(utilityService, 'getDynamicImport').and.resolveTo({ evaluate: () => '' } as any);
+
+      await service.getDynamicImportFormCompiledItems('', 'oid-123', 'view');
+
+      expect(getDynamicImportSpy).toHaveBeenCalledWith(
+        'http://localhost/default/rdmp',
+        ['dynamicAsset', 'formCompiledItems', 'auto', 'oid-123'],
+        undefined
+      );
+    });
+
+    it('should preserve edit mode query params with the auto recordType fallback', async () => {
+      const utilityService = TestBed.inject(UtilityService);
+      const getDynamicImportSpy = spyOn(utilityService, 'getDynamicImport').and.resolveTo({ evaluate: () => '' } as any);
+
+      await service.getDynamicImportFormCompiledItems('', 'oid-123', 'edit' as FormModesConfig);
+
+      expect(getDynamicImportSpy).toHaveBeenCalledWith(
+        'http://localhost/default/rdmp',
+        ['dynamicAsset', 'formCompiledItems', 'auto', 'oid-123'],
+        { edit: 'true' }
+      );
     });
   });
 });
