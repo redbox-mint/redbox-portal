@@ -238,7 +238,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
     const layoutInstance = ((compInstance as unknown) as RepeatableElementLayoutComponent<Array<unknown>>);
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
-    layoutInstance.canRemove = this.compDefMapEntries.length > 1;
+    layoutInstance.canRemove = this.allowZeroRows ? this.compDefMapEntries.length > 0 : this.compDefMapEntries.length > 1;
     elemEntry.layoutInstance = layoutInstance;
     if (this.model?.formControl && compInstance?.model) {
       if (!_isUndefined(elemEntry.value)) {

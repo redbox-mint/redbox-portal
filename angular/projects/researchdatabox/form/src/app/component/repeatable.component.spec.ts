@@ -413,6 +413,45 @@ describe('RepeatableComponent', () => {
     expect(removeButtons.length).toBe(0);
   });
 
+  it('shows remove button on single row when allowZeroRows is true', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_allow_zero_single_remove',
+      componentDefinitions: [
+        {
+          name: 'repeatable_allow_zero',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              allowZeroRows: true,
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const removeButtons = fixture.nativeElement.querySelectorAll('.rb-form-repeatable-item__remove');
+    expect(removeButtons.length).toBe(1);
+  });
+
   it('hides repeatable rows dynamically when the final row is deleted', fakeAsync(() => {
     const formConfig: FormConfigFrame = {
       name: 'testing_repeatable_dynamic_hide',
