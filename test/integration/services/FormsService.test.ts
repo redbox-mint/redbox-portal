@@ -493,7 +493,7 @@ describe('The FormsService', function () {
             model: {
               class: 'DropdownInputModel',
               config: {
-                value: '',
+                defaultValue: '',
               },
             },
             component: {
