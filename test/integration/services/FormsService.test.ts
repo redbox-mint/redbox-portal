@@ -479,6 +479,50 @@ describe('The FormsService', function () {
       // expect(result).to.eql(expected);
     });
 
+    it('should render dropdown option labels via translation helpers in view mode', async function () {
+      const formConfig: FormConfigFrame = {
+        name: 'dropdown-view-translation',
+        type: 'rdmp',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: 'redbox-form form',
+        componentDefinitions: [
+          {
+            name: 'storage_location',
+            model: {
+              class: 'DropdownInputModel',
+              config: {
+                defaultValue: '',
+              },
+            },
+            component: {
+              class: 'DropdownInputComponent',
+              config: {
+                options: [
+                  { label: '@dmpt-select:Empty', value: '' },
+                  { label: '@dmpt-storage-onedrive', value: 'onedrive' },
+                ],
+              },
+            },
+          },
+        ],
+      };
+
+      const result = await FormsService.buildClientFormConfig(formConfig, 'view');
+      const field = result.componentDefinitions?.[0];
+      const config = field?.component?.config as { content?: unknown; template?: string } | undefined;
+
+      expect(field?.component?.class).to.equal('ContentComponent');
+      expect(config?.content).to.deep.equal({
+        value: '',
+        label: '@dmpt-select:Empty',
+      });
+      expect(config?.template).to.equal(
+        '<span data-value="{{content.value}}">{{#with @root}}{{t content.label}}{{/with}}</span>'
+      );
+    });
+
     it('should build the expected config', async function () {
       const formConfig: FormConfigFrame = {
         name: 'basic-form',
