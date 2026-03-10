@@ -642,34 +642,22 @@ export namespace Services {
           })}`);
       }
 
-      this.populateGeneratedViewOnlyMetadataContent(
-        result.componentDefinitions as unknown[] | undefined,
-        recordMetadata
-      );
+      const componentDefinitions = result.componentDefinitions as unknown[] | undefined;
+      if (componentDefinitions?.length) {
+        const metadataComponent = this.findComponentDefinitionByName(
+          componentDefinitions,
+          this.generatedViewOnlyMetadataComponentName
+        );
+        if (metadataComponent?.component?.config) {
+          metadataComponent.component.config.content = _.cloneDeep(recordMetadata ?? {});
+        }
+      }
 
       if (contextVariablesMap && Object.keys(contextVariablesMap).length > 0) {
         result.contextVariables = contextVariablesMap;
       }
 
       return result;
-    }
-
-    private populateGeneratedViewOnlyMetadataContent(
-      componentDefinitions: unknown[] | undefined,
-      recordMetadata?: Record<string, unknown> | null
-    ): void {
-      if (!componentDefinitions || !recordMetadata || Object.keys(recordMetadata).length === 0) {
-        return;
-      }
-
-      const metadataComponent = this.findComponentDefinitionByName(
-        componentDefinitions,
-        this.generatedViewOnlyMetadataComponentName
-      );
-
-      if (metadataComponent?.component?.config) {
-        metadataComponent.component.config.content = _.cloneDeep(recordMetadata);
-      }
     }
 
     private findComponentDefinitionByName(

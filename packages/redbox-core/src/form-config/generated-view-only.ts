@@ -146,6 +146,7 @@ const formConfig: FormConfigFrame = {
         },
       },
       constraints: {
+        allowModes: ['view'],
         authorization: {
           allowRoles: ['Admin', 'Librarians'],
         },

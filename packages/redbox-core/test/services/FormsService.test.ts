@@ -448,5 +448,44 @@ describe('FormsService', function () {
         nested: { school: 'JCU' }
       });
     });
+
+    it('should populate generated view-only metadata content for any form that includes the metadata display component', async function () {
+      const form = await FormsService.buildClientFormConfig(
+        {
+          name: 'other-form',
+          componentDefinitions: [
+            {
+              name: 'generated_view_only_metadata',
+              overrides: {
+                reusableFormName: 'generated-view-only-metadata-display'
+              },
+              component: {
+                class: 'ReusableComponent',
+                config: {
+                  componentDefinitions: []
+                }
+              }
+            }
+          ]
+        },
+        'view',
+        [],
+        {
+          title: 'Should inject'
+        },
+        reusableFormDefinitions
+      );
+
+      const metadataDisplay = findComponentDefinitionByName(
+        form.componentDefinitions as unknown[] | undefined,
+        'generated_view_only_metadata_display'
+      )?.component?.config as {
+        content?: Record<string, unknown>;
+      };
+
+      expect(metadataDisplay.content).to.deep.equal({
+        title: 'Should inject'
+      });
+    });
   });
 });

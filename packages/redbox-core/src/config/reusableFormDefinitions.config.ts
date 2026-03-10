@@ -350,8 +350,8 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
    * Generic metadata display for the "generated-view-only" form.
    *
    * Renders all keys and values from the record metadata supplied as the content payload
-   * definition list. Handles string, array, and object values using the available
-    * Handlebars helpers: `isArray`, `isObject`, `json`, `isEmpty`, `isDefined`.
+   * definition list. Value rendering is delegated to the shared `renderMetadataValue`
+   * Handlebars helper so nested objects and arrays are formatted consistently.
    */
   "generated-view-only-metadata-display": [
     {
