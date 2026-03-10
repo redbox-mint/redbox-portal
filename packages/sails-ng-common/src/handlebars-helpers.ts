@@ -100,14 +100,14 @@ function renderMetadataTable(value: Record<string, unknown>[]): string {
         return '<em class="text-muted">—</em>';
     }
 
-    const columns: string[] = [];
+    const columnsSet = new Set<string>();
     for (const row of value) {
         for (const key of Object.keys(row)) {
-            if (!columns.includes(key)) {
-                columns.push(key);
-            }
+            columnsSet.add(key);
         }
     }
+
+    const columns = Array.from(columnsSet);
 
     if (columns.length === 0) {
         return '<em class="text-muted">—</em>';
