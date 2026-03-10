@@ -648,12 +648,13 @@ export class FormOverride {
     if (target.component.config !== undefined && source.model?.config?.value !== undefined) {
       const value = source.model.config.value;
       const options = source.component.config?.options ?? [];
-      const option = options.find(item => item.value === value);
-      target.component.config.content = option?.label ?? value;
-      target.component.config.template = this.resolveReusableViewTemplate(
-        this.reusableViewTemplateKeys.leafPlain,
-        `<span>{{content}}</span>`
-      );
+      const values =
+        value === null || value === undefined
+          ? []
+          : Array.isArray(value)
+            ? value.map(item => String(item))
+            : [String(value)];
+      this.commonContentOptionList(target, values, options);
     }
     return target;
   }
@@ -1422,7 +1423,7 @@ export class FormOverride {
       targetCompConf.content = { value, label };
       targetCompConf.template = this.resolveReusableViewTemplate(
         this.reusableViewTemplateKeys.leafOptionSingle,
-        `<span data-value="{{content.value}}">{{content.label}}</span>`
+        `<span data-value="{{content.value}}">{{#with @root}}{{t content.label}}{{/with}}</span>`
       );
     } else {
       // More than one value
@@ -1435,7 +1436,7 @@ export class FormOverride {
       );
       targetCompConf.template = this.resolveReusableViewTemplate(
         this.reusableViewTemplateKeys.leafOptionMulti,
-        `<ul>{{#each content}}<li data-value="{{this.value}}">{{this.label}}</li>{{/each}}</ul>`
+        `<ul>{{#each content}}<li data-value="{{this.value}}">{{#with @root}}{{t ../label}}{{/with}}</li>{{/each}}</ul>`
       );
     }
   }

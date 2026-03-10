@@ -41,7 +41,7 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
       name: "view_template_leaf_option_single",
       component: {
         class: "ContentComponent",
-        config: {template: "<span data-value=\"{{content.value}}\">{{content.label}}</span>"}
+        config: {template: "<span data-value=\"{{content.value}}\">{{#with @root}}{{t content.label}}{{/with}}</span>"}
       },
     },
   ],
@@ -50,7 +50,7 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
       name: "view_template_leaf_option_multi",
       component: {
         class: "ContentComponent",
-        config: {template: "<ul>{{#each content}}<li data-value=\"{{this.value}}\">{{this.label}}</li>{{/each}}</ul>"}
+        config: {template: "<ul>{{#each content}}<li data-value=\"{{this.value}}\">{{#with @root}}{{t ../label}}{{/with}}</li>{{/each}}</ul>"}
       },
     },
   ],
