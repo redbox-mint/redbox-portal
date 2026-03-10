@@ -93,6 +93,20 @@ describe('Shared Handlebars Helpers', function () {
         });
     });
 
+    describe('isObject', function () {
+        it('should return true for plain objects', function () {
+            expect(handlebarsHelperDefinitions.isObject({ key: 'value' })).to.be.true;
+        });
+
+        it('should return false for arrays', function () {
+            expect(handlebarsHelperDefinitions.isObject(['value'])).to.be.false;
+        });
+
+        it('should return false for null', function () {
+            expect(handlebarsHelperDefinitions.isObject(null)).to.be.false;
+        });
+    });
+
     describe('eq and ne', function () {
         it('should return true for equal values', function () {
             expect(handlebarsHelperDefinitions.eq('a', 'a')).to.be.true;
@@ -214,6 +228,54 @@ describe('Shared Handlebars Helpers', function () {
         it('lte should return true if first <= second', function () {
             expect(handlebarsHelperDefinitions.lte(5, 5)).to.be.true;
             expect(handlebarsHelperDefinitions.lte(6, 5)).to.be.false;
+        });
+    });
+
+    describe('renderMetadataValue', function () {
+        it('should render plain objects as nested key-value rows', function () {
+            const result = handlebarsHelperDefinitions.renderMetadataValue({
+                given: 'Alice',
+                family: 'Scott'
+            });
+
+            expect(result).to.contain('rb-view-metadata__nested');
+            expect(result).to.contain('given');
+            expect(result).to.contain('Alice');
+            expect(result).to.contain('family');
+            expect(result).to.contain('Scott');
+        });
+
+        it('should render string arrays as unordered lists', function () {
+            const result = handlebarsHelperDefinitions.renderMetadataValue(['one', 'two']);
+
+            expect(result).to.contain('<ul');
+            expect(result).to.contain('<li>one</li>');
+            expect(result).to.contain('<li>two</li>');
+        });
+
+        it('should render arrays of flat objects as tables', function () {
+            const result = handlebarsHelperDefinitions.renderMetadataValue([
+                { name: 'Alice', role: 'CI' },
+                { name: 'Bob', role: 'DM' }
+            ]);
+
+            expect(result).to.contain('<table');
+            expect(result).to.contain('<th>name</th>');
+            expect(result).to.contain('<th>role</th>');
+            expect(result).to.contain('<td>Alice</td>');
+            expect(result).to.contain('<td>DM</td>');
+        });
+
+        it('should render mixed nested arrays recursively', function () {
+            const result = handlebarsHelperDefinitions.renderMetadataValue([
+                'one',
+                { nested: ['two', 'three'] }
+            ]);
+
+            expect(result).to.contain('<ul');
+            expect(result).to.contain('<li>one</li>');
+            expect(result).to.contain('nested');
+            expect(result).to.contain('<li>two</li>');
         });
     });
 });

@@ -1565,10 +1565,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       // If this ContributorField is inside a RepeatableContributor's elementTemplate,
       // we must provide a falsy replaceName so the ConstructVisitor's validation passes.
       const replaceName = this.isRepeatableElementTemplateDescendant() ? '' : name;
+      const reusableFormName = this.getLegacyContributorReusableFormName(fieldDefinition);
+      const reusableGroupItemName = this.getLegacyContributorReusableGroupItemName(reusableFormName);
 
       // Use the same field, so don't change the lineage path.
       const reusableComponentItemData = {
-        name: 'standard_contributor_fields_group',
+        name: reusableGroupItemName,
         overrides: { replaceName },
         layout: { class: 'DefaultLayout', config: {} },
         component: { class: 'GroupComponent', config: {} },
@@ -1595,13 +1597,14 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void {
     const field = this.getV4Data();
+    const fieldDefinition = (field?.definition ?? {}) as Record<string, unknown>;
 
     const v4ClassName = field?.class?.toString() ?? '';
 
     // Set up the reusable form config for ContributorField in the form component.
     if (v4ClassName === 'ContributorField') {
       // Use a reusable form config.
-      item.overrides = { reusableFormName: 'standard-contributor-fields-group' };
+      item.overrides = { reusableFormName: this.getLegacyContributorReusableFormName(fieldDefinition) };
 
       // ReusableComponent cannot have a layout.
       item.layout = undefined;
@@ -2104,6 +2107,25 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const hasExplicitLabel = typeof definition.label === 'string' && definition.label.trim().length > 0;
     const hasLegacyNameBinding = typeof definition.name === 'string' && definition.name.trim().length > 0;
     return isLegacyTextBlock && hasLegacyNameBinding && !hasExplicitLabel && !this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field);
+  }
+
+  private getLegacyContributorReusableFormName(fieldDefinition: Record<string, unknown>): string {
+    const forceLookupOnly = this.parseLegacyTypeaheadBoolean(
+      fieldDefinition.forceLookupOnly,
+      false,
+      'forceLookupOnly'
+    );
+    return forceLookupOnly ? 'standard-contributor-fields-lookup-only-group' : 'standard-contributor-fields-group';
+  }
+
+  private getLegacyContributorReusableGroupItemName(reusableFormName: string): string {
+    switch (reusableFormName) {
+      case 'standard-contributor-fields-lookup-only-group':
+        return 'standard_contributor_fields_lookup_only_group';
+      case 'standard-contributor-fields-group':
+      default:
+        return 'standard_contributor_fields_group';
+    }
   }
 
   private normaliseV4FormConfig(formConfig: unknown): Record<string, unknown> {
