@@ -21,6 +21,10 @@ import {
   ValidationSummaryFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  SaveStatusFieldComponentDefinitionOutline,
+  SaveStatusFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
@@ -211,6 +215,12 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   visitValidationSummaryFieldComponentDefinition(_item: ValidationSummaryFieldComponentDefinitionOutline): void { }
 
   visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  visitSaveStatusFieldComponentDefinition(_item: SaveStatusFieldComponentDefinitionOutline): void { }
+
+  visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 

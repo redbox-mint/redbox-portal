@@ -5,6 +5,7 @@ import {
 } from './component/repeatable.outline';
 import { GroupTypes } from './component/group.outline';
 import { SaveButtonTypes } from './component/save-button.outline';
+import { SaveStatusTypes } from './component/save-status.outline';
 import { TextAreaTypes } from './component/text-area.outline';
 import { ContentTypes } from './component/content.outline';
 import {
@@ -67,6 +68,7 @@ export type AllTypes =
   | RepeatableTypes
   | GroupTypes
   | SaveButtonTypes
+  | SaveStatusTypes
   | CancelButtonTypes
   | TabNavButtonTypes
   | TextAreaTypes

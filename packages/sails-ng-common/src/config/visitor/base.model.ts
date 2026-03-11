@@ -47,6 +47,10 @@ import {
   SaveButtonFormComponentDefinitionOutline,
 } from '../component/save-button.outline';
 import {
+  SaveStatusFieldComponentDefinitionOutline,
+  SaveStatusFormComponentDefinitionOutline,
+} from '../component/save-status.outline';
+import {
   CancelButtonFieldComponentDefinitionOutline,
   CancelButtonFormComponentDefinitionOutline,
 } from '../component/cancel-button.outline';
@@ -262,6 +266,14 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   }
 
   visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
     this.notImplemented();
   }
 

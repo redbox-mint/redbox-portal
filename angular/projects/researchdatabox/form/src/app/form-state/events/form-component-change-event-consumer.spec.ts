@@ -225,6 +225,55 @@ describe('FormComponentValueChangeEventConsumer', () => {
     expect(control.value).toBe('templatedValue');
   }));
 
+  it('should fall back to original event data when structuredClone fails but still evaluate JSONata', async () => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'template-clone-fallback',
+      config: {
+        target: 'model.value',
+        hasTemplate: true,
+        condition: 'source',
+        template: ''
+      }
+    };
+    const { definition, component } = createSetup([expr]);
+    const evaluateSpy = jasmine.createSpy('evaluate').and.resolveTo('templatedValue');
+
+    (consumer as any).options = { component, definition };
+    (consumer as any).expressions = [expr];
+    (consumer as any).formComp = {
+      form: {
+        value: {
+          source: {
+            bad: () => 'not cloneable'
+          }
+        }
+      }
+    };
+    spyOn<any>(consumer, 'getCompiledItems').and.resolveTo({ evaluate: evaluateSpy });
+
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: 'source',
+      sourceId: 'source',
+      value: {
+        bad: () => 'not cloneable'
+      },
+      timestamp: Date.now()
+    };
+
+    const result = await (consumer as any).evaluateExpressionJSONata(expr, event, 'template');
+
+    expect(result).toBe('templatedValue');
+    expect(evaluateSpy).toHaveBeenCalled();
+    expect(loggerService.warn).toHaveBeenCalled();
+
+    const [templateKey, context] = evaluateSpy.calls.mostRecent().args;
+    expect(templateKey).toEqual(['root', 'expressions', 0, 'config', 'template']);
+    expect(context.event).toBe(event);
+    expect(context.formData).toBe((consumer as any).formComp.form.value);
+    expect(context.value).toBe((consumer as any).formComp.form.value.source);
+  });
+
   it('should warn if target is unknown', fakeAsync(() => {
     const expr = {
       name: 'unknown-target',
