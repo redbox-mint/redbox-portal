@@ -1,6 +1,7 @@
 import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './simple-input.component';
 import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatable.component";
+import {GroupFieldComponent} from './group.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {fakeAsync, flushMicrotasks, TestBed, tick} from "@angular/core/testing";
 import {FormComponentEventBus, FormComponentEventType} from "../form-state";
@@ -13,6 +14,7 @@ describe('RepeatableComponent', () => {
         "SimpleInputComponent": SimpleInputComponent,
         "RepeatableComponent": RepeatableComponent,
         "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
+        "GroupFieldComponent": GroupFieldComponent,
       }
     });
   });
@@ -169,6 +171,61 @@ describe('RepeatableComponent', () => {
     subscription.unsubscribe();
   });
 
+  it('should mark the main form dirty when a repeatable item is removed', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_delete_dirty',
+      componentDefinitions: [
+        {
+          name: 'repeatable_delete_dirty',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one', 'two']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: '',
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          },
+        },
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+    const repeatableEntries = (repeatable as any).compDefMapEntries as any[];
+    const eventBus = TestBed.inject(FormComponentEventBus) as FormComponentEventBus;
+    const emittedEvents: any[] = [];
+    const subscription = eventBus.select$(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST).subscribe((event: unknown) => {
+      emittedEvents.push(event);
+    });
+
+    expect(formComponent.form?.dirty).toBeFalse();
+    (repeatable as any).removeElementFn(repeatableEntries[0])();
+    await fixture.whenStable();
+
+    expect(emittedEvents.length).toBe(1);
+    expect(emittedEvents[0].type).toBe(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST);
+    expect(emittedEvents[0].fieldId).toBe('repeatable_delete_dirty');
+    expect(emittedEvents[0].reason).toBe('repeatable.element.removed');
+    expect(formComponent.form?.dirty).toBeTrue();
+    expect(formComponent.form?.pristine).toBeFalse();
+    subscription.unsubscribe();
+  });
+
   it('should render repeatable wrapper classes', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing_repeatable_css',
@@ -247,6 +304,119 @@ describe('RepeatableComponent', () => {
 
     expect(compiled.querySelectorAll('input[type="text"]')).toHaveSize(0);
     expect(compiled.querySelector('.rb-form-repeatable__add')).toBeFalsy();
+  });
+
+  it('should keep migrated legacy vocab repeatables ready when initialising nested group rows', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_legacy_vocab',
+      componentDefinitions: [
+        {
+          name: 'dc:subject_anzsrc:for-2008',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: [
+                {
+                  'rdf:resource': 'http://purl.org/asc/1297.0/2008/for/060701',
+                  type: 'for',
+                  name: '060701 - Phycology (incl. Marine Grasses)',
+                  label: 'Phycology (incl. Marine Grasses)',
+                  notation: '060701',
+                  geneaology: ['06', '0607']
+                }
+              ]
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              addButtonShow: false,
+              allowZeroRows: true,
+              hideWhenZeroRows: true,
+              elementTemplate: {
+                name: '',
+                component: {
+                  class: 'GroupComponent',
+                  config: {
+                    componentDefinitions: [
+                      {
+                        name: 'name',
+                        component: { class: 'SimpleInputComponent' },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                      {
+                        name: 'rdf:resource',
+                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                      {
+                        name: 'type',
+                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                      {
+                        name: 'label',
+                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                      {
+                        name: 'notation',
+                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                      {
+                        name: 'geneaology',
+                        component: {
+                          class: 'RepeatableComponent',
+                          config: {
+                            addButtonShow: false,
+                            allowZeroRows: true,
+                            hideWhenZeroRows: true,
+                            visible: false,
+                            elementTemplate: {
+                              name: '',
+                              component: {
+                                class: 'SimpleInputComponent',
+                                config: { type: 'hidden' },
+                              },
+                              model: {
+                                class: 'SimpleInputModel',
+                                config: {},
+                              },
+                            },
+                          },
+                        },
+                        model: {
+                          class: 'RepeatableModel',
+                          config: {},
+                        },
+                      },
+                    ],
+                  },
+                },
+                model: {
+                  class: 'GroupModel',
+                  config: {},
+                },
+              },
+            },
+          },
+        },
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+
+    expect(repeatable.status()).toBe('READY');
+    expect(repeatable.viewInitialised()).toBeTrue();
+    expect(repeatable.model?.getValue()).toEqual([
+      jasmine.objectContaining({
+        name: '060701 - Phycology (incl. Marine Grasses)',
+        notation: '060701',
+        geneaology: ['06', '0607']
+      })
+    ]);
   });
 
   it('should render shared field error summary for repeatable element validation errors', async () => {

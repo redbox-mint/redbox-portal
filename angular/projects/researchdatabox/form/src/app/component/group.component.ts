@@ -26,6 +26,7 @@ import {
   isUndefined as _isUndefined,
 } from "lodash-es";
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
+import { RepeatableComponent } from './repeatable.component';
 
 
 export type GroupFormControlValueType = { [key: string]: AbstractControl<unknown> };
@@ -163,7 +164,13 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       if (hasModel && includeInFormControlMap) {
         const elemVal = elemVals?.[key];
         if (compInstance?.model && !_isUndefined(elemVal)) {
-          compInstance.model.setValue(elemVal);
+          if (compInstance instanceof RepeatableComponent && Array.isArray(elemVal) && compInstance.formFieldCompMapEntries.length === 0) {
+            for (const repeatableValue of elemVal) {
+              await compInstance.appendNewElement(repeatableValue);
+            }
+          } else {
+            compInstance.model.setValue(elemVal as never);
+          }
         }
         this.model.addItem(key, compInstance.model);
       } else {

@@ -7,7 +7,7 @@ import { GroupFieldComponent } from './component/group.component';
 import { createFormAndWaitForReady, createTestbedModule } from "./helpers.spec";
 import { FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
-import { createFieldValueChangedEvent, createFormDefinitionChangedEvent, createFormSaveExecuteEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
+import { createFieldValueChangedEvent, createFormDefinitionChangedEvent, createFormSaveExecuteEvent, createFormStatusDirtyRequestEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
 
 describe('FormComponent', () => {
   const setFormDebugUrl = (value?: string) => {
@@ -900,6 +900,36 @@ describe('FormComponent', () => {
     formComponent.ngOnDestroy();
     expect(() => bus.publish(createFormDefinitionChangedEvent({}))).not.toThrow();
     fixture.destroy();
+  });
+
+  it('marks the form dirty when a FORM_STATUS_DIRTY_REQUEST event is published', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'dirty-request-event',
+      componentDefinitions: [
+        {
+          name: 'text_dirty_request',
+          model: {
+            class: 'SimpleInputModel',
+            config: { value: 'value' }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const bus = TestBed.inject(FormComponentEventBus);
+
+    expect(formComponent.form?.dirty).toBeFalse();
+    bus.publish(createFormStatusDirtyRequestEvent({ fieldId: 'text_dirty_request', sourceId: 'test-spec', reason: 'user-delete' }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(formComponent.form?.dirty).toBeTrue();
+    expect(formComponent.form?.get('text_dirty_request')?.dirty).toBeTrue();
+    expect(formComponent.subMaps['formStatusDirtyRequestSub']).toBeTruthy();
   });
 
   it('tracks debugEventStreamSub in subMaps and cleanup is safe on destroy', async () => {

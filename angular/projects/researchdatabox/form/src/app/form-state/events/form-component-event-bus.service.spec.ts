@@ -22,6 +22,7 @@ import {
   createLineageFieldFocusRequestEvent,
   createFormSaveRequestedEvent,
   createFormSaveExecuteEvent,
+  createFormStatusDirtyRequestEvent,
   createFieldItemSelectedEvent,
 } from './form-component-event.types';
 
@@ -176,6 +177,27 @@ describe('FormComponentEventBus', () => {
           expect(received.enabledValidationGroups).toEqual(['all']);
           expect(received.targetStep).toBe('submit');
           expect(received.sourceId).toBe('effect');
+          expect(received.timestamp).toBeGreaterThan(0);
+          done();
+        },
+      });
+
+      bus.publish(event);
+    });
+
+    it('should publish form status dirty request events', done => {
+      const event = createFormStatusDirtyRequestEvent({
+        fieldId: 'contributors',
+        reason: 'repeatable.element.removed',
+        sourceId: 'repeatable-1',
+      });
+
+      bus.select$(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST).subscribe({
+        next: received => {
+          expect(received.type).toBe(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST);
+          expect(received.fieldId).toBe('contributors');
+          expect(received.reason).toBe('repeatable.element.removed');
+          expect(received.sourceId).toBe('repeatable-1');
           expect(received.timestamp).toBeGreaterThan(0);
           done();
         },
@@ -648,6 +670,19 @@ describe('FormComponentEventBus', () => {
       expect(event.sourceId).toBe('effect-1');
     });
 
+    it('should create form status dirty request events via helper', () => {
+      const event = createFormStatusDirtyRequestEvent({
+        fieldId: 'contributors',
+        reason: 'repeatable.element.removed',
+        sourceId: 'repeatable-1',
+      });
+
+      expect(event.type).toBe(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST);
+      expect(event.fieldId).toBe('contributors');
+      expect(event.reason).toBe('repeatable.element.removed');
+      expect(event.sourceId).toBe('repeatable-1');
+    });
+
     it('should create field item selected events via helper', () => {
       const event = createFieldItemSelectedEvent({
         fieldId: '/group/name',
@@ -669,6 +704,7 @@ describe('FormComponentEventBus', () => {
       expect(FormComponentEventType.FIELD_DEPENDENCY_TRIGGER).toBe('field.dependency.trigger');
       expect(FormComponentEventType.FIELD_FOCUS_REQUEST).toBe('field.request.focus');
       expect(FormComponentEventType.FORM_VALIDATION_BROADCAST).toBe('form.validation.broadcast');
+      expect(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST).toBe('form.status.dirty.request');
       expect(FormComponentEventType.FORM_SAVE_REQUESTED).toBe('form.save.requested');
       expect(FormComponentEventType.FORM_SAVE_EXECUTE).toBe('form.save.execute');
       expect(FormComponentEventType.FIELD_ITEM_SELECTED).toBe('field.item.selected');

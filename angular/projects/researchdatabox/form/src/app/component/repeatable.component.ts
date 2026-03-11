@@ -1,4 +1,4 @@
-import { Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef, Injector } from '@angular/core';
+import { Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef } from '@angular/core';
 import { FormArray, AbstractControl } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
@@ -12,10 +12,9 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, cloneDeep as _cloneDeep, isUndefined as _isUndefined } from 'lodash-es';
 import { FormService } from '../form.service';
-import { FormComponent } from "../form.component";
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
 import { DefaultLayoutComponent } from "./default-layout.component";
-import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '../form-state';
+import { createFormDefinitionChangeRequestEvent, createFormStatusDirtyRequestEvent, FormComponentEventBus } from '../form-state';
 
 /**
  * Repeatable Form Field Component
@@ -30,7 +29,7 @@ import { createFormDefinitionChangeRequestEvent, FormComponentEventBus } from '.
     `
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
     <div class="rb-form-repeatable">
-      <div class="rb-form-repeatable__items" [class.d-none]="hideWhenZeroRows && compDefMapEntries.length === 0">
+      <div class="rb-form-repeatable__items" [class.d-none]="isStatusReady() && hideWhenZeroRows && compDefMapEntries.length === 0">
         <ng-container #repeatableContainer></ng-container>
       </div>
       @if (isStatusReady() && isVisible && addButtonShow && (!hideWhenZeroRows || compDefMapEntries.length > 0)) {
@@ -52,7 +51,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   protected hideWhenZeroRows = false;
 
   protected formService = inject(FormService);
-  private injector = inject(Injector);
   protected elemInitFieldEntry?: FormFieldCompMapEntry;
 
   protected compDefMapEntries: Array<RepeatableElementEntry> = [];
@@ -63,10 +61,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   private newElementFormConfig?: FormConfigFrame;
   private readonly eventBus = inject(FormComponentEventBus);
-
-  protected get getFormComponent(): FormComponent {
-    return this.injector.get(FormComponent);
-  }
 
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
     return this.formFieldCompMapEntries
@@ -79,7 +73,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   }
 
   protected override async initData() {
-    await this.untilViewIsInitialised();
     // Prepare the element template
     const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
 
@@ -149,11 +142,11 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     for (const elementValue of elemVals) {
-      await this.appendNewElement(elementValue);
+      await this.appendNewElement(elementValue, false);
     }
   }
 
-  public async appendNewElement(value?: any) {
+  public async appendNewElement(value?: any, markFormDirty: boolean = true) {
     if (!this.elemInitFieldEntry) {
       throw new Error(`${this.logName}: elemInitFieldEntry is not defined. Cannot append new element.`);
     }
@@ -164,6 +157,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
     const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value);
     await this.createElement(elemEntry);
+    if (markFormDirty) {
+      this.requestFormDirty('repeatable.element.appended');
+    }
   }
 
   protected rebuildLineagePaths() {
@@ -211,6 +207,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // Create new form field.
     const model = this.formService.createFormFieldModelInstance(elemEntry);
     if (model !== null) {
+      if (!_isUndefined(value)) {
+        model.initValue = value;
+        if (model.formControl && !('controls' in model.formControl)) {
+          model.formControl.setValue(value as never);
+        }
+      }
       elemEntry.model = model;
     }
 
@@ -241,9 +243,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     layoutInstance.canRemove = this.allowZeroRows ? this.compDefMapEntries.length > 0 : this.compDefMapEntries.length > 1;
     elemEntry.layoutInstance = layoutInstance;
     if (this.model?.formControl && compInstance?.model) {
-      if (!_isUndefined(elemEntry.value)) {
-        compInstance.model.setValue(elemEntry.value);
-      }
       this.model.addElement(compInstance.model);
     } else {
       this.loggerService.warn(`${this.logName}: model or formControl is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`);
@@ -267,9 +266,20 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       that.compDefMapEntries.splice(defIdx, 1);
       elemEntry.wrapperRef?.destroy();
       that.model?.removeElement(elemEntry.defEntry?.model);
+      that.requestFormDirty('repeatable.element.removed');
       that.updateCanRemoveFlags();
       that.rebuildLineagePaths();
     }
+  }
+
+  protected requestFormDirty(reason: string) {
+    this.eventBus.publish(
+      createFormStatusDirtyRequestEvent({
+        fieldId: this.formFieldConfigName() || undefined,
+        sourceId: this.formFieldConfigName() || undefined,
+        reason,
+      })
+    );
   }
 
   protected updateCanRemoveFlags() {
