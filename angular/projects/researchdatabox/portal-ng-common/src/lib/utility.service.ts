@@ -32,7 +32,7 @@ import { guessType } from "@researchdatabox/sails-ng-common";
 @Injectable()
 export class UtilityService {
 
-  private dynamicImportCache: Map<string, any> = new Map();
+  private dynamicImportCache: Map<string, Promise<any>> = new Map();
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService
@@ -430,18 +430,7 @@ export class UtilityService {
       throw new Error("Must provide brandingAndPortalUrl");
     }
     const path = (urlPath || []).join('/');
-    const rawUrl = `${brandingAndPortalUrl}/${path}`;
-
-    if (this.dynamicImportCache.has(rawUrl)) {
-      this.loggerService.debug(`getDynamicImport returning cached module for ${rawUrl}`);
-      return this.dynamicImportCache.get(rawUrl);
-    }
-
-    this.loggerService.debug(`getDynamicImport rawUrl ${rawUrl}`);
     const url = new URL(`${brandingAndPortalUrl}/${path}`);
-
-    const ts = new Date().getTime().toString();
-    url.searchParams.set('ts', ts);
     url.searchParams.set('apiVersion', "2.0");
 
     Object.entries(params ?? {}).forEach(([key, value]) => {
@@ -458,13 +447,30 @@ export class UtilityService {
       }
     });
 
-    const module = await import(url.toString());
-    this.dynamicImportCache.set(rawUrl, module);
-    return module;
+    const cacheKey = url.toString();
+    const cachedModulePromise = this.dynamicImportCache.get(cacheKey);
+    if (cachedModulePromise) {
+      this.loggerService.debug(`getDynamicImport returning cached module for ${cacheKey}`);
+      return cachedModulePromise;
+    }
+
+    this.loggerService.debug(`getDynamicImport rawUrl ${cacheKey}`);
+    url.searchParams.set('ts', new Date().getTime().toString());
+
+    const modulePromise = this.importModule(url.toString()).catch((error) => {
+      this.dynamicImportCache.delete(cacheKey);
+      throw error;
+    });
+    this.dynamicImportCache.set(cacheKey, modulePromise);
+    return modulePromise;
   }
 
   public clearDynamicImportCache() {
     this.dynamicImportCache.clear();
+  }
+
+  protected importModule(url: string): Promise<any> {
+    return import(url);
   }
 
   public formFieldConfigName(compMapEntry: { compConfigJson?: { name?: string }, name?: string } | undefined, defaultName?: string) {
