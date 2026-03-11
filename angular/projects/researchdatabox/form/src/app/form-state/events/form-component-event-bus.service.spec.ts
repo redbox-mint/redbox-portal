@@ -698,7 +698,7 @@ describe('FormComponentEventBus', () => {
   });
 
   describe('Naming Convention (R15.16)', () => {
-    it('should follow namespace.domain.action naming pattern', () => {
+    it('should follow namespace.domain*.action naming pattern', () => {
       expect(FormComponentEventType.FIELD_VALUE_CHANGED).toBe('field.value.changed');
       expect(FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED).toBe('field.ui-attribute.changed');
       expect(FormComponentEventType.FIELD_DEPENDENCY_TRIGGER).toBe('field.dependency.trigger');
