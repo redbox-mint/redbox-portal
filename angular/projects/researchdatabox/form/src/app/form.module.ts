@@ -36,6 +36,7 @@ import { FormBaseWrapperComponent } from './component/base-wrapper.component';
 import { FormBaseWrapperDirective } from './component/base-wrapper.directive';
 import { ContentComponent } from './component/content.component';
 import { SaveButtonComponent } from './component/save-button.component';
+import { SaveStatusComponent } from './component/save-status.component';
 import { CancelButtonComponent } from './component/cancel-button.component';
 import { TabNavButtonComponent } from './component/tab-nav-button.component';
 import { TabComponent, TabComponentLayout, TabContentComponent } from './component/tab.component';
@@ -83,6 +84,7 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     ValidationSummaryFieldComponent,
     GroupFieldComponent,
     SaveButtonComponent,
+    SaveStatusComponent,
     CancelButtonComponent,
     TabNavButtonComponent,
     TabComponent,

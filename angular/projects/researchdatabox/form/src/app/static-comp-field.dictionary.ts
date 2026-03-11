@@ -13,6 +13,7 @@ import { ContentComponent } from './component/content.component';
 import { TabComponent, TabComponentLayout, TabContentComponent } from './component/tab.component';
 import { AccordionComponent, AccordionPanelComponent } from './component/accordion.component';
 import { SaveButtonComponent } from './component/save-button.component';
+import { SaveStatusComponent } from './component/save-status.component';
 import { CancelButtonComponent } from './component/cancel-button.component';
 import { TabNavButtonComponent } from './component/tab-nav-button.component';
 import { TextAreaComponent, TextAreaModel } from './component/text-area.component';
@@ -47,6 +48,7 @@ import {
   FileUploadModelName,
   RepeatableComponentName,
   SaveButtonComponentName,
+  SaveStatusComponentName,
   TextAreaComponentName,
   ContentComponentName,
   SimpleInputComponentName,
@@ -89,6 +91,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [RepeatableComponentName]: RepeatableComponent,
   [GroupFieldComponentName]: GroupFieldComponent,
   [SaveButtonComponentName]: SaveButtonComponent,
+  [SaveStatusComponentName]: SaveStatusComponent,
   [TextAreaComponentName]: TextAreaComponent,
   [ContentComponentName]: ContentComponent,
   [SimpleInputComponentName]: SimpleInputComponent,

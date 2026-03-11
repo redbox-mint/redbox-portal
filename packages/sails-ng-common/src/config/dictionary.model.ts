@@ -11,6 +11,7 @@ import { InlineLayoutMap } from './component/inline-layout.model';
 import { RepeatableDefaults, RepeatableMap } from './component/repeatable.model';
 import { GroupDefaults, GroupMap } from './component/group.model';
 import { SaveButtonDefaults, SaveButtonMap } from './component/save-button.model';
+import { SaveStatusDefaults, SaveStatusMap } from './component/save-status.model';
 import { TextAreaDefaults, TextAreaMap } from './component/text-area.model';
 import { ContentDefaults, ContentMap } from './component/content.model';
 import { SimpleInputDefaults, SimpleInputMap } from './component/simple-input.model';
@@ -44,6 +45,7 @@ export const AllDefs = [
   ...RepeatableMap,
   ...GroupMap,
   ...SaveButtonMap,
+  ...SaveStatusMap,
   ...CancelButtonMap,
   ...TabNavButtonMap,
   ...TextAreaMap,
@@ -75,6 +77,7 @@ const RawDefaults = [
   RepeatableDefaults,
   GroupDefaults,
   SaveButtonDefaults,
+  SaveStatusDefaults,
   CancelButtonDefaults,
   TabNavButtonDefaults,
   TextAreaDefaults,

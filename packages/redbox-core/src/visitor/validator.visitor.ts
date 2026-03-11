@@ -21,6 +21,8 @@ import {
     RepeatableFormComponentDefinitionOutline,
     ValidationSummaryFieldComponentDefinitionOutline,
     ValidationSummaryFormComponentDefinitionOutline,
+    SaveStatusFieldComponentDefinitionOutline,
+    SaveStatusFormComponentDefinitionOutline,
     GroupFieldComponentDefinitionOutline,
     GroupFieldModelDefinitionOutline,
     GroupFormComponentDefinitionOutline,
@@ -222,6 +224,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    visitSaveStatusFieldComponentDefinition(_item: SaveStatusFieldComponentDefinitionOutline): void {
+    }
+
+    visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 
