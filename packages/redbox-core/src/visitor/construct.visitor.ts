@@ -1722,6 +1722,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
           condition: opConfig.condition,
           conditionKind: opConfig.conditionKind,
           target: opConfig.target,
+          ...(opConfig.runOnFormReady !== undefined && { runOnFormReady: opConfig.runOnFormReady }),
         };
       } else {
         const tmplConfig = config as FormExpressionsTemplateConfigFrame;
@@ -1730,6 +1731,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
           condition: tmplConfig.condition,
           conditionKind: tmplConfig.conditionKind,
           target: tmplConfig.target,
+          ...(tmplConfig.runOnFormReady !== undefined && { runOnFormReady: tmplConfig.runOnFormReady }),
         };
       }
       item.expressions.push(exprItem);

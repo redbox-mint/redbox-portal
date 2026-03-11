@@ -259,6 +259,21 @@
   gap: var(--rb-form-gap-2);
 }
 
+.rb-form-host .form-control[readonly],
+.rb-form-host textarea[readonly] {
+  background: #e7ebf0;
+  border-color: #bcc6d2;
+  color: color-mix(in srgb, var(--bs-body-color, #1f2937) 78%, #66707d);
+  cursor: not-allowed;
+}
+
+.rb-form-host .form-control[readonly]:focus,
+.rb-form-host textarea[readonly]:focus {
+  background: #e7ebf0;
+  border-color: #aeb8c5;
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, #aeb8c5 35%, transparent);
+}
+
 .rb-form-edit .rb-form-field-label,
 .rb-form-edit .rb-form-inline-label {
   margin-bottom: 0;

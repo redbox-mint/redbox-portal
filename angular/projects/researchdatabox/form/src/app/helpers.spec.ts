@@ -55,6 +55,30 @@ export interface FormDebugUrlOptions {
   formDebugParam?: string | boolean;
 }
 
+function shouldLogFormTestHelper(): boolean {
+  if (typeof (globalThis as any).__REDBOX_FORM_TEST_HELPER_DEBUG__ !== 'undefined') {
+    return !!(globalThis as any).__REDBOX_FORM_TEST_HELPER_DEBUG__;
+  }
+  if (typeof (globalThis as any).__REDBOX_CI_MODE__ !== 'undefined') {
+    return !(globalThis as any).__REDBOX_CI_MODE__;
+  }
+  if (typeof window !== 'undefined' && (window as any).__karma__) {
+    return false;
+  }
+  return true;
+}
+
+function logFormTestHelper(message: string, data?: unknown): void {
+  if (!shouldLogFormTestHelper()) {
+    return;
+  }
+  if (typeof data === 'undefined') {
+    console.log(message);
+    return;
+  }
+  console.log(message, data);
+}
+
 function setFormDebugUrl(opts?: FormDebugUrlOptions): void {
   const url = new URL(window.location.href);
   url.searchParams.delete('formDebug');
@@ -70,7 +94,7 @@ function setFormDebugUrl(opts?: FormDebugUrlOptions): void {
 }
 
 export async function createFormAndWaitForReady(formConfig: FormConfigFrame, formComponentProps?: FormComponentProps, formDebugUrlOptions?: FormDebugUrlOptions) {
-  console.log('createFormAndWaitForReady - starting');
+  logFormTestHelper('createFormAndWaitForReady - starting');
   if (formDebugUrlOptions) {
     setFormDebugUrl(formDebugUrlOptions);
   }
@@ -112,7 +136,10 @@ export async function createFormAndWaitForReady(formConfig: FormConfigFrame, for
 
   await fixture.whenStable();
 
-  console.log(`createFormAndWaitForReady - finished - debugInfo: ${JSON.stringify(formComponent.getDebugInfo())} - validationErrors: ${JSON.stringify(formComponent.getValidationErrors())}`);
+  logFormTestHelper('createFormAndWaitForReady - finished', {
+    debugInfo: formComponent.getDebugInfo(),
+    validationErrors: formComponent.getValidationErrors()
+  });
 
   return {
     fixture: fixture,
@@ -139,7 +166,11 @@ async function createTestBedModuleConfig(defaults: Record<string, any>, custom: 
       result.push(value);
     }
   });
-  console.log(`createTestBedModuleConfig defaults ${Object.keys(defaults)} custom ${Object.keys(custom)} result ${includedKeys}`);
+  logFormTestHelper('createTestBedModuleConfig', {
+    defaults: Object.keys(defaults),
+    custom: Object.keys(custom),
+    result: includedKeys
+  });
   return result;
 }
 
