@@ -6,18 +6,22 @@ import { FormStateFacade } from '../form-state';
 @Component({
   selector: 'redbox-form-save-status',
   template: `
-    @if (messageType() === 'saving') {
-      <div class="rb-form-save-status alert alert-info" role="status" aria-live="polite" aria-atomic="true">
-        {{ '@dmpt-form-saving' | i18next }} <i class="fa fa-spinner fa-pulse fa-fw" aria-hidden="true"></i>
-      </div>
-    } @else if (messageType() === 'error') {
-      <div class="rb-form-save-status alert alert-danger" role="alert" aria-atomic="true">
-        {{ '@dmpt-form-save-error' | i18next }} {{ errorMessage() }}
-      </div>
-    } @else if (messageType() === 'success') {
-      <div class="rb-form-save-status alert alert-success" role="status" aria-live="polite" aria-atomic="true">
-        {{ '@dmpt-form-save-success' | i18next }}
-      </div>
+    @if (isVisible) {
+      <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
+      @if (messageType() === 'saving') {
+        <div class="rb-form-save-status alert alert-info" role="status" aria-live="polite" aria-atomic="true">
+          {{ '@dmpt-form-saving' | i18next }} <i class="fa fa-spinner fa-pulse fa-fw" aria-hidden="true"></i>
+        </div>
+      } @else if (messageType() === 'error') {
+        <div class="rb-form-save-status alert alert-danger" role="alert" aria-atomic="true">
+          {{ '@dmpt-form-save-error' | i18next }} {{ errorMessage() }}
+        </div>
+      } @else if (messageType() === 'success') {
+        <div class="rb-form-save-status alert alert-success" role="status" aria-live="polite" aria-atomic="true">
+          {{ '@dmpt-form-save-success' | i18next }}
+        </div>
+      }
+      <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
   standalone: false
