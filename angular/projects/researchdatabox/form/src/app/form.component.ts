@@ -45,7 +45,7 @@ import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { FormComponentFocusRequestCoordinator } from './form-state/events/form-component-focus-request-coordinator.service';
-import { createFormDefinitionChangedEvent, createFormDefinitionReadyEvent, createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
+import { createFormDefinitionChangedEvent, createFormDefinitionReadyEvent, createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEvent, FormComponentEventType, FormStatusDirtyRequestEvent } from './form-state/events/form-component-event.types';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
@@ -440,6 +440,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       .subscribe(() => {
         this.refreshTranslatedConfigDebugInfo(false);
         this.refreshComponentDebugInfo();
+      });
+    this.subMaps['formStatusDirtyRequestSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST)
+      .subscribe((evt: FormStatusDirtyRequestEvent) => {
+        if (!this.form) {
+          return;
+        }
+        const targetControl = evt.fieldId ? this.form.get(evt.fieldId) : null;
+        targetControl?.markAsDirty();
+        this.form.markAsDirty();
       });
     this.subMaps['debugEventStreamSub']?.unsubscribe();
     this.subMaps['debugEventStreamSub'] = this.eventBus

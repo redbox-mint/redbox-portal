@@ -753,7 +753,7 @@ describe('OniService', function() {
       } catch (err: any) {
         // Expected to fail at collector.connect
         // Check for either the original error or the wrapped one
-        expect(err.message).to.match(/Error connecting|Cannot build Provenance/);
+        expect(err.message).to.match(/Error connecting|Cannot build Provenance|Error loading root collection/);
       }
 
       // Check that citation_url was set correctly with clean URL

@@ -96,6 +96,16 @@ export interface FormValidationBroadcastEvent extends FormComponentEventBase {
 }
 
 /**
+ * Form dirty status request event
+ * Published when a component requests the main form dirty/pristine state be updated
+ */
+export interface FormStatusDirtyRequestEvent extends FormComponentEventBase {
+  readonly type: 'form.status.dirty.request';
+  readonly fieldId?: string;
+  readonly reason?: string;
+}
+
+/**
  * Form save requested event
  * Published by UI (e.g., SaveButton) to request a save
  */
@@ -155,6 +165,7 @@ export type FormComponentEvent =
   | FieldDependencyTriggerEvent
   | FieldFocusRequestEvent
   | FormValidationBroadcastEvent
+  | FormStatusDirtyRequestEvent
   | FormSaveRequestedEvent
   | FormSaveExecuteEvent
   | FormSaveSuccessEvent
@@ -176,6 +187,7 @@ export const FormComponentEventType = {
   FIELD_DEPENDENCY_TRIGGER: 'field.dependency.trigger' as const,
   FIELD_FOCUS_REQUEST: 'field.request.focus' as const,
   FORM_VALIDATION_BROADCAST: 'form.validation.broadcast' as const,
+  FORM_STATUS_DIRTY_REQUEST: 'form.status.dirty.request' as const,
   FORM_SAVE_REQUESTED: 'form.save.requested' as const,
   FORM_SAVE_EXECUTE: 'form.save.execute' as const,
   FORM_SAVE_SUCCESS: 'form.save.success' as const,
@@ -200,6 +212,7 @@ export interface FormComponentEventMap {
   'field.dependency.trigger': FieldDependencyTriggerEvent;
   'field.request.focus': FieldFocusRequestEvent;
   'form.validation.broadcast': FormValidationBroadcastEvent;
+  'form.status.dirty.request': FormStatusDirtyRequestEvent;
   'form.save.requested': FormSaveRequestedEvent;
   'form.save.execute': FormSaveExecuteEvent;
   'form.save.success': FormSaveSuccessEvent;
@@ -347,6 +360,13 @@ export function createFormValidationBroadcastEvent(
   options: FormComponentEventOptions<FormValidationBroadcastEvent>
 ): FormComponentEventResult<FormValidationBroadcastEvent> {
   return createEventResult<FormValidationBroadcastEvent>(FormComponentEventType.FORM_VALIDATION_BROADCAST, options);
+}
+
+/** Helper factory for creating form dirty status request events */
+export function createFormStatusDirtyRequestEvent(
+  options: FormComponentEventOptions<FormStatusDirtyRequestEvent> = {}
+): FormComponentEventResult<FormStatusDirtyRequestEvent> {
+  return createEventResult<FormStatusDirtyRequestEvent>(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST, options);
 }
 
 /**
