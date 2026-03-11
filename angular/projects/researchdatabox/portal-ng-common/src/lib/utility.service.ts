@@ -454,8 +454,9 @@ export class UtilityService {
       return cachedModulePromise;
     }
 
-    this.loggerService.debug(`getDynamicImport rawUrl ${cacheKey}`);
+    this.loggerService.debug(`getDynamicImport cacheKey ${cacheKey}`);
     url.searchParams.set('ts', new Date().getTime().toString());
+    this.loggerService.debug(`getDynamicImport importUrl ${url.toString()}`);
 
     const modulePromise = this.importModule(url.toString()).catch((error) => {
       this.dynamicImportCache.delete(cacheKey);
