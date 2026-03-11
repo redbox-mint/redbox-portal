@@ -57,7 +57,9 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
     });
     effect(() => {
       const isSaving = this.formStateFacade.isSaving();
-      this.currentLabel.set(isSaving ? this.componentDefinition?.config?.labelSaving : this.componentDefinition?.config?.label);
+      const defaultLabel = this.componentDefinition?.config?.label;
+      const savingLabel = this.componentDefinition?.config?.labelSaving ?? defaultLabel;
+      this.currentLabel.set(isSaving ? savingLabel : defaultLabel);
     });
   }
 

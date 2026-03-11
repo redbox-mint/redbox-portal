@@ -142,14 +142,16 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       // So convert to and then from JSON to get a fresh value.
       const valueOriginal = dataFieldId ? this.formComp?.form?.value[dataFieldId] : undefined;
       const value = valueOriginal === undefined ? undefined : structuredClone(valueOriginal);
+      const eventClone = structuredClone(event);
+      const formData = structuredClone(this.formComp?.form?.value ?? {});
 
       // Build the context for JSONata evaluation
       // Include the event value and any additional data that may be useful
 			const context = {
         value: value,
-				event: event,
+				event: eventClone,
 				// Include the current form data if available
-				formData: this.formComp?.form?.value ?? {},
+				formData: formData,
         ...additionalData
 			};
 

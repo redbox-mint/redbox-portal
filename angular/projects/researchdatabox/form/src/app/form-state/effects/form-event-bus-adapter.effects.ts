@@ -16,7 +16,7 @@ import { Store } from '@ngrx/store';
 import { Observable, EMPTY } from 'rxjs';
 import { map, throttleTime, tap, filter, catchError } from 'rxjs/operators';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
-import { FormComponentEventType, FormSaveSuccessEvent } from '../events/form-component-event.types';
+import { FormComponentEventType, FormSaveFailureEvent, FormSaveSuccessEvent } from '../events/form-component-event.types';
 import * as FormActions from '../state/form.actions';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
 
@@ -209,8 +209,8 @@ export class FormEventBusAdapterEffects {
     this.createPromotionStream(
       FormComponentEventType.FORM_SAVE_FAILURE,
       PromotionCriterion.TRIGGERS_SIDE_EFFECT,
-      (event: any) =>
-        FormActions.submitFormFailure({ error: formatErrorsForMessage(event.errors) })
+      (event: FormSaveFailureEvent) =>
+        FormActions.submitFormFailure({ error: formatErrorsForMessage(event.error) })
     )
   );
 
