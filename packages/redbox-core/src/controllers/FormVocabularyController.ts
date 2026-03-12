@@ -8,7 +8,8 @@ export namespace Controllers {
       'get',
       'entries',
       'children',
-      'getRecords'
+      'getRecords',
+      'externalEntries'
     ];
 
     public async get(req: Sails.Req, res: Sails.Res): Promise<unknown> {
@@ -198,6 +199,36 @@ export namespace Controllers {
         });
       } catch (error) {
         sails.log.verbose('Error getting internal records:');
+        sails.log.verbose(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ code: 'query-vocab-failed' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async externalEntries(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      const provider = String(req.param('provider') ?? '').trim();
+      if (!provider) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ code: 'invalid-query-params' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      try {
+        const response = await VocabService.findInExternalService(
+          provider,
+          req.body as Parameters<typeof VocabService.findInExternalService>[1]
+        );
+        return this.sendResp(req, res, {
+          data: response,
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        sails.log.verbose('Error getting external vocabulary entries:');
         sails.log.verbose(error);
         return this.sendResp(req, res, {
           status: 500,
