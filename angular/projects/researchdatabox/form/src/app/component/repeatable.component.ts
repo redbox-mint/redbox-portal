@@ -201,9 +201,20 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     if (elemEntry.compConfigJson) {
       elemEntry.compConfigJson.name = `${baseName}-${localUniqueId}`;
       if (elemEntry.compConfigJson.component?.class === ContentComponentName && !_isUndefined(value)) {
+        let coercedContent: string;
+        if (typeof value === 'string') {
+          coercedContent = value;
+        } else if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+          coercedContent = String(value);
+        } else {
+          // For non-primitive values (objects, arrays, null, etc.), keep behaviour equivalent
+          // to the previous implementation where non-string content was effectively ignored.
+          coercedContent = '';
+        }
+
         elemEntry.compConfigJson.component.config = {
           ...(elemEntry.compConfigJson.component.config ?? {}),
-          content: value,
+          content: coercedContent,
         } as typeof elemEntry.compConfigJson.component.config;
       }
     }
