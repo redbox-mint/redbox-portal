@@ -29,7 +29,7 @@ import {AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitionOutl
 export const TypeaheadInputComponentName = "TypeaheadInputComponent" as const;
 export type TypeaheadInputComponentNameType = typeof TypeaheadInputComponentName;
 
-export type TypeaheadSourceType = "static" | "vocabulary" | "namedQuery";
+export type TypeaheadSourceType = "static" | "vocabulary" | "namedQuery" | "external";
 export type TypeaheadValueMode = "value" | "optionObject";
 export type TypeaheadStoredSourceType = TypeaheadSourceType | "freeText";
 
@@ -45,6 +45,8 @@ export interface TypeaheadInputFieldComponentConfigFrame extends FieldComponentC
     staticOptions?: TypeaheadOption[];
     vocabRef?: string;
     queryId?: string;
+    provider?: string;
+    resultArrayProperty?: string;
     labelField?: string;
     labelTemplate?: string;
     valueField?: string;

@@ -148,6 +148,28 @@ describe("TypeaheadInputComponent", () => {
         expect(text).toContain("Missing queryId for namedQuery typeahead source");
     });
 
+    it("shows misconfiguration message when external source lacks provider", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "broken_external_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "external"
+                        }
+                    },
+                    model: {class: "TypeaheadInputModel", config: {}}
+                }
+            ]
+        };
+
+        const {fixture} = await createFormAndWaitForReady(formConfig);
+        const text = String((fixture.nativeElement as HTMLElement).textContent ?? "");
+        expect(text).toContain("Missing provider for external typeahead source");
+    });
+
     it("renders named query suggestions with labelTemplate from query response fields", async () => {
       setUpDynamicAssets({
         callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
@@ -197,5 +219,53 @@ describe("TypeaheadInputComponent", () => {
         component.displayControl.setValue("atlas");
         const options = await firstValueFrom(component.suggestions$);
         expect(options[0]?.label).toBe("Project Atlas (ABC-001)");
+    });
+
+    it("renders external provider suggestions", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        spyOn(typeaheadDataService, "searchExternal").and.resolveTo([
+            {
+                label: "Australia",
+                value: "Australia",
+                sourceType: "external",
+                raw: {
+                    utf8_name: "Australia"
+                }
+            }
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "country_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "external",
+                            provider: "geonamesCountries",
+                            resultArrayProperty: "response.docs",
+                            labelField: "utf8_name",
+                            valueField: "utf8_name",
+                            minChars: 1
+                        }
+                    },
+                    model: {class: "TypeaheadInputModel", config: {}}
+                }
+            ]
+        };
+
+        const {fixture} = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.displayControl.setValue("aus");
+        const options = await firstValueFrom(component.suggestions$);
+        expect(options[0]?.label).toBe("Australia");
+        expect(typeaheadDataService.searchExternal).toHaveBeenCalledWith(
+            "geonamesCountries",
+            "aus",
+            "response.docs",
+            "utf8_name",
+            "utf8_name"
+        );
     });
 });

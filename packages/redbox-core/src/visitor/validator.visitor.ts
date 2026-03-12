@@ -430,7 +430,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         const config = item.config;
         const sourceType = config?.sourceType;
 
-        if (!sourceType || !["static", "vocabulary", "namedQuery"].includes(sourceType)) {
+        if (!sourceType || !["static", "vocabulary", "namedQuery", "external"].includes(sourceType)) {
             configErrors.push({
                 class: "typeaheadSourceType",
                 message: "@validator-error-typeahead-source-type",
@@ -456,6 +456,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
             configErrors.push({
                 class: "typeaheadQueryId",
                 message: "@validator-error-typeahead-query-id",
+                params: { sourceType }
+            });
+        }
+        if (sourceType === "external" && !String(config?.provider ?? "").trim()) {
+            configErrors.push({
+                class: "typeaheadProvider",
+                message: "@validator-error-typeahead-provider",
                 params: { sourceType }
             });
         }

@@ -96,4 +96,35 @@ describe("TypeaheadDataService", () => {
         expect(result[0].value).toBe("jane-1");
         expect(result[0].sourceType).toBe("namedQuery");
     });
+
+    it("normalizes external provider response using resultArrayProperty", async () => {
+        const promise = service.searchExternal("geonamesCountries", "aus", "response.docs", "utf8_name", "utf8_name");
+        await Promise.resolve();
+
+        const req = httpTesting.expectOne((request) =>
+            request.method === "POST" &&
+            request.url.includes("/external/vocab/geonamesCountries")
+        );
+        expect(req.request.body).toEqual({
+            options: {
+                query: "aus"
+            }
+        });
+        req.flush({
+            data: {
+                response: {
+                    docs: [
+                        {utf8_name: "Australia"},
+                        {utf8_name: "Austria"}
+                    ]
+                }
+            }
+        });
+
+        const result = await promise;
+        expect(result.length).toBe(2);
+        expect(result[0].label).toBe("Australia");
+        expect(result[0].value).toBe("Australia");
+        expect(result[0].sourceType).toBe("external");
+    });
 });
