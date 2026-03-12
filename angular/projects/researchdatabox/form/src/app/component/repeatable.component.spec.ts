@@ -1,4 +1,5 @@
 import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import {ContentComponent} from './content.component';
 import {SimpleInputComponent} from './simple-input.component';
 import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatable.component";
 import {GroupFieldComponent} from './group.component';
@@ -12,6 +13,7 @@ describe('RepeatableComponent', () => {
     await createTestbedModule({
       declarations: {
         "SimpleInputComponent": SimpleInputComponent,
+        "ContentComponent": ContentComponent,
         "RepeatableComponent": RepeatableComponent,
         "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
         "GroupFieldComponent": GroupFieldComponent,
@@ -670,11 +672,13 @@ describe('RepeatableComponent', () => {
     expect(rowsContainer.classList.contains('d-none')).toBeFalse();
 
     const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
-    repeatable.appendNewElement('two');
+    repeatable.appendNewElement('two').then(() => {
+      tick();
+      flushMicrotasks();
+      fixture.detectChanges();
+    });
     tick();
     flushMicrotasks();
-    fixture.detectChanges();
-    tick();
 
     let repeatableEntries = (repeatable as any).compDefMapEntries as any[];
     while (repeatableEntries.length > 0) {

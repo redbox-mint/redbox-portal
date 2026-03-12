@@ -2,6 +2,7 @@ import { Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateR
 import { FormArray, AbstractControl } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
+  ContentComponentName,
   FormConfigFrame,
   isTypeFieldDefinitionName,
   RepeatableComponentName,
@@ -199,6 +200,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
     if (elemEntry.compConfigJson) {
       elemEntry.compConfigJson.name = `${baseName}-${localUniqueId}`;
+      if (elemEntry.compConfigJson.component?.class === ContentComponentName && !_isUndefined(value)) {
+        elemEntry.compConfigJson.component.config = {
+          ...(elemEntry.compConfigJson.component.config ?? {}),
+          content: value,
+        } as typeof elemEntry.compConfigJson.component.config;
+      }
     }
     if (elemEntry.compConfigJson?.layout) {
       elemEntry.compConfigJson.layout.name = `${baseName}-layout-${localUniqueId}`;
