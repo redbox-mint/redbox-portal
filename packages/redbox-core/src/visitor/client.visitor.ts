@@ -226,7 +226,14 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   protected applyPostPruningTransforms(
     items: AvailableFormComponentDefinitionOutlines[]
   ): AvailableFormComponentDefinitionOutlines[] {
-    return items.map(item => this.applyPostPruningTransformToComponent(item));
+        return items
+      .filter(item => !this.isExplicitlyDisallowedByFormMode(item))
+      .map(item => this.applyPostPruningTransformToComponent(item));
+  }
+
+  protected isExplicitlyDisallowedByFormMode(item: AvailableFormComponentDefinitionOutlines): boolean {
+    const allowModes = item?.constraints?.allowModes;
+    return Array.isArray(allowModes) && allowModes.length > 0 && !allowModes.includes(this.formMode);
   }
 
   protected applyPostPruningTransformToComponent(
