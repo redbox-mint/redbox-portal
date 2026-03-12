@@ -1768,7 +1768,7 @@ describe("Construct Visitor", async () => {
             expect(template).to.contain("custom-leaf");
         });
 
-        it("should keep top-level repeatable and group untransformed in view mode during construct phase", async () => {
+        it("should keep repeatable and group components untransformed in view mode during construct phase", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = visitor.start({
                 formMode: "view",
@@ -1779,7 +1779,24 @@ describe("Construct Visitor", async () => {
                             name: "top_group",
                             component: {
                                 class: "GroupComponent",
-                                config: { componentDefinitions: [] }
+                                config: {
+                                    componentDefinitions: [
+                                        {
+                                            name: "nested_repeatable",
+                                            component: {
+                                                class: "RepeatableComponent",
+                                                config: {
+                                                    elementTemplate: {
+                                                        name: "",
+                                                        component: { class: "SimpleInputComponent", config: {} },
+                                                        model: { class: "SimpleInputModel", config: {} }
+                                                    }
+                                                }
+                                            },
+                                            model: { class: "RepeatableModel", config: {} }
+                                        }
+                                    ]
+                                }
                             },
                             model: { class: "GroupModel", config: {} }
                         },
@@ -1802,6 +1819,8 @@ describe("Construct Visitor", async () => {
             });
             expect(actual.componentDefinitions[0].component.class).to.equal("GroupComponent");
             expect(actual.componentDefinitions[1].component.class).to.equal("RepeatableComponent");
+            const nested = (actual.componentDefinitions[0].component.config as any).componentDefinitions?.[0];
+            expect(nested.component.class).to.equal("RepeatableComponent");
         });
 
         it("should set model values as expected", async () => {

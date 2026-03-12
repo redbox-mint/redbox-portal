@@ -166,7 +166,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
         if (compInstance?.model && !_isUndefined(elemVal)) {
           if (compInstance instanceof RepeatableComponent && Array.isArray(elemVal) && compInstance.formFieldCompMapEntries.length === 0) {
             for (const repeatableValue of elemVal) {
-              await compInstance.appendNewElement(repeatableValue);
+              await compInstance.appendNewElement(repeatableValue, false);
             }
           } else {
             compInstance.model.setValue(elemVal as never);

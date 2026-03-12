@@ -226,7 +226,14 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   protected applyPostPruningTransforms(
     items: AvailableFormComponentDefinitionOutlines[]
   ): AvailableFormComponentDefinitionOutlines[] {
-    return items.map(item => this.applyPostPruningTransformToComponent(item));
+        return items
+      .filter(item => !this.isExplicitlyDisallowedByFormMode(item))
+      .map(item => this.applyPostPruningTransformToComponent(item));
+  }
+
+  protected isExplicitlyDisallowedByFormMode(item: AvailableFormComponentDefinitionOutlines): boolean {
+    const allowModes = item?.constraints?.allowModes;
+    return Array.isArray(allowModes) && allowModes.length > 0 && !allowModes.includes(this.formMode);
   }
 
   protected applyPostPruningTransformToComponent(
@@ -496,12 +503,17 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
     this.processFieldComponentDefinition(item);
 
+    const items: AvailableFormComponentDefinitionOutlines[] = [];
     (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+      items.push(componentDefinition);
       this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(componentDefinition, index)
       );
     });
+    if (item.config) {
+      item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
+    }
   }
 
   visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): void {
@@ -522,13 +534,18 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
     this.processFieldComponentDefinition(item);
 
+    const items: AvailableFormComponentDefinitionOutlines[] = [];
     (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+      items.push(componentDefinition);
       // Visit children
       this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index)
       );
     });
+    if (item.config) {
+      item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
+    }
   }
 
   visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {

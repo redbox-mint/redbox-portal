@@ -1342,12 +1342,6 @@ export class FormOverride {
 
     const constraints = componentDefinition.constraints ?? { authorization: { allowRoles: [] }, allowModes: [] };
     constraints.allowModes = Array.isArray(constraints.allowModes) ? constraints.allowModes : [];
-    if (constraints.allowModes.length > 0 && !constraints.allowModes.includes(formMode)) {
-      constraints.allowModes.push(formMode);
-      const overrides = componentDefinition.overrides ?? {};
-      overrides[this.forcedViewTransformOverrideKey] = true;
-      componentDefinition.overrides = overrides;
-    }
     componentDefinition.constraints = constraints;
 
     const nested = componentDefinition?.component?.config;

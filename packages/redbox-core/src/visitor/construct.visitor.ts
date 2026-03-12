@@ -1755,9 +1755,17 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   protected applyConstructPhaseTransform(
     formComponent: AllFormComponentDefinitionOutlines
   ): AllFormComponentDefinitionOutlines {
-    if (this.formMode === 'view' && formComponent?.component?.class === QuestionTreeComponentName) {
-      return formComponent;
+    if (this.formMode === 'view') {
+      const className = formComponent?.component?.class;
+      const shouldDeferToClientViewTransform =
+        className === QuestionTreeComponentName ||
+        className === RepeatableComponentName ||
+        (className === GroupFieldComponentName && formComponent?.layout?.class !== ActionRowLayoutName);
+      if (shouldDeferToClientViewTransform) {
+        return formComponent;
+      }
     }
+
     return this.formOverride.applyOverrideTransform(formComponent, this.formMode, {
       phase: 'construct',
       reusableFormDefs: this.reusableFormDefs,
