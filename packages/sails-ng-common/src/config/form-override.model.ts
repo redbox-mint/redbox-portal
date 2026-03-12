@@ -1275,10 +1275,7 @@ export class FormOverride {
         component: {
           class: AccordionPanelComponentName,
           config: {
-            componentDefinitions: (tab.component?.config?.componentDefinitions ?? []).map(compDef => {
-              this.forceAllowModeForTransformedTree(compDef as any, formMode);
-              return compDef;
-            }),
+            componentDefinitions: tab.component?.config?.componentDefinitions ?? [],
           },
         },
         layout: {
