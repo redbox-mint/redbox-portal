@@ -18,17 +18,18 @@ describe('FormVocabularyController', () => {
   beforeEach(() => {
     (global as any).sails = {
       log: { verbose: sinon.stub(), error: sinon.stub(), debug: sinon.stub() },
-      services: {
-        vocabularyservice: {
-          getByIdOrSlug: sinon.stub(),
-          getEntries: sinon.stub(),
-          getChildren: sinon.stub(),
-        },
-        vocabservice: {
-          findRecords: sinon.stub(),
-        },
-        brandingservice: {
-          getBrand: sinon.stub().returns({ id: 'default' }),
+        services: {
+          vocabularyservice: {
+            getByIdOrSlug: sinon.stub(),
+            getEntries: sinon.stub(),
+            getChildren: sinon.stub(),
+          },
+          vocabservice: {
+            findRecords: sinon.stub(),
+            findInExternalService: sinon.stub(),
+          },
+          brandingservice: {
+            getBrand: sinon.stub().returns({ id: 'default' }),
         },
       },
       config: { auth: { defaultBrand: 'default' } },
@@ -220,6 +221,41 @@ describe('FormVocabularyController', () => {
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.getRecords(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(500);
+    expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('query-vocab-failed');
+  });
+
+  it('returns 400 for externalEntries when provider is missing', async () => {
+    const req = makeReq({ provider: '' }, { body: { options: { query: 'Aus' } } });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.externalEntries(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(400);
+    expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('invalid-query-params');
+  });
+
+  it('proxies externalEntries to VocabService.findInExternalService', async () => {
+    (global as any).VocabService.findInExternalService.resolves({ response: { docs: [{ utf8_name: ['Australia'] }] } });
+    const req = makeReq({ provider: 'geonamesCountries' }, { body: { options: { query: 'Aus' } } });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.externalEntries(req, {} as Sails.Res);
+
+    expect((global as any).VocabService.findInExternalService.calledOnceWith('geonamesCountries', { options: { query: 'Aus' } })).to.equal(true);
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.data?.response).to.not.equal(undefined);
+  });
+
+  it('returns 500 and query-vocab-failed when externalEntries throws', async () => {
+    (global as any).VocabService.findInExternalService.rejects(new Error('failed'));
+    const req = makeReq({ provider: 'geonamesCountries' }, { body: { options: { query: 'Aus' } } });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.externalEntries(req, {} as Sails.Res);
 
     expect(sendResp.calledOnce).to.equal(true);
     expect(sendResp.firstCall.args[2]?.status).to.equal(500);

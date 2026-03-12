@@ -482,6 +482,38 @@ describe("Validator Visitor", async () => {
         expect(classNames).to.contain("typeaheadMultiSelect");
     });
 
+    it("should report external typeahead provider requirement", async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            data: {
+                name: "typeahead-external-validator",
+                componentDefinitions: [
+                    {
+                        name: "countryLookup",
+                        component: {
+                            class: "TypeaheadInputComponent",
+                            config: {
+                                sourceType: "external"
+                            }
+                        },
+                        model: { class: "TypeaheadInputModel", config: { defaultValue: null } }
+                    }
+                ]
+            },
+            formMode: "edit",
+            reusableFormDefs: reusableFormDefinitions,
+        });
+
+        const visitor = new ValidatorFormConfigVisitor(logger);
+        const actual = visitor.start({
+            form: constructed,
+            enabledValidationGroups: ["all"],
+            validatorDefinitions: formValidatorsSharedDefinitions
+        });
+        const classNames = actual.flatMap((entry) => entry.errors.map((err) => err.class));
+        expect(classNames).to.contain("typeaheadProvider");
+    });
+
     describe("HTML Sanitization", () => {
         const dirtyHtml = '<p>Safe</p><script>alert("xss")</script><img src="x" onerror="alert(1)">';
         const cleanHtml = '<p>Safe</p><img src="x">';

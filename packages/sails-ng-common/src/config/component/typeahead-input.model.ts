@@ -25,10 +25,12 @@ import {
 /* Typeahead Input Component */
 
 export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig implements TypeaheadInputFieldComponentConfigOutline {
-    sourceType: "static" | "vocabulary" | "namedQuery" = "static";
+    sourceType: "static" | "vocabulary" | "namedQuery" | "external" = "static";
     staticOptions: TypeaheadOption[] = [];
     vocabRef?: string;
     queryId?: string;
+    provider?: string;
+    resultArrayProperty?: string;
     labelField?: string;
     labelTemplate?: string;
     valueField?: string;

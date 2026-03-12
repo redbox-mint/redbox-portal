@@ -1,8 +1,10 @@
 import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import {ContentComponent} from './content.component';
 import {SimpleInputComponent} from './simple-input.component';
 import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatable.component";
+import {GroupFieldComponent} from './group.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {TestBed} from "@angular/core/testing";
+import {fakeAsync, flushMicrotasks, TestBed, tick} from "@angular/core/testing";
 import {FormComponentEventBus, FormComponentEventType} from "../form-state";
 
 
@@ -11,8 +13,10 @@ describe('RepeatableComponent', () => {
     await createTestbedModule({
       declarations: {
         "SimpleInputComponent": SimpleInputComponent,
+        "ContentComponent": ContentComponent,
         "RepeatableComponent": RepeatableComponent,
         "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
+        "GroupFieldComponent": GroupFieldComponent,
       }
     });
   });
@@ -147,9 +151,9 @@ describe('RepeatableComponent', () => {
     const {fixture} = await createFormAndWaitForReady(formConfig);
 
     // Get the event bus and subscribe to FORM_DEFINITION_CHANGED events
-    const eventBus = TestBed.inject(FormComponentEventBus);
+    const eventBus = TestBed.inject(FormComponentEventBus) as FormComponentEventBus;
     const emittedEvents: any[] = [];
-    const subscription = eventBus.select$(FormComponentEventType.FORM_DEFINITION_CHANGED).subscribe(event => {
+    const subscription = eventBus.select$(FormComponentEventType.FORM_DEFINITION_CHANGED).subscribe((event: unknown) => {
       emittedEvents.push(event);
     });
 
@@ -169,6 +173,61 @@ describe('RepeatableComponent', () => {
     subscription.unsubscribe();
   });
 
+  it('should mark the main form dirty when a repeatable item is removed', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_delete_dirty',
+      componentDefinitions: [
+        {
+          name: 'repeatable_delete_dirty',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one', 'two']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: '',
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          },
+        },
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+    const repeatableEntries = (repeatable as any).compDefMapEntries as any[];
+    const eventBus = TestBed.inject(FormComponentEventBus) as FormComponentEventBus;
+    const emittedEvents: any[] = [];
+    const subscription = eventBus.select$(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST).subscribe((event: unknown) => {
+      emittedEvents.push(event);
+    });
+
+    expect(formComponent.form?.dirty).toBeFalse();
+    (repeatable as any).removeElementFn(repeatableEntries[0])();
+    await fixture.whenStable();
+
+    expect(emittedEvents.length).toBe(1);
+    expect(emittedEvents[0].type).toBe(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST);
+    expect(emittedEvents[0].fieldId).toBe('repeatable_delete_dirty');
+    expect(emittedEvents[0].reason).toBe('repeatable.element.removed');
+    expect(formComponent.form?.dirty).toBeTrue();
+    expect(formComponent.form?.pristine).toBeFalse();
+    subscription.unsubscribe();
+  });
+
   it('should render repeatable wrapper classes', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing_repeatable_css',
@@ -178,7 +237,7 @@ describe('RepeatableComponent', () => {
           model: {
             class: 'RepeatableModel',
             config: {
-              value: ['one']
+              value: ['one', 'two']
             }
           },
           component: {
@@ -247,6 +306,119 @@ describe('RepeatableComponent', () => {
 
     expect(compiled.querySelectorAll('input[type="text"]')).toHaveSize(0);
     expect(compiled.querySelector('.rb-form-repeatable__add')).toBeFalsy();
+  });
+
+  it('should keep migrated legacy vocab repeatables ready when initialising nested group rows', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_legacy_vocab',
+      componentDefinitions: [
+        {
+          name: 'dc:subject_anzsrc:for-2008',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: [
+                {
+                  'rdf:resource': 'http://purl.org/asc/1297.0/2008/for/060701',
+                  type: 'for',
+                  name: '060701 - Phycology (incl. Marine Grasses)',
+                  label: 'Phycology (incl. Marine Grasses)',
+                  notation: '060701',
+                  geneaology: ['06', '0607']
+                }
+              ]
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              addButtonShow: false,
+              allowZeroRows: true,
+              hideWhenZeroRows: true,
+              elementTemplate: {
+                name: '',
+                component: {
+                  class: 'GroupComponent',
+                  config: {
+                    componentDefinitions: [
+                      {
+                        name: 'name',
+                        component: { class: 'SimpleInputComponent' },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                      {
+                        name: 'rdf:resource',
+                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                      {
+                        name: 'type',
+                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                      {
+                        name: 'label',
+                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                      {
+                        name: 'notation',
+                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                      {
+                        name: 'geneaology',
+                        component: {
+                          class: 'RepeatableComponent',
+                          config: {
+                            addButtonShow: false,
+                            allowZeroRows: true,
+                            hideWhenZeroRows: true,
+                            visible: false,
+                            elementTemplate: {
+                              name: '',
+                              component: {
+                                class: 'SimpleInputComponent',
+                                config: { type: 'hidden' },
+                              },
+                              model: {
+                                class: 'SimpleInputModel',
+                                config: {},
+                              },
+                            },
+                          },
+                        },
+                        model: {
+                          class: 'RepeatableModel',
+                          config: {},
+                        },
+                      },
+                    ],
+                  },
+                },
+                model: {
+                  class: 'GroupModel',
+                  config: {},
+                },
+              },
+            },
+          },
+        },
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+
+    expect(repeatable.status()).toBe('READY');
+    expect(repeatable.viewInitialised()).toBeTrue();
+    expect(repeatable.model?.getValue()).toEqual([
+      jasmine.objectContaining({
+        name: '060701 - Phycology (incl. Marine Grasses)',
+        notation: '060701',
+        geneaology: ['06', '0607']
+      })
+    ]);
   });
 
   it('should render shared field error summary for repeatable element validation errors', async () => {
@@ -412,5 +584,115 @@ describe('RepeatableComponent', () => {
     const removeButtons = fixture.nativeElement.querySelectorAll('.rb-form-repeatable-item__remove');
     expect(removeButtons.length).toBe(0);
   });
+
+  it('shows remove button on single row when allowZeroRows is true', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_allow_zero_single_remove',
+      componentDefinitions: [
+        {
+          name: 'repeatable_allow_zero',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              allowZeroRows: true,
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const removeButtons = fixture.nativeElement.querySelectorAll('.rb-form-repeatable-item__remove');
+    expect(removeButtons.length).toBe(1);
+  });
+
+  it('hides repeatable rows dynamically when the final row is deleted', fakeAsync(() => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_dynamic_hide',
+      componentDefinitions: [
+        {
+          name: 'repeatable_dynamic_hide',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              addButtonShow: false,
+              allowZeroRows: true,
+              hideWhenZeroRows: true,
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          },
+        },
+      ]
+    };
+
+    let fixture: any;
+    createFormAndWaitForReady(formConfig).then(result => {
+      fixture = result.fixture;
+    });
+    flushMicrotasks();
+    tick();
+
+    let rowsContainer = fixture.nativeElement.querySelector('.rb-form-repeatable__items') as HTMLElement;
+    expect(rowsContainer).toBeTruthy();
+    expect(rowsContainer.classList.contains('d-none')).toBeFalse();
+
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+    repeatable.appendNewElement('two').then(() => {
+      tick();
+      flushMicrotasks();
+      fixture.detectChanges();
+    });
+    tick();
+    flushMicrotasks();
+
+    let repeatableEntries = (repeatable as any).compDefMapEntries as any[];
+    while (repeatableEntries.length > 0) {
+      (repeatable as any).removeElementFn(repeatableEntries[0])();
+      tick();
+      flushMicrotasks();
+      fixture.detectChanges();
+      tick();
+      repeatableEntries = (repeatable as any).compDefMapEntries as any[];
+    }
+
+    rowsContainer = fixture.nativeElement.querySelector('.rb-form-repeatable__items') as HTMLElement;
+    expect(rowsContainer.classList.contains('d-none')).toBeTrue();
+    expect(fixture.nativeElement.querySelectorAll('.rb-form-repeatable-item').length).toBe(0);
+  }));
 
 });

@@ -148,6 +148,11 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { ValidationSummaryFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  SaveStatusFieldComponentDefinitionOutline,
+  SaveStatusFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { SaveStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   CheckboxTreeComponentName,
   CheckboxTreeFieldComponentDefinitionOutline,
   CheckboxTreeFieldModelDefinitionOutline,
@@ -920,6 +925,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.populateFormComponent(item);
   }
 
+  /* Save Status */
+
+  visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new SaveStatusFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+  }
+
+  visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
   /* Group */
 
   visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
@@ -1464,6 +1481,23 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           `${this.logName}: Typeahead migration missing vocabRef/vocabId at ${JSON.stringify(this.v4FormPath)}.`
         );
       }
+    } else if (sourceType === 'external') {
+      const provider = String(definition.provider ?? '').trim();
+      if (provider) {
+        this.sharedProps.setPropOverride('provider', item.config, { provider });
+      } else {
+        this.logger.warn(
+          `${this.logName}: Typeahead migration missing provider at ${JSON.stringify(this.v4FormPath)}.`
+        );
+      }
+      const resultArrayProperty = String(definition.resultArrayProperty ?? '').trim();
+      if (resultArrayProperty) {
+        this.sharedProps.setPropOverride('resultArrayProperty', item.config, { resultArrayProperty });
+      }
+      const labelField = this.resolveLegacyLabelField(definition);
+      this.sharedProps.setPropOverride('labelField', item.config, { labelField });
+      const valueField = String(definition.valueFieldName ?? definition.valueField ?? labelField).trim() || labelField;
+      this.sharedProps.setPropOverride('valueField', item.config, { valueField });
     }
 
     const requireSelection = !this.parseLegacyTypeaheadBoolean(definition.freeText, false, 'freeText');
@@ -2570,12 +2604,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
   }
 
-  private resolveTypeaheadSourceType(definition: Record<string, unknown>): 'namedQuery' | 'vocabulary' | 'static' {
+  private resolveTypeaheadSourceType(definition: Record<string, unknown>): 'namedQuery' | 'vocabulary' | 'static' | 'external' {
     const legacySourceType = String(definition.sourceType ?? '')
       .trim()
       .toLowerCase();
     if (legacySourceType === 'query' || legacySourceType === 'namedquery') {
       return 'namedQuery';
+    }
+    if (legacySourceType === 'external') {
+      return 'external';
     }
     if (legacySourceType === 'vocabulary') {
       return 'vocabulary';
@@ -2588,6 +2625,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
     if (definition.vocabRef || definition.vocabId) {
       return 'vocabulary';
+    }
+    if (definition.provider) {
+      return 'external';
     }
     return 'namedQuery';
   }

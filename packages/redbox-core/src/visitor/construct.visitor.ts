@@ -264,6 +264,13 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { ValidationSummaryFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  SaveStatusComponentName,
+  SaveStatusFieldComponentDefinitionFrame,
+  SaveStatusFieldComponentDefinitionOutline,
+  SaveStatusFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { SaveStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   isTypeFieldDefinitionName,
   isTypeFormComponentDefinition,
   isTypeFormComponentDefinitionName,
@@ -636,6 +643,31 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Save Status */
+
+  visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): void {
+    const currentData = this.getData();
+    if (
+      !isTypeFieldDefinitionName<SaveStatusFieldComponentDefinitionFrame>(
+        currentData,
+        SaveStatusComponentName
+      )
+    ) {
+      throw new Error(
+        `Invalid ${SaveStatusComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    item.config = new SaveStatusFieldComponentConfig();
+
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+  }
+
+  visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
   }
 
@@ -1438,6 +1470,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('staticOptions', item.config, config);
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('queryId', item.config, config);
+    this.sharedProps.setPropOverride('provider', item.config, config);
+    this.sharedProps.setPropOverride('resultArrayProperty', item.config, config);
     this.sharedProps.setPropOverride('labelField', item.config, config);
     this.sharedProps.setPropOverride('labelTemplate', item.config, config);
     this.sharedProps.setPropOverride('valueField', item.config, config);
@@ -1690,6 +1724,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
           condition: opConfig.condition,
           conditionKind: opConfig.conditionKind,
           target: opConfig.target,
+          ...(opConfig.runOnFormReady !== undefined && { runOnFormReady: opConfig.runOnFormReady }),
         };
       } else {
         const tmplConfig = config as FormExpressionsTemplateConfigFrame;
@@ -1698,6 +1733,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
           condition: tmplConfig.condition,
           conditionKind: tmplConfig.conditionKind,
           target: tmplConfig.target,
+          ...(tmplConfig.runOnFormReady !== undefined && { runOnFormReady: tmplConfig.runOnFormReady }),
         };
       }
       item.expressions.push(exprItem);
@@ -1721,9 +1757,17 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   protected applyConstructPhaseTransform(
     formComponent: AllFormComponentDefinitionOutlines
   ): AllFormComponentDefinitionOutlines {
-    if (this.formMode === 'view' && formComponent?.component?.class === QuestionTreeComponentName) {
-      return formComponent;
+    if (this.formMode === 'view') {
+      const className = formComponent?.component?.class;
+      const shouldDeferToClientViewTransform =
+        className === QuestionTreeComponentName ||
+        className === RepeatableComponentName ||
+        (className === GroupFieldComponentName && formComponent?.layout?.class !== ActionRowLayoutName);
+      if (shouldDeferToClientViewTransform) {
+        return formComponent;
+      }
     }
+
     return this.formOverride.applyOverrideTransform(formComponent, this.formMode, {
       phase: 'construct',
       reusableFormDefs: this.reusableFormDefs,

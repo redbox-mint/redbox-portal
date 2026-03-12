@@ -294,6 +294,39 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(typeaheadConfig.labelField).to.equal("dc_description");
     });
 
+    it('maps legacy external VocabField to external TypeaheadInput config', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "typeahead-external",
+                fields: [
+                    {
+                        class: "VocabField",
+                        compClass: "VocabFieldComponent",
+                        definition: {
+                            name: "dc:coverage_dc:identifier",
+                            sourceType: "external",
+                            provider: "geonamesCountries",
+                            resultArrayProperty: "response.docs",
+                            titleFieldArr: ["utf8_name"],
+                            fieldNames: ["utf8_name"],
+                            stringLabelToField: "utf8_name"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("TypeaheadInputComponent");
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        expect(componentConfig.sourceType).to.equal("external");
+        expect(componentConfig.provider).to.equal("geonamesCountries");
+        expect(componentConfig.resultArrayProperty).to.equal("response.docs");
+        expect(componentConfig.labelField).to.equal("utf8_name");
+        expect(componentConfig.valueField).to.equal("utf8_name");
+    });
+
     it('maps RepeatableContributor layout label from definition name when label is missing on both parent and child', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({

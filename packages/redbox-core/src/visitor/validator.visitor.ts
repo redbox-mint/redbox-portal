@@ -21,6 +21,8 @@ import {
     RepeatableFormComponentDefinitionOutline,
     ValidationSummaryFieldComponentDefinitionOutline,
     ValidationSummaryFormComponentDefinitionOutline,
+    SaveStatusFieldComponentDefinitionOutline,
+    SaveStatusFormComponentDefinitionOutline,
     GroupFieldComponentDefinitionOutline,
     GroupFieldModelDefinitionOutline,
     GroupFormComponentDefinitionOutline,
@@ -225,6 +227,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         this.acceptFormComponentDefinition(item);
     }
 
+    visitSaveStatusFieldComponentDefinition(_item: SaveStatusFieldComponentDefinitionOutline): void {
+    }
+
+    visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
     /* Group */
 
     visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
@@ -421,7 +430,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         const config = item.config;
         const sourceType = config?.sourceType;
 
-        if (!sourceType || !["static", "vocabulary", "namedQuery"].includes(sourceType)) {
+        if (!sourceType || !["static", "vocabulary", "namedQuery", "external"].includes(sourceType)) {
             configErrors.push({
                 class: "typeaheadSourceType",
                 message: "@validator-error-typeahead-source-type",
@@ -447,6 +456,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
             configErrors.push({
                 class: "typeaheadQueryId",
                 message: "@validator-error-typeahead-query-id",
+                params: { sourceType }
+            });
+        }
+        if (sourceType === "external" && !String(config?.provider ?? "").trim()) {
+            configErrors.push({
+                class: "typeaheadProvider",
+                message: "@validator-error-typeahead-provider",
                 params: { sourceType }
             });
         }

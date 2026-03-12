@@ -20,6 +20,10 @@ import {
   ValidationSummaryFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  SaveStatusFieldComponentDefinitionOutline,
+  SaveStatusFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
@@ -222,7 +226,14 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   protected applyPostPruningTransforms(
     items: AvailableFormComponentDefinitionOutlines[]
   ): AvailableFormComponentDefinitionOutlines[] {
-    return items.map(item => this.applyPostPruningTransformToComponent(item));
+        return items
+      .filter(item => !this.isExplicitlyDisallowedByFormMode(item))
+      .map(item => this.applyPostPruningTransformToComponent(item));
+  }
+
+  protected isExplicitlyDisallowedByFormMode(item: AvailableFormComponentDefinitionOutlines): boolean {
+    const allowModes = item?.constraints?.allowModes;
+    return Array.isArray(allowModes) && allowModes.length > 0 && !allowModes.includes(this.formMode);
   }
 
   protected applyPostPruningTransformToComponent(
@@ -249,6 +260,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         reusableFormDefs: this.reusableFormDefs,
       }) as AvailableFormComponentDefinitionOutlines;
       this.processFormComponentDefinition(transformed);
+      this.applyPostPruningTransformsToNestedChildren(transformed);
       if ('constraints' in transformed) {
         delete transformed['constraints'];
       }
@@ -391,6 +403,15 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.processFormComponentDefinition(item);
   }
 
+  visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): void {
+    this.processFieldComponentDefinition(item);
+  }
+
+  visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
+    this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+  }
+
   /* Group */
 
   visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
@@ -483,12 +504,17 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
     this.processFieldComponentDefinition(item);
 
+    const items: AvailableFormComponentDefinitionOutlines[] = [];
     (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+      items.push(componentDefinition);
       this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(componentDefinition, index)
       );
     });
+    if (item.config) {
+      item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
+    }
   }
 
   visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): void {
@@ -509,13 +535,18 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
     this.processFieldComponentDefinition(item);
 
+    const items: AvailableFormComponentDefinitionOutlines[] = [];
     (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+      items.push(componentDefinition);
       // Visit children
       this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index)
       );
     });
+    if (item.config) {
+      item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
+    }
   }
 
   visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
@@ -901,6 +932,8 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
    * @protected
    */
   protected updateRepeatableDataModels(item: RepeatableFormComponentDefinitionOutline): void {
+    this.updateLayoutVisibilityForZeroRows(item);
+
     const elementTemplate = item.component?.config?.elementTemplate;
     const elementTemplateCompConfig = elementTemplate?.component?.config;
 
@@ -924,6 +957,19 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     const newEntryValue = elementTemplate?.model?.config?.newEntryValue;
     this.updateRepeatableDataModel(toProcess, newEntryValue);
+  }
+
+  protected updateLayoutVisibilityForZeroRows(item: RepeatableFormComponentDefinitionOutline): void {
+    const hideWhenZeroRows = item.component?.config?.hideWhenZeroRows;
+    const valueLength = item.model?.config?.value?.length ?? 0;
+    if (hideWhenZeroRows && valueLength === 0) {
+      if (item.layout?.config) {
+        item.layout.config.visible = false;
+      }
+      if (item.component?.config) {
+        item.component.config.visible = false;
+      }
+    }
   }
 
   /**
@@ -968,11 +1014,36 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
               currentValueType = 'object';
             }
             if (currentValueType !== 'object') {
+              const schemaNames = Object.keys(schemaCurrent);
+              const canCoerceToLegacyGroupRow =
+                schemaNames.includes('name') &&
+                ['string', 'timestamp', 'number', 'boolean'].includes(currentValueType);
+              if (canCoerceToLegacyGroupRow) {
+                currentValue = {
+                  name: String(currentValue),
+                };
+                if (path.length > 0) {
+                  _set(value as object, path, currentValue);
+                } else {
+                  value = currentValue;
+                }
+                currentValueType = 'object';
+              }
+            }
+            if (currentValueType !== 'object') {
               throw new Error(`${errMsg1} an object, ${errMsg2} ${JSON.stringify(currentValue)}`);
             }
             // Remove names missing in the schema.
             // Add names in the schema to the to-process array.
             const schemaNames = Object.keys(schemaCurrent);
+            if (schemaNames.includes('name')) {
+              const currentObj = currentValue as Record<string, unknown>;
+              const hasName = typeof currentObj.name === 'string' && currentObj.name.length > 0;
+              const legacyValue = currentObj.value;
+              if (!hasName && typeof legacyValue === 'string' && legacyValue.length > 0) {
+                currentObj.name = legacyValue;
+              }
+            }
             Object.keys(currentValue).forEach(name => {
               if (!schemaNames.includes(name)) {
                 delete currentValue[name];
@@ -988,19 +1059,20 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
             if (currentValueType !== 'array') {
               throw new Error(`${errMsg1} an array, ${errMsg2} ${JSON.stringify(currentValue)}`);
             }
-            // TODO: determine how elements will work
-            throw new Error(
-              `Not implemented updateRepeatableDataModel elements ${JSON.stringify({
-                schemaKey,
-                schemaValue,
-                currentValue,
-              })}`
-            );
-          // break;
+
+            (currentValue as unknown[]).forEach((_, index) => {
+              processing.push({
+                path: [...path, `${index}`],
+                schema: schemaCurrent,
+              });
+            });
+            break;
           case 'type':
             // TODO: do the json type def type names match the guessType names?
             // Allow null values
-            if (currentValueType !== schemaValue && currentValueType !== 'null') {
+            const schemaValueStr = String(schemaValue);
+            const isTimestampString = schemaValueStr === 'string' && currentValueType === 'timestamp';
+            if (currentValueType !== schemaValueStr && currentValueType !== 'null' && !isTimestampString) {
               throw new Error(`${errMsg1} ${schemaValue}, ${errMsg2} ${JSON.stringify(currentValue)}`);
             }
             // Nothing else to do.
