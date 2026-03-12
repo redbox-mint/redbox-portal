@@ -260,6 +260,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         reusableFormDefs: this.reusableFormDefs,
       }) as AvailableFormComponentDefinitionOutlines;
       this.processFormComponentDefinition(transformed);
+      this.applyPostPruningTransformsToNestedChildren(transformed);
       if ('constraints' in transformed) {
         delete transformed['constraints'];
       }

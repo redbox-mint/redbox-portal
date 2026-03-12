@@ -102,9 +102,11 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   public isOpen = false;
   public readOnlyAfterSelectLocked = false;
 
-  private sourceType: 'static' | 'vocabulary' | 'namedQuery' = 'static';
+  private sourceType: 'static' | 'vocabulary' | 'namedQuery' | 'external' = 'static';
   private queryId = '';
   private vocabRef = '';
+  private provider = '';
+  private resultArrayProperty = '';
   private labelField = 'label';
   private valueField = 'value';
   private valueMode: 'value' | 'optionObject' = 'value';
@@ -144,6 +146,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.sourceType = cfg.sourceType ?? 'static';
     this.queryId = String(cfg.queryId ?? '').trim();
     this.vocabRef = String(cfg.vocabRef ?? '').trim();
+    this.provider = String(cfg.provider ?? '').trim();
+    this.resultArrayProperty = String(cfg.resultArrayProperty ?? '').trim();
     this.labelField = String(cfg.labelField ?? 'label').trim() || 'label';
     this.labelTemplate = String(cfg.labelTemplate ?? '').trim();
     this.labelTemplatePath = [
@@ -255,6 +259,11 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       this.statusMessage = 'Missing queryId for namedQuery typeahead source';
       return false;
     }
+    if (this.sourceType === 'external' && !this.provider) {
+      this.searchState = 'misconfigured';
+      this.statusMessage = 'Missing provider for external typeahead source';
+      return false;
+    }
     if (this.sourceType === 'static' && this.staticOptions.length === 0) {
       this.searchState = 'misconfigured';
       this.statusMessage = 'Missing staticOptions for static typeahead source';
@@ -292,6 +301,14 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
           trimmedTerm,
           this.maxResults,
           0
+        );
+      } else if (this.sourceType === 'external') {
+        options = await this.typeaheadDataService.searchExternal(
+          this.provider,
+          trimmedTerm,
+          this.resultArrayProperty,
+          this.labelField,
+          this.valueField
         );
       } else {
         options = await this.typeaheadDataService.searchNamedQuery(

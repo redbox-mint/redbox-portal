@@ -253,6 +253,10 @@ export const routes: RoutesConfig = {
         controller: 'FormVocabularyController',
         action: 'getRecords'
     },
+    'post /:branding/:portal/external/vocab/:provider': {
+        controller: 'FormVocabularyController',
+        action: 'externalEntries'
+    },
 
     // Export routes
     'get /:branding/:portal/export': 'ExportController.index',

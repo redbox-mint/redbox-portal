@@ -1275,10 +1275,7 @@ export class FormOverride {
         component: {
           class: AccordionPanelComponentName,
           config: {
-            componentDefinitions: (tab.component?.config?.componentDefinitions ?? []).map(compDef => {
-              this.forceAllowModeForTransformedTree(compDef as any, formMode);
-              return compDef;
-            }),
+            componentDefinitions: tab.component?.config?.componentDefinitions ?? [],
           },
         },
         layout: {
@@ -1342,6 +1339,9 @@ export class FormOverride {
 
     const constraints = componentDefinition.constraints ?? { authorization: { allowRoles: [] }, allowModes: [] };
     constraints.allowModes = Array.isArray(constraints.allowModes) ? constraints.allowModes : [];
+    if (!constraints.allowModes.includes(formMode)) {
+      constraints.allowModes.push(formMode);
+    }
     componentDefinition.constraints = constraints;
 
     const nested = componentDefinition?.component?.config;
