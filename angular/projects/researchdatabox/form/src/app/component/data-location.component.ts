@@ -37,6 +37,16 @@ interface CsrfConfigShape {
     csrfToken?: unknown;
 }
 
+interface CompanionAuthProvider {
+    login: (args: unknown) => Promise<unknown>;
+    setAuthToken: (token: string) => Promise<unknown> | unknown;
+    __redboxAuthFallbackInstalled?: boolean;
+}
+
+interface UppyProviderPlugin {
+    provider?: CompanionAuthProvider;
+}
+
 interface TusPlugin extends Tus<UppyMeta, UppyBody> {
     setOptions(options: unknown): void;
 }
@@ -318,6 +328,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
             if (base) {
                 return `${base}${location.startsWith("/") ? "" : "/"}${location}`;
             }
+            return `${window.location.origin}${location.startsWith("/") ? "" : "/"}${location}`;
         }
         return "";
     }
@@ -363,14 +374,10 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
 
         // Kick off an async attempt to populate CSRF headers if available.
         // Also ensure headers are set before uploads by awaiting during file-added.
-        this.ensureTusHeadersContainCsrf().catch(() => { /* noop - handler will log */ });
+        void this.ensureTusHeadersContainCsrf();
 
         this.uppy.on("file-added", async () => {
-            try {
-                await this.ensureTusHeadersContainCsrf();
-            } catch (err) {
-                this.loggerService?.error?.("file-added: failed to ensure CSRF headers", err);
-            }
+            await this.ensureTusHeadersContainCsrf();
         });
 
         this.uppy.on("upload", (_uploadID: string, files: UppyFile<UppyMeta, UppyBody>[]) => {
@@ -378,36 +385,16 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         });
 
         if (this.companionUrl) {
-            const installProviderAuthFallback = <TOptions>(PluginCtor: any, options: TOptions) => {
-                if (!this.uppy) {
-                    return;
-                }
-                const plugin = this.uppy.use(PluginCtor, options as any);
-                this.uppy.on("plugin-error", (error: any) => {
-                    if (!error || typeof (error as any).message !== "string") {
-                        return;
-                    }
-                    const message = (error as any).message.toLowerCase();
-                    // Handle cases like "Auth window was closed by the user" by resetting the plugin.
-                    if (message.includes("auth") && message.includes("window") && message.includes("closed")) {
-                        try {
-                            this.uppy?.removePlugin(plugin);
-                            this.uppy?.use(PluginCtor, options as any);
-                        } catch {
-                            // Swallow errors – Uppy will still surface any remaining issues through its own events.
-                        }
-                    }
-                });
-            };
-
             if (this.enabledSources.includes("dropbox")) {
-                installProviderAuthFallback(deps.DropboxPlugin, { companionUrl: this.companionUrl });
+                this.uppy.use(deps.DropboxPlugin, { companionUrl: this.companionUrl });
             }
             if (this.enabledSources.includes("googleDrive")) {
-                installProviderAuthFallback(deps.GoogleDrivePlugin, { companionUrl: this.companionUrl });
+                this.uppy.use(deps.GoogleDrivePlugin, { companionUrl: this.companionUrl });
+                this.installProviderAuthFallback("GoogleDrive", ["companion-GoogleDrive-auth-token"], ["uppyAuthToken--googledrive", "uppyAuthToken--drive"]);
             }
             if (this.enabledSources.includes("onedrive")) {
-                installProviderAuthFallback(deps.OneDrivePlugin, { companionUrl: this.companionUrl });
+                this.uppy.use(deps.OneDrivePlugin, { companionUrl: this.companionUrl });
+                this.installProviderAuthFallback("OneDrive", ["companion-OneDrive-auth-token"], ["uppyAuthToken--onedrive"]);
             }
         }
 
@@ -637,6 +624,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
                 return;
             }
             const headers = this.buildTusHeaders(token);
+            this.tusHeaders = headers;
             const tusPlugin = this.uppy.getPlugin("Tus") as unknown as TusPlugin;
             tusPlugin?.setOptions?.({ headers });
             if (tusPlugin?.opts) {
@@ -644,7 +632,6 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
             }
         } catch (err) {
             this.loggerService.error("ensureTusHeadersContainCsrf: failed to load config for CSRF token", err);
-            throw err;
         }
     }
 
@@ -653,6 +640,77 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
             return undefined;
         }
         return String((config as CsrfConfigShape).csrfToken ?? "").trim() || undefined;
+    }
+
+    private installProviderAuthFallback(pluginId: string, tokenStorageKeys: string[], cookieNames: string[]): void {
+        if (!this.uppy) {
+            return;
+        }
+        const plugin = this.uppy.getPlugin(pluginId);
+        if (!this.isProviderPlugin(plugin)) {
+            return;
+        }
+        const provider = plugin.provider;
+        if (!provider || typeof provider.login !== "function" || typeof provider.setAuthToken !== "function") {
+            return;
+        }
+        if (provider.__redboxAuthFallbackInstalled) {
+            return;
+        }
+
+        const originalLogin = provider.login.bind(provider);
+        provider.login = async (args: unknown) => {
+            try {
+                return await originalLogin(args);
+            } catch (err: unknown) {
+                const message = String((err as { message?: unknown })?.message ?? "");
+                if (message.includes("Auth window was closed by the user")) {
+                    const token = this.findCompanionToken(tokenStorageKeys, cookieNames);
+                    if (token) {
+                        await provider.setAuthToken(token);
+                        return;
+                    }
+                }
+                throw err;
+            }
+        };
+        provider.__redboxAuthFallbackInstalled = true;
+    }
+
+    private isProviderPlugin(plugin: unknown): plugin is UppyProviderPlugin {
+        return !!plugin && typeof plugin === "object" && "provider" in plugin;
+    }
+
+    private findCompanionToken(tokenStorageKeys: string[], cookieNames: string[]): string | undefined {
+        for (const key of tokenStorageKeys) {
+            const token = String(localStorage.getItem(key) ?? "").trim();
+            if (token) {
+                return token;
+            }
+        }
+        const rawCookie = String(document.cookie ?? "");
+        if (!rawCookie) {
+            return undefined;
+        }
+        const segments = rawCookie.split(";");
+        for (const name of cookieNames) {
+            for (const rawSegment of segments) {
+                const segment = rawSegment.trim();
+                if (!segment.startsWith(`${name}=`)) {
+                    continue;
+                }
+                const value = segment.substring(name.length + 1).trim();
+                if (!value) {
+                    continue;
+                }
+                try {
+                    return decodeURIComponent(value);
+                } catch {
+                    return value;
+                }
+            }
+        }
+        return undefined;
     }
 
     private resolveCompanionUrl(companionUrl?: string): string | undefined {

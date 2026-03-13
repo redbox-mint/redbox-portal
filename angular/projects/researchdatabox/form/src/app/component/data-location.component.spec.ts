@@ -180,4 +180,77 @@ describe("DataLocationComponent", () => {
             isc: "official"
         }));
     });
+
+    it("falls back to window origin for attachment links when brandingAndPortalUrl is unset", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "dataLocations",
+                    component: {
+                        class: "DataLocationComponent"
+                    },
+                    model: {
+                        class: "DataLocationModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+
+        (formComponent.recordService as any).brandingAndPortalUrl = "";
+
+        expect(component.getLocationHref({
+            type: "attachment",
+            location: "/record/oid-1/attach/file-123"
+        } as any)).toBe(`${window.location.origin}/record/oid-1/attach/file-123`);
+    });
+
+    it("caches fetched CSRF headers after the first async resolution", async () => {
+        const fixture = TestBed.createComponent(DataLocationComponent);
+        const component = fixture.componentInstance as any;
+        const configService = component.configService;
+
+        fakeUppy.use(function TusPlugin() {
+            return {};
+        }, { headers: {} });
+        component.uppy = fakeUppy;
+        component.tusHeaders = {};
+
+        spyOn(configService, "getConfig").and.returnValue(Promise.resolve({ csrfToken: "cached-token" }));
+
+        await component.ensureTusHeadersContainCsrf();
+        await component.ensureTusHeadersContainCsrf();
+
+        expect(configService.getConfig).toHaveBeenCalledTimes(1);
+        expect(component.tusHeaders["X-CSRF-Token"]).toBe("cached-token");
+        expect(fakeUppy.plugins["Tus"].setOptions).toHaveBeenCalledTimes(1);
+        expect(fakeUppy.plugins["Tus"].opts.headers["X-CSRF-Token"]).toBe("cached-token");
+    });
+
+    it("logs CSRF header resolution failures without rethrowing", async () => {
+        const fixture = TestBed.createComponent(DataLocationComponent);
+        const component = fixture.componentInstance as any;
+        const configService = component.configService;
+        const loggerService = component.loggerService;
+        const failure = new Error("config load failed");
+
+        fakeUppy.use(function TusPlugin() {
+            return {};
+        }, { headers: {} });
+        component.uppy = fakeUppy;
+        component.tusHeaders = {};
+
+        spyOn(configService, "getConfig").and.returnValue(Promise.reject(failure));
+        spyOn(loggerService, "error");
+
+        await expectAsync(component.ensureTusHeadersContainCsrf()).toBeResolved();
+
+        expect(loggerService.error).toHaveBeenCalledWith("ensureTusHeadersContainCsrf: failed to load config for CSRF token", failure);
+    });
 });
