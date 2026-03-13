@@ -332,6 +332,10 @@ describe("Migrate v4 to v5 Visitor", async () => {
         const retriever = migrated.componentDefinitions.find((component) => component.name === 'dataRecordGetter');
         expect(retriever?.component.class).to.equal('RecordMetadataRetrieverComponent');
         expect(retriever?.model).to.equal(undefined);
+        expect(retriever?.component?.config?.visible).to.equal(false);
+        expect(retriever?.component?.config?.label).to.equal(undefined);
+        expect(retriever?.layout?.config?.visible).to.equal(false);
+        expect(retriever?.layout?.config?.label).to.equal(undefined);
         expect(retriever?.expressions).to.deep.include({
             name: 'fetchOnFormReady-dataRecordOid',
             description: 'Fetch metadata on form load using request params',
@@ -353,7 +357,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
                 condition: '/dataRecord::field.value.changed',
                 operation: 'fetchMetadata',
                 hasTemplate: true,
-                template: '$exists(event.value.redboxOid) ? event.value.redboxOid : event.value'
+                template: '$exists(event.value.oid) ? event.value.oid : ($exists(event.value.redboxOid) ? event.value.redboxOid : event.value)'
             }
         });
 
@@ -491,6 +495,10 @@ describe("Migrate v4 to v5 Visitor", async () => {
         const sourcePointer = findPointerByName(migrated.componentDefinitions as any[], 'rdmp');
 
         expect(retriever?.component.class).to.equal('RecordMetadataRetrieverComponent');
+        expect(retriever?.component?.config?.visible).to.equal(false);
+        expect(retriever?.component?.config?.label).to.equal(undefined);
+        expect(retriever?.layout?.config?.visible).to.equal(false);
+        expect(retriever?.layout?.config?.label).to.equal(undefined);
         expect(retriever?.expressions).to.deep.include({
             name: 'fetchOnFormReady-rdmpOid',
             description: 'Fetch metadata on form load using request params',
@@ -512,7 +520,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
                 condition: `${sourcePointer}::field.value.changed`,
                 operation: 'fetchMetadata',
                 hasTemplate: true,
-                template: '$exists(event.value.redboxOid) ? event.value.redboxOid : event.value'
+                template: '$exists(event.value.oid) ? event.value.oid : ($exists(event.value.redboxOid) ? event.value.redboxOid : event.value)'
             }
         });
         expect(targetField?.expressions).to.deep.include({

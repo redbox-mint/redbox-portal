@@ -27,6 +27,7 @@ import { ReusableDefaults, ReusableMap } from './component/reusable.model';
 import { ReusableComponentName } from './component/reusable.outline';
 import { QuestionTreeDefaults, QuestionTreeMap } from './component/question-tree.model';
 import { CheckboxTreeDefaults, CheckboxTreeMap } from './component/checkbox-tree.model';
+import { RecordSelectorDefaults, RecordSelectorMap } from './component/record-selector.model';
 import { TypeaheadInputDefaults, TypeaheadInputMap } from './component/typeahead-input.model';
 import { RichTextEditorDefaults, RichTextEditorMap } from './component/rich-text-editor.model';
 import { MapDefaults, MapMap } from './component/map.model';
@@ -67,6 +68,7 @@ export const AllDefs = [
   ...ReusableMap,
   ...QuestionTreeMap,
   ...CheckboxTreeMap,
+  ...RecordSelectorMap,
   ...TypeaheadInputMap,
   ...RichTextEditorMap,
   ...MapMap,
@@ -101,6 +103,7 @@ const RawDefaults = [
   ReusableDefaults,
   QuestionTreeDefaults,
   CheckboxTreeDefaults,
+  RecordSelectorDefaults,
   TypeaheadInputDefaults,
   RichTextEditorDefaults,
   MapDefaults,

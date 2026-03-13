@@ -99,6 +99,11 @@ import {
   CheckboxTreeFormComponentDefinitionOutline,
 } from '../component/checkbox-tree.outline';
 import {
+  RecordSelectorFieldComponentDefinitionOutline,
+  RecordSelectorFieldModelDefinitionOutline,
+  RecordSelectorFormComponentDefinitionOutline,
+} from '../component/record-selector.outline';
+import {
   TypeaheadInputFieldComponentDefinitionOutline,
   TypeaheadInputFieldModelDefinitionOutline,
   TypeaheadInputFormComponentDefinitionOutline,
@@ -311,6 +316,14 @@ export interface FormConfigVisitorOutline {
   visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void;
 
   visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void;
+
+  /* Record Selector */
+
+  visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): void;
+
+  visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): void;
+
+  visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void;
 
   /* Typeahead Input */
 

@@ -76,6 +76,11 @@ import {
   CheckboxTreeFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  RecordSelectorFieldComponentDefinitionOutline,
+  RecordSelectorFieldModelDefinitionOutline,
+  RecordSelectorFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   DropdownInputFieldComponentDefinitionOutline,
   DropdownInputFieldModelDefinitionOutline,
   DropdownInputFormComponentDefinitionOutline,
@@ -383,6 +388,16 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   visitCheckboxTreeFieldModelDefinition(_item: CheckboxTreeFieldModelDefinitionOutline): void { }
 
   visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  /* Record Selector */
+
+  visitRecordSelectorFieldComponentDefinition(_item: RecordSelectorFieldComponentDefinitionOutline): void { }
+
+  visitRecordSelectorFieldModelDefinition(_item: RecordSelectorFieldModelDefinitionOutline): void { }
+
+  visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 

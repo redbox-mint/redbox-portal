@@ -23,6 +23,7 @@ import { RadioInputComponent, RadioInputModel } from './component/radio-input.co
 import { DateInputComponent, DateInputModel } from './component/date-input.component';
 import { QuestionTreeComponent, QuestionTreeModel } from './component/question-tree.component';
 import { CheckboxTreeComponent, CheckboxTreeModel } from './component/checkbox-tree.component';
+import { RecordSelectorComponent, RecordSelectorModel } from './component/record-selector.component';
 import { TypeaheadInputComponent, TypeaheadInputModel } from './component/typeahead-input.component';
 import { RichTextEditorComponent, RichTextEditorModel } from './component/rich-text-editor.component';
 import { MapComponent, MapModel } from './component/map.component';
@@ -44,6 +45,7 @@ import {
   QuestionTreeModelName,
   GroupFieldModelName,
   CheckboxTreeModelName,
+  RecordSelectorModelName,
   TypeaheadInputModelName,
   RichTextEditorModelName,
   MapModelName,
@@ -65,6 +67,7 @@ import {
   DateInputComponentName,
   QuestionTreeComponentName,
   CheckboxTreeComponentName,
+  RecordSelectorComponentName,
   TypeaheadInputComponentName,
   RichTextEditorComponentName,
   MapComponentName,
@@ -111,6 +114,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [DateInputComponentName]: DateInputComponent,
   [QuestionTreeComponentName]: QuestionTreeComponent,
   [CheckboxTreeComponentName]: CheckboxTreeComponent,
+  [RecordSelectorComponentName]: RecordSelectorComponent,
   [TypeaheadInputComponentName]: TypeaheadInputComponent,
   [RichTextEditorComponentName]: RichTextEditorComponent,
   [MapComponentName]: MapComponent,
@@ -138,6 +142,7 @@ export const getStaticModelClassMap = (): StaticModelClassMapType => ({
   [DateInputModelName]: DateInputModel,
   [QuestionTreeModelName]: QuestionTreeModel,
   [CheckboxTreeModelName]: CheckboxTreeModel,
+  [RecordSelectorModelName]: RecordSelectorModel,
   [TypeaheadInputModelName]: TypeaheadInputModel,
   [RichTextEditorModelName]: RichTextEditorModel,
   [MapModelName]: MapModel,

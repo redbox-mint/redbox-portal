@@ -90,6 +90,55 @@ describe('FormRecordConsistencyService', function () {
 
       expect(result.metadata).to.deep.equal({ merged: true });
     });
+
+    it('should strip hydrated model values before building schema', function () {
+      const original = { redboxOid: 'oid', metadata: { title: 'before' } };
+      const changed = { redboxOid: 'oid', metadata: { title: 'after' } };
+      const config = {
+        componentDefinitions: [
+          {
+            name: 'title',
+            component: { class: 'SimpleInputComponent', config: { type: 'text' } },
+            model: { class: 'SimpleInputModel', config: { validators: [], value: 'asfsafasfa' } },
+            layout: { class: 'DefaultLayout', config: {} }
+          },
+          {
+            name: 'group',
+            component: {
+              class: 'GroupComponent',
+              config: {
+                componentDefinitions: [
+                  {
+                    name: 'nested',
+                    component: { class: 'SimpleInputComponent', config: { type: 'text' } },
+                    model: { class: 'SimpleInputModel', config: { validators: [], value: 'nested-value' } },
+                    layout: { class: 'DefaultLayout', config: {} }
+                  }
+                ]
+              }
+            },
+            layout: { class: 'DefaultLayout', config: {} }
+          }
+        ]
+      };
+
+      const buildSchemaStub = sinon.stub(FormRecordConsistencyService, 'buildSchemaForFormConfig').returns({});
+      sinon.stub(FormRecordConsistencyService, 'compareRecords').returns([]);
+      sinon.stub(FormRecordConsistencyService, 'mergeRecordMetadataPermitted').returns({ merged: true });
+
+      FormRecordConsistencyService.mergeRecordClientFormConfig(original, changed, config, 'edit');
+
+      const schemaInput = buildSchemaStub.firstCall.args[0];
+      const strippedTopLevel = schemaInput.componentDefinitions?.[0]?.model?.config?.value;
+      const strippedNested = schemaInput.componentDefinitions?.[1]?.component?.config?.componentDefinitions?.[0]?.model?.config?.value;
+      const originalTopLevel = config.componentDefinitions?.[0]?.model?.config?.value;
+      const originalNested = config.componentDefinitions?.[1]?.component?.config?.componentDefinitions?.[0]?.model?.config?.value;
+
+      expect(strippedTopLevel).to.equal(undefined);
+      expect(strippedNested).to.equal(undefined);
+      expect(originalTopLevel).to.equal('asfsafasfa');
+      expect(originalNested).to.equal('nested-value');
+    });
   });
 
   describe('compareRecords', function () {

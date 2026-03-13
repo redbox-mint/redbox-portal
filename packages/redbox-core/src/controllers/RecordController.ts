@@ -187,7 +187,7 @@ export namespace Controllers {
                 const contextVariablesMap = ContextVariableUtils.evaluateContextVariables(req, record);
                 const clientFormConfig = await FormsService.buildClientFormConfig(
                   formConfig,
-                  'view',
+                  'edit',
                   userRoles,
                   record.metadata,
                   reusableFormDefs,
@@ -204,7 +204,7 @@ export namespace Controllers {
                   emptyOriginal,
                   record as unknown as Parameters<typeof FormRecordConsistencyService.mergeRecordClientFormConfig>[1],
                   clientFormConfig,
-                  'view',
+                  'edit',
                   reusableFormDefs
                 );
                 record.metadata = filteredRecord.metadata;

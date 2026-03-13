@@ -1,0 +1,92 @@
+@if (isVisible) {
+  <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
+
+  @if (!isInteractive) {
+    <div class="rb-record-selector-current">
+      <strong>{{ columnTitle }}:</strong>
+      <span>{{ selectedRecord?.title || selectedRecord?.oid || ('record-selector-no-record-selected' | i18next) }}</span>
+    </div>
+  } @else {
+    <div class="rb-record-selector">
+      @if (!showSearchUi) {
+        <div class="rb-record-selector-toolbar is-selected">
+          <div class="rb-record-selector-selected-title" role="status" aria-live="polite">{{ selectedRecord?.title || selectedRecord?.oid }}</div>
+          <div class="rb-record-selector-actions">
+            <button type="button" class="btn btn-info" (click)="changeSelection()">{{ 'change-text' | i18next }}</button>
+          </div>
+        </div>
+      } @else {
+        <div class="rb-record-selector-search-panel">
+          <div class="rb-record-selector-toolbar">
+            <div class="rb-record-selector-search">
+              <label class="form-label" [attr.for]="listboxId + '-search'">{{ 'record-selector-search-label' | i18next }}</label>
+              <div class="rb-record-selector-search-input-wrap">
+                <input
+                  [id]="listboxId + '-search'"
+                  type="text"
+                  class="form-control"
+                  [formControl]="searchControl"
+                  [attr.aria-controls]="filteredRecords.length > 0 ? listboxId : null"
+                  [attr.aria-describedby]="showStatusMessage ? statusId : null"
+                  [title]="tooltip"
+                />
+              </div>
+              <p class="rb-record-selector-search-hint">{{ 'record-selector-search-hint' | i18next }}</p>
+            </div>
+            <div class="rb-record-selector-actions">
+              <button type="button" class="btn btn-outline-secondary rb-record-selector-reset-btn" (click)="resetFilter()">{{ 'transfer-ownership-reset' | i18next }}</button>
+            </div>
+          </div>
+        </div>
+
+        @if (showStatusMessage) {
+          <div class="rb-record-selector-status" [class.is-error]="!!errorMessage" [id]="statusId" aria-live="polite">
+            <span class="rb-record-selector-status-text">{{ statusMessageKey | i18next }}</span>
+          </div>
+        }
+
+        @if (filteredRecords.length > 0) {
+          <div class="rb-record-selector-results-shell">
+            <div class="rb-record-selector-results-header">
+              <div>
+                <div class="rb-record-selector-results-kicker">{{ 'record-selector-results-heading' | i18next: { count: filteredRecords.length } }}</div>
+                <div class="rb-record-selector-results-copy">{{ 'record-selector-results-copy' | i18next }}</div>
+              </div>
+            </div>
+
+            <div
+              class="rb-record-selector-results"
+              [id]="listboxId"
+              role="listbox"
+              [attr.aria-label]="columnTitle"
+              [attr.aria-busy]="loading"
+              (keydown)="onResultsKeydown($event)"
+            >
+              @for (record of filteredRecords; track record.oid; let i = $index) {
+                <button
+                  #recordOption
+                  type="button"
+                  class="rb-record-selector-option"
+                  [class.is-selected]="isSelected(record)"
+                  role="option"
+                  [attr.aria-selected]="isSelected(record)"
+                  [attr.tabindex]="i === focusedIndex ? 0 : -1"
+                  (focus)="focusedIndex = i"
+                  (click)="selectRecord(record)"
+                >
+                  <span class="rb-record-selector-option-main">
+                    <span class="rb-record-selector-title">{{ record.title }}</span>
+                    <span class="rb-record-selector-meta">{{ 'record-selector-option-meta' | i18next }}</span>
+                  </span>
+                  <span class="rb-record-selector-option-affordance" aria-hidden="true">{{ 'transfer-ownership-select' | i18next }}</span>
+                </button>
+              }
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
+}

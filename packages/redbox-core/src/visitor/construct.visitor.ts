@@ -223,6 +223,16 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import {
+  RecordSelectorComponentName,
+  RecordSelectorFieldComponentDefinitionFrame,
+  RecordSelectorFieldComponentDefinitionOutline,
+  RecordSelectorFieldModelDefinitionFrame,
+  RecordSelectorFieldModelDefinitionOutline,
+  RecordSelectorFormComponentDefinitionOutline,
+  RecordSelectorModelName,
+} from '@researchdatabox/sails-ng-common';
+import { RecordSelectorFieldComponentConfig, RecordSelectorFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
   RadioInputComponentName,
   RadioInputFieldComponentDefinitionFrame,
   RadioInputFieldComponentDefinitionOutline,
@@ -1501,6 +1511,44 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Record Selector */
+
+  visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<RecordSelectorFieldComponentDefinitionFrame>(currentData, RecordSelectorComponentName)) {
+      throw new Error(
+        `Invalid ${RecordSelectorComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    item.config = new RecordSelectorFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+    this.sharedProps.setPropOverride('columnTitle', item.config, config);
+    this.sharedProps.setPropOverride('recordType', item.config, config);
+    this.sharedProps.setPropOverride('workflowState', item.config, config);
+    this.sharedProps.setPropOverride('filterMode', item.config, config);
+    this.sharedProps.setPropOverride('filterFields', item.config, config);
+  }
+
+  visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<RecordSelectorFieldModelDefinitionFrame>(currentData, RecordSelectorModelName)) {
+      throw new Error(
+        `Invalid ${RecordSelectorModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+
+    item.config = new RecordSelectorFieldModelConfig();
+    this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+    this.setModelValue(item, currentData?.config);
+  }
+
+  visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
   }
 
