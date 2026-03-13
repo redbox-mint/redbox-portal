@@ -15,7 +15,7 @@
               <th width="20%">{{ iscHeader | i18next }}</th>
             }
             @if (isEditMode()) {
-              <th width="5%"><span [hidden]="true">Action</span></th>
+              <th width="5%"><span class="visually-hidden">{{ 'action' | i18next }}</span></th>
             }
           </tr>
         </thead>
@@ -50,7 +50,7 @@
                   <button
                     type="button"
                     class="fa fa-minus-circle btn text-20 btn-danger"
-                    [attr.aria-label]="'Remove location'"
+                    [attr.aria-label]="'remove_location' | i18next"
                     (click)="removeLocation($index)"
                     [disabled]="isDisabled || isReadonly"
                   ></button>
