@@ -643,7 +643,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
     });
 
-    this.injectLegacyRecordMetadataRetrieverExpressions(fields, item.componentDefinitions);
+    this.injectLegacyRecordMetadataRetrieverExpressions(
+      fields,
+      item.componentDefinitions,
+      this.formPathHelper.formPath.angularComponentsJsonPointer ?? ''
+    );
 
     // Add the validation summary.
     const validationSummaryFrame = {
@@ -1045,7 +1049,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           config.componentDefinitions.push(hiddenBinding.component);
         }
       });
-      this.injectLegacyRecordMetadataRetrieverExpressions(fields, config.componentDefinitions);
+      this.injectLegacyRecordMetadataRetrieverExpressions(
+        fields,
+        config.componentDefinitions,
+        this.formPathHelper.formPath.angularComponentsJsonPointer ?? ''
+      );
     } finally {
       if (isLegacyInlineContainer) {
         this.legacyInlineContainerDepth = Math.max(0, this.legacyInlineContainerDepth - 1);
@@ -1166,7 +1174,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
     });
 
-    this.injectLegacyRecordMetadataRetrieverExpressions(fields, config.componentDefinitions);
+    this.injectLegacyRecordMetadataRetrieverExpressions(
+      fields,
+      config.componentDefinitions,
+      this.formPathHelper.formPath.angularComponentsJsonPointer ?? ''
+    );
   }
 
   visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
@@ -2937,7 +2949,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   private injectLegacyRecordMetadataRetrieverExpressions(
     legacyFields: Record<string, unknown>[],
-    migratedComponents: AllFormComponentDefinitionOutlines[]
+    migratedComponents: AllFormComponentDefinitionOutlines[],
+    containerPointer = ''
   ): void {
     for (const legacyField of legacyFields) {
       if (!this.isLegacyRecordMetadataRetrieverField(legacyField)) {
@@ -2952,7 +2965,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
       const migratedRetriever = migratedComponents.find((component) => component.name === retrieverName);
       if (migratedRetriever) {
-        migratedRetriever.expressions = this.buildRetrieverExpressions(legacyField, legacyFields);
+        migratedRetriever.expressions = this.buildRetrieverExpressions(legacyField, legacyFields, containerPointer);
       }
 
       for (const targetField of legacyFields) {
@@ -2993,7 +3006,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             config: {
               conditionKind: ExpressionsConditionKind.JSONPointer,
               runOnFormReady: false,
-              condition: `/${retrieverName}::field.value.changed`,
+              condition: `${this.buildNestedComponentJsonPointer(containerPointer, retrieverName)}::field.value.changed`,
               target: 'model.value',
               hasTemplate: true,
               template: this.buildEventValueTemplate(propertyName),
@@ -3007,7 +3020,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   private buildRetrieverExpressions(
     retrieverField: Record<string, unknown>,
-    siblingFields: Record<string, unknown>[]
+    siblingFields: Record<string, unknown>[],
+    containerPointer = ''
   ): FormExpressionsConfigFrame[] {
     const definition = (retrieverField.definition ?? {}) as Record<string, unknown>;
     const subscribe = (definition.subscribe ?? {}) as Record<string, unknown>;
@@ -3047,7 +3061,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           config: {
             conditionKind: ExpressionsConditionKind.JSONPointer,
             runOnFormReady: false,
-            condition: `/${sourceName}::field.value.changed`,
+            condition: `${this.buildNestedComponentJsonPointer(containerPointer, sourceName)}::field.value.changed`,
             operation: 'fetchMetadata',
             hasTemplate: true,
             template: '$exists(event.value.redboxOid) ? event.value.redboxOid : event.value',
@@ -3083,6 +3097,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const v4ClassName = `${field?.class ?? ''}`.trim();
     const v4CompClassName = `${field?.compClass ?? ''}`.trim();
     return v4ClassName === 'RecordMetadataRetriever' || v4CompClassName === 'RecordMetadataRetrieverComponent';
+  }
+
+  private buildNestedComponentJsonPointer(containerPointer: string, componentName: string): string {
+    const trimmedName = componentName.trim();
+    if (!trimmedName) {
+      return containerPointer || '';
+    }
+
+    const normalizedContainerPointer = containerPointer && containerPointer !== '/'
+      ? containerPointer.replace(/\/+$/, '')
+      : '';
+    return `${normalizedContainerPointer}/${trimmedName}`;
   }
 
   private buildEventValueTemplate(propertyName: string): string {

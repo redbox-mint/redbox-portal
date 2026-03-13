@@ -1,8 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { EMPTY } from 'rxjs';
+import { EMPTY, Subject } from 'rxjs';
 import { RecordMetadataRetrieverComponent } from './record-metadata-retriever.component';
 import { createTestbedModule } from '../helpers.spec';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
+import { FormComponentEventType } from '../form-state/events/form-component-event.types';
 import { RecordService, LoggerService } from '@researchdatabox/portal-ng-common';
 
 describe('RecordMetadataRetrieverComponent', () => {
@@ -94,6 +95,43 @@ describe('RecordMetadataRetrieverComponent', () => {
     await component.fetchMetadata('oid-123');
 
     expect(recordService.getRecordMeta).toHaveBeenCalledTimes(1);
+  });
+
+  it('should defer form-ready fetch expressions until the form definition ready event', async () => {
+    const formReady$ = new Subject<unknown>();
+    eventBus.select$.and.callFake((eventType: any) =>
+      (eventType === FormComponentEventType.FORM_DEFINITION_READY ? formReady$.asObservable() : EMPTY) as any
+    );
+
+    const component = createComponent();
+    component.formFieldCompMapEntry = {
+      ...component.formFieldCompMapEntry,
+      expressions: [
+        {
+          name: 'fetchOnFormReady-rdmpOid',
+          config: {
+            operation: 'fetchMetadata',
+            runOnFormReady: true,
+            conditionKind: 'jsonata_query',
+            condition: '$exists(runtimeContext.requestParams.rdmpOid)',
+            hasTemplate: true,
+            template: 'runtimeContext.requestParams.rdmpOid',
+          },
+        },
+      ],
+    } as never;
+
+    (component as any).expressionConsumer = jasmine.createSpyObj('expressionConsumer', ['bind', 'destroy']);
+    spyOn(component as any, 'getFormComponentFromAppRef').and.returnValue({ instance: {} });
+    const runFormReadySpy = spyOn<any>(component, 'runFormReadyExpressions').and.resolveTo();
+
+    await (component as any).initEventHandlers();
+    expect(runFormReadySpy).not.toHaveBeenCalled();
+
+    formReady$.next({ type: FormComponentEventType.FORM_DEFINITION_READY, timestamp: Date.now() });
+    await Promise.resolve();
+
+    expect(runFormReadySpy).toHaveBeenCalledTimes(1);
   });
 
   it('should invoke fetchMetadata from operation expressions using the evaluated template', async () => {

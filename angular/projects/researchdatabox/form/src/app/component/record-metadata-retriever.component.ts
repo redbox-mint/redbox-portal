@@ -1,4 +1,5 @@
 import { Component, inject, Injector, Input, OnDestroy, runInInjectionContext } from '@angular/core';
+import { Subscription, take } from 'rxjs';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import {
   FormExpressionsConfigFrame,
@@ -71,6 +72,7 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
   private readonly recordService = inject(RecordService);
   private readonly eventBus = inject(FormComponentEventBus);
   private expressionConsumer?: RecordMetadataRetrieverExpressionConsumer;
+  private formReadyExpressionSubscription?: Subscription;
   private lastFetchedOid?: string;
 
   protected override async initEventHandlers() {
@@ -96,11 +98,12 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
       definition: this.formFieldCompMapEntry,
       formComponent,
     });
-    await this.runFormReadyExpressions();
+    this.scheduleFormReadyExpressions();
   }
 
   public ngOnDestroy(): void {
     this.expressionConsumer?.destroy();
+    this.formReadyExpressionSubscription?.unsubscribe();
   }
 
   public getEventFieldId(): string {
@@ -191,6 +194,21 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
         await this.handleExpression(syntheticEvent, expression);
       }
     }
+  }
+
+  private scheduleFormReadyExpressions(): void {
+    if (this.formReadyExpressionSubscription && !this.formReadyExpressionSubscription.closed) {
+      return;
+    }
+
+    this.formReadyExpressionSubscription = this.eventBus
+      .select$(FormComponentEventType.FORM_DEFINITION_READY)
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          void this.runFormReadyExpressions();
+        },
+      });
   }
 
   private resolveRequestParamTemplate(template?: string): unknown {

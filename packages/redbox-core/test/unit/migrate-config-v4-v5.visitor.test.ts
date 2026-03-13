@@ -400,6 +400,12 @@ describe("Migrate v4 to v5 Visitor", async () => {
                                                 }
                                             },
                                             {
+                                                class: 'TextField',
+                                                definition: {
+                                                    name: 'rdmp'
+                                                }
+                                            },
+                                            {
                                                 class: 'RecordMetadataRetriever',
                                                 compClass: 'RecordMetadataRetrieverComponent',
                                                 definition: {
@@ -410,6 +416,22 @@ describe("Migrate v4 to v5 Visitor", async () => {
                                                         },
                                                         rdmp: {
                                                             relatedObjectSelected: [{ action: 'publishMetadata' }]
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                class: 'TextField',
+                                                definition: {
+                                                    name: 'aim_project_name',
+                                                    subscribe: {
+                                                        rdmpGetter: {
+                                                            onValueUpdate: [
+                                                                {
+                                                                    action: 'utilityService.getPropertyFromObject',
+                                                                    field: 'title'
+                                                                }
+                                                            ]
                                                         }
                                                     }
                                                 }
@@ -443,7 +465,30 @@ describe("Migrate v4 to v5 Visitor", async () => {
             return undefined;
         };
 
+        const findPointerByName = (components: any[], name: string, parentPointer = ''): string | undefined => {
+            for (const component of components ?? []) {
+                const currentPointer = `${parentPointer}/${component?.name}`;
+                if (component?.name === name) {
+                    return currentPointer;
+                }
+                const nestedTabs = component?.component?.config?.tabs ?? [];
+                const nestedTabHit = findPointerByName(nestedTabs, name, currentPointer);
+                if (nestedTabHit) {
+                    return nestedTabHit;
+                }
+                const nestedComponents = component?.component?.config?.componentDefinitions ?? [];
+                const nestedComponentHit = findPointerByName(nestedComponents, name, currentPointer);
+                if (nestedComponentHit) {
+                    return nestedComponentHit;
+                }
+            }
+            return undefined;
+        };
+
         const retriever = findByName(migrated.componentDefinitions as any[], 'rdmpGetter');
+        const targetField = findByName(migrated.componentDefinitions as any[], 'aim_project_name');
+        const retrieverPointer = findPointerByName(migrated.componentDefinitions as any[], 'rdmpGetter');
+        const sourcePointer = findPointerByName(migrated.componentDefinitions as any[], 'rdmp');
 
         expect(retriever?.component.class).to.equal('RecordMetadataRetrieverComponent');
         expect(retriever?.expressions).to.deep.include({
@@ -456,6 +501,30 @@ describe("Migrate v4 to v5 Visitor", async () => {
                 operation: 'fetchMetadata',
                 hasTemplate: true,
                 template: 'runtimeContext.requestParams.rdmpOid'
+            }
+        });
+        expect(retriever?.expressions).to.deep.include({
+            name: 'fetchOnRelatedObjectSelected-rdmp',
+            description: 'Fetch metadata when rdmp changes',
+            config: {
+                conditionKind: 'jsonpointer',
+                runOnFormReady: false,
+                condition: `${sourcePointer}::field.value.changed`,
+                operation: 'fetchMetadata',
+                hasTemplate: true,
+                template: '$exists(event.value.redboxOid) ? event.value.redboxOid : event.value'
+            }
+        });
+        expect(targetField?.expressions).to.deep.include({
+            name: 'rdmpGetter-aim_project_name-title',
+            description: 'Populate aim_project_name from rdmpGetter metadata',
+            config: {
+                conditionKind: 'jsonpointer',
+                runOnFormReady: false,
+                condition: `${retrieverPointer}::field.value.changed`,
+                target: 'model.value',
+                hasTemplate: true,
+                template: 'event.value.title'
             }
         });
     });
