@@ -396,6 +396,51 @@ describe("Construct Visitor", async () => {
             expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("SimpleInputComponent");
         });
     });
+
+    describe("record metadata retriever", async () => {
+        it("should construct RecordMetadataRetrieverComponent definitions with operation expressions and no model", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "rdmpGetter",
+                            component: {
+                                class: "RecordMetadataRetrieverComponent",
+                                config: {}
+                            },
+                            expressions: [
+                                {
+                                    name: "fetchOnFormReady-rdmpOid",
+                                    config: {
+                                        runOnFormReady: true,
+                                        conditionKind: "jsonata_query",
+                                        condition: "$exists(runtimeContext.requestParams.rdmpOid)",
+                                        operation: "fetchMetadata",
+                                        hasTemplate: true,
+                                        template: "runtimeContext.requestParams.rdmpOid"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            });
+
+            const retriever = actual.componentDefinitions[0];
+            expect(retriever.component.class).to.equal("RecordMetadataRetrieverComponent");
+            expect(retriever.model).to.equal(undefined);
+            expect(retriever.expressions).to.have.length(1);
+            expect(retriever.expressions?.[0]?.name).to.equal("fetchOnFormReady-rdmpOid");
+            expect(retriever.expressions?.[0]?.config?.runOnFormReady).to.equal(true);
+            expect(retriever.expressions?.[0]?.config?.conditionKind).to.equal("jsonata_query");
+            expect(retriever.expressions?.[0]?.config?.condition).to.equal("$exists(runtimeContext.requestParams.rdmpOid)");
+            expect(retriever.expressions?.[0]?.config?.operation).to.equal("fetchMetadata");
+            expect(retriever.expressions?.[0]?.config?.template).to.equal("runtimeContext.requestParams.rdmpOid");
+        });
+    });
     describe("with overrides", async () => {
         const cases: {
             title: string,

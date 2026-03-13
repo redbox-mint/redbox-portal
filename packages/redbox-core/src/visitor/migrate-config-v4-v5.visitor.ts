@@ -148,6 +148,12 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { ValidationSummaryFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  RecordMetadataRetrieverComponentName,
+  RecordMetadataRetrieverFieldComponentDefinitionOutline,
+  RecordMetadataRetrieverFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { RecordMetadataRetrieverFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   SaveStatusFieldComponentDefinitionOutline,
   SaveStatusFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
@@ -200,6 +206,7 @@ import { VisitorFormComponentClassDefMapType, FormComponentDefinitionMap } from 
 import { ComponentClassNamesType } from '@researchdatabox/sails-ng-common';
 import { isTypeFormComponentDefinitionName } from '@researchdatabox/sails-ng-common';
 import { ILogger } from '@researchdatabox/sails-ng-common';
+import { ExpressionsConditionKind, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import {
   ReusableComponentName,
   ReusableFieldComponentDefinitionOutline,
@@ -441,6 +448,14 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
       modelClassName: DataLocationModelName,
     },
   },
+  RecordMetadataRetriever: {
+    '': {
+      componentClassName: RecordMetadataRetrieverComponentName,
+    },
+    RecordMetadataRetrieverComponent: {
+      componentClassName: RecordMetadataRetrieverComponentName,
+    },
+  },
 };
 
 const andsVocabDefaultLabelTemplate = '{{default (split notation "/" -1) notation}} - {{label}}';
@@ -627,6 +642,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         item.componentDefinitions.push(hiddenBinding.component);
       }
     });
+
+    this.injectLegacyRecordMetadataRetrieverExpressions(fields, item.componentDefinitions);
 
     // Add the validation summary.
     const validationSummaryFrame = {
@@ -939,6 +956,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.populateFormComponent(item);
   }
 
+  /* Record Metadata Retriever */
+
+  visitRecordMetadataRetrieverFieldComponentDefinition(item: RecordMetadataRetrieverFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new RecordMetadataRetrieverFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+  }
+
+  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
   /* Save Status */
 
   visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): void {
@@ -1016,6 +1045,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           config.componentDefinitions.push(hiddenBinding.component);
         }
       });
+      this.injectLegacyRecordMetadataRetrieverExpressions(fields, config.componentDefinitions);
     } finally {
       if (isLegacyInlineContainer) {
         this.legacyInlineContainerDepth = Math.max(0, this.legacyInlineContainerDepth - 1);
@@ -1135,6 +1165,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         config.componentDefinitions.push(hiddenBinding.component);
       }
     });
+
+    this.injectLegacyRecordMetadataRetrieverExpressions(fields, config.componentDefinitions);
   }
 
   visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
@@ -2901,6 +2933,170 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     this.logger.warn(`${this.logName}: Typeahead migration coerced malformed legacy value to null.`);
     return null;
+  }
+
+  private injectLegacyRecordMetadataRetrieverExpressions(
+    legacyFields: Record<string, unknown>[],
+    migratedComponents: AllFormComponentDefinitionOutlines[]
+  ): void {
+    for (const legacyField of legacyFields) {
+      if (!this.isLegacyRecordMetadataRetrieverField(legacyField)) {
+        continue;
+      }
+
+      const retrieverDefinition = (legacyField.definition ?? {}) as Record<string, unknown>;
+      const retrieverName = String(retrieverDefinition.name ?? retrieverDefinition.id ?? '').trim();
+      if (!retrieverName) {
+        continue;
+      }
+
+      const migratedRetriever = migratedComponents.find((component) => component.name === retrieverName);
+      if (migratedRetriever) {
+        migratedRetriever.expressions = this.buildRetrieverExpressions(legacyField, legacyFields);
+      }
+
+      for (const targetField of legacyFields) {
+        const targetDefinition = (targetField.definition ?? {}) as Record<string, unknown>;
+        const targetName = String(targetDefinition.name ?? targetDefinition.id ?? '').trim();
+        if (!targetName) {
+          continue;
+        }
+
+        const subscribe = (targetDefinition.subscribe ?? {}) as Record<string, unknown>;
+        const retrieverSubscriptions = subscribe[retrieverName] as Record<string, unknown> | undefined;
+        const onValueUpdate = Array.isArray(retrieverSubscriptions?.onValueUpdate)
+          ? (retrieverSubscriptions.onValueUpdate as Record<string, unknown>[])
+          : [];
+        if (onValueUpdate.length === 0) {
+          continue;
+        }
+
+        const migratedTarget = migratedComponents.find((component) => component.name === targetName);
+        if (!migratedTarget?.model) {
+          continue;
+        }
+
+        const expressions = migratedTarget.expressions ?? [];
+        for (const actionConfig of onValueUpdate) {
+          if (actionConfig?.action !== 'utilityService.getPropertyFromObject') {
+            continue;
+          }
+
+          const propertyName = String(actionConfig.field ?? '').trim();
+          if (!propertyName) {
+            continue;
+          }
+
+          expressions.push({
+            name: `${retrieverName}-${targetName}-${propertyName}`.replace(/[^a-zA-Z0-9_-]+/g, '-'),
+            description: `Populate ${targetName} from ${retrieverName} metadata`,
+            config: {
+              conditionKind: ExpressionsConditionKind.JSONPointer,
+              runOnFormReady: false,
+              condition: `/${retrieverName}::field.value.changed`,
+              target: 'model.value',
+              hasTemplate: true,
+              template: this.buildEventValueTemplate(propertyName),
+            },
+          });
+        }
+        migratedTarget.expressions = expressions;
+      }
+    }
+  }
+
+  private buildRetrieverExpressions(
+    retrieverField: Record<string, unknown>,
+    siblingFields: Record<string, unknown>[]
+  ): FormExpressionsConfigFrame[] {
+    const definition = (retrieverField.definition ?? {}) as Record<string, unknown>;
+    const subscribe = (definition.subscribe ?? {}) as Record<string, unknown>;
+    const expressions: FormExpressionsConfigFrame[] = [];
+
+    for (const [sourceName, sourceConfigUnknown] of Object.entries(subscribe)) {
+      const sourceConfig = (sourceConfigUnknown ?? {}) as Record<string, unknown>;
+      const onValueUpdate = Array.isArray(sourceConfig.onValueUpdate)
+        ? (sourceConfig.onValueUpdate as Record<string, unknown>[])
+        : [];
+      const relatedObjectSelected = Array.isArray(sourceConfig.relatedObjectSelected)
+        ? (sourceConfig.relatedObjectSelected as Record<string, unknown>[])
+        : [];
+
+      if (onValueUpdate.some((action) => action?.action === 'publishMetadata')) {
+        const parameterName = this.resolveLegacyParameterRetrieverName(sourceName, siblingFields);
+        if (parameterName) {
+          expressions.push({
+            name: `fetchOnFormReady-${parameterName}`,
+            description: 'Fetch metadata on form load using request params',
+            config: {
+              runOnFormReady: true,
+              conditionKind: ExpressionsConditionKind.JSONataQuery,
+              condition: `$exists(runtimeContext.requestParams.${parameterName})`,
+              operation: 'fetchMetadata',
+              hasTemplate: true,
+              template: `runtimeContext.requestParams.${parameterName}`,
+            },
+          });
+        }
+      }
+
+      if (relatedObjectSelected.some((action) => action?.action === 'publishMetadata')) {
+        expressions.push({
+          name: `fetchOnRelatedObjectSelected-${sourceName}`,
+          description: `Fetch metadata when ${sourceName} changes`,
+          config: {
+            conditionKind: ExpressionsConditionKind.JSONPointer,
+            runOnFormReady: false,
+            condition: `/${sourceName}::field.value.changed`,
+            operation: 'fetchMetadata',
+            hasTemplate: true,
+            template: '$exists(event.value.redboxOid) ? event.value.redboxOid : event.value',
+          },
+        });
+      }
+    }
+
+    return expressions;
+  }
+
+  private resolveLegacyParameterRetrieverName(sourceName: string, siblingFields: Record<string, unknown>[]): string | undefined {
+    const parameterRetriever = siblingFields.find((field) => {
+      if (!this.isLegacyParameterRetrieverField(field)) {
+        return false;
+      }
+      const definition = (field.definition ?? {}) as Record<string, unknown>;
+      return String(definition.name ?? definition.id ?? '').trim() === sourceName;
+    });
+
+    const parameterDefinition = (parameterRetriever?.definition ?? {}) as Record<string, unknown>;
+    const parameterName = String(parameterDefinition.parameterName ?? '').trim();
+    return parameterName || undefined;
+  }
+
+  private isLegacyParameterRetrieverField(field: Record<string, unknown>): boolean {
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    const v4CompClassName = `${field?.compClass ?? ''}`.trim();
+    return v4ClassName === 'ParameterRetriever' || v4CompClassName === 'ParameterRetrieverComponent';
+  }
+
+  private isLegacyRecordMetadataRetrieverField(field: Record<string, unknown>): boolean {
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    const v4CompClassName = `${field?.compClass ?? ''}`.trim();
+    return v4ClassName === 'RecordMetadataRetriever' || v4CompClassName === 'RecordMetadataRetrieverComponent';
+  }
+
+  private buildEventValueTemplate(propertyName: string): string {
+    const segments = propertyName.split('.').filter((segment) => segment.length > 0);
+    if (segments.length === 0) {
+      return 'event.value';
+    }
+
+    return segments.reduce((path, segment) => {
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(segment)) {
+        return `${path}.${segment}`;
+      }
+      return `${path}[${JSON.stringify(segment)}]`;
+    }, 'event.value');
   }
 
   private warnOnDroppedLegacyTypeaheadProperties(definition: Record<string, unknown>): void {

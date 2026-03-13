@@ -54,6 +54,7 @@ import { TypeaheadInputTypes } from './component/typeahead-input.outline';
 import { RichTextEditorTypes } from './component/rich-text-editor.outline';
 import { MapTypes } from './component/map.outline';
 import { FileUploadTypes } from './component/file-upload.outline';
+import { RecordMetadataRetrieverTypes } from './component/record-metadata-retriever.outline';
 import { DataLocationTypes } from './component/data-location.outline';
 import { CancelButtonTypes } from './component/cancel-button.outline';
 import { TabNavButtonTypes } from './component/tab-nav-button.outline';
@@ -90,6 +91,7 @@ export type AllTypes =
   | RichTextEditorTypes
   | MapTypes
   | FileUploadTypes
+  | RecordMetadataRetrieverTypes
   | DataLocationTypes;
 
 /*

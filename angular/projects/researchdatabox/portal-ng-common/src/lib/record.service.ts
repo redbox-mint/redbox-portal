@@ -66,6 +66,13 @@ export class RecordService extends HttpClientService {
     return result;
   }
 
+  public async getRecordMeta(oid: string) {
+    let url = `${this.brandingAndPortalUrl}/record/metadata/${oid}`;
+    const result$ = this.http.get(url).pipe(map(res => res));
+    let result = await firstValueFrom(result$);
+    return result;
+  }
+
   private getDocMetadata(doc: any) {
     let metadata: any = {};
     for (var key in doc) {

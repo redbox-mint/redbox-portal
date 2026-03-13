@@ -126,6 +126,10 @@ import { FormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common
 import { FieldComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { FieldModelDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { FieldLayoutDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import {
+  RecordMetadataRetrieverFieldComponentDefinitionOutline,
+  RecordMetadataRetrieverFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
 import { ReusableFormDefinitions } from '@researchdatabox/sails-ng-common';
 import { ILogger } from '@researchdatabox/sails-ng-common';
 import { FormConfig } from '@researchdatabox/sails-ng-common';
@@ -724,6 +728,17 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+    this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+  }
+
+  /* Record Metadata Retriever */
+
+  visitRecordMetadataRetrieverFieldComponentDefinition(item: RecordMetadataRetrieverFieldComponentDefinitionOutline): void {
+    this.processFieldComponentDefinition(item);
+  }
+
+  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
     this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }

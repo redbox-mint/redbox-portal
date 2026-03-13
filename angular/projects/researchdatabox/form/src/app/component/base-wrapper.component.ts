@@ -3,7 +3,11 @@ import { FormBaseWrapperDirective } from './base-wrapper.directive';
 
 import { set as _set, get as _get } from 'lodash-es';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
-import { KeyValueStringNested, FormFieldComponentStatus } from '@researchdatabox/sails-ng-common';
+import {
+  KeyValueStringNested,
+  FormFieldComponentStatus,
+  RecordMetadataRetrieverComponentName,
+} from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { FormComponentValueChangeEventProducer } from '../form-state/events/form-component-change-event-producer';
 import { FormComponentValueChangeEventConsumer } from '../form-state/events/form-component-change-event-consumer';
@@ -241,7 +245,10 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     entry: FormFieldCompMapEntry | undefined,
     instance: FormFieldBaseComponent<ValueType>
   ): boolean {
-    return !!entry && entry.component === instance;
+    if (!entry || entry.component !== instance) {
+      return false;
+    }
+    return entry.compConfigJson?.component?.class !== RecordMetadataRetrieverComponentName;
   }
 
   /**

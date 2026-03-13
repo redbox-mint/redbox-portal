@@ -101,6 +101,10 @@ import {
   FileUploadFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  RecordMetadataRetrieverFieldComponentDefinitionOutline,
+  RecordMetadataRetrieverFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   DataLocationFieldComponentDefinitionOutline,
   DataLocationFieldModelDefinitionOutline,
   DataLocationFormComponentDefinitionOutline,
@@ -438,6 +442,12 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   visitFileUploadFieldModelDefinition(_item: FileUploadFieldModelDefinitionOutline): void { }
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  visitRecordMetadataRetrieverFieldComponentDefinition(_item: RecordMetadataRetrieverFieldComponentDefinitionOutline): void { }
+
+  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 
