@@ -2069,13 +2069,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       if (viewOnly) {
         currentData.constraints.allowModes.push('view');
         if (currentData.component.class) {
+          const viewComponentClassName =
+            currentData.component.class === RichTextEditorComponentName
+              ? ContentComponentName
+              : currentData.component.class as ComponentClassNamesType;
           currentData.overrides = {
             ...(currentData.overrides ?? {}),
             formModeClasses: {
               ...(currentData.overrides?.formModeClasses ?? {}),
               view: {
                 ...(currentData.overrides?.formModeClasses?.view ?? {}),
-                component: currentData.component.class as ComponentClassNamesType,
+                component: viewComponentClassName,
               },
             },
           };

@@ -395,6 +395,41 @@ describe("Construct Visitor", async () => {
 
             expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("SimpleInputComponent");
         });
+
+        it("should apply an explicit content view transform for rich text fields constrained to view mode", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "summary",
+                            constraints: {
+                                authorization: { allowRoles: [] },
+                                allowModes: ["view"]
+                            },
+                            component: {
+                                class: "RichTextEditorComponent",
+                                config: {
+                                    outputFormat: "markdown"
+                                }
+                            },
+                            model: {
+                                class: "RichTextEditorModel",
+                                config: {
+                                    defaultValue: "**Bold**"
+                                }
+                            }
+                        }
+                    ]
+                }
+            });
+
+            expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("ContentComponent");
+            expect((actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>)?.content).to.equal("**Bold**");
+            expect((actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>)?.outputFormat).to.equal("markdown");
+        });
     });
 
     describe("record metadata retriever", async () => {

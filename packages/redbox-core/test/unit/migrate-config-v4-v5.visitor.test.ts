@@ -1037,6 +1037,31 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect((hiddenBindingField.layout?.config as Record<string, unknown>)?.visible).to.equal(false);
     });
 
+    it("maps view-only markdown text areas to ContentComponent in view overrides", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "markdown-view-only",
+                fields: [
+                    {
+                        class: "MarkdownTextArea",
+                        viewOnly: true,
+                        definition: {
+                            name: "description",
+                            label: "Description"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("RichTextEditorComponent");
+        expect((migratedField.component.config as Record<string, unknown>)?.outputFormat).to.equal("markdown");
+        expect((migratedField.constraints as Record<string, unknown>)?.allowModes).to.deep.equal(["view"]);
+        expect(migratedField.overrides?.formModeClasses?.view?.component).to.equal("ContentComponent");
+    });
+
     it("keeps plain text TextBlock values as non-translated content templates", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({
