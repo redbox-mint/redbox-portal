@@ -378,14 +378,36 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         });
 
         if (this.companionUrl) {
+            const installProviderAuthFallback = <TOptions>(PluginCtor: any, options: TOptions) => {
+                if (!this.uppy) {
+                    return;
+                }
+                const plugin = this.uppy.use(PluginCtor, options as any);
+                this.uppy.on("plugin-error", (error: any) => {
+                    if (!error || typeof (error as any).message !== "string") {
+                        return;
+                    }
+                    const message = (error as any).message.toLowerCase();
+                    // Handle cases like "Auth window was closed by the user" by resetting the plugin.
+                    if (message.includes("auth") && message.includes("window") && message.includes("closed")) {
+                        try {
+                            this.uppy?.removePlugin(plugin);
+                            this.uppy?.use(PluginCtor, options as any);
+                        } catch {
+                            // Swallow errors – Uppy will still surface any remaining issues through its own events.
+                        }
+                    }
+                });
+            };
+
             if (this.enabledSources.includes("dropbox")) {
-                this.uppy.use(deps.DropboxPlugin, { companionUrl: this.companionUrl });
+                installProviderAuthFallback(deps.DropboxPlugin, { companionUrl: this.companionUrl });
             }
             if (this.enabledSources.includes("googleDrive")) {
-                this.uppy.use(deps.GoogleDrivePlugin, { companionUrl: this.companionUrl });
+                installProviderAuthFallback(deps.GoogleDrivePlugin, { companionUrl: this.companionUrl });
             }
             if (this.enabledSources.includes("onedrive")) {
-                this.uppy.use(deps.OneDrivePlugin, { companionUrl: this.companionUrl });
+                installProviderAuthFallback(deps.OneDrivePlugin, { companionUrl: this.companionUrl });
             }
         }
 
