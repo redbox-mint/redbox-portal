@@ -174,6 +174,46 @@ export namespace Controllers {
         }
         const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record))
         if (hasViewAccess) {
+          const formName = record.metaMetadata?.['form'] as string | undefined;
+          if (formName) {
+            try {
+              const brandId = String(record.metaMetadata?.['brandId'] ?? brand.id);
+              const formRecord = await firstValueFrom(FormsService.getFormByName(formName, false, brandId));
+              const formConfig = formRecord?.configuration;
+              
+              if (formConfig) {
+                const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[]).map((role: AnyRecord) => String(role['name'] ?? '')).filter((name: string) => !!name);
+                const reusableFormDefs = sails.config.reusableFormDefinitions;
+                const contextVariablesMap = ContextVariableUtils.evaluateContextVariables(req, record);
+                const clientFormConfig = await FormsService.buildClientFormConfig(
+                  formConfig,
+                  'view',
+                  userRoles,
+                  record.metadata,
+                  reusableFormDefs,
+                  String(brand?.name ?? ''),
+                  contextVariablesMap
+                );
+                const emptyOriginal = {
+                  redboxOid: record.redboxOid,
+                  metaMetadata: record.metaMetadata,
+                  metadata: {}
+                } as unknown as Parameters<typeof FormRecordConsistencyService.mergeRecordClientFormConfig>[0];
+                
+                const filteredRecord = FormRecordConsistencyService.mergeRecordClientFormConfig(
+                  emptyOriginal,
+                  record as unknown as Parameters<typeof FormRecordConsistencyService.mergeRecordClientFormConfig>[1],
+                  clientFormConfig,
+                  'view',
+                  reusableFormDefs
+                );
+                record.metadata = filteredRecord.metadata;
+              }
+            } catch (formErr) {
+              sails.log.error(`Failed to filter metadata for record ${oid} using form ${formName}:`, formErr);
+            }
+          }
+
           return this.sendResp(req, res, { data: record.metadata, meta: { oid: record.redboxOid }, v1: record.metadata });
         } else {
           return this.sendResp(req, res, {
