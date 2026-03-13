@@ -164,6 +164,16 @@ import {
   FileUploadModelName,
 } from '@researchdatabox/sails-ng-common';
 import { FileUploadFieldComponentConfig, FileUploadFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  DataLocationComponentName,
+  DataLocationFieldComponentDefinitionFrame,
+  DataLocationFieldComponentDefinitionOutline,
+  DataLocationFieldModelDefinitionFrame,
+  DataLocationFieldModelDefinitionOutline,
+  DataLocationFormComponentDefinitionOutline,
+  DataLocationModelName,
+} from '@researchdatabox/sails-ng-common';
+import { DataLocationFieldComponentConfig, DataLocationFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import { ContentFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
   DropdownInputComponentName,
@@ -1261,6 +1271,66 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Data Location */
+
+  visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<DataLocationFieldComponentDefinitionFrame>(currentData, DataLocationComponentName)) {
+      throw new Error(
+        `Invalid ${DataLocationComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    item.config = new DataLocationFieldComponentConfig();
+
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+    this.sharedProps.setPropOverride('restrictions', item.config, config);
+    this.sharedProps.setPropOverride('enabledSources', item.config, config);
+    this.sharedProps.setPropOverride('companionUrl', item.config, config);
+    this.sharedProps.setPropOverride('allowUploadWithoutSave', item.config, config);
+    this.sharedProps.setPropOverride('uppyDashboardNote', item.config, config);
+    this.sharedProps.setPropOverride('tusHeaders', item.config, config);
+    this.sharedProps.setPropOverride('notesEnabled', item.config, config);
+    this.sharedProps.setPropOverride('iscEnabled', item.config, config);
+    this.sharedProps.setPropOverride('iscHeader', item.config, config);
+    this.sharedProps.setPropOverride('defaultSelect', item.config, config);
+    this.sharedProps.setPropOverride('securityClassificationOptions', item.config, config);
+    this.sharedProps.setPropOverride('locationAddText', item.config, config);
+    this.sharedProps.setPropOverride('typeHeader', item.config, config);
+    this.sharedProps.setPropOverride('locationHeader', item.config, config);
+    this.sharedProps.setPropOverride('notesHeader', item.config, config);
+    this.sharedProps.setPropOverride('columns', item.config, config);
+    this.sharedProps.setPropOverride('editNotesButtonText', item.config, config);
+    this.sharedProps.setPropOverride('editNotesTitle', item.config, config);
+    this.sharedProps.setPropOverride('cancelEditNotesButtonText', item.config, config);
+    this.sharedProps.setPropOverride('applyEditNotesButtonText', item.config, config);
+    this.sharedProps.setPropOverride('editNotesCssClasses', item.config, config);
+    this.sharedProps.setPropOverride('dataTypes', item.config, config);
+    this.sharedProps.setPropOverride('dataTypeLookup', item.config, config);
+    this.sharedProps.setPropOverride('hideNotesForLocationTypes', item.config, config);
+  }
+
+  visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<DataLocationFieldModelDefinitionFrame>(currentData, DataLocationModelName)) {
+      throw new Error(
+        `Invalid ${DataLocationModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+
+    item.config = new DataLocationFieldModelConfig();
+
+    this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+    this.setModelValue(item, currentData?.config);
+  }
+
+  visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
   }
 

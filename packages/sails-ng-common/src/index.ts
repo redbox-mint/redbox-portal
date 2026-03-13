@@ -88,6 +88,8 @@ export * from './config/component/map.model';
 export * from './config/component/map.outline';
 export * from './config/component/file-upload.model';
 export * from './config/component/file-upload.outline';
+export * from './config/component/data-location.model';
+export * from './config/component/data-location.outline';
 export * from './config/component/reusable.model';
 export * from './config/component/reusable.outline';
 export * from "./config/component/question-tree.model";

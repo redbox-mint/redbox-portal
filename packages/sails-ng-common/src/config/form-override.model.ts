@@ -68,6 +68,7 @@ import { TypeaheadInputComponentName, TypeaheadInputFormComponentDefinitionOutli
 import { RichTextEditorComponentName, RichTextEditorFormComponentDefinitionOutline } from './component/rich-text-editor.outline';
 import { MapComponentName } from './component/map.outline';
 import { FileUploadComponentName, FileUploadFormComponentDefinitionOutline } from './component/file-upload.outline';
+import { DataLocationComponentName, DataLocationFormComponentDefinitionOutline } from './component/data-location.outline';
 import { TypeaheadInputModelOptionValue } from './component/typeahead-input.outline';
 import { FormConstraintConfigOutline } from './form-component.outline';
 import { SimpleInputFormComponentDefinitionFrame } from './component/simple-input.outline';
@@ -97,6 +98,7 @@ export class FormOverride {
     leafOptionMulti: 'view-template-leaf-option-multi',
     leafRichText: 'view-template-leaf-rich-text',
     leafFileUpload: 'view-template-leaf-file-upload',
+    leafDataLocation: 'view-template-leaf-data-location',
     leafCheckboxTree: 'view-template-leaf-checkbox-tree',
     groupContainer: 'view-template-group-container',
     groupRowWithLabel: 'view-template-group-row-with-label',
@@ -145,6 +147,9 @@ export class FormOverride {
     },
     [FileUploadComponentName]: {
       [ContentComponentName]: this.sourceFileUploadComponentTargetContentComponent,
+    },
+    [DataLocationComponentName]: {
+      [ContentComponentName]: this.sourceDataLocationComponentTargetContentComponent,
     },
     [RepeatableComponentName]: {
       [ContentComponentName]: this.sourceRepeatableComponentTargetContentComponent,
@@ -214,6 +219,11 @@ export class FormOverride {
         component: ContentComponentName,
       },
     },
+    [DataLocationComponentName]: {
+      view: {
+        component: ContentComponentName,
+      },
+    },
     [RepeatableComponentName]: {
       view: {
         component: ContentComponentName,
@@ -254,6 +264,7 @@ export class FormOverride {
     MapComponentName,
     ContentComponentName,
     CheckboxTreeComponentName,
+    DataLocationComponentName,
   ]);
 
   /**
@@ -788,6 +799,23 @@ export class FormOverride {
     return target;
   }
 
+  private sourceDataLocationComponentTargetContentComponent(
+    source: DataLocationFormComponentDefinitionOutline,
+    formMode: FormModesConfig
+  ): ContentFormComponentDefinitionOutline {
+    const target = this.commonContentComponent(source, formMode);
+    if (!target.component.config || source.model?.config?.value === undefined) {
+      return target;
+    }
+    target.component.config.content = source.model.config.value;
+    const template = this.resolveReusableViewTemplate(
+      this.reusableViewTemplateKeys.leafDataLocation,
+      `<table class="rb-view-data-location"><tbody>{{#each [[valueExpr]]}}<tr><td>{{default this.type ""}}</td><td>{{default this.name this.location}}</td><td>{{default this.notes ""}}</td><td>{{default this.isc ""}}</td></tr>{{/each}}</tbody></table>`
+    );
+    target.component.config.template = this.substituteReusableTemplateSlots(template, { valueExpr: 'content' });
+    return target;
+  }
+
   private sourceCheckboxTreeComponentTargetContentComponent(
     source: CheckboxTreeFormComponentDefinitionOutline,
     formMode: FormModesConfig
@@ -1109,6 +1137,13 @@ export class FormOverride {
         `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{default this.name this.fileId}}</li>{{/each}}</ul>`
       );
       return this.substituteReusableTemplateSlots(fileTemplate, { valueExpr: expression });
+    }
+    if (className === DataLocationComponentName) {
+      const dataLocationTemplate = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafDataLocation,
+        `<table class="rb-view-data-location"><tbody>{{#each [[valueExpr]]}}<tr><td>{{default this.type ""}}</td><td>{{default this.name this.location}}</td><td>{{default this.notes ""}}</td><td>{{default this.isc ""}}</td></tr>{{/each}}</tbody></table>`
+      );
+      return this.substituteReusableTemplateSlots(dataLocationTemplate, { valueExpr: expression });
     }
     if (className === ContentComponentName) {
       const template =

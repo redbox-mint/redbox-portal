@@ -2,6 +2,7 @@ import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
 import { ILogger } from '@researchdatabox/sails-ng-common';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import { FileUploadFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { DataLocationFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { GroupFieldComponentDefinitionOutline, GroupFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { TabFieldComponentDefinitionOutline, TabFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { TabContentFieldComponentDefinitionOutline, TabContentFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
@@ -53,6 +54,12 @@ export class AttachmentFieldsVisitor extends FormConfigVisitor {
             if (item.name) {
                 this.attachmentFields.push(item.name);
             }
+        }
+    }
+
+    visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
+        if (item.component?.config && item.name) {
+            this.attachmentFields.push(item.name);
         }
     }
 

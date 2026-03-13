@@ -121,6 +121,11 @@ import {
   FileUploadFieldModelDefinitionOutline,
   FileUploadFormComponentDefinitionOutline,
 } from '../component/file-upload.outline';
+import {
+  DataLocationFieldComponentDefinitionOutline,
+  DataLocationFieldModelDefinitionOutline,
+  DataLocationFormComponentDefinitionOutline,
+} from '../component/data-location.outline';
 
 /**
  * The form config visitor definition.
@@ -474,6 +479,20 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   }
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Data Location */
+
+  visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
     this.notImplemented();
   }
 

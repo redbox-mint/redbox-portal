@@ -179,6 +179,14 @@ import {
   FileUploadModelName,
 } from '@researchdatabox/sails-ng-common';
 import { FileUploadFieldComponentConfig, FileUploadFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  DataLocationComponentName,
+  DataLocationFieldComponentDefinitionOutline,
+  DataLocationFieldModelDefinitionOutline,
+  DataLocationFormComponentDefinitionOutline,
+  DataLocationModelName,
+} from '@researchdatabox/sails-ng-common';
+import { DataLocationFieldComponentConfig, DataLocationFieldModelConfig } from '@researchdatabox/sails-ng-common';
 
 import { FieldModelConfigFrame } from '@researchdatabox/sails-ng-common';
 import { FieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
@@ -425,12 +433,12 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
   },
   DataLocation: {
     '': {
-      componentClassName: FileUploadComponentName,
-      modelClassName: FileUploadModelName,
+      componentClassName: DataLocationComponentName,
+      modelClassName: DataLocationModelName,
     },
     DataLocationComponent: {
-      componentClassName: FileUploadComponentName,
-      modelClassName: FileUploadModelName,
+      componentClassName: DataLocationComponentName,
+      modelClassName: DataLocationModelName,
     },
   },
 };
@@ -1323,6 +1331,54 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.populateFormComponent(item);
   }
 
+  /* Data Location */
+
+  visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new DataLocationFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const mappedProps = [
+      'restrictions',
+      'uppyDashboardNote',
+      'notesEnabled',
+      'iscEnabled',
+      'iscHeader',
+      'defaultSelect',
+      'securityClassificationOptions',
+      'locationAddText',
+      'typeHeader',
+      'locationHeader',
+      'columns',
+      'notesHeader',
+      'dataTypes',
+      'dataTypeLookup',
+      'hideNotesForLocationTypes',
+      'allowUploadWithoutSave',
+      'editNotesButtonText',
+      'editNotesTitle',
+      'cancelEditNotesButtonText',
+      'applyEditNotesButtonText',
+      'editNotesCssClasses'
+    ] as const;
+
+    for (const prop of mappedProps) {
+      if (field?.definition?.[prop] !== undefined) {
+        this.sharedProps.setPropOverride(prop, item.config, { [prop]: field.definition[prop] });
+      }
+    }
+  }
+
+  visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new DataLocationFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
   /* Default Layout  */
 
   visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
@@ -2003,6 +2059,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   protected sharedPopulateFieldComponentConfig(item: FieldComponentConfigFrame, field?: Record<string, unknown>) {
     const isLegacyContributor = ['RepeatableContributor', 'ContributorField'].includes(`${field?.class ?? ''}`.trim());
+    const isLegacyDataLocation = this.isLegacyDataLocationField(field);
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
     const hasExplicitLabel = typeof definition.label === 'string';
     let fallbackLabel: string | undefined = undefined;
@@ -2020,6 +2077,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const label =
       hasExplicitLabel
         ? (definition.label as string)
+        : isLegacyDataLocation
+        ? fallbackLabel
         : (typeof definition.name === 'string' ? definition.name : undefined) || fallbackLabel;
 
     const config = {
@@ -2052,6 +2111,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, field?: Record<string, unknown>) {
     const isLegacyContributor = ['RepeatableContributor', 'ContributorField'].includes(`${field?.class ?? ''}`.trim());
+    const isLegacyDataLocation = this.isLegacyDataLocationField(field);
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
     const hasExplicitLabel = typeof definition.label === 'string';
     let fallbackLabel: string | undefined = undefined;
@@ -2070,6 +2130,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         ? undefined
         : hasExplicitLabel
         ? (definition.label as string)
+        : isLegacyDataLocation
+        ? fallbackLabel
         : // RepeatableContributor often only defines 'name'; preserve a section label on migration.
         fallbackLabel ||
           (typeof definition.name === 'string' ? definition.name : undefined) ||
@@ -2087,6 +2149,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       cssClassesMap,
     };
     this.sharedProps.sharedPopulateFieldLayoutConfig(item, config);
+  }
+
+  private isLegacyDataLocationField(field?: Record<string, unknown>): boolean {
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    const v4CompClassName = `${field?.compClass ?? ''}`.trim();
+    return v4ClassName === 'DataLocation' || v4CompClassName === 'DataLocationComponent';
   }
 
   protected getV4Data() {

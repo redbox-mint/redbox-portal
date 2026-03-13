@@ -101,6 +101,11 @@ import {
   FileUploadFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  DataLocationFieldComponentDefinitionOutline,
+  DataLocationFieldModelDefinitionOutline,
+  DataLocationFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   RadioInputFieldComponentDefinitionOutline,
   RadioInputFieldModelDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
@@ -719,6 +724,21 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+    this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+  }
+
+  /* Data Location */
+
+  visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void {
+    this.processFieldComponentDefinition(item);
+  }
+
+  visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void {
+    this.processFieldModelDefinition(item);
+  }
+
+  visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
     this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
