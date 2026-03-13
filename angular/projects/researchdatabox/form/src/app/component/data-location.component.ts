@@ -318,6 +318,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
             if (base) {
                 return `${base}${location.startsWith("/") ? "" : "/"}${location}`;
             }
+            return `${window.location.origin}${location.startsWith("/") ? "" : "/"}${location}`;
         }
         return "";
     }
@@ -361,16 +362,11 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
             headers: this.buildTusHeaders()
         });
 
-        // Kick off an async attempt to populate CSRF headers if available.
-        // Also ensure headers are set before uploads by awaiting during file-added.
-        this.ensureTusHeadersContainCsrf().catch(() => { /* noop - handler will log */ });
+        // Kick off an attempt to populate CSRF headers if available.
+        this.ensureTusHeadersContainCsrf();
 
-        this.uppy.on("file-added", async () => {
-            try {
-                await this.ensureTusHeadersContainCsrf();
-            } catch (err) {
-                this.loggerService?.error?.("file-added: failed to ensure CSRF headers", err);
-            }
+        this.uppy.on("file-added", () => {
+            this.ensureTusHeadersContainCsrf();
         });
 
         this.uppy.on("upload", (_uploadID: string, files: UppyFile<UppyMeta, UppyBody>[]) => {
@@ -622,7 +618,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         return "";
     }
 
-    private async ensureTusHeadersContainCsrf(): Promise<void> {
+    private ensureTusHeadersContainCsrf(): void {
         if (this.tusHeaders["X-CSRF-Token"]) {
             return;
         }
@@ -630,22 +626,21 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         if (!cfgPromise || typeof cfgPromise.then !== "function") {
             return;
         }
-        try {
-            const cfg = await cfgPromise;
+        cfgPromise.then((cfg: unknown) => {
             const token = String(this.readCsrfToken(cfg) ?? this.configService.csrfToken ?? "").trim();
             if (!token || !this.uppy) {
                 return;
             }
             const headers = this.buildTusHeaders(token);
+            this.tusHeaders["X-CSRF-Token"] = token;
             const tusPlugin = this.uppy.getPlugin("Tus") as unknown as TusPlugin;
             tusPlugin?.setOptions?.({ headers });
             if (tusPlugin?.opts) {
                 tusPlugin.opts["headers"] = headers;
             }
-        } catch (err) {
+        }).catch((err: unknown) => {
             this.loggerService.error("ensureTusHeadersContainCsrf: failed to load config for CSRF token", err);
-            throw err;
-        }
+        });
     }
 
     private readCsrfToken(config: unknown): string | undefined {

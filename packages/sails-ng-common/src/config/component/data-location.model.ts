@@ -22,10 +22,11 @@ import {
     DataLocationOption,
     DataLocationValueType
 } from "./data-location.outline";
+import { FileUploadSourceType } from "./file-upload.outline";
 
 export class DataLocationFieldComponentConfig extends FieldComponentConfig implements DataLocationFieldComponentConfigOutline {
     restrictions?: Record<string, unknown>;
-    enabledSources = [];
+    enabledSources: FileUploadSourceType[] = [];
     companionUrl?: string;
     allowUploadWithoutSave = false;
     uppyDashboardNote = "Maximum upload size: 1 Gb per file";

@@ -106,6 +106,8 @@ export class FormOverride {
     repeatableTable: 'view-template-repeatable-table',
     repeatableList: 'view-template-repeatable-list',
   } as const;
+  private readonly defaultDataLocationViewTemplate =
+    `<table class="rb-view-data-location"><tbody>{{#each [[valueExpr]]}}<tr><td>{{default this.type ""}}</td><td>{{default this.name this.location}}</td><td>{{default this.notes ""}}</td><td>{{default this.isc ""}}</td></tr>{{/each}}</tbody></table>`;
   private readonly questionTreeHelper: QuestionTreeHelper;
   private readonly forcedViewTransformOverrideKey = '__forceViewTransform';
 
@@ -810,7 +812,7 @@ export class FormOverride {
     target.component.config.content = source.model.config.value;
     const template = this.resolveReusableViewTemplate(
       this.reusableViewTemplateKeys.leafDataLocation,
-      `<table class="rb-view-data-location"><tbody>{{#each [[valueExpr]]}}<tr><td>{{default this.type ""}}</td><td>{{default this.name this.location}}</td><td>{{default this.notes ""}}</td><td>{{default this.isc ""}}</td></tr>{{/each}}</tbody></table>`
+      this.defaultDataLocationViewTemplate
     );
     target.component.config.template = this.substituteReusableTemplateSlots(template, { valueExpr: 'content' });
     return target;
@@ -1141,7 +1143,7 @@ export class FormOverride {
     if (className === DataLocationComponentName) {
       const dataLocationTemplate = this.resolveReusableViewTemplate(
         this.reusableViewTemplateKeys.leafDataLocation,
-        `<table class="rb-view-data-location"><tbody>{{#each [[valueExpr]]}}<tr><td>{{default this.type ""}}</td><td>{{default this.name this.location}}</td><td>{{default this.notes ""}}</td><td>{{default this.isc ""}}</td></tr>{{/each}}</tbody></table>`
+        this.defaultDataLocationViewTemplate
       );
       return this.substituteReusableTemplateSlots(dataLocationTemplate, { valueExpr: expression });
     }
