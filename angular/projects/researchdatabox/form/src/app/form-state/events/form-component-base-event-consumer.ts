@@ -144,6 +144,14 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 	      const value = this.cloneExpressionContextValue(valueOriginal, 'value');
 	      const eventClone = this.cloneExpressionContextValue(event, 'event');
 	      const formData = this.cloneExpressionContextValue(this.formComp?.form?.value ?? {}, 'formData');
+      const requestParams = this.cloneExpressionContextValue(
+        (additionalData as { requestParams?: unknown }).requestParams ?? this.formComp?.requestParams?.() ?? {},
+        'requestParams'
+      );
+      const runtimeContext = this.cloneExpressionContextValue(
+        (additionalData as { runtimeContext?: unknown }).runtimeContext ?? { requestParams },
+        'runtimeContext'
+      );
 
       // Build the context for JSONata evaluation
       // Include the event value and any additional data that may be useful
@@ -152,6 +160,8 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 				event: eventClone,
 				// Include the current form data if available
 				formData: formData,
+        requestParams,
+        runtimeContext,
         ...additionalData
 			};
 
@@ -326,7 +336,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     if (opts.event.sourceId !== '*' && !isRunOnFormReady) {
       return false;
     }
-		const result = await this.evaluateExpressionJSONata(expression, opts.event, 'condition', opts.querySource?.querySource);
+		const result = await this.evaluateExpressionJSONata(expression, opts.event, 'condition', {
+      querySource: opts.querySource?.querySource,
+      runtimeContext: opts.querySource?.runtimeContext
+    });
 		return !!result;
 	}
 

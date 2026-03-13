@@ -130,12 +130,19 @@ describe('The FormService', () => {
       const childEntry = createEntry('child', '/components/0/child');
       const parentEntry = createEntry('parent', '/components/0', [childEntry]);
 
-      const source = service.getJSONataQuerySource([parentEntry]);
+      const source = service.getJSONataQuerySource([parentEntry], {
+        requestParams: {
+          workspace: 'active'
+        }
+      });
 
       expect(source.querySource.length).toBe(2);
       expect(source.querySource[0].name).toBe('parent');
       expect((source.jsonPointerSource as any)['0'].metadata.formFieldEntry).toBe(parentEntry);
       expect((source.jsonPointerSource as any)['0'].child.metadata.formFieldEntry).toBe(childEntry);
+      expect(source.runtimeContext?.requestParams).toEqual({
+        workspace: 'active'
+      });
     });
   });
 

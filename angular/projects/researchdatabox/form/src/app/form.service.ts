@@ -54,7 +54,7 @@ import {
   queryJSONata,
   getObjectWithJsonPointer,
   FormModesConfig, KindNameDefaultsMap, FieldModelDefinitionKind,
-  FormComponentDefinitionKind, KindNameDefaultsMapType,
+  FormComponentDefinitionKind, KindNameDefaultsMapType, JSONataQueryRuntimeContext,
 } from '@researchdatabox/sails-ng-common';
 import { HttpClient } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
@@ -785,7 +785,7 @@ export class FormService extends HttpClientService {
    * @param origObject
    * @returns
    */
-  public getJSONataQuerySource(origObject: FormFieldCompMapEntry[]): JSONataQuerySource {
+  public getJSONataQuerySource(origObject: FormFieldCompMapEntry[], runtimeContext?: JSONataQueryRuntimeContext): JSONataQuerySource {
     let queryDoc: JSONataQuerySourceProperty[] = [];
     let jsonPointerSource: JSONataResultDoc = {};
     // loop through each item in the original object and build the query source, index is important
@@ -803,7 +803,8 @@ export class FormService extends HttpClientService {
     const querySource: JSONataQuerySource = {
       queryOrigSource: origObject,
       querySource: queryDoc,
-      jsonPointerSource: jsonPointerSource
+      jsonPointerSource: jsonPointerSource,
+      runtimeContext
     }
     return querySource;
   }

@@ -39,7 +39,9 @@ import {
   FormStatus,
   FormConfigFrame,
   JSONataQuerySource,
-  FormValidatorSummaryErrors
+  FormValidatorSummaryErrors,
+  FormRequestParamValue,
+  FormRequestParamsMap
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
 import { FormComponentsMap, FormService } from './form.service';
@@ -236,6 +238,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * The JSONata query source for component definitions
    */
   componentDefQuerySource?: JSONataQuerySource;
+  private readonly requestParamsState = signal<FormRequestParamsMap>({});
+  public readonly requestParams = this.requestParamsState.asReadonly();
   /**
    * The value change event consumer
    */
@@ -284,6 +288,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.appName = `Form::${this.trimmedParams.recordType()}::${this.trimmedParams.formName()} ${this.trimmedParams.oid() ? ' - ' + this.trimmedParams.oid() : ''}`.trim();
     this.loggerService.debug(`'${this.logName}' waiting for '${this.trimmedParams.formName()}' deps to init...`);
 
+    this.refreshRequestParamsFromUrl();
     this.initEffects();
   }
 
@@ -294,6 +299,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   protected async initComponent(): Promise<void> {
     this.loggerService.info(`${this.logName}: Loading form with OID: ${this.trimmedParams.oid()}, on edit mode:${this.editMode()}, Record Type: ${this.trimmedParams.recordType()}, formName: ${this.trimmedParams.formName()}`);
     try {
+      this.refreshRequestParamsFromUrl();
       this.configObj = await this.configService.getConfig();
       if (this.downloadAndCreateOnInit()) {
         await this.downloadAndCreateFormComponents();
@@ -359,7 +365,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Set up the JSONata query source from component definitions
    */
   protected setupQuerySource() {
-    this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr);
+    this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr, {
+      requestParams: this.requestParams()
+    });
   }
   /**
    *
@@ -368,6 +376,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   public getQuerySource(): JSONataQuerySource | undefined {
     return this.componentDefQuerySource;
+  }
+
+  public refreshRequestParamsFromUrl(rawHref?: string): void {
+    this.requestParamsState.set(this.parseRequestParamsFromUrl(rawHref));
+    if (this.componentDefArr.length > 0) {
+      this.setupQuerySource();
+    }
+  }
+
+  public getRequestParam(name: string): FormRequestParamValue | undefined {
+    return this.requestParams()[name];
   }
   /**
    * Initialize reactive effects
@@ -923,6 +942,57 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   public get componentQuerySource(): JSONataQuerySource | undefined {
     return this.componentDefQuerySource;
+  }
+
+  private parseRequestParamsFromUrl(rawHref?: string): FormRequestParamsMap {
+    const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+    const parsedUrl = new URL(rawHref ?? window.location.href, fallbackOrigin);
+    const search = parsedUrl.search.startsWith('?') ? parsedUrl.search.slice(1) : parsedUrl.search;
+    if (_isEmpty(search)) {
+      return {};
+    }
+
+    const requestParams: Record<string, FormRequestParamValue> = {};
+    for (const rawSegment of search.split('&')) {
+      if (_isEmpty(rawSegment)) {
+        continue;
+      }
+
+      const hasEquals = rawSegment.includes('=');
+      const [rawName, ...rawValueParts] = rawSegment.split('=');
+      const name = this.decodeRequestParamSegment(rawName);
+      if (_isEmpty(name)) {
+        continue;
+      }
+
+      const value = hasEquals
+        ? this.decodeRequestParamSegment(rawValueParts.join('='))
+        : true;
+
+      requestParams[name] = this.mergeRequestParamValue(requestParams[name], value);
+    }
+
+    return requestParams;
+  }
+
+  private decodeRequestParamSegment(segment: string): string {
+    return decodeURIComponent(segment.replace(/\+/g, ' '));
+  }
+
+  private mergeRequestParamValue(existingValue: FormRequestParamValue | undefined, nextValue: FormRequestParamValue): FormRequestParamValue {
+    if (existingValue === undefined) {
+      return nextValue;
+    }
+
+    if (existingValue === true && nextValue === true) {
+      return true;
+    }
+
+    const existingValues = existingValue === true ? [] : Array.isArray(existingValue) ? existingValue : [existingValue];
+    const nextValues = nextValue === true ? [] : Array.isArray(nextValue) ? nextValue : [nextValue];
+    const mergedValues = [...existingValues, ...nextValues];
+
+    return mergedValues.length > 0 ? mergedValues : true;
   }
 
   private buildEditRecordPath(oid: string): string {

@@ -244,6 +244,42 @@ describe("Migrate v4 to v5 Visitor", async () => {
         ]);
     });
 
+    it('omits legacy ParameterRetriever fields and logs the runtime-context replacement', async function () {
+        const warnings: string[] = [];
+        const testLogger = {
+            ...logger,
+            warn: (message: unknown) => warnings.push(String(message ?? ''))
+        };
+        const visitor = new MigrationV4ToV5FormConfigVisitor(testLogger);
+        const migrated = visitor.start({
+            data: {
+                name: 'parameter-retriever-migration',
+                fields: [
+                    {
+                        class: 'ParameterRetriever',
+                        compClass: 'ParameterRetrieverComponent',
+                        definition: {
+                            name: 'parameterRetriever',
+                            label: 'Legacy Param'
+                        }
+                    },
+                    {
+                        class: 'TextField',
+                        definition: {
+                            name: 'title',
+                            label: 'Title'
+                        }
+                    }
+                ]
+            }
+        });
+
+        expect((migrated.componentDefinitions ?? []).some((component) => component?.name === 'parameterRetriever')).to.equal(false);
+        expect((migrated.componentDefinitions ?? []).some((component) => component?.name === 'title')).to.equal(true);
+        expect(warnings.some((msg) => msg.includes("ParameterRetriever 'parameterRetriever'"))).to.equal(true);
+        expect(warnings.some((msg) => msg.includes('requestParams runtime context'))).to.equal(true);
+    });
+
     it('maps RepeatableVocabComponent to RepeatableComponent with Typeahead elementTemplate', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({

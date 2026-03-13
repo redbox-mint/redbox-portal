@@ -274,6 +274,96 @@ describe('FormComponentValueChangeEventConsumer', () => {
     expect(context.value).toBe((consumer as any).formComp.form.value.source);
   });
 
+  it('should include requestParams in JSONata evaluation context', async () => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'template-request-params',
+      config: {
+        target: 'model.value',
+        hasTemplate: true,
+        condition: 'source',
+        template: ''
+      }
+    };
+    const { definition, component } = createSetup([expr]);
+    const evaluateSpy = jasmine.createSpy('evaluate').and.resolveTo('templatedValue');
+
+    (consumer as any).options = { component, definition };
+    (consumer as any).expressions = [expr];
+    (consumer as any).formComp = {
+      form: {
+        value: {
+          source: 'current'
+        }
+      },
+      requestParams: () => ({
+        focusTabId: 'tab2'
+      })
+    };
+    spyOn<any>(consumer, 'getCompiledItems').and.resolveTo({ evaluate: evaluateSpy });
+
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: 'source',
+      sourceId: '*',
+      value: 'orig',
+      timestamp: Date.now()
+    };
+
+    await (consumer as any).evaluateExpressionJSONata(expr, event, 'template');
+
+    const [, context] = evaluateSpy.calls.mostRecent().args;
+    expect(context.requestParams).toEqual({ focusTabId: 'tab2' });
+    expect(context.runtimeContext).toEqual({ requestParams: { focusTabId: 'tab2' } });
+  });
+
+  it('should expose JSONataQuery runtime context under named properties', async () => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'jsonata-query-request-params',
+      config: {
+        target: 'model.value',
+        condition: '$exists(runtimeContext.requestParams.focusTabId) and querySource[0].name = "parent"',
+        conditionKind: ExpressionsConditionKind.JSONataQuery,
+        template: ''
+      }
+    };
+    const evaluateExpressionSpy = spyOn<any>(consumer, 'evaluateExpressionJSONata').and.resolveTo(true);
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: 'source',
+      sourceId: '*',
+      value: 'orig',
+      timestamp: Date.now()
+    };
+
+    const matched = await (consumer as any).hasMatchedJSONataQueryCondition({
+      condition: expr.config.condition || '',
+      conditionKind: ExpressionsConditionKind.JSONataQuery,
+      expression: expr,
+      event,
+      querySource: {
+        queryOrigSource: [],
+        querySource: [{ name: 'parent' }],
+        jsonPointerSource: {},
+        runtimeContext: {
+          requestParams: {
+            focusTabId: 'tab2'
+          }
+        },
+        event
+      }
+    }, expr);
+
+    expect(matched).toBeTrue();
+    expect(evaluateExpressionSpy).toHaveBeenCalledWith(expr, event, 'condition', {
+      querySource: [{ name: 'parent' }],
+      runtimeContext: {
+        requestParams: {
+          focusTabId: 'tab2'
+        }
+      }
+    });
+  });
+
   it('should warn if target is unknown', fakeAsync(() => {
     const expr = {
       name: 'unknown-target',
