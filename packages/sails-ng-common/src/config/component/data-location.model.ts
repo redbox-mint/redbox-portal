@@ -20,9 +20,9 @@ import {
     DataLocationModelName,
     DataLocationModelValueType,
     DataLocationOption,
-    DataLocationValueType,
-    FileUploadSourceType
+    DataLocationValueType
 } from "./data-location.outline";
+import { FileUploadSourceType } from "./file-upload.outline";
 
 export class DataLocationFieldComponentConfig extends FieldComponentConfig implements DataLocationFieldComponentConfigOutline {
     restrictions?: Record<string, unknown>;
