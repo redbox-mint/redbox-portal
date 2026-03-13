@@ -656,12 +656,53 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
     }
 
     private resolveCompanionUrl(companionUrl?: string): string | undefined {
-        const trimmed = String(companionUrl ?? "").trim();
-        if (trimmed) {
-            return trimmed;
+        const raw = this.optionalString(companionUrl);
+        const base = this.optionalString(this.getFormComponent.recordService.brandingAndPortalUrl);
+
+        let resolved: string | undefined;
+
+        if (raw) {
+            // Absolute HTTP(S) URL or protocol-relative URL: use as-is (later trim trailing slash).
+            if (/^https?:\/\//i.test(raw) || raw.startsWith("//")) {
+                resolved = raw;
+            } else if (raw.startsWith("/")) {
+                // Path relative to branding/portal base.
+                if (base) {
+                    const normalizedBase = base.replace(/\/+$/, "");
+                    resolved = normalizedBase + raw;
+                } else {
+                    resolved = raw;
+                }
+            } else {
+                // Relative segment: append to base if available, otherwise return as-is.
+                if (base) {
+                    const normalizedBase = base.replace(/\/+$/, "");
+                    const normalizedSegment = raw.replace(/^\/+/, "");
+                    resolved = `${normalizedBase}/${normalizedSegment}`;
+                } else {
+                    resolved = raw;
+                }
+            }
+        } else if (base) {
+            // No explicit companionUrl: default to `${base}/companion`.
+            const normalizedBase = base.replace(/\/+$/, "");
+            resolved = `${normalizedBase}/companion`;
         }
-        const base = String(this.getFormComponent.recordService.brandingAndPortalUrl ?? "").trim();
-        return base ? `${base}/companion` : undefined;
+
+        if (!resolved) {
+            return undefined;
+        }
+
+        // Strip trailing slashes for consistency (but preserve protocol-relative `//` prefix).
+        const matchProtocolRelative = resolved.match(/^(\/\/[^/]+)(\/.*)?$/);
+        if (matchProtocolRelative) {
+            const hostPart = matchProtocolRelative[1];
+            const pathPart = matchProtocolRelative[2] ?? "";
+            const normalizedPath = pathPart.replace(/\/+$/, "");
+            return hostPart + normalizedPath;
+        }
+
+        return resolved.replace(/\/+$/, "");
     }
 
     private getUppyDependencies(): UppyDependencies {
