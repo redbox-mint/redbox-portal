@@ -211,6 +211,11 @@ export namespace Controllers {
               }
             } catch (formErr) {
               sails.log.error(`Failed to filter metadata for record ${oid} using form ${formName}:`, formErr);
+              return this.sendResp(req, res, {
+                status: 500,
+                displayErrors: [{ detail: 'Failed to filter metadata for this record.' }],
+                meta: { oid },
+              });
             }
           }
 

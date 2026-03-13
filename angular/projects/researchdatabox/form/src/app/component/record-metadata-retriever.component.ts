@@ -39,14 +39,18 @@ class RecordMetadataRetrieverExpressionConsumer extends FormComponentEventBaseCo
 
     this.subscriptions.set(
       FormComponentEventType.FIELD_VALUE_CHANGED,
-      this.eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(async (event) => {
-        await this.consumeMatchedExpressions(event);
+      this.eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe((event) => {
+        this.consumeMatchedExpressions(event).catch((err) => this.handleConsumeError(err));
       })
     );
   }
 
   protected override async consumeEvent(event: FormComponentEvent, expression: FormExpressionsConfigFrame): Promise<void> {
     await this.handler(event, expression);
+  }
+
+  private handleConsumeError(err: unknown): void {
+    console.error('RecordMetadataRetrieverExpressionConsumer: Error consuming matched expressions.', err);
   }
 
   private async consumeMatchedExpressions(event: FormComponentEvent): Promise<void> {

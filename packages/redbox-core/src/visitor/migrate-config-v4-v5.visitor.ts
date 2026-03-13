@@ -2965,7 +2965,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
       const migratedRetriever = migratedComponents.find((component) => component.name === retrieverName);
       if (migratedRetriever) {
-        migratedRetriever.expressions = this.buildRetrieverExpressions(legacyField, legacyFields, containerPointer);
+        migratedRetriever.expressions = (migratedRetriever.expressions ?? []).concat(
+          this.buildRetrieverExpressions(legacyField, legacyFields, containerPointer)
+        );
       }
 
       for (const targetField of legacyFields) {
