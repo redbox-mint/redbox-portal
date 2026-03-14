@@ -89,12 +89,8 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
     return this.normalizeDataLocations(this.formControl.value ?? this.model?.getValue());
   }
 
-  public isEditMode(): boolean {
-    return this.getFormComponent.editMode() && !this.isReadonly;
-  }
-
   public selectAllLocations(checked: boolean): void {
-    if (!this.isEditMode() || this.isDisabled) {
+    if (this.isDisabled) {
       return;
     }
     const updated = this.dataLocations.map((dataLocation) => {
@@ -107,7 +103,7 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
   }
 
   public toggleLocationSelection(index: number, checked: boolean): void {
-    if (!this.isEditMode() || this.isDisabled || this.isReadonly) {
+    if (this.isDisabled || this.isReadonly) {
       return;
     }
     const current = this.dataLocations[index];
@@ -134,9 +130,6 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
   }
 
   public startEditNotes(index: number): void {
-    if (!this.isEditMode()) {
-      return;
-    }
     const item = this.dataLocations[index];
     if (!item) {
       return;
