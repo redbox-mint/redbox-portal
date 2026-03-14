@@ -115,6 +115,11 @@ import {
   DataLocationFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  PublishDataLocationSelectorFieldComponentDefinitionOutline,
+  PublishDataLocationSelectorFieldModelDefinitionOutline,
+  PublishDataLocationSelectorFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   RadioInputFieldComponentDefinitionOutline,
   RadioInputFieldModelDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
@@ -480,6 +485,16 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  visitPublishDataLocationSelectorFieldComponentDefinition(_item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void { }
+
+  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): void {
+    this.setFromModelDefinition(item);
+  }
+
+  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 

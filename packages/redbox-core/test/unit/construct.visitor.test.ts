@@ -1140,6 +1140,66 @@ describe("Construct Visitor", async () => {
             expect((transformed.component.config as any).template).to.contain("<td>{{default this.isc \"\"}}</td>");
         });
 
+        it("should transform publish data location selector components to content in view mode", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "dataLocations",
+                            component: {
+                                class: "PublishDataLocationSelectorComponent",
+                                config: {
+                                    notesEnabled: true,
+                                    iscEnabled: true,
+                                }
+                            },
+                            model: {
+                                class: "PublishDataLocationSelectorModel",
+                                config: {
+                                    defaultValue: [
+                                        {
+                                            type: "attachment",
+                                            location: "/record/oid-1/attach/file-123",
+                                            uploadUrl: "/record/oid-1/attach/file-123",
+                                            fileId: "file-123",
+                                            name: "file-123",
+                                            notes: "public",
+                                            isc: "official",
+                                            selected: true,
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                formMode: "view",
+                reusableFormDefs: reusableFormDefinitions
+            });
+
+            const transformed = actual.componentDefinitions[0];
+            expect(transformed.component.class).to.equal("ContentComponent");
+            expect(transformed.component.config).to.deep.include({
+                content: [
+                    {
+                        type: "attachment",
+                        location: "/record/oid-1/attach/file-123",
+                        uploadUrl: "/record/oid-1/attach/file-123",
+                        fileId: "file-123",
+                        name: "file-123",
+                        notes: "public",
+                        isc: "official",
+                        selected: true,
+                    }
+                ]
+            });
+            expect((transformed.component.config as any).template).to.contain("rb-view-publish-data-location-selector");
+            expect((transformed.component.config as any).template).to.contain("Selected");
+            expect((transformed.component.config as any).template).to.contain("&#10003;");
+        });
+
         it("should populate transformed dropdown content component from record array values", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = visitor.start({

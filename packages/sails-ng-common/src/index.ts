@@ -94,6 +94,8 @@ export * from './config/component/record-metadata-retriever.model';
 export * from './config/component/record-metadata-retriever.outline';
 export * from './config/component/data-location.model';
 export * from './config/component/data-location.outline';
+export * from './config/component/publish-data-location-selector.model';
+export * from './config/component/publish-data-location-selector.outline';
 export * from './config/component/reusable.model';
 export * from './config/component/reusable.outline';
 export * from "./config/component/question-tree.model";

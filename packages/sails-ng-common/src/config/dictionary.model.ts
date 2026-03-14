@@ -37,6 +37,10 @@ import {
   RecordMetadataRetrieverMap,
 } from './component/record-metadata-retriever.model';
 import { DataLocationDefaults, DataLocationMap } from './component/data-location.model';
+import {
+  PublishDataLocationSelectorDefaults,
+  PublishDataLocationSelectorMap,
+} from './component/publish-data-location-selector.model';
 import { CancelButtonDefaults, CancelButtonMap } from './component/cancel-button.model';
 import { TabNavButtonDefaults, TabNavButtonMap } from './component/tab-nav-button.model';
 
@@ -75,6 +79,7 @@ export const AllDefs = [
   ...FileUploadMap,
   ...RecordMetadataRetrieverMap,
   ...DataLocationMap,
+  ...PublishDataLocationSelectorMap,
 ] as const;
 
 /**
@@ -110,6 +115,7 @@ const RawDefaults = [
   FileUploadDefaults,
   RecordMetadataRetrieverDefaults,
   DataLocationDefaults,
+  PublishDataLocationSelectorDefaults,
 ];
 
 /**

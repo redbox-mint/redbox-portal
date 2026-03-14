@@ -69,6 +69,10 @@ import { RichTextEditorComponentName, RichTextEditorFormComponentDefinitionOutli
 import { MapComponentName } from './component/map.outline';
 import { FileUploadComponentName, FileUploadFormComponentDefinitionOutline } from './component/file-upload.outline';
 import { DataLocationComponentName, DataLocationFormComponentDefinitionOutline } from './component/data-location.outline';
+import {
+  PublishDataLocationSelectorComponentName,
+  PublishDataLocationSelectorFormComponentDefinitionOutline,
+} from './component/publish-data-location-selector.outline';
 import { TypeaheadInputModelOptionValue } from './component/typeahead-input.outline';
 import { FormConstraintConfigOutline } from './form-component.outline';
 import { SimpleInputFormComponentDefinitionFrame } from './component/simple-input.outline';
@@ -114,6 +118,8 @@ export class FormOverride {
   } as const;
   private readonly dataLocationLeafFallbackTemplate =
     `{{#if [[valueExpr]]}}<div class="table-responsive mt-2"><table class="table table-bordered table-striped table-hover mb-0 rb-view-data-location"><thead><tr><th width="15%">[[typeHeaderHtml]]</th><th width="40%">[[locationHeaderHtml]]</th>[[notesHeaderCellHtml]][[iscHeaderCellHtml]]</tr></thead><tbody>{{#each [[valueExpr]]}}<tr><td>{{default this.typeLabel this.type}}</td><td>{{#if (or (eq this.type "url") (eq this.type "attachment"))}}<a href="{{default this.url this.location}}" target="_blank" rel="noopener noreferrer">{{default this.name this.location}}</a>{{else}}<span>{{default this.name this.location}}</span>{{/if}}</td>[[notesCellHtml]][[iscCellHtml]]</tr>{{/each}}</tbody></table></div>{{/if}}`;
+  private readonly publishDataLocationSelectorLeafFallbackTemplate =
+    `{{#if [[valueExpr]]}}<div class="table-responsive mt-2"><table class="table table-bordered table-striped table-hover mb-0 rb-view-publish-data-location-selector"><thead><tr><th width="15%">[[typeHeaderHtml]]</th><th width="35%">[[locationHeaderHtml]]</th>[[notesHeaderCellHtml]][[iscHeaderCellHtml]]</tr></thead><tbody>{{#each [[valueExpr]]}}{{#if this.selected}}<tr><td>{{default this.typeLabel this.type}}</td><td>{{#if (or (eq this.type "url") (eq this.type "attachment"))}}<a href="{{default this.url this.location}}" target="_blank" rel="noopener noreferrer">{{default this.name this.location}}</a>{{else}}<span>{{default this.name this.location}}</span>{{/if}}</td>[[notesCellHtml]][[iscCellHtml]]</tr>{{/if}}{{/each}}</tbody></table></div>{{/if}}`;
   private readonly questionTreeHelper: QuestionTreeHelper;
   private readonly forcedViewTransformOverrideKey = '__forceViewTransform';
 
@@ -158,6 +164,9 @@ export class FormOverride {
     },
     [DataLocationComponentName]: {
       [ContentComponentName]: this.sourceDataLocationComponentTargetContentComponent,
+    },
+    [PublishDataLocationSelectorComponentName]: {
+      [ContentComponentName]: this.sourcePublishDataLocationSelectorComponentTargetContentComponent,
     },
     [RepeatableComponentName]: {
       [ContentComponentName]: this.sourceRepeatableComponentTargetContentComponent,
@@ -232,6 +241,11 @@ export class FormOverride {
         component: ContentComponentName,
       },
     },
+    [PublishDataLocationSelectorComponentName]: {
+      view: {
+        component: ContentComponentName,
+      },
+    },
     [RepeatableComponentName]: {
       view: {
         component: ContentComponentName,
@@ -273,6 +287,7 @@ export class FormOverride {
     ContentComponentName,
     CheckboxTreeComponentName,
     DataLocationComponentName,
+    PublishDataLocationSelectorComponentName,
   ]);
 
   /**
@@ -819,6 +834,45 @@ export class FormOverride {
     const template = this.resolveReusableViewTemplate(
       this.reusableViewTemplateKeys.leafDataLocation,
       this.dataLocationLeafFallbackTemplate
+    );
+    const componentConfig = source.component?.config as {
+      typeHeader?: string;
+      locationHeader?: string;
+      notesHeader?: string;
+      iscHeader?: string;
+      notesEnabled?: boolean;
+      iscEnabled?: boolean;
+    } | undefined;
+    const typeHeader = componentConfig?.typeHeader ?? 'Type';
+    const locationHeader = componentConfig?.locationHeader ?? 'Location';
+    const notesHeader = componentConfig?.notesHeader ?? 'Notes';
+    const iscHeader = componentConfig?.iscHeader ?? 'Information Security Classification';
+    const notesEnabled = componentConfig?.notesEnabled !== false;
+    const iscEnabled = componentConfig?.iscEnabled === true;
+    target.component.config.template = this.substituteReusableTemplateSlots(template, {
+      valueExpr: 'content',
+      typeHeaderHtml: `{{t "${this.escapeForHandlebarsLiteral(typeHeader)}"}}`,
+      locationHeaderHtml: `{{t "${this.escapeForHandlebarsLiteral(locationHeader)}"}}`,
+      notesHeaderCellHtml: notesEnabled ? `<th width="20%">{{t "${this.escapeForHandlebarsLiteral(notesHeader)}"}}</th>` : '',
+      iscHeaderCellHtml: iscEnabled ? `<th width="20%">{{t "${this.escapeForHandlebarsLiteral(iscHeader)}"}}</th>` : '',
+      notesCellHtml: notesEnabled ? `<td>{{default this.notes ""}}</td>` : '',
+      iscCellHtml: iscEnabled ? `<td>{{default this.isc ""}}</td>` : '',
+    });
+    return target;
+  }
+
+  private sourcePublishDataLocationSelectorComponentTargetContentComponent(
+    source: PublishDataLocationSelectorFormComponentDefinitionOutline,
+    formMode: FormModesConfig
+  ): ContentFormComponentDefinitionOutline {
+    const target = this.commonContentComponent(source as unknown as AllFormComponentDefinitionOutlines, formMode);
+    if (!target.component.config || source.model?.config?.value === undefined) {
+      return target;
+    }
+    target.component.config.content = source.model.config.value;
+    const template = this.resolveReusableViewTemplate(
+      'view-template-leaf-publish-data-location-selector',
+      this.publishDataLocationSelectorLeafFallbackTemplate
     );
     const componentConfig = source.component?.config as {
       typeHeader?: string;

@@ -57,6 +57,7 @@ import { MapTypes } from './component/map.outline';
 import { FileUploadTypes } from './component/file-upload.outline';
 import { RecordMetadataRetrieverTypes } from './component/record-metadata-retriever.outline';
 import { DataLocationTypes } from './component/data-location.outline';
+import { PublishDataLocationSelectorTypes } from './component/publish-data-location-selector.outline';
 import { CancelButtonTypes } from './component/cancel-button.outline';
 import { TabNavButtonTypes } from './component/tab-nav-button.outline';
 
@@ -94,7 +95,8 @@ export type AllTypes =
   | MapTypes
   | FileUploadTypes
   | RecordMetadataRetrieverTypes
-  | DataLocationTypes;
+  | DataLocationTypes
+  | PublishDataLocationSelectorTypes;
 
 /*
  * The variables below here are conveniences that provide access to the various groups

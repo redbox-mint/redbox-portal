@@ -201,6 +201,17 @@ import {
   DataLocationModelName,
 } from '@researchdatabox/sails-ng-common';
 import { DataLocationFieldComponentConfig, DataLocationFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  PublishDataLocationSelectorComponentName,
+  PublishDataLocationSelectorFieldComponentDefinitionOutline,
+  PublishDataLocationSelectorFieldModelDefinitionOutline,
+  PublishDataLocationSelectorFormComponentDefinitionOutline,
+  PublishDataLocationSelectorModelName,
+} from '@researchdatabox/sails-ng-common';
+import {
+  PublishDataLocationSelectorFieldComponentConfig,
+  PublishDataLocationSelectorFieldModelConfig,
+} from '@researchdatabox/sails-ng-common';
 
 import { FieldModelConfigFrame } from '@researchdatabox/sails-ng-common';
 import { FieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
@@ -476,6 +487,16 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
       modelClassName: DataLocationModelName,
     },
   },
+  PublishDataLocationSelector: {
+    '': {
+      componentClassName: PublishDataLocationSelectorComponentName,
+      modelClassName: PublishDataLocationSelectorModelName,
+    },
+    PublishDataLocationSelectorComponent: {
+      componentClassName: PublishDataLocationSelectorComponentName,
+      modelClassName: PublishDataLocationSelectorModelName,
+    },
+  },
   RecordMetadataRetriever: {
     '': {
       componentClassName: RecordMetadataRetrieverComponentName,
@@ -594,6 +615,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.formPathHelper.reset();
 
     this.v5FormConfig.accept(this);
+    this.retargetPublishDataLocationSelectorExpressions(this.v5FormConfig.componentDefinitions);
 
     const attachmentVisitor = new AttachmentFieldsVisitor(this.logger);
     attachmentVisitor.start(this.v5FormConfig);
@@ -1498,6 +1520,89 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
+  }
+
+  visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new PublishDataLocationSelectorFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const mappedProps = [
+      'columns',
+      'editNotesButtonText',
+      'editNotesTitle',
+      'cancelEditNotesButtonText',
+      'applyEditNotesButtonText',
+      'editNotesCssClasses',
+      'typeHeader',
+      'locationHeader',
+      'notesHeader',
+      'iscHeader',
+      'iscEnabled',
+      'notesEnabled',
+      'noLocationSelectedText',
+      'noLocationSelectedHelp',
+      'publicCheck',
+      'selectionCriteria',
+      'dataTypes',
+      'dataTypeLookup',
+    ] as const;
+
+    for (const prop of mappedProps) {
+      if (field?.definition?.[prop] !== undefined) {
+        this.sharedProps.setPropOverride(prop, item.config, { [prop]: field.definition[prop] });
+      }
+    }
+  }
+
+  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new PublishDataLocationSelectorFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+    const field = this.getV4Data();
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const subscribe = (definition.subscribe ?? {}) as Record<string, unknown>;
+    const expressions = item.expressions ?? [];
+
+    for (const [sourceName, sourceConfigUnknown] of Object.entries(subscribe)) {
+      const sourceConfig = (sourceConfigUnknown ?? {}) as Record<string, unknown>;
+      const onValueUpdate = Array.isArray(sourceConfig.onValueUpdate)
+        ? (sourceConfig.onValueUpdate as Record<string, unknown>[])
+        : [];
+      const sourcePointer = this.resolveComponentAngularComponentsJsonPointer(
+        sourceName,
+        this.getCurrentContainerAngularComponentsJsonPointer(item.name)
+      );
+      for (const actionConfig of onValueUpdate) {
+        if (actionConfig?.action !== 'utilityService.getPropertyFromObject') {
+          continue;
+        }
+        const propertyName = String(actionConfig.field ?? '').trim();
+        if (!propertyName) {
+          continue;
+        }
+          expressions.push({
+            name: `${sourceName}-${item.name}-${propertyName}`.replace(/[^a-zA-Z0-9_-]+/g, '-'),
+            description: `Populate ${item.name} from ${sourceName} metadata`,
+            config: {
+              conditionKind: ExpressionsConditionKind.JSONPointer,
+              runOnFormReady: false,
+              condition: `${sourcePointer}::field.value.changed`,
+              target: 'model.value',
+              hasTemplate: true,
+              template: this.buildEventValueTemplate(propertyName),
+            },
+          });
+      }
+    }
+
+    if (expressions.length > 0) {
+      item.expressions = expressions;
+    }
   }
 
   /* Default Layout  */
@@ -3269,6 +3374,109 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       ? containerPointer.replace(/\/+$/, '')
       : '';
     return `${normalizedContainerPointer}/${trimmedName}`;
+  }
+
+  private getCurrentContainerAngularComponentsJsonPointer(componentName?: string): string {
+    const currentPointer = this.formPathHelper.formPath.angularComponentsJsonPointer ?? '';
+    const trimmedName = componentName?.trim();
+    if (!currentPointer || !trimmedName) {
+      return currentPointer;
+    }
+
+    const suffix = `/${trimmedName}`;
+    if (currentPointer.endsWith(suffix)) {
+      return currentPointer.slice(0, -suffix.length);
+    }
+
+    return currentPointer;
+  }
+
+  private resolveComponentAngularComponentsJsonPointer(componentName: string, fallbackContainerPointer = ''): string {
+    const trimmedName = componentName.trim();
+    if (!trimmedName) {
+      return fallbackContainerPointer;
+    }
+
+    const globalPointer = this.findComponentAngularComponentsJsonPointer(
+      this.v5FormConfig.componentDefinitions,
+      trimmedName
+    );
+    if (globalPointer) {
+      return globalPointer;
+    }
+
+    return this.buildNestedComponentJsonPointer(fallbackContainerPointer, trimmedName);
+  }
+
+  private findComponentAngularComponentsJsonPointer(
+    components: AllFormComponentDefinitionOutlines[] | undefined,
+    componentName: string,
+    parentPointer = ''
+  ): string | null {
+    for (const component of components ?? []) {
+      const currentName = component?.name?.trim();
+      if (!currentName) {
+        continue;
+      }
+
+      const currentPointer = this.buildNestedComponentJsonPointer(parentPointer, currentName);
+      if (currentName === componentName) {
+        return currentPointer;
+      }
+
+      const childDefinitions = this.getChildComponentDefinitions(component);
+      const found = this.findComponentAngularComponentsJsonPointer(childDefinitions, componentName, currentPointer);
+      if (found) {
+        return found;
+      }
+    }
+
+    return null;
+  }
+
+  private getChildComponentDefinitions(component: AllFormComponentDefinitionOutlines): AllFormComponentDefinitionOutlines[] {
+    const componentConfig = component?.component?.config as Record<string, unknown> | undefined;
+    const nested = [
+      ...(Array.isArray(componentConfig?.componentDefinitions)
+        ? componentConfig.componentDefinitions as AllFormComponentDefinitionOutlines[]
+        : []),
+      ...(Array.isArray(componentConfig?.tabs)
+        ? componentConfig.tabs as AllFormComponentDefinitionOutlines[]
+        : []),
+      ...(Array.isArray(componentConfig?.panels)
+        ? componentConfig.panels as AllFormComponentDefinitionOutlines[]
+        : []),
+    ];
+    return nested;
+  }
+
+  private retargetPublishDataLocationSelectorExpressions(components: AllFormComponentDefinitionOutlines[] | undefined): void {
+    for (const component of components ?? []) {
+      if (component.component?.class === PublishDataLocationSelectorComponentName) {
+        for (const expression of component.expressions ?? []) {
+          const sourceName = this.getExpressionSourceComponentName(expression.config?.condition);
+          if (!sourceName) {
+            continue;
+          }
+          const sourcePointer = this.findComponentAngularComponentsJsonPointer(this.v5FormConfig.componentDefinitions, sourceName);
+          if (sourcePointer) {
+            expression.config.condition = `${sourcePointer}::field.value.changed`;
+          }
+        }
+      }
+
+      this.retargetPublishDataLocationSelectorExpressions(this.getChildComponentDefinitions(component));
+    }
+  }
+
+  private getExpressionSourceComponentName(condition?: string): string | null {
+    const pointer = condition?.split('::')[0]?.trim();
+    if (!pointer) {
+      return null;
+    }
+
+    const segments = pointer.split('/').filter((segment) => segment.length > 0);
+    return segments.length > 0 ? segments[segments.length - 1] : null;
   }
 
   private buildEventValueTemplate(propertyName: string): string {

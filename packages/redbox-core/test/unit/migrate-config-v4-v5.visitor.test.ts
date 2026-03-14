@@ -1299,4 +1299,219 @@ describe("Migrate v4 to v5 Visitor", async () => {
             { label: "Official", value: "official" }
         ]);
     });
+
+    it("maps legacy PublishDataLocationSelector to the v5 selector component", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "publish-data-location-selector-migration",
+                fields: [
+                    {
+                        class: "PublishDataLocationSelector",
+                        compClass: "PublishDataLocationSelectorComponent",
+                        definition: {
+                            name: "dataLocations",
+                            iscEnabled: true,
+                            notesEnabled: true,
+                            typeHeader: "Type",
+                            locationHeader: "Location",
+                            notesHeader: "Notes",
+                            selectionCriteria: [{ isc: "public", type: "attachment" }],
+                            subscribe: {
+                                dataRecordGetter: {
+                                    onValueUpdate: [
+                                        { action: "utilityService.getPropertyFromObject", field: "dataLocations" }
+                                    ]
+                                },
+                                dataPubLocationRefresher: {
+                                    onValueUpdate: [
+                                        { action: "utilityService.getPropertyFromObject", field: "dataLocations" }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("PublishDataLocationSelectorComponent");
+        expect(migratedField.model?.class).to.equal("PublishDataLocationSelectorModel");
+        expect(migratedField.component.config).to.deep.include({
+            iscEnabled: true,
+            notesEnabled: true,
+            typeHeader: "Type",
+            locationHeader: "Location",
+            notesHeader: "Notes",
+        });
+        expect((migratedField.component.config as any).selectionCriteria).to.deep.equal([{ isc: "public", type: "attachment" }]);
+        expect(migratedField.expressions).to.deep.include.members([
+            {
+                name: "dataRecordGetter-dataLocations-dataLocations",
+                description: "Populate dataLocations from dataRecordGetter metadata",
+                config: {
+                    conditionKind: "jsonpointer",
+                    runOnFormReady: false,
+                    condition: "/dataRecordGetter::field.value.changed",
+                    target: "model.value",
+                    hasTemplate: true,
+                    template: "event.value.dataLocations",
+                },
+            },
+            {
+                name: "dataPubLocationRefresher-dataLocations-dataLocations",
+                description: "Populate dataLocations from dataPubLocationRefresher metadata",
+                config: {
+                    conditionKind: "jsonpointer",
+                    runOnFormReady: false,
+                    condition: "/dataPubLocationRefresher::field.value.changed",
+                    target: "model.value",
+                    hasTemplate: true,
+                    template: "event.value.dataLocations",
+                },
+            },
+        ]);
+    });
+
+    it("uses the enclosing container path for migrated publish data location selector expressions", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "publish-data-location-selector-nested-migration",
+                fields: [
+                    {
+                        class: "Container",
+                        definition: {
+                            id: "tab_data",
+                            fields: [
+                                {
+                                    class: "RecordMetadataRetriever",
+                                    compClass: "RecordMetadataRetrieverComponent",
+                                    definition: {
+                                        name: "dataRecordGetter",
+                                    }
+                                },
+                                {
+                                    class: "PublishDataLocationSelector",
+                                    compClass: "PublishDataLocationSelectorComponent",
+                                    definition: {
+                                        name: "dataLocations",
+                                        subscribe: {
+                                            dataRecordGetter: {
+                                                onValueUpdate: [
+                                                    { action: "utilityService.getPropertyFromObject", field: "dataLocations" }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const container = migrated.componentDefinitions[0];
+        expect(container.component.class).to.equal("GroupComponent");
+        const nestedField = (container.component.config as any).componentDefinitions.find(
+            (component: Record<string, any>) => component.name === "dataLocations"
+        );
+        expect(nestedField).to.not.equal(undefined);
+        expect(nestedField.expressions).to.deep.include({
+            name: "dataRecordGetter-dataLocations-dataLocations",
+            description: "Populate dataLocations from dataRecordGetter metadata",
+            config: {
+                conditionKind: "jsonpointer",
+                runOnFormReady: false,
+                condition: "/tab_data/dataRecordGetter::field.value.changed",
+                target: "model.value",
+                hasTemplate: true,
+                template: "event.value.dataLocations",
+            },
+        });
+    });
+
+    it("resolves cross-tab publish data location selector sources to their real component path", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "publish-data-location-selector-cross-tab-migration",
+                fields: [
+                    {
+                        class: "TabOrAccordionContainer",
+                        compClass: "TabOrAccordionContainerComponent",
+                        definition: {
+                            id: "mainTab",
+                            fields: [
+                                {
+                                    class: "Container",
+                                    definition: {
+                                        id: "about",
+                                        fields: [
+                                            {
+                                                class: "RecordMetadataRetriever",
+                                                compClass: "RecordMetadataRetrieverComponent",
+                                                definition: {
+                                                    name: "dataRecordGetter",
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    class: "Container",
+                                    definition: {
+                                        id: "data",
+                                        fields: [
+                                            {
+                                                class: "PublishDataLocationSelector",
+                                                compClass: "PublishDataLocationSelectorComponent",
+                                                definition: {
+                                                    name: "dataLocations",
+                                                    subscribe: {
+                                                        dataRecordGetter: {
+                                                            onValueUpdate: [
+                                                                { action: "utilityService.getPropertyFromObject", field: "dataLocations" }
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const mainTab = migrated.componentDefinitions[0];
+        expect(mainTab.component.class).to.equal("TabComponent");
+        const dataTab = ((mainTab.component.config as any).tabs as Array<Record<string, any>>).find(
+            (component) => component.name === "data"
+        );
+        expect(dataTab).to.not.equal(undefined);
+        const nestedField = (dataTab!.component.config as any).componentDefinitions.find(
+            (component: Record<string, any>) => component.name === "dataLocations"
+        );
+        expect(nestedField).to.not.equal(undefined);
+        expect(nestedField.expressions).to.deep.include.members([
+            {
+                name: "dataRecordGetter-dataLocations-dataLocations",
+                description: "Populate dataLocations from dataRecordGetter metadata",
+                config: {
+                    conditionKind: "jsonpointer",
+                    runOnFormReady: false,
+                    condition: "/mainTab/about/dataRecordGetter::field.value.changed",
+                    target: "model.value",
+                    hasTemplate: true,
+                    template: "event.value.dataLocations",
+                },
+            }
+        ]);
+    });
 });

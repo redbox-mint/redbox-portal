@@ -29,6 +29,10 @@ import { RichTextEditorComponent, RichTextEditorModel } from './component/rich-t
 import { MapComponent, MapModel } from './component/map.component';
 import { FileUploadComponent, FileUploadModel } from './component/file-upload.component';
 import { DataLocationComponent, DataLocationModel } from './component/data-location.component';
+import {
+  PublishDataLocationSelectorComponent,
+  PublishDataLocationSelectorModel,
+} from './component/publish-data-location-selector.component';
 import { RecordMetadataRetrieverComponent } from './component/record-metadata-retriever.component';
 import { FormFieldBaseComponent, FormFieldModel } from '@researchdatabox/portal-ng-common';
 import {
@@ -51,6 +55,7 @@ import {
   MapModelName,
   FileUploadModelName,
   DataLocationModelName,
+  PublishDataLocationSelectorModelName,
   RecordMetadataRetrieverComponentName,
   RepeatableComponentName,
   SaveButtonComponentName,
@@ -73,6 +78,7 @@ import {
   MapComponentName,
   FileUploadComponentName,
   DataLocationComponentName,
+  PublishDataLocationSelectorComponentName,
   CancelButtonComponentName,
   TabNavButtonComponentName,
   GroupFieldComponentName,
@@ -121,6 +127,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [FileUploadComponentName]: FileUploadComponent,
   [RecordMetadataRetrieverComponentName]: RecordMetadataRetrieverComponent,
   [DataLocationComponentName]: DataLocationComponent,
+  [PublishDataLocationSelectorComponentName]: PublishDataLocationSelectorComponent,
   [CancelButtonComponentName]: CancelButtonComponent,
   [TabNavButtonComponentName]: TabNavButtonComponent,
 });
@@ -148,6 +155,7 @@ export const getStaticModelClassMap = (): StaticModelClassMapType => ({
   [MapModelName]: MapModel,
   [FileUploadModelName]: FileUploadModel,
   [DataLocationModelName]: DataLocationModel,
+  [PublishDataLocationSelectorModelName]: PublishDataLocationSelectorModel,
 });
 
 /*
