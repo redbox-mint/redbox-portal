@@ -733,14 +733,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const label = typeof definition.label === 'string' ? definition.label : '';
       const valuePath = typeof definition.name === 'string' ? definition.name.trim() : '';
       const labelTemplateToken = this.isLegacyTranslationKey(label) ? '{{t content.label}}' : '{{content.label}}';
+      const target = typeof definition.target === 'string' ? definition.target : '';
 
       item.config.label = undefined;
-      item.config.content = { label, valuePath };
+      item.config.content = { label, valuePath, target };
       item.config.template =
         `{{#if (get formData content.valuePath "")}}` +
         `<li class="key-value-pair padding-bottom-10">` +
         `{{#if content.label}}<span class="key">${labelTemplateToken}</span>{{/if}}` +
-        `<span class="value"><a href="{{get formData content.valuePath ""}}" target="field.target">{{get formData content.valuePath ""}}</a></span>` +
+        `<span class="value"><a href="{{get formData content.valuePath ""}}"`+
+        `{{#if content.target}} target="{{content.target}}" rel="noopener noreferrer"{{/if}}>` +
+        `{{get formData content.valuePath ""}}</a></span>` +
         `</li>` +
         `{{/if}}`;
       return;
