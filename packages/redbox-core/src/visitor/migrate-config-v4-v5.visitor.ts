@@ -315,6 +315,16 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
       modelClassName: SimpleInputModelName,
     },
   },
+  LinkValueComponent: {
+    '': {
+      componentClassName: ContentComponentName,
+    },
+  },
+  HtmlRaw: {
+    HtmlRawComponent: {
+      componentClassName: ContentComponentName,
+    },
+  },
   RepeatableContainer: {
     '': {
       componentClassName: RepeatableComponentName,
@@ -718,6 +728,24 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
     this.sharedPopulateFieldComponentConfig(item.config, field);
 
+    if (this.isLegacyLinkValueControl(field)) {
+      const definition = (field?.definition ?? {}) as Record<string, unknown>;
+      const label = typeof definition.label === 'string' ? definition.label : '';
+      const valuePath = typeof definition.name === 'string' ? definition.name.trim() : '';
+      const labelTemplateToken = this.isLegacyTranslationKey(label) ? '{{t content.label}}' : '{{content.label}}';
+
+      item.config.label = undefined;
+      item.config.content = { label, valuePath };
+      item.config.template =
+        `{{#if (get formData content.valuePath "")}}` +
+        `<li class="key-value-pair padding-bottom-10">` +
+        `{{#if content.label}}<span class="key">${labelTemplateToken}</span>{{/if}}` +
+        `<span class="value"><a href="{{get formData content.valuePath ""}}" target="field.target">{{get formData content.valuePath ""}}</a></span>` +
+        `</li>` +
+        `{{/if}}`;
+      return;
+    }
+
     if (this.isLegacyAnchorControl(field)) {
       const definition = (field?.definition ?? {}) as Record<string, unknown>;
       const href = typeof definition.value === 'string' ? definition.value : '';
@@ -856,6 +884,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
+    if (this.isLegacyLinkValueControl(this.getV4Data())) {
+      const definition = (this.getV4Data()?.definition ?? {}) as Record<string, unknown>;
+      const valuePath = typeof definition.name === 'string' ? definition.name.trim() : '';
+      if (valuePath) {
+        item.name = `${valuePath}-link-value`;
+      }
+    }
   }
 
   /* Repeatable  */
@@ -1505,6 +1540,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const field = this.getV4Data();
     item.config = new CheckboxInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
+
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const rawDefaultValue = definition.value ?? definition.defaultValue;
+    const hasOptions = Array.isArray(definition.options) && definition.options.length > 0;
+    if (definition.controlType === 'checkbox' && typeof rawDefaultValue === 'boolean' && !hasOptions) {
+      delete item.config.defaultValue;
+    }
   }
 
   visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
@@ -2138,6 +2180,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const sourceName = typeof definition.name === 'string' ? definition.name.trim() : '';
     const sourceType = typeof definition.type === 'string' ? definition.type.trim().toLowerCase() : '';
     const sourceValue = definition.value;
+    const isLegacyLinkValue =
+      `${field?.class ?? ''}`.trim() === 'LinkValueComponent' &&
+      sourceName.length > 0;
     const isLegacyHeadingTextBlock =
       `${field?.class ?? ''}`.trim() === 'Container' &&
       `${field?.compClass ?? ''}`.trim() === 'TextBlockComponent' &&
@@ -2145,7 +2190,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       sourceName.length > 0 &&
       (sourceValue === undefined || sourceValue === null || sourceValue === '') &&
       (field?.viewOnly === true || definition?.viewOnly === true);
-    if (!isLegacyHeadingTextBlock) {
+    if (!isLegacyHeadingTextBlock && !isLegacyLinkValue) {
       return undefined;
     }
 
@@ -2307,7 +2352,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
     }
     const migratedLabel =
-      this.shouldSuppressLegacyTextBlockLayoutLabel(field)
+      (this.shouldSuppressLegacyTextBlockLayoutLabel(field) || this.isLegacyLinkValueControl(field))
         ? undefined
         : hasExplicitLabel
         ? (definition.label as string)
@@ -2525,6 +2570,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
     const definition = (field.definition ?? {}) as Record<string, unknown>;
     return `${field.class ?? ''}`.trim() === 'AnchorOrButton' && `${definition.controlType ?? ''}`.trim() === 'anchor';
+  }
+
+  private isLegacyLinkValueControl(field?: Record<string, unknown>): boolean {
+    if (!field) {
+      return false;
+    }
+    return `${field.class ?? ''}`.trim() === 'LinkValueComponent';
   }
 
   private isInsideLegacyInlineContainer(): boolean {
