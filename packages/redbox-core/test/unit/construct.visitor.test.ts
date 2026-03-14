@@ -1132,6 +1132,12 @@ describe("Construct Visitor", async () => {
                 ]
             });
             expect((transformed.component.config as any).template).to.contain("rb-view-data-location");
+            expect((transformed.component.config as any).template).to.contain("<thead><tr><th width=\"15%\">{{t \"Type\"}}</th>");
+            expect((transformed.component.config as any).template).to.contain("<th width=\"40%\">{{t \"Location\"}}</th>");
+            expect((transformed.component.config as any).template).to.contain("<th width=\"20%\">{{t \"Notes\"}}</th>");
+            expect((transformed.component.config as any).template).to.contain("<th width=\"20%\">{{t \"Information Security Classification\"}}</th>");
+            expect((transformed.component.config as any).template).to.contain("<td>{{default this.notes \"\"}}</td>");
+            expect((transformed.component.config as any).template).to.contain("<td>{{default this.isc \"\"}}</td>");
         });
 
         it("should populate transformed dropdown content component from record array values", async () => {
