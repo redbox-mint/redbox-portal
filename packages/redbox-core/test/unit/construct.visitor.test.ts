@@ -1196,8 +1196,8 @@ describe("Construct Visitor", async () => {
                 ]
             });
             expect((transformed.component.config as any).template).to.contain("rb-view-publish-data-location-selector");
-            expect((transformed.component.config as any).template).to.contain("Selected");
-            expect((transformed.component.config as any).template).to.contain("&#10003;");
+            expect((transformed.component.config as any).template).to.contain("{{#if this.selected}}");
+            expect((transformed.component.config as any).template).to.not.contain("&#10003;");
         });
 
         it("should populate transformed dropdown content component from record array values", async () => {
