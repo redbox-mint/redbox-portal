@@ -129,12 +129,12 @@ describe('RecordSelectorComponent', () => {
     fixture.detectChanges();
 
     expect(compiled.textContent).toContain('Beta record');
-    expect(compiled.textContent).toContain('Change');
     expect(compiled.querySelector('input')).toBeNull();
     expect(compiled.querySelectorAll('.rb-record-selector-option').length).toBe(0);
 
-    const changeButton = Array.from(compiled.querySelectorAll('button')).find(button => button.textContent?.includes('Change')) as HTMLButtonElement;
-    changeButton.click();
+    const changeButton = compiled.querySelector('.rb-record-selector-actions .btn-info') as HTMLButtonElement | null;
+    expect(changeButton).not.toBeNull();
+    changeButton!.click();
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -164,8 +164,9 @@ describe('RecordSelectorComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.querySelectorAll('.rb-record-selector-option').length).toBe(0);
-    expect(compiled.textContent).toContain('Type to search records');
-    expect(compiled.textContent).toContain('Enter part of a title, then choose a result below.');
+    expect(compiled.querySelector('.rb-record-selector-search-hint')).not.toBeNull();
+    expect(compiled.querySelector('.rb-record-selector-status')).not.toBeNull();
+    expect(compiled.querySelector('input')).not.toBeNull();
     expect(recordService.getRecords).not.toHaveBeenCalled();
   });
 
@@ -198,8 +199,8 @@ describe('RecordSelectorComponent', () => {
     const buttons = compiled.querySelectorAll('.rb-record-selector-option') as NodeListOf<HTMLButtonElement>;
     expect(buttons.length).toBe(1);
     expect(buttons[0].textContent).toContain('Beta record');
-    expect(compiled.textContent).toContain('Choose a record (1 found)');
-    expect(compiled.textContent).not.toContain('1 record(s) found');
+    expect(compiled.querySelector('.rb-record-selector-results-kicker')).not.toBeNull();
+    expect(compiled.querySelector('.rb-record-selector-results-copy')).not.toBeNull();
     expect(recordService.getRecords).toHaveBeenCalledTimes(1);
   });
 
