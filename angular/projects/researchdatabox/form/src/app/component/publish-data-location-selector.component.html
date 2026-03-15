@@ -1,6 +1,7 @@
-<ng-container *ngTemplateOutlet="getTemplateRef('before')" />
+@if (isVisible) {
+  <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
 
-@if (dataLocations.length > 0) {
+  @if (dataLocations.length > 0) {
     <div class="table-responsive mt-2">
       <table class="table table-bordered table-striped table-hover mb-0">
         <thead>
@@ -83,11 +84,12 @@
     </div>
   }
 
-@if (shouldShowNoLocationSelected()) {
-  <div class="mt-2">
-    <h5 class="fw-bold">{{ noLocationSelectedText | i18next }}</h5>
-    <p>{{ noLocationSelectedHelp | i18next }}</p>
-  </div>
-}
+  @if (shouldShowNoLocationSelected()) {
+    <div class="mt-2">
+      <h5 class="fw-bold">{{ noLocationSelectedText | i18next }}</h5>
+      <p>{{ noLocationSelectedHelp | i18next }}</p>
+    </div>
+  }
 
-<ng-container *ngTemplateOutlet="getTemplateRef('after')" />
+  <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
+}
