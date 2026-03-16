@@ -42,22 +42,14 @@ describe('RecordMetadataRetrieverComponent', () => {
     handleExpression: (event: unknown, expression: unknown) => Promise<void>;
     expressionConsumer?: jasmine.SpyObj<{
       destroy: () => void;
-      evaluateExpressionJSONata: (
-        expression: unknown,
-        event: unknown,
-        propertyName: string
-      ) => Promise<unknown>;
+      evaluateTemplateExpression: (expression: unknown, event: unknown) => Promise<unknown>;
     }>;
   } {
     return component as unknown as {
       handleExpression: (event: unknown, expression: unknown) => Promise<void>;
       expressionConsumer?: jasmine.SpyObj<{
         destroy: () => void;
-        evaluateExpressionJSONata: (
-          expression: unknown,
-          event: unknown,
-          propertyName: string
-        ) => Promise<unknown>;
+        evaluateTemplateExpression: (expression: unknown, event: unknown) => Promise<unknown>;
       }>;
     };
   }
@@ -138,8 +130,8 @@ describe('RecordMetadataRetrieverComponent', () => {
     const component = createComponent();
     const privateComponent = getPrivateComponent(component);
     const fetchSpy = spyOn(component, 'fetchMetadata').and.resolveTo();
-    const expressionConsumer = jasmine.createSpyObj('expressionConsumer', ['destroy', 'evaluateExpressionJSONata']);
-    expressionConsumer.evaluateExpressionJSONata.and.resolveTo('rdmp-001');
+    const expressionConsumer = jasmine.createSpyObj('expressionConsumer', ['destroy', 'evaluateTemplateExpression']);
+    expressionConsumer.evaluateTemplateExpression.and.resolveTo('rdmp-001');
     privateComponent.expressionConsumer = expressionConsumer;
 
     await privateComponent.handleExpression(
@@ -167,8 +159,8 @@ describe('RecordMetadataRetrieverComponent', () => {
     const component = createComponent();
     const privateComponent = getPrivateComponent(component);
     const fetchSpy = spyOn(component, 'fetchMetadata').and.resolveTo();
-    const expressionConsumer = jasmine.createSpyObj('expressionConsumer', ['destroy', 'evaluateExpressionJSONata']);
-    expressionConsumer.evaluateExpressionJSONata.and.resolveTo('163725301ce411f19d61ef3046509162');
+    const expressionConsumer = jasmine.createSpyObj('expressionConsumer', ['destroy', 'evaluateTemplateExpression']);
+    expressionConsumer.evaluateTemplateExpression.and.resolveTo('163725301ce411f19d61ef3046509162');
     privateComponent.expressionConsumer = expressionConsumer;
 
     await privateComponent.handleExpression(
@@ -190,7 +182,7 @@ describe('RecordMetadataRetrieverComponent', () => {
       }
     );
 
-    expect(expressionConsumer.evaluateExpressionJSONata).not.toHaveBeenCalled();
+    expect(expressionConsumer.evaluateTemplateExpression).not.toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -198,8 +190,8 @@ describe('RecordMetadataRetrieverComponent', () => {
     const component = createComponent();
     const privateComponent = getPrivateComponent(component);
     const fetchSpy = spyOn(component, 'fetchMetadata').and.resolveTo();
-    const expressionConsumer = jasmine.createSpyObj('expressionConsumer', ['destroy', 'evaluateExpressionJSONata']);
-    expressionConsumer.evaluateExpressionJSONata.and.resolveTo('163725301ce411f19d61ef3046509162');
+    const expressionConsumer = jasmine.createSpyObj('expressionConsumer', ['destroy', 'evaluateTemplateExpression']);
+    expressionConsumer.evaluateTemplateExpression.and.resolveTo('163725301ce411f19d61ef3046509162');
     privateComponent.expressionConsumer = expressionConsumer;
 
     await privateComponent.handleExpression(
@@ -221,7 +213,7 @@ describe('RecordMetadataRetrieverComponent', () => {
       }
     );
 
-    expect(expressionConsumer.evaluateExpressionJSONata).not.toHaveBeenCalled();
+    expect(expressionConsumer.evaluateTemplateExpression).not.toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -229,8 +221,8 @@ describe('RecordMetadataRetrieverComponent', () => {
     const component = createComponent();
     const privateComponent = getPrivateComponent(component);
     const fetchSpy = spyOn(component, 'fetchMetadata').and.resolveTo();
-    const expressionConsumer = jasmine.createSpyObj('expressionConsumer', ['destroy', 'evaluateExpressionJSONata']);
-    expressionConsumer.evaluateExpressionJSONata.and.resolveTo('child-value');
+    const expressionConsumer = jasmine.createSpyObj('expressionConsumer', ['destroy', 'evaluateTemplateExpression']);
+    expressionConsumer.evaluateTemplateExpression.and.resolveTo('child-value');
     privateComponent.expressionConsumer = expressionConsumer;
 
     await privateComponent.handleExpression(
@@ -254,7 +246,7 @@ describe('RecordMetadataRetrieverComponent', () => {
       }
     );
 
-    expect(expressionConsumer.evaluateExpressionJSONata).not.toHaveBeenCalled();
+    expect(expressionConsumer.evaluateTemplateExpression).not.toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
