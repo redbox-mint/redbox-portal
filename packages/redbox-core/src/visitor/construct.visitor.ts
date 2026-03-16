@@ -1202,6 +1202,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
+    this.ensureRichTextViewOverride(item);
   }
 
   /* Map */
@@ -1921,6 +1922,27 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       phase: 'construct',
       reusableFormDefs: this.reusableFormDefs,
     }) as AllFormComponentDefinitionOutlines;
+  }
+
+  protected ensureRichTextViewOverride(item: RichTextEditorFormComponentDefinitionOutline): void {
+    const allowModes = item?.constraints?.allowModes;
+    const hasExplicitViewMode = Array.isArray(allowModes) && allowModes.includes('view');
+    const existingViewComponent = item?.overrides?.formModeClasses?.view?.component;
+
+    if (!hasExplicitViewMode || existingViewComponent !== undefined) {
+      return;
+    }
+
+    item.overrides = {
+      ...(item.overrides ?? {}),
+      formModeClasses: {
+        ...(item.overrides?.formModeClasses ?? {}),
+        view: {
+          ...(item.overrides?.formModeClasses?.view ?? {}),
+          component: ContentComponentName,
+        },
+      },
+    };
   }
 
   /**

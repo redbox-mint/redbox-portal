@@ -296,6 +296,7 @@ describe('RecordSelectorComponent', () => {
     const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: false } as any);
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Alpha record');
+    expect(compiled.textContent).not.toContain('Record title');
     expect(compiled.querySelector('[role="listbox"]')).toBeNull();
   });
 });
