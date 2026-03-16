@@ -156,13 +156,13 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       // Build the context for JSONata evaluation
       // Include the event value and any additional data that may be useful
 			const context = {
+				...additionalData,
         value: value,
 				event: eventClone,
 				// Include the current form data if available
 				formData: formData,
         requestParams,
-        runtimeContext,
-        ...additionalData
+				runtimeContext
 			};
 
 			const result = await compiledItems.evaluate(templateKey, context, {libraries : {jsonata: jsonata}});
