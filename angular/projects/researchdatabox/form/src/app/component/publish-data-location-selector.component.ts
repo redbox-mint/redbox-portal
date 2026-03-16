@@ -90,7 +90,7 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
   }
 
   public selectAllLocations(checked: boolean): void {
-    if (this.isDisabled) {
+    if (this.isDisabled || this.isReadonly) {
       return;
     }
     const updated = this.dataLocations.map((dataLocation) => {

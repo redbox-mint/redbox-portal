@@ -9,6 +9,7 @@
             <th width="5%">
               <input
                 type="checkbox"
+                [disabled]="isDisabled || isReadonly"
                 [attr.aria-label]="'select-all-items' | i18next"
                 (change)="selectAllLocations($any($event.target).checked)"
               />
@@ -30,7 +31,7 @@
                 <input
                   type="checkbox"
                   [checked]="dataLocation.selected === true"
-                  [disabled]="!canBeSelected(dataLocation)"
+                  [disabled]="isDisabled || isReadonly || !canBeSelected(dataLocation)"
                   [attr.aria-label]="'select-item' | i18next"
                   (change)="toggleLocationSelection($index, $any($event.target).checked)"
                 />
@@ -48,9 +49,11 @@
               @if (notesEnabled) {
                 <td>
                   <span>{{ dataLocation.notes }}</span>
-                  <button type="button" class="btn btn-primary btn-sm float-end" (click)="startEditNotes($index)">
-                    {{ editNotesButtonText | i18next }}
-                  </button>
+                  @if (!(isDisabled || isReadonly)) {
+                    <button type="button" class="btn btn-primary btn-sm float-end" (click)="startEditNotes($index)">
+                      {{ editNotesButtonText | i18next }}
+                    </button>
+                  }
                 </td>
               }
               @if (iscEnabled) {
