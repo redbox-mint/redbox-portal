@@ -946,7 +946,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   private parseRequestParamsFromUrl(rawHref?: string): FormRequestParamsMap {
     const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
-    const parsedUrl = new URL(rawHref ?? window.location.href, fallbackOrigin);
+    const href = rawHref ?? (typeof window !== 'undefined' ? window.location.href : fallbackOrigin);
+    const parsedUrl = new URL(href, fallbackOrigin);
     const search = parsedUrl.search.startsWith('?') ? parsedUrl.search.slice(1) : parsedUrl.search;
     if (_isEmpty(search)) {
       return {};
@@ -976,7 +977,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private decodeRequestParamSegment(segment: string): string {
-    return decodeURIComponent(segment.replace(/\+/g, ' '));
+    const normalizedSegment = segment.replace(/\+/g, ' ');
+    try {
+      return decodeURIComponent(normalizedSegment);
+    } catch (error) {
+      this.loggerService.warn(`${this.logName}: Failed to decode request parameter segment. Falling back to the raw segment.`, {
+        error,
+        segment
+      });
+      return normalizedSegment;
+    }
   }
 
   private mergeRequestParamValue(existingValue: FormRequestParamValue | undefined, nextValue: FormRequestParamValue): FormRequestParamValue {
