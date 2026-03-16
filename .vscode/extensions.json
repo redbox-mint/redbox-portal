@@ -2,6 +2,6 @@
   // Recommended extensions for this workspace
   "recommendations": [
     "esbenp.prettier-vscode",
-    "dbaeumer.vscode-eslint"
+    "oxc.oxc-vscode"
   ]
 }

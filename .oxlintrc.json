@@ -1,0 +1,143 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "env": {
+    "builtin": true,
+    "browser": true,
+    "node": true
+  },
+  "categories": {
+    "correctness": "off",
+    "suspicious": "off",
+    "pedantic": "off",
+    "perf": "off",
+    "style": "off",
+    "restriction": "off",
+    "nursery": "off"
+  },
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/coverage/**",
+    "**/.tmp/**",
+    "**/.git/**",
+    "**/*.js",
+    "**/*.jsx",
+    "**/*.cjs",
+    "**/*.mjs",
+    "support/wiki/**",
+    "support/docs/**",
+    "**/*.d.ts"
+  ],
+  "rules": {
+    "no-unused-expressions": "error"
+  },
+  "overrides": [
+    {
+      "files": [
+        "{api,config,test,typescript}/**/*.{ts,tsx}",
+        "packages/*/{src,test}/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "no-array-constructor": "error",
+        "typescript/no-explicit-any": "error",
+        "typescript/no-extra-non-null-assertion": "error",
+        "typescript/no-misused-new": "error",
+        "typescript/no-non-null-asserted-optional-chain": "error",
+        "typescript/no-unsafe-declaration-merging": "error",
+        "typescript/no-unused-vars": [
+          "error",
+          {
+            "argsIgnorePattern": "^_",
+            "varsIgnorePattern": "^_",
+            "caughtErrorsIgnorePattern": "^_"
+          }
+        ],
+        "typescript/no-unsafe-function-type": "error",
+        "typescript/no-var-requires": "error",
+        "typescript/no-wrapper-object-types": "error",
+        "prefer-const": "warn",
+        "no-var": "error"
+      }
+    },
+    {
+      "files": [
+        "packages/redbox-core/{src,test}/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "no-control-regex": "warn",
+        "no-empty": "warn",
+        "no-useless-catch": "warn",
+        "no-useless-escape": "warn",
+        "typescript/no-var-requires": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/redbox-core/src/CoreController.ts",
+        "packages/redbox-core/src/CoreService.ts",
+        "packages/redbox-core/src/controllers/webservice/*.ts",
+        "packages/redbox-core/src/services/RecordsService.ts",
+        "packages/redbox-core/src/services/VocabService.ts"
+      ],
+      "rules": {
+        "typescript/no-unused-vars": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/redbox-core/src/waterline-models/*.ts"
+      ],
+      "rules": {
+        "typescript/no-var-requires": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/redbox-core/src/sails.ts"
+      ],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/redbox-core/src/visitor/*.ts"
+      ],
+      "rules": {
+        "typescript/no-unused-vars": "off",
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/redbox-dev-tools/**/*.{ts,tsx}",
+        "packages/rva-registry/**/*.{ts,tsx}",
+        "packages/sails-ng-common/**/*.{ts,tsx}",
+        "test/**/*.{ts,tsx}",
+        "typescript/assets/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "typescript/no-explicit-any": "off",
+        "typescript/no-var-requires": "off",
+        "typescript/no-unused-vars": "off",
+        "typescript/no-unsafe-function-type": "off",
+        "prefer-const": "off",
+        "no-var": "off"
+      }
+    },
+    {
+      "files": [
+        "test/**/*.ts",
+        "packages/*/test/**/*.ts",
+        "**/*.test.ts"
+      ],
+      "rules": {
+        "no-unused-expressions": "off",
+        "typescript/no-explicit-any": "off",
+        "typescript/no-var-requires": "off",
+        "typescript/no-unused-vars": "off",
+        "typescript/no-unsafe-function-type": "off"
+      }
+    }
+  ]
+}
