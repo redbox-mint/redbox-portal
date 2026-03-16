@@ -142,6 +142,5 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() }),
   ],
   bootstrap: [FormComponent],
-  exports: [RecordSelectorComponent],
 })
 export class FormModule { }
