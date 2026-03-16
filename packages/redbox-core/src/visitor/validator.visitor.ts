@@ -54,6 +54,9 @@ import {
     CheckboxTreeFieldComponentDefinitionOutline,
     CheckboxTreeFieldModelDefinitionOutline,
     CheckboxTreeFormComponentDefinitionOutline,
+    RecordSelectorFieldComponentDefinitionOutline,
+    RecordSelectorFieldModelDefinitionOutline,
+    RecordSelectorFormComponentDefinitionOutline,
     DropdownInputFieldComponentDefinitionOutline,
     DropdownInputFieldModelDefinitionOutline,
     DropdownInputFormComponentDefinitionOutline,
@@ -413,6 +416,16 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    visitRecordSelectorFieldComponentDefinition(_item: RecordSelectorFieldComponentDefinitionOutline): void {
+    }
+
+    visitRecordSelectorFieldModelDefinition(_item: RecordSelectorFieldModelDefinitionOutline): void {
+    }
+
+    visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

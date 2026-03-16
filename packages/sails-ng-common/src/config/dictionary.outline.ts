@@ -50,6 +50,7 @@ import {
 } from './component/reusable.outline';
 import { QuestionTreeTypes } from './component/question-tree.outline';
 import { CheckboxTreeTypes } from './component/checkbox-tree.outline';
+import { RecordSelectorTypes } from './component/record-selector.outline';
 import { TypeaheadInputTypes } from './component/typeahead-input.outline';
 import { RichTextEditorTypes } from './component/rich-text-editor.outline';
 import { MapTypes } from './component/map.outline';
@@ -87,6 +88,7 @@ export type AllTypes =
   | ReusableTypes
   | QuestionTreeTypes
   | CheckboxTreeTypes
+  | RecordSelectorTypes
   | TypeaheadInputTypes
   | RichTextEditorTypes
   | MapTypes

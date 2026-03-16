@@ -80,6 +80,8 @@ export * from './config/component/question-tree.model';
 export * from './config/component/question-tree.outline';
 export * from './config/component/checkbox-tree.model';
 export * from './config/component/checkbox-tree.outline';
+export * from './config/component/record-selector.model';
+export * from './config/component/record-selector.outline';
 export * from './config/component/typeahead-input.model';
 export * from './config/component/typeahead-input.outline';
 export * from './config/component/rich-text-editor.model';

@@ -153,7 +153,8 @@ export namespace Services {
             formMode: FormModesConfig,
             reusableFormDefs?: ReusableFormDefinitions
         ): BasicRedboxRecord {
-            const permittedChanges = this.buildSchemaForFormConfig(clientFormConfig, formMode, reusableFormDefs);
+            const schemaFormConfig = this.stripModelValuesFromFormConfig(clientFormConfig);
+            const permittedChanges = this.buildSchemaForFormConfig(schemaFormConfig, formMode, reusableFormDefs);
             const originalMetadata = original?.metadata ?? {};
             const changedMetadata = changed?.metadata ?? {};
             const changes = this.compareRecords(original, changed);
@@ -511,6 +512,50 @@ export namespace Services {
               enabledValidationGroups: enabledValidationGroups || ["all"],
               validatorDefinitions,
             });
+        }
+
+        /**
+         * Remove hydrated client-side model values before re-running construct/schema visitors.
+         * Client form config includes runtime `model.config.value`, but construct only accepts
+         * author-time defaults in `model.config.defaultValue`.
+         */
+        private stripModelValuesFromFormConfig(item: FormConfigFrame): FormConfigFrame {
+            const result = _.cloneDeep(item) as unknown as Record<string, unknown>;
+
+            const stripComponent = (component: Record<string, unknown>) => {
+                const model = component?.model as Record<string, unknown> | undefined;
+                const modelConfig = model?.config as Record<string, unknown> | undefined;
+                if (modelConfig && Object.prototype.hasOwnProperty.call(modelConfig, 'value')) {
+                    delete modelConfig.value;
+                }
+
+                const componentConfig = (component?.component as Record<string, unknown> | undefined)?.config as
+                  | Record<string, unknown>
+                  | undefined;
+                if (!componentConfig) {
+                    return;
+                }
+
+                const nestedArrays = ['componentDefinitions', 'tabs', 'panels'];
+                nestedArrays.forEach(key => {
+                    const nested = componentConfig[key];
+                    if (Array.isArray(nested)) {
+                        nested.forEach(item => stripComponent(item as Record<string, unknown>));
+                    }
+                });
+
+                const elementTemplate = componentConfig.elementTemplate;
+                if (_.isPlainObject(elementTemplate)) {
+                    stripComponent(elementTemplate as Record<string, unknown>);
+                }
+            };
+
+            const componentDefinitions = result.componentDefinitions;
+            if (Array.isArray(componentDefinitions)) {
+                componentDefinitions.forEach(item => stripComponent(item as Record<string, unknown>));
+            }
+
+            return result as unknown as FormConfigFrame;
         }
 
         /**

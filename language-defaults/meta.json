@@ -243,6 +243,50 @@
     "category": "search",
     "description": "Translation for record-search-results"
   },
+  "record-selector-no-record-selected": {
+    "category": "record-selector",
+    "description": "Fallback text shown when no related record is selected"
+  },
+  "record-selector-search-label": {
+    "category": "record-selector",
+    "description": "Label for the related record selector search input"
+  },
+  "record-selector-search-hint": {
+    "category": "record-selector",
+    "description": "Helper text shown beneath the related record selector search input"
+  },
+  "record-selector-status-idle": {
+    "category": "record-selector",
+    "description": "Status text shown before the user searches for a related record"
+  },
+  "record-selector-status-loading": {
+    "category": "record-selector",
+    "description": "Status text shown while related record search results are loading"
+  },
+  "record-selector-status-none": {
+    "category": "record-selector",
+    "description": "Status text shown when no related records match the search"
+  },
+  "record-selector-status-results": {
+    "category": "record-selector",
+    "description": "Status text used internally when related record results exist"
+  },
+  "record-selector-status-error": {
+    "category": "record-selector",
+    "description": "Status text shown when related record results cannot be loaded"
+  },
+  "record-selector-results-heading": {
+    "category": "record-selector",
+    "description": "Heading above related record search results with the result count"
+  },
+  "record-selector-results-copy": {
+    "category": "record-selector",
+    "description": "Supporting text above related record search results"
+  },
+  "record-selector-option-meta": {
+    "category": "record-selector",
+    "description": "Helper text shown on each related record search result option"
+  },
   "plan-with-no-title": {
     "category": "plan",
     "description": "Translation for plan-with-no-title"

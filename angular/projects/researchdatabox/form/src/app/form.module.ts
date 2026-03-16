@@ -53,6 +53,7 @@ import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { DateInputComponent } from './component/date-input.component';
 import { CheckboxTreeComponent } from './component/checkbox-tree.component';
+import { RecordSelectorComponent } from './component/record-selector.component';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { TypeaheadModule } from 'ngx-bootstrap/typeahead';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
@@ -100,6 +101,7 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     DateInputComponent,
     QuestionTreeComponent,
     CheckboxTreeComponent,
+    RecordSelectorComponent,
     TypeaheadInputComponent,
     RichTextEditorComponent,
     MapComponent,
@@ -140,6 +142,5 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() }),
   ],
   bootstrap: [FormComponent],
-  exports: [],
 })
 export class FormModule { }

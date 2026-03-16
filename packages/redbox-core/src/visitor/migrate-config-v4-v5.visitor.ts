@@ -167,6 +167,14 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import {
+  RecordSelectorComponentName,
+  RecordSelectorFieldComponentDefinitionOutline,
+  RecordSelectorFieldModelDefinitionOutline,
+  RecordSelectorFormComponentDefinitionOutline,
+  RecordSelectorModelName,
+} from '@researchdatabox/sails-ng-common';
+import { RecordSelectorFieldComponentConfig, RecordSelectorFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
   MapComponentName,
   MapDrawingMode,
   MapFieldModelConfigOutline,
@@ -412,6 +420,16 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
     ANDSVocabComponent: {
       componentClassName: CheckboxTreeComponentName,
       modelClassName: CheckboxTreeModelName,
+    },
+  },
+  RelatedObjectSelector: {
+    '': {
+      componentClassName: RecordSelectorComponentName,
+      modelClassName: RecordSelectorModelName,
+    },
+    RelatedObjectSelectorComponent: {
+      componentClassName: RecordSelectorComponentName,
+      modelClassName: RecordSelectorModelName,
     },
   },
   MapField: {
@@ -966,10 +984,16 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const field = this.getV4Data();
     item.config = new RecordMetadataRetrieverFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
+    item.config.label = undefined;
+    item.config.visible = false;
   }
 
   visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
+    if (item.layout?.config) {
+      item.layout.config.label = undefined;
+      item.layout.config.visible = false;
+    }
   }
 
   /* Save Status */
@@ -1533,6 +1557,81 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Record Selector */
+
+  visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new RecordSelectorFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    this.sharedProps.setPropOverride('columnTitle', item.config, {
+      columnTitle: String(definition.columnTitle ?? 'Record title'),
+    });
+    this.sharedProps.setPropOverride('recordType', item.config, {
+      recordType: typeof definition.recordType === 'string' ? definition.recordType : undefined,
+    });
+    this.sharedProps.setPropOverride('workflowState', item.config, {
+      workflowState: typeof definition.workflowState === 'string' ? definition.workflowState : '',
+    });
+    const v4FilterMode = typeof definition.filterMode === 'string' ? definition.filterMode : 'default';
+    let filterMode = 'default';
+    switch (String(v4FilterMode).trim().toLowerCase()) {
+      case '':
+      case 'default':
+        filterMode = 'default';
+        break;
+      case 'equal':
+      case 'exact':
+        filterMode = 'equal';
+        break;
+      default:
+        filterMode = 'regex';
+        break;
+    }
+    this.sharedProps.setPropOverride('filterMode', item.config, {
+      filterMode,
+    });
+    this.sharedProps.setPropOverride('filterFields', item.config, {
+      filterFields: Array.isArray(definition.filterFields)
+        ? definition.filterFields.map((fieldName) => String(fieldName))
+        : [],
+    });
+  }
+
+  visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new RecordSelectorFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+
+    const coerceRecordSelectorValue = (value: unknown): { oid: string; title?: string } | null => {
+      if (!value || typeof value !== 'object') {
+        return null;
+      }
+      const oid = typeof (value as Record<string, unknown>).oid === 'string'
+        ? String((value as Record<string, unknown>).oid).trim()
+        : '';
+      if (!oid) {
+        return null;
+      }
+      const title = typeof (value as Record<string, unknown>).title === 'string'
+        ? String((value as Record<string, unknown>).title)
+        : undefined;
+      return title ? { oid, title } : { oid };
+    };
+
+    if (item.config.defaultValue !== undefined) {
+      item.config.defaultValue = coerceRecordSelectorValue(item.config.defaultValue);
+    }
+    if (item.config.value !== undefined) {
+      item.config.value = coerceRecordSelectorValue(item.config.value);
+    }
+  }
+
+  visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
   }
 
@@ -3066,7 +3165,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             condition: `${this.buildNestedComponentJsonPointer(containerPointer, sourceName)}::field.value.changed`,
             operation: 'fetchMetadata',
             hasTemplate: true,
-            template: '$exists(event.value.redboxOid) ? event.value.redboxOid : event.value',
+            template: '$exists(event.value.oid) ? event.value.oid : ($exists(event.value.redboxOid) ? event.value.redboxOid : event.value)',
           },
         });
       }
