@@ -70,6 +70,9 @@ import {
     FileUploadFieldComponentDefinitionOutline,
     FileUploadFieldModelDefinitionOutline,
     FileUploadFormComponentDefinitionOutline,
+    DataLocationFieldComponentDefinitionOutline,
+    DataLocationFieldModelDefinitionOutline,
+    DataLocationFormComponentDefinitionOutline,
     FormPathHelper,
     RadioInputFieldComponentDefinitionOutline,
     RadioInputFieldModelDefinitionOutline,
@@ -593,6 +596,18 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    /* Data Location */
+
+    visitDataLocationFieldComponentDefinition(_item: DataLocationFieldComponentDefinitionOutline): void {
+    }
+
+    visitDataLocationFieldModelDefinition(_item: DataLocationFieldModelDefinitionOutline): void {
+    }
+
+    visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

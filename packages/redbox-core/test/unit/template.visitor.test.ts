@@ -127,6 +127,31 @@ describe("Template Visitor", async () => {
                     value: "{{raw.title}} ({{raw.code}})"
                 }
             ]
+        },
+        {
+            title: "allow data location components without additional template extraction",
+            args: {
+                name: "test",
+                componentDefinitions: [
+                    {
+                        name: "dataLocations",
+                        component: {
+                            class: "DataLocationComponent",
+                            config: {
+                                label: "Data locations",
+                                dataTypes: [
+                                    { value: "url", label: "URL" }
+                                ]
+                            }
+                        },
+                        model: {
+                            class: "DataLocationModel",
+                            config: {}
+                        }
+                    }
+                ]
+            },
+            expected: []
         }
     ];
 

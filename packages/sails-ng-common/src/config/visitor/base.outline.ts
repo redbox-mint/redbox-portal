@@ -118,6 +118,11 @@ import {
   FileUploadFieldModelDefinitionOutline,
   FileUploadFormComponentDefinitionOutline,
 } from '../component/file-upload.outline';
+import {
+  DataLocationFieldComponentDefinitionOutline,
+  DataLocationFieldModelDefinitionOutline,
+  DataLocationFormComponentDefinitionOutline,
+} from '../component/data-location.outline';
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -334,5 +339,13 @@ export interface FormConfigVisitorOutline {
   visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void;
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void;
+
+  /* Data Location */
+
+  visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void;
+
+  visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void;
+
+  visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void;
 
 }

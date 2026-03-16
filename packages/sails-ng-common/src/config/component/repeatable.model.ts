@@ -11,6 +11,7 @@ import {
     FieldLayoutConfig,
     FieldLayoutDefinition,
 } from "../field-layout.model";
+import { ActionRowFieldLayoutConfig } from "./action-row-layout.model";
 import {FormConfigVisitorOutline} from "../visitor/base.outline";
 import {
     FieldComponentConfigKind, FieldComponentDefinitionKind,
@@ -94,7 +95,7 @@ export class RepeatableFieldModelDefinition extends FieldModelDefinition<Repeata
 
 
 /* Repeatable Element Layout */
-export class RepeatableElementFieldLayoutConfig extends FieldLayoutConfig implements RepeatableElementFieldLayoutConfigOutline {
+export class RepeatableElementFieldLayoutConfig extends ActionRowFieldLayoutConfig implements RepeatableElementFieldLayoutConfigOutline {
     constructor() {
         super();
     }

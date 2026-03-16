@@ -54,6 +54,7 @@ import { TypeaheadInputTypes } from './component/typeahead-input.outline';
 import { RichTextEditorTypes } from './component/rich-text-editor.outline';
 import { MapTypes } from './component/map.outline';
 import { FileUploadTypes } from './component/file-upload.outline';
+import { DataLocationTypes } from './component/data-location.outline';
 import { CancelButtonTypes } from './component/cancel-button.outline';
 import { TabNavButtonTypes } from './component/tab-nav-button.outline';
 
@@ -88,7 +89,8 @@ export type AllTypes =
   | TypeaheadInputTypes
   | RichTextEditorTypes
   | MapTypes
-  | FileUploadTypes;
+  | FileUploadTypes
+  | DataLocationTypes;
 
 /*
  * The variables below here are conveniences that provide access to the various groups

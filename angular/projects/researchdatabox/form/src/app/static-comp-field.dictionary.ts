@@ -27,6 +27,7 @@ import { TypeaheadInputComponent, TypeaheadInputModel } from './component/typeah
 import { RichTextEditorComponent, RichTextEditorModel } from './component/rich-text-editor.component';
 import { MapComponent, MapModel } from './component/map.component';
 import { FileUploadComponent, FileUploadModel } from './component/file-upload.component';
+import { DataLocationComponent, DataLocationModel } from './component/data-location.component';
 import { FormFieldBaseComponent, FormFieldModel } from '@researchdatabox/portal-ng-common';
 import {
   StaticComponentClassMapGenType,
@@ -46,6 +47,7 @@ import {
   RichTextEditorModelName,
   MapModelName,
   FileUploadModelName,
+  DataLocationModelName,
   RepeatableComponentName,
   SaveButtonComponentName,
   SaveStatusComponentName,
@@ -65,6 +67,7 @@ import {
   RichTextEditorComponentName,
   MapComponentName,
   FileUploadComponentName,
+  DataLocationComponentName,
   CancelButtonComponentName,
   TabNavButtonComponentName,
   GroupFieldComponentName,
@@ -110,6 +113,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [RichTextEditorComponentName]: RichTextEditorComponent,
   [MapComponentName]: MapComponent,
   [FileUploadComponentName]: FileUploadComponent,
+  [DataLocationComponentName]: DataLocationComponent,
   [CancelButtonComponentName]: CancelButtonComponent,
   [TabNavButtonComponentName]: TabNavButtonComponent,
 });
@@ -135,6 +139,7 @@ export const getStaticModelClassMap = (): StaticModelClassMapType => ({
   [RichTextEditorModelName]: RichTextEditorModel,
   [MapModelName]: MapModel,
   [FileUploadModelName]: FileUploadModel,
+  [DataLocationModelName]: DataLocationModel,
 });
 
 /*

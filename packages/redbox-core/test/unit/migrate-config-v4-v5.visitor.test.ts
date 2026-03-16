@@ -809,4 +809,52 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(migrated.attachmentFields).to.not.include("title");
         expect(migrated.attachmentFields?.length).to.equal(2);
     });
+
+    it("maps legacy DataLocation to DataLocationComponent with config fields", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "data-location-migration",
+                fields: [
+                    {
+                        class: "DataLocation",
+                        compClass: "DataLocationComponent",
+                        definition: {
+                            name: "dataLocations",
+                            allowUploadWithoutSave: true,
+                            locationAddText: "Add another location",
+                            typeHeader: "Type",
+                            locationHeader: "Where",
+                            notesHeader: "Notes",
+                            columns: ["type", "location"],
+                            notesEnabled: true,
+                            iscEnabled: true,
+                            defaultSelect: "official",
+                            securityClassificationOptions: [
+                                { label: "Official", value: "official" }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("DataLocationComponent");
+        expect(migratedField.model?.class).to.equal("DataLocationModel");
+        expect(migratedField.component.config).to.deep.include({
+            allowUploadWithoutSave: true,
+            locationAddText: "Add another location",
+            typeHeader: "Type",
+            locationHeader: "Where",
+            notesHeader: "Notes",
+            notesEnabled: true,
+            iscEnabled: true,
+            defaultSelect: "official"
+        });
+        expect((migratedField.component.config as any).columns).to.deep.equal(["type", "location"]);
+        expect((migratedField.component.config as any).securityClassificationOptions).to.deep.equal([
+            { label: "Official", value: "official" }
+        ]);
+    });
 });

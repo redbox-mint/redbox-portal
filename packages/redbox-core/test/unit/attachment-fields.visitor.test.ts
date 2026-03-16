@@ -6,6 +6,9 @@ import {
     FileUploadFormComponentDefinition,
     FileUploadFieldComponentDefinition,
     FileUploadFieldComponentConfig,
+    DataLocationFormComponentDefinition,
+    DataLocationFieldComponentDefinition,
+    DataLocationFieldComponentConfig,
     GroupFormComponentDefinition,
     GroupFieldComponentDefinition,
     GroupFieldComponentConfig,
@@ -150,5 +153,20 @@ describe("AttachmentFieldsVisitor", () => {
 
         expect(formConfig.attachmentFields).to.be.an("array");
         expect(formConfig.attachmentFields?.length).to.equal(0);
+    });
+
+    it("should identify top-level DataLocation component", () => {
+        const formConfig = new FormConfig();
+        const dataLocation = new DataLocationFormComponentDefinition();
+        dataLocation.name = "dataLocations";
+        dataLocation.component = new DataLocationFieldComponentDefinition();
+        dataLocation.component.config = new DataLocationFieldComponentConfig();
+        formConfig.componentDefinitions = [dataLocation];
+
+        const visitor = new AttachmentFieldsVisitor(logger);
+        visitor.start(formConfig);
+
+        expect(formConfig.attachmentFields).to.include("dataLocations");
+        expect(formConfig.attachmentFields?.length).to.equal(1);
     });
 });

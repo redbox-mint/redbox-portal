@@ -1004,6 +1004,56 @@ describe("Construct Visitor", async () => {
             });
         });
 
+        it("should transform data location components to content in view mode", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "dataLocations",
+                            component: {
+                                class: "DataLocationComponent",
+                                config: {
+                                    notesEnabled: true,
+                                    iscEnabled: true
+                                }
+                            },
+                            model: {
+                                class: "DataLocationModel",
+                                config: {
+                                    defaultValue: [
+                                        {
+                                            type: "url",
+                                            location: "https://example.com",
+                                            notes: "public",
+                                            isc: "official"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                formMode: "view",
+                reusableFormDefs: reusableFormDefinitions
+            });
+
+            const transformed = actual.componentDefinitions[0];
+            expect(transformed.component.class).to.equal("ContentComponent");
+            expect(transformed.component.config).to.deep.include({
+                content: [
+                    {
+                        type: "url",
+                        location: "https://example.com",
+                        notes: "public",
+                        isc: "official"
+                    }
+                ]
+            });
+            expect((transformed.component.config as any).template).to.contain("rb-view-data-location");
+        });
+
         it("should populate transformed dropdown content component from record array values", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = visitor.start({

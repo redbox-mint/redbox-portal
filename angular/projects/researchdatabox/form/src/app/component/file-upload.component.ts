@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, Injector, Input, OnDestroy, inject } from "@angular/core";
-import { ConfigService, FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { ConfigService, FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, TranslationService } from "@researchdatabox/portal-ng-common";
 import {
     FileUploadAttachmentValue,
     FileUploadComponentName,
@@ -92,6 +92,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
     private readonly injector = inject(Injector);
     private readonly eventBus = inject(FormComponentEventBus);
     private readonly configService = inject(ConfigService);
+    private readonly translationService = inject(TranslationService);
 
     protected get getFormComponent(): FormComponent {
         return this.injector.get(FormComponent);
@@ -264,7 +265,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
             inline: false,
             hideProgressAfterFinish: true,
             proudlyDisplayPoweredByUppy: false,
-            note: this.uppyDashboardNote,
+            note: this.translateText(this.uppyDashboardNote),
             metaFields: [
                 { id: "notes", name: "Notes", placeholder: "Notes about this file." }
             ]
@@ -322,6 +323,15 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         }
         this.uppy.destroy?.();
         this.uppy = undefined;
+    }
+
+    private translateText(value: string): string {
+        const translated = this.translationService.t(value);
+        if (translated === undefined || translated === null || translated === "") {
+            return value;
+        }
+        const result = typeof translated === "string" ? translated : String(translated);
+        return result === "undefined" ? value : result;
     }
 
     private isUploadBlockedByMissingOid(): boolean {

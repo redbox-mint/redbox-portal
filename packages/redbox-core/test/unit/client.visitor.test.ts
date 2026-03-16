@@ -898,7 +898,10 @@ describe("Client Visitor", async () => {
                   layout: {
                     class: 'RepeatableElementLayout',
                     config: {
+                      alignment: 'end',
                       hostCssClasses: 'row align-items-start',
+                      containerCssClass: 'rb-form-action-row',
+                      compact: false,
                       autofocus: false,
                       cssClassesMap: {},
                       disabled: false,
@@ -907,7 +910,9 @@ describe("Client Visitor", async () => {
                       helpTextVisibleOnInit: false,
                       labelRequiredStr: '*',
                       readonly: false,
+                      slotCssClass: 'rb-form-action-slot',
                       visible: true,
+                      wrap: true,
                     }
                   },
                   // <-- requires mode view, so is kept, constraints removed
