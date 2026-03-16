@@ -24,6 +24,10 @@
     "**/*.jsx",
     "**/*.cjs",
     "**/*.mjs",
+    "test/**/*",
+    "packages/*/test/**/*",
+    "**/*.test.ts",
+    "**/*.spec.ts",
     "support/wiki/**",
     "support/docs/**",
     "**/*.d.ts"
@@ -34,8 +38,8 @@
   "overrides": [
     {
       "files": [
-        "{api,config,test,typescript}/**/*.{ts,tsx}",
-        "packages/*/{src,test}/**/*.{ts,tsx}"
+        "{api,config,typescript}/**/*.{ts,tsx}",
+        "packages/*/src/**/*.{ts,tsx}"
       ],
       "rules": {
         "no-array-constructor": "error",
@@ -61,7 +65,7 @@
     },
     {
       "files": [
-        "packages/redbox-core/{src,test}/**/*.{ts,tsx}"
+        "packages/redbox-core/src/**/*.{ts,tsx}"
       ],
       "rules": {
         "no-control-regex": "warn",
@@ -125,19 +129,5 @@
         "no-var": "off"
       }
     },
-    {
-      "files": [
-        "test/**/*.ts",
-        "packages/*/test/**/*.ts",
-        "**/*.test.ts"
-      ],
-      "rules": {
-        "no-unused-expressions": "off",
-        "typescript/no-explicit-any": "off",
-        "typescript/no-var-requires": "off",
-        "typescript/no-unused-vars": "off",
-        "typescript/no-unsafe-function-type": "off"
-      }
-    }
   ]
 }

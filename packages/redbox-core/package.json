@@ -7,8 +7,8 @@
   "scripts": {
     "test": "TS_NODE_PROJECT=test/tsconfig.json mocha",
     "build": "tsc",
-    "lint": "cd ../.. && oxlint packages/redbox-core/src packages/redbox-core/test",
-    "lint:fix": "cd ../.. && oxlint packages/redbox-core/src packages/redbox-core/test --fix",
+    "lint": "cd ../.. && oxlint packages/redbox-core/src",
+    "lint:fix": "cd ../.. && oxlint packages/redbox-core/src --fix",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json"

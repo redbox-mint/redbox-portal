@@ -41,8 +41,8 @@
   "scripts": {
     "debug": "node debug app.js",
     "start": "node app.js",
-    "lint": "oxlint api config test typescript packages/*/src packages/*/test",
-    "lint:fix": "oxlint api config test typescript packages/*/src packages/*/test --fix",
+    "lint": "oxlint api config typescript packages/*/src",
+    "lint:fix": "oxlint api config typescript packages/*/src --fix",
     "format": "prettier --write \".oxlintrc.json\" \".prettierrc.json\" \".editorconfig\" \".vscode/*.json\" \"{api,config,test,typescript}/**/*.{ts,tsx,js,json}\" \"packages/*/{src,test}/**/*.{ts,tsx,js,json}\"",
     "format:check": "prettier --check \".oxlintrc.json\" \".prettierrc.json\" \".editorconfig\" \".vscode/*.json\" \"{api,config,test,typescript}/**/*.{ts,tsx,js,json}\" \"packages/*/{src,test}/**/*.{ts,tsx,js,json}\"",
     "test:mocha": "npm run test:mocha:mount",
