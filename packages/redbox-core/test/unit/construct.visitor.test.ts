@@ -1,7 +1,27 @@
 import {
     FormConfig,
-    FormConfigFrame, FormModesConfig, ReusableFormDefinitions,
+    FormConfigFrame,
+    FormModesConfig,
+    ReusableFormDefinitions,
 } from "@researchdatabox/sails-ng-common";
+import {
+    FormOverride,
+    GroupFieldComponentConfig,
+    GroupFieldComponentDefinition,
+    GroupFieldModelConfig,
+    GroupFieldModelDefinition,
+    GroupFormComponentDefinition,
+    PublishDataLocationSelectorFieldComponentConfig,
+    PublishDataLocationSelectorFieldComponentDefinition,
+    PublishDataLocationSelectorFieldModelConfig,
+    PublishDataLocationSelectorFieldModelDefinition,
+    PublishDataLocationSelectorFormComponentDefinition,
+    RepeatableFieldComponentConfig,
+    RepeatableFieldComponentDefinition,
+    RepeatableFieldModelConfig,
+    RepeatableFieldModelDefinition,
+    RepeatableFormComponentDefinition,
+} from "../../../sails-ng-common/src";
 import { ConstructFormConfigVisitor } from "../../src";
 import { formConfigExample2 } from "./example-data";
 import { logger } from "./helpers";
@@ -9,6 +29,8 @@ import {reusableFormDefinitions} from "../../src";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
+
+const normalizeTemplate = (template: string): string => template.replace(/\s+/g, " ").trim();
 
 describe("Construct Visitor", async () => {
     describe("basic constructing", async () => {
@@ -394,6 +416,41 @@ describe("Construct Visitor", async () => {
             });
 
             expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("SimpleInputComponent");
+        });
+
+        it("should apply an explicit content view transform for rich text fields constrained to view mode", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "view",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "summary",
+                            constraints: {
+                                authorization: { allowRoles: [] },
+                                allowModes: ["view"]
+                            },
+                            component: {
+                                class: "RichTextEditorComponent",
+                                config: {
+                                    outputFormat: "markdown"
+                                }
+                            },
+                            model: {
+                                class: "RichTextEditorModel",
+                                config: {
+                                    defaultValue: "**Bold**"
+                                }
+                            }
+                        }
+                    ]
+                }
+            });
+
+            expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("ContentComponent");
+            expect((actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>)?.content).to.equal("**Bold**");
+            expect((actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>)?.outputFormat).to.equal("markdown");
         });
     });
 
@@ -1096,7 +1153,79 @@ describe("Construct Visitor", async () => {
                     }
                 ]
             });
-            expect((transformed.component.config as any).template).to.contain("rb-view-data-location");
+            const template = normalizeTemplate((transformed.component.config as any).template);
+            expect(template).to.contain("rb-view-data-location");
+            expect(template).to.contain("{{t \"Type\"}}");
+            expect(template).to.contain("{{t \"Location\"}}");
+            expect(template).to.contain("{{t \"Notes\"}}");
+            expect(template).to.contain("{{t \"Information Security Classification\"}}");
+            expect(template).to.contain("{{default this.notes \"\"}}");
+            expect(template).to.contain("{{default this.isc \"\"}}");
+        });
+
+        it("should transform publish data location selector components to content in view mode", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "dataLocations",
+                            component: {
+                                class: "PublishDataLocationSelectorComponent",
+                                config: {
+                                    notesEnabled: true,
+                                    iscEnabled: true,
+                                }
+                            },
+                            model: {
+                                class: "PublishDataLocationSelectorModel",
+                                config: {
+                                    defaultValue: [
+                                        {
+                                            type: "attachment",
+                                            location: "/record/oid-1/attach/file-123",
+                                            uploadUrl: "/record/oid-1/attach/file-123",
+                                            fileId: "file-123",
+                                            name: "file-123",
+                                            notes: "public",
+                                            isc: "official",
+                                            selected: true,
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                formMode: "view",
+                reusableFormDefs: reusableFormDefinitions
+            });
+
+            const transformed = actual.componentDefinitions[0];
+            expect(transformed.component.class).to.equal("ContentComponent");
+            expect(transformed.component.config).to.deep.include({
+                content: [
+                    {
+                        type: "attachment",
+                        location: "/record/oid-1/attach/file-123",
+                        uploadUrl: "/record/oid-1/attach/file-123",
+                        fileId: "file-123",
+                        name: "file-123",
+                        notes: "public",
+                        isc: "official",
+                        selected: true,
+                    }
+                ]
+            });
+            const template = normalizeTemplate((transformed.component.config as any).template);
+            expect(template).to.contain("rb-view-publish-data-location-selector");
+            expect(template).to.contain("{{#if this.selected}}");
+            expect(template).to.contain("{{t \"Type\"}}");
+            expect(template).to.contain("{{t \"Location\"}}");
+            expect(template).to.contain("{{default this.notes \"\"}}");
+            expect(template).to.contain("{{default this.isc \"\"}}");
+            expect(template).to.not.contain("&#10003;");
         });
 
         it("should populate transformed dropdown content component from record array values", async () => {
@@ -1949,6 +2078,73 @@ describe("Construct Visitor", async () => {
             expect(actual.componentDefinitions[1].component.class).to.equal("RepeatableComponent");
             const nested = (actual.componentDefinitions[0].component.config as any).componentDefinitions?.[0];
             expect(nested.component.class).to.equal("RepeatableComponent");
+        });
+
+        it("should render publish data location selector cells with the publish leaf template in repeatable tables", async () => {
+            const formOverride = new FormOverride(logger);
+            const publishConfig = new PublishDataLocationSelectorFieldComponentConfig();
+            publishConfig.notesEnabled = true;
+            publishConfig.iscEnabled = true;
+
+            const publishComponent = new PublishDataLocationSelectorFieldComponentDefinition();
+            publishComponent.config = publishConfig;
+
+            const publishModelConfig = new PublishDataLocationSelectorFieldModelConfig();
+            const publishModel = new PublishDataLocationSelectorFieldModelDefinition();
+            publishModel.config = publishModelConfig;
+
+            const publishFormComponent = new PublishDataLocationSelectorFormComponentDefinition();
+            publishFormComponent.name = "locations";
+            publishFormComponent.component = publishComponent;
+            publishFormComponent.model = publishModel;
+
+            const groupComponentConfig = new GroupFieldComponentConfig();
+            groupComponentConfig.componentDefinitions = [publishFormComponent];
+            const groupComponent = new GroupFieldComponentDefinition();
+            groupComponent.config = groupComponentConfig;
+            const groupModel = new GroupFieldModelDefinition();
+            groupModel.config = new GroupFieldModelConfig();
+            const groupFormComponent = new GroupFormComponentDefinition();
+            groupFormComponent.name = "";
+            groupFormComponent.component = groupComponent;
+            groupFormComponent.model = groupModel;
+
+            const repeatableComponentConfig = new RepeatableFieldComponentConfig();
+            repeatableComponentConfig.elementTemplate = groupFormComponent;
+            const repeatableComponent = new RepeatableFieldComponentDefinition();
+            repeatableComponent.config = repeatableComponentConfig;
+            const repeatableModelConfig = new RepeatableFieldModelConfig();
+            repeatableModelConfig.value = [
+                {
+                    locations: [
+                        {
+                            type: "attachment",
+                            location: "/record/oid-1/attach/file-123",
+                            uploadUrl: "/record/oid-1/attach/file-123",
+                            fileId: "file-123",
+                            name: "file-123",
+                            notes: "public",
+                            isc: "official",
+                            selected: true,
+                        }
+                    ]
+                }
+            ];
+            const repeatableModel = new RepeatableFieldModelDefinition();
+            repeatableModel.config = repeatableModelConfig;
+            const repeatableFormComponent = new RepeatableFormComponentDefinition();
+            repeatableFormComponent.name = "publish_locations";
+            repeatableFormComponent.component = repeatableComponent;
+            repeatableFormComponent.model = repeatableModel;
+
+            const actual = formOverride.applyOverrideTransform(repeatableFormComponent, "view", { phase: "client" });
+
+            expect(actual.component.class).to.equal("ContentComponent");
+            const template = normalizeTemplate((actual.component.config as any).template);
+            expect(template).to.contain("rb-view-repeatable-table");
+            expect(template).to.contain("rb-view-publish-data-location-selector");
+            expect(template).to.contain("{{#if this.selected}}");
+            expect(template).to.not.contain("{{default (get this \"locations\" \"\") \"\"}}");
         });
 
         it("should set model values as expected", async () => {

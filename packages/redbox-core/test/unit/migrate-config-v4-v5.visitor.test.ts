@@ -159,6 +159,134 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(warnings.some((msg) => msg.includes('coerced non-array default value'))).to.equal(true);
   });
 
+    it('omits boolean defaults for legacy toggle fields migrated to CheckboxInput', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: 'legacy-toggle-migration',
+                fields: [
+                    {
+                        class: 'Toggle',
+                        compClass: 'ToggleComponent',
+                        definition: {
+                            name: 'embargoByDate',
+                            defaultValue: false,
+                            label: '@dataPublication-embargoEnabled',
+                            controlType: 'checkbox'
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal('CheckboxInputComponent');
+        expect(migratedField.model?.class).to.equal('CheckboxInputModel');
+        expect((migratedField.model?.config as Record<string, unknown>)?.defaultValue).to.equal(undefined);
+    });
+
+    it('maps LinkValueComponent to ContentComponent with a legacy-compatible link template', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: 'link-value-migration',
+                fields: [
+                    {
+                        class: 'LinkValueComponent',
+                        definition: {
+                            name: 'citation_url',
+                            label: '@dataPublication-citation-url',
+                            help: '@dataPublication-citation-url-help',
+                            type: 'text',
+                            target: '_self'
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions.find((component) => component.name === 'citation_url-link-value');
+        const hiddenBindingField = migrated.componentDefinitions.find((component) => component.name === 'citation_url');
+        expect(migratedField).to.not.equal(undefined);
+        expect(hiddenBindingField).to.not.equal(undefined);
+        const migratedFieldResolved = migratedField!;
+        const hiddenBindingFieldResolved = hiddenBindingField!;
+        const componentConfig = migratedFieldResolved.component.config as Record<string, unknown>;
+        expect(migratedFieldResolved.name).to.equal('citation_url-link-value');
+        expect(migratedFieldResolved.component.class).to.equal('ContentComponent');
+        expect(migratedFieldResolved.model).to.equal(undefined);
+        expect(componentConfig?.label).to.equal(undefined);
+        expect((migratedFieldResolved.layout?.config as Record<string, unknown>)?.label).to.equal(undefined);
+        expect(componentConfig?.content).to.deep.equal({
+            label: '@dataPublication-citation-url',
+            valuePath: 'citation_url',
+            target: '_self'
+        });
+        expect(componentConfig?.template).to.equal(
+            '{{#if (get formData content.valuePath "")}}<li class="key-value-pair padding-bottom-10">{{#if content.label}}<span class="key">{{t content.label}}</span>{{/if}}<span class="value"><a href="{{get formData content.valuePath ""}}" target="{{default content.target "_blank"}}">{{get formData content.valuePath ""}}</a></span></li>{{/if}}'
+        );
+        expect(hiddenBindingFieldResolved.name).to.equal('citation_url');
+        expect(hiddenBindingFieldResolved.component.class).to.equal('SimpleInputComponent');
+        expect(hiddenBindingFieldResolved.constraints?.allowModes).to.deep.equal(['view']);
+        expect((hiddenBindingFieldResolved.component.config as Record<string, unknown>)?.type).to.equal('hidden');
+        expect((hiddenBindingFieldResolved.component.config as Record<string, unknown>)?.visible).to.equal(false);
+    });
+
+    it('defaults migrated LinkValueComponent link targets to _blank when the legacy definition omits target', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: 'link-value-default-target-migration',
+                fields: [
+                    {
+                        class: 'LinkValueComponent',
+                        definition: {
+                            name: 'landing_page',
+                            label: 'Landing page',
+                            type: 'text'
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions.find((component) => component.name === 'landing_page-link-value');
+        expect(migratedField).to.not.equal(undefined);
+
+        const componentConfig = migratedField!.component.config as Record<string, unknown>;
+        expect(componentConfig?.content).to.deep.equal({
+            label: 'Landing page',
+            valuePath: 'landing_page'
+        });
+        expect(componentConfig?.template).to.contain('target="{{default content.target "_blank"}}"');
+    });
+
+    it('maps HtmlRawComponent to ContentComponent', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: 'html-raw-migration',
+                fields: [
+                    {
+                        class: 'HtmlRaw',
+                        compClass: 'HtmlRawComponent',
+                        definition: {
+                            name: 'raw_html',
+                            value: '@dataPublication-data-manager'
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal('ContentComponent');
+        expect(migratedField.model).to.equal(undefined);
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+        expect(componentConfig.content).to.equal('@dataPublication-data-manager');
+        expect(componentConfig.template).to.equal('<div>{{{t content}}}</div>');
+    });
+
     it('maps legacy VocabField to TypeaheadInput with value coercion', async function () {
         const warnings: string[] = [];
         const testLogger = {
@@ -1037,6 +1165,31 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect((hiddenBindingField.layout?.config as Record<string, unknown>)?.visible).to.equal(false);
     });
 
+    it("maps view-only markdown text areas to ContentComponent in view overrides", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "markdown-view-only",
+                fields: [
+                    {
+                        class: "MarkdownTextArea",
+                        viewOnly: true,
+                        definition: {
+                            name: "description",
+                            label: "Description"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("RichTextEditorComponent");
+        expect((migratedField.component.config as Record<string, unknown>)?.outputFormat).to.equal("markdown");
+        expect((migratedField.constraints as Record<string, unknown>)?.allowModes).to.deep.equal(["view"]);
+        expect(migratedField.overrides?.formModeClasses?.view?.component).to.equal("ContentComponent");
+    });
+
     it("keeps plain text TextBlock values as non-translated content templates", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({
@@ -1175,6 +1328,221 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect((migratedField.component.config as any).columns).to.deep.equal(["type", "location"]);
         expect((migratedField.component.config as any).securityClassificationOptions).to.deep.equal([
             { label: "Official", value: "official" }
+        ]);
+    });
+
+    it("maps legacy PublishDataLocationSelector to the v5 selector component", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "publish-data-location-selector-migration",
+                fields: [
+                    {
+                        class: "PublishDataLocationSelector",
+                        compClass: "PublishDataLocationSelectorComponent",
+                        definition: {
+                            name: "dataLocations",
+                            iscEnabled: true,
+                            notesEnabled: true,
+                            typeHeader: "Type",
+                            locationHeader: "Location",
+                            notesHeader: "Notes",
+                            selectionCriteria: [{ isc: "public", type: "attachment" }],
+                            subscribe: {
+                                dataRecordGetter: {
+                                    onValueUpdate: [
+                                        { action: "utilityService.getPropertyFromObject", field: "dataLocations" }
+                                    ]
+                                },
+                                dataPubLocationRefresher: {
+                                    onValueUpdate: [
+                                        { action: "utilityService.getPropertyFromObject", field: "dataLocations" }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("PublishDataLocationSelectorComponent");
+        expect(migratedField.model?.class).to.equal("PublishDataLocationSelectorModel");
+        expect(migratedField.component.config).to.deep.include({
+            iscEnabled: true,
+            notesEnabled: true,
+            typeHeader: "Type",
+            locationHeader: "Location",
+            notesHeader: "Notes",
+        });
+        expect((migratedField.component.config as any).selectionCriteria).to.deep.equal([{ isc: "public", type: "attachment" }]);
+        expect(migratedField.expressions).to.deep.include.members([
+            {
+                name: "dataRecordGetter-dataLocations-dataLocations",
+                description: "Populate dataLocations from dataRecordGetter metadata",
+                config: {
+                    conditionKind: "jsonpointer",
+                    runOnFormReady: false,
+                    condition: "/dataRecordGetter::field.value.changed",
+                    target: "model.value",
+                    hasTemplate: true,
+                    template: "event.value.dataLocations",
+                },
+            },
+            {
+                name: "dataPubLocationRefresher-dataLocations-dataLocations",
+                description: "Populate dataLocations from dataPubLocationRefresher metadata",
+                config: {
+                    conditionKind: "jsonpointer",
+                    runOnFormReady: false,
+                    condition: "/dataPubLocationRefresher::field.value.changed",
+                    target: "model.value",
+                    hasTemplate: true,
+                    template: "event.value.dataLocations",
+                },
+            },
+        ]);
+    });
+
+    it("uses the enclosing container path for migrated publish data location selector expressions", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "publish-data-location-selector-nested-migration",
+                fields: [
+                    {
+                        class: "Container",
+                        definition: {
+                            id: "tab_data",
+                            fields: [
+                                {
+                                    class: "RecordMetadataRetriever",
+                                    compClass: "RecordMetadataRetrieverComponent",
+                                    definition: {
+                                        name: "dataRecordGetter",
+                                    }
+                                },
+                                {
+                                    class: "PublishDataLocationSelector",
+                                    compClass: "PublishDataLocationSelectorComponent",
+                                    definition: {
+                                        name: "dataLocations",
+                                        subscribe: {
+                                            dataRecordGetter: {
+                                                onValueUpdate: [
+                                                    { action: "utilityService.getPropertyFromObject", field: "dataLocations" }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const container = migrated.componentDefinitions[0];
+        expect(container.component.class).to.equal("GroupComponent");
+        const nestedField = (container.component.config as any).componentDefinitions.find(
+            (component: Record<string, any>) => component.name === "dataLocations"
+        );
+        expect(nestedField).to.not.equal(undefined);
+        expect(nestedField.expressions).to.deep.include({
+            name: "dataRecordGetter-dataLocations-dataLocations",
+            description: "Populate dataLocations from dataRecordGetter metadata",
+            config: {
+                conditionKind: "jsonpointer",
+                runOnFormReady: false,
+                condition: "/tab_data/dataRecordGetter::field.value.changed",
+                target: "model.value",
+                hasTemplate: true,
+                template: "event.value.dataLocations",
+            },
+        });
+    });
+
+    it("resolves cross-tab publish data location selector sources to their real component path", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "publish-data-location-selector-cross-tab-migration",
+                fields: [
+                    {
+                        class: "TabOrAccordionContainer",
+                        compClass: "TabOrAccordionContainerComponent",
+                        definition: {
+                            id: "mainTab",
+                            fields: [
+                                {
+                                    class: "Container",
+                                    definition: {
+                                        id: "about",
+                                        fields: [
+                                            {
+                                                class: "RecordMetadataRetriever",
+                                                compClass: "RecordMetadataRetrieverComponent",
+                                                definition: {
+                                                    name: "dataRecordGetter",
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    class: "Container",
+                                    definition: {
+                                        id: "data",
+                                        fields: [
+                                            {
+                                                class: "PublishDataLocationSelector",
+                                                compClass: "PublishDataLocationSelectorComponent",
+                                                definition: {
+                                                    name: "dataLocations",
+                                                    subscribe: {
+                                                        dataRecordGetter: {
+                                                            onValueUpdate: [
+                                                                { action: "utilityService.getPropertyFromObject", field: "dataLocations" }
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const mainTab = migrated.componentDefinitions[0];
+        expect(mainTab.component.class).to.equal("TabComponent");
+        const dataTab = ((mainTab.component.config as any).tabs as Array<Record<string, any>>).find(
+            (component) => component.name === "data"
+        );
+        expect(dataTab).to.not.equal(undefined);
+        const nestedField = (dataTab!.component.config as any).componentDefinitions.find(
+            (component: Record<string, any>) => component.name === "dataLocations"
+        );
+        expect(nestedField).to.not.equal(undefined);
+        expect(nestedField.expressions).to.deep.include.members([
+            {
+                name: "dataRecordGetter-dataLocations-dataLocations",
+                description: "Populate dataLocations from dataRecordGetter metadata",
+                config: {
+                    conditionKind: "jsonpointer",
+                    runOnFormReady: false,
+                    condition: "/mainTab/about/dataRecordGetter::field.value.changed",
+                    target: "model.value",
+                    hasTemplate: true,
+                    template: "event.value.dataLocations",
+                },
+            }
         ]);
     });
 });

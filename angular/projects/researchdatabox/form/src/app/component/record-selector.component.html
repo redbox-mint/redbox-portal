@@ -3,7 +3,6 @@
 
   @if (!isInteractive) {
     <div class="rb-record-selector-current">
-      <strong>{{ columnTitle }}:</strong>
       <span>{{ selectedRecord?.title || selectedRecord?.oid || ('record-selector-no-record-selected' | i18next) }}</span>
     </div>
   } @else {

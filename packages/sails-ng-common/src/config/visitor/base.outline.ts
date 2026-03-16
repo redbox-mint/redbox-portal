@@ -132,6 +132,11 @@ import {
   DataLocationFieldModelDefinitionOutline,
   DataLocationFormComponentDefinitionOutline,
 } from '../component/data-location.outline';
+import {
+  PublishDataLocationSelectorFieldComponentDefinitionOutline,
+  PublishDataLocationSelectorFieldModelDefinitionOutline,
+  PublishDataLocationSelectorFormComponentDefinitionOutline,
+} from '../component/publish-data-location-selector.outline';
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -372,5 +377,11 @@ export interface FormConfigVisitorOutline {
   visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void;
 
   visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void;
+
+  visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void;
+
+  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): void;
+
+  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void;
 
 }

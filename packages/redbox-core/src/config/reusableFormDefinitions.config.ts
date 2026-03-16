@@ -71,6 +71,17 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
       },
     },
   ],
+  "view-template-leaf-data-location": [
+    {
+      name: "view_template_leaf_data_location",
+      component: {
+        class: "ContentComponent",
+        config: {
+          template: "{{#if [[valueExpr]]}}<div class=\"table-responsive mt-2\"><table class=\"table table-bordered table-striped table-hover mb-0 rb-view-data-location\"><thead><tr><th width=\"15%\">[[typeHeaderHtml]]</th><th width=\"40%\">[[locationHeaderHtml]]</th>[[notesHeaderCellHtml]][[iscHeaderCellHtml]]</tr></thead><tbody>{{#each [[valueExpr]]}}<tr><td>{{default this.typeLabel this.type}}</td><td>{{#if (or (eq this.type \"url\") (eq this.type \"attachment\"))}}<a href=\"{{default this.url this.location}}\" target=\"_blank\" rel=\"noopener noreferrer\">{{default this.name this.location}}</a>{{else}}<span>{{default this.name this.location}}</span>{{/if}}</td>[[notesCellHtml]][[iscCellHtml]]</tr>{{/each}}</tbody></table></div>{{/if}}"
+        }
+      },
+    },
+  ],
   "view-template-group-container": [
     {
       name: "view_template_group_container",

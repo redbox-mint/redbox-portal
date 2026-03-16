@@ -181,6 +181,19 @@ import {
   DataLocationModelName,
 } from '@researchdatabox/sails-ng-common';
 import { DataLocationFieldComponentConfig, DataLocationFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  PublishDataLocationSelectorComponentName,
+  PublishDataLocationSelectorFieldComponentDefinitionFrame,
+  PublishDataLocationSelectorFieldComponentDefinitionOutline,
+  PublishDataLocationSelectorFieldModelDefinitionFrame,
+  PublishDataLocationSelectorFieldModelDefinitionOutline,
+  PublishDataLocationSelectorFormComponentDefinitionOutline,
+  PublishDataLocationSelectorModelName,
+} from '@researchdatabox/sails-ng-common';
+import {
+  PublishDataLocationSelectorFieldComponentConfig,
+  PublishDataLocationSelectorFieldModelConfig,
+} from '@researchdatabox/sails-ng-common';
 import { ContentFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
   DropdownInputComponentName,
@@ -1202,6 +1215,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
+    this.ensureRichTextViewOverride(item);
   }
 
   /* Map */
@@ -1371,6 +1385,64 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void {
+    const currentData = this.getData();
+    if (
+      !isTypeFieldDefinitionName<PublishDataLocationSelectorFieldComponentDefinitionFrame>(
+        currentData,
+        PublishDataLocationSelectorComponentName
+      )
+    ) {
+      throw new Error(
+        `Invalid ${PublishDataLocationSelectorComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    item.config = new PublishDataLocationSelectorFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+    this.sharedProps.setPropOverride('columns', item.config, config);
+    this.sharedProps.setPropOverride('editNotesButtonText', item.config, config);
+    this.sharedProps.setPropOverride('editNotesTitle', item.config, config);
+    this.sharedProps.setPropOverride('cancelEditNotesButtonText', item.config, config);
+    this.sharedProps.setPropOverride('applyEditNotesButtonText', item.config, config);
+    this.sharedProps.setPropOverride('editNotesCssClasses', item.config, config);
+    this.sharedProps.setPropOverride('typeHeader', item.config, config);
+    this.sharedProps.setPropOverride('locationHeader', item.config, config);
+    this.sharedProps.setPropOverride('notesHeader', item.config, config);
+    this.sharedProps.setPropOverride('iscHeader', item.config, config);
+    this.sharedProps.setPropOverride('iscEnabled', item.config, config);
+    this.sharedProps.setPropOverride('notesEnabled', item.config, config);
+    this.sharedProps.setPropOverride('noLocationSelectedText', item.config, config);
+    this.sharedProps.setPropOverride('noLocationSelectedHelp', item.config, config);
+    this.sharedProps.setPropOverride('publicCheck', item.config, config);
+    this.sharedProps.setPropOverride('selectionCriteria', item.config, config);
+    this.sharedProps.setPropOverride('dataTypes', item.config, config);
+    this.sharedProps.setPropOverride('dataTypeLookup', item.config, config);
+  }
+
+  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): void {
+    const currentData = this.getData();
+    if (
+      !isTypeFieldDefinitionName<PublishDataLocationSelectorFieldModelDefinitionFrame>(
+        currentData,
+        PublishDataLocationSelectorModelName
+      )
+    ) {
+      throw new Error(
+        `Invalid ${PublishDataLocationSelectorModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+
+    item.config = new PublishDataLocationSelectorFieldModelConfig();
+    this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+    this.setModelValue(item, currentData?.config);
+  }
+
+  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
   }
 
@@ -1921,6 +1993,27 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       phase: 'construct',
       reusableFormDefs: this.reusableFormDefs,
     }) as AllFormComponentDefinitionOutlines;
+  }
+
+  protected ensureRichTextViewOverride(item: RichTextEditorFormComponentDefinitionOutline): void {
+    const allowModes = item?.constraints?.allowModes;
+    const hasExplicitViewMode = Array.isArray(allowModes) && allowModes.includes('view');
+    const existingViewComponent = item?.overrides?.formModeClasses?.view?.component;
+
+    if (!hasExplicitViewMode || existingViewComponent !== undefined) {
+      return;
+    }
+
+    item.overrides = {
+      ...(item.overrides ?? {}),
+      formModeClasses: {
+        ...(item.overrides?.formModeClasses ?? {}),
+        view: {
+          ...(item.overrides?.formModeClasses?.view ?? {}),
+          component: ContentComponentName,
+        },
+      },
+    };
   }
 
   /**
