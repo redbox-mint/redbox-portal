@@ -165,6 +165,13 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { FileUploadFieldComponentConfig, FileUploadFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import {
+  RecordMetadataRetrieverComponentName,
+  RecordMetadataRetrieverFieldComponentDefinitionFrame,
+  RecordMetadataRetrieverFieldComponentDefinitionOutline,
+  RecordMetadataRetrieverFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { RecordMetadataRetrieverFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   DataLocationComponentName,
   DataLocationFieldComponentDefinitionFrame,
   DataLocationFieldComponentDefinitionOutline,
@@ -1274,6 +1281,29 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.populateFormComponent(item);
   }
 
+  /* Record Metadata Retriever */
+
+  visitRecordMetadataRetrieverFieldComponentDefinition(item: RecordMetadataRetrieverFieldComponentDefinitionOutline): void {
+    const currentData = this.getData();
+    if (
+      !isTypeFieldDefinitionName<RecordMetadataRetrieverFieldComponentDefinitionFrame>(
+        currentData,
+        RecordMetadataRetrieverComponentName
+      )
+    ) {
+      throw new Error(
+        `Invalid ${RecordMetadataRetrieverComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+
+    item.config = new RecordMetadataRetrieverFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, currentData?.config);
+  }
+
+  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
   /* Data Location */
 
   visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void {
@@ -1794,6 +1824,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
           condition: opConfig.condition,
           conditionKind: opConfig.conditionKind,
           target: opConfig.target,
+          ...(opConfig.template !== undefined && { template: opConfig.template }),
           ...(opConfig.runOnFormReady !== undefined && { runOnFormReady: opConfig.runOnFormReady }),
         };
       } else {

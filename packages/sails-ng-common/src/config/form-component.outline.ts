@@ -60,14 +60,12 @@ interface FormExpressionsMixedConfigFrame extends FormExpressionsBaseConfigFrame
     template?: string;
 }
 
-export type FormExpressionsOperationConfigFrame = Omit<FormExpressionsMixedConfigFrame, 'template'> & {
+export type FormExpressionsOperationConfigFrame = FormExpressionsMixedConfigFrame & {
     operation: string;
-    template?: never;
 };
 
-export type FormExpressionsTemplateConfigFrame = Omit<FormExpressionsMixedConfigFrame, 'operation'> & {
+export type FormExpressionsTemplateConfigFrame = FormExpressionsMixedConfigFrame & {
     template: string;
-    operation?: never;
 };
 
 /**
@@ -213,4 +211,3 @@ export interface FormComponentDefinitionOutline extends FormComponentDefinitionF
     constraints?: FormConstraintConfigOutline;
     overrides?: FormOverrideConfigOutline;
 }
-

@@ -31,6 +31,10 @@ import { TypeaheadInputDefaults, TypeaheadInputMap } from './component/typeahead
 import { RichTextEditorDefaults, RichTextEditorMap } from './component/rich-text-editor.model';
 import { MapDefaults, MapMap } from './component/map.model';
 import { FileUploadDefaults, FileUploadMap } from './component/file-upload.model';
+import {
+  RecordMetadataRetrieverDefaults,
+  RecordMetadataRetrieverMap,
+} from './component/record-metadata-retriever.model';
 import { DataLocationDefaults, DataLocationMap } from './component/data-location.model';
 import { CancelButtonDefaults, CancelButtonMap } from './component/cancel-button.model';
 import { TabNavButtonDefaults, TabNavButtonMap } from './component/tab-nav-button.model';
@@ -67,6 +71,7 @@ export const AllDefs = [
   ...RichTextEditorMap,
   ...MapMap,
   ...FileUploadMap,
+  ...RecordMetadataRetrieverMap,
   ...DataLocationMap,
 ] as const;
 
@@ -100,6 +105,7 @@ const RawDefaults = [
   RichTextEditorDefaults,
   MapDefaults,
   FileUploadDefaults,
+  RecordMetadataRetrieverDefaults,
   DataLocationDefaults,
 ];
 

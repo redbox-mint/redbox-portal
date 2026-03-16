@@ -122,6 +122,10 @@ import {
   FileUploadFormComponentDefinitionOutline,
 } from '../component/file-upload.outline';
 import {
+  RecordMetadataRetrieverFieldComponentDefinitionOutline,
+  RecordMetadataRetrieverFormComponentDefinitionOutline,
+} from '../component/record-metadata-retriever.outline';
+import {
   DataLocationFieldComponentDefinitionOutline,
   DataLocationFieldModelDefinitionOutline,
   DataLocationFormComponentDefinitionOutline,
@@ -479,6 +483,16 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   }
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitRecordMetadataRetrieverFieldComponentDefinition(
+    item: RecordMetadataRetrieverFieldComponentDefinitionOutline
+  ): void {
+    this.notImplemented();
+  }
+
+  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
     this.notImplemented();
   }
 

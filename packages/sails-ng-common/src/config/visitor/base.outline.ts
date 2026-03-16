@@ -119,6 +119,10 @@ import {
   FileUploadFormComponentDefinitionOutline,
 } from '../component/file-upload.outline';
 import {
+  RecordMetadataRetrieverFieldComponentDefinitionOutline,
+  RecordMetadataRetrieverFormComponentDefinitionOutline,
+} from '../component/record-metadata-retriever.outline';
+import {
   DataLocationFieldComponentDefinitionOutline,
   DataLocationFieldModelDefinitionOutline,
   DataLocationFormComponentDefinitionOutline,
@@ -339,6 +343,14 @@ export interface FormConfigVisitorOutline {
   visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void;
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void;
+
+  /* Record Metadata Retriever */
+
+  visitRecordMetadataRetrieverFieldComponentDefinition(
+    item: RecordMetadataRetrieverFieldComponentDefinitionOutline
+  ): void;
+
+  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void;
 
   /* Data Location */
 

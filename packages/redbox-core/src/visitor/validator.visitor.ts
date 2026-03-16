@@ -70,6 +70,8 @@ import {
     FileUploadFieldComponentDefinitionOutline,
     FileUploadFieldModelDefinitionOutline,
     FileUploadFormComponentDefinitionOutline,
+    RecordMetadataRetrieverFieldComponentDefinitionOutline,
+    RecordMetadataRetrieverFormComponentDefinitionOutline,
     DataLocationFieldComponentDefinitionOutline,
     DataLocationFieldModelDefinitionOutline,
     DataLocationFormComponentDefinitionOutline,
@@ -596,6 +598,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    visitRecordMetadataRetrieverFieldComponentDefinition(_item: RecordMetadataRetrieverFieldComponentDefinitionOutline): void {
+    }
+
+    visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

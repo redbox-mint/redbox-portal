@@ -280,6 +280,282 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(warnings.some((msg) => msg.includes('requestParams runtime context'))).to.equal(true);
     });
 
+    it('maps legacy RecordMetadataRetriever subscriptions into fetch expressions and downstream listeners', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: 'record-metadata-retriever-migration',
+                fields: [
+                    {
+                        class: 'ParameterRetriever',
+                        compClass: 'ParameterRetrieverComponent',
+                        definition: {
+                            name: 'parameterRetriever',
+                            parameterName: 'dataRecordOid'
+                        }
+                    },
+                    {
+                        class: 'RecordMetadataRetriever',
+                        compClass: 'RecordMetadataRetrieverComponent',
+                        definition: {
+                            name: 'dataRecordGetter',
+                            subscribe: {
+                                parameterRetriever: {
+                                    onValueUpdate: [{ action: 'publishMetadata' }]
+                                },
+                                dataRecord: {
+                                    relatedObjectSelected: [{ action: 'publishMetadata' }]
+                                }
+                            }
+                        }
+                    },
+                    {
+                        class: 'TextField',
+                        definition: {
+                            name: 'title',
+                            subscribe: {
+                                dataRecordGetter: {
+                                    onValueUpdate: [
+                                        {
+                                            action: 'utilityService.getPropertyFromObject',
+                                            field: 'title'
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+
+        const retriever = migrated.componentDefinitions.find((component) => component.name === 'dataRecordGetter');
+        expect(retriever?.component.class).to.equal('RecordMetadataRetrieverComponent');
+        expect(retriever?.model).to.equal(undefined);
+        expect(retriever?.expressions).to.deep.include({
+            name: 'fetchOnFormReady-dataRecordOid',
+            description: 'Fetch metadata on form load using request params',
+            config: {
+                runOnFormReady: true,
+                conditionKind: 'jsonata_query',
+                condition: '$exists(runtimeContext.requestParams.dataRecordOid)',
+                operation: 'fetchMetadata',
+                hasTemplate: true,
+                template: 'runtimeContext.requestParams.dataRecordOid'
+            }
+        });
+        expect(retriever?.expressions).to.deep.include({
+            name: 'fetchOnRelatedObjectSelected-dataRecord',
+            description: 'Fetch metadata when dataRecord changes',
+            config: {
+                conditionKind: 'jsonpointer',
+                runOnFormReady: false,
+                condition: '/dataRecord::field.value.changed',
+                operation: 'fetchMetadata',
+                hasTemplate: true,
+                template: '$exists(event.value.redboxOid) ? event.value.redboxOid : event.value'
+            }
+        });
+
+        const titleField = migrated.componentDefinitions.find((component) => component.name === 'title');
+        expect(titleField?.expressions).to.deep.include({
+            name: 'dataRecordGetter-title-title',
+            description: 'Populate title from dataRecordGetter metadata',
+            config: {
+                conditionKind: 'jsonpointer',
+                runOnFormReady: false,
+                condition: '/dataRecordGetter::field.value.changed',
+                target: 'model.value',
+                hasTemplate: true,
+                template: 'event.value.title'
+            }
+        });
+    });
+
+    it('maps legacy RecordMetadataRetriever request-param fetch expressions inside tab content containers', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: 'record-metadata-retriever-tab-migration',
+                fields: [
+                    {
+                        class: 'TabOrAccordionContainer',
+                        compClass: 'TabOrAccordionContainerComponent',
+                        definition: {
+                            id: 'main_tab',
+                            label: 'Main tab',
+                            fields: [
+                                {
+                                    class: 'Container',
+                                    definition: {
+                                        id: 'aim',
+                                        label: 'Aim',
+                                        fields: [
+                                            {
+                                                class: 'ParameterRetriever',
+                                                compClass: 'ParameterRetrieverComponent',
+                                                definition: {
+                                                    name: 'parameterRetriever',
+                                                    parameterName: 'rdmpOid'
+                                                }
+                                            },
+                                            {
+                                                class: 'TextField',
+                                                definition: {
+                                                    name: 'rdmp'
+                                                }
+                                            },
+                                            {
+                                                class: 'RecordMetadataRetriever',
+                                                compClass: 'RecordMetadataRetrieverComponent',
+                                                definition: {
+                                                    name: 'rdmpGetter',
+                                                    subscribe: {
+                                                        parameterRetriever: {
+                                                            onValueUpdate: [{ action: 'publishMetadata' }]
+                                                        },
+                                                        rdmp: {
+                                                            relatedObjectSelected: [{ action: 'publishMetadata' }]
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                class: 'TextField',
+                                                definition: {
+                                                    name: 'aim_project_name',
+                                                    subscribe: {
+                                                        rdmpGetter: {
+                                                            onValueUpdate: [
+                                                                {
+                                                                    action: 'utilityService.getPropertyFromObject',
+                                                                    field: 'title'
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        });
+
+        const findByName = (components: any[], name: string): any => {
+            for (const component of components ?? []) {
+                if (component?.name === name) {
+                    return component;
+                }
+                const nestedTabs = component?.component?.config?.tabs ?? [];
+                const nestedTabHit = findByName(nestedTabs, name);
+                if (nestedTabHit) {
+                    return nestedTabHit;
+                }
+                const nestedComponents = component?.component?.config?.componentDefinitions ?? [];
+                const nestedComponentHit = findByName(nestedComponents, name);
+                if (nestedComponentHit) {
+                    return nestedComponentHit;
+                }
+            }
+            return undefined;
+        };
+
+        const findPointerByName = (components: any[], name: string, parentPointer = ''): string | undefined => {
+            for (const component of components ?? []) {
+                const currentPointer = `${parentPointer}/${component?.name}`;
+                if (component?.name === name) {
+                    return currentPointer;
+                }
+                const nestedTabs = component?.component?.config?.tabs ?? [];
+                const nestedTabHit = findPointerByName(nestedTabs, name, currentPointer);
+                if (nestedTabHit) {
+                    return nestedTabHit;
+                }
+                const nestedComponents = component?.component?.config?.componentDefinitions ?? [];
+                const nestedComponentHit = findPointerByName(nestedComponents, name, currentPointer);
+                if (nestedComponentHit) {
+                    return nestedComponentHit;
+                }
+            }
+            return undefined;
+        };
+
+        const retriever = findByName(migrated.componentDefinitions as any[], 'rdmpGetter');
+        const targetField = findByName(migrated.componentDefinitions as any[], 'aim_project_name');
+        const retrieverPointer = findPointerByName(migrated.componentDefinitions as any[], 'rdmpGetter');
+        const sourcePointer = findPointerByName(migrated.componentDefinitions as any[], 'rdmp');
+
+        expect(retriever?.component.class).to.equal('RecordMetadataRetrieverComponent');
+        expect(retriever?.expressions).to.deep.include({
+            name: 'fetchOnFormReady-rdmpOid',
+            description: 'Fetch metadata on form load using request params',
+            config: {
+                runOnFormReady: true,
+                conditionKind: 'jsonata_query',
+                condition: '$exists(runtimeContext.requestParams.rdmpOid)',
+                operation: 'fetchMetadata',
+                hasTemplate: true,
+                template: 'runtimeContext.requestParams.rdmpOid'
+            }
+        });
+        expect(retriever?.expressions).to.deep.include({
+            name: 'fetchOnRelatedObjectSelected-rdmp',
+            description: 'Fetch metadata when rdmp changes',
+            config: {
+                conditionKind: 'jsonpointer',
+                runOnFormReady: false,
+                condition: `${sourcePointer}::field.value.changed`,
+                operation: 'fetchMetadata',
+                hasTemplate: true,
+                template: '$exists(event.value.redboxOid) ? event.value.redboxOid : event.value'
+            }
+        });
+        expect(targetField?.expressions).to.deep.include({
+            name: 'rdmpGetter-aim_project_name-title',
+            description: 'Populate aim_project_name from rdmpGetter metadata',
+            config: {
+                conditionKind: 'jsonpointer',
+                runOnFormReady: false,
+                condition: `${retrieverPointer}::field.value.changed`,
+                target: 'model.value',
+                hasTemplate: true,
+                template: 'event.value.title'
+            }
+        });
+    });
+
+    it('omits the form-ready RecordMetadataRetriever fetch expression when parameter metadata is missing', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: 'record-metadata-retriever-without-parameter',
+                fields: [
+                    {
+                        class: 'RecordMetadataRetriever',
+                        compClass: 'RecordMetadataRetrieverComponent',
+                        definition: {
+                            name: 'rdmpGetter',
+                            subscribe: {
+                                parameterRetriever: {
+                                    onValueUpdate: [{ action: 'publishMetadata' }]
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+
+        const retriever = migrated.componentDefinitions.find((component) => component.name === 'rdmpGetter');
+        const expressions = retriever?.expressions ?? [];
+        expect(expressions.some((expr) => expr.name.startsWith('fetchOnFormReady-'))).to.equal(false);
+    });
+
     it('maps RepeatableVocabComponent to RepeatableComponent with Typeahead elementTemplate', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({
