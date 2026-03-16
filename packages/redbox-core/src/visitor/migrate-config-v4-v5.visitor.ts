@@ -767,7 +767,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         `{{#if (get formData content.valuePath "")}}` +
         `<li class="key-value-pair padding-bottom-10">` +
         `{{#if content.label}}<span class="key">${labelTemplateToken}</span>{{/if}}` +
-        `<span class="value"><a href="{{get formData content.valuePath ""}}" target="field.target">` +
+        `<span class="value"><a href="{{get formData content.valuePath ""}}" target="{{default content.target "_blank"}}">` +
         `{{get formData content.valuePath ""}}</a></span>` +
         `</li>` +
         `{{/if}}`;

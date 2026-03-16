@@ -1,6 +1,7 @@
 import { Component, DestroyRef, ElementRef, Injector, Input, QueryList, ViewChildren, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, RecordService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   RecordSelectorComponentName,
@@ -210,6 +211,8 @@ export class RecordSelectorModel extends FormFieldModel<RecordSelectorModelValue
 export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelectorModelValueType> {
   protected override logName = RecordSelectorComponentName;
 
+  private static readonly searchDebounceMs = 250;
+
   public readonly searchControl = new FormControl<string>('');
   public readonly listboxId = `record-selector-${Math.random().toString(36).slice(2, 10)}`;
   public readonly statusId = `${this.listboxId}-status`;
@@ -228,6 +231,7 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
   private workflowState = '';
   private filterMode = 'default';
   private filterFields: string[] = [];
+  private latestSearchRequestId = 0;
   private searchSubscriptionInitialised = false;
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
@@ -253,9 +257,11 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
     this.filterFields = Array.isArray(cfg.filterFields) ? cfg.filterFields.map((value: unknown) => String(value)) : [];
     if (!this.searchSubscriptionInitialised) {
       this.searchSubscriptionInitialised = true;
-      this.searchControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(value => {
-        void this.onSearchTermChanged(String(value ?? ''));
-      });
+      this.searchControl.valueChanges
+        .pipe(debounceTime(RecordSelectorComponent.searchDebounceMs), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+        .subscribe(value => {
+          void this.onSearchTermChanged(String(value ?? ''));
+        });
     }
   }
 
@@ -290,9 +296,10 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
 
   private async onSearchTermChanged(rawValue: string): Promise<void> {
     const term = rawValue.trim();
+    const requestId = ++this.latestSearchRequestId;
     if (this.filterMode === 'default') {
       if (!this.records.length && term) {
-        await this.loadRecords(term);
+        await this.loadRecords(term, requestId);
         return;
       }
       this.applyLocalFilter(term);
@@ -305,13 +312,15 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
       this.errorMessageKey = '';
       return;
     }
-    await this.loadRecords(term);
+    await this.loadRecords(term, requestId);
   }
 
   public async resetFilter(): Promise<void> {
+    this.latestSearchRequestId += 1;
     this.searchControl.setValue('', { emitEvent: false });
     this.records = [];
     this.filteredRecords = [];
+    this.loading = false;
     this.errorMessageKey = '';
     this.statusMessageKey = 'record-selector-status-idle';
   }
@@ -369,7 +378,7 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
     return this.selectedRecord?.oid === record.oid;
   }
 
-  private async loadRecords(search: string): Promise<void> {
+  private async loadRecords(search: string, requestId: number): Promise<void> {
     this.loading = true;
     this.errorMessageKey = '';
     this.statusMessageKey = 'record-selector-status-loading';
@@ -384,6 +393,9 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
         this.filterMode === 'default' ? '' : search,
         this.filterMode === 'default' ? '' : this.filterMode
       );
+      if (requestId !== this.latestSearchRequestId) {
+        return;
+      }
       this.records = this.extractRecords(response);
       if (this.filterMode === 'default') {
         this.applyLocalFilter(search);
@@ -394,13 +406,18 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
       this.syncSelectedTitle();
       this.focusedIndex = 0;
     } catch (error) {
+      if (requestId !== this.latestSearchRequestId) {
+        return;
+      }
       this.loggerService.error(`${this.logName}: unable to load records`, error);
       this.records = [];
       this.filteredRecords = [];
       this.errorMessageKey = 'record-selector-status-error';
       this.statusMessageKey = this.errorMessageKey;
     } finally {
-      this.loading = false;
+      if (requestId === this.latestSearchRequestId) {
+        this.loading = false;
+      }
     }
   }
 

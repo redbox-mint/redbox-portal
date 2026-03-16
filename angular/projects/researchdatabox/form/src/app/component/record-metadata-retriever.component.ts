@@ -49,6 +49,13 @@ class RecordMetadataRetrieverExpressionConsumer extends FormComponentEventBaseCo
     await this.handler(event, expression);
   }
 
+  public async evaluateTemplateExpression(
+    expression: FormExpressionsConfigFrame,
+    event: FormComponentEvent
+  ): Promise<unknown> {
+    return this.evaluateExpressionJSONata(expression, event, 'template');
+  }
+
   private handleConsumeError(err: unknown): void {
     console.error('RecordMetadataRetrieverExpressionConsumer: Error consuming matched expressions.', err);
   }
@@ -169,7 +176,7 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
         this.loggerService.warn(`${this.logName}: Expression consumer is not initialised.`, expression);
         return;
       }
-      oidValue = await expressionConsumer['evaluateExpressionJSONata'](expression, event, 'template');
+      oidValue = await expressionConsumer.evaluateTemplateExpression(expression, event);
       if ((oidValue === undefined || oidValue === null || oidValue === '') && isFormReadyEvent) {
         oidValue = this.resolveRequestParamTemplate(expression.config.template);
       }
