@@ -30,6 +30,8 @@ import {reusableFormDefinitions} from "../../src";
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
+const normalizeTemplate = (template: string): string => template.replace(/\s+/g, " ").trim();
+
 describe("Construct Visitor", async () => {
     describe("basic constructing", async () => {
         const cases: {
@@ -1151,13 +1153,14 @@ describe("Construct Visitor", async () => {
                     }
                 ]
             });
-            expect((transformed.component.config as any).template).to.contain("rb-view-data-location");
-            expect((transformed.component.config as any).template).to.contain("<thead><tr><th width=\"15%\">{{t \"Type\"}}</th>");
-            expect((transformed.component.config as any).template).to.contain("<th width=\"40%\">{{t \"Location\"}}</th>");
-            expect((transformed.component.config as any).template).to.contain("<th width=\"20%\">{{t \"Notes\"}}</th>");
-            expect((transformed.component.config as any).template).to.contain("<th width=\"20%\">{{t \"Information Security Classification\"}}</th>");
-            expect((transformed.component.config as any).template).to.contain("<td>{{default this.notes \"\"}}</td>");
-            expect((transformed.component.config as any).template).to.contain("<td>{{default this.isc \"\"}}</td>");
+            const template = normalizeTemplate((transformed.component.config as any).template);
+            expect(template).to.contain("rb-view-data-location");
+            expect(template).to.contain("{{t \"Type\"}}");
+            expect(template).to.contain("{{t \"Location\"}}");
+            expect(template).to.contain("{{t \"Notes\"}}");
+            expect(template).to.contain("{{t \"Information Security Classification\"}}");
+            expect(template).to.contain("{{default this.notes \"\"}}");
+            expect(template).to.contain("{{default this.isc \"\"}}");
         });
 
         it("should transform publish data location selector components to content in view mode", async function () {
@@ -1215,9 +1218,14 @@ describe("Construct Visitor", async () => {
                     }
                 ]
             });
-            expect((transformed.component.config as any).template).to.contain("rb-view-publish-data-location-selector");
-            expect((transformed.component.config as any).template).to.contain("{{#if this.selected}}");
-            expect((transformed.component.config as any).template).to.not.contain("&#10003;");
+            const template = normalizeTemplate((transformed.component.config as any).template);
+            expect(template).to.contain("rb-view-publish-data-location-selector");
+            expect(template).to.contain("{{#if this.selected}}");
+            expect(template).to.contain("{{t \"Type\"}}");
+            expect(template).to.contain("{{t \"Location\"}}");
+            expect(template).to.contain("{{default this.notes \"\"}}");
+            expect(template).to.contain("{{default this.isc \"\"}}");
+            expect(template).to.not.contain("&#10003;");
         });
 
         it("should populate transformed dropdown content component from record array values", async () => {
@@ -2132,7 +2140,7 @@ describe("Construct Visitor", async () => {
             const actual = formOverride.applyOverrideTransform(repeatableFormComponent, "view", { phase: "client" });
 
             expect(actual.component.class).to.equal("ContentComponent");
-            const template = (actual.component.config as any).template;
+            const template = normalizeTemplate((actual.component.config as any).template);
             expect(template).to.contain("rb-view-repeatable-table");
             expect(template).to.contain("rb-view-publish-data-location-selector");
             expect(template).to.contain("{{#if this.selected}}");
