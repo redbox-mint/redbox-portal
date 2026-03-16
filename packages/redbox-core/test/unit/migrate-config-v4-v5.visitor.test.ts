@@ -197,7 +197,8 @@ describe("Migrate v4 to v5 Visitor", async () => {
                             name: 'citation_url',
                             label: '@dataPublication-citation-url',
                             help: '@dataPublication-citation-url-help',
-                            type: 'text'
+                            type: 'text',
+                            target: '_self'
                         }
                     }
                 ]
@@ -218,16 +219,46 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect((migratedFieldResolved.layout?.config as Record<string, unknown>)?.label).to.equal(undefined);
         expect(componentConfig?.content).to.deep.equal({
             label: '@dataPublication-citation-url',
-            valuePath: 'citation_url'
+            valuePath: 'citation_url',
+            target: '_self'
         });
         expect(componentConfig?.template).to.equal(
-            '{{#if (get formData content.valuePath "")}}<li class="key-value-pair padding-bottom-10">{{#if content.label}}<span class="key">{{t content.label}}</span>{{/if}}<span class="value"><a href="{{get formData content.valuePath ""}}" target="field.target">{{get formData content.valuePath ""}}</a></span></li>{{/if}}'
+            '{{#if (get formData content.valuePath "")}}<li class="key-value-pair padding-bottom-10">{{#if content.label}}<span class="key">{{t content.label}}</span>{{/if}}<span class="value"><a href="{{get formData content.valuePath ""}}" target="{{default content.target "_blank"}}">{{get formData content.valuePath ""}}</a></span></li>{{/if}}'
         );
         expect(hiddenBindingFieldResolved.name).to.equal('citation_url');
         expect(hiddenBindingFieldResolved.component.class).to.equal('SimpleInputComponent');
         expect(hiddenBindingFieldResolved.constraints?.allowModes).to.deep.equal(['view']);
         expect((hiddenBindingFieldResolved.component.config as Record<string, unknown>)?.type).to.equal('hidden');
         expect((hiddenBindingFieldResolved.component.config as Record<string, unknown>)?.visible).to.equal(false);
+    });
+
+    it('defaults migrated LinkValueComponent link targets to _blank when the legacy definition omits target', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: 'link-value-default-target-migration',
+                fields: [
+                    {
+                        class: 'LinkValueComponent',
+                        definition: {
+                            name: 'landing_page',
+                            label: 'Landing page',
+                            type: 'text'
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions.find((component) => component.name === 'landing_page-link-value');
+        expect(migratedField).to.not.equal(undefined);
+
+        const componentConfig = migratedField!.component.config as Record<string, unknown>;
+        expect(componentConfig?.content).to.deep.equal({
+            label: 'Landing page',
+            valuePath: 'landing_page'
+        });
+        expect(componentConfig?.template).to.contain('target="{{default content.target "_blank"}}"');
     });
 
     it('maps HtmlRawComponent to ContentComponent', async function () {
