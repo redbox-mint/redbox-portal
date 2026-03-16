@@ -36,6 +36,15 @@ export interface JSONataQuerySourceProperty {
   children?: JSONataQuerySourceProperty[];
 }
 
+export type FormRequestParamValue = string | string[] | true;
+
+export type FormRequestParamsMap = Readonly<Record<string, FormRequestParamValue>>;
+
+export interface JSONataQueryRuntimeContext {
+  requestParams?: FormRequestParamsMap;
+  [key: string]: unknown;
+}
+
 export interface JSONataQuerySource {
   // The original object that this query source was built from
   queryOrigSource: unknown;
@@ -43,6 +52,8 @@ export interface JSONataQuerySource {
   querySource: JSONataQuerySourceProperty[];
   // JSONPointer-ready representation of the original source
   jsonPointerSource: unknown;
+  // Additional non-component runtime data for expression/query consumers.
+  runtimeContext?: JSONataQueryRuntimeContext;
 }
 /**
  * Performs a deep copy of an object, removing circular references.

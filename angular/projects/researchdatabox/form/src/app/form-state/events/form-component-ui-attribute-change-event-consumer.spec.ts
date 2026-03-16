@@ -214,6 +214,82 @@ describe('FormComponentUIAttributeChangeEventConsumer', () => {
     expect(control.value).toBe('templatedValue');
   }));
 
+  it('should include requestParams in JSONata evaluation context', async () => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'template-request-params',
+      config: {
+        target: 'model.value',
+        hasTemplate: true,
+        condition: 'sourceField',
+        template: ''
+      }
+    };
+    const { definition, component } = createSetup([expr]);
+    const evaluateSpy = jasmine.createSpy('evaluate').and.resolveTo('templatedValue');
+
+    (consumer as any).options = { component, definition };
+    (consumer as any).expressions = [expr];
+    (consumer as any).formComp = {
+      form: {
+        value: {
+          sourceField: 'current'
+        }
+      },
+      requestParams: () => ({
+        workspace: 'active'
+      })
+    };
+    spyOn<any>(consumer, 'getCompiledItems').and.resolveTo({ evaluate: evaluateSpy });
+
+    await (consumer as any).evaluateExpressionJSONata(expr, createUIEvent({ sourceId: '*' }), 'template');
+
+    const [, context] = evaluateSpy.calls.mostRecent().args;
+    expect(context.requestParams).toEqual({ workspace: 'active' });
+    expect(context.runtimeContext).toEqual({ requestParams: { workspace: 'active' } });
+  });
+
+  it('should pass JSONataQuery data using named querySource and runtimeContext properties', async () => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'jsonata-query-request-params',
+      config: {
+        target: 'model.value',
+        condition: '$exists(runtimeContext.requestParams.workspace) and querySource[0].name = "parent"',
+        conditionKind: ExpressionsConditionKind.JSONataQuery,
+        template: ''
+      }
+    };
+    const evaluateExpressionSpy = spyOn<any>(consumer, 'evaluateExpressionJSONata').and.resolveTo(true);
+    const event = createUIEvent({ sourceId: '*' });
+
+    const matched = await (consumer as any).hasMatchedJSONataQueryCondition({
+      condition: expr.config.condition || '',
+      conditionKind: ExpressionsConditionKind.JSONataQuery,
+      expression: expr,
+      event,
+      querySource: {
+        queryOrigSource: [],
+        querySource: [{ name: 'parent' }],
+        jsonPointerSource: {},
+        runtimeContext: {
+          requestParams: {
+            workspace: 'active'
+          }
+        },
+        event
+      }
+    }, expr);
+
+    expect(matched).toBeTrue();
+    expect(evaluateExpressionSpy).toHaveBeenCalledWith(expr, event, 'condition', {
+      querySource: [{ name: 'parent' }],
+      runtimeContext: {
+        requestParams: {
+          workspace: 'active'
+        }
+      }
+    });
+  });
+
   it('should warn if target is unknown', fakeAsync(() => {
     const expr = {
       name: 'unknown-target',

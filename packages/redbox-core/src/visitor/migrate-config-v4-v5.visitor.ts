@@ -596,6 +596,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     // this.logger.info(`Processing '${item.name}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
     fields.forEach((field, index) => {
       const v4FormPathMore = ['fields', index.toString()];
+      if (this.shouldOmitLegacyField(field, v4FormPathMore)) {
+        return;
+      }
       // Create the instance from the v4 config
       const formComponent = this.constructFormComponent(field, v4FormPathMore);
 
@@ -845,6 +848,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
       try {
         const v4FormPathMore = ['definition', 'fields', '0'];
+        if (this.shouldOmitLegacyField(v4Field, v4FormPathMore)) {
+          return;
+        }
         // Create the instance from the v4 config
         const formComponent = this.constructFormComponent(v4Field, v4FormPathMore);
 
@@ -975,6 +981,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         }
 
         const v4FormPathMore = ['definition', 'fields', index.toString()];
+        if (this.shouldOmitLegacyField(childField, v4FormPathMore)) {
+          return;
+        }
         // Create the instance from the v4 config
         const formComponent = this.constructFormComponent(childField, v4FormPathMore);
 
@@ -1043,6 +1052,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
     fields.forEach((field, index) => {
       const v4FormPathMore = ['definition', 'fields', index.toString()];
+      if (this.shouldOmitLegacyField(field, v4FormPathMore)) {
+        return;
+      }
 
       // TODO: Does this approach to mapping the tab content component lose data?
       // build tab component from field by setting 'placeholder' v4 class
@@ -1092,6 +1104,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
     fields.forEach((field, index) => {
       const v4FormPathMore = ['definition', 'fields', index.toString()];
+      if (this.shouldOmitLegacyField(field, v4FormPathMore)) {
+        return;
+      }
       // Create the instance from the v4 config
       const formComponent = this.constructFormComponent(field, v4FormPathMore);
 
@@ -1840,6 +1855,25 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const matched = formConfigV4ToV5Mapping[v4ClassName]?.[v4CompClassName] ?? {};
     const v4ClassNames = { v4ClassName, v4CompClassName };
     return postProcessingFormConfigV4ToV5Mapping(v4Field, v4ClassNames, matched);
+  }
+
+  protected shouldOmitLegacyField(field: Record<string, unknown>, v4FormPathMore?: string[]): boolean {
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    const v4CompClassName = `${field?.compClass ?? ''}`.trim();
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const isLegacyParameterRetriever =
+      v4ClassName === 'ParameterRetriever' || v4CompClassName === 'ParameterRetrieverComponent';
+
+    if (!isLegacyParameterRetriever) {
+      return false;
+    }
+
+    const v4Name = `${definition?.name ?? definition?.id ?? ''}`.trim();
+    const fullPath = [...(this.v4FormPath ?? []), ...(v4FormPathMore ?? [])];
+    this.logger.warn(
+      `${this.logName}: Omitting legacy ParameterRetriever '${v4Name}' at ${JSON.stringify(fullPath)}. URL request params are now available via FormComponent.requestParams/getRequestParam and JSONata requestParams runtime context.`
+    );
+    return true;
   }
 
   protected constructFormComponent(field: Record<string, unknown>, more?: LineagePath): AllFormComponentDefinitionOutlines {

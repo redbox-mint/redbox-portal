@@ -10,6 +10,12 @@ import { FormComponentEventBus } from './form-state/events/form-component-event-
 import { createFieldValueChangedEvent, createFormDefinitionChangedEvent, createFormSaveExecuteEvent, createFormStatusDirtyRequestEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
 
 describe('FormComponent', () => {
+  const setWindowSearch = (search?: string) => {
+    const url = new URL(window.location.href);
+    url.search = search ?? '';
+    window.history.replaceState({}, '', url.toString());
+  };
+
   const setFormDebugUrl = (value?: string) => {
     const url = new URL(window.location.href);
     url.searchParams.delete('formDebug');
@@ -29,6 +35,7 @@ describe('FormComponent', () => {
   };
 
   beforeEach(async () => {
+    setWindowSearch('');
     setFormDebugUrl('1');
     await createTestbedModule(
       {
@@ -40,7 +47,7 @@ describe('FormComponent', () => {
   });
 
   afterEach(() => {
-    setFormDebugUrl();
+    setWindowSearch('');
   });
 
   it('should create the app', () => {
@@ -78,6 +85,49 @@ describe('FormComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]');
     expect(inputElement).toBeTruthy();
+  });
+
+  it('parses request params on startup and exposes accessors', () => {
+    setWindowSearch('?focusTabId=tab2&workspace=active&flag&multi=a&multi=b&empty=');
+
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+
+    expect(formComponent.requestParams()).toEqual({
+      focusTabId: 'tab2',
+      workspace: 'active',
+      flag: true,
+      multi: ['a', 'b'],
+      empty: ''
+    });
+    expect(formComponent.getRequestParam('focusTabId')).toBe('tab2');
+    expect(formComponent.getRequestParam('missing')).toBeUndefined();
+  });
+
+  it('refreshRequestParamsFromUrl updates the runtime request params', () => {
+    setWindowSearch('?initial=one');
+
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    expect(formComponent.requestParams()).toEqual({ initial: 'one' });
+
+    setWindowSearch('?flag&multi=one&multi=two&empty=');
+    formComponent.refreshRequestParamsFromUrl();
+
+    expect(formComponent.requestParams()).toEqual({
+      flag: true,
+      multi: ['one', 'two'],
+      empty: ''
+    });
+  });
+
+  it('returns an empty request-param map when the URL has no query string', () => {
+    setWindowSearch('');
+
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+
+    expect(formComponent.requestParams()).toEqual({});
   });
 
   it('should call saveForm when form.save.execute is published (Task 15)', async () => {
