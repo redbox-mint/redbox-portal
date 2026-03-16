@@ -109,6 +109,7 @@ export class FormOverride {
     leafRichText: 'view-template-leaf-rich-text',
     leafFileUpload: 'view-template-leaf-file-upload',
     leafDataLocation: 'view-template-leaf-data-location',
+    leafPublishDataLocationSelector: 'view-template-leaf-publish-data-location-selector',
     leafCheckboxTree: 'view-template-leaf-checkbox-tree',
     groupContainer: 'view-template-group-container',
     groupRowWithLabel: 'view-template-group-row-with-label',
@@ -871,7 +872,7 @@ export class FormOverride {
     }
     target.component.config.content = source.model.config.value;
     const template = this.resolveReusableViewTemplate(
-      'view-template-leaf-publish-data-location-selector',
+      this.reusableViewTemplateKeys.leafPublishDataLocationSelector,
       this.publishDataLocationSelectorLeafFallbackTemplate
     );
     const componentConfig = source.component?.config as {
@@ -1228,6 +1229,13 @@ export class FormOverride {
         this.dataLocationLeafFallbackTemplate
       );
       return this.substituteReusableTemplateSlots(dataLocationTemplate, { valueExpr: expression });
+    }
+    if (className === PublishDataLocationSelectorComponentName) {
+      const publishDataLocationSelectorTemplate = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafPublishDataLocationSelector,
+        this.publishDataLocationSelectorLeafFallbackTemplate
+      );
+      return this.substituteReusableTemplateSlots(publishDataLocationSelectorTemplate, { valueExpr: expression });
     }
     if (className === ContentComponentName) {
       const template =
