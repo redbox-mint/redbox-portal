@@ -9,6 +9,7 @@ import {
 } from './form-component-event.types';
 import { ExpressionsConditionKind, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { Subject } from 'rxjs';
+import { CustomSetValueControl } from '../custom-set-value.control';
 
 describe('FormComponentValueChangeEventConsumer', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
@@ -464,4 +465,49 @@ describe('FormComponentValueChangeEventConsumer', () => {
 
     expect(consumer['consumeEvent']).not.toHaveBeenCalled();
   });
+
+  it('should use a custom control value setter when one is registered', fakeAsync(() => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'custom-control-setter',
+      config: {
+        target: 'model.value',
+        condition: 'otherField',
+        template: ''
+      }
+    };
+    const control = new FormControl('existing') as FormControl & CustomSetValueControl<unknown>;
+    const customSetter = jasmine.createSpy('customSetter').and.resolveTo(undefined);
+    control.setCustomValue = customSetter;
+    const setValueSpy = spyOn(control, 'setValue').and.callThrough();
+    const definition = {
+      model: { formControl: control },
+      expressions: [expr],
+      lineagePaths: { formConfig: ['root'] },
+      layout: { componentDefinition: { config: {} } },
+      component: { componentDefinition: { config: {} } }
+    } as unknown as FormFieldCompMapEntry;
+
+    const component = {
+      formFieldConfigName: () => 'test-field',
+      model: { formControl: control }
+    } as unknown as FormFieldBaseComponent<unknown>;
+
+    spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
+
+    consumer.bind({ component, definition });
+
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: 'otherField',
+      sourceId: 'otherField',
+      value: [{ name: 'new row' }],
+      timestamp: Date.now()
+    };
+
+    eventStream$.next(event);
+    tick();
+
+    expect(customSetter).toHaveBeenCalledWith([{ name: 'new row' }], { emitEvent: false });
+    expect(setValueSpy).not.toHaveBeenCalled();
+  }));
 });

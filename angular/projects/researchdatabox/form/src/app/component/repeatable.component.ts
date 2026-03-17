@@ -16,6 +16,25 @@ import { FormService } from '../form.service';
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
 import { DefaultLayoutComponent } from "./default-layout.component";
 import { createFormDefinitionChangeRequestEvent, createFormStatusDirtyRequestEvent, FormComponentEventBus } from '../form-state';
+import { CustomSetValueControl } from '../form-state/custom-set-value.control';
+
+class RepeatableFormArray
+  extends FormArray<AbstractControl<unknown>>
+  implements CustomSetValueControl<Array<unknown>>
+{
+  public customValueSetter?: (value: Array<unknown>, options?: { emitEvent?: boolean; onlySelf?: boolean }) => Promise<void> | void;
+
+  public async setCustomValue(
+    value: Array<unknown>,
+    options?: { emitEvent?: boolean; onlySelf?: boolean }
+  ): Promise<void> {
+    if (this.customValueSetter) {
+      await this.customValueSetter(value, options);
+      return;
+    }
+    this.setValue(value, options);
+  }
+}
 
 /**
  * Repeatable Form Field Component
@@ -116,6 +135,10 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     if (!this.model) {
       throw new Error(`${this.logName}: model is not defined. Cannot initialize the component for '${formComponentName}'.`);
     }
+    const formControl = this.model.formControl;
+    if (formControl instanceof RepeatableFormArray) {
+      formControl.customValueSetter = (value) => this.replaceAllElements(Array.isArray(value) ? value : []);
+    }
 
     this.elemInitFieldEntry = formComponentsMap.components[0];
     let layoutClass = this.elemInitFieldEntry?.layoutClass;
@@ -160,6 +183,24 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     await this.createElement(elemEntry);
     if (markFormDirty) {
       this.requestFormDirty('repeatable.element.appended');
+    }
+  }
+
+  public async replaceAllElements(values?: unknown[]): Promise<void> {
+    const nextValues = Array.isArray(values) ? values : [];
+
+    while (this.compDefMapEntries.length > 0) {
+      const lastEntry = this.compDefMapEntries[this.compDefMapEntries.length - 1];
+      this.removeElementFn(lastEntry)();
+    }
+
+    if (nextValues.length === 0 && !this.allowZeroRows) {
+      await this.appendNewElement(undefined, false);
+      return;
+    }
+
+    for (const value of nextValues) {
+      await this.appendNewElement(value, false);
     }
   }
 
@@ -315,17 +356,17 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
 export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
   protected override logName = RepeatableModelName;
-  public override formControl?: FormArray;
+  public override formControl?: RepeatableFormArray;
 
   protected override postCreateGetInitValue(): Array<unknown> | undefined {
     // Store the init value. Use an empty array if the value is not set.
     return this.fieldConfig.config?.value ?? [];
   }
 
-  protected override postCreateGetFormControl(): FormArray<AbstractControl<Array<unknown>>> {
+  protected override postCreateGetFormControl(): RepeatableFormArray {
     // not setting value yet, this will be done in the component for lazy init
     const modelElems: AbstractControl[] = [];
-    const formControl = new FormArray(modelElems);
+    const formControl = new RepeatableFormArray(modelElems);
     return formControl;
   }
 

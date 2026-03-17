@@ -3,6 +3,7 @@ import { FormComponentEventType, FieldValueChangedEvent, FormComponentEventTypeV
 import { FormComponentEventBaseConsumer } from './form-component-base-event-consumer';
 import { FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { startsWith as _startsWith, set as _set } from 'lodash-es';
+import { isCustomSetValueControl } from '../custom-set-value.control';
 
 /**
  * Consumes `valueChange` events from the `FormComponentEventBus` and updates the component's form control.
@@ -31,7 +32,11 @@ export class FormComponentValueChangeEventConsumer extends FormComponentEventBas
 		 */
 		if (expression.config.target == "model.value") {
 			if (this.control && this.control.value !== targetValue) {
-				this.control.setValue(targetValue, { emitEvent: false });
+				if (isCustomSetValueControl(this.control)) {
+					await this.control.setCustomValue(targetValue, { emitEvent: false });
+				} else {
+					this.control.setValue(targetValue, { emitEvent: false });
+				}
 			}
 		} else if (_startsWith(expression.config.target || '', 'layout.')) {
 			const layoutPath = expression.config.target!.substring('layout.'.length);
