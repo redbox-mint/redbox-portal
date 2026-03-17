@@ -5,6 +5,7 @@ import { Subject } from 'rxjs';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import { FormComponentItemSelectEventConsumer } from './form-component-item-select-event-consumer';
 import { FieldItemSelectedEvent, FormComponentEventType } from './form-component-event.types';
+import { CustomSetValueControl } from '../custom-set-value.control';
 
 describe('FormComponentItemSelectEventConsumer', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
@@ -142,6 +143,29 @@ describe('FormComponentItemSelectEventConsumer', () => {
     emitEvent('/record/contributors/0/funderSearch', { raw: {} });
 
     expect(control.value).toBeNull();
+  });
+
+  it('should use a custom control value setter when one is registered', async () => {
+    const { options } = createBindOptions('/record/contributors/0/funderName', {
+      rawPath: 'identifier',
+      clearValue: ''
+    });
+    const control = options.definition.model.formControl as FormControl & CustomSetValueControl<unknown>;
+    const customSetter = jasmine.createSpy('customSetter').and.resolveTo(undefined);
+    control.setCustomValue = customSetter;
+    const setValueSpy = spyOn(control, 'setValue').and.callThrough();
+
+    consumer.bind(options as any);
+
+    emitEvent('/record/contributors/0/funderSearch', {
+      raw: {
+        identifier: 'https://example.org/funder/custom'
+      }
+    });
+    await Promise.resolve();
+
+    expect(customSetter).toHaveBeenCalledWith('https://example.org/funder/custom', { emitEvent: false });
+    expect(setValueSpy).not.toHaveBeenCalled();
   });
 
   it('should ignore events from same field (self)', () => {

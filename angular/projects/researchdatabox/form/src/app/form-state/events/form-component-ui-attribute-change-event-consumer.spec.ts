@@ -9,6 +9,7 @@ import {
 } from './form-component-event.types';
 import { ExpressionsConditionKind, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { Subject } from 'rxjs';
+import { CustomSetValueControl } from '../custom-set-value.control';
 
 describe('FormComponentUIAttributeChangeEventConsumer', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
@@ -106,6 +107,45 @@ describe('FormComponentUIAttributeChangeEventConsumer', () => {
 
     // Default value is the full meta object
     expect(control.value).toEqual(meta);
+  }));
+
+  it('should use a custom control value setter when one is registered', fakeAsync(() => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'custom-control-setter',
+      config: {
+        target: 'model.value',
+        condition: 'sourceField',
+        conditionKind: ExpressionsConditionKind.JSONPointer,
+        template: ''
+      }
+    };
+    const control = new FormControl('existing') as FormControl & CustomSetValueControl<unknown>;
+    const customSetter = jasmine.createSpy('customSetter').and.resolveTo(undefined);
+    control.setCustomValue = customSetter;
+    const setValueSpy = spyOn(control, 'setValue').and.callThrough();
+    const definition = {
+      model: { formControl: control },
+      expressions: [expr],
+      lineagePaths: { formConfig: ['root'] },
+      layout: { componentDefinition: { config: {} } },
+      component: { componentDefinition: { config: {} } }
+    } as unknown as FormFieldCompMapEntry;
+
+    const component = {
+      formFieldConfigName: () => 'test-field',
+      model: { formControl: control }
+    } as unknown as FormFieldBaseComponent<unknown>;
+
+    spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
+
+    consumer.bind({ component, definition });
+
+    const meta = { visible: false };
+    eventStream$.next(createUIEvent({ meta }));
+    tick();
+
+    expect(customSetter).toHaveBeenCalledWith(meta, { emitEvent: false });
+    expect(setValueSpy).not.toHaveBeenCalled();
   }));
 
   it('should not update model value if unchanged', fakeAsync(() => {

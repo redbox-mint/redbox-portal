@@ -10,6 +10,7 @@ import {
 import { FormComponentEventBaseConsumer } from './form-component-base-event-consumer';
 import { FormComponentEventBindingOptions } from './form-component-base-event-producer-consumer';
 import { FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
+import { setControlValue } from '../custom-set-value.control';
 
 /**
  * Consumes `field.item.selected` events from the `FormComponentEventBus`.
@@ -86,7 +87,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
   /**
    * Process a field.item.selected event from a sibling component.
    */
-  protected handleItemSelected(event: FieldItemSelectedEvent): void {
+  protected async handleItemSelected(event: FieldItemSelectedEvent): Promise<void> {
     if (!this.control || !this.onItemSelect) {
       return;
     }
@@ -94,7 +95,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
     const clearValue = this.onItemSelect.clearValue ?? null;
 
     if (event.selectedItem === null || event.selectedItem === undefined) {
-      this.control.setValue(clearValue, { emitEvent: false });
+      await setControlValue(this.control, clearValue, { emitEvent: false });
       return;
     }
 
@@ -112,7 +113,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
       resolved = clearValue;
     }
 
-    this.control.setValue(resolved, { emitEvent: false });
+    await setControlValue(this.control, resolved, { emitEvent: false });
   }
 
   /**
