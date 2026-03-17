@@ -114,6 +114,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private staticOptions: TypeaheadOption[] = [];
   private cache = new Map<string, TypeaheadOption[]>();
   private programmaticDisplayUpdate = false;
+  private modelSubscriptionInitialised = false;
   private labelTemplate = '';
   private labelTemplatePath: (string | number)[] = [];
   private compiledItems?: { evaluate: (key: (string | number)[], context: unknown, extra?: unknown) => unknown };
@@ -168,6 +169,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.staticOptions = Array.isArray(cfg.staticOptions) ? cfg.staticOptions : [];
 
     this.applyInitialDisplayFromModel();
+    this.bindModelValueSync();
     this.displayControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(value => {
       if (this.programmaticDisplayUpdate) {
         return;
@@ -346,6 +348,21 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return;
     }
     this.setDisplayValue('');
+  }
+
+  private bindModelValueSync(): void {
+    if (this.modelSubscriptionInitialised || !this.formControl) {
+      return;
+    }
+    this.modelSubscriptionInitialised = true;
+    this.formControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      void this.syncDisplayFromModel();
+    });
+  }
+
+  private async syncDisplayFromModel(): Promise<void> {
+    this.applyInitialDisplayFromModel();
+    await this.resolvePrepopulatedLabel();
   }
 
   private async resolvePrepopulatedLabel(): Promise<void> {

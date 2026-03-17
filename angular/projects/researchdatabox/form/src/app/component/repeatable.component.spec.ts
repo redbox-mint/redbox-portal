@@ -228,6 +228,110 @@ describe('RepeatableComponent', () => {
     subscription.unsubscribe();
   });
 
+  it('should replace repeatable elements silently when emitEvent is false', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_silent_replace',
+      componentDefinitions: [
+        {
+          name: 'repeatable_silent_replace',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one', 'two']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: '',
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: '',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          },
+        },
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+    const eventBus = TestBed.inject(FormComponentEventBus) as FormComponentEventBus;
+    const definitionEvents: any[] = [];
+    const dirtyEvents: any[] = [];
+    const definitionSub = eventBus.select$(FormComponentEventType.FORM_DEFINITION_CHANGED).subscribe((event: unknown) => {
+      definitionEvents.push(event);
+    });
+    const dirtySub = eventBus.select$(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST).subscribe((event: unknown) => {
+      dirtyEvents.push(event);
+    });
+
+    expect(formComponent.form?.dirty).toBeFalse();
+
+    await repeatable.model?.formControl?.setCustomValue(['replacement'], { emitEvent: false });
+    await fixture.whenStable();
+
+    expect(repeatable.formFieldCompMapEntries.length).toBe(1);
+    expect(repeatable.model?.getValue()).toEqual(['replacement']);
+    expect(definitionEvents).toEqual([]);
+    expect(dirtyEvents).toEqual([]);
+    expect(formComponent.form?.dirty).toBeFalse();
+
+    definitionSub.unsubscribe();
+    dirtySub.unsubscribe();
+  });
+
+  it('should throw a descriptive error when setCustomValue is used without a custom setter and the value length does not match', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_set_custom_value_fallback',
+      componentDefinitions: [
+        {
+          name: 'repeatable_set_custom_value_fallback',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: '',
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: '',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          },
+        },
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+    const control = repeatable.model?.formControl as any;
+
+    control.customValueSetter = undefined;
+
+    await expectAsync(control.setCustomValue(['one', 'two'])).toBeRejectedWithError(
+      'RepeatableFormArray.setCustomValue requires 1 values to match the current control count when no customValueSetter is registered, but received 2.'
+    );
+  });
+
   it('should render repeatable wrapper classes', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing_repeatable_css',

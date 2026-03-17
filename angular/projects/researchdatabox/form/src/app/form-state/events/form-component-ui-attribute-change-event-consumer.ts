@@ -3,6 +3,7 @@ import { FormComponentEventType, FieldUIAttributeChangedEvent, FormComponentEven
 import { FormComponentEventBaseConsumer } from './form-component-base-event-consumer';
 import { FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { startsWith as _startsWith, set as _set } from 'lodash-es';
+import { setControlValue } from '../custom-set-value.control';
 
 /**
  * Consumes `field.ui-attribute.changed` events from the `FormComponentEventBus`
@@ -39,7 +40,7 @@ export class FormComponentUIAttributeChangeEventConsumer extends FormComponentEv
      */
     if (expression.config.target === 'model.value') {
       if (this.control && this.control.value !== targetValue) {
-        this.control.setValue(targetValue, { emitEvent: false });
+        await setControlValue(this.control, targetValue, { emitEvent: false });
       }
     } else if (_startsWith(expression.config.target || '', 'layout.')) {
       const layoutPath = expression.config.target!.substring('layout.'.length);
