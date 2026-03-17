@@ -18,20 +18,29 @@ import { DefaultLayoutComponent } from "./default-layout.component";
 import { createFormDefinitionChangeRequestEvent, createFormStatusDirtyRequestEvent, FormComponentEventBus } from '../form-state';
 import { CustomSetValueControl } from '../form-state/custom-set-value.control';
 
+type RepeatableSetValueOptions = { emitEvent?: boolean; onlySelf?: boolean };
+
 class RepeatableFormArray
   extends FormArray<AbstractControl<unknown>>
   implements CustomSetValueControl<Array<unknown>>
 {
-  public customValueSetter?: (value: Array<unknown>, options?: { emitEvent?: boolean; onlySelf?: boolean }) => Promise<void> | void;
+  public customValueSetter?: (value: Array<unknown>, options?: RepeatableSetValueOptions) => Promise<void> | void;
 
   public async setCustomValue(
     value: Array<unknown>,
-    options?: { emitEvent?: boolean; onlySelf?: boolean }
+    options?: RepeatableSetValueOptions
   ): Promise<void> {
     if (this.customValueSetter) {
       await this.customValueSetter(value, options);
       return;
     }
+
+    if (value.length !== this.controls.length) {
+      throw new Error(
+        `RepeatableFormArray.setCustomValue requires ${this.controls.length} values to match the current control count when no customValueSetter is registered, but received ${value.length}.`
+      );
+    }
+
     this.setValue(value, options);
   }
 }
@@ -137,7 +146,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
     const formControl = this.model.formControl;
     if (formControl instanceof RepeatableFormArray) {
-      formControl.customValueSetter = (value) => this.replaceAllElements(Array.isArray(value) ? value : []);
+      formControl.customValueSetter = (value, options) => this.replaceAllElements(Array.isArray(value) ? value : [], options);
     }
 
     this.elemInitFieldEntry = formComponentsMap.components[0];
@@ -170,7 +179,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
   }
 
-  public async appendNewElement(value?: any, markFormDirty: boolean = true) {
+  public async appendNewElement(value?: any, markFormDirty: boolean = true, options?: RepeatableSetValueOptions) {
     if (!this.elemInitFieldEntry) {
       throw new Error(`${this.logName}: elemInitFieldEntry is not defined. Cannot append new element.`);
     }
@@ -179,32 +188,32 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       // which is the default for new entries.
       value = (this.componentDefinition?.config as RepeatableFieldComponentConfig)?.elementTemplate?.model?.config?.value;
     }
-    const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value);
-    await this.createElement(elemEntry);
-    if (markFormDirty) {
+    const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value, options);
+    await this.createElement(elemEntry, options);
+    if (markFormDirty && this.shouldEmitComponentEvents(options)) {
       this.requestFormDirty('repeatable.element.appended');
     }
   }
 
-  public async replaceAllElements(values?: unknown[]): Promise<void> {
+  public async replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
     const nextValues = Array.isArray(values) ? values : [];
 
     while (this.compDefMapEntries.length > 0) {
       const lastEntry = this.compDefMapEntries[this.compDefMapEntries.length - 1];
-      this.removeElementFn(lastEntry)();
+      this.removeElementFn(lastEntry, options)();
     }
 
     if (nextValues.length === 0 && !this.allowZeroRows) {
-      await this.appendNewElement(undefined, false);
+      await this.appendNewElement(undefined, false, options);
       return;
     }
 
     for (const value of nextValues) {
-      await this.appendNewElement(value, false);
+      await this.appendNewElement(value, false, options);
     }
   }
 
-  protected rebuildLineagePaths() {
+  protected rebuildLineagePaths(options?: RepeatableSetValueOptions) {
     for (let index = 0; index < this.compDefMapEntries.length; index++) {
       const indexStr = index.toString();
       const lineagePath = this.formService.buildLineagePaths(
@@ -217,6 +226,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         });
       this.compDefMapEntries[index].defEntry.lineagePaths = lineagePath;
     }
+    if (!this.shouldEmitComponentEvents(options)) {
+      return;
+    }
     // Every time the lineage paths are rebuilt, the form definition has essentially changed. Sending an event to notify listeners.
     this.eventBus.publish(
       createFormDefinitionChangeRequestEvent({
@@ -225,7 +237,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     );
   }
 
-  protected createFieldNewMapEntry(templateEntry: FormFieldCompMapEntry, value: any): RepeatableElementEntry {
+  protected createFieldNewMapEntry(templateEntry: FormFieldCompMapEntry, value: any, options?: RepeatableSetValueOptions): RepeatableElementEntry {
     const localUniqueId = RepeatableFieldComponentConfig.getLocalUID();
 
     const elemEntry: FormFieldCompMapEntry = {
@@ -269,7 +281,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       if (!_isUndefined(value)) {
         model.initValue = value;
         if (model.formControl && !('controls' in model.formControl)) {
-          model.formControl.setValue(value as never);
+          model.formControl.setValue(value as never, options);
         }
       }
       elemEntry.model = model;
@@ -286,12 +298,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     };
   }
 
-  protected async createElement(elemEntry: RepeatableElementEntry) {
+  protected async createElement(elemEntry: RepeatableElementEntry, options?: RepeatableSetValueOptions) {
     const elemFieldEntry = elemEntry.defEntry;
     // Pushing early so rebuilding the lineage paths will be accurate
     this.compDefMapEntries.push(elemEntry);
     this.updateCanRemoveFlags();
-    this.rebuildLineagePaths();
+    this.rebuildLineagePaths(options);
     // Create a new component for the repeatable element
     const wrapperRef = this.repeatableContainer.createComponent(FormBaseWrapperComponent<unknown>);
     // TODO: how to know when to apply defaultComponentConfig or not?
@@ -302,7 +314,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     layoutInstance.canRemove = this.allowZeroRows ? this.compDefMapEntries.length > 0 : this.compDefMapEntries.length > 1;
     elemEntry.layoutInstance = layoutInstance;
     if (this.model?.formControl && compInstance?.model) {
-      this.model.addElement(compInstance.model);
+      this.model.addElement(compInstance.model, options);
     } else {
       this.loggerService.warn(`${this.logName}: model or formControl is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`);
     }
@@ -310,7 +322,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     return wrapperRef;
   }
 
-  public removeElementFn(elemEntry: RepeatableElementEntry) {
+  public removeElementFn(elemEntry: RepeatableElementEntry, options?: RepeatableSetValueOptions) {
     const that = this;
     return function () {
       that.loggerService.debug(`${that.logName}: removeElement called: `, elemEntry.localUniqueId);
@@ -324,11 +336,17 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       }
       that.compDefMapEntries.splice(defIdx, 1);
       elemEntry.wrapperRef?.destroy();
-      that.model?.removeElement(elemEntry.defEntry?.model);
-      that.requestFormDirty('repeatable.element.removed');
+      that.model?.removeElement(elemEntry.defEntry?.model, options);
+      if (that.shouldEmitComponentEvents(options)) {
+        that.requestFormDirty('repeatable.element.removed');
+      }
       that.updateCanRemoveFlags();
-      that.rebuildLineagePaths();
+      that.rebuildLineagePaths(options);
     }
+  }
+
+  protected shouldEmitComponentEvents(options?: RepeatableSetValueOptions): boolean {
+    return options?.emitEvent !== false;
   }
 
   protected requestFormDirty(reason: string) {
@@ -370,25 +388,25 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
     return formControl;
   }
 
-  public addElement(targetModel?: FormFieldModel<unknown>) {
+  public addElement(targetModel?: FormFieldModel<unknown>, options?: RepeatableSetValueOptions) {
     const control = targetModel?.getFormControl();
     if (this.formControl && control) {
       if (this.formControl.disabled && control.enabled) {
         control.disable();
       }
-      this.formControl.push(control);
+      this.formControl.push(control, options);
     } else {
       throw new Error(`${this.logName}: formControl or targetModel are not valid. Cannot add element.`);
     }
   }
 
-  public removeElement(targetModel?: FormFieldModel<unknown>): void {
+  public removeElement(targetModel?: FormFieldModel<unknown>, options?: RepeatableSetValueOptions): void {
     if (this.formControl && this.formControl instanceof FormArray) {
       const modelIdx = this.formControl?.controls.findIndex((control: unknown) => control === targetModel?.getFormControl());
       if (modelIdx === -1 || modelIdx === undefined) {
         throw new Error(`${this.logName}: model not found in formControl.`);
       }
-      this.formControl.removeAt(modelIdx);
+      this.formControl.removeAt(modelIdx, options);
     } else {
       throw new Error(`${this.logName}: formControl is not a FormArray. Cannot remove element.`);
     }
