@@ -34,7 +34,7 @@ const buildInlineLayoutConfig = (label: string, visible = true) => ({
   visible
 });
 
-const buildTextField = (name: string, label: string, placeholder = ""): any => ({
+const buildTextField = (name: string, label: string, placeholder = ""): AvailableFormComponentDefinitionFrames => ({
   name,
   constraints: {
     authorization: {
@@ -67,9 +67,9 @@ const buildTextField = (name: string, label: string, placeholder = ""): any => (
     class: "InlineLayout",
     config: buildInlineLayoutConfig(label)
   }
-});
+}) as unknown as AvailableFormComponentDefinitionFrames;
 
-const buildTextAreaField = (name: string, label: string, placeholder = ""): any => ({
+const buildTextAreaField = (name: string, label: string, placeholder = ""): AvailableFormComponentDefinitionFrames => ({
   name,
   constraints: {
     authorization: {
@@ -103,9 +103,9 @@ const buildTextAreaField = (name: string, label: string, placeholder = ""): any 
     class: "InlineLayout",
     config: buildInlineLayoutConfig(label)
   }
-});
+}) as unknown as AvailableFormComponentDefinitionFrames;
 
-const buildUrlEditField = (label: string, placeholder = ""): any => ({
+const buildUrlEditField = (label: string, placeholder = ""): AvailableFormComponentDefinitionFrames => ({
   name: "related_url",
   constraints: {
     authorization: {
@@ -140,9 +140,9 @@ const buildUrlEditField = (label: string, placeholder = ""): any => ({
     class: "InlineLayout",
     config: buildInlineLayoutConfig(label)
   }
-});
+}) as unknown as AvailableFormComponentDefinitionFrames;
 
-const buildUrlViewFields = (label: string): any[] => ([
+const buildUrlViewFields = (label: string): AvailableFormComponentDefinitionFrames[] => ([
   {
     name: "related_url-link-value",
     constraints: {
@@ -225,7 +225,7 @@ const buildUrlViewFields = (label: string): any[] => ([
       config: buildInlineLayoutConfig(label, false)
     }
   }
-]);
+]) as unknown as AvailableFormComponentDefinitionFrames[];
 
 export const buildRelatedLinkRepeatableFieldDefinition = ({
   reusableName,
@@ -240,8 +240,8 @@ export const buildRelatedLinkRepeatableFieldDefinition = ({
   titlePlaceholder = "Full citation or publication title",
   urlPlaceholder = "https://doi.org/...",
   notesPlaceholder = "Open access, in press, or other context"
-}: RelatedLinkRepeatableFieldOptions): any[] => {
-  const componentDefinitions: any[] = [];
+}: RelatedLinkRepeatableFieldOptions): AvailableFormComponentDefinitionFrames[] => {
+  const componentDefinitions: AvailableFormComponentDefinitionFrames[] = [];
   fieldOrder.forEach(fieldKey => {
     switch (fieldKey) {
       case 'url':
@@ -367,6 +367,7 @@ export const buildRelatedLinkRepeatableFieldDefinition = ({
           helpTextVisible: false
         }
       }
-    }
+    } as unknown as AvailableFormComponentDefinitionFrames
   ];
 };
+import { AvailableFormComponentDefinitionFrames } from "@researchdatabox/sails-ng-common";
