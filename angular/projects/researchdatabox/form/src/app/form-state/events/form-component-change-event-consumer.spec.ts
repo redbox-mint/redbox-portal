@@ -134,6 +134,91 @@ describe('FormComponentValueChangeEventConsumer', () => {
     expect(setValueSpy).not.toHaveBeenCalled();
   }));
 
+  it('should resync component display after silent model updates', fakeAsync(() => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'model-update-display-sync',
+      config: {
+        target: 'model.value',
+        condition: 'otherField',
+        conditionKind: ExpressionsConditionKind.JSONPointer,
+        template: ''
+      }
+    };
+    const { control, definition } = createSetup([expr]);
+    const syncDisplayFromModel = jasmine.createSpy('syncDisplayFromModel').and.resolveTo();
+    const component = {
+      formFieldConfigName: () => 'test-field',
+      model: { formControl: control },
+      syncDisplayFromModel
+    } as unknown as FormFieldBaseComponent<unknown>;
+
+    spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
+
+    consumer.bind({ component, definition });
+
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: 'otherField',
+      sourceId: 'otherField',
+      value: 'newValue',
+      timestamp: Date.now()
+    };
+
+    eventStream$.next(event);
+    tick();
+
+    expect(control.value).toBe('newValue');
+    expect(syncDisplayFromModel).toHaveBeenCalled();
+  }));
+
+  it('should resync nested child component displays after silent group updates', fakeAsync(() => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'group-model-update-display-sync',
+      config: {
+        target: 'model.value',
+        condition: 'otherField',
+        conditionKind: ExpressionsConditionKind.JSONPointer,
+        template: ''
+      }
+    };
+    const control = new FormControl({ name: '' });
+    const definition = {
+      model: { formControl: control },
+      expressions: [expr],
+      lineagePaths: { formConfig: ['root'] },
+      layout: { componentDefinition: { config: {} } },
+      component: { componentDefinition: { config: {} } }
+    } as unknown as FormFieldCompMapEntry;
+    const syncDisplayFromModel = jasmine.createSpy('syncDisplayFromModel').and.resolveTo();
+    const component = {
+      formFieldConfigName: () => 'test-group',
+      model: { formControl: control },
+      formFieldBaseComponents: [
+        {
+          syncDisplayFromModel
+        }
+      ]
+    } as unknown as FormFieldBaseComponent<unknown>;
+
+    spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
+
+    consumer.bind({ component, definition });
+
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: 'otherField',
+      sourceId: 'otherField',
+      value: { name: 'Alice Scott' },
+      timestamp: Date.now()
+    };
+
+    eventStream$.next(event);
+    tick();
+
+    expect(control.value).toEqual({ name: 'Alice Scott' });
+    expect(syncDisplayFromModel).toHaveBeenCalled();
+  }));
+
   it('should update layout config when target starts with "layout."', fakeAsync(() => {
     const expr: FormExpressionsConfigFrame = {
       name: 'layout-update',

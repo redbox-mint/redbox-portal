@@ -90,6 +90,41 @@ describe("TypeaheadInputComponent", () => {
         expect(input.value).toBe("Andrew");
     });
 
+    it("updates displayed text when the underlying model value changes silently after init", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [
+                                {label: "Alice Scott", value: "Alice Scott"},
+                                {label: "Jane Doe", value: "Jane Doe"}
+                            ]
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {}
+                    }
+                }
+            ]
+        };
+
+        const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+
+        (formComponent as any).form.get("person_lookup")?.setValue("Alice Scott", {emitEvent: false});
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(input.value).toBe("Alice Scott");
+    });
+
     it("stores free text as optionObject by default", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",
