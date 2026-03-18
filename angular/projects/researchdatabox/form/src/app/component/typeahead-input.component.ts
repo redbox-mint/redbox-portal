@@ -115,7 +115,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private cache = new Map<string, TypeaheadOption[]>();
   private programmaticDisplayUpdate = false;
   private modelSubscriptionInitialised = false;
-  private autoDisplaySyncInFlight = false;
+  private autoDisplaySyncInFlight: boolean  = false;
   private lastAutoDisplaySyncSignature = '';
   private labelTemplate = '';
   private labelTemplatePath: (string | number)[] = [];
@@ -191,9 +191,6 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     await this.resolvePrepopulatedLabel();
   }
 
-  public override ngAfterViewInit(): void {
-    super.ngAfterViewInit();
-  }
 
   public ngAfterViewChecked(): void {
     if (!this.shouldAutoSyncDisplayFromModel()) {
@@ -204,8 +201,10 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return;
     }
     this.autoDisplaySyncInFlight = true;
-    this.lastAutoDisplaySyncSignature = signature;
-    void this.syncDisplayFromModel().finally(() => {
+    const p = this.syncDisplayFromModel();
+    void p.then(() => {
+      this.lastAutoDisplaySyncSignature = signature;
+    }).finally(() => {
       this.autoDisplaySyncInFlight = false;
     });
   }
