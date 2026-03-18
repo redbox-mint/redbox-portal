@@ -1,3 +1,11 @@
+import type {
+  AvailableFormComponentDefinitionFrames,
+  ContentFormComponentDefinitionFrame,
+  RepeatableFormComponentDefinitionFrame,
+  SimpleInputFormComponentDefinitionFrame,
+  TextAreaFormComponentDefinitionFrame
+} from "@researchdatabox/sails-ng-common";
+
 type RelatedLinkFieldKey = 'url' | 'title' | 'notes';
 
 type RelatedLinkRepeatableFieldOptions = {
@@ -34,7 +42,7 @@ const buildInlineLayoutConfig = (label: string, visible = true) => ({
   visible
 });
 
-const buildTextField = (name: string, label: string, placeholder = ""): AvailableFormComponentDefinitionFrames => ({
+const buildTextField = (name: string, label: string, placeholder = ""): SimpleInputFormComponentDefinitionFrame => ({
   name,
   constraints: {
     authorization: {
@@ -67,9 +75,9 @@ const buildTextField = (name: string, label: string, placeholder = ""): Availabl
     class: "InlineLayout",
     config: buildInlineLayoutConfig(label)
   }
-}) as unknown as AvailableFormComponentDefinitionFrames;
+});
 
-const buildTextAreaField = (name: string, label: string, placeholder = ""): AvailableFormComponentDefinitionFrames => ({
+const buildTextAreaField = (name: string, label: string, placeholder = ""): TextAreaFormComponentDefinitionFrame => ({
   name,
   constraints: {
     authorization: {
@@ -103,9 +111,9 @@ const buildTextAreaField = (name: string, label: string, placeholder = ""): Avai
     class: "InlineLayout",
     config: buildInlineLayoutConfig(label)
   }
-}) as unknown as AvailableFormComponentDefinitionFrames;
+});
 
-const buildUrlEditField = (label: string, placeholder = ""): AvailableFormComponentDefinitionFrames => ({
+const buildUrlEditField = (label: string, placeholder = ""): SimpleInputFormComponentDefinitionFrame => ({
   name: "related_url",
   constraints: {
     authorization: {
@@ -140,10 +148,10 @@ const buildUrlEditField = (label: string, placeholder = ""): AvailableFormCompon
     class: "InlineLayout",
     config: buildInlineLayoutConfig(label)
   }
-}) as unknown as AvailableFormComponentDefinitionFrames;
+});
 
-const buildUrlViewFields = (label: string): AvailableFormComponentDefinitionFrames[] => ([
-  {
+const buildUrlViewFields = (label: string): AvailableFormComponentDefinitionFrames[] => {
+  const linkField: ContentFormComponentDefinitionFrame = {
     name: "related_url-link-value",
     constraints: {
       authorization: {
@@ -170,11 +178,11 @@ const buildUrlViewFields = (label: string): AvailableFormComponentDefinitionFram
         disabled: false,
         autofocus: false,
         showValidIndicator: false,
-        template: "{{#if (get formData content.valuePath \"\")}}<li class=\"key-value-pair padding-bottom-10\">{{#if content.label}}<span class=\"key\">{{t content.label}}</span>{{/if}}<span class=\"value\"><a href=\"{{get formData content.valuePath \"\"}}\"{{#if content.target}} target=\"{{content.target}}\" rel=\"noopener noreferrer\"{{/if}}>{{get formData content.valuePath \"\"}}</a></span></li>{{/if}}",
+        template: "{{#if (get formData content.valuePath \"\")}}<li class=\"key-value-pair padding-bottom-10\">{{#if content.label}}<span class=\"key\">{{t content.label}}</span>{{/if}}<span class=\"value\"><a href=\"{{get formData content.valuePath \"\"}}\" target=\"{{content.target}}\" rel=\"noopener noreferrer\">{{get formData content.valuePath \"\"}}</a></span></li>{{/if}}",
         content: {
           label,
           valuePath: "related_url",
-          target: ""
+          target: "_blank"
         }
       }
     },
@@ -182,8 +190,8 @@ const buildUrlViewFields = (label: string): AvailableFormComponentDefinitionFram
       class: "InlineLayout",
       config: buildInlineLayoutConfig(label)
     }
-  },
-  {
+  };
+  const hiddenField: SimpleInputFormComponentDefinitionFrame = {
     name: "related_url",
     constraints: {
       authorization: {
@@ -224,8 +232,10 @@ const buildUrlViewFields = (label: string): AvailableFormComponentDefinitionFram
       class: "InlineLayout",
       config: buildInlineLayoutConfig(label, false)
     }
-  }
-]) as unknown as AvailableFormComponentDefinitionFrames[];
+  };
+
+  return [linkField, hiddenField];
+};
 
 export const buildRelatedLinkRepeatableFieldDefinition = ({
   reusableName,
@@ -259,115 +269,116 @@ export const buildRelatedLinkRepeatableFieldDefinition = ({
     }
   });
 
-  return [
-    {
-      name: reusableName,
-      constraints: {
-        authorization: {
-          allowRoles: []
-        },
-        allowModes: []
+  const definition: RepeatableFormComponentDefinitionFrame = {
+    name: reusableName,
+    constraints: {
+      authorization: {
+        allowRoles: []
       },
-      overrides: {
-        replaceName: fieldName
-      },
-      component: {
-        class: "RepeatableComponent",
-        config: {
-          readonly: false,
-          visible: true,
-          editMode: true,
-          label: fieldLabel,
-          disabled: false,
-          autofocus: false,
-          showValidIndicator: false,
-          elementTemplate: {
-            name: "",
-            constraints: {
-              authorization: {
-                allowRoles: []
-              },
-              allowModes: []
+      allowModes: []
+    },
+    overrides: {
+      replaceName: fieldName
+    },
+    component: {
+      class: "RepeatableComponent",
+      config: {
+        readonly: false,
+        visible: true,
+        editMode: true,
+        label: fieldLabel,
+        disabled: false,
+        autofocus: false,
+        showValidIndicator: false,
+        elementTemplate: {
+          name: "",
+          constraints: {
+            authorization: {
+              allowRoles: []
             },
-            overrides: {
-              formModeClasses: {
-                view: {
-                  component: "GroupComponent"
-                }
-              }
-            },
-            component: {
-              class: "GroupComponent",
-              config: {
-                readonly: false,
-                visible: true,
-                editMode: true,
-                label: groupName,
-                hostCssClasses: "rb-form-related-link-inline",
-                disabled: false,
-                autofocus: false,
-                showValidIndicator: false,
-                componentDefinitions
-              }
-            },
-            model: {
-              class: "GroupModel",
-              config: {
-                validators: []
-              }
-            },
-            layout: {
-              class: "RepeatableElementLayout",
-              config: {
-                readonly: false,
-                visible: true,
-                editMode: true,
-                label: groupName,
-                hostCssClasses: "rb-form-action-row-layout",
-                disabled: false,
-                autofocus: false,
-                showValidIndicator: false,
-                labelRequiredStr: "*",
-                cssClassesMap: {},
-                helpTextVisibleOnInit: false,
-                helpTextVisible: false,
-                containerCssClass: "rb-form-action-row rb-form-action-row--legacy-inline",
-                alignment: "start",
-                wrap: true,
-                slotCssClass: "rb-form-action-slot",
-                compact: true
+            allowModes: []
+          },
+          overrides: {
+            formModeClasses: {
+              view: {
+                component: "GroupComponent"
               }
             }
           },
-          addButtonShow: true,
-          allowZeroRows: false,
-          hideWhenZeroRows: false
-        }
-      },
-      model: {
-        class: "RepeatableModel",
-        config: {
-          validators: []
-        }
-      },
-      layout: {
-        class: "DefaultLayout",
-        config: {
-          readonly: false,
-          visible: true,
-          editMode: true,
-          label: fieldLabel,
-          disabled: false,
-          autofocus: false,
-          showValidIndicator: false,
-          labelRequiredStr: "*",
-          helpText,
-          cssClassesMap: {},
-          helpTextVisibleOnInit: false,
-          helpTextVisible: false
-        }
+          component: {
+            class: "GroupComponent",
+            config: {
+              readonly: false,
+              visible: true,
+              editMode: true,
+              label: groupName,
+              hostCssClasses: "rb-form-related-link-inline",
+              disabled: false,
+              autofocus: false,
+              showValidIndicator: false,
+              componentDefinitions
+            }
+          },
+          model: {
+            class: "GroupModel",
+            config: {
+              validators: []
+            }
+          },
+          layout: {
+            class: "RepeatableElementLayout",
+            config: {
+              readonly: false,
+              visible: true,
+              editMode: true,
+              label: groupName,
+              hostCssClasses: "rb-form-action-row-layout",
+              disabled: false,
+              autofocus: false,
+              showValidIndicator: false,
+              labelRequiredStr: "*",
+              cssClassesMap: {},
+              helpTextVisibleOnInit: false,
+              helpTextVisible: false,
+              containerCssClass: "rb-form-action-row rb-form-action-row--legacy-inline",
+              alignment: "start",
+              wrap: true,
+              slotCssClass: "rb-form-action-slot",
+              compact: true
+            }
+          }
+        },
+        addButtonShow: true,
+        allowZeroRows: false,
+        hideWhenZeroRows: false
       }
-    } as unknown as AvailableFormComponentDefinitionFrames
+    },
+    model: {
+      class: "RepeatableModel",
+      config: {
+        validators: []
+      }
+    },
+    layout: {
+      class: "DefaultLayout",
+      config: {
+        readonly: false,
+        visible: true,
+        editMode: true,
+        label: fieldLabel,
+        disabled: false,
+        autofocus: false,
+        showValidIndicator: false,
+        labelRequiredStr: "*",
+        helpText,
+        cssClassesMap: {},
+        helpTextVisibleOnInit: false,
+        helpTextVisible: false
+      }
+    }
+  };
+
+  return [
+    definition
   ];
 };
-import { AvailableFormComponentDefinitionFrames } from "@researchdatabox/sails-ng-common";

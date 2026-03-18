@@ -6,7 +6,7 @@ import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
 import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
 import {TypeaheadDataService} from "../service/typeahead-data.service";
 import {TypeaheadInputComponent} from "./typeahead-input.component";
-import { TypeaheadMatch } from "ngx-bootstrap/typeahead";
+import type { TypeaheadMatch } from "ngx-bootstrap/typeahead";
 
 describe("TypeaheadInputComponent", () => {
     beforeEach(async () => {
