@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, Injector, Input, signal } from '@angular/core';
+import { AfterViewChecked, Component, DestroyRef, inject, Injector, Input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import {
@@ -87,7 +87,7 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
   ],
   standalone: false,
 })
-export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInputModelValueType> {
+export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInputModelValueType> implements AfterViewChecked {
   protected override logName = TypeaheadInputComponentName;
 
   public tooltip = '';
@@ -115,6 +115,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private cache = new Map<string, TypeaheadOption[]>();
   private programmaticDisplayUpdate = false;
   private modelSubscriptionInitialised = false;
+  private autoDisplaySyncInFlight = false;
+  private lastAutoDisplaySyncSignature = '';
   private labelTemplate = '';
   private labelTemplatePath: (string | number)[] = [];
   private compiledItems?: { evaluate: (key: (string | number)[], context: unknown, extra?: unknown) => unknown };
@@ -187,6 +189,25 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     }
     await this.prepareLabelTemplate();
     await this.resolvePrepopulatedLabel();
+  }
+
+  public override ngAfterViewInit(): void {
+    super.ngAfterViewInit();
+  }
+
+  public ngAfterViewChecked(): void {
+    if (!this.shouldAutoSyncDisplayFromModel()) {
+      return;
+    }
+    const signature = this.getAutoDisplaySyncSignature();
+    if (!signature || signature === this.lastAutoDisplaySyncSignature || this.autoDisplaySyncInFlight) {
+      return;
+    }
+    this.autoDisplaySyncInFlight = true;
+    this.lastAutoDisplaySyncSignature = signature;
+    void this.syncDisplayFromModel().finally(() => {
+      this.autoDisplaySyncInFlight = false;
+    });
   }
 
   public onSelect(event: TypeaheadMatch): void {
@@ -389,6 +410,28 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     } catch {
       // Non-blocking label resolution by design.
     }
+  }
+
+  private shouldAutoSyncDisplayFromModel(): boolean {
+    if (this.programmaticDisplayUpdate) {
+      return false;
+    }
+    if (String(this.displayControl.value ?? '').trim().length > 0) {
+      return false;
+    }
+    const value = this.model?.getValue();
+    if (this.valueMode === 'optionObject' && this.isOptionObjectValue(value)) {
+      return String(value.label ?? '').trim().length > 0;
+    }
+    return typeof value === 'string' && value.trim().length > 0;
+  }
+
+  private getAutoDisplaySyncSignature(): string {
+    const value = this.model?.getValue();
+    if (this.valueMode === 'optionObject' && this.isOptionObjectValue(value)) {
+      return `option:${value.value}:${value.label}`;
+    }
+    return typeof value === 'string' ? `value:${value}` : '';
   }
 
   private setModelFromOption(option: TypeaheadOption): void {

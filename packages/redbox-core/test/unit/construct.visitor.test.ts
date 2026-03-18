@@ -2466,5 +2466,86 @@ describe("Construct Visitor", async () => {
                 orcid: "0000-0000-0000-0001",
             });
         });
+
+        it("should preserve expressions on reusable wrapper fields that expand to a single component", async () => {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "edit",
+                reusableFormDefs: {
+                    "single-group": [
+                        {
+                            name: "single_group",
+                            component: {
+                                class: "GroupComponent",
+                                config: {
+                                    componentDefinitions: [
+                                        {
+                                            name: "name",
+                                            component: { class: "SimpleInputComponent", config: {} },
+                                            model: { class: "SimpleInputModel", config: {} },
+                                        },
+                                    ],
+                                },
+                            },
+                            model: { class: "GroupModel", config: {} },
+                        },
+                    ],
+                },
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "contributor_ci",
+                            expressions: [
+                                {
+                                    name: "rdmpGetter-contributor_ci-contributor_ci",
+                                    description: "Populate contributor_ci from rdmpGetter metadata",
+                                    config: {
+                                        conditionKind: "jsonpointer",
+                                        runOnFormReady: false,
+                                        condition: "/mainTab/aim/rdmpGetter::field.value.changed",
+                                        target: "model.value",
+                                        hasTemplate: true,
+                                        template: "event.value.contributor_ci"
+                                    }
+                                }
+                            ],
+                            component: {
+                                class: "ReusableComponent",
+                                config: {
+                                    componentDefinitions: [
+                                        {
+                                            name: "single_group",
+                                            overrides: { replaceName: "contributor_ci" },
+                                            component: {
+                                                class: "GroupComponent",
+                                                config: { componentDefinitions: [] }
+                                            },
+                                            model: { class: "GroupModel", config: {} }
+                                        }
+                                    ]
+                                }
+                            },
+                            overrides: { reusableFormName: "single-group" }
+                        }
+                    ]
+                }
+            });
+
+            const contributorCi = actual.componentDefinitions[0];
+            expect(contributorCi?.name).to.equal("contributor_ci");
+            expect(contributorCi?.expressions).to.have.length(1);
+            expect(contributorCi?.expressions?.[0]).to.deep.include({
+                name: "rdmpGetter-contributor_ci-contributor_ci",
+                description: "Populate contributor_ci from rdmpGetter metadata",
+            });
+            expect(contributorCi?.expressions?.[0]?.config).to.deep.include({
+                conditionKind: "jsonpointer",
+                runOnFormReady: false,
+                condition: "/mainTab/aim/rdmpGetter::field.value.changed",
+                target: "model.value",
+                template: "event.value.contributor_ci"
+            });
+        });
     });
 });

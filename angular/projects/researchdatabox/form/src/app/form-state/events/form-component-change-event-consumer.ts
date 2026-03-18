@@ -4,6 +4,7 @@ import { FormComponentEventBaseConsumer } from './form-component-base-event-cons
 import { FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { startsWith as _startsWith, set as _set } from 'lodash-es';
 import { setControlValue } from '../custom-set-value.control';
+import { syncComponentDisplayFromModel } from '../custom-display-sync.component';
 
 /**
  * Consumes `valueChange` events from the `FormComponentEventBus` and updates the component's form control.
@@ -33,6 +34,7 @@ export class FormComponentValueChangeEventConsumer extends FormComponentEventBas
 		if (expression.config.target == "model.value") {
 			if (this.control && this.control.value !== targetValue) {
 				await setControlValue(this.control, targetValue, { emitEvent: false });
+        await syncComponentDisplayFromModel(this.options?.component);
 			}
 		} else if (_startsWith(expression.config.target || '', 'layout.')) {
 			const layoutPath = expression.config.target!.substring('layout.'.length);

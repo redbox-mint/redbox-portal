@@ -27,6 +27,7 @@ import {
 } from "lodash-es";
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
 import { RepeatableComponent } from './repeatable.component';
+import { syncComponentDisplayFromModel } from '../form-state/custom-display-sync.component';
 
 
 export type GroupFormControlValueType = { [key: string]: AbstractControl<unknown> };
@@ -173,6 +174,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
           }
         }
         this.model.addItem(key, compInstance.model);
+        await syncComponentDisplayFromModel(compInstance);
       } else {
         this.loggerService.debug(`${this.logName}: component for '${key}' does not have a model or formControl, skipping addItem.`);
       }
@@ -184,5 +186,4 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       }
     }
   }
-
 }
