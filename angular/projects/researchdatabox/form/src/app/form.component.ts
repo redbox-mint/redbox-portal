@@ -28,32 +28,50 @@ import {
   effect,
   model,
   OnDestroy,
-  ViewEncapsulation
+  ViewEncapsulation,
 } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup, FormControlStatus, StatusChangeEvent, PristineChangeEvent, ValueChangeEvent } from '@angular/forms';
 import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, get as _get, trim as _trim } from 'lodash-es';
-import { ConfigService, LoggerService, TranslationService, BaseComponent, FormFieldCompMapEntry, UtilityService, RecordService, RecordActionResult } from '@researchdatabox/portal-ng-common';
+import {
+  ConfigService,
+  LoggerService,
+  TranslationService,
+  BaseComponent,
+  FormFieldCompMapEntry,
+  UtilityService,
+  RecordService,
+  RecordActionResult,
+} from '@researchdatabox/portal-ng-common';
 import {
   FormStatus,
   FormConfigFrame,
   JSONataQuerySource,
   FormValidatorSummaryErrors,
   FormRequestParamValue,
-  FormRequestParamsMap
+  FormRequestParamsMap,
 } from '@researchdatabox/sails-ng-common';
-import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
+import { FormBaseWrapperComponent } from './component/base-wrapper.component';
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { FormComponentFocusRequestCoordinator } from './form-state/events/form-component-focus-request-coordinator.service';
-import { createFormDefinitionChangedEvent, createFormDefinitionReadyEvent, createFormSaveFailureEvent, createFormSaveSuccessEvent, createFormValidationBroadcastEvent, FormComponentEvent, FormComponentEventType, FormStatusDirtyRequestEvent } from './form-state/events/form-component-event.types';
+import {
+  createFormDefinitionChangedEvent,
+  createFormDefinitionReadyEvent,
+  createFormSaveFailureEvent,
+  createFormSaveSuccessEvent,
+  createFormValidationBroadcastEvent,
+  FormComponentEvent,
+  FormComponentEventType,
+  FormStatusDirtyRequestEvent,
+} from './form-state/events/form-component-event.types';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
 import { FormComponentValueChangeEventConsumer } from './form-state/events/';
 import { DebugInfo, FormDebugStateService } from './form-debug/form-debug-state.service';
-
+import { FormBehaviourManager } from './form-state/behaviours/form-behaviour-manager.service';
 
 /**
  * The ReDBox Form
@@ -78,13 +96,13 @@ import { DebugInfo, FormDebugStateService } from './form-debug/form-debug-state.
     Location,
     { provide: LocationStrategy, useClass: PathLocationStrategy },
     FormComponentFocusRequestCoordinator,
-    FormDebugStateService
+    FormDebugStateService,
   ],
   encapsulation: ViewEncapsulation.None,
-  standalone: false
+  standalone: false,
 })
 export class FormComponent extends BaseComponent implements OnDestroy {
-  private logName = "FormComponent";
+  private logName = 'FormComponent';
   /**
    * App name for logging and diagnostics
    */
@@ -125,8 +143,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     branding: this.utilityService.trimStringSignal(this.branding),
     portal: this.utilityService.trimStringSignal(this.portal),
     recordType: this.utilityService.trimStringSignal(this.recordType),
-    formName: this.utilityService.trimStringSignal(this.formName)
-  }
+    formName: this.utilityService.trimStringSignal(this.formName),
+  };
   /**
    * The FormGroup instance
    */
@@ -202,7 +220,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   /**
    * Reference container for dynamic components injection
    */
-  @ViewChild('componentsContainer', { read: ViewContainerRef, static: false }) componentsContainer!: ViewContainerRef | undefined;
+  @ViewChild('componentsContainer', { read: ViewContainerRef, static: false }) componentsContainer!:
+    | ViewContainerRef
+    | undefined;
   /**
    * Record service
    */
@@ -227,12 +247,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   formDebugInfo: DebugInfo = {
     id: 'form|root',
     kind: 'form',
-    name: "",
+    name: '',
     class: 'FormComponent',
     status: FormStatus.INIT,
     componentsLoaded: false,
     isReady: false,
-    children: []
+    children: [],
   };
   /**
    * The JSONata query source for component definitions
@@ -244,6 +264,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * The value change event consumer
    */
   private valueChangeEventConsumer = new FormComponentValueChangeEventConsumer(this.eventBus);
+  /**
+   * Form-level behaviour runtime.
+   *
+   * Design constraint from the implementation plan: binding must happen before
+   * `FORM_DEFINITION_READY` is published so `runOnFormReady` behaviours cannot be
+   * missed. The manager itself binds synchronously and lazily loads compiled
+   * templates on first execution.
+   */
+  private behaviourManager = inject(FormBehaviourManager);
 
   protected configObj: Record<string, unknown> = {};
 
@@ -285,7 +314,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.downloadAndCreateOnInit.set(elementRef.nativeElement.getAttribute('downloadAndCreateOnInit') === 'true');
     }
 
-    this.appName = `Form::${this.trimmedParams.recordType()}::${this.trimmedParams.formName()} ${this.trimmedParams.oid() ? ' - ' + this.trimmedParams.oid() : ''}`.trim();
+    this.appName =
+      `Form::${this.trimmedParams.recordType()}::${this.trimmedParams.formName()} ${this.trimmedParams.oid() ? ' - ' + this.trimmedParams.oid() : ''}`.trim();
     this.loggerService.debug(`'${this.logName}' waiting for '${this.trimmedParams.formName()}' deps to init...`);
 
     this.refreshRequestParamsFromUrl();
@@ -297,14 +327,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   protected async initComponent(): Promise<void> {
-    this.loggerService.info(`${this.logName}: Loading form with OID: ${this.trimmedParams.oid()}, on edit mode:${this.editMode()}, Record Type: ${this.trimmedParams.recordType()}, formName: ${this.trimmedParams.formName()}`);
+    this.loggerService.info(
+      `${this.logName}: Loading form with OID: ${this.trimmedParams.oid()}, on edit mode:${this.editMode()}, Record Type: ${this.trimmedParams.recordType()}, formName: ${this.trimmedParams.formName()}`
+    );
     try {
       this.refreshRequestParamsFromUrl();
       this.configObj = await this.configService.getConfig();
       if (this.downloadAndCreateOnInit()) {
         await this.downloadAndCreateFormComponents();
       } else {
-        this.loggerService.warn(`${this.logName}: downloadAndCreateOnInit is set to false. Form will not be loaded automatically. Call downloadAndCreateFormComponents() manually to load the form.`);
+        this.loggerService.warn(
+          `${this.logName}: downloadAndCreateOnInit is set to false. Form will not be loaded automatically. Call downloadAndCreateFormComponents() manually to load the form.`
+        );
       }
     } catch (error) {
       this.loggerService.error(`${this.logName}: Error loading form`, error);
@@ -318,7 +352,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   public async downloadAndCreateFormComponents(formConfig?: FormConfigFrame): Promise<void> {
     if (!formConfig) {
       this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
-      this.formDefMap = await this.formService.downloadFormComponents(this.trimmedParams.oid(), this.trimmedParams.recordType(), this.editMode(), this.trimmedParams.formName(), this.modulePaths);
+      this.formDefMap = await this.formService.downloadFormComponents(
+        this.trimmedParams.oid(),
+        this.trimmedParams.recordType(),
+        this.editMode(),
+        this.trimmedParams.formName(),
+        this.modulePaths
+      );
       // Store the form recordType if the recordType was not provided by the page.
       if (!this.trimmedParams.recordType() && this.formDefMap?.formConfig?.type) {
         this.recordType.set(this.formDefMap?.formConfig?.type);
@@ -356,6 +396,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.setupQuerySource();
     // Initialize subscriptions to event bus
     this.initSubscriptions();
+    // Behaviours subscribe before the ready event is published. This ordering is
+    // deliberate and is the key runtime contract for form-level automation in v1.
+    this.behaviourManager.bind(this);
     // Publish the form definition ready event
     this.eventBus.publish(createFormDefinitionReadyEvent({}));
     // Finally set the flag indicating components are loaded
@@ -366,7 +409,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   protected setupQuerySource() {
     this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr, {
-      requestParams: this.requestParams()
+      requestParams: this.requestParams(),
     });
   }
   /**
@@ -435,11 +478,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Listen for execute save command and invoke saveForm (Task 15)
     this.subMaps['saveExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_SAVE_EXECUTE)
-      .subscribe(async (evt) => {
+      .subscribe(async evt => {
         // Default payload handling with safe fallbacks
         const force = !!evt.force;
         const targetStep = evt.targetStep ?? '';
-        const enabledValidationGroups = evt.enabledValidationGroups ?? ["all"];
+        const enabledValidationGroups = evt.enabledValidationGroups ?? ['all'];
         await this.saveForm(force, targetStep, enabledValidationGroups);
       });
     // Listen for any changes components have made to their own definitions and update the query source
@@ -449,9 +492,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         // This will only fire if the Form has been initialized and components loaded successfully
         if (this.componentsLoaded()) {
           this.setupQuerySource();
-          this.eventBus.publish(createFormDefinitionChangedEvent({
-            sourceId: evt.sourceId
-          }));
+          this.eventBus.publish(
+            createFormDefinitionChangedEvent({
+              sourceId: evt.sourceId,
+            })
+          );
         }
       });
     this.subMaps['formDefinitionChangedDebugSub'] = this.eventBus
@@ -471,28 +516,28 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.form.markAsDirty();
       });
     this.subMaps['debugEventStreamSub']?.unsubscribe();
-    this.subMaps['debugEventStreamSub'] = this.eventBus
-      .selectAll$()
-      .subscribe((event: FormComponentEvent) => {
-        this.debugState.captureDebugEvent(event);
-      });
+    this.subMaps['debugEventStreamSub'] = this.eventBus.selectAll$().subscribe((event: FormComponentEvent) => {
+      this.debugState.captureDebugEvent(event);
+    });
 
     if (this.form) {
       // Wire the form events to update the formGroupStatus signal and publish validation events
       // At the moment, the code will only emit StatusChange and PristineChange events to the EventBus.
       this.subMaps['formGroupChangesSub']?.unsubscribe();
-      this.subMaps['formGroupChangesSub'] = this.form.events.subscribe((formGroupEvent: StatusChangeEvent | PristineChangeEvent | ValueChangeEvent<unknown> | unknown) => {
-        if (formGroupEvent instanceof StatusChangeEvent || formGroupEvent instanceof PristineChangeEvent) {
-          this.formGroupStatus.set(this.dataStatus);
-          this.eventBus.publish(
-            createFormValidationBroadcastEvent({
-              isValid: this.dataStatus.valid,
-              errors: this.dataStatus.errors,
-              status: this.dataStatus
-            })
-          );
+      this.subMaps['formGroupChangesSub'] = this.form.events.subscribe(
+        (formGroupEvent: StatusChangeEvent | PristineChangeEvent | ValueChangeEvent<unknown> | unknown) => {
+          if (formGroupEvent instanceof StatusChangeEvent || formGroupEvent instanceof PristineChangeEvent) {
+            this.formGroupStatus.set(this.dataStatus);
+            this.eventBus.publish(
+              createFormValidationBroadcastEvent({
+                isValid: this.dataStatus.valid,
+                errors: this.dataStatus.errors,
+                status: this.dataStatus,
+              })
+            );
+          }
         }
-      });
+      );
 
       this.subMaps['formValueChangesSub']?.unsubscribe();
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
@@ -533,9 +578,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
         // set up validators
         const validatorConfig = this.formDefMap.formConfig.validators;
-        const enabledGroups = this.formDefMap.formConfig.enabledValidationGroups ?? ["all"];
+        const enabledGroups = this.formDefMap.formConfig.enabledValidationGroups ?? ['all'];
         this.formService.setValidators(this.form, validatorConfig, enabledGroups);
-
       } else if (Object.keys(formGroupMap.completeGroupMap ?? {}).length < 1) {
         // Note that a form can be composed of only components that don't have models, and so don't have FormControls.
         // That is ok. But a form must have at least one component.
@@ -557,14 +601,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   @HostBinding('class') get hostClasses(): string {
     const modeClass = this.editMode() ? 'rb-form-edit' : 'rb-form-view';
-    const debugOpenClass = this.debugState.isDebugEnabled() && !this.debugState.panelCollapsed() ? 'rb-form-debug-open' : '';
+    const debugOpenClass =
+      this.debugState.isDebugEnabled() && !this.debugState.panelCollapsed() ? 'rb-form-debug-open' : '';
     const debugPopoutClass = this.debugState.isDebugPopoutWindow() ? 'rb-form-debug-popout' : '';
     const baselineClasses = `rb-form-host ${modeClass} ${debugOpenClass} ${debugPopoutClass}`.trim();
     if (!this.formDefMap?.formConfig) {
       return baselineClasses;
     }
 
-    const cssClasses = this.editMode() ? this.formDefMap.formConfig.editCssClasses : this.formDefMap.formConfig.viewCssClasses;
+    const cssClasses = this.editMode()
+      ? this.formDefMap.formConfig.editCssClasses
+      : this.formDefMap.formConfig.viewCssClasses;
 
     if (!cssClasses) {
       return baselineClasses;
@@ -601,7 +648,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.formDebugInfo.status = this.status();
     this.formDebugInfo.componentsLoaded = this.componentsLoaded();
     this.formDebugInfo.isReady = this.isReady;
-    this.formDebugInfo.children = this.componentDefArr?.map((i, siblingIndex) => this.getComponentDebugInfo(i, [], siblingIndex));
+    this.formDebugInfo.children = this.componentDefArr?.map((i, siblingIndex) =>
+      this.getComponentDebugInfo(i, [], siblingIndex)
+    );
     return this.formDebugInfo;
   }
 
@@ -625,47 +674,65 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return formValue;
   }
 
-
-  private getComponentDebugInfo(formFieldCompMapEntry: FormFieldCompMapEntry, parentNamePath: string[] = [], siblingIndex: number = 0): DebugInfo {
+  private getComponentDebugInfo(
+    formFieldCompMapEntry: FormFieldCompMapEntry,
+    parentNamePath: string[] = [],
+    siblingIndex: number = 0
+  ): DebugInfo {
     const componentEntry = formFieldCompMapEntry;
     this.loggerService.debug('getComponentDebugInfo', formFieldCompMapEntry);
-    const componentConfigClassName = formFieldCompMapEntry?.compConfigJson?.component?.class ?? "";
+    const componentConfigClassName = formFieldCompMapEntry?.compConfigJson?.component?.class ?? '';
     const name = this.utilityService.formFieldConfigName(formFieldCompMapEntry);
     const hierarchicalNamePath = [...parentNamePath, name];
     const lineagePaths = formFieldCompMapEntry?.lineagePaths;
 
     const componentResult: DebugInfo = {
-      id: this.buildDebugRowId('component', formFieldCompMapEntry, hierarchicalNamePath, componentConfigClassName, siblingIndex),
+      id: this.buildDebugRowId(
+        'component',
+        formFieldCompMapEntry,
+        hierarchicalNamePath,
+        componentConfigClassName,
+        siblingIndex
+      ),
       kind: 'component',
       name: name,
       class: componentConfigClassName,
-      status: componentEntry?.component?.status()?.toString() ?? "",
+      status: componentEntry?.component?.status()?.toString() ?? '',
       viewInitialised: componentEntry?.component?.viewInitialised(),
       lineagePaths,
       componentAttributes: this.extractFieldRuntimeAttributes(componentEntry?.component),
-      modelAttributes: this.extractModelRuntimeAttributes(componentEntry?.model, componentEntry?.component)
+      modelAttributes: this.extractModelRuntimeAttributes(componentEntry?.model, componentEntry?.component),
     };
 
     // If the component has children components, recursively get their debug info. This used to be hardcoded for specific component types, but now it is generic.
     const component = formFieldCompMapEntry?.component;
     if (Array.isArray(component?.formFieldCompMapEntries)) {
-      componentResult.children = component?.formFieldCompMapEntries?.map((i: FormFieldCompMapEntry, childIndex: number) => this.getComponentDebugInfo(i, hierarchicalNamePath, childIndex));
+      componentResult.children = component?.formFieldCompMapEntries?.map(
+        (i: FormFieldCompMapEntry, childIndex: number) =>
+          this.getComponentDebugInfo(i, hierarchicalNamePath, childIndex)
+      );
     }
 
     if (componentEntry?.layout) {
       const layoutName = formFieldCompMapEntry?.compConfigJson?.layout?.name ?? `${name}-layout`;
       const layoutNamePath = [...parentNamePath, layoutName];
       return {
-        id: this.buildDebugRowId('layout', formFieldCompMapEntry, layoutNamePath, formFieldCompMapEntry?.compConfigJson?.layout?.class ?? "", siblingIndex),
+        id: this.buildDebugRowId(
+          'layout',
+          formFieldCompMapEntry,
+          layoutNamePath,
+          formFieldCompMapEntry?.compConfigJson?.layout?.class ?? '',
+          siblingIndex
+        ),
         kind: 'layout',
         lineagePaths,
         name: layoutName,
-        class: formFieldCompMapEntry?.compConfigJson?.layout?.class ?? "",
-        status: componentEntry?.layout?.status()?.toString() ?? "",
+        class: formFieldCompMapEntry?.compConfigJson?.layout?.class ?? '',
+        status: componentEntry?.layout?.status()?.toString() ?? '',
         viewInitialised: componentEntry?.layout?.viewInitialised(),
         layoutAttributes: this.extractFieldRuntimeAttributes(componentEntry?.layout),
         children: [componentResult],
-      }
+      };
     } else {
       return componentResult;
     }
@@ -717,9 +784,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     className: string,
     siblingIndex: number
   ): string {
-    const lineagePointer = kind === 'layout'
-      ? entry?.lineagePaths?.layoutJsonPointer
-      : entry?.lineagePaths?.angularComponentsJsonPointer;
+    const lineagePointer =
+      kind === 'layout' ? entry?.lineagePaths?.layoutJsonPointer : entry?.lineagePaths?.angularComponentsJsonPointer;
     if (lineagePointer) {
       return `${kind}|${lineagePointer}`;
     }
@@ -734,8 +800,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       return {};
     }
     return this.safePlainObjectSnapshot({
-      status: this.safeInvoke(() => (typedTarget['status'] as (() => unknown))?.()),
-      viewInitialised: this.safeInvoke(() => (typedTarget['viewInitialised'] as (() => unknown))?.()),
+      status: this.safeInvoke(() => (typedTarget['status'] as () => unknown)?.()),
+      viewInitialised: this.safeInvoke(() => (typedTarget['viewInitialised'] as () => unknown)?.()),
       isVisible: this.safeInvoke(() => typedTarget['isVisible']),
       isReadonly: this.safeInvoke(() => typedTarget['isReadonly']),
       isDisabled: this.safeInvoke(() => typedTarget['isDisabled']),
@@ -744,7 +810,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       showValidState: this.safeInvoke(() => typedTarget['showValidState']),
       hostBindingCssClasses: this.safeInvoke(() => typedTarget['hostBindingCssClasses']),
       name: this.safeInvoke(() => typedTarget['name']),
-      className: this.safeInvoke(() => typedTarget['className'])
+      className: this.safeInvoke(() => typedTarget['className']),
     });
   }
 
@@ -759,7 +825,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.safePlainObjectSnapshot({
       name: typedModel['name'],
       validators: typedModel['validators'],
-      value: this.safeInvoke(() => (typedModel['getValue'] as (() => unknown))?.()),
+      value: this.safeInvoke(() => (typedModel['getValue'] as () => unknown)?.()),
       formControl: {
         value: typedFormControl['value'],
         status: typedFormControl['status'],
@@ -772,8 +838,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         enabled: typedFormControl['enabled'],
         pending: typedFormControl['pending'],
         valid: typedFormControl['valid'],
-        invalid: typedFormControl['invalid']
-      }
+        invalid: typedFormControl['invalid'],
+      },
     });
   }
 
@@ -791,7 +857,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   // Convenience method to find component definition by name, defaults to the this.componentDefArr if no array is provided.
-  public getComponentDefByName(name: string, componentDefArr: FormFieldCompMapEntry[] = this.componentDefArr): FormFieldCompMapEntry | undefined {
+  public getComponentDefByName(
+    name: string,
+    componentDefArr: FormFieldCompMapEntry[] = this.componentDefArr
+  ): FormFieldCompMapEntry | undefined {
     let foundComponentDef = componentDefArr.find(comp => {
       return comp.compConfigJson?.name === name;
     });
@@ -807,7 +876,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return foundComponentDef;
   }
 
-  public async saveForm(forceSave: boolean = false, targetStep: string = '', enabledValidationGroups: string[] = ["all"]) {
+  public async saveForm(
+    forceSave: boolean = false,
+    targetStep: string = '',
+    enabledValidationGroups: string[] = ['all']
+  ) {
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
     const formIsSaving = _isNull(this.saveResponse());
@@ -818,7 +891,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (this.form && formIsModified) {
       if (formIsValid && !formIsSaving) {
         this.saveResponse.set(null); // Indicate save in progress
-        this.loggerService.info(`${this.logName}: Form valid flag: ${this.form.valid}, targetStep: ${targetStep}, enabledValidationGroups: ${enabledValidationGroups}. Saving...`);
+        this.loggerService.info(
+          `${this.logName}: Form valid flag: ${this.form.valid}, targetStep: ${targetStep}, enabledValidationGroups: ${enabledValidationGroups}. Saving...`
+        );
         this.loggerService.debug(`${this.logName}: Form value:`, this.form.value);
 
         try {
@@ -845,7 +920,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               createFormSaveSuccessEvent({
                 savedData: currentFormValue,
                 oid: !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid(),
-                response
+                response,
               })
             );
           } else {
@@ -865,13 +940,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           if (error instanceof Error) {
             errorMsg = error.message;
           }
-          this.saveResponse.set({ success: false, oid: this.trimmedParams.oid(), message: errorMsg } as RecordActionResult);
+          this.saveResponse.set({
+            success: false,
+            oid: this.trimmedParams.oid(),
+            message: errorMsg,
+          } as RecordActionResult);
           // Mark form as dirty again since save failed
           this.form.markAllAsDirty();
           // emit failure event
-          this.eventBus.publish(
-            createFormSaveFailureEvent({ error: errorMsg })
-          );
+          this.eventBus.publish(createFormSaveFailureEvent({ error: errorMsg }));
         }
       } else {
         this.saveResponse.set(undefined); // Reset save response
@@ -887,9 +964,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       // TODO: Do we need to discriminate between not defined and not modified events?
       const message = !this.form ? 'Form is not defined.' : 'Form has not been modified.';
       this.loggerService.warn(`${this.logName}: ${message} Cannot submit.`);
-      this.eventBus.publish(
-        createFormSaveFailureEvent({ error: message })
-      );
+      this.eventBus.publish(createFormSaveFailureEvent({ error: message }));
     }
   }
 
@@ -898,7 +973,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   public async getFormCompiledItems() {
     const recordType = this.trimmedParams.recordType();
-    const formMode = this.editMode() ? "edit" : "view";
+    const formMode = this.editMode() ? 'edit' : 'view';
     const result = await this.formService.getDynamicImportFormCompiledItems(recordType, undefined, formMode);
     // TODO: cache?
     return result;
@@ -910,7 +985,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   public async getRecordCompiledItems() {
     const recordType = this.trimmedParams.recordType();
     const oid = this.trimmedParams.oid();
-    const formMode = this.editMode() ? "edit" : "view";
+    const formMode = this.editMode() ? 'edit' : 'view';
     const result = await this.formService.getDynamicImportFormCompiledItems(recordType, oid, formMode);
     // TODO: cache?
     return result;
@@ -930,7 +1005,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       untouched: this.form?.untouched || false,
       value: this.form?.value || null,
       errors: this.form?.errors || null,
-      status: this.form?.status as FormControlStatus || 'DISABLED',
+      status: (this.form?.status as FormControlStatus) || 'DISABLED',
     } as FormGroupStatus;
   }
 
@@ -938,6 +1013,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Clean up subscriptions
     Object.values(this.subMaps).forEach(sub => sub.unsubscribe());
     this.focusRequestCoordinator.destroy();
+    this.behaviourManager.destroy();
   }
 
   public get componentQuerySource(): JSONataQuerySource | undefined {
@@ -966,9 +1042,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         continue;
       }
 
-      const value = hasEquals
-        ? this.decodeRequestParamSegment(rawValueParts.join('='))
-        : true;
+      const value = hasEquals ? this.decodeRequestParamSegment(rawValueParts.join('=')) : true;
 
       requestParams[name] = this.mergeRequestParamValue(requestParams[name], value);
     }
@@ -981,15 +1055,21 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     try {
       return decodeURIComponent(normalizedSegment);
     } catch (error) {
-      this.loggerService.warn(`${this.logName}: Failed to decode request parameter segment. Falling back to the raw segment.`, {
-        error,
-        segment
-      });
+      this.loggerService.warn(
+        `${this.logName}: Failed to decode request parameter segment. Falling back to the raw segment.`,
+        {
+          error,
+          segment,
+        }
+      );
       return normalizedSegment;
     }
   }
 
-  private mergeRequestParamValue(existingValue: FormRequestParamValue | undefined, nextValue: FormRequestParamValue): FormRequestParamValue {
+  private mergeRequestParamValue(
+    existingValue: FormRequestParamValue | undefined,
+    nextValue: FormRequestParamValue
+  ): FormRequestParamValue {
     if (existingValue === undefined) {
       return nextValue;
     }
@@ -1017,7 +1097,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         const basePath = parsedUrl.pathname.replace(/\/+$/, '');
         return `${basePath}/record/edit/${createdOid}`;
       } catch {
-        this.loggerService.warn(`${this.logName}: Invalid brandingAndPortalUrl '${brandingAndPortalUrl}', falling back to relative path.`);
+        this.loggerService.warn(
+          `${this.logName}: Invalid brandingAndPortalUrl '${brandingAndPortalUrl}', falling back to relative path.`
+        );
       }
     }
     return `record/edit/${createdOid}`;

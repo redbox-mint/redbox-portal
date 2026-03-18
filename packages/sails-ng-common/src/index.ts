@@ -11,6 +11,9 @@ export * from './config/dictionary.model';
 export * from './config/shared.outline';
 export * from './config/form-config.outline';
 export * from './config/form-config.model';
+// Form behaviours are exported from the shared package so both server visitors
+// and Angular runtime code consume the same v1 config contract.
+export * from './config/form-behaviour.outline';
 export * from './config/form-component.outline';
 export * from './config/form-component.model';
 export * from './config/base-field-component.outline';
@@ -98,8 +101,8 @@ export * from './config/component/publish-data-location-selector.model';
 export * from './config/component/publish-data-location-selector.outline';
 export * from './config/component/reusable.model';
 export * from './config/component/reusable.outline';
-export * from "./config/component/question-tree.model";
-export * from "./config/component/question-tree.outline";
+export * from './config/component/question-tree.model';
+export * from './config/component/question-tree.outline';
 // validation
 export * from './validation/helpers';
 export * from './validation/form.model';

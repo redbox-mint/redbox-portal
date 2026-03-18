@@ -139,10 +139,7 @@ import {
   RichTextEditorFormComponentDefinitionOutline,
   RichTextEditorModelName,
 } from '@researchdatabox/sails-ng-common';
-import {
-  RichTextEditorFieldComponentConfig,
-  RichTextEditorFieldModelConfig,
-} from '@researchdatabox/sails-ng-common';
+import { RichTextEditorFieldComponentConfig, RichTextEditorFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import {
   MapComponentName,
   MapDrawingMode,
@@ -433,6 +430,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('defaultLayoutComponent', item, currentData);
     this.sharedProps.setPropOverride('debugValue', item, currentData);
     this.sharedProps.setPropOverride('expressions', item, currentData);
+    // Behaviours are a form-level concern. Unlike component expressions they do
+    // not belong to a specific field subtree, so they are copied here at the top
+    // of the construct phase and later handled by the template/client visitors.
+    // v1 keeps the data as plain config instead of constructing dedicated model
+    // classes because the runtime consumes the config directly.
+    this.sharedProps.setPropOverride('behaviours', item, currentData);
     this.sharedProps.setPropOverride('attachmentFields', item, currentData);
     // Ensure the default validation groups are present.
     if (!item.validationGroups) {
@@ -585,7 +588,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (!nameIsFalsy && !nameWillBeTransformedToFalsy) {
       this.logger.error(
         `Repeatable element template must have a 'falsy' name: elementTemplateName '${JSON.stringify(elementTemplateName)}' ` +
-        `elementTemplateClass ${JSON.stringify(elementTemplateClass)} elementTemplateReplaceName ${JSON.stringify(elementTemplateReplaceName)}`
+          `elementTemplateClass ${JSON.stringify(elementTemplateClass)} elementTemplateReplaceName ${JSON.stringify(elementTemplateReplaceName)}`
       );
       throw new Error(
         `Repeatable element template must have a 'falsy' name, got ${JSON.stringify(frame.elementTemplate?.name)} at ${JSON.stringify(currentFormConfigPath)}.`
@@ -690,12 +693,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): void {
     const currentData = this.getData();
-    if (
-      !isTypeFieldDefinitionName<SaveStatusFieldComponentDefinitionFrame>(
-        currentData,
-        SaveStatusComponentName
-      )
-    ) {
+    if (!isTypeFieldDefinitionName<SaveStatusFieldComponentDefinitionFrame>(currentData, SaveStatusComponentName)) {
       throw new Error(
         `Invalid ${SaveStatusComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
       );
@@ -905,7 +903,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
           this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(formComponent, index)
         );
 
-        const itemTransformed = this.applyConstructPhaseTransform(formComponent) as AccordionPanelFormComponentDefinition;
+        const itemTransformed = this.applyConstructPhaseTransform(
+          formComponent
+        ) as AccordionPanelFormComponentDefinition;
 
         item.config?.panels.push(itemTransformed);
       }
@@ -931,7 +931,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
     const currentData = this.getData();
-    if (!isTypeFieldDefinitionName<AccordionPanelFieldComponentDefinitionFrame>(currentData, AccordionPanelComponentName)) {
+    if (
+      !isTypeFieldDefinitionName<AccordionPanelFieldComponentDefinitionFrame>(currentData, AccordionPanelComponentName)
+    ) {
       throw new Error(
         `Invalid ${AccordionPanelComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
       );
@@ -1307,7 +1309,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   /* Record Metadata Retriever */
 
-  visitRecordMetadataRetrieverFieldComponentDefinition(item: RecordMetadataRetrieverFieldComponentDefinitionOutline): void {
+  visitRecordMetadataRetrieverFieldComponentDefinition(
+    item: RecordMetadataRetrieverFieldComponentDefinitionOutline
+  ): void {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<RecordMetadataRetrieverFieldComponentDefinitionFrame>(
@@ -1324,7 +1328,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, currentData?.config);
   }
 
-  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
+  visitRecordMetadataRetrieverFormComponentDefinition(
+    item: RecordMetadataRetrieverFormComponentDefinitionOutline
+  ): void {
     this.populateFormComponent(item);
   }
 
@@ -1388,7 +1394,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.populateFormComponent(item);
   }
 
-  visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void {
+  visitPublishDataLocationSelectorFieldComponentDefinition(
+    item: PublishDataLocationSelectorFieldComponentDefinitionOutline
+  ): void {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<PublishDataLocationSelectorFieldComponentDefinitionFrame>(
@@ -1424,7 +1432,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('dataTypeLookup', item.config, config);
   }
 
-  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): void {
+  visitPublishDataLocationSelectorFieldModelDefinition(
+    item: PublishDataLocationSelectorFieldModelDefinitionOutline
+  ): void {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<PublishDataLocationSelectorFieldModelDefinitionFrame>(
@@ -1442,7 +1452,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void {
+  visitPublishDataLocationSelectorFormComponentDefinition(
+    item: PublishDataLocationSelectorFormComponentDefinitionOutline
+  ): void {
     this.populateFormComponent(item);
   }
 
@@ -1590,7 +1602,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): void {
     const currentData = this.getData();
-    if (!isTypeFieldDefinitionName<RecordSelectorFieldComponentDefinitionFrame>(currentData, RecordSelectorComponentName)) {
+    if (
+      !isTypeFieldDefinitionName<RecordSelectorFieldComponentDefinitionFrame>(currentData, RecordSelectorComponentName)
+    ) {
       throw new Error(
         `Invalid ${RecordSelectorComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
       );
@@ -1861,12 +1875,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('availableMeta', item.config, configFrame);
     this.sharedProps.setPropOverride('questions', item.config, configFrame);
 
-        // Transform the question tree questions DSL into reusable components.
+    // Transform the question tree questions DSL into reusable components.
     configFrame.componentDefinitions = this.formOverride.applyQuestionTreeDsl(
-          this.formPathHelper.modelName, this.formPathHelper.formPath, item
+      this.formPathHelper.modelName,
+      this.formPathHelper.formPath,
+      item
     );
 
-        // Apply the reusable component overrides.
+    // Apply the reusable component overrides.
     configFrame.componentDefinitions = this.formOverride.applyQuestionTreeFrames(
       this.formOverride.applyOverridesReusable(configFrame?.componentDefinitions ?? [], this.reusableFormDefs)
     );
@@ -1875,7 +1891,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       const formComponent = this.constructFormComponent(componentDefinition);
       this.formPathHelper.acceptFormPath(
         formComponent,
-        this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(formComponent, index),
+        this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(formComponent, index)
       );
 
       // Preserve the generated question controls until the parent QuestionTree view transform runs.
@@ -1884,7 +1900,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
           ? formComponent
           : this.formOverride.applyOverrideTransform(formComponent, this.formMode);
 
-            // Store the instance on the item
+      // Store the instance on the item
       item.config?.componentDefinitions.push(itemTransformed);
     });
   }
@@ -2027,7 +2043,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (item?.config?.value !== undefined || config?.value !== undefined) {
       throw new Error(
         `${this.logName}: Use 'model.config.defaultValue' in form config ` +
-        `instead of 'model.config.value' - item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
+          `instead of 'model.config.value' - item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
     }
 
@@ -2042,8 +2058,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (!isElementTemplate && (item.config.newEntryValue !== undefined || config?.newEntryValue !== undefined)) {
       throw new Error(
         `${this.logName}: Only repeatable elementTemplates can define 'model.config.newEntryValue', ` +
-        `use 'model.config.defaultValue' in other places ` +
-        `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
+          `use 'model.config.defaultValue' in other places ` +
+          `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
     }
 
@@ -2051,9 +2067,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (isElementTemplate && (item.config.defaultValue !== undefined || config?.defaultValue !== undefined)) {
       throw new Error(
         `${this.logName}: Set the repeatable elementTemplate new item default ` +
-        `using 'elementTemplate.model.config.newEntryValue', not 'elementTemplate.model.config.defaultValue', ` +
-        `set the repeatable default in 'repeatable.model.config.defaultValue' ` +
-        `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
+          `using 'elementTemplate.model.config.newEntryValue', not 'elementTemplate.model.config.defaultValue', ` +
+          `set the repeatable default in 'repeatable.model.config.defaultValue' ` +
+          `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
     }
 
@@ -2061,10 +2077,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (isElementTemplateDescendant && (item.config.defaultValue !== undefined || config?.defaultValue !== undefined)) {
       throw new Error(
         `${this.logName}: Set the repeatable elementTemplate descendant component new item default ` +
-        `using 'elementTemplate.model.config.newEntryValue', ` +
-        `set the repeatable default in 'repeatable.model.config.defaultValue', ` +
-        `not the descendant components ` +
-        `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
+          `using 'elementTemplate.model.config.newEntryValue', ` +
+          `set the repeatable default in 'repeatable.model.config.defaultValue', ` +
+          `not the descendant components ` +
+          `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
     }
 
@@ -2183,7 +2199,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (isElementTemplate || isElementTemplateDescendant) {
       throw new Error(
         `${this.logName}: Cannot merge default values for a repeatable elementTemplate or descendants ` +
-        `- itemName: ${JSON.stringify(itemName)} itemDefaultValue: ${JSON.stringify(itemDefaultValue)}`
+          `- itemName: ${JSON.stringify(itemName)} itemDefaultValue: ${JSON.stringify(itemDefaultValue)}`
       );
     }
 

@@ -137,6 +137,7 @@ import {
 import { FormComponentDefinitionOutline, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { ILogger } from '@researchdatabox/sails-ng-common';
 import { FormPathHelper } from '@researchdatabox/sails-ng-common';
+import { FormBehaviourConfigFrame } from '../../../sails-ng-common/src/config/form-behaviour.outline';
 
 /**
  * Visit each form config class type and extract information about any
@@ -172,7 +173,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitFormConfig(item: FormConfigOutline) {
+    const behaviours = (item as FormConfigOutline & { behaviours?: FormBehaviourConfigFrame[] }).behaviours;
     this.extractExpressions(item.expressions);
+    this.extractBehaviours(behaviours);
     (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
       // Visit children
       this.formPathHelper.acceptFormPath(
@@ -184,9 +187,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* SimpleInput */
 
-  visitSimpleInputFieldComponentDefinition(_item: SimpleInputFieldComponentDefinitionOutline): void { }
+  visitSimpleInputFieldComponentDefinition(_item: SimpleInputFieldComponentDefinitionOutline): void {}
 
-  visitSimpleInputFieldModelDefinition(_item: SimpleInputFieldModelDefinitionOutline): void { }
+  visitSimpleInputFieldModelDefinition(_item: SimpleInputFieldModelDefinitionOutline): void {}
 
   visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -221,9 +224,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitRepeatableFieldModelDefinition(_item: RepeatableFieldModelDefinitionOutline): void { }
+  visitRepeatableFieldModelDefinition(_item: RepeatableFieldModelDefinitionOutline): void {}
 
-  visitRepeatableElementFieldLayoutDefinition(_item: RepeatableElementFieldLayoutDefinitionOutline): void { }
+  visitRepeatableElementFieldLayoutDefinition(_item: RepeatableElementFieldLayoutDefinitionOutline): void {}
 
   visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -231,13 +234,13 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Validation Summary */
 
-  visitValidationSummaryFieldComponentDefinition(_item: ValidationSummaryFieldComponentDefinitionOutline): void { }
+  visitValidationSummaryFieldComponentDefinition(_item: ValidationSummaryFieldComponentDefinitionOutline): void {}
 
   visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 
-  visitSaveStatusFieldComponentDefinition(_item: SaveStatusFieldComponentDefinitionOutline): void { }
+  visitSaveStatusFieldComponentDefinition(_item: SaveStatusFieldComponentDefinitionOutline): void {}
 
   visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -255,7 +258,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitGroupFieldModelDefinition(_item: GroupFieldModelDefinitionOutline): void { }
+  visitGroupFieldModelDefinition(_item: GroupFieldModelDefinitionOutline): void {}
 
   visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -273,7 +276,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitTabFieldLayoutDefinition(_item: TabFieldLayoutDefinitionOutline): void { }
+  visitTabFieldLayoutDefinition(_item: TabFieldLayoutDefinitionOutline): void {}
 
   visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -290,7 +293,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitAccordionFieldLayoutDefinition(_item: AccordionFieldLayoutDefinitionOutline): void { }
+  visitAccordionFieldLayoutDefinition(_item: AccordionFieldLayoutDefinitionOutline): void {}
 
   visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -305,7 +308,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitAccordionPanelFieldLayoutDefinition(_item: AccordionPanelFieldLayoutDefinitionOutline): void { }
+  visitAccordionPanelFieldLayoutDefinition(_item: AccordionPanelFieldLayoutDefinitionOutline): void {}
 
   visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -323,7 +326,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitTabContentFieldLayoutDefinition(_item: TabContentFieldLayoutDefinitionOutline): void { }
+  visitTabContentFieldLayoutDefinition(_item: TabContentFieldLayoutDefinitionOutline): void {}
 
   visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -331,7 +334,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Save Button  */
 
-  visitSaveButtonFieldComponentDefinition(_item: SaveButtonFieldComponentDefinitionOutline): void { }
+  visitSaveButtonFieldComponentDefinition(_item: SaveButtonFieldComponentDefinitionOutline): void {}
 
   visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -339,7 +342,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Cancel Button  */
 
-  visitCancelButtonFieldComponentDefinition(_item: CancelButtonFieldComponentDefinitionOutline): void { }
+  visitCancelButtonFieldComponentDefinition(_item: CancelButtonFieldComponentDefinitionOutline): void {}
 
   visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -347,7 +350,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Tab Nav Button  */
 
-  visitTabNavButtonFieldComponentDefinition(_item: TabNavButtonFieldComponentDefinitionOutline): void { }
+  visitTabNavButtonFieldComponentDefinition(_item: TabNavButtonFieldComponentDefinitionOutline): void {}
 
   visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -355,9 +358,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Text Area */
 
-  visitTextAreaFieldComponentDefinition(_item: TextAreaFieldComponentDefinitionOutline): void { }
+  visitTextAreaFieldComponentDefinition(_item: TextAreaFieldComponentDefinitionOutline): void {}
 
-  visitTextAreaFieldModelDefinition(_item: TextAreaFieldModelDefinitionOutline): void { }
+  visitTextAreaFieldModelDefinition(_item: TextAreaFieldModelDefinitionOutline): void {}
 
   visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -365,13 +368,13 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Default Layout  */
 
-  visitDefaultFieldLayoutDefinition(_item: DefaultFieldLayoutDefinitionOutline): void { }
+  visitDefaultFieldLayoutDefinition(_item: DefaultFieldLayoutDefinitionOutline): void {}
 
   /* Checkbox Input */
 
-  visitCheckboxInputFieldComponentDefinition(_item: CheckboxInputFieldComponentDefinitionOutline): void { }
+  visitCheckboxInputFieldComponentDefinition(_item: CheckboxInputFieldComponentDefinitionOutline): void {}
 
-  visitCheckboxInputFieldModelDefinition(_item: CheckboxInputFieldModelDefinitionOutline): void { }
+  visitCheckboxInputFieldModelDefinition(_item: CheckboxInputFieldModelDefinitionOutline): void {}
 
   visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -390,7 +393,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitCheckboxTreeFieldModelDefinition(_item: CheckboxTreeFieldModelDefinitionOutline): void { }
+  visitCheckboxTreeFieldModelDefinition(_item: CheckboxTreeFieldModelDefinitionOutline): void {}
 
   visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -398,9 +401,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Record Selector */
 
-  visitRecordSelectorFieldComponentDefinition(_item: RecordSelectorFieldComponentDefinitionOutline): void { }
+  visitRecordSelectorFieldComponentDefinition(_item: RecordSelectorFieldComponentDefinitionOutline): void {}
 
-  visitRecordSelectorFieldModelDefinition(_item: RecordSelectorFieldModelDefinitionOutline): void { }
+  visitRecordSelectorFieldModelDefinition(_item: RecordSelectorFieldModelDefinitionOutline): void {}
 
   visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -408,9 +411,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Dropdown Input */
 
-  visitDropdownInputFieldComponentDefinition(_item: DropdownInputFieldComponentDefinitionOutline): void { }
+  visitDropdownInputFieldComponentDefinition(_item: DropdownInputFieldComponentDefinitionOutline): void {}
 
-  visitDropdownInputFieldModelDefinition(_item: DropdownInputFieldModelDefinitionOutline): void { }
+  visitDropdownInputFieldModelDefinition(_item: DropdownInputFieldModelDefinitionOutline): void {}
 
   visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -429,7 +432,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitTypeaheadInputFieldModelDefinition(_item: TypeaheadInputFieldModelDefinitionOutline): void { }
+  visitTypeaheadInputFieldModelDefinition(_item: TypeaheadInputFieldModelDefinitionOutline): void {}
 
   visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -437,9 +440,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Rich Text Editor */
 
-  visitRichTextEditorFieldComponentDefinition(_item: RichTextEditorFieldComponentDefinitionOutline): void { }
+  visitRichTextEditorFieldComponentDefinition(_item: RichTextEditorFieldComponentDefinitionOutline): void {}
 
-  visitRichTextEditorFieldModelDefinition(_item: RichTextEditorFieldModelDefinitionOutline): void { }
+  visitRichTextEditorFieldModelDefinition(_item: RichTextEditorFieldModelDefinitionOutline): void {}
 
   visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -447,9 +450,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Map */
 
-  visitMapFieldComponentDefinition(_item: MapFieldComponentDefinitionOutline): void { }
+  visitMapFieldComponentDefinition(_item: MapFieldComponentDefinitionOutline): void {}
 
-  visitMapFieldModelDefinition(_item: MapFieldModelDefinitionOutline): void { }
+  visitMapFieldModelDefinition(_item: MapFieldModelDefinitionOutline): void {}
 
   visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -457,43 +460,53 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* File Upload */
 
-  visitFileUploadFieldComponentDefinition(_item: FileUploadFieldComponentDefinitionOutline): void { }
+  visitFileUploadFieldComponentDefinition(_item: FileUploadFieldComponentDefinitionOutline): void {}
 
-  visitFileUploadFieldModelDefinition(_item: FileUploadFieldModelDefinitionOutline): void { }
+  visitFileUploadFieldModelDefinition(_item: FileUploadFieldModelDefinitionOutline): void {}
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 
-  visitRecordMetadataRetrieverFieldComponentDefinition(_item: RecordMetadataRetrieverFieldComponentDefinitionOutline): void { }
+  visitRecordMetadataRetrieverFieldComponentDefinition(
+    _item: RecordMetadataRetrieverFieldComponentDefinitionOutline
+  ): void {}
 
-  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
+  visitRecordMetadataRetrieverFormComponentDefinition(
+    item: RecordMetadataRetrieverFormComponentDefinitionOutline
+  ): void {
     this.acceptFormComponentDefinition(item);
   }
 
   /* Data Location */
 
-  visitDataLocationFieldComponentDefinition(_item: DataLocationFieldComponentDefinitionOutline): void { }
+  visitDataLocationFieldComponentDefinition(_item: DataLocationFieldComponentDefinitionOutline): void {}
 
-  visitDataLocationFieldModelDefinition(_item: DataLocationFieldModelDefinitionOutline): void { }
+  visitDataLocationFieldModelDefinition(_item: DataLocationFieldModelDefinitionOutline): void {}
 
   visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 
-  visitPublishDataLocationSelectorFieldComponentDefinition(_item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void { }
+  visitPublishDataLocationSelectorFieldComponentDefinition(
+    _item: PublishDataLocationSelectorFieldComponentDefinitionOutline
+  ): void {}
 
-  visitPublishDataLocationSelectorFieldModelDefinition(_item: PublishDataLocationSelectorFieldModelDefinitionOutline): void { }
+  visitPublishDataLocationSelectorFieldModelDefinition(
+    _item: PublishDataLocationSelectorFieldModelDefinitionOutline
+  ): void {}
 
-  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void {
+  visitPublishDataLocationSelectorFormComponentDefinition(
+    item: PublishDataLocationSelectorFormComponentDefinitionOutline
+  ): void {
     this.acceptFormComponentDefinition(item);
   }
 
   /* Radio Input */
 
-  visitRadioInputFieldComponentDefinition(_item: RadioInputFieldComponentDefinitionOutline): void { }
+  visitRadioInputFieldComponentDefinition(_item: RadioInputFieldComponentDefinitionOutline): void {}
 
-  visitRadioInputFieldModelDefinition(_item: RadioInputFieldModelDefinitionOutline): void { }
+  visitRadioInputFieldModelDefinition(_item: RadioInputFieldModelDefinitionOutline): void {}
 
   visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -501,9 +514,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Date Input */
 
-  visitDateInputFieldComponentDefinition(_item: DateInputFieldComponentDefinitionOutline): void { }
+  visitDateInputFieldComponentDefinition(_item: DateInputFieldComponentDefinitionOutline): void {}
 
-  visitDateInputFieldModelDefinition(_item: DateInputFieldModelDefinitionOutline): void { }
+  visitDateInputFieldModelDefinition(_item: DateInputFieldModelDefinitionOutline): void {}
 
   visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
@@ -537,7 +550,9 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     const extracted: string[] = [];
     (expressions ?? []).forEach((expression, index) => {
       for (const prop of ['template', 'condition'] as const) {
-        const config = expression.config as { template?: string; condition?: string; conditionKind?: string } | undefined;
+        const config = expression.config as
+          | { template?: string; condition?: string; conditionKind?: string }
+          | undefined;
         const value = config?.[prop];
         const kind = config?.conditionKind;
         if (kind == 'jsonpointer' && prop == 'condition') {
@@ -557,5 +572,88 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     if (extracted.length > 0) {
       this.logger.debug(`${this.logName}: Extracted ${extracted.length} expressions ${extracted.join(', ')}.`);
     }
+  }
+
+  /**
+   * Extract form-level behaviour templates for server-side compilation.
+   *
+   * This mirrors `extractExpressions()` but uses top-level behaviour keys rather
+   * than component lineage paths. JSONPointer conditions stay inline because the
+   * client runtime can evaluate them directly. JSONata-based condition, processor,
+   * and action templates are compiled so the raw source can be stripped before
+   * the config reaches the browser.
+   *
+   * v1 scope is intentionally narrow:
+   * - processor templates are only read from `jsonataTransform`
+   * - action templates cover `valueTemplate` and JSONata `fieldPath`
+   * - custom processors/actions are out of scope
+   */
+  protected extractBehaviours(behaviours?: FormBehaviourConfigFrame[]): void {
+    (behaviours ?? []).forEach((behaviour: FormBehaviourConfigFrame, behaviourIndex: number) => {
+      const conditionKind = behaviour.conditionKind ?? 'jsonpointer';
+      if (behaviour.condition && conditionKind !== 'jsonpointer') {
+        this.templates.push({
+          key: ['behaviours', behaviourIndex.toString(), 'condition'],
+          value: behaviour.condition,
+          kind: 'jsonata',
+        });
+      }
+
+      (behaviour.processors ?? []).forEach((processor: any, processorIndex: number) => {
+        const template = processor.config && 'template' in processor.config ? processor.config.template : undefined;
+        if (template) {
+          this.templates.push({
+            key: [
+              'behaviours',
+              behaviourIndex.toString(),
+              'processors',
+              processorIndex.toString(),
+              'config',
+              'template',
+            ],
+            value: template,
+            kind: 'jsonata',
+          });
+        }
+      });
+
+      (
+        [
+          ['actions', behaviour.actions],
+          ['onError', behaviour.onError],
+        ] as const
+      ).forEach(([listName, actions]) => {
+        (actions ?? []).forEach((action: any, actionIndex: number) => {
+          const config = action.config as {
+            valueTemplate?: string;
+            fieldPathKind?: string;
+            fieldPath?: string;
+          };
+
+          if (typeof config.valueTemplate === 'string') {
+            this.templates.push({
+              key: [
+                'behaviours',
+                behaviourIndex.toString(),
+                listName,
+                actionIndex.toString(),
+                'config',
+                'valueTemplate',
+              ],
+              value: config.valueTemplate,
+              kind: 'jsonata',
+            });
+          }
+
+          if (config.fieldPathKind === 'jsonata' && typeof config.fieldPath === 'string') {
+            this.templates.push({
+              key: ['behaviours', behaviourIndex.toString(), listName, actionIndex.toString(), 'config', 'fieldPath'],
+              value: config.fieldPath,
+              kind: 'jsonata',
+            });
+          }
+        });
+      });
+    });
   }
 }
