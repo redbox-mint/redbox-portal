@@ -88,14 +88,17 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
    * Process a field.item.selected event from a sibling component.
    */
   protected async handleItemSelected(event: FieldItemSelectedEvent): Promise<void> {
-    if (!this.control || !this.onItemSelect) {
+    const control = this.control;
+    if (!control || !this.onItemSelect) {
       return;
     }
 
     const clearValue = this.onItemSelect.clearValue ?? null;
 
     if (event.selectedItem === null || event.selectedItem === undefined) {
-      await setControlValue(this.control, clearValue, { emitEvent: false });
+      await setControlValue(control, clearValue, { emitEvent: false });
+      control.markAsDirty();
+      control.markAsTouched();
       return;
     }
 
@@ -113,7 +116,9 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
       resolved = clearValue;
     }
 
-    await setControlValue(this.control, resolved, { emitEvent: false });
+    await setControlValue(control, resolved, { emitEvent: false });
+    control.markAsDirty();
+    control.markAsTouched();
   }
 
   /**

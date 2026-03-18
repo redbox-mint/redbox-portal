@@ -465,6 +465,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
   private setModelValue(value: TypeaheadInputModelValueType): void {
     this.model?.setValue(value);
+    this.formControl.markAsDirty();
     this.formControl.markAsTouched();
   }
 
