@@ -414,7 +414,6 @@ export class FormOverride {
         const newItem = _mergeWith(
           {},
           expandedItem,
-          preserveWrapperExpressions ? { expressions: item.expressions } : {},
           additionalItemsMatched.length === 1 ? additionalItemsMatched[0] : {},
           (objValue, srcValue, key) => {
             if (key === 'expressions' && Array.isArray(srcValue)) {
