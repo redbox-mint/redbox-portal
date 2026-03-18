@@ -10,6 +10,7 @@
  */
 
 import {ReusableFormDefinitions} from "@researchdatabox/sails-ng-common";
+import { buildRelatedLinkRepeatableFieldDefinition } from "./relatedObjectsFormDefinition.config";
 
 // Re-export the type for convenience
 export {ReusableFormDefinitions};
@@ -124,6 +125,28 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
       },
     },
   ],
+  "related-objects-url-first": buildRelatedLinkRepeatableFieldDefinition({
+    reusableName: "related_objects_url_first",
+    fieldName: "related_publications",
+    fieldLabel: "@dmpt-related-publication",
+    helpText: "@dmpt-related-publication-help",
+    groupName: "related_publication",
+    titleLabel: "@dmpt-related-publication-title",
+    urlLabel: "@dmpt-related-publication-url",
+    notesLabel: "@dmpt-related-publication-notes",
+    fieldOrder: ['url', 'title', 'notes']
+  }),
+  "related-objects-title-first": buildRelatedLinkRepeatableFieldDefinition({
+    reusableName: "related_objects_title_first",
+    fieldName: "related_publications",
+    fieldLabel: "@dmpt-related-publication",
+    helpText: "@dmpt-related-publication-help",
+    groupName: "related_publication",
+    titleLabel: "@dmpt-related-publication-title",
+    urlLabel: "@dataPublication-related-publication-url",
+    notesLabel: "@dataPublication-related-publication-notes",
+    fieldOrder: ['title', 'url', 'notes']
+  }),
   /**
    * Standard contributor form fields for the v4 ContributorField.
    */
