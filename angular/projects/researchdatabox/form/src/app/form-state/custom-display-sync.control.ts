@@ -6,7 +6,9 @@ export interface CustomDisplaySyncComponentTree {
   formFieldBaseComponents?: Array<CustomDisplaySyncComponentLike | null | undefined>;
 }
 
-export type CustomDisplaySyncComponentLike = Partial<CustomDisplaySyncComponent> & CustomDisplaySyncComponentTree;
+export interface CustomDisplaySyncComponentLike extends CustomDisplaySyncComponentTree {
+  syncDisplayFromModel?: CustomDisplaySyncComponent['syncDisplayFromModel'];
+}
 
 export function isCustomDisplaySyncComponent(
   component: CustomDisplaySyncComponentLike | null | undefined
