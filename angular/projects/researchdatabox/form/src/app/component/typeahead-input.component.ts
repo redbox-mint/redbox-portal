@@ -115,7 +115,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private cache = new Map<string, TypeaheadOption[]>();
   private programmaticDisplayUpdate = false;
   private modelSubscriptionInitialised = false;
-  private autoDisplaySyncInFlight: boolean  = false;
+  private autoDisplaySyncInFlight:boolean  = false;
   private lastAutoDisplaySyncSignature = '';
   private labelTemplate = '';
   private labelTemplatePath: (string | number)[] = [];

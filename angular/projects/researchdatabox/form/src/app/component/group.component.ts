@@ -27,7 +27,7 @@ import {
 } from "lodash-es";
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
 import { RepeatableComponent } from './repeatable.component';
-import { syncComponentDisplayFromModel } from '../form-state/custom-display-sync.component';
+import { syncComponentDisplayFromModel } from '../form-state/custom-display-sync.control';
 
 
 export type GroupFormControlValueType = { [key: string]: AbstractControl<unknown> };

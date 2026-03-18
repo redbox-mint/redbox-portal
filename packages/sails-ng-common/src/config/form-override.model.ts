@@ -22,7 +22,7 @@ import {
 } from './component/radio-input.outline';
 import { DateInputComponentName, DateInputFormComponentDefinitionOutline } from './component/date-input.outline';
 import { DefaultTransformsType, KnownTransformsType } from './form-override.outline';
-import { cloneDeep as _cloneDeep, merge as _merge } from 'lodash';
+import { cloneDeep as _cloneDeep, merge as _merge, mergeWith as _mergeWith } from 'lodash';
 
 import {
   DropdownInputComponentName,
@@ -411,12 +411,21 @@ export class FormOverride {
           }
         }
 
-        const newItem = _merge(
+        const newItem = _mergeWith(
           {},
           expandedItem,
           preserveWrapperExpressions ? { expressions: item.expressions } : {},
-          additionalItemsMatched.length === 1 ? additionalItemsMatched[0] : {}
+          additionalItemsMatched.length === 1 ? additionalItemsMatched[0] : {},
+          (objValue, srcValue, key) => {
+            if (key === 'expressions' && Array.isArray(srcValue)) {
+              return srcValue;
+            }
+            return undefined;
+          }
         );
+        if (preserveWrapperExpressions) {
+          newItem.expressions = item.expressions;
+        }
         // Apply replaceName during reusable expansion so downstream data-model path binding
         // uses the final component name rather than the reusable template name.
         if (additionalItemsMatched.length === 1 && additionalItemsMatched[0].overrides?.replaceName !== undefined) {
