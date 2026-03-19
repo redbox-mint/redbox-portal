@@ -1,4 +1,5 @@
 import { FormOverride } from '../../src/config/form-override.model';
+import { ContentComponentName } from '../../src/config/component/content.outline';
 import { ReusableComponentName } from '../../src/config/component/reusable.outline';
 import { SimpleInputComponentName } from '../../src/config/component/simple-input.outline';
 import { ILogger } from '../../src/logger.interface';
@@ -129,5 +130,24 @@ describe('FormOverride reusable expansion', () => {
 
     expect(result).to.have.length(1);
     expect(result[0].expressions).to.deep.equal(additionalExpressions);
+  });
+
+  it('preserves date formatting when rendering date content leaf values', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).renderLeafValue(
+      {
+        component: {
+          class: ContentComponentName,
+          config: {
+            template: '<span data-value="{{content}}">{{formatDate content "DD/MM/YYYY"}}</span>',
+          },
+        },
+      } as never,
+      'project',
+      ['startDate']
+    );
+
+    expect(result).to.equal('<span data-value="{{default (get project "startDate" "") ""}}">{{formatDate (get project "startDate" "") "DD/MM/YYYY"}}</span>');
   });
 });
