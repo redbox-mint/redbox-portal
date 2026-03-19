@@ -761,11 +761,9 @@ export class FormOverride {
     const target = this.commonContentComponent(source, formMode);
 
     if (target.component.config !== undefined && source.model?.config?.value !== undefined) {
+      const configuredDateFormat = source.component?.config?.dateFormat?.trim?.() || 'YYYY/MM/DD';
       target.component.config.content = source.model.config.value;
-      target.component.config.template = this.resolveReusableViewTemplate(
-        this.reusableViewTemplateKeys.leafDate,
-        `<span data-value="{{content}}">{{formatDate content}}</span>`
-      );
+      target.component.config.template = `<span data-value="{{content}}">{{formatDate content "${configuredDateFormat}"}}</span>`;
     }
 
     return target;
@@ -1264,6 +1262,20 @@ export class FormOverride {
         trimmedTemplate.includes('<ul>{{#each content}}<li>{{default this.label this.notation}}</li>{{/each}}</ul>')
       ) {
         return `<ul>{{#each ${expression}}}<li>{{default this.label this.notation}}</li>{{/each}}</ul>`;
+      }
+
+      if (
+        trimmedTemplate === this.reusableViewTemplateKeys.leafDate ||
+        trimmedTemplate === 'view-template-leaf-date' ||
+        trimmedTemplate.includes('{{formatDate content')
+      ) {
+        const formatMatch = trimmedTemplate.match(/\{\{\s*formatDate\s+content\s+"([^"]+)"\s*\}\}/);
+        const templateFormat = formatMatch?.[1];
+        const dateValueTemplate = `{{default ${expression} ""}}`;
+        if (templateFormat) {
+          return `<span data-value="${dateValueTemplate}">{{formatDate ${expression} "${templateFormat}"}}</span>`;
+        }
+        return `<span data-value="${dateValueTemplate}">{{formatDate ${expression}}}</span>`;
       }
 
       if (

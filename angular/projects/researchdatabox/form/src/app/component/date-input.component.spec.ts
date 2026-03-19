@@ -82,6 +82,38 @@ describe('DateInputComponent', () => {
     expect((inputElement as HTMLInputElement).value).toEqual('2025/08/10');
   });
 
+  it('should render Date input component from ISO8601 string value', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_iso_string',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'date_test',
+          model: {
+            class: 'DateInputModel',
+            config: {
+              value: '2025-08-10T10:00:00.000Z' as unknown as Date
+            },
+          },
+          component: {
+            class: 'DateInputComponent',
+            config: {
+            },
+          },
+        },
+      ],
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const inputElement = compiled.querySelector('input[type="text"]');
+    expect((inputElement as HTMLInputElement).value).toEqual('2025/08/10');
+  });
+
   it('should render the default placeholder for empty values', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing_empty',
@@ -113,4 +145,3 @@ describe('DateInputComponent', () => {
   });
 
 });
-

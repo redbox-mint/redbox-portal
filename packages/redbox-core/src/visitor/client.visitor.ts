@@ -1026,10 +1026,14 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const toProcess = [{ path: [], schema: elementTemplateSchema }];
 
     const itemValue = item.model?.config?.value;
-    (itemValue ?? []).forEach(value => this.updateRepeatableDataModel(toProcess, value));
+    if (Array.isArray(itemValue)) {
+      item.model!.config!.value = itemValue.map(value => this.updateRepeatableDataModel(toProcess, value)) as never;
+    }
 
     const newEntryValue = elementTemplate?.model?.config?.newEntryValue;
-    this.updateRepeatableDataModel(toProcess, newEntryValue);
+    if (elementTemplate?.model?.config) {
+      elementTemplate.model.config.newEntryValue = this.updateRepeatableDataModel(toProcess, newEntryValue) as never;
+    }
   }
 
   protected updateLayoutVisibilityForZeroRows(item: RepeatableFormComponentDefinitionOutline): void {
@@ -1054,7 +1058,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   protected updateRepeatableDataModel(
     toProcess: { path: string[]; schema: Record<string, unknown> }[],
     value: unknown
-  ): void {
+  ): unknown {
     const processing = [...toProcess];
     while (processing.length > 0) {
       const current = processing.shift();
@@ -1076,8 +1080,8 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         const schemaCurrent = schemaValue as Record<string, unknown>;
         switch (schemaKey) {
           case 'properties':
-            // Allow the value to be undefined - set an empty object.
-            if (currentValue === undefined) {
+            // Allow missing or null object values - set an empty object.
+            if (currentValue === undefined || currentValue === null) {
               currentValue = {};
               if (path.length > 0) {
                 _set(value as object, path, currentValue);
@@ -1155,5 +1159,6 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         }
       }
     }
+    return value;
   }
 }

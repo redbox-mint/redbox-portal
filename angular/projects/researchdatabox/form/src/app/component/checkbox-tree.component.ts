@@ -1,4 +1,5 @@
-import { Component, Input, Injector, inject } from "@angular/core";
+import { Component, DestroyRef, Input, Injector, inject, signal } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
 import {
   CheckboxTreeComponentName,
@@ -218,6 +219,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
 
   private readonly vocabTreeService = inject(VocabTreeService);
   private readonly injector = inject(Injector);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly handlebarsTemplateService = inject(HandlebarsTemplateService);
   private readonly selectedByNotation = new Map<string, CheckboxTreeSelectedItem>();
   private readonly nodeById = new Map<string, CheckboxTreeRenderNode>();
@@ -225,6 +227,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   private readonly expandedNodeIds = new Set<string>();
   private readonly loadingNodeIds = new Set<string>();
   private readonly loadedNodeIds = new Set<string>();
+  private modelSubscriptionInitialised = false;
 
   private leafOnly = true;
   private inlineVocab = false;
@@ -235,6 +238,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   private compiledItems?: { evaluate: (key: (string | number)[], context: unknown, extra?: unknown) => unknown };
 
   @Input() public override model?: CheckboxTreeModel;
+  public readonly selectedItem = signal<CheckboxTreeSelectedItem | null>(null);
 
   protected get getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);
@@ -252,6 +256,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     this.compiledItems = undefined;
     this.rootNodes = this.normalizeNodes(cfg.treeData ?? []);
     this.syncSelectionFromModel();
+    this.bindModelValueSync();
   }
 
   protected override async initData(): Promise<void> {
@@ -348,8 +353,10 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
         name: notation && node.displayLabel ? `${notation} - ${node.displayLabel}` : (node.displayLabel || notation),
         genealogy: this.getGenealogy(node)
       });
+      this.selectedItem.set(this.selectedByNotation.get(notation) ?? null);
     } else {
       this.selectedByNotation.delete(notation);
+      this.selectedItem.set(null);
     }
     this.syncModelFromSelection();
   }
@@ -653,13 +660,24 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
         : undefined;
       this.selectedByNotation.set(notation, { notation, label, name, genealogy });
     }
+    this.selectedItem.set(values.length > 0 ? values[values.length - 1] as CheckboxTreeSelectedItem : null);
   }
 
   private syncModelFromSelection(): void {
     const value = Array.from(this.selectedByNotation.values());
-    this.formControl.setValue(value);
+    this.model?.setValue(value);
     this.formControl.markAsDirty();
     this.formControl.markAsTouched();
+  }
+
+  private bindModelValueSync(): void {
+    if (this.modelSubscriptionInitialised || !this.formControl) {
+      return;
+    }
+    this.modelSubscriptionInitialised = true;
+    this.formControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.syncSelectionFromModel());
   }
 
   private describeLoadError(error: unknown): string {

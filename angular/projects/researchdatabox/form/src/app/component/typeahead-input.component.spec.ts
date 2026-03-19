@@ -6,6 +6,7 @@ import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
 import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
 import {TypeaheadDataService} from "../service/typeahead-data.service";
 import {TypeaheadInputComponent} from "./typeahead-input.component";
+import type { TypeaheadMatch } from "ngx-bootstrap/typeahead";
 
 describe("TypeaheadInputComponent", () => {
     beforeEach(async () => {
@@ -160,6 +161,7 @@ describe("TypeaheadInputComponent", () => {
             value: "Custom Person",
             sourceType: "freeText"
         });
+        expect((formComponent as any).form.get("person_lookup")?.dirty).toBeTrue();
     });
 
     it("does not store free text when selection is required", async () => {
@@ -192,6 +194,42 @@ describe("TypeaheadInputComponent", () => {
         await fixture.whenStable();
 
         expect((formComponent as any).form.value?.person_lookup).toBeNull();
+    });
+
+    it("marks the control dirty when a suggestion is selected", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{label: "Jane Doe", value: "jane"}]
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {}
+                    }
+                }
+            ]
+        };
+
+        const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+
+        component.onSelect({
+            item: {
+                label: "Jane Doe",
+                value: "jane",
+                sourceType: "static"
+            }
+        } as TypeaheadMatch);
+
+        expect((formComponent as any).form.get("person_lookup")?.value).toBe("jane");
+        expect((formComponent as any).form.get("person_lookup")?.dirty).toBeTrue();
     });
 
     it("shows misconfiguration message when named query source lacks queryId", async () => {
