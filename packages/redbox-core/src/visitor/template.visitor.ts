@@ -137,7 +137,7 @@ import {
 import { FormComponentDefinitionOutline, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { ILogger } from '@researchdatabox/sails-ng-common';
 import { FormPathHelper } from '@researchdatabox/sails-ng-common';
-import { FormBehaviourConfigFrame } from '../../../sails-ng-common/src/config/form-behaviour.outline';
+import { FormBehaviourConfigFrame } from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config class type and extract information about any
