@@ -315,6 +315,67 @@ describe("Client Visitor", async () => {
     expect(repeatable.layout?.config?.visible).to.equal(false);
   });
 
+  it('should normalize null repeatable rows and null new entry values', async function () {
+    const args: FormConfigFrame = {
+      name: 'repeatable-null-values',
+      componentDefinitions: [
+        {
+          name: 'legacy_repeatable',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              defaultValue: [null],
+            },
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: '',
+                component: {
+                  class: 'GroupComponent',
+                  config: {
+                    componentDefinitions: [
+                      {
+                        name: 'name',
+                        component: { class: 'SimpleInputComponent' },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                    ],
+                  },
+                },
+                model: {
+                  class: 'GroupModel',
+                  config: {
+                    newEntryValue: null,
+                  },
+                },
+              },
+            } as unknown as RepeatableFieldComponentConfigFrame,
+          },
+        },
+      ],
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      data: args,
+      formMode: 'edit',
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed });
+    const repeatable = actual.componentDefinitions?.[0];
+    const repeatableValue = repeatable?.model?.config?.value as unknown[] | undefined;
+    const repeatableConfig = repeatable?.component?.config as RepeatableFieldComponentConfigFrame | undefined;
+    const newEntryValue = repeatableConfig?.elementTemplate?.model?.config?.newEntryValue;
+
+    expect(repeatableValue).to.have.length(1);
+    expect(repeatableValue?.[0]).to.deep.equal({});
+    expect(newEntryValue).to.deep.equal({});
+  });
+
   it(`should create full example form config`, async function () {
     const args = formConfigExample1;
 
