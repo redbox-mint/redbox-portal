@@ -30,6 +30,8 @@ import { DataValueFormConfigVisitor } from "../visitor/data-value.visitor";
 import { JsonTypeDefSchemaFormConfigVisitor } from "../visitor/json-type-def.visitor";
 import { TemplateFormConfigVisitor } from "../visitor/template.visitor";
 import { ConstructFormConfigVisitor } from "../visitor/construct.visitor";
+import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
+import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
 
 
 
@@ -575,7 +577,23 @@ export namespace Services {
           recordMetadata?: Record<string, unknown> | null,
           reusableFormDefs?: ReusableFormDefinitions
         ): Promise<TemplateCompileInput[]> {
-          const form = await FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata, reusableFormDefs);
+          // Keep the normal client-form build path so component pruning, form-mode
+          // overrides, and client-visible expression indexing stay identical to
+          // the shape used by the browser runtime. Behaviour template extraction
+          // needs one extra step because the client visitor strips raw behaviour
+          // JSONata source from the delivered config.
+          const clientForm = await FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata, reusableFormDefs);
+
+          const constructor = new ConstructFormConfigVisitor(this.logger);
+          const constructedForm = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
+          const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
+          await vocabVisitor.resolveVocabs(constructedForm);
+          const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
+          contextVariablesVisitor.applyContextVariables(constructedForm);
+
+          const form = clientForm;
+          form.behaviours = constructedForm.behaviours;
+
           const visitor = new TemplateFormConfigVisitor(this.logger);
           return visitor.start({form});
         }

@@ -166,4 +166,59 @@ describe('FormBehaviourManager', () => {
       })
     );
   }));
+
+  it('runs form-ready behaviours once even when they emit broadcast events', fakeAsync(() => {
+    eventBus.publish.and.callFake(event => {
+      allEvents$.next(event as FormComponentEvent);
+    });
+
+    const formComponent = {
+      form: { value: {} },
+      formDefMap: {
+        formConfig: {
+          behaviours: [
+            {
+              name: 'fetch-on-ready',
+              condition: '$exists(runtimeContext.requestParams.rdmpOid)',
+              conditionKind: 'jsonata_query',
+              runOnFormReady: true,
+              actions: [
+                {
+                  type: 'emitEvent',
+                  config: {
+                    eventType: 'field.value.changed',
+                    fieldId: '/main/rdmpGetter',
+                    sourceId: '*',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+      getFormCompiledItems: jasmine.createSpy('getFormCompiledItems').and.resolveTo({
+        evaluate: jasmine.createSpy('evaluate').and.resolveTo(true),
+      }),
+      getQuerySource: () => ({ queryOrigSource: [], querySource: [], jsonPointerSource: {} }),
+      requestParams: () => ({ rdmpOid: 'oid-1' }),
+    } as any;
+
+    manager.bind(formComponent);
+
+    allEvents$.next({
+      type: FormComponentEventType.FORM_DEFINITION_READY,
+      sourceId: FormComponentEventType.FORM_DEFINITION_READY,
+      timestamp: Date.now(),
+    } as any);
+    tick();
+
+    expect(eventBus.publish).toHaveBeenCalledTimes(1);
+    expect(eventBus.publish).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        type: FormComponentEventType.FIELD_VALUE_CHANGED,
+        fieldId: '/main/rdmpGetter',
+        sourceId: '*',
+      })
+    );
+  }));
 });

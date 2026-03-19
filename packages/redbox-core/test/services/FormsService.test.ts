@@ -255,6 +255,61 @@ describe('FormsService', function () {
       expect(mockWorkflowStep.update.calledWith({ id: 'step-1' })).to.be.true;
     });
 
+    it('should preserve top-level behaviours when bootstrapping form config from the registry', async function () {
+      const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
+      sinon.stub(FormsService, 'getFormConfigRegistry').returns({
+        'default-form': {
+          type: 'rdmp',
+          attachmentFields: [],
+          componentDefinitions: [],
+          behaviours: [
+            {
+              name: 'fetch-on-ready',
+              condition: '$exists(runtimeContext.requestParams.rdmpOid)',
+              conditionKind: 'jsonata_query',
+              runOnFormReady: true,
+              processors: [{ type: 'fetchMetadata' }],
+              actions: [
+                {
+                  type: 'emitEvent',
+                  config: {
+                    eventType: 'field.value.changed',
+                    fieldId: '/mainTab/aim/rdmpGetter',
+                    sourceId: '*'
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      });
+      mockForm.find.resolves([]);
+      mockForm.create.resolves({ id: 'form-1' });
+
+      await FormsService.bootstrap(workflowStep, 'brand-1');
+
+      expect(mockForm.create.calledOnce).to.be.true;
+      expect(mockForm.create.firstCall.args[0].configuration.behaviours).to.deep.equal([
+        {
+          name: 'fetch-on-ready',
+          condition: '$exists(runtimeContext.requestParams.rdmpOid)',
+          conditionKind: 'jsonata_query',
+          runOnFormReady: true,
+          processors: [{ type: 'fetchMetadata' }],
+          actions: [
+            {
+              type: 'emitEvent',
+              config: {
+                eventType: 'field.value.changed',
+                fieldId: '/mainTab/aim/rdmpGetter',
+                sourceId: '*'
+              }
+            }
+          ]
+        }
+      ]);
+    });
+
     it('should prefer formConfigRegistry over legacy forms', async function () {
       sinon.stub(FormsService, 'getFormConfigRegistry').returns({
         'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }

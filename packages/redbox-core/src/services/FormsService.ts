@@ -166,10 +166,12 @@ export namespace Services {
           enabledValidationGroups: formConfigRaw.enabledValidationGroups as FormConfigFrame['enabledValidationGroups'],
           validators: formConfigRaw.validators as FormConfigFrame['validators'],
           validationGroups: formConfigRaw.validationGroups as FormConfigFrame['validationGroups'],
+          behaviours: formConfigRaw.behaviours as FormConfigFrame['behaviours'],
           defaultLayoutComponent: formConfigRaw.defaultLayoutComponent as FormConfigFrame['defaultLayoutComponent'],
           componentDefinitions: formConfigRaw.componentDefinitions as FormConfigFrame['componentDefinitions'],
           debugValue: formConfigRaw.debugValue as FormConfigFrame['debugValue'],
           attachmentFields: (formConfigRaw.attachmentFields ?? []) as FormConfigFrame['attachmentFields'],
+          contextVariables: formConfigRaw.contextVariables as FormConfigFrame['contextVariables'],
 
           // Deprecated legacy properties (now removed):
           // fields → replaced by componentDefinitions

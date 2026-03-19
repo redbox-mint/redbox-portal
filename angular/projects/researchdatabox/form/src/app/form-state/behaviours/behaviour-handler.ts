@@ -38,6 +38,8 @@ export class BehaviourHandler {
   private readonly logicalFieldEntries = new Map<string, FormFieldCompMapEntry>();
   private readonly permanentlySkippedActions = new Set<string>();
   private readonly metadataCache = new Map<string, unknown>();
+  private isProcessingFormReadyExecution = false;
+  private hasExecutedFormReady = false;
   private compiledItems?: BehaviourCompiledItemsModule;
   private compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
 
@@ -107,6 +109,22 @@ export class BehaviourHandler {
    * 4. on failure, run `onError` actions and halt the normal pipeline
    */
   private async execute(event: FormComponentEvent): Promise<void> {
+    const isFormReadyEvent = event.type === FormComponentEventType.FORM_DEFINITION_READY;
+    if (isFormReadyEvent && this.hasExecutedFormReady) {
+      return;
+    }
+
+    // Guard against synchronous self-feedback loops triggered while processing
+    // the initial form-ready execution. This allows a form-ready behaviour to
+    // publish broadcast events for downstream consumers without recursively
+    // retriggering itself before the initial load pipeline completes.
+    if (this.isProcessingFormReadyExecution && event.sourceId === '*') {
+      return;
+    }
+
+    if (isFormReadyEvent) {
+      this.isProcessingFormReadyExecution = true;
+    }
     try {
       const condition = this.behaviour.condition;
       const conditionKind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
@@ -138,12 +156,22 @@ export class BehaviourHandler {
       }
 
       await this.executeActions('actions', this.behaviour.actions ?? [], value, event);
+      if (isFormReadyEvent) {
+        this.hasExecutedFormReady = true;
+      }
     } catch (error) {
       this.ctx.logger.error('BehaviourHandler: Behaviour execution failed.', {
         error,
         behaviour: this.behaviour.name,
       });
       await this.executeActions('onError', this.behaviour.onError ?? [], (event as { value?: unknown }).value, event);
+      if (isFormReadyEvent) {
+        this.hasExecutedFormReady = true;
+      }
+    } finally {
+      if (isFormReadyEvent) {
+        this.isProcessingFormReadyExecution = false;
+      }
     }
   }
 
