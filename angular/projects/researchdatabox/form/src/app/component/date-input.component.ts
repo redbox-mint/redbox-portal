@@ -10,10 +10,73 @@ import { DateTime } from 'luxon';
 import { BsDatepickerConfig, BsDatepickerDirective } from 'ngx-bootstrap/datepicker';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty, isNull as _isNull } from 'lodash-es';
 
+function normalizeDateInputValue(value: unknown): DateInputModelValueType | undefined {
+  if (_isUndefined(value) || _isNull(value)) {
+    return value as DateInputModelValueType;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value === 'string') {
+    const trimmedValue = value.trim();
+    if (trimmedValue === '') {
+      return null;
+    }
+
+    const isoDate = DateTime.fromISO(trimmedValue);
+    if (isoDate.isValid) {
+      return isoDate.toJSDate();
+    }
+
+    const jsDate = new Date(trimmedValue);
+    if (!Number.isNaN(jsDate.getTime())) {
+      return jsDate;
+    }
+  }
+
+  return undefined;
+}
+
+function areDateInputValuesEqual(left: unknown, right: unknown): boolean {
+  const normalizedLeft = normalizeDateInputValue(left);
+  const normalizedRight = normalizeDateInputValue(right);
+
+  if (normalizedLeft === undefined || normalizedRight === undefined) {
+    return left === right;
+  }
+
+  if (normalizedLeft === null || normalizedRight === null) {
+    return normalizedLeft === normalizedRight;
+  }
+
+  return normalizedLeft.getTime() === normalizedRight.getTime();
+}
+
 export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
   public override logName = DateInputModelName;
   public enableTimePicker: boolean = false;
   public dateFormat: string = '';
+
+  protected override postCreateGetInitValue(): DateInputModelValueType | undefined {
+    return normalizeDateInputValue(this.fieldConfig.config?.value) ?? null;
+  }
+
+  public override setValue(value: DateInputModelValueType): void {
+    const normalizedValue = normalizeDateInputValue(value);
+    super.setValue((normalizedValue ?? value) as DateInputModelValueType);
+  }
+
+  public override patchValue(value: DateInputModelValueType): void {
+    const normalizedValue = normalizeDateInputValue(value);
+    super.patchValue((normalizedValue ?? value) as DateInputModelValueType);
+  }
+
+  public override setValueDontEmitEvent(value: DateInputModelValueType): void {
+    const normalizedValue = normalizeDateInputValue(value);
+    super.setValueDontEmitEvent((normalizedValue ?? value) as DateInputModelValueType);
+  }
 
   public setTimeValue(timeValue: string): void {
     if(this.enableTimePicker) {
@@ -91,8 +154,9 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   @ViewChild(BsDatepickerDirective) datepicker!: BsDatepickerDirective;
 
   override ngAfterViewInit() {
-    this.formControl.valueChanges.subscribe((value: DateInputModelValueType) => {
-      this.onDateChange(value);
+    this.syncDateValue(this.formControl?.value);
+    this.formControl.valueChanges.subscribe((value: DateInputModelValueType | string) => {
+      this.syncDateValue(value);
     });
 
     super.ngAfterViewInit();
@@ -118,9 +182,23 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     const currentValue = this.model?.getValue();
     // Protect against infinite loops, as `onDateChange` is called in `ngAfterViewInit`.
     // `ngAfterViewInit` is run as part of change detection, such as when the model value is changed.
-    if (currentValue !== dateValue) {
+    if (!areDateInputValuesEqual(currentValue, dateValue)) {
       this.model?.setValue(dateValue);
     }
+  }
+
+  private syncDateValue(dateValue: DateInputModelValueType | string | undefined): void {
+    const normalizedValue = normalizeDateInputValue(dateValue);
+
+    if (typeof dateValue === 'string' && normalizedValue === undefined) {
+      return;
+    }
+
+    if (normalizedValue !== undefined && !areDateInputValuesEqual(this.formControl?.value, normalizedValue)) {
+      this.formControl?.setValue(normalizedValue, { emitEvent: false });
+    }
+
+    this.onDateChange((normalizedValue ?? dateValue ?? null) as DateInputModelValueType);
   }
 
   //Note there are at least two known issues with ngx timepicker plus the layout with arrows above and below the time input field
