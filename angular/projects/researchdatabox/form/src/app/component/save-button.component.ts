@@ -2,8 +2,8 @@ import {Component, inject, effect, signal, Injector} from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
 import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
-import { FormComponentEventBus, FormComponentEventType, createFormSaveRequestedEvent } from '../form-state/events';
-import { FormStateFacade } from '../form-state';
+import { FormComponentEventBus, FormComponentEventType, createFormSaveRequestedEvent, FormStateFacade } from '../form-state';
+import {FormService} from "../form.service";
 
 @Component({
   selector: 'redbox-form-save-button',
@@ -11,7 +11,7 @@ import { FormStateFacade } from '../form-state';
   @if (isVisible) {
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
     <div class="rb-form-save-button">
-      <button type="button" [class]="buttonCssClasses" (click)="save()" [innerHtml]="currentLabel()" [disabled]="disabled()"></button>
+      <button type="button" [class]="buttonCssClasses" (click)="save()" [innerHtml]="translate(currentLabel())" [disabled]="disabled()"></button>
     </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   }
@@ -26,8 +26,9 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   public override componentDefinition?: SaveButtonFieldComponentDefinitionOutline;
   protected currentLabel = signal<string | undefined>(this.componentDefinition?.config?.label);
   protected formStateFacade = inject(FormStateFacade);
+  protected formService = inject(FormService);
   private _injector = inject(Injector);
-  
+
   get buttonCssClasses(): string {
     const configuredClasses = (this.componentDefinition?.config as Record<string, unknown> | undefined)?.['buttonCssClasses'];
     return this.resolveButtonCssClasses(typeof configuredClasses === 'string' ? configuredClasses : undefined, 'btn-primary');
@@ -92,4 +93,7 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
     return classTokens.includes('btn') ? normalized : `btn ${normalized}`;
   }
 
+  protected translate(value?: string): string {
+    return this.formService.translate(value);
+  }
 }
