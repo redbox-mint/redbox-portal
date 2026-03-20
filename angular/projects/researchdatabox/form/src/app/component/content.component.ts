@@ -1,5 +1,4 @@
-import {cloneDeep as _cloneDeep, set as _set} from "lodash";
-import {Component, inject, Injector, Input, OnDestroy} from '@angular/core';
+import {Component, inject, Injector, Input} from '@angular/core';
 import { Subscription } from "rxjs";
 import {FormFieldBaseComponent, HandlebarsTemplateService, TranslationService} from '@researchdatabox/portal-ng-common';
 import {FormComponent} from "../form.component";
@@ -9,6 +8,7 @@ import {
   FormFieldComponentStatus,
   guessType
 } from "@researchdatabox/sails-ng-common";
+import {FormService} from "../form.service";
 
 
 /*
@@ -59,6 +59,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   private injector = inject(Injector);
   private handlebarsTemplateService = inject(HandlebarsTemplateService);
   private translationService = inject(TranslationService);
+  private formService = inject(FormService);
 
   private get getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);
@@ -130,12 +131,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   }
 
   private translate(value: string): string {
-    const translated = this.translationService.t(value);
-    if (translated === undefined || translated === null || translated === '') {
-      return value;
-    }
-    const result = typeof translated === 'string' ? translated : String(translated);
-    return result === 'undefined' ? value : result;
+    return this.formService.translate(value);
   }
 
   private getRuntimeTemplateContext(): { branding: string; portal: string; oid: string } {

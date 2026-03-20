@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, Input, OnDestroy, Injector, inject } from "@angular/core";
-import { ConfigService, FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, TranslationService } from "@researchdatabox/portal-ng-common";
+import { ConfigService, FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
     DataLocationAttachmentValue,
     DataLocationComponentName,
@@ -20,6 +20,7 @@ import OneDrive from "@uppy/onedrive";
 import { Subscription } from "rxjs";
 import { FormComponent } from "../form.component";
 import { FormComponentEventBus, FormSaveSuccessEvent } from "../form-state/events";
+import {FormService} from "../form.service";
 
 const pendingOid = "pending-oid";
 
@@ -126,7 +127,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
     private readonly injector = inject(Injector);
     private readonly eventBus = inject(FormComponentEventBus);
     private readonly configService = inject(ConfigService);
-    private readonly translationService = inject(TranslationService);
+    private readonly formService = inject(FormService);
 
     protected get getFormComponent(): FormComponent {
         return this.injector.get(FormComponent);
@@ -474,12 +475,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
     }
 
     private translateText(value: string): string {
-        const translated = this.translationService.t(value);
-        if (translated === undefined || translated === null || translated === "") {
-            return value;
-        }
-        const result = typeof translated === "string" ? translated : String(translated);
-        return result === "undefined" ? value : result;
+        return this.formService.translate(value);
     }
 
     private isUploadBlockedByMissingOid(): boolean {
