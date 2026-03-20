@@ -2,7 +2,7 @@ import { Component, DestroyRef, ElementRef, Injector, Input, QueryList, ViewChil
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, RecordService, TranslationService } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, RecordService } from '@researchdatabox/portal-ng-common';
 import {
   RecordSelectorComponentName,
   RecordSelectorFieldComponentConfig,
@@ -10,6 +10,7 @@ import {
   RecordSelectorModelValueType,
 } from '@researchdatabox/sails-ng-common';
 import { FormComponent } from '../form.component';
+import {FormService} from "../form.service";
 
 interface SelectableRecord {
   oid: string;
@@ -236,7 +237,7 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private readonly recordService = inject(RecordService);
-  private readonly translationService = inject(TranslationService);
+  private readonly formService = inject(FormService);
 
   @ViewChildren('recordOption') private optionButtons?: QueryList<ElementRef<HTMLButtonElement>>;
   @Input() public override model?: RecordSelectorModel;
@@ -488,9 +489,6 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
   }
 
   private translate(key: string): string {
-    if (!key) {
-      return '';
-    }
-    return String(this.translationService.t(key) ?? key);
+    return this.formService.translate(key);
   }
 }

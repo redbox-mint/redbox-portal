@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, Injector, Input, OnDestroy, inject } from "@angular/core";
-import { ConfigService, FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, TranslationService } from "@researchdatabox/portal-ng-common";
+import { ConfigService, FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
     FileUploadAttachmentValue,
     FileUploadComponentName,
@@ -15,6 +15,10 @@ import Tus from "@uppy/tus";
 import Dropbox from "@uppy/dropbox";
 import GoogleDrive from "@uppy/google-drive";
 import OneDrive from "@uppy/onedrive";
+import { Subscription } from "rxjs";
+import { FormComponent } from "../form.component";
+import { FormComponentEventBus, FormSaveSuccessEvent } from "../form-state";
+import {FormService} from "../form.service";
 
 type UppyMeta = Record<string, unknown>;
 type UppyBody = Record<string, unknown>;
@@ -40,9 +44,7 @@ interface CompanionAuthProvider {
 interface UppyProviderPlugin {
     provider?: CompanionAuthProvider;
 }
-import { Subscription } from "rxjs";
-import { FormComponent } from "../form.component";
-import { FormComponentEventBus, FormSaveSuccessEvent } from "../form-state/events";
+
 
 const pendingOid = "pending-oid";
 
@@ -92,7 +94,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
     private readonly injector = inject(Injector);
     private readonly eventBus = inject(FormComponentEventBus);
     private readonly configService = inject(ConfigService);
-    private readonly translationService = inject(TranslationService);
+    private readonly formService = inject(FormService);
 
     protected get getFormComponent(): FormComponent {
         return this.injector.get(FormComponent);
@@ -326,12 +328,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
     }
 
     private translateText(value: string): string {
-        const translated = this.translationService.t(value);
-        if (translated === undefined || translated === null || translated === "") {
-            return value;
-        }
-        const result = typeof translated === "string" ? translated : String(translated);
-        return result === "undefined" ? value : result;
+        return this.formService.translate(value);
     }
 
     private isUploadBlockedByMissingOid(): boolean {

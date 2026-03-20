@@ -10,7 +10,7 @@ import {
   inject,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, TranslationService } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
   AccordionComponentName,
   AccordionFieldComponentConfigFrame,
@@ -277,7 +277,6 @@ export class AccordionComponent extends FormFieldBaseComponent<undefined> {
 export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> implements AfterViewChecked {
   protected override logName = AccordionPanelComponentName;
   protected formService = inject(FormService);
-  private readonly translationService = inject(TranslationService);
   private injector = inject(Injector);
   private document = inject(DOCUMENT);
   private parentAccordion?: AccordionComponent;
@@ -349,12 +348,11 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> i
     const layoutConfig = this.panel?.layout?.config as { buttonLabel?: string; label?: string } | undefined;
     const componentConfig = this.panel?.component?.config as { label?: string } | undefined;
     const label = layoutConfig?.buttonLabel ?? layoutConfig?.label ?? componentConfig?.label ?? this.panel?.name ?? `${this.panelIndex}`;
-    const translated = this.translationService.t(label);
-    if (translated === undefined || translated === null || translated === '') {
-      return label;
-    }
-    const value = typeof translated === 'string' ? translated : String(translated);
-    return value === 'undefined' ? label : value;
+    return this.translate(label);
+  }
+
+  protected translate(value?: string): string {
+    return this.formService.translate(value);
   }
 
   public get panelContentId(): string {
