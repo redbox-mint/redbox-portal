@@ -98,6 +98,12 @@ async function matchJSONataCondition(
   includeQuerySource: boolean
 ): Promise<boolean> {
   const isRunOnFormReady = event.sourceId === 'form.definition.ready' && behaviourConfig.runOnFormReady !== false;
+  // A runOnFormReady behaviour must only fire for the form-ready event itself.
+  // Without this guard, any later broadcast event (sourceId="*") would also
+  // pass the gate, re-evaluate the condition, and restart the pipeline in a loop.
+  if (behaviourConfig.runOnFormReady && !isRunOnFormReady) {
+    return false;
+  }
   if (event.sourceId !== '*' && !isRunOnFormReady) {
     return false;
   }
