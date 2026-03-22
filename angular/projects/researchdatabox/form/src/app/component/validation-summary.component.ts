@@ -1,6 +1,6 @@
 import { Component, inject, Injector, Input } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, TranslationService } from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 import { FormComponent } from "../form.component";
 import { TabComponent } from './tab.component';
 import {
@@ -16,6 +16,7 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { createLineageFieldFocusRequestEvent } from '../form-state/events/form-component-event.types';
+import {FormService} from "../form.service";
 
 
 @Component({
@@ -90,7 +91,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   private _injector = inject(Injector);
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly doc = inject(DOCUMENT);
-  private readonly translationService = inject(TranslationService);
+  private readonly formService = inject(FormService);
   private readonly focusableSelector = [
     'input:not([type="hidden"]):not([disabled])',
     'select:not([disabled])',
@@ -352,12 +353,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   }
 
   private translate(key: string): string {
-    const translated = this.translationService.t(key);
-    if (translated === undefined || translated === null || translated === '') {
-      return key;
-    }
-    const result = typeof translated === 'string' ? translated : String(translated);
-    return result;
+    return this.formService.translate(key);
   }
 
   private findComponentEntryFromLineage(angularPath: Array<string | number>): FormFieldCompMapEntry | undefined {

@@ -707,14 +707,14 @@ export class FormService extends HttpClientService {
       jsonPointer: jsonPointer
     };
     if (isLayout) {
-      // add layout 
+      // add layout
       const layoutJsonPointer = item.lineagePaths?.layoutJsonPointer;
       property = {
         name: item.compConfigJson.layout?.name ? item.compConfigJson.layout?.name : `${item.compConfigJson.name}-layout`,
         lineagePaths: item.lineagePaths,
         jsonPointer: layoutJsonPointer
       };
-      // ignore children for layout 
+      // ignore children for layout
       return property;
     }
     const children = item?.component?.formFieldCompMapEntries || [];
@@ -839,6 +839,17 @@ export class FormService extends HttpClientService {
       }
     }
     return returnArr;
+  }
+
+  public translate(value?: string): string {
+    if (!value) {
+      return '';
+    }
+    const translated = this.translationService.t(value);
+    if (translated === undefined || translated === null || translated === '') {
+      return value;
+    }
+    return translated?.toString() ?? "";
   }
 }
 

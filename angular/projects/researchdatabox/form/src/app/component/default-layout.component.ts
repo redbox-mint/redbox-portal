@@ -88,7 +88,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   @ViewChild('afterComponentTemplate', { read: TemplateRef, static: false })
   afterComponentTemplate!: TemplateRef<any>;
 
-  private formService = inject(FormService);
+  protected formService = inject(FormService);
 
   // wrapperComponentRef!: ComponentRef<FormFieldBaseComponent<unknown>>;
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;

@@ -22,7 +22,7 @@ import {
 } from './component/radio-input.outline';
 import { DateInputComponentName, DateInputFormComponentDefinitionOutline } from './component/date-input.outline';
 import { DefaultTransformsType, KnownTransformsType } from './form-override.outline';
-import { cloneDeep as _cloneDeep, merge as _merge } from 'lodash';
+import { cloneDeep as _cloneDeep, merge as _merge, mergeWith as _mergeWith } from 'lodash';
 
 import {
   DropdownInputComponentName,
@@ -374,6 +374,7 @@ export class FormOverride {
         );
       }
 
+      const preserveWrapperExpressions = expandedItems.length === 1 && item.expressions !== undefined;
       const result = [];
       for (const expandedItem of expandedItems) {
         const additionalItemsMatched = additionalItems.filter(
@@ -410,7 +411,20 @@ export class FormOverride {
           }
         }
 
-        const newItem = _merge({}, expandedItem, additionalItemsMatched.length === 1 ? additionalItemsMatched[0] : {});
+        const newItem = _mergeWith(
+          {},
+          expandedItem,
+          additionalItemsMatched.length === 1 ? additionalItemsMatched[0] : {},
+          (objValue, srcValue, key) => {
+            if (key === 'expressions' && Array.isArray(srcValue)) {
+              return srcValue;
+            }
+            return undefined;
+          }
+        );
+        if (preserveWrapperExpressions) {
+          newItem.expressions = item.expressions;
+        }
         // Apply replaceName during reusable expansion so downstream data-model path binding
         // uses the final component name rather than the reusable template name.
         if (additionalItemsMatched.length === 1 && additionalItemsMatched[0].overrides?.replaceName !== undefined) {
@@ -747,11 +761,9 @@ export class FormOverride {
     const target = this.commonContentComponent(source, formMode);
 
     if (target.component.config !== undefined && source.model?.config?.value !== undefined) {
+      const configuredDateFormat = source.component?.config?.dateFormat?.trim?.() || 'YYYY/MM/DD';
       target.component.config.content = source.model.config.value;
-      target.component.config.template = this.resolveReusableViewTemplate(
-        this.reusableViewTemplateKeys.leafDate,
-        `<span data-value="{{content}}">{{formatDate content}}</span>`
-      );
+      target.component.config.template = `<span data-value="{{content}}">{{formatDate content "${configuredDateFormat}"}}</span>`;
     }
 
     return target;
@@ -1250,6 +1262,20 @@ export class FormOverride {
         trimmedTemplate.includes('<ul>{{#each content}}<li>{{default this.label this.notation}}</li>{{/each}}</ul>')
       ) {
         return `<ul>{{#each ${expression}}}<li>{{default this.label this.notation}}</li>{{/each}}</ul>`;
+      }
+
+      if (
+        trimmedTemplate === this.reusableViewTemplateKeys.leafDate ||
+        trimmedTemplate === 'view-template-leaf-date' ||
+        trimmedTemplate.includes('{{formatDate content')
+      ) {
+        const formatMatch = trimmedTemplate.match(/\{\{\s*formatDate\s+content\s+"([^"]+)"\s*\}\}/);
+        const templateFormat = formatMatch?.[1];
+        const dateValueTemplate = `{{default ${expression} ""}}`;
+        if (templateFormat) {
+          return `<span data-value="${dateValueTemplate}">{{formatDate ${expression} "${templateFormat}"}}</span>`;
+        }
+        return `<span data-value="${dateValueTemplate}">{{formatDate ${expression}}}</span>`;
       }
 
       if (

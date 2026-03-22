@@ -1,4 +1,5 @@
 import { TestBed } from "@angular/core/testing";
+import { By } from "@angular/platform-browser";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
 import { CheckboxTreeComponent } from "./checkbox-tree.component";
@@ -126,6 +127,60 @@ describe("CheckboxTreeComponent", () => {
     expect(formValue.length).toBe(1);
     expect(formValue[0]?.label).toBe("300101 - Agricultural biotechnology diagnostics (incl. biosensors)");
     expect(formValue[0]?.name).toBe("https://linked.data.gov.au/def/anzsrc-for/2020/300101 - 300101 - Agricultural biotechnology diagnostics (incl. biosensors)");
+  });
+
+  it("tracks the latest selected checkbox item for form event bindings", async () => {
+    setUpDynamicAssets({
+      callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+        switch (keyStr) {
+          case "componentDefinitions__0__component__config__labelTemplate":
+            return `${String(context?.notation ?? "").split("/").at(-1)} - ${context?.label ?? ""}`;
+          default:
+            throw new Error(`Unknown key: ${keyStr}`);
+        }
+      }
+    });
+
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              inlineVocab: true,
+              leafOnly: false,
+              labelTemplate: "{{default (split notation '/' -1) notation}} - {{label}}",
+              treeData: [
+                {
+                  id: "root",
+                  label: "Agricultural biotechnology diagnostics (incl. biosensors)",
+                  value: "https://linked.data.gov.au/def/anzsrc-for/2020/300101",
+                  notation: "https://linked.data.gov.au/def/anzsrc-for/2020/300101",
+                  hasChildren: false
+                }
+              ]
+            }
+          },
+          model: { class: "CheckboxTreeModel", config: { value: [] } }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const component = fixture.debugElement.query(By.directive(CheckboxTreeComponent)).componentInstance as CheckboxTreeComponent;
+
+    const checkbox = compiled.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    checkbox.click();
+    checkbox.dispatchEvent(new Event("change"));
+    await fixture.whenStable();
+
+    expect(component.selectedItem()).toEqual(jasmine.objectContaining({
+      notation: "https://linked.data.gov.au/def/anzsrc-for/2020/300101",
+      label: "300101 - Agricultural biotechnology diagnostics (incl. biosensors)"
+    }));
   });
 
   it("does not cascade selection and sets parent indeterminate for selected descendants", async () => {

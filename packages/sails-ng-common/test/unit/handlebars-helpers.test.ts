@@ -22,6 +22,24 @@ describe('Shared Handlebars Helpers', function () {
             expect(result).to.match(/\d{4}-\d{2}-\d{2}/);
         });
 
+        it('should format ISO date with Moment-style custom format', function () {
+            const result = handlebarsHelperDefinitions.formatDate('2023-05-18T00:00:00.000Z', 'DD/MM/YYYY');
+            expect(result).to.equal('18/05/2023');
+        });
+
+        it('should format Date instances with custom format', function () {
+            const result = handlebarsHelperDefinitions.formatDate(new Date('2023-05-18T00:00:00.000Z'), 'yyyy-MM-dd');
+            expect(result).to.equal('2023-05-18');
+        });
+
+        it('should ignore the Handlebars options argument when no explicit format is provided', function () {
+            const result = handlebarsHelperDefinitions.formatDate(
+                '2023-05-18T01:30:00.000Z',
+                { hash: {}, data: {}, fn: () => '', inverse: () => '' } as unknown as string
+            );
+            expect(result).to.match(/\d{2}\/\d{2}\/\d{4}/);
+        });
+
         it('should return empty string for empty input', function () {
             const result = handlebarsHelperDefinitions.formatDate('');
             expect(result).to.equal('');
@@ -50,6 +68,25 @@ describe('Shared Handlebars Helpers', function () {
             const obj = { metadata: {} };
             const result = handlebarsHelperDefinitions.get(obj, 'metadata.contributor.name');
             expect(result).to.equal('');
+        });
+    });
+
+    describe('formatDateLocale', function () {
+        it('should format Date instances with locale presets', function () {
+            const result = handlebarsHelperDefinitions.formatDateLocale(new Date('2023-05-18T01:30:00.000Z'), 'DATE_SHORT', 'en');
+            expect(result).to.be.a('string');
+            expect(result).to.not.equal('');
+            expect(result).to.not.equal('Invalid Date');
+        });
+
+        it('should ignore the Handlebars options argument when preset and locale are omitted', function () {
+            const result = handlebarsHelperDefinitions.formatDateLocale(
+                new Date('2023-05-18T01:30:00.000Z'),
+                { hash: {}, data: {}, fn: () => '', inverse: () => '' } as unknown as string
+            );
+            expect(result).to.be.a('string');
+            expect(result).to.not.equal('');
+            expect(result).to.not.equal('Invalid Date');
         });
     });
 

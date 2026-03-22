@@ -1,11 +1,12 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { FormFieldBaseComponent, TranslationService } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
 import {
   TabNavButtonComponentName,
   TabNavButtonFieldComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import { TabComponent } from './tab.component';
+import {FormService} from "../form.service";
 
 @Component({
   selector: 'redbox-form-tab-nav-button',
@@ -39,7 +40,7 @@ export class TabNavButtonComponent extends FormFieldBaseComponent<undefined> imp
   public override logName = TabNavButtonComponentName;
   protected override formComponent: FormComponent = inject(FormComponent);
   public override componentDefinition?: TabNavButtonFieldComponentDefinitionOutline;
-  private readonly translationService = inject(TranslationService);
+  private readonly formService = inject(FormService);
 
   private tabComponent: TabComponent | null = null;
   private tabIds: string[] = [];
@@ -140,12 +141,6 @@ export class TabNavButtonComponent extends FormFieldBaseComponent<undefined> imp
   }
 
   private translateLabel(label: string | undefined, fallback: string): string {
-    const key = label ?? fallback;
-    const translated = this.translationService.t(key);
-    if (translated === undefined || translated === null || translated === '') {
-      return key;
-    }
-    const value = typeof translated === 'string' ? translated : String(translated);
-    return value === 'undefined' ? key : value;
+    return this.formService.translate(label ?? fallback);
   }
 }

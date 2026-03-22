@@ -521,6 +521,37 @@
   width: 100%;
 }
 
+.rb-form-edit .rb-form-related-link-inline .rb-form-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--rb-form-gap-2);
+  align-items: start;
+}
+
+.rb-form-edit .rb-form-related-link-inline .rb-form-related-link-inline__field {
+  width: 100%;
+  min-width: 0;
+}
+
+.rb-form-edit .rb-form-related-link-inline .rb-form-field-layout,
+.rb-form-edit .rb-form-related-link-inline .rb-form-inline-layout,
+.rb-form-edit .rb-form-related-link-inline .rb-form-inline-layout__control {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.rb-form-edit .rb-form-related-link-inline textarea.form-control {
+  min-height: 34px;
+  height: 34px;
+  resize: vertical;
+}
+
+.rb-form-edit .rb-form-repeatable-item:has(.rb-form-related-link-inline) .rb-form-repeatable-item__remove {
+  position: relative;
+  top: 2rem;
+  margin-top: 2.25rem;
+}
+
 @media (min-width: 992px) {
   .rb-form-host.rb-form-edit .rb-form-tab-shell {
     grid-template-columns: minmax(0, var(--rb-form-nav-width)) minmax(0, 1fr);
@@ -530,6 +561,10 @@
   .rb-form-host.rb-form-edit .rb-form-tab-nav {
     position: sticky;
     top: var(--rb-form-gap-3);
+  }
+
+  .rb-form-edit .rb-form-related-link-inline .rb-form-group {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.15fr);
   }
 }
 

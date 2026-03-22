@@ -85,7 +85,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
     expect(eventBus.select$).not.toHaveBeenCalled();
   });
 
-  it('should set control value from selectedItem.raw path for sibling event', () => {
+  it('should set control value from selectedItem.raw path for sibling event', async () => {
     const { control, options } = createBindOptions('/record/contributors/0/funderName', {
       rawPath: 'identifier',
       clearValue: ''
@@ -99,8 +99,11 @@ describe('FormComponentItemSelectEventConsumer', () => {
       },
       identifier: 'fallback-value'
     });
+    await Promise.resolve();
 
     expect(control.value).toBe('https://example.org/funder/123');
+    expect(control.dirty).toBeTrue();
+    expect(control.touched).toBeTrue();
   });
 
   it('should fall back to selectedItem path when raw path is unavailable', () => {
@@ -118,7 +121,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
     expect(control.value).toBe('https://example.org/funder/direct');
   });
 
-  it('should set clearValue when selected item is null', () => {
+  it('should set clearValue when selected item is null', async () => {
     const { control, options } = createBindOptions('/record/contributors/0/funderName', {
       rawPath: 'identifier',
       clearValue: 'N/A'
@@ -128,8 +131,11 @@ describe('FormComponentItemSelectEventConsumer', () => {
     control.setValue('existing');
 
     emitEvent('/record/contributors/0/funderSearch', null);
+    await Promise.resolve();
 
     expect(control.value).toBe('N/A');
+    expect(control.dirty).toBeTrue();
+    expect(control.touched).toBeTrue();
   });
 
   it('should default clear value to null when no clearValue configured', () => {
