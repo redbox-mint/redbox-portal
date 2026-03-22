@@ -169,7 +169,7 @@ describe('FormBehaviourManager', () => {
 
   it('runs form-ready behaviours once even when they emit broadcast events', fakeAsync(() => {
     eventBus.publish.and.callFake(event => {
-      allEvents$.next(event as FormComponentEvent);
+      allEvents$.next(event as unknown as FormComponentEvent);
     });
 
     const formComponent = {
