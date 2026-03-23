@@ -6,6 +6,7 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/
 import {
   KeyValueStringNested,
   FormFieldComponentStatus,
+  PublishDataLocationRefreshComponentName,
   RecordMetadataRetrieverComponentName,
 } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
@@ -248,7 +249,11 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     if (!entry || entry.component !== instance) {
       return false;
     }
-    return entry.compConfigJson?.component?.class !== RecordMetadataRetrieverComponentName;
+    // These components publish synthetic/broadcast events themselves rather than
+    // participating in the default model-driven value producer wiring.
+    return !(new Set<string>([RecordMetadataRetrieverComponentName, PublishDataLocationRefreshComponentName])).has(
+      entry.compConfigJson?.component?.class ?? ''
+    );
   }
 
   /**

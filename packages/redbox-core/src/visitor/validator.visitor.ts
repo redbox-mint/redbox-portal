@@ -78,6 +78,8 @@ import {
     DataLocationFieldComponentDefinitionOutline,
     DataLocationFieldModelDefinitionOutline,
     DataLocationFormComponentDefinitionOutline,
+    PublishDataLocationRefreshFieldComponentDefinitionOutline,
+    PublishDataLocationRefreshFormComponentDefinitionOutline,
     PublishDataLocationSelectorFieldComponentDefinitionOutline,
     PublishDataLocationSelectorFieldModelDefinitionOutline,
     PublishDataLocationSelectorFormComponentDefinitionOutline,
@@ -633,6 +635,15 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    // Validation is intentionally empty because there is no persisted refresh
+    // value to validate.
+    visitPublishDataLocationRefreshFieldComponentDefinition(_item: PublishDataLocationRefreshFieldComponentDefinitionOutline): void {
+    }
+
+    visitPublishDataLocationRefreshFormComponentDefinition(item: PublishDataLocationRefreshFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

@@ -25,6 +25,8 @@ export interface BehaviourProcessorExecutionContext {
   compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
   recordService: RecordService;
   logger: LoggerService;
+  // Kept for compatibility with the broader behaviour API, even though refresh
+  // fetches intentionally avoid replaying cached metadata.
   metadataCache: Map<string, unknown>;
 }
 
@@ -81,7 +83,8 @@ async function executeJSONataTransform(
  * - no-ops for empty or non-string input
  * - replaces pipeline value with returned metadata
  * - does not emit events; downstream actions decide what to do
- * - currently caches repeated OIDs within a single handler instance
+ * - repeated executions must re-fetch so explicit refresh actions can observe
+ *   external changes made after the initial load
  */
 async function executeFetchMetadata(value: unknown, ctx: BehaviourProcessorExecutionContext): Promise<unknown> {
   if (typeof value !== 'string') {
@@ -93,15 +96,12 @@ async function executeFetchMetadata(value: unknown, ctx: BehaviourProcessorExecu
     return value;
   }
 
-  if (ctx.metadataCache.has(oid)) {
-    return ctx.metadataCache.get(oid);
-  }
-
+  // Explicit refresh is expected to observe newly saved server state, including
+  // saves made from another browser tab.
   const metadata = await ctx.recordService.getRecordMeta(oid);
   const payload =
     typeof metadata === 'object' && metadata !== null
       ? { ...(metadata as Record<string, unknown>), oid }
       : { oid, value: metadata };
-  ctx.metadataCache.set(oid, payload);
   return payload;
 }

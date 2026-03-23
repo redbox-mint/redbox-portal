@@ -179,6 +179,13 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { DataLocationFieldComponentConfig, DataLocationFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import {
+  PublishDataLocationRefreshComponentName,
+  PublishDataLocationRefreshFieldComponentDefinitionFrame,
+  PublishDataLocationRefreshFieldComponentDefinitionOutline,
+  PublishDataLocationRefreshFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { PublishDataLocationRefreshFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   PublishDataLocationSelectorComponentName,
   PublishDataLocationSelectorFieldComponentDefinitionFrame,
   PublishDataLocationSelectorFieldComponentDefinitionOutline,
@@ -1391,6 +1398,33 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  // Construct the refresh trigger as a pure component definition. The click
+  // token is synthetic, so no model instance should be created here.
+  visitPublishDataLocationRefreshFieldComponentDefinition(
+    item: PublishDataLocationRefreshFieldComponentDefinitionOutline
+  ): void {
+    const currentData = this.getData();
+    if (
+      !isTypeFieldDefinitionName<PublishDataLocationRefreshFieldComponentDefinitionFrame>(
+        currentData,
+        PublishDataLocationRefreshComponentName
+      )
+    ) {
+      throw new Error(
+        `Invalid ${PublishDataLocationRefreshComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+
+    item.config = new PublishDataLocationRefreshFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, currentData?.config);
+  }
+
+  visitPublishDataLocationRefreshFormComponentDefinition(
+    item: PublishDataLocationRefreshFormComponentDefinitionOutline
+  ): void {
     this.populateFormComponent(item);
   }
 
