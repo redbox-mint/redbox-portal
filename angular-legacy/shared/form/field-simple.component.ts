@@ -164,27 +164,6 @@ export class SimpleComponent {
   public getGroupClass(fldName: string = null): string {
     return `${this.field.groupClasses} form-group ${this.hasRequiredError() ? 'has-error' : ''}`;
   }
-
-  /**
-   * Normalise legacy config values into a real boolean.
-   * The legacy templates often emit "true"/"false" strings, which Angular
-   * would otherwise treat as truthy strings in *ngIf bindings.
-   */
-  public isTruthy(value: unknown): boolean {
-    if (_.isBoolean(value)) {
-      return value;
-    }
-    if (_.isString(value)) {
-      const normalised = value.trim().toLowerCase();
-      if (_.isEmpty(normalised) || normalised === 'false' || normalised === '0') {
-        return false;
-      }
-      if (normalised === 'true' || normalised === '1') {
-        return true;
-      }
-    }
-    return !_.isEmpty(value);
-  }
   /**
    * If this field has a 'required' error.
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
@@ -893,7 +872,7 @@ export class CancelButtonComponent extends SimpleComponent {
   selector: 'anchor-button',
   template: `
   <button *ngIf="field.controlType=='button' && field.visible" type="{{field.type}}" [ngClass]="field.cssClasses" role="button" (click)="onClick($event)" [disabled]="isDisabled()">{{field.label}}</button>
-  <a *ngIf="field.controlType=='anchor' && isTruthy(field.visible) && !isTruthy(field.skip)" href='{{field.value}}' [ngClass]="field.cssClasses"role="button" ><span *ngIf="field.showPencil" class="glyphicon glyphicon-pencil">&nbsp;</span>{{field.label}}</a>
+  <a *ngIf="field.controlType=='anchor' && field.visible && field.skip!==field.visible" href='{{field.value}}' [ngClass]="field.cssClasses"role="button" ><span *ngIf="field.showPencil" class="glyphicon glyphicon-pencil">&nbsp;</span>{{field.label}}</a>
   <a *ngIf="field.controlType=='htmlAnchor' && field.visible" href='{{field.value}}' [ngClass]="field.cssClasses" [innerHtml]="field.anchorHtml"></a>
   `,
 })
