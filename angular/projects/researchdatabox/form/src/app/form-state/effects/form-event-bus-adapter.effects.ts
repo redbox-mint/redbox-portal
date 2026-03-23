@@ -16,7 +16,13 @@ import { Store } from '@ngrx/store';
 import { Observable, EMPTY } from 'rxjs';
 import { map, throttleTime, tap, filter, catchError } from 'rxjs/operators';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
-import { FormComponentEventType, FormSaveFailureEvent, FormSaveSuccessEvent } from '../events/form-component-event.types';
+import {
+  FormComponentEventType,
+  FormDeleteFailureEvent,
+  FormDeleteSuccessEvent,
+  FormSaveFailureEvent,
+  FormSaveSuccessEvent,
+} from '../events/form-component-event.types';
 import * as FormActions from '../state/form.actions';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
 
@@ -183,6 +189,19 @@ export class FormEventBusAdapterEffects {
     )
   );
 
+  promoteDeleteRequested$ = createEffect(() =>
+    this.createPromotionStream(
+      FormComponentEventType.FORM_DELETE_REQUESTED,
+      PromotionCriterion.TRIGGERS_SIDE_EFFECT,
+      (event: any) =>
+        FormActions.deleteRecord({
+          closeOnDelete: event.closeOnDelete,
+          redirectLocation: event.redirectLocation,
+          redirectDelaySeconds: event.redirectDelaySeconds,
+        })
+    )
+  );
+
   /**
    * Promote save success events to submitFormSuccess actions
    *
@@ -211,6 +230,29 @@ export class FormEventBusAdapterEffects {
       PromotionCriterion.TRIGGERS_SIDE_EFFECT,
       (event: FormSaveFailureEvent) =>
         FormActions.submitFormFailure({ error: formatErrorsForMessage(event.error) })
+    )
+  );
+
+  promoteDeleteSuccess$ = createEffect(() =>
+    this.createPromotionStream(
+      FormComponentEventType.FORM_DELETE_SUCCESS,
+      PromotionCriterion.TRIGGERS_SIDE_EFFECT,
+      (event: FormDeleteSuccessEvent) =>
+        FormActions.deleteRecordSuccess({
+          oid: event.oid ?? '',
+          closeOnDelete: event.closeOnDelete,
+          redirectLocation: event.redirectLocation,
+          redirectDelaySeconds: event.redirectDelaySeconds,
+        })
+    )
+  );
+
+  promoteDeleteFailure$ = createEffect(() =>
+    this.createPromotionStream(
+      FormComponentEventType.FORM_DELETE_FAILURE,
+      PromotionCriterion.TRIGGERS_SIDE_EFFECT,
+      (event: FormDeleteFailureEvent) =>
+        FormActions.deleteRecordFailure({ error: formatErrorsForMessage(event.error) })
     )
   );
 

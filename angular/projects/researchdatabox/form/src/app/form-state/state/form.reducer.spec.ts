@@ -209,6 +209,48 @@ describe('formReducer', () => {
     });
   });
 
+  describe('Delete transitions', () => {
+    it('should transition READY -> DELETING on deleteRecord', () => {
+      const readyState: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.READY,
+        initialDataLoaded: true,
+      };
+
+      const result = formReducer(readyState, FormActions.deleteRecord({}));
+
+      expect(result.status).toBe(FormStatus.DELETING);
+      expect(result.pendingActions).toContain('deleteRecord');
+    });
+
+    it('should transition DELETING -> READY on deleteRecordSuccess', () => {
+      const deletingState: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.DELETING,
+        pendingActions: ['deleteRecord'],
+      };
+
+      const result = formReducer(deletingState, FormActions.deleteRecordSuccess({ oid: 'oid-123' }));
+
+      expect(result.status).toBe(FormStatus.READY);
+      expect(result.pendingActions).toEqual([]);
+    });
+
+    it('should transition DELETING -> READY with error on deleteRecordFailure', () => {
+      const deletingState: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.DELETING,
+        pendingActions: ['deleteRecord'],
+      };
+
+      const result = formReducer(deletingState, FormActions.deleteRecordFailure({ error: 'Delete failed' }));
+
+      expect(result.status).toBe(FormStatus.READY);
+      expect(result.error).toBe('Delete failed');
+      expect(result.pendingActions).toEqual([]);
+    });
+  });
+
   describe('Reset transitions (R2.10, R4.1, AC10-AC12)', () => {
     it('should handle resetAllFields from READY (AC10, R4.4)', () => {
       const readyState: FormFeatureState = {

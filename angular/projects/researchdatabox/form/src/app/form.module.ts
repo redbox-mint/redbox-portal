@@ -38,6 +38,7 @@ import { ContentComponent } from './component/content.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import { SaveStatusComponent } from './component/save-status.component';
 import { CancelButtonComponent } from './component/cancel-button.component';
+import { DeleteButtonComponent } from './component/delete-button.component';
 import { TabNavButtonComponent } from './component/tab-nav-button.component';
 import { TabComponent, TabComponentLayout, TabContentComponent } from './component/tab.component';
 import { AccordionComponent, AccordionPanelComponent } from './component/accordion.component';
@@ -67,6 +68,8 @@ import { PublishDataLocationSelectorComponent } from './component/publish-data-l
 import { RecordMetadataRetrieverComponent } from './component/record-metadata-retriever.component';
 import { A11yModule } from '@angular/cdk/a11y';
 import { FieldErrorSummaryComponent } from './component/field-error-summary.component';
+import { ConfirmationDialogService } from './confirmation-dialog.service';
+import { ConfirmationDialogComponent } from './component/confirmation-dialog.component';
 import { FormDebugPanelComponent } from './form-debug/form-debug-panel.component';
 import { FormDebugModelTabComponent } from './form-debug/form-debug-model-tab.component';
 import { FormDebugConfigTabComponent } from './form-debug/form-debug-config-tab.component';
@@ -90,6 +93,7 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     SaveButtonComponent,
     SaveStatusComponent,
     CancelButtonComponent,
+    DeleteButtonComponent,
     TabNavButtonComponent,
     TabComponent,
     TabContentComponent,
@@ -114,6 +118,7 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     FormDebugModelTabComponent,
     FormDebugConfigTabComponent,
     FormDebugEventsTabComponent,
+    ConfirmationDialogComponent,
   ],
   imports: [
     CommonModule,
@@ -137,6 +142,7 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     FormService,
     FormStateFacade,
     FormComponentEventBus,
+    ConfirmationDialogService,
     provideStore(),
     provideEffects(),
     provideFormFeature(),

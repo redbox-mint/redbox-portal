@@ -213,6 +213,14 @@ export class RecordService extends HttpClientService {
     return result;
   }
 
+  public async delete(oid: string) {
+    const httpOptions = this.getHttpOptions();
+    const deleteRecordUrl = new URL(`${this.brandingAndPortalUrl}/record/delete/${oid}`);
+    const result$ = this.http.delete(deleteRecordUrl.toString(), httpOptions).pipe(map(res => res));
+    const result: any = await firstValueFrom(result$);
+    return result;
+  }
+
   public async destroyDeletedRecord(oid: string) {
     const httpOptions = this.getHttpOptions();
     const destroyDeletedRecordUrl = new URL(`${this.brandingAndPortalUrl}/record/destroy/${oid}`);

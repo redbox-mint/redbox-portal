@@ -56,6 +56,10 @@ import {
   CancelButtonFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  DeleteButtonFieldComponentDefinitionOutline,
+  DeleteButtonFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   TabNavButtonFieldComponentDefinitionOutline,
   TabNavButtonFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
@@ -347,6 +351,12 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   visitCancelButtonFieldComponentDefinition(_item: CancelButtonFieldComponentDefinitionOutline): void { }
 
   visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  visitDeleteButtonFieldComponentDefinition(_item: DeleteButtonFieldComponentDefinitionOutline): void { }
+
+  visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 

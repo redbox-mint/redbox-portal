@@ -1027,6 +1027,34 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(childComponents[0].layout?.class).to.equal("InlineLayout");
     });
 
+    it("maps legacy delete button redirectLocation tokens to a Handlebars template", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "delete-button-migration",
+                fields: [
+                    {
+                        class: "SaveButton",
+                        definition: {
+                            name: "confirmDelete",
+                            label: "Delete this record",
+                            closeOnSave: true,
+                            redirectLocation: "/@branding/@portal/dashboard/dataPublication",
+                            isDelete: true
+                        }
+                    }
+                ]
+            }
+        });
+
+        expect(migrated.componentDefinitions[0].component.class).to.equal("DeleteButtonComponent");
+        const deleteButtonConfig = migrated.componentDefinitions[0].component.config as any;
+        expect(deleteButtonConfig?.closeOnDelete).to.be.true;
+        expect(deleteButtonConfig?.redirectLocation).to.equal(
+          '{{concat "/" branding "/" portal "/dashboard/dataPublication"}}'
+        );
+    });
+
     it("maps legacy form-inline groups to ActionRowLayout with InlineLayout children", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({

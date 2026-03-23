@@ -46,6 +46,9 @@ export class FormStateFacade {
   /** Whether form is currently saving */
   readonly isSaving: Signal<boolean> = this.store.selectSignal(FormSelectors.selectIsSaving);
 
+  /** Whether form is currently deleting */
+  readonly isDeleting: Signal<boolean> = this.store.selectSignal(FormSelectors.selectIsDeleting);
+
   /** Whether validation is pending */
   readonly isValidationPending: Signal<boolean> = this.store.selectSignal(FormSelectors.selectIsValidationPending);
 
@@ -97,6 +100,16 @@ export class FormStateFacade {
         force: options?.force ?? false,
         targetStep: options?.targetStep,
         enabledValidationGroups: options?.enabledValidationGroups ?? ["all"],
+      })
+    );
+  }
+
+  deleteRecord(options?: { closeOnDelete?: boolean; redirectLocation?: string; redirectDelaySeconds?: number }): void {
+    this.store.dispatch(
+      FormActions.deleteRecord({
+        closeOnDelete: options?.closeOnDelete,
+        redirectLocation: options?.redirectLocation,
+        redirectDelaySeconds: options?.redirectDelaySeconds,
       })
     );
   }

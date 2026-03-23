@@ -78,10 +78,31 @@ export const formReducer = createReducer(
       };
     }
   }),
+
+  on(FormActions.deleteRecord, (state) => ({
+    ...state,
+    status: FormStatus.DELETING,
+    error: null,
+    pendingActions: [...state.pendingActions, 'deleteRecord'],
+  })),
+
+  on(FormActions.deleteRecordSuccess, (state) => ({
+    ...state,
+    status: FormStatus.READY,
+    error: null,
+    pendingActions: state.pendingActions.filter(a => a !== 'deleteRecord'),
+  })),
+
+  on(FormActions.deleteRecordFailure, (state, { error }) => ({
+    ...state,
+    status: FormStatus.READY,
+    error,
+    pendingActions: state.pendingActions.filter(a => a !== 'deleteRecord'),
+  })),
   
-  // Reset actions (R3.4, R2.10: increment resetToken, ignore if SAVING)
+  // Reset actions (R3.4, R2.10: increment resetToken, ignore if SAVING/DELETING)
   on(FormActions.resetAllFields, (state) => {
-    if (state.status === FormStatus.SAVING) {
+    if (state.status === FormStatus.SAVING || state.status === FormStatus.DELETING) {
       return state; // R2.10: Ignore reset during save
     }
     return {
@@ -103,9 +124,9 @@ export const formReducer = createReducer(
   on(FormActions.markDirty, (state) => ({ ...state, isDirty: true })),
   on(FormActions.markPristine, (state) => ({ ...state, isDirty: false })),
   
-  // Validation actions (R2.14, R4.6: ignore during SAVING)
+  // Validation actions (R2.14, R4.6: ignore during SAVING/DELETING)
   on(FormActions.formValidationPending, (state) => {
-    if (state.status === FormStatus.SAVING) {
+    if (state.status === FormStatus.SAVING || state.status === FormStatus.DELETING) {
       return state; // R2.14, R4.6: Suppress during save
     }
     return { 
@@ -116,7 +137,7 @@ export const formReducer = createReducer(
   }),
   
   on(FormActions.formValidationSuccess, (state) => {
-    if (state.status === FormStatus.SAVING) {
+    if (state.status === FormStatus.SAVING || state.status === FormStatus.DELETING) {
       return state; // R2.14, R4.6: Suppress during save
     }
     if (state.status === FormStatus.VALIDATION_PENDING || state.status === FormStatus.VALIDATION_ERROR) {
@@ -131,7 +152,7 @@ export const formReducer = createReducer(
   }),
   
   on(FormActions.formValidationFailure, (state, { error }) => {
-    if (state.status === FormStatus.SAVING) {
+    if (state.status === FormStatus.SAVING || state.status === FormStatus.DELETING) {
       return state; // R2.14, R4.6: Suppress during save
     }
     return { 
