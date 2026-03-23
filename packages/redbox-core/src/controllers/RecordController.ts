@@ -1266,7 +1266,7 @@ export namespace Controllers {
     public async getWorkflowSteps(req: Sails.Req, res: Sails.Res) {
       const recordTypeName = req.param('recordType');
       const brand: BrandingModel = this.getReqBrand(req);
-      const normalizedRecordTypeName = typeof recordTypeName === 'string' ? recordTypeName.trim() : recordTypeName;
+      const normalizedRecordTypeName = typeof recordTypeName === 'string' ? recordTypeName.trim() : "";
 
       if (!normalizedRecordTypeName) {
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record Type is required' }] });
