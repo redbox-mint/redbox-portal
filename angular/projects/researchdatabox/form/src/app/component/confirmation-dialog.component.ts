@@ -10,13 +10,14 @@ import { ConfirmationDialogService } from '../confirmation-dialog.service';
         tabindex="-1"
         role="dialog"
         aria-modal="true"
+        aria-labelledby="confirmationDialogTitle"
         style="background-color: rgba(0,0,0,0.5)"
         (keydown.escape)="cancel()"
       >
         <div class="modal-dialog" role="document">
           <div class="modal-content" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
             <div class="modal-header">
-              <h5 class="modal-title">{{ title() }}</h5>
+              <h5 id="confirmationDialogTitle" class="modal-title">{{ title() }}</h5>
               <button type="button" class="btn-close" (click)="cancel()" aria-label="Close"></button>
             </div>
             <div class="modal-body">

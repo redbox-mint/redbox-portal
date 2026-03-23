@@ -227,12 +227,14 @@ describe('formReducer', () => {
       const deletingState: FormFeatureState = {
         ...formInitialState,
         status: FormStatus.DELETING,
+        error: 'Previous delete error',
         pendingActions: ['deleteRecord'],
       };
 
       const result = formReducer(deletingState, FormActions.deleteRecordSuccess({ oid: 'oid-123' }));
 
       expect(result.status).toBe(FormStatus.READY);
+      expect(result.error).toBeNull();
       expect(result.pendingActions).toEqual([]);
     });
 

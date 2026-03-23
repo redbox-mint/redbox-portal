@@ -237,13 +237,21 @@ export class FormEventBusAdapterEffects {
     this.createPromotionStream(
       FormComponentEventType.FORM_DELETE_SUCCESS,
       PromotionCriterion.TRIGGERS_SIDE_EFFECT,
-      (event: FormDeleteSuccessEvent) =>
-        FormActions.deleteRecordSuccess({
+      (event: FormDeleteSuccessEvent) => {
+        if (event.oid == null) {
+          this.logger.warn('[FormEventBusAdapter] Missing oid on delete success event', {
+            event,
+            redirectLocation: event.redirectLocation,
+          });
+        }
+
+        return FormActions.deleteRecordSuccess({
           oid: event.oid ?? '',
           closeOnDelete: event.closeOnDelete,
           redirectLocation: event.redirectLocation,
           redirectDelaySeconds: event.redirectDelaySeconds,
-        })
+        });
+      }
     )
   );
 

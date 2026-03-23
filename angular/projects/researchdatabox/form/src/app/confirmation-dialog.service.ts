@@ -18,6 +18,11 @@ export class ConfirmationDialogService {
   private resolver: ((value: boolean) => void) | null = null;
 
   confirm(config: ConfirmationDialogConfig): Promise<boolean> {
+    if (this.resolver) {
+      this.resolver(false);
+      this.resolver = null;
+    }
+
     this.dialog.set({
       title: config.title,
       message: config.message,

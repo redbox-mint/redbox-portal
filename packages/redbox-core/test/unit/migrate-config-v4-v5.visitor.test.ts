@@ -986,6 +986,29 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(modelConfig.disabled).to.be.true;
     });
 
+    it("migrates SaveButton targetStep into the v5 component config", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "save-button-target-step-migration",
+                fields: [
+                    {
+                        class: "SaveButton",
+                        definition: {
+                            name: "save-and-submit",
+                            targetStep: "queued"
+                        }
+                    }
+                ]
+            }
+        });
+
+        expect(migrated.componentDefinitions).to.have.length.greaterThan(0);
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("SaveButtonComponent");
+        expect((migratedField.component.config as Record<string, unknown>)?.targetStep).to.equal("queued");
+    });
+
     it("maps AnchorOrButton links to ContentComponent anchor links with InlineLayout", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({

@@ -1297,6 +1297,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const field = this.getV4Data();
     item.config = new SaveButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
+    this.sharedProps.setPropOverride('targetStep', item.config, field?.definition);
+    this.sharedProps.setPropOverride('forceSave', item.config, field?.definition);
+    this.sharedProps.setPropOverride('enabledValidationGroups', item.config, field?.definition);
+    this.sharedProps.setPropOverride('labelSaving', item.config, field?.definition);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, {
       buttonCssClasses: this.normalizeLegacyButtonCssClasses(
         field?.definition?.cssClasses ?? field?.definition?.cssClass
