@@ -1263,14 +1263,21 @@ export namespace Controllers {
       }
     }
 
-    public getWorkflowSteps(req: Sails.Req, res: Sails.Res) {
-      const recordType = req.param('recordType');
+    public async getWorkflowSteps(req: Sails.Req, res: Sails.Res) {
+      const recordTypeName = req.param('recordType');
       const brand: BrandingModel = this.getReqBrand(req);
-      return RecordTypesService.get(brand, recordType).subscribe(recordType => {
-        return WorkflowStepsService.getAllForRecordType(recordType).subscribe(wfSteps => {
-          return this.sendResp(req, res, { data: wfSteps });
-        });
-      });
+
+      try {
+        const recordType = await firstValueFrom(RecordTypesService.get(brand, recordTypeName));
+        if (recordType == null) {
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record Type provided is not valid' }] });
+        }
+
+        const wfSteps = await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType));
+        return this.sendResp(req, res, { data: wfSteps });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)] });
+      }
     }
 
     public getRelatedRecords(req: Sails.Req, res: Sails.Res) {

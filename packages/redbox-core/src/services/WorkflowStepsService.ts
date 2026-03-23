@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 import { Services as services } from '../CoreService';
 import type { WorkflowStageDefinition } from '../config/workflow.config';
 import type { RecordTypeModel } from '../model/storage/RecordTypeModel';
@@ -107,7 +107,11 @@ export namespace Services {
       return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id as string, name: name }));
     }
 
-    public getAllForRecordType(recordType: RecordTypeLike) {
+    public getAllForRecordType(recordType?: RecordTypeLike | null) {
+      if (!recordType?.id) {
+        this.logger.warn('WorkflowStepsService.getAllForRecordType called without a valid record type id');
+        return of([]);
+      }
       return super.getObservable(WorkflowStep.find({ recordType: recordType.id as string, hidden: { '!=': true } }));
     }
 
