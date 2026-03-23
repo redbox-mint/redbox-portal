@@ -1266,9 +1266,14 @@ export namespace Controllers {
     public async getWorkflowSteps(req: Sails.Req, res: Sails.Res) {
       const recordTypeName = req.param('recordType');
       const brand: BrandingModel = this.getReqBrand(req);
+      const normalizedRecordTypeName = typeof recordTypeName === 'string' ? recordTypeName.trim() : recordTypeName;
+
+      if (!normalizedRecordTypeName) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record Type is required' }] });
+      }
 
       try {
-        const recordType = await firstValueFrom(RecordTypesService.get(brand, recordTypeName));
+        const recordType = await firstValueFrom(RecordTypesService.get(brand, normalizedRecordTypeName));
         if (recordType == null) {
           return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record Type provided is not valid' }] });
         }

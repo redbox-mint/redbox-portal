@@ -17,10 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { firstValueFrom, of } from 'rxjs';
+import { Observable, firstValueFrom, of } from 'rxjs';
 import { Services as services } from '../CoreService';
 import type { WorkflowStageDefinition } from '../config/workflow.config';
 import type { RecordTypeModel } from '../model/storage/RecordTypeModel';
+import type { WorkflowStepModel } from '../model/storage/WorkflowStepModel';
 
 
 type RecordTypeLike = Partial<RecordTypeModel> & { id?: string; name?: string };
@@ -107,12 +108,12 @@ export namespace Services {
       return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id as string, name: name }));
     }
 
-    public getAllForRecordType(recordType?: RecordTypeLike | null) {
+    public getAllForRecordType(recordType?: RecordTypeLike | null): Observable<WorkflowStepModel[]> {
       if (!recordType?.id) {
         this.logger.warn('WorkflowStepsService.getAllForRecordType called without a valid record type id');
-        return of([]);
+        return of([] as WorkflowStepModel[]);
       }
-      return super.getObservable(WorkflowStep.find({ recordType: recordType.id as string, hidden: { '!=': true } }));
+      return super.getObservable<WorkflowStepModel[]>(WorkflowStep.find({ recordType: recordType.id as string, hidden: { '!=': true } }));
     }
 
     public getFirst(recordType: RecordTypeLike) {
