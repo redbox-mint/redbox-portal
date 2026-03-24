@@ -42,6 +42,8 @@ import {
     SaveButtonFormComponentDefinitionOutline,
     CancelButtonFieldComponentDefinitionOutline,
     CancelButtonFormComponentDefinitionOutline,
+    DeleteButtonFieldComponentDefinitionOutline,
+    DeleteButtonFormComponentDefinitionOutline,
     TabNavButtonFieldComponentDefinitionOutline,
     TabNavButtonFormComponentDefinitionOutline,
     TextAreaFieldComponentDefinitionOutline,
@@ -353,6 +355,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    visitDeleteButtonFieldComponentDefinition(_item: DeleteButtonFieldComponentDefinitionOutline): void {
+    }
+
+    visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

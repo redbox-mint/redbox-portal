@@ -61,6 +61,8 @@ export * from './config/component/save-status.model';
 export * from './config/component/save-status.outline';
 export * from './config/component/cancel-button.model';
 export * from './config/component/cancel-button.outline';
+export * from './config/component/delete-button.model';
+export * from './config/component/delete-button.outline';
 export * from './config/component/tab-nav-button.model';
 export * from './config/component/tab-nav-button.outline';
 export * from './config/component/simple-input.model';

@@ -47,6 +47,7 @@ import {
 } from './component/publish-data-location-selector.model';
 import { CancelButtonDefaults, CancelButtonMap } from './component/cancel-button.model';
 import { TabNavButtonDefaults, TabNavButtonMap } from './component/tab-nav-button.model';
+import { DeleteButtonDefaults, DeleteButtonMap } from './component/delete-button.model';
 
 /**
  * The static array of all available classes and the kind of class.
@@ -61,6 +62,7 @@ export const AllDefs = [
   ...SaveButtonMap,
   ...SaveStatusMap,
   ...CancelButtonMap,
+  ...DeleteButtonMap,
   ...TabNavButtonMap,
   ...TextAreaMap,
   ...ContentMap,
@@ -100,6 +102,7 @@ const RawDefaults = [
   SaveButtonDefaults,
   SaveStatusDefaults,
   CancelButtonDefaults,
+  DeleteButtonDefaults,
   TabNavButtonDefaults,
   TextAreaDefaults,
   ContentDefaults,

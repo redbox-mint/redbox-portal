@@ -15,6 +15,7 @@ import { AccordionComponent, AccordionPanelComponent } from './component/accordi
 import { SaveButtonComponent } from './component/save-button.component';
 import { SaveStatusComponent } from './component/save-status.component';
 import { CancelButtonComponent } from './component/cancel-button.component';
+import { DeleteButtonComponent } from './component/delete-button.component';
 import { TabNavButtonComponent } from './component/tab-nav-button.component';
 import { TextAreaComponent, TextAreaModel } from './component/text-area.component';
 import { DropdownInputComponent, DropdownInputModel } from './component/dropdown-input.component';
@@ -82,6 +83,7 @@ import {
   DataLocationComponentName,
   PublishDataLocationSelectorComponentName,
   CancelButtonComponentName,
+  DeleteButtonComponentName,
   TabNavButtonComponentName,
   GroupFieldComponentName,
   TabLayoutName,
@@ -134,6 +136,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [DataLocationComponentName]: DataLocationComponent,
   [PublishDataLocationSelectorComponentName]: PublishDataLocationSelectorComponent,
   [CancelButtonComponentName]: CancelButtonComponent,
+  [DeleteButtonComponentName]: DeleteButtonComponent,
   [TabNavButtonComponentName]: TabNavButtonComponent,
 });
 

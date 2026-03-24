@@ -1863,6 +1863,10 @@
     "category": "rdmp",
     "description": "Translation for dmpt-form-saving"
   },
+  "@dmpt-form-deleting": {
+    "category": "rdmp",
+    "description": "Translation for dmpt-form-deleting"
+  },
   "@dmpt-form-save-success": {
     "category": "rdmp",
     "description": "Translation for dmpt-form-save-success"
@@ -1870,6 +1874,14 @@
   "@dmpt-form-save-error": {
     "category": "rdmp",
     "description": "Translation for dmpt-form-save-error"
+  },
+  "@dmpt-form-delete-success": {
+    "category": "rdmp",
+    "description": "Translation for dmpt-form-delete-success"
+  },
+  "@dmpt-form-delete-error": {
+    "category": "rdmp",
+    "description": "Translation for dmpt-form-delete-error"
   },
   "auth-update-error": {
     "category": "auth",
@@ -2406,6 +2418,14 @@
   "@dataPublication-related-metadata-title": {
     "category": "dataPublication",
     "description": "Translation for dataPublication-related-metadata-title"
+  },
+  "@dataPublication-related-publication": {
+    "category": "dataPublication",
+    "description": "Translation for dataPublication-related-publication"
+  },
+  "@dataPublication-related-publication-help": {
+    "category": "dataPublication",
+    "description": "Translation for dataPublication-related-publication-help"
   },
   "@dataPublication-related-publication-title": {
     "category": "dataPublication",

@@ -137,6 +137,12 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { CancelButtonFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  DeleteButtonComponentName,
+  DeleteButtonFieldComponentDefinitionOutline,
+  DeleteButtonFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { DeleteButtonFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   TabNavButtonComponentName,
   TabNavButtonFieldComponentDefinitionOutline,
   TabNavButtonFormComponentDefinitionOutline,
@@ -560,6 +566,10 @@ function postProcessingFormConfigV4ToV5Mapping(
   if (v4ClassNames?.v4ClassName === 'AnchorOrButton' && fieldDefinition?.controlType === 'anchor') {
     v5ComponentClassName = ContentComponentName;
     v5ModelClassName = '';
+  }
+
+  if (v5ComponentClassName === SaveButtonComponentName && fieldDefinition?.isDelete === true) {
+    v5ComponentClassName = DeleteButtonComponentName;
   }
 
   return {
@@ -1319,6 +1329,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const field = this.getV4Data();
     item.config = new SaveButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
+    this.sharedProps.setPropOverride('targetStep', item.config, field?.definition);
+    this.sharedProps.setPropOverride('forceSave', item.config, field?.definition);
+    this.sharedProps.setPropOverride('enabledValidationGroups', item.config, field?.definition);
+    this.sharedProps.setPropOverride('labelSaving', item.config, field?.definition);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, {
       buttonCssClasses: this.normalizeLegacyButtonCssClasses(
         field?.definition?.cssClasses ?? field?.definition?.cssClass
@@ -1349,6 +1363,36 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Delete Button  */
+
+  visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new DeleteButtonFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    this.sharedProps.setPropOverride('closeOnDelete', item.config, {
+      closeOnDelete: field?.definition?.closeOnSave,
+    });
+    this.sharedProps.setPropOverride('redirectLocation', item.config, field?.definition);
+    if (typeof item.config.redirectLocation === 'string' && item.config.redirectLocation.trim()) {
+      item.config.redirectLocation = this.buildLegacyUrlTemplate(item.config.redirectLocation);
+    }
+    this.sharedProps.setPropOverride('redirectDelaySeconds', item.config, field?.definition);
+    this.sharedProps.setPropOverride('confirmationMessage', item.config, field?.definition);
+    this.sharedProps.setPropOverride('confirmationTitle', item.config, field?.definition);
+    this.sharedProps.setPropOverride('cancelButtonMessage', item.config, field?.definition);
+    this.sharedProps.setPropOverride('confirmButtonMessage', item.config, field?.definition);
+    this.sharedProps.setPropOverride('buttonCssClasses', item.config, {
+      buttonCssClasses: this.normalizeLegacyButtonCssClasses(
+        field?.definition?.cssClasses ?? field?.definition?.cssClass
+      ),
+    });
+  }
+
+  visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
   }
 
@@ -2695,6 +2739,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return (
       componentClassName === SaveButtonComponentName ||
       componentClassName === CancelButtonComponentName ||
+      componentClassName === DeleteButtonComponentName ||
       componentClassName === TabNavButtonComponentName
     );
   }
@@ -2768,8 +2813,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   private buildLegacyAnchorHrefTemplate(href: string): string {
     const rawHref = String(href ?? '');
-    if (!rawHref.includes('@branding') && !rawHref.includes('@portal') && !rawHref.includes('@oid')) {
+    const templatedHref = this.buildLegacyUrlTemplate(rawHref);
+    if (templatedHref === rawHref) {
       return '{{content.href}}';
+    }
+    return templatedHref;
+  }
+
+  private buildLegacyUrlTemplate(value: string): string {
+    const rawHref = String(value ?? '');
+    if (!rawHref.includes('@branding') && !rawHref.includes('@portal') && !rawHref.includes('@oid')) {
+      return rawHref;
     }
 
     const parts: string[] = [];
@@ -2800,7 +2854,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       parts.push(`"${this.escapeHandlebarsStringLiteral(trailingPart)}"`);
     }
     if (parts.length === 0) {
-      return '{{content.href}}';
+      return rawHref;
     }
     return `{{concat ${parts.join(' ')}}}`;
   }

@@ -59,6 +59,8 @@ import { FormComponentFocusRequestCoordinator } from './form-state/events/form-c
 import {
   createFormDefinitionChangedEvent,
   createFormDefinitionReadyEvent,
+  createFormDeleteFailureEvent,
+  createFormDeleteSuccessEvent,
   createFormSaveFailureEvent,
   createFormSaveSuccessEvent,
   createFormValidationBroadcastEvent,
@@ -447,11 +449,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       const formGroupWasPending = this.previousFormGroupStatus()?.pending || false;
       const formGroupIsValid = formGroupStatus?.valid || false;
       const formGroupWasValid = this.previousFormGroupStatus()?.valid || false;
-      const formIsSaving = this.status() === FormStatus.SAVING;
+      const formIsBusy = this.status() === FormStatus.SAVING || this.status() === FormStatus.DELETING;
 
       // Dispatch validation lifecycle actions instead of direct status mutation
       // Ignore if saving is in progress
-      if (!formIsSaving) {
+      if (!formIsBusy) {
         // If validation is pending
         if (formGroupIsPending && !formGroupWasPending) {
           this.store.dispatch(FormActions.formValidationPending());
@@ -484,6 +486,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         const targetStep = evt.targetStep ?? '';
         const enabledValidationGroups = evt.enabledValidationGroups ?? ['all'];
         await this.saveForm(force, targetStep, enabledValidationGroups);
+      });
+    this.subMaps['deleteExecuteSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_DELETE_EXECUTE)
+      .subscribe(async (evt) => {
+        await this.deleteRecord({
+          closeOnDelete: evt.closeOnDelete,
+          redirectLocation: evt.redirectLocation,
+          redirectDelaySeconds: evt.redirectDelaySeconds,
+        });
       });
     // Listen for any changes components have made to their own definitions and update the query source
     this.subMaps['componentDefChangesRequestSub'] = this.eventBus
@@ -968,6 +979,47 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
+  public async deleteRecord(options?: { closeOnDelete?: boolean; redirectLocation?: string; redirectDelaySeconds?: number }) {
+    const oid = this.trimmedParams.oid();
+    if (_isEmpty(oid)) {
+      this.eventBus.publish(createFormDeleteFailureEvent({ error: 'Cannot delete a record without an oid' }));
+      return;
+    }
+
+    try {
+      const response = await this.recordService.delete(oid);
+      if (!response || !_get(response, 'success', false)) {
+        const errorMessage = _get(response, 'message')?.toString() ?? 'Delete failed: invalid response from server';
+
+        this.eventBus.publish(
+          createFormDeleteFailureEvent({ error: errorMessage })
+        );
+      } else {
+        this.eventBus.publish(
+          createFormDeleteSuccessEvent({
+            oid,
+            response,
+            closeOnDelete: options?.closeOnDelete,
+            redirectLocation: options?.redirectLocation,
+            redirectDelaySeconds: options?.redirectDelaySeconds,
+          })
+        );
+
+        if (options?.closeOnDelete && !_isEmpty(options?.redirectLocation)) {
+          const redirectLocation = this.resolveRedirectLocation(String(options.redirectLocation), oid);
+          const redirectDelaySeconds = Math.max(0, Number(options.redirectDelaySeconds ?? 3));
+          window.setTimeout(() => {
+            window.location.href = redirectLocation;
+          }, redirectDelaySeconds * 1000);
+        }
+      }
+    } catch (error: unknown) {
+      this.loggerService.error(`${this.logName}: Error occurred while deleting form record:`, error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+      this.eventBus.publish(createFormDeleteFailureEvent({ error: errorMsg }));
+    }
+  }
+
   /**
    * Get the compiled items for the form with the default values.
    */
@@ -1103,6 +1155,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }
     }
     return `record/edit/${createdOid}`;
+  }
+
+  private resolveRedirectLocation(template: string, oid: string): string {
+    const contextVariables = (this.formDefMap?.formConfig?.contextVariables ?? {}) as Record<string, unknown>;
+    return template
+      .replaceAll('@oid', oid)
+      .replaceAll('@branding', String(contextVariables['@branding'] ?? '@branding'))
+      .replaceAll('@portal', String(contextVariables['@portal'] ?? '@portal'));
   }
 }
 

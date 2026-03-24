@@ -29,6 +29,11 @@ export const selectIsSaving = createSelector(
   status => status === FormStatus.SAVING
 );
 
+export const selectIsDeleting = createSelector(
+  selectStatus,
+  status => status === FormStatus.DELETING
+);
+
 export const selectIsValidationPending = createSelector(
   selectStatus,
   status => status === FormStatus.VALIDATION_PENDING
