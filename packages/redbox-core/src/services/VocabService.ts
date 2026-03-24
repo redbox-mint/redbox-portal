@@ -378,7 +378,7 @@ export namespace Services {
 
       const entries = await VocabularyEntry
         .find({ vocabulary: vocabulary.id })
-        .sort('order ASC label ASC') as ManagedVocabularyEntry[];
+        .sort([{order:"ASC"},{label:"ASC"}]) as ManagedVocabularyEntry[];
 
       return entries.map((entry) => ({
         uri: String(entry.identifier ?? entry.value ?? ''),
