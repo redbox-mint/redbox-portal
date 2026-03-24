@@ -1,0 +1,8 @@
+@if (isVisible) {
+  <!-- Intentionally minimal: this button delegates all stateful work to form behaviours. -->
+  <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
+  <button type="button" class="btn btn-info" [disabled]="isDisabled || isReadonly" (click)="onClick()">
+    {{ buttonText | i18next }}
+  </button>
+  <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
+}

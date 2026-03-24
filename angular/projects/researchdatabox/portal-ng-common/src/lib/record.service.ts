@@ -67,7 +67,10 @@ export class RecordService extends HttpClientService {
   }
 
   public async getRecordMeta(oid: string) {
-    let url = `${this.brandingAndPortalUrl}/record/metadata/${oid}`;
+    // Cache-bust metadata reads so publication refreshes do not reuse a stale
+    // browser response after the related record has been saved elsewhere.
+    const ts = Date.now();
+    let url = `${this.brandingAndPortalUrl}/record/metadata/${oid}?ts=${ts}`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;

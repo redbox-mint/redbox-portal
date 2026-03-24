@@ -95,6 +95,10 @@ export * from './config/component/file-upload.model';
 export * from './config/component/file-upload.outline';
 export * from './config/component/record-metadata-retriever.model';
 export * from './config/component/record-metadata-retriever.outline';
+// Exported so hooks and Angular runtime can reference the same component name
+// and visitor-aware definitions.
+export * from './config/component/publish-data-location-refresh.model';
+export * from './config/component/publish-data-location-refresh.outline';
 export * from './config/component/data-location.model';
 export * from './config/component/data-location.outline';
 export * from './config/component/publish-data-location-selector.model';

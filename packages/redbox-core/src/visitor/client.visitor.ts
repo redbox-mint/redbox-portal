@@ -111,6 +111,10 @@ import {
   DataLocationFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  PublishDataLocationRefreshFieldComponentDefinitionOutline,
+  PublishDataLocationRefreshFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   PublishDataLocationSelectorFieldComponentDefinitionOutline,
   PublishDataLocationSelectorFieldModelDefinitionOutline,
   PublishDataLocationSelectorFormComponentDefinitionOutline,
@@ -832,6 +836,21 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
+    this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+  }
+
+  // Client visitor treats the refresh trigger like any other field component,
+  // but there is intentionally no model companion to process.
+  visitPublishDataLocationRefreshFieldComponentDefinition(
+    item: PublishDataLocationRefreshFieldComponentDefinitionOutline
+  ): void {
+    this.processFieldComponentDefinition(item);
+  }
+
+  visitPublishDataLocationRefreshFormComponentDefinition(
+    item: PublishDataLocationRefreshFormComponentDefinitionOutline
+  ): void {
     this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }

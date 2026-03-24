@@ -135,6 +135,15 @@ describe('WorkflowStepsService', function() {
         hidden: { '!=': true }
       }))).to.be.true;
     });
+
+    it('should return empty array when record type is missing', async function() {
+      const result = await new Promise((resolve, reject) => {
+        service.getAllForRecordType(undefined).subscribe(resolve, reject);
+      });
+
+      expect(result).to.deep.equal([]);
+      expect((global as any).WorkflowStep.find.called).to.be.false;
+    });
   });
 
   describe('getFirst', function() {

@@ -497,6 +497,34 @@ describe("Construct Visitor", async () => {
             expect(retriever.expressions?.[0]?.config?.operation).to.equal("fetchMetadata");
             expect(retriever.expressions?.[0]?.config?.template).to.equal("runtimeContext.requestParams.rdmpOid");
         });
+
+        it("should construct PublishDataLocationRefreshComponent definitions with no model", async () => {
+            // This locks in the design decision that the refresh trigger remains
+            // stateless in V5 and only participates through behaviour events.
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "dataPubLocationRefresherTrigger",
+                            component: {
+                                class: "PublishDataLocationRefreshComponent",
+                                config: {
+                                    label: "@refresh-attachments-text"
+                                }
+                            }
+                        }
+                    ]
+                }
+            });
+
+            const refresher = actual.componentDefinitions[0];
+            expect(refresher.component.class).to.equal("PublishDataLocationRefreshComponent");
+            expect(refresher.model).to.equal(undefined);
+            expect((refresher.component.config as Record<string, unknown>).label).to.equal("@refresh-attachments-text");
+        });
     });
     describe("with overrides", async () => {
         const cases: {

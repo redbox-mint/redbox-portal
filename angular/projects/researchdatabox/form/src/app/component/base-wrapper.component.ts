@@ -6,6 +6,7 @@ import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/
 import {
   KeyValueStringNested,
   FormFieldComponentStatus,
+  PublishDataLocationRefreshComponentName,
   RecordMetadataRetrieverComponentName,
 } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
@@ -15,6 +16,11 @@ import { FormComponentUIAttributeChangeEventProducer } from '../form-state/event
 import { FormComponentUIAttributeChangeEventConsumer } from '../form-state/events/form-component-ui-attribute-change-event-consumer';
 import { FormComponentItemSelectEventProducer } from '../form-state/events/form-component-item-select-event-producer';
 import { FormComponentItemSelectEventConsumer } from '../form-state/events/form-component-item-select-event-consumer';
+
+const VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS = new Set<string>([
+  RecordMetadataRetrieverComponentName,
+  PublishDataLocationRefreshComponentName,
+]);
 
 /**
  * Form Component Wrapper.
@@ -248,7 +254,11 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     if (!entry || entry.component !== instance) {
       return false;
     }
-    return entry.compConfigJson?.component?.class !== RecordMetadataRetrieverComponentName;
+    // These components publish synthetic/broadcast events themselves rather than
+    // participating in the default model-driven value producer wiring.
+    return !VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS.has(
+      entry.compConfigJson?.component?.class ?? ''
+    );
   }
 
   /**

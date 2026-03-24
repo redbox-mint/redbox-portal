@@ -115,6 +115,10 @@ import {
   DataLocationFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  PublishDataLocationRefreshFieldComponentDefinitionOutline,
+  PublishDataLocationRefreshFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   PublishDataLocationSelectorFieldComponentDefinitionOutline,
   PublishDataLocationSelectorFieldModelDefinitionOutline,
   PublishDataLocationSelectorFormComponentDefinitionOutline,
@@ -485,6 +489,17 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   visitDataLocationFieldModelDefinition(_item: DataLocationFieldModelDefinitionOutline): void {}
 
   visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  // The refresh trigger has no template-bearing fields of its own.
+  visitPublishDataLocationRefreshFieldComponentDefinition(
+    _item: PublishDataLocationRefreshFieldComponentDefinitionOutline
+  ): void {}
+
+  visitPublishDataLocationRefreshFormComponentDefinition(
+    item: PublishDataLocationRefreshFormComponentDefinitionOutline
+  ): void {
     this.acceptFormComponentDefinition(item);
   }
 

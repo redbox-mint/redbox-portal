@@ -115,6 +115,10 @@ import {
   DataLocationFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  PublishDataLocationRefreshFieldComponentDefinitionOutline,
+  PublishDataLocationRefreshFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   PublishDataLocationSelectorFieldComponentDefinitionOutline,
   PublishDataLocationSelectorFieldModelDefinitionOutline,
   PublishDataLocationSelectorFormComponentDefinitionOutline,
@@ -485,6 +489,14 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  // No stored field value exists for the refresh trigger, so the data-value
+  // visitor deliberately leaves it as a no-op.
+  visitPublishDataLocationRefreshFieldComponentDefinition(_item: PublishDataLocationRefreshFieldComponentDefinitionOutline): void { }
+
+  visitPublishDataLocationRefreshFormComponentDefinition(item: PublishDataLocationRefreshFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 
