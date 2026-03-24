@@ -3,6 +3,7 @@ import { Store } from '@ngrx/store';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import * as FormActions from '../form-state/state/form.actions';
+import { createFormDeleteSuccessEvent, FormComponentEventBus } from '../form-state';
 import { SaveStatusComponent } from './save-status.component';
 import { SimpleInputComponent } from './simple-input.component';
 
@@ -148,5 +149,43 @@ describe('SaveStatusComponent', () => {
     tick();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.rb-form-save-status.alert-info')).toBeTruthy();
+  }));
+
+  it('should show deleting status while delete is in progress', fakeAsync(() => {
+    let fixture: any;
+    let formComponent: any;
+    createFormAndWaitForReady(formConfig).then(result => {
+      fixture = result.fixture;
+      formComponent = result.formComponent;
+    });
+    tick();
+
+    spyOn(formComponent, 'deleteRecord').and.returnValue(new Promise(() => {}));
+    const store = TestBed.inject(Store);
+    store.dispatch(FormActions.deleteRecord({ closeOnDelete: false }));
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-info');
+    expect(el).toBeTruthy();
+    expect(el?.querySelector('.fa-spinner')).toBeTruthy();
+  }));
+
+  it('should show delete success after a successful delete event', fakeAsync(() => {
+    let fixture: any;
+    createFormAndWaitForReady(formConfig).then(result => {
+      fixture = result.fixture;
+    });
+    tick();
+
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    eventBus.publish(createFormDeleteSuccessEvent({ oid: 'oid-1' }));
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-success');
+    expect(el).toBeTruthy();
   }));
 });
