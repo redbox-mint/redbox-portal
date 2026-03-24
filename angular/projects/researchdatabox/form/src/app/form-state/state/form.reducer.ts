@@ -9,6 +9,10 @@ import { createReducer, on } from '@ngrx/store';
 import { FormStatus } from '@researchdatabox/sails-ng-common';
 import { formInitialState } from './form.state';
 import * as FormActions from './form.actions';
+
+function isBusyStatus(status: FormStatus): boolean {
+  return status === FormStatus.SAVING || status === FormStatus.DELETING;
+}
 /**
  * Form feature reducer
  * Per R4.1-R4.6
@@ -42,13 +46,18 @@ export const formReducer = createReducer(
   })),
   
   // Submit actions (R4.5: increment submissionAttempt)
-  on(FormActions.submitForm, (state) => ({
-    ...state,
-    status: FormStatus.SAVING,
-    submissionAttempt: state.submissionAttempt + 1,
-    error: null,
-    pendingActions: [...state.pendingActions, 'submitForm'],
-  })),
+  on(FormActions.submitForm, (state) => {
+    if (isBusyStatus(state.status)) {
+      return state;
+    }
+    return {
+      ...state,
+      status: FormStatus.SAVING,
+      submissionAttempt: state.submissionAttempt + 1,
+      error: null,
+      pendingActions: [...state.pendingActions, 'submitForm'],
+    };
+  }),
   
   on(FormActions.submitFormSuccess, (state, { savedData, lastSavedAt }) => ({
     ...state,
@@ -79,12 +88,17 @@ export const formReducer = createReducer(
     }
   }),
 
-  on(FormActions.deleteRecord, (state) => ({
-    ...state,
-    status: FormStatus.DELETING,
-    error: null,
-    pendingActions: [...state.pendingActions, 'deleteRecord'],
-  })),
+  on(FormActions.deleteRecord, (state) => {
+    if (isBusyStatus(state.status)) {
+      return state;
+    }
+    return {
+      ...state,
+      status: FormStatus.DELETING,
+      error: null,
+      pendingActions: [...state.pendingActions, 'deleteRecord'],
+    };
+  }),
 
   on(FormActions.deleteRecordSuccess, (state) => ({
     ...state,
@@ -102,7 +116,7 @@ export const formReducer = createReducer(
   
   // Reset actions (R3.4, R2.10: increment resetToken, ignore if SAVING/DELETING)
   on(FormActions.resetAllFields, (state) => {
-    if (state.status === FormStatus.SAVING || state.status === FormStatus.DELETING) {
+    if (isBusyStatus(state.status)) {
       return state; // R2.10: Ignore reset during save
     }
     return {
@@ -126,7 +140,7 @@ export const formReducer = createReducer(
   
   // Validation actions (R2.14, R4.6: ignore during SAVING/DELETING)
   on(FormActions.formValidationPending, (state) => {
-    if (state.status === FormStatus.SAVING || state.status === FormStatus.DELETING) {
+    if (isBusyStatus(state.status)) {
       return state; // R2.14, R4.6: Suppress during save
     }
     return { 
@@ -137,7 +151,7 @@ export const formReducer = createReducer(
   }),
   
   on(FormActions.formValidationSuccess, (state) => {
-    if (state.status === FormStatus.SAVING || state.status === FormStatus.DELETING) {
+    if (isBusyStatus(state.status)) {
       return state; // R2.14, R4.6: Suppress during save
     }
     if (state.status === FormStatus.VALIDATION_PENDING || state.status === FormStatus.VALIDATION_ERROR) {
@@ -152,7 +166,7 @@ export const formReducer = createReducer(
   }),
   
   on(FormActions.formValidationFailure, (state, { error }) => {
-    if (state.status === FormStatus.SAVING || state.status === FormStatus.DELETING) {
+    if (isBusyStatus(state.status)) {
       return state; // R2.14, R4.6: Suppress during save
     }
     return { 

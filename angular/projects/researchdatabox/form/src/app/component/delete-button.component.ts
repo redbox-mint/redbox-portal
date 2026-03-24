@@ -37,7 +37,7 @@ export class DeleteButtonComponent extends FormFieldBaseComponent<undefined> {
 
   protected readonly disabled = computed(() => {
     const hasOid = !!this.formComponent.oid()?.trim();
-    return this.isDisabled || this.formStateFacade.isDeleting() || !hasOid;
+    return this.isDisabled || this.formStateFacade.isDeleting() || this.formStateFacade.isSaving() || !hasOid;
   });
 
   get buttonCssClasses(): string {

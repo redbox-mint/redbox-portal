@@ -915,18 +915,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   public async deleteRecord(options?: { closeOnDelete?: boolean; redirectLocation?: string; redirectDelaySeconds?: number }) {
     const oid = this.trimmedParams.oid();
-    const shouldManageDeleteStatus = this.status() !== FormStatus.DELETING;
     if (_isEmpty(oid)) {
       this.eventBus.publish(createFormDeleteFailureEvent({ error: 'Cannot delete a record without an oid' }));
       return;
-    }
-
-    if (shouldManageDeleteStatus) {
-      this.store.dispatch(FormActions.deleteRecord({
-        closeOnDelete: options?.closeOnDelete,
-        redirectLocation: options?.redirectLocation,
-        redirectDelaySeconds: options?.redirectDelaySeconds,
-      }));
     }
 
     try {
@@ -937,10 +928,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.eventBus.publish(
           createFormDeleteFailureEvent({ error: errorMessage })
         );
-
-        if (shouldManageDeleteStatus) {
-          this.store.dispatch(FormActions.deleteRecordFailure({ error: errorMessage }));
-        }
       } else {
         this.eventBus.publish(
           createFormDeleteSuccessEvent({
@@ -959,24 +946,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             window.location.href = redirectLocation;
           }, redirectDelaySeconds * 1000);
         }
-
-        if (shouldManageDeleteStatus) {
-          this.store.dispatch(FormActions.deleteRecordSuccess({
-            oid,
-            closeOnDelete: options?.closeOnDelete,
-            redirectLocation: options?.redirectLocation,
-            redirectDelaySeconds: options?.redirectDelaySeconds,
-          }));
-        }
       }
     } catch (error: unknown) {
       this.loggerService.error(`${this.logName}: Error occurred while deleting form record:`, error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
       this.eventBus.publish(createFormDeleteFailureEvent({ error: errorMsg }));
-
-      if (shouldManageDeleteStatus) {
-        this.store.dispatch(FormActions.deleteRecordFailure({ error: errorMsg }));
-      }
     }
   }
 

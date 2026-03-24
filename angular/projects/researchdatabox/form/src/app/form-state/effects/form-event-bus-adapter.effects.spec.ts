@@ -7,7 +7,7 @@
 
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
-import { provideMockStore } from '@ngrx/store/testing';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { Observable, ReplaySubject } from 'rxjs';
 import { Provider } from '@angular/core';
 import { FormEventBusAdapterEffects, FORM_EVENT_BUS_ADAPTER_CONFIG, FormEventBusAdapterConfig } from './form-event-bus-adapter.effects';
@@ -19,15 +19,19 @@ import {
   FormValidationBroadcastEvent,
   FieldValueChangedEvent,
   FormSaveRequestedEvent,
+  createFormDeleteRequestedEvent,
   createFormSaveRequestedEvent
 } from '../events/form-component-event.types';
 import * as FormActions from '../state/form.actions';
+import * as FormSelectors from '../state/form.selectors';
+import { FormStatus } from '@researchdatabox/sails-ng-common';
 
 describe('FormEventBusAdapterEffects', () => {
   let effects: FormEventBusAdapterEffects;
   let actions$: Observable<any>;
   let eventBus: FormComponentEventBus;
   let actionsSubject: ReplaySubject<any>;
+  let store: MockStore;
 
   function setupTestBed(config?: FormEventBusAdapterConfig): void {
     actionsSubject = new ReplaySubject(1);
@@ -37,7 +41,7 @@ describe('FormEventBusAdapterEffects', () => {
       FormComponentEventBus,
       LoggerService,
       provideMockActions(() => actionsSubject),
-      provideMockStore(),
+      provideMockStore({ initialState: { form: { status: FormStatus.READY } } }),
     ];
 
     if (config !== undefined) {
@@ -48,6 +52,7 @@ describe('FormEventBusAdapterEffects', () => {
 
     effects = TestBed.inject(FormEventBusAdapterEffects);
     eventBus = TestBed.inject(FormComponentEventBus);
+    store = TestBed.inject(MockStore);
     actions$ = actionsSubject.asObservable();
   }
 
@@ -136,6 +141,34 @@ describe('FormEventBusAdapterEffects', () => {
       tick(10);
 
       // Effect runs but doesn't dispatch any actions (dispatch: false)
+      expect(promoted.length).toBe(0);
+    }));
+
+    it('should not promote save requested events while form is busy', fakeAsync(() => {
+      setupTestBed();
+      store.overrideSelector(FormSelectors.selectStatus, FormStatus.DELETING);
+      store.refreshState();
+
+      const promoted: any[] = [];
+      effects.promoteSaveRequested$.subscribe(action => promoted.push(action));
+
+      eventBus.publish<FormSaveRequestedEvent>(createFormSaveRequestedEvent({ force: true }));
+      tick(10);
+
+      expect(promoted.length).toBe(0);
+    }));
+
+    it('should not promote delete requested events while form is busy', fakeAsync(() => {
+      setupTestBed();
+      store.overrideSelector(FormSelectors.selectStatus, FormStatus.SAVING);
+      store.refreshState();
+
+      const promoted: any[] = [];
+      effects.promoteDeleteRequested$.subscribe(action => promoted.push(action));
+
+      eventBus.publish(createFormDeleteRequestedEvent({ closeOnDelete: true }));
+      tick(10);
+
       expect(promoted.length).toBe(0);
     }));
   });

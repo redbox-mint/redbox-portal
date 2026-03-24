@@ -11,6 +11,7 @@ import { ConfirmationDialogService } from '../confirmation-dialog.service';
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirmationDialogTitle"
+        aria-describedby="confirmationDialogMessage"
         style="background-color: rgba(0,0,0,0.5)"
         (keydown.escape)="cancel()"
       >
@@ -21,7 +22,7 @@ import { ConfirmationDialogService } from '../confirmation-dialog.service';
               <button type="button" class="btn-close" (click)="cancel()" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              <p>{{ dialog()?.message }}</p>
+              <p id="confirmationDialogMessage">{{ dialog()?.message }}</p>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" (click)="cancel()" cdkFocusInitial>

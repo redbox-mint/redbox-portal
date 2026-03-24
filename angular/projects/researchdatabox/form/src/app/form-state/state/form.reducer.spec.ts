@@ -145,6 +145,23 @@ describe('formReducer', () => {
       expect(state.submissionAttempt).toBe(2);
     });
 
+    it('should ignore submitForm while already deleting', () => {
+      const deletingState: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.DELETING,
+        initialDataLoaded: true,
+        pendingActions: ['deleteRecord'],
+        submissionAttempt: 2,
+      };
+
+      const result = formReducer(deletingState, FormActions.submitForm({
+        force: false,
+        enabledValidationGroups: ["all"],
+      }));
+
+      expect(result).toEqual(deletingState);
+    });
+
     it('should transition SAVING → READY on submitFormSuccess (AC7, R4.4)', () => {
       const savingState: FormFeatureState = {
         ...formInitialState,
@@ -221,6 +238,19 @@ describe('formReducer', () => {
 
       expect(result.status).toBe(FormStatus.DELETING);
       expect(result.pendingActions).toContain('deleteRecord');
+    });
+
+    it('should ignore deleteRecord while already saving', () => {
+      const savingState: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.SAVING,
+        initialDataLoaded: true,
+        pendingActions: ['submitForm'],
+      };
+
+      const result = formReducer(savingState, FormActions.deleteRecord({}));
+
+      expect(result).toEqual(savingState);
     });
 
     it('should transition DELETING -> READY on deleteRecordSuccess', () => {
