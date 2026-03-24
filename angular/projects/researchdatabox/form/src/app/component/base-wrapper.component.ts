@@ -17,6 +17,11 @@ import { FormComponentUIAttributeChangeEventConsumer } from '../form-state/event
 import { FormComponentItemSelectEventProducer } from '../form-state/events/form-component-item-select-event-producer';
 import { FormComponentItemSelectEventConsumer } from '../form-state/events/form-component-item-select-event-consumer';
 
+const VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS = new Set<string>([
+  RecordMetadataRetrieverComponentName,
+  PublishDataLocationRefreshComponentName,
+]);
+
 /**
  * Form Component Wrapper.
  *
@@ -251,7 +256,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     }
     // These components publish synthetic/broadcast events themselves rather than
     // participating in the default model-driven value producer wiring.
-    return !(new Set<string>([RecordMetadataRetrieverComponentName, PublishDataLocationRefreshComponentName])).has(
+    return !VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS.has(
       entry.compConfigJson?.component?.class ?? ''
     );
   }

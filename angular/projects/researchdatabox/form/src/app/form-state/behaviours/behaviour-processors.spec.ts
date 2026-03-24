@@ -5,6 +5,13 @@ describe('Behaviour processors', () => {
   it('re-fetches saved server metadata for repeated refreshes on the same oid', async () => {
     const recordService = jasmine.createSpyObj('RecordService', ['getRecordMeta']);
     const logger = jasmine.createSpyObj('LoggerService', ['debug', 'warn', 'error']);
+    const executionContext = {
+      behaviourIndex: 0,
+      processorIndex: 0,
+      recordService,
+      logger,
+      metadataCache: new Map(),
+    } as any;
 
     recordService.getRecordMeta.and.resolveTo({
       dataLocations: [{ type: 'url', location: 'https://example.org/saved-location' }],
@@ -20,13 +27,7 @@ describe('Behaviour processors', () => {
         requestParams: { dataRecordOid: 'oid-1' },
         runtimeContext: { requestParams: { dataRecordOid: 'oid-1' } },
       },
-      {
-        behaviourIndex: 0,
-        processorIndex: 0,
-        recordService,
-        logger,
-        metadataCache: new Map(),
-      } as any
+      executionContext
     );
 
     recordService.getRecordMeta.and.resolveTo({
@@ -46,13 +47,7 @@ describe('Behaviour processors', () => {
         requestParams: { dataRecordOid: 'oid-1' },
         runtimeContext: { requestParams: { dataRecordOid: 'oid-1' } },
       },
-      {
-        behaviourIndex: 0,
-        processorIndex: 0,
-        recordService,
-        logger,
-        metadataCache: new Map(),
-      } as any
+      executionContext
     );
 
     expect(recordService.getRecordMeta).toHaveBeenCalledTimes(2);
