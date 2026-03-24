@@ -5,6 +5,34 @@ import {LoggerService} from "./logger.service";
 @Component({
     selector: 'header-sort',
     templateUrl: './header-sort.component.html',
+    styles: [`
+      .record-table-heading-sort {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-weight: inherit;
+        line-height: inherit;
+        text-align: left;
+        box-shadow: none;
+      }
+
+      .record-table-heading-sort:focus-visible {
+        outline: 2px solid #0d6efd;
+        outline-offset: 2px;
+      }
+
+      .record-table-heading-sort-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 0.75rem;
+      }
+    `],
     standalone: false
 })
 export class HeaderSortComponent extends BaseComponent {
