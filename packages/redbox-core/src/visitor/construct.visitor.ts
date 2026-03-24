@@ -290,6 +290,13 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { CancelButtonFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  DeleteButtonComponentName,
+  DeleteButtonFieldComponentDefinitionFrame,
+  DeleteButtonFieldComponentDefinitionOutline,
+  DeleteButtonFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { DeleteButtonFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   TabNavButtonComponentName,
   TabNavButtonFieldComponentDefinitionFrame,
   TabNavButtonFieldComponentDefinitionOutline,
@@ -1101,6 +1108,35 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Delete Button  */
+
+  visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<DeleteButtonFieldComponentDefinitionFrame>(currentData, DeleteButtonComponentName)) {
+      throw new Error(
+        `Invalid ${DeleteButtonComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    item.config = new DeleteButtonFieldComponentConfig();
+
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+    this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
+    this.sharedProps.setPropOverride('closeOnDelete', item.config, config);
+    this.sharedProps.setPropOverride('redirectLocation', item.config, config);
+    this.sharedProps.setPropOverride('redirectDelaySeconds', item.config, config);
+    this.sharedProps.setPropOverride('confirmationMessage', item.config, config);
+    this.sharedProps.setPropOverride('confirmationTitle', item.config, config);
+    this.sharedProps.setPropOverride('cancelButtonMessage', item.config, config);
+    this.sharedProps.setPropOverride('confirmButtonMessage', item.config, config);
+  }
+
+  visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
   }
 

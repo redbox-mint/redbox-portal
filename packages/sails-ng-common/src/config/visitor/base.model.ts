@@ -55,6 +55,10 @@ import {
   CancelButtonFormComponentDefinitionOutline,
 } from '../component/cancel-button.outline';
 import {
+  DeleteButtonFieldComponentDefinitionOutline,
+  DeleteButtonFormComponentDefinitionOutline,
+} from '../component/delete-button.outline';
+import {
   TabNavButtonFieldComponentDefinitionOutline,
   TabNavButtonFormComponentDefinitionOutline,
 } from '../component/tab-nav-button.outline';
@@ -303,6 +307,16 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   }
 
   visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Delete Button  */
+
+  visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): void {
     this.notImplemented();
   }
 

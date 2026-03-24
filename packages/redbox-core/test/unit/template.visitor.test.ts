@@ -152,6 +152,30 @@ describe("Template Visitor", async () => {
                 ]
             },
             expected: []
+        },
+        {
+            title: "extract delete button redirectLocation template",
+            args: {
+                name: "test",
+                componentDefinitions: [
+                    {
+                        name: "delete_button",
+                        component: {
+                            class: "DeleteButtonComponent",
+                            config: {
+                                redirectLocation: '{{concat "/" branding "/" portal "/dashboard/" oid}}'
+                            }
+                        }
+                    }
+                ]
+            },
+            expected: [
+                {
+                    key: ["componentDefinitions", "0", "component", "config", "redirectLocation"],
+                    kind: "handlebars",
+                    value: '{{concat "/" branding "/" portal "/dashboard/" oid}}'
+                }
+            ]
         }
     ];
 

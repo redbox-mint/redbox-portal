@@ -39,6 +39,8 @@ import { FormDebugPanelComponent } from "./form-debug/form-debug-panel.component
 import { FormDebugModelTabComponent } from "./form-debug/form-debug-model-tab.component";
 import { FormDebugConfigTabComponent } from "./form-debug/form-debug-config-tab.component";
 import { FormDebugEventsTabComponent } from "./form-debug/form-debug-events-tab.component";
+import { ConfirmationDialogComponent } from "./component/confirmation-dialog.component";
+import { ConfirmationDialogService } from "./confirmation-dialog.service";
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
@@ -189,6 +191,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "FormDebugModelTabComponent": FormDebugModelTabComponent,
       "FormDebugConfigTabComponent": FormDebugConfigTabComponent,
       "FormDebugEventsTabComponent": FormDebugEventsTabComponent,
+      "ConfirmationDialogComponent": ConfirmationDialogComponent,
     }, testConfig.declarations ?? {}),
     imports: await createTestBedModuleConfig({
       "CommonModule": CommonModule,
@@ -217,6 +220,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "FormStateFacade": FormStateFacade,  // Provide the facade service
       "FormComponentEventBus": FormComponentEventBus,  // Provide the event bus service
       "FormComponentFocusRequestCoordinator": FormComponentFocusRequestCoordinator,
+      "ConfirmationDialogService": ConfirmationDialogService,
     }, testConfig.providers ?? {}),
   }).compileComponents();
   return {

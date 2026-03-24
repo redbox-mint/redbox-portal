@@ -147,6 +147,31 @@ export interface FormSaveFailureEvent extends FormComponentEventBase {
   readonly error?: string;
 }
 
+export interface DeleteEventConfig {
+  readonly closeOnDelete?: boolean;
+  readonly redirectLocation?: string;
+  readonly redirectDelaySeconds?: number;
+}
+
+export interface FormDeleteRequestedEvent extends FormComponentEventBase, DeleteEventConfig {
+  readonly type: 'form.delete.requested';
+}
+
+export interface FormDeleteExecuteEvent extends FormComponentEventBase, DeleteEventConfig {
+  readonly type: 'form.delete.execute';
+}
+
+export interface FormDeleteSuccessEvent extends FormComponentEventBase, DeleteEventConfig {
+  readonly type: 'form.delete.success';
+  readonly oid?: string;
+  readonly response?: any;
+}
+
+export interface FormDeleteFailureEvent extends FormComponentEventBase {
+  readonly type: 'form.delete.failure';
+  readonly error?: string;
+}
+
 /**
  * Field item selected event
  * Published when a user selects (or clears) an item in a typeahead or similar component.
@@ -170,6 +195,10 @@ export type FormComponentEvent =
   | FormSaveExecuteEvent
   | FormSaveSuccessEvent
   | FormSaveFailureEvent
+  | FormDeleteRequestedEvent
+  | FormDeleteExecuteEvent
+  | FormDeleteSuccessEvent
+  | FormDeleteFailureEvent
   | FormDefinitionChangeRequestEvent
   | FormDefinitionChangedEvent
   | FormDefinitionReadyEvent
@@ -192,6 +221,10 @@ export const FormComponentEventType = {
   FORM_SAVE_EXECUTE: 'form.save.execute' as const,
   FORM_SAVE_SUCCESS: 'form.save.success' as const,
   FORM_SAVE_FAILURE: 'form.save.failure' as const,
+  FORM_DELETE_REQUESTED: 'form.delete.requested' as const,
+  FORM_DELETE_EXECUTE: 'form.delete.execute' as const,
+  FORM_DELETE_SUCCESS: 'form.delete.success' as const,
+  FORM_DELETE_FAILURE: 'form.delete.failure' as const,
   FIELD_ITEM_SELECTED: 'field.item.selected' as const,
 } as const;
 
@@ -217,6 +250,10 @@ export interface FormComponentEventMap {
   'form.save.execute': FormSaveExecuteEvent;
   'form.save.success': FormSaveSuccessEvent;
   'form.save.failure': FormSaveFailureEvent;
+  'form.delete.requested': FormDeleteRequestedEvent;
+  'form.delete.execute': FormDeleteExecuteEvent;
+  'form.delete.success': FormDeleteSuccessEvent;
+  'form.delete.failure': FormDeleteFailureEvent;
   'field.item.selected': FieldItemSelectedEvent;
 }
 
@@ -353,6 +390,30 @@ export function createFormSaveFailureEvent(
   options: FormComponentEventOptions<FormSaveFailureEvent> = {}
 ): FormComponentEventResult<FormSaveFailureEvent> {
   return createEventResult<FormSaveFailureEvent>(FormComponentEventType.FORM_SAVE_FAILURE, options);
+}
+
+export function createFormDeleteRequestedEvent(
+  options: FormComponentEventOptions<FormDeleteRequestedEvent> = {}
+): FormComponentEventResult<FormDeleteRequestedEvent> {
+  return createEventResult<FormDeleteRequestedEvent>(FormComponentEventType.FORM_DELETE_REQUESTED, options);
+}
+
+export function createFormDeleteExecuteEvent(
+  options: FormComponentEventOptions<FormDeleteExecuteEvent> = {}
+): FormComponentEventResult<FormDeleteExecuteEvent> {
+  return createEventResult<FormDeleteExecuteEvent>(FormComponentEventType.FORM_DELETE_EXECUTE, options);
+}
+
+export function createFormDeleteSuccessEvent(
+  options: FormComponentEventOptions<FormDeleteSuccessEvent> = {}
+): FormComponentEventResult<FormDeleteSuccessEvent> {
+  return createEventResult<FormDeleteSuccessEvent>(FormComponentEventType.FORM_DELETE_SUCCESS, options);
+}
+
+export function createFormDeleteFailureEvent(
+  options: FormComponentEventOptions<FormDeleteFailureEvent> = {}
+): FormComponentEventResult<FormDeleteFailureEvent> {
+  return createEventResult<FormDeleteFailureEvent>(FormComponentEventType.FORM_DELETE_FAILURE, options);
 }
 
 /** Helper factory for creating validation broadcast events */

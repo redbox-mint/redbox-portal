@@ -986,6 +986,29 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(modelConfig.disabled).to.be.true;
     });
 
+    it("migrates SaveButton targetStep into the v5 component config", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "save-button-target-step-migration",
+                fields: [
+                    {
+                        class: "SaveButton",
+                        definition: {
+                            name: "save-and-submit",
+                            targetStep: "queued"
+                        }
+                    }
+                ]
+            }
+        });
+
+        expect(migrated.componentDefinitions).to.have.length.greaterThan(0);
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("SaveButtonComponent");
+        expect((migratedField.component.config as Record<string, unknown>)?.targetStep).to.equal("queued");
+    });
+
     it("maps AnchorOrButton links to ContentComponent anchor links with InlineLayout", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({
@@ -1025,6 +1048,34 @@ describe("Migrate v4 to v5 Visitor", async () => {
           '<a href="{{concat "/" branding "/" portal "/record/edit/" oid}}" class="{{content.cssClasses}}">{{t content.label}}</a>'
         );
         expect(childComponents[0].layout?.class).to.equal("InlineLayout");
+    });
+
+    it("maps legacy delete button redirectLocation tokens to a Handlebars template", async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "delete-button-migration",
+                fields: [
+                    {
+                        class: "SaveButton",
+                        definition: {
+                            name: "confirmDelete",
+                            label: "Delete this record",
+                            closeOnSave: true,
+                            redirectLocation: "/@branding/@portal/dashboard/dataPublication",
+                            isDelete: true
+                        }
+                    }
+                ]
+            }
+        });
+
+        expect(migrated.componentDefinitions[0].component.class).to.equal("DeleteButtonComponent");
+        const deleteButtonConfig = migrated.componentDefinitions[0].component.config as any;
+        expect(deleteButtonConfig?.closeOnDelete).to.be.true;
+        expect(deleteButtonConfig?.redirectLocation).to.equal(
+          '{{concat "/" branding "/" portal "/dashboard/dataPublication"}}'
+        );
     });
 
     it("maps legacy form-inline groups to ActionRowLayout with InlineLayout children", async function () {

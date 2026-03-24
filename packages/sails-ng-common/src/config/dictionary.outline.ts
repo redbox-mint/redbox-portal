@@ -60,6 +60,7 @@ import { DataLocationTypes } from './component/data-location.outline';
 import { PublishDataLocationSelectorTypes } from './component/publish-data-location-selector.outline';
 import { CancelButtonTypes } from './component/cancel-button.outline';
 import { TabNavButtonTypes } from './component/tab-nav-button.outline';
+import { DeleteButtonTypes } from './component/delete-button.outline';
 
 /**
  * The static type union of all available interfaces that provides typing for the object literal and schema.
@@ -74,6 +75,7 @@ export type AllTypes =
   | SaveButtonTypes
   | SaveStatusTypes
   | CancelButtonTypes
+  | DeleteButtonTypes
   | TabNavButtonTypes
   | TextAreaTypes
   | ContentTypes

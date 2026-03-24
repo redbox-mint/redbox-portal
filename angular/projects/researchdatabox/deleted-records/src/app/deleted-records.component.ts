@@ -22,6 +22,7 @@ import { ConfigService, LoggerService, TranslationService, RecordService, BaseCo
 import { RecordPropViewMetaDto, ReportResultDto, RecordPageDto, ReportFilterDto } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, set as _set, get as _get, isUndefined as _isUndefined } from 'lodash-es';
 import { ModalDirective } from "ngx-bootstrap/modal";
+import { DateTime } from 'luxon';
 
 /**
  * Restore deleted records Component
@@ -34,6 +35,7 @@ import { ModalDirective } from "ngx-bootstrap/modal";
 })
 export class DeletedRecordsComponent extends BaseComponent implements RecordSource {
   appName: string = 'deleted-records';
+  private readonly deletedRecordDateFormat = 'dd/MM/yyyy hh:mm a';
 
   // Internal properties
   protected sysConfig: any;
@@ -72,28 +74,28 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     {
       label: "deleted-records-results-table-header-title",
       property: "title",
-      template: "${ data.title }",
+      template: "",
       hide: false,
       multivalue: false
     },
     {
       label: "deleted-records-results-table-header-created-date",
-      property: "dateCreated",
-      template: "${ DateTime.fromISO(data.dateCreated).toFormat('dd/MM/yyyy hh:mm a') }",
+      property: "dateCreatedDisplay",
+      template: "",
       hide: false,
       multivalue: false
     },
     {
       label: "deleted-records-results-table-header-modified-date",
-      property: "dateModified",
-      template: "${ DateTime.fromISO(data.dateModified).toFormat('dd/MM/yyyy hh:mm a') }",
+      property: "dateModifiedDisplay",
+      template: "",
       hide: false,
       multivalue: false
     },
     {
       label: "deleted-records-results-table-header-deleted-date",
-      property: "dateDeleted",
-      template: "${ DateTime.fromISO(data.dateDeleted).toFormat('dd/MM/yyyy hh:mm a') }",
+      property: "dateDeletedDisplay",
+      template: "",
       hide: false,
       multivalue: false
     },
@@ -252,10 +254,29 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
 
     return {
       recordsPerPage: this.recordsPerPage,
-      records: records.items,
+      records: records.items.map(record => this.formatDeletedRecord(record)),
       total: records.totalItems,
       pageNum: this.currentPageNumber,
     };
+  }
+
+  private formatDeletedRecord(record: any) {
+    return {
+      ...record,
+      dateCreatedDisplay: this.formatDeletedRecordDate(record.dateCreated),
+      dateModifiedDisplay: this.formatDeletedRecordDate(record.dateModified),
+      dateDeletedDisplay: this.formatDeletedRecordDate(record.dateDeleted),
+    };
+  }
+
+  private formatDeletedRecordDate(value: string | undefined): string {
+    if (_isEmpty(value)) {
+      return '';
+    }
+
+    const safeValue = value ?? '';
+    const date = DateTime.fromISO(safeValue);
+    return date.isValid ? date.toFormat(this.deletedRecordDateFormat) : safeValue;
   }
 
   private getParams() {
