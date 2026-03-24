@@ -279,7 +279,7 @@ declare global {
 
       skip(num: number): QueryBuilder;
 
-      sort(criteria: string): QueryBuilder;
+      sort(criteria: string | {[key:string]: "ASC" | "DESC"}[]): QueryBuilder;
 
       populate(association: string): QueryBuilder;
       populate(association: string, filter: object): QueryBuilder;

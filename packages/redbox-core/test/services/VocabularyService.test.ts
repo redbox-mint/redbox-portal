@@ -43,10 +43,8 @@ type VocabularyEntryModelStub = {
   count: (...args: unknown[]) => Promise<number>;
   find: (...args: unknown[]) => {
     sort: (...args: unknown[]) => {
-      sort: (...args: unknown[]) => {
-        skip: (...args: unknown[]) => {
-          limit: (...args: unknown[]) => Promise<Array<Record<string, unknown>>>
-        }
+      skip: (...args: unknown[]) => {
+        limit: (...args: unknown[]) => Promise<Array<Record<string, unknown>>>
       }
     }
   };
@@ -94,10 +92,8 @@ describe('VocabularyService', () => {
       count: sinon.stub().resolves(2),
       find: sinon.stub().returns({
         sort: sinon.stub().returns({
-          sort: sinon.stub().returns({
-            skip: sinon.stub().returns({
-              limit: sinon.stub().resolves([])
-            })
+          skip: sinon.stub().returns({
+            limit: sinon.stub().resolves([])
           })
         })
       }),
@@ -113,11 +109,9 @@ describe('VocabularyService', () => {
     ];
     g.VocabularyEntry.find = sinon.stub().returns({
       sort: sinon.stub().callsFake(() => ({
-        sort: sinon.stub().callsFake(() => ({
-          skip: sinon.stub().returns({
-            limit: sinon.stub().resolves(entries)
-          })
-        }))
+        skip: sinon.stub().returns({
+          limit: sinon.stub().resolves(entries)
+        })
       }))
     });
 
@@ -162,12 +156,10 @@ describe('VocabularyService', () => {
 
   it('builds a tree response', async () => {
     g.VocabularyEntry.find = sinon.stub().returns({
-      sort: sinon.stub().callsFake(() => ({
-        sort: sinon.stub().resolves([
-          { id: 'e1', vocabulary: 'v1', label: 'Parent', value: 'parent', order: 0 },
-          { id: 'e2', vocabulary: 'v1', label: 'Child', value: 'child', parent: 'e1', order: 1 }
-        ])
-      }))
+      sort: sinon.stub().resolves([
+        {id: 'e1', vocabulary: 'v1', label: 'Parent', value: 'parent', order: 0},
+        {id: 'e2', vocabulary: 'v1', label: 'Child', value: 'child', parent: 'e1', order: 1}
+      ])
     }) as unknown as VocabularyEntryModelStub['find'];
     const tree = await service.getTree('v1');
     expect(tree).to.have.length(1);
@@ -197,13 +189,11 @@ describe('VocabularyService', () => {
     g.VocabularyEntry.count = countStub as unknown as VocabularyEntryModelStub['count'];
     g.VocabularyEntry.find = sinon.stub().returns({
       sort: sinon.stub().returns({
-        sort: sinon.stub().returns({
-          skip: sinon.stub().returns({
-            limit: sinon.stub().resolves([
-              { id: 'e1', label: 'Open', value: 'open' },
-              { id: 'e2', label: 'Closed', value: 'closed' }
-            ])
-          })
+        skip: sinon.stub().returns({
+          limit: sinon.stub().resolves([
+            {id: 'e1', label: 'Open', value: 'open'},
+            {id: 'e2', label: 'Closed', value: 'closed'}
+          ])
         })
       })
     }) as unknown as VocabularyEntryModelStub['find'];
@@ -235,16 +225,14 @@ describe('VocabularyService', () => {
         ]);
       }
       return {
-        sort: sinon.stub().returns({
-          sort: sinon.stub().resolves(
-            criteria.parent === null
-              ? [
-                { id: 'e1', label: 'Mathematical Sciences', value: '01', identifier: '01', parent: null },
-                { id: 'e2', label: 'Physical Sciences', value: '02', identifier: '02', parent: null }
-              ]
-              : []
-          )
-        })
+        sort: sinon.stub().resolves(
+          criteria.parent === null
+            ? [
+              {id: 'e1', label: 'Mathematical Sciences', value: '01', identifier: '01', parent: null},
+              {id: 'e2', label: 'Physical Sciences', value: '02', identifier: '02', parent: null}
+            ]
+            : []
+        )
       };
     }) as unknown as VocabularyEntryModelStub['find'];
 
@@ -269,16 +257,14 @@ describe('VocabularyService', () => {
         return Promise.resolve([]);
       }
       return {
-        sort: sinon.stub().returns({
-          sort: sinon.stub().resolves(
-            criteria.parent === 'e1'
-              ? [
-                { id: 'e3', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: 'e1' },
-                { id: 'e4', label: 'Applied Mathematics', value: '0102', identifier: '0102', parent: 'e1' }
-              ]
-              : []
-          )
-        })
+        sort: sinon.stub().resolves(
+          criteria.parent === 'e1'
+            ? [
+              {id: 'e3', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: 'e1'},
+              {id: 'e4', label: 'Applied Mathematics', value: '0102', identifier: '0102', parent: 'e1'}
+            ]
+            : []
+        )
       };
     }) as unknown as VocabularyEntryModelStub['find'];
 
@@ -320,15 +306,13 @@ describe('VocabularyService', () => {
         ]);
       }
       return {
-        sort: sinon.stub().returns({
-          sort: sinon.stub().resolves(
-            criteria.parent === 'e1'
-              ? [
-                { id: 'e2', label: 'Node B', value: 'B', identifier: 'B', parent: 'e1' }
-              ]
-              : []
-          )
-        })
+        sort: sinon.stub().resolves(
+          criteria.parent === 'e1'
+            ? [
+              {id: 'e2', label: 'Node B', value: 'B', identifier: 'B', parent: 'e1'}
+            ]
+            : []
+        )
       };
     }) as unknown as VocabularyEntryModelStub['find'];
 
