@@ -53,10 +53,13 @@ describe('FormEventBusAdapterEffects', () => {
     effects = TestBed.inject(FormEventBusAdapterEffects);
     eventBus = TestBed.inject(FormComponentEventBus);
     store = TestBed.inject(MockStore);
+    store.overrideSelector(FormSelectors.selectStatus, FormStatus.READY);
+    store.refreshState();
     actions$ = actionsSubject.asObservable();
   }
 
   afterEach(() => {
+    store?.resetSelectors();
     eventBus?.ngOnDestroy();
     TestBed.resetTestingModule();
   });
