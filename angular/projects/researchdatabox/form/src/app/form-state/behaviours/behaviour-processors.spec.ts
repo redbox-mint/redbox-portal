@@ -2,6 +2,45 @@ import { FormBehaviourProcessorType } from '@researchdatabox/sails-ng-common';
 import { executeBehaviourProcessor } from './behaviour-processors';
 
 describe('Behaviour processors', () => {
+  it('keeps the current pipeline value when a JSONata template has no compiled evaluator', async () => {
+    const recordService = jasmine.createSpyObj('RecordService', ['getRecordMeta']);
+    const logger = jasmine.createSpyObj('LoggerService', ['debug', 'warn', 'error']);
+    const executionContext = {
+      behaviourIndex: 1,
+      processorIndex: 2,
+      recordService,
+      logger,
+      metadataCache: new Map(),
+    } as any;
+
+    const result = await executeBehaviourProcessor(
+      {
+        type: FormBehaviourProcessorType.JSONataTransform,
+        config: {
+          hasTemplate: true,
+          template: 'value.title',
+        },
+      } as any,
+      {
+        value: { title: 'Current title' },
+        event: {},
+        formData: {},
+        requestParams: {},
+        runtimeContext: {},
+      },
+      executionContext
+    );
+
+    expect(result).toEqual({ title: 'Current title' });
+    expect(logger.warn).toHaveBeenCalledOnceWith(
+      'JSONata transform configured without compiled template evaluator; falling back to current pipeline value.',
+      {
+        behaviourIndex: 1,
+        processorIndex: 2,
+      }
+    );
+  });
+
   it('re-fetches saved server metadata for repeated refreshes on the same oid', async () => {
     const recordService = jasmine.createSpyObj('RecordService', ['getRecordMeta']);
     const logger = jasmine.createSpyObj('LoggerService', ['debug', 'warn', 'error']);

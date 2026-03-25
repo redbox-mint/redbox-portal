@@ -106,15 +106,29 @@ async function resolveActionValue(
   ctx: BehaviourActionExecutionContext
 ): Promise<unknown> {
   const config = action.config as { hasValueTemplate?: boolean; valueTemplate?: string };
-  if (config.hasValueTemplate && ctx.compiledTemplateEvaluator) {
-    return ctx.compiledTemplateEvaluator.evaluate(
-      ctx.behaviourIndex,
-      [ctx.listName, ctx.actionIndex, 'config', 'valueTemplate'],
-      pipelineContext
-    );
+  if (config.hasValueTemplate) {
+    if (ctx.compiledTemplateEvaluator) {
+      return ctx.compiledTemplateEvaluator.evaluate(
+        ctx.behaviourIndex,
+        [ctx.listName, ctx.actionIndex, 'config', 'valueTemplate'],
+        pipelineContext
+      );
+    }
+
+    ctx.logger.warn('Behaviour action valueTemplate: compiled evaluator unavailable; falling back to pipeline value.', {
+      behaviourIndex: ctx.behaviourIndex,
+      actionIndex: ctx.actionIndex,
+      listName: ctx.listName,
+    });
+    return pipelineContext.value;
   }
   if (config.valueTemplate !== undefined) {
-    return config.valueTemplate;
+    ctx.logger.warn('Behaviour action valueTemplate: ignored raw template because hasValueTemplate is false; falling back to pipeline value.', {
+      behaviourIndex: ctx.behaviourIndex,
+      actionIndex: ctx.actionIndex,
+      listName: ctx.listName,
+    });
+    return pipelineContext.value;
   }
   return pipelineContext.value;
 }

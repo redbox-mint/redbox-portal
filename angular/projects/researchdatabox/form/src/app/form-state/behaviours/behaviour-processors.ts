@@ -56,8 +56,8 @@ export async function executeBehaviourProcessor(
  * JSONata transform processor.
  *
  * If the template was stripped for client delivery, the compiled evaluator is
- * used; otherwise the raw template value is treated as a fallback for tests or
- * non-stripped contexts.
+ * used; otherwise the current pipeline value is preserved so raw JSONata source
+ * is never written back into the pipeline.
  */
 async function executeJSONataTransform(
   processor: Extract<FormBehaviourProcessorConfig, { type: 'jsonataTransform' }>,
@@ -65,14 +65,27 @@ async function executeJSONataTransform(
   ctx: BehaviourProcessorExecutionContext
 ): Promise<unknown> {
   const templateConfig = processor.config ?? {};
-  if (templateConfig.hasTemplate && ctx.compiledTemplateEvaluator) {
+  const hasTemplate = !!templateConfig.hasTemplate;
+
+  if (hasTemplate && ctx.compiledTemplateEvaluator) {
     return ctx.compiledTemplateEvaluator.evaluate(
       ctx.behaviourIndex,
       ['processors', ctx.processorIndex, 'config', 'template'],
       pipelineContext
     );
   }
-  return templateConfig.template ?? pipelineContext.value;
+
+  if (hasTemplate && !ctx.compiledTemplateEvaluator) {
+    ctx.logger.warn(
+      'JSONata transform configured without compiled template evaluator; falling back to current pipeline value.',
+      {
+        behaviourIndex: ctx.behaviourIndex,
+        processorIndex: ctx.processorIndex,
+      }
+    );
+  }
+
+  return pipelineContext.value;
 }
 
 /**
