@@ -160,6 +160,12 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { RecordMetadataRetrieverFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  PublishDataLocationRefreshComponentName,
+  PublishDataLocationRefreshFieldComponentDefinitionOutline,
+  PublishDataLocationRefreshFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { PublishDataLocationRefreshFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   SaveStatusFieldComponentDefinitionOutline,
   SaveStatusFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
@@ -509,6 +515,16 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
     },
     RecordMetadataRetrieverComponent: {
       componentClassName: RecordMetadataRetrieverComponentName,
+    },
+  },
+  // Map the legacy button-like field to the new explicit V5 component so the
+  // runtime can drive refresh through behaviours instead of embedded fetch code.
+  PublishDataLocationRefresh: {
+    '': {
+      componentClassName: PublishDataLocationRefreshComponentName,
+    },
+    PublishDataLocationRefreshComponent: {
+      componentClassName: PublishDataLocationRefreshComponentName,
     },
   },
 };
@@ -1067,6 +1083,22 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       item.layout.config.label = undefined;
       item.layout.config.visible = false;
     }
+  }
+
+  // Preserve shared label/visibility/readonly config, while intentionally not
+  // inventing any model state during migration.
+  visitPublishDataLocationRefreshFieldComponentDefinition(
+    item: PublishDataLocationRefreshFieldComponentDefinitionOutline
+  ): void {
+    const field = this.getV4Data();
+    item.config = new PublishDataLocationRefreshFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+  }
+
+  visitPublishDataLocationRefreshFormComponentDefinition(
+    item: PublishDataLocationRefreshFormComponentDefinitionOutline
+  ): void {
+    this.populateFormComponent(item);
   }
 
   /* Save Status */

@@ -141,6 +141,10 @@ import {
   PublishDataLocationSelectorFieldModelDefinitionOutline,
   PublishDataLocationSelectorFormComponentDefinitionOutline,
 } from '../component/publish-data-location-selector.outline';
+import {
+  PublishDataLocationRefreshFieldComponentDefinitionOutline,
+  PublishDataLocationRefreshFormComponentDefinitionOutline,
+} from '../component/publish-data-location-refresh.outline';
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -387,6 +391,16 @@ export interface FormConfigVisitorOutline {
   visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void;
 
   visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void;
+
+  // Refresh trigger gets dedicated visitor hooks because it is component-only
+  // and should never be mistaken for a normal field+model pair.
+  visitPublishDataLocationRefreshFieldComponentDefinition(
+    item: PublishDataLocationRefreshFieldComponentDefinitionOutline
+  ): void;
+
+  visitPublishDataLocationRefreshFormComponentDefinition(
+    item: PublishDataLocationRefreshFormComponentDefinitionOutline
+  ): void;
 
   visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void;
 

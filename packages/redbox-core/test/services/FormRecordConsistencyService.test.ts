@@ -182,8 +182,6 @@ describe('FormRecordConsistencyService', function () {
     it('should extract templates using visitor', async function () {
       const item = { type: 'form' };
 
-      (global as any).FormsService.buildClientFormConfig.returns({});
-
       // We can't easily mock the internal visitor class instantiation
       // But we can check if it throws or runs
       // Assuming dependencies are available
@@ -193,7 +191,131 @@ describe('FormRecordConsistencyService', function () {
         expect(result).to.be.an('array');
       } catch (e) {
         // If dependencies are missing, we might skip
-      }
+        }
+    });
+
+    it('should extract form behaviour compiled item entries before client stripping', async function () {
+      const item = {
+        name: 'behaviour-form',
+        componentDefinitions: [
+          {
+            name: 'title',
+            component: { class: 'SimpleInputComponent', config: { type: 'text' } },
+            model: { class: 'SimpleInputModel', config: { validators: [] } },
+            layout: { class: 'DefaultLayout', config: {} }
+          }
+        ],
+        behaviours: [
+          {
+            name: 'fetch-on-ready',
+            condition: '$exists(runtimeContext.requestParams.rdmpOid)',
+            conditionKind: 'jsonata_query',
+            runOnFormReady: true,
+            processors: [
+              {
+                type: 'jsonataTransform',
+                config: {
+                  template: 'runtimeContext.requestParams.rdmpOid'
+                }
+              }
+            ],
+            actions: [
+              {
+                type: 'setValue',
+                config: {
+                  fieldPath: '$substringBefore(event.fieldId, "/title") & "/description"',
+                  fieldPathKind: 'jsonata',
+                  valueTemplate: 'value.title'
+                }
+              }
+            ]
+          }
+        ]
+      } as any;
+
+      const result = await FormRecordConsistencyService.extractRawTemplates(item, 'edit');
+
+      expect(result).to.deep.include({
+        key: ['behaviours', '0', 'condition'],
+        kind: 'jsonata',
+        value: '$exists(runtimeContext.requestParams.rdmpOid)'
+      });
+      expect(result).to.deep.include({
+        key: ['behaviours', '0', 'processors', '0', 'config', 'template'],
+        kind: 'jsonata',
+        value: 'runtimeContext.requestParams.rdmpOid'
+      });
+      expect(result).to.deep.include({
+        key: ['behaviours', '0', 'actions', '0', 'config', 'fieldPath'],
+        kind: 'jsonata',
+        value: '$substringBefore(event.fieldId, "/title") & "/description"'
+      });
+      expect(result).to.deep.include({
+        key: ['behaviours', '0', 'actions', '0', 'config', 'valueTemplate'],
+        kind: 'jsonata',
+        value: 'value.title'
+      });
+    });
+
+    it('should preserve client-form expression keys while also extracting behaviours', async function () {
+      const item = {
+        name: 'mixed-form',
+        componentDefinitions: [
+          {
+            name: 'title',
+            expressions: [
+              {
+                name: 'title-copy',
+                config: {
+                  conditionKind: 'jsonpointer',
+                  condition: '/title::field.value.changed',
+                  target: 'model.value',
+                  template: 'event.value',
+                }
+              }
+            ],
+            component: { class: 'SimpleInputComponent', config: { type: 'text' } },
+            model: { class: 'SimpleInputModel', config: { validators: [] } },
+            layout: { class: 'DefaultLayout', config: {} }
+          }
+        ],
+        behaviours: [
+          {
+            name: 'behaviour-copy',
+            condition: '$exists(event.value)',
+            conditionKind: 'jsonata',
+            actions: [
+              {
+                type: 'emitEvent',
+                config: {
+                  eventType: 'field.value.changed',
+                  fieldId: '/title',
+                  sourceId: '*',
+                  valueTemplate: 'value'
+                }
+              }
+            ]
+          }
+        ]
+      } as any;
+
+      const result = await FormRecordConsistencyService.extractRawTemplates(item, 'edit');
+
+      expect(result).to.deep.include({
+        key: ['componentDefinitions', '0', 'expressions', '0', 'config', 'template'],
+        kind: 'jsonata',
+        value: 'event.value'
+      });
+      expect(result).to.deep.include({
+        key: ['behaviours', '0', 'condition'],
+        kind: 'jsonata',
+        value: '$exists(event.value)'
+      });
+      expect(result).to.deep.include({
+        key: ['behaviours', '0', 'actions', '0', 'config', 'valueTemplate'],
+        kind: 'jsonata',
+        value: 'value'
+      });
     });
   });
 

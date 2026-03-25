@@ -64,6 +64,7 @@ import { TiptapEditorDirective } from 'ngx-tiptap';
 import { MapComponent } from './component/map.component';
 import { FileUploadComponent } from './component/file-upload.component';
 import { DataLocationComponent } from './component/data-location.component';
+import { PublishDataLocationRefreshComponent } from './component/publish-data-location-refresh.component';
 import { PublishDataLocationSelectorComponent } from './component/publish-data-location-selector.component';
 import { RecordMetadataRetrieverComponent } from './component/record-metadata-retriever.component';
 import { A11yModule } from '@angular/cdk/a11y';
@@ -112,6 +113,8 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     MapComponent,
     FileUploadComponent,
     RecordMetadataRetrieverComponent,
+    // Dedicated V5 replacement for the legacy publish-data-location refresh button.
+    PublishDataLocationRefreshComponent,
     DataLocationComponent,
     PublishDataLocationSelectorComponent,
     FormDebugPanelComponent,

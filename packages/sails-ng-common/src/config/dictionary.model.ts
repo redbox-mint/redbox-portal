@@ -38,6 +38,10 @@ import {
 } from './component/record-metadata-retriever.model';
 import { DataLocationDefaults, DataLocationMap } from './component/data-location.model';
 import {
+  PublishDataLocationRefreshDefaults,
+  PublishDataLocationRefreshMap,
+} from './component/publish-data-location-refresh.model';
+import {
   PublishDataLocationSelectorDefaults,
   PublishDataLocationSelectorMap,
 } from './component/publish-data-location-selector.model';
@@ -81,6 +85,9 @@ export const AllDefs = [
   ...FileUploadMap,
   ...RecordMetadataRetrieverMap,
   ...DataLocationMap,
+  // Register the stateless refresh trigger alongside the publication selector so
+  // construct/migrate/client visitors all see one coherent component family.
+  ...PublishDataLocationRefreshMap,
   ...PublishDataLocationSelectorMap,
 ] as const;
 
@@ -118,6 +125,7 @@ const RawDefaults = [
   FileUploadDefaults,
   RecordMetadataRetrieverDefaults,
   DataLocationDefaults,
+  PublishDataLocationRefreshDefaults,
   PublishDataLocationSelectorDefaults,
 ];
 

@@ -57,6 +57,7 @@ import { MapTypes } from './component/map.outline';
 import { FileUploadTypes } from './component/file-upload.outline';
 import { RecordMetadataRetrieverTypes } from './component/record-metadata-retriever.outline';
 import { DataLocationTypes } from './component/data-location.outline';
+import { PublishDataLocationRefreshTypes } from './component/publish-data-location-refresh.outline';
 import { PublishDataLocationSelectorTypes } from './component/publish-data-location-selector.outline';
 import { CancelButtonTypes } from './component/cancel-button.outline';
 import { TabNavButtonTypes } from './component/tab-nav-button.outline';
@@ -98,6 +99,9 @@ export type AllTypes =
   | FileUploadTypes
   | RecordMetadataRetrieverTypes
   | DataLocationTypes
+  // Refresh trigger participates in the shared config unions so all visitors can
+  // reason about it like any other first-class component.
+  | PublishDataLocationRefreshTypes
   | PublishDataLocationSelectorTypes;
 
 /*

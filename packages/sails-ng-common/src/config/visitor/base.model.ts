@@ -144,6 +144,10 @@ import {
   PublishDataLocationSelectorFieldModelDefinitionOutline,
   PublishDataLocationSelectorFormComponentDefinitionOutline,
 } from '../component/publish-data-location-selector.outline';
+import {
+  PublishDataLocationRefreshFieldComponentDefinitionOutline,
+  PublishDataLocationRefreshFormComponentDefinitionOutline,
+} from '../component/publish-data-location-refresh.outline';
 
 /**
  * The form config visitor definition.
@@ -545,6 +549,20 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   }
 
   visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  // Default stubs keep the new component aligned with the rest of the visitor
+  // contract until each concrete visitor opts in explicitly.
+  visitPublishDataLocationRefreshFieldComponentDefinition(
+    item: PublishDataLocationRefreshFieldComponentDefinitionOutline
+  ): void {
+    this.notImplemented();
+  }
+
+  visitPublishDataLocationRefreshFormComponentDefinition(
+    item: PublishDataLocationRefreshFormComponentDefinitionOutline
+  ): void {
     this.notImplemented();
   }
 

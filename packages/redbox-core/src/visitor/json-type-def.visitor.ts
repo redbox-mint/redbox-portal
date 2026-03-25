@@ -120,6 +120,10 @@ import {
   DataLocationFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  PublishDataLocationRefreshFieldComponentDefinitionOutline,
+  PublishDataLocationRefreshFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   PublishDataLocationSelectorFieldComponentDefinitionOutline,
   PublishDataLocationSelectorFieldModelDefinitionOutline,
   PublishDataLocationSelectorFormComponentDefinitionOutline,
@@ -540,6 +544,14 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  // The refresh trigger contributes no persisted JSON schema because it does not
+  // write a value into form data.
+  visitPublishDataLocationRefreshFieldComponentDefinition(_item: PublishDataLocationRefreshFieldComponentDefinitionOutline): void { }
+
+  visitPublishDataLocationRefreshFormComponentDefinition(item: PublishDataLocationRefreshFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 

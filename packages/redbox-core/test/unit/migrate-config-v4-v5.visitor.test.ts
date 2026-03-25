@@ -1596,4 +1596,30 @@ describe("Migrate v4 to v5 Visitor", async () => {
             }
         ]);
     });
+
+    it("maps legacy PublishDataLocationRefresh to the v5 refresh component", async function () {
+        // The migrated output must keep the button semantics without carrying
+        // forward the old imperative-fetch implementation details.
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: "publish-data-location-refresh-migration",
+                fields: [
+                    {
+                        class: "PublishDataLocationRefresh",
+                        compClass: "PublishDataLocationRefreshComponent",
+                        definition: {
+                            name: "dataPubLocationRefresherTrigger",
+                            label: "@refresh-attachments-text"
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        expect(migratedField.component.class).to.equal("PublishDataLocationRefreshComponent");
+        expect(migratedField.model).to.equal(undefined);
+        expect((migratedField.component.config as Record<string, unknown>).label).to.equal("@refresh-attachments-text");
+    });
 });

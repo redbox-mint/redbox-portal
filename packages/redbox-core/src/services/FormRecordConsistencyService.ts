@@ -30,6 +30,9 @@ import { DataValueFormConfigVisitor } from "../visitor/data-value.visitor";
 import { JsonTypeDefSchemaFormConfigVisitor } from "../visitor/json-type-def.visitor";
 import { TemplateFormConfigVisitor } from "../visitor/template.visitor";
 import { ConstructFormConfigVisitor } from "../visitor/construct.visitor";
+import { ClientFormConfigVisitor } from '../visitor/client.visitor';
+import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
+import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
 
 
 
@@ -575,7 +578,25 @@ export namespace Services {
           recordMetadata?: Record<string, unknown> | null,
           reusableFormDefs?: ReusableFormDefinitions
         ): Promise<TemplateCompileInput[]> {
-          const form = await FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata, reusableFormDefs);
+          const constructor = new ConstructFormConfigVisitor(this.logger);
+          const constructedForm = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
+          const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
+          await vocabVisitor.resolveVocabs(constructedForm);
+          const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
+          contextVariablesVisitor.applyContextVariables(constructedForm);
+          const rawBehaviours = _.cloneDeep(constructedForm.behaviours);
+
+          const clientVisitor = new ClientFormConfigVisitor(this.logger);
+          const clientForm = clientVisitor.start({
+            form: constructedForm,
+            formMode,
+            userRoles,
+            reusableFormDefs,
+          });
+
+          const form = clientForm;
+          form.behaviours = rawBehaviours;
+
           const visitor = new TemplateFormConfigVisitor(this.logger);
           return visitor.start({form});
         }

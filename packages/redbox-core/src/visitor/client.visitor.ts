@@ -115,6 +115,10 @@ import {
   DataLocationFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  PublishDataLocationRefreshFieldComponentDefinitionOutline,
+  PublishDataLocationRefreshFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   PublishDataLocationSelectorFieldComponentDefinitionOutline,
   PublishDataLocationSelectorFieldModelDefinitionOutline,
   PublishDataLocationSelectorFormComponentDefinitionOutline,
@@ -243,13 +247,15 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     if (!Array.isArray(this.clientFormConfig.componentDefinitions)) {
       return;
     }
-    this.clientFormConfig.componentDefinitions = this.applyPostPruningTransforms(this.clientFormConfig.componentDefinitions);
+    this.clientFormConfig.componentDefinitions = this.applyPostPruningTransforms(
+      this.clientFormConfig.componentDefinitions
+    );
   }
 
   protected applyPostPruningTransforms(
     items: AvailableFormComponentDefinitionOutlines[]
   ): AvailableFormComponentDefinitionOutlines[] {
-        return items
+    return items
       .filter(item => !this.isExplicitlyDisallowedByFormMode(item))
       .map(item => this.applyPostPruningTransformToComponent(item));
   }
@@ -264,8 +270,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   ): AvailableFormComponentDefinitionOutlines {
     const className = item?.component?.class;
     const shouldTransformRepeatable = className === RepeatableComponentName;
-    const shouldTransformGroup =
-      className === GroupFieldComponentName && item?.layout?.class !== ActionRowLayoutName;
+    const shouldTransformGroup = className === GroupFieldComponentName && item?.layout?.class !== ActionRowLayoutName;
     const shouldTransformQuestionTree = className === QuestionTreeComponentName;
     const shouldSkipViewTransform = this.hasExplicitAllowedMode(item, 'view');
 
@@ -294,10 +299,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     return item;
   }
 
-  protected hasExplicitAllowedMode(
-    item: AvailableFormComponentDefinitionOutlines,
-    mode: FormModesConfig
-  ): boolean {
+  protected hasExplicitAllowedMode(item: AvailableFormComponentDefinitionOutlines, mode: FormModesConfig): boolean {
     const overrides = item?.overrides as Record<string, unknown> | undefined;
     if (overrides?.__forceViewTransform === true) {
       return false;
@@ -318,18 +320,69 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       );
     }
     if (Array.isArray(config.tabs)) {
-      config.tabs = this.applyPostPruningTransforms(
-        config.tabs as AvailableFormComponentDefinitionOutlines[]
-      );
+      config.tabs = this.applyPostPruningTransforms(config.tabs as AvailableFormComponentDefinitionOutlines[]);
     }
     if (Array.isArray(config.panels)) {
-      config.panels = this.applyPostPruningTransforms(
-        config.panels as AvailableFormComponentDefinitionOutlines[]
-      );
+      config.panels = this.applyPostPruningTransforms(config.panels as AvailableFormComponentDefinitionOutlines[]);
     }
   }
 
   visitFormConfig(item: FormConfigOutline): void {
+    // Behaviours follow the same client-delivery pattern as expressions:
+    // compile JSONata on the server, strip raw source from the delivered config,
+    // and leave marker flags so the Angular runtime knows which compiled keys to
+    // evaluate. JSONPointer conditions remain inline because they are cheap and
+    // already executable in the browser without compiled assets.
+    //
+    // v1 intentionally only strips the built-in behaviour templates defined in
+    // the implementation plan. Future extensibility would likely move this to a
+    // more generic registry-driven mechanism.
+    const behaviours = (item as FormConfigOutline & { behaviours?: Array<Record<string, unknown>> }).behaviours;
+    (behaviours ?? []).forEach((behaviour: Record<string, unknown>) => {
+      const typedBehaviour = behaviour as Record<string, unknown> & {
+        condition?: string;
+        conditionKind?: string;
+        hasCondition?: boolean;
+        processors?: Array<{ config?: { template?: string; hasTemplate?: boolean } }>;
+        actions: Array<{ config: Record<string, unknown> }>;
+        onError?: Array<{ config: Record<string, unknown> }>;
+      };
+      const conditionKind = typedBehaviour.conditionKind ?? 'jsonpointer';
+      if (conditionKind !== 'jsonpointer') {
+        typedBehaviour.hasCondition = typedBehaviour.condition !== undefined;
+        delete typedBehaviour.condition;
+      }
+
+      (typedBehaviour.processors ?? []).forEach(processor => {
+        const config = processor.config as { template?: string; hasTemplate?: boolean } | undefined;
+        if (config?.template) {
+          config.hasTemplate = true;
+          delete config.template;
+        }
+      });
+
+      [typedBehaviour.actions, typedBehaviour.onError].forEach(actions => {
+        (actions ?? []).forEach(action => {
+          const config = action.config as {
+            valueTemplate?: string;
+            hasValueTemplate?: boolean;
+            fieldPath?: string;
+            fieldPathKind?: string;
+            hasFieldPathTemplate?: boolean;
+          };
+
+          if (config.valueTemplate) {
+            config.hasValueTemplate = true;
+            delete config.valueTemplate;
+          }
+          if (config.fieldPathKind === 'jsonata' && config.fieldPath) {
+            config.hasFieldPathTemplate = true;
+            delete config.fieldPath;
+          }
+        });
+      });
+    });
+
     this.removePropsUndefined(item);
     const items: AvailableFormComponentDefinitionOutlines[] = [];
     const that = this;
@@ -772,11 +825,15 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
   /* Record Metadata Retriever */
 
-  visitRecordMetadataRetrieverFieldComponentDefinition(item: RecordMetadataRetrieverFieldComponentDefinitionOutline): void {
+  visitRecordMetadataRetrieverFieldComponentDefinition(
+    item: RecordMetadataRetrieverFieldComponentDefinitionOutline
+  ): void {
     this.processFieldComponentDefinition(item);
   }
 
-  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
+  visitRecordMetadataRetrieverFormComponentDefinition(
+    item: RecordMetadataRetrieverFormComponentDefinitionOutline
+  ): void {
     this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
@@ -796,15 +853,36 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.processFormComponentDefinition(item);
   }
 
-  visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void {
+  // Client visitor treats the refresh trigger like any other field component,
+  // but there is intentionally no model companion to process.
+  visitPublishDataLocationRefreshFieldComponentDefinition(
+    item: PublishDataLocationRefreshFieldComponentDefinitionOutline
+  ): void {
     this.processFieldComponentDefinition(item);
   }
 
-  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): void {
+  visitPublishDataLocationRefreshFormComponentDefinition(
+    item: PublishDataLocationRefreshFormComponentDefinitionOutline
+  ): void {
+    this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+  }
+
+  visitPublishDataLocationSelectorFieldComponentDefinition(
+    item: PublishDataLocationSelectorFieldComponentDefinitionOutline
+  ): void {
+    this.processFieldComponentDefinition(item);
+  }
+
+  visitPublishDataLocationSelectorFieldModelDefinition(
+    item: PublishDataLocationSelectorFieldModelDefinitionOutline
+  ): void {
     this.processFieldModelDefinition(item);
   }
 
-  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void {
+  visitPublishDataLocationSelectorFormComponentDefinition(
+    item: PublishDataLocationSelectorFormComponentDefinitionOutline
+  ): void {
     this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
@@ -876,11 +954,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const isPostPruningCandidate =
       this.formMode === 'view' &&
       this.formModeProvided &&
-      (
-        item?.component?.class === RepeatableComponentName ||
+      (item?.component?.class === RepeatableComponentName ||
         item?.component?.class === GroupFieldComponentName ||
-        item?.component?.class === QuestionTreeComponentName
-      );
+        item?.component?.class === QuestionTreeComponentName);
 
     // Constraint define the criteria for including a component.
     // The client has no need for the constraints.
@@ -909,7 +985,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.removePropsUndefined(item?.config ?? {});
   }
 
-  protected removeShowValidIndicatorIfDefault(item: FieldComponentDefinitionOutline | FieldLayoutDefinitionOutline | null | undefined) {
+  protected removeShowValidIndicatorIfDefault(
+    item: FieldComponentDefinitionOutline | FieldLayoutDefinitionOutline | null | undefined
+  ) {
     const config = (item?.config ?? {}) as globalThis.Record<string, unknown>;
     if (config.showValidIndicator === false) {
       delete config.showValidIndicator;
@@ -1106,8 +1184,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
             if (currentValueType !== 'object') {
               const schemaNames = Object.keys(schemaCurrent);
               const canCoerceToLegacyGroupRow =
-                schemaNames.includes('name') &&
-                ['string', 'timestamp', 'number', 'boolean'].includes(currentValueType);
+                schemaNames.includes('name') && ['string', 'timestamp', 'number', 'boolean'].includes(currentValueType);
               if (canCoerceToLegacyGroupRow) {
                 currentValue = {
                   name: String(currentValue),
