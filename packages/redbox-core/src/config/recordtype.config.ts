@@ -1,7 +1,7 @@
 /**
  * Record Type Config Interface
  * (sails.config.recordtype)
- * 
+ *
  * Record type definitions with hooks and permissions.
  */
 
@@ -170,7 +170,7 @@ export const recordtype: RecordTypeConfig = {
                     //       }
                     //     }
                     //   }
-                    // }  
+                    // }
                 ],
                 // Requires the PDF Gen hook to be installed https://www.npmjs.com/package/@researchdatabox/sails-hook-redbox-pdfgen
                 // post: [{
@@ -423,7 +423,7 @@ export const recordtype: RecordTypeConfig = {
                     {
                         function: 'sails.services.triggerservice.transitionWorkflow',
                         options: {
-                            "triggerCondition": "<%= _.isEqual(workflow.stage, 'queued') && _.isEqual(metadata.embargoByDate, true) %>",
+                            "triggerCondition": "<%= _.isEqual(workflow.stage, 'queued') && metadata.embargoByDate?.toString() === 'true' %>",
                             "targetWorkflowStageName": "embargoed",
                             "targetWorkflowStageLabel": "Embargoed",
                             "targetForm": "dataPublication-1.0-embargoed"
@@ -533,7 +533,7 @@ export const recordtype: RecordTypeConfig = {
                     {
                         function: 'sails.services.triggerservice.transitionWorkflow',
                         options: {
-                            "triggerCondition": "<%= _.isEqual(workflow.stage, 'published') && _.isEqual(metadata.embargoByDate, true) %>",
+                            "triggerCondition": "<%= _.isEqual(workflow.stage, 'published') && metadata.embargoByDate?.toString() === 'true' %>",
                             "targetWorkflowStageName": "embargoed",
                             "targetWorkflowStageLabel": "Embargoed",
                             "targetForm": "dataPublication-1.0-embargoed"
