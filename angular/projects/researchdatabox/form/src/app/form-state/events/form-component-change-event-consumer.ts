@@ -2,17 +2,27 @@ import { FormComponentEventBus } from './form-component-event-bus.service';
 import {
   FormComponentEventType,
   FieldValueChangedEvent,
-  FormComponentEventTypeValue,
+  FormComponentEventTypeValue, createFormValidationChangeRequestEvent,
 } from './form-component-event.types';
 import { FormComponentEventBaseConsumer } from './form-component-base-event-consumer';
-import { FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
-import { startsWith as _startsWith, set as _set } from 'lodash-es';
+import {
+  FormExpressionsConfigFrame,
+  FormExpressionsTargetComponentPrefix,
+  FormExpressionsTargetLayoutPrefix,
+  FormExpressionsTargetModelValue, FormExpressionsTargetValidationGroups
+} from '@researchdatabox/sails-ng-common';
+import { set as _set } from 'lodash-es';
 import { setControlValue } from '../custom-set-value.control';
 import { syncComponentDisplayFromModel } from '../custom-display-sync.control';
 
 /**
  * Consumes `valueChange` events from the `FormComponentEventBus` and updates the component's form control.
  *
+ * Supported targets:
+ * - `model.value` → this.control.setValue
+ * - `layout.* →` this.options.definition.layout.componentDefinition.config.*
+ * - `component.* →` this.options.definition.component.componentDefinition.config.*
+ * - `form.enabledValidationGroups` → create an event indicating the change
  */
 export class FormComponentValueChangeEventConsumer extends FormComponentEventBaseConsumer {
   protected override readonly consumedEventType: FormComponentEventTypeValue =
@@ -33,29 +43,34 @@ export class FormComponentValueChangeEventConsumer extends FormComponentEventBas
       targetValue = await this.evaluateExpressionJSONata(expression, event, 'template');
     }
     // Set the target based on the expression config
-    /*
-     * model.value --> this.control.setValue
-     * layout.* --> this.options.definition.layout.componentDefinition.config.*
-     * component.* --> this.options.component.*
-     */
-    if (expression.config.target == 'model.value') {
+    const exprTarget = expression.config.target || '';
+    if (exprTarget === FormExpressionsTargetModelValue) {
       if (this.control && this.control.value !== targetValue) {
         await setControlValue(this.control, targetValue, { emitEvent: false });
         await syncComponentDisplayFromModel(this.options?.component);
       }
-    } else if (_startsWith(expression.config.target || '', 'layout.')) {
-      const layoutPath = expression.config.target!.substring('layout.'.length);
-      if (this.options?.definition?.layout?.componentDefinition?.config) {
-        _set(this.options.definition.layout.componentDefinition?.config, layoutPath, targetValue);
+    } else if (exprTarget.startsWith(FormExpressionsTargetLayoutPrefix)) {
+      const layoutPath = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);
+      const container = this.options?.definition?.layout?.componentDefinition?.config;
+      if (container) {
+        _set(container, layoutPath, targetValue);
       }
-    } else if (_startsWith(expression.config.target || '', 'component.')) {
-      const componentPath = expression.config.target!.substring('component.'.length);
-      if (this.options?.definition?.component?.componentDefinition?.config) {
-        _set(this.options?.definition?.component?.componentDefinition?.config, componentPath, targetValue);
+    } else if (exprTarget.startsWith(FormExpressionsTargetComponentPrefix)) {
+      const componentPath = exprTarget.substring(FormExpressionsTargetComponentPrefix.length);
+      const container = this.options?.definition?.component?.componentDefinition?.config;
+      if (container) {
+        _set(container, componentPath, targetValue);
       }
+    } else if (exprTarget === FormExpressionsTargetValidationGroups) {
+      createFormValidationChangeRequestEvent({
+        sourceId: '',
+        fieldId: '',
+        initial: '',
+        groups: {          enable: [],          disable: [],        },
+      })
     } else {
       this.loggerService.warn(
-        `FormComponentValueChangeEventConsumer: Unknown target '${expression.config.target}' in expression config.`,
+        `FormComponentValueChangeEventConsumer: Unknown target '${exprTarget}' in expression config.`,
         expression
       );
     }
