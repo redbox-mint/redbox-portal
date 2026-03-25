@@ -62,8 +62,6 @@ import { FormExpressionsConfig } from '@researchdatabox/sails-ng-common';
 import {
   FormComponentDefinitionFrame,
   FormComponentDefinitionOutline,
-  FormExpressionsOperationConfigFrame,
-  FormExpressionsTemplateConfigFrame,
 } from '@researchdatabox/sails-ng-common';
 import {
   ContentComponentName,
@@ -2019,29 +2017,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       const exprItem = new FormExpressionsConfig();
       exprItem.name = exprData.name;
       exprItem.description = exprData.description;
-      const config = exprData.config;
-      if (!config) {
+      exprItem.config = exprData.config;
+      if (!exprItem.config) {
         throw new Error(`Missing config for expression: ${exprData.name}`);
-      }
-      if ('operation' in config) {
-        const opConfig = config as FormExpressionsOperationConfigFrame;
-        exprItem.config = {
-          operation: opConfig.operation,
-          condition: opConfig.condition,
-          conditionKind: opConfig.conditionKind,
-          target: opConfig.target,
-          ...(opConfig.template !== undefined && { template: opConfig.template }),
-          ...(opConfig.runOnFormReady !== undefined && { runOnFormReady: opConfig.runOnFormReady }),
-        };
-      } else {
-        const tmplConfig = config as FormExpressionsTemplateConfigFrame;
-        exprItem.config = {
-          template: tmplConfig.template,
-          condition: tmplConfig.condition,
-          conditionKind: tmplConfig.conditionKind,
-          target: tmplConfig.target,
-          ...(tmplConfig.runOnFormReady !== undefined && { runOnFormReady: tmplConfig.runOnFormReady }),
-        };
       }
       item.expressions.push(exprItem);
     }

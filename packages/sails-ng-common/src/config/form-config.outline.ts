@@ -48,8 +48,25 @@ export interface FormConfigFrame {
    * The validation groups will be set as part of loading the form.
    * Default ["all"] if none specified.
    *
-   * TODO: Should it be possible to change the enabled validation groups after the form has loaded?
-   *       If yes, this property will need to be updated when the enabled validation groups change.
+     * In the angular form:
+     * - The available validation groups cannot change.
+     * - The groups a validator belongs to cannot change.
+     * - The currently enabled validation groups can change.
+     *
+     * TODO: It will be possible to change the enabled validation groups after the form has loaded.
+     *       This is done by changing this property in the Form Component config.
+     *       The 'enabledValidationGroups' property can be changed using component expressions.
+     *
+     * Use Cases for whether a validator is enabled or disabled in the angular form.
+     *
+     * Must change as the user is interacting with the form:
+     *  - Enabled only when a component is visible (or hidden), and disabled otherwise.
+     *  - Enabled based on the value in another component.
+     *  - Enabled when a particular system integration / external state is activated or changed, and disabled otherwise.
+     *
+     *  Change based on state provided from the server that does not change in the angular form:
+     *  - Disabled for a new form, but enabled for a saved form.
+     *  - Enabled for some workflow stages, but disabled in other stages.
    */
   enabledValidationGroups?: string[];
   /**

@@ -968,9 +968,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     if ('expressions' in item) {
       // Loop through the expressions and remove `template` if defined and set the `hasTemplate` flag
       item.expressions?.forEach(expr => {
-        expr.config.hasTemplate = expr.config?.template !== undefined && expr.config?.template !== null;
-        this.removePropsUndefined(expr);
-        this.removePropsUndefined(expr.config);
+        if ('template' in expr?.config) {
+          expr.config.hasTemplate = expr.config?.template !== undefined && expr.config?.template !== null;
+          this.removePropsUndefined(expr);
+          this.removePropsUndefined(expr.config);
+        }
       });
       if (item.expressions?.length === 0) {
         delete item['expressions'];

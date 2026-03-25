@@ -141,7 +141,12 @@ export interface FormValidatorConfig {
   config?: FormValidatorCreateConfig;
   /**
    * Zero or more validation group names this validator belongs to.
+   *
    * Validation groups make it easier to run a subset of validators on a form.
+   * The validator will be enabled if any of the groups it is part of are enabled.
+   *
+   * Note that a validation group with 'initialMembership: "all"' will include all validators (that aren't excluded),
+   * even if the validators do not include the group name.
    */
   groups?: FormFieldValidationGroup;
 }
