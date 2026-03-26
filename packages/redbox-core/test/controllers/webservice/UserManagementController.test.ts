@@ -49,12 +49,29 @@ describe('Webservice UserManagementController', () => {
             param
         } as unknown as Sails.Req;
         const res = {} as unknown as Sails.Res;
-        const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
         await controller.searchLinkCandidates(req, res);
 
         expect((global as any).UsersService.searchLinkCandidates.calledWith('candidate', 'brand-1', 'primary-1')).to.be.true;
-        expect(apiRespondStub.called).to.be.true;
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.data).to.deep.equal([{ id: 'candidate-1', username: 'candidate-user' }]);
+    });
+
+    it('should get linked accounts through the service', async () => {
+        const param = sinon.stub();
+        param.withArgs('id').returns('primary-1');
+        const req = {
+            param
+        } as unknown as Sails.Req;
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.getUserLinks(req, res);
+
+        expect((global as any).UsersService.getLinkedAccounts.calledWith('primary-1')).to.be.true;
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.data?.primary?.id).to.equal('primary-1');
     });
 
     it('should link accounts through the service', async () => {
@@ -64,11 +81,12 @@ describe('Webservice UserManagementController', () => {
             body: { primaryUserId: 'primary-1', secondaryUserId: 'secondary-1' }
         } as unknown as Sails.Req;
         const res = {} as unknown as Sails.Res;
-        const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
         await controller.linkAccounts(req, res);
 
         expect((global as any).UsersService.linkAccounts.calledWith('primary-1', 'secondary-1', 'admin-user', 'brand-1')).to.be.true;
-        expect(apiRespondStub.called).to.be.true;
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.data?.impact?.rolesMerged).to.equal(1);
     });
 });

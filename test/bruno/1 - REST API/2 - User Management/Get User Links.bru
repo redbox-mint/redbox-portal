@@ -1,0 +1,29 @@
+meta {
+  name: Get User Links
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/default/rdmp/api/users/{{apiUserId}}/links
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Primary user returns linked secondary account", function () {
+      var jsonData = res.getBody();
+      expect(jsonData.primary.id).to.eql(bru.getEnvVar("apiUserId"));
+      expect(jsonData.linkedAccounts.length).to.equal(1);
+      expect(jsonData.linkedAccounts[0].id).to.eql(bru.getEnvVar("secondaryApiUserId"));
+  });
+}

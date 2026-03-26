@@ -2,11 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { ManageUsersComponent } from './manage-users.component';
 import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common'; 
-import { FormsModule, FormBuilder } from "@angular/forms";
+import { FormsModule, FormBuilder, ReactiveFormsModule } from "@angular/forms";
 import i18next from 'i18next';
 import { I18NextModule, StrictErrorHandlingStrategy, provideI18Next, withCustomErrorHandlingStrategy } from 'angular-i18next';
 import { UtilityService, LoggerService, TranslationService, ConfigService, UserService } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubUserService, appInit, localeId } from '@researchdatabox/portal-ng-common';
+import { ModalModule } from 'ngx-bootstrap/modal';
 
 let configService:any;
 let userService: any;
@@ -61,7 +62,9 @@ describe('ManageUsersComponent', () => {
       ],
       imports: [
         FormsModule,
-        I18NextModule.forRoot()
+        ReactiveFormsModule,
+        I18NextModule.forRoot(),
+        ModalModule.forRoot()
       ],
       providers: [
         FormBuilder,
@@ -144,6 +147,56 @@ describe('ManageUsersComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Primary');
+  });
+
+  it('should derive account status badge and supporting text', () => {
+    const fixture = TestBed.createComponent(ManageUsersComponent);
+    const app = fixture.componentInstance;
+    expect(app.getAccountStatusBadge(usersData[0] as any)).toContain('Primary');
+    expect(app.getAccountStatusContext(usersData[0] as any)).toContain('1');
+    expect(app.getAccountStatusBadgeClass(usersData[0] as any)).toBe('info');
+
+    const linkedAliasUser = {
+      accountLinkState: 'linked-alias',
+      effectivePrimaryUsername: 'admin'
+    };
+    expect(app.getAccountStatusBadge(linkedAliasUser as any)).toContain('Linked');
+    expect(app.getAccountStatusContext(linkedAliasUser as any)).toContain('admin');
+    expect(app.getAccountStatusBadgeClass(linkedAliasUser as any)).toBe('default');
+  });
+
+  it('should hide API key controls and suppress role errors for linked aliases until submit', async () => {
+    const fixture = TestBed.createComponent(ManageUsersComponent);
+    const app = fixture.componentInstance;
+    app.allRoles = rolesData as any;
+    app.currentUser = {
+      id: 'linked-1',
+      username: 'alias-user',
+      name: 'Alias User',
+      email: 'alias@example.com',
+      type: 'local',
+      accountLinkState: 'linked-alias',
+      effectivePrimaryUsername: 'admin',
+      roles: []
+    } as any;
+    app.setupForms(false);
+    app.isDetailsModalShown = true;
+    fixture.detectChanges();
+
+    const textBeforeSubmit = fixture.nativeElement.textContent;
+    expect(textBeforeSubmit).toContain('manage-users-password-linked-notice');
+    expect(textBeforeSubmit).toContain('manage-users-api-linked-notice');
+    expect(textBeforeSubmit).toContain('manage-users-roles-linked-notice');
+    expect(textBeforeSubmit).not.toContain('manage-users-confirm-password');
+    expect(textBeforeSubmit).not.toContain('manage-users-update-password');
+    expect(textBeforeSubmit).not.toContain('Generate API Key');
+    expect(textBeforeSubmit).not.toContain('Admin');
+    expect(textBeforeSubmit).not.toContain('manage-users-validation-role');
+
+    app.submitted = true;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('manage-users-roles-linked-notice');
+    expect(fixture.nativeElement.textContent).not.toContain('manage-users-validation-role');
   });
 
   it('should map roles correctly', () => {

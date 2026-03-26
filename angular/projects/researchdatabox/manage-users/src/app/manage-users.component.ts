@@ -44,6 +44,12 @@ type ManageUser = User & {
   linkedAccountCount?: number;
 };
 
+type AccountStatusUser = {
+  accountLinkState?: string;
+  effectivePrimaryUsername?: string;
+  linkedAccountCount?: number;
+};
+
 type RoleSelection = {
   key?: string | null;
   value?: string | null;
@@ -497,15 +503,40 @@ export class ManageUsersComponent extends BaseComponent {
     return user.accountLinkState !== 'linked-alias';
   }
 
-  getAccountStatusLabel(user: ManageUser): string {
-    if (user.accountLinkState === 'linked-alias') {
-      const linkedPrimary = user.effectivePrimaryUsername ? `: ${user.effectivePrimaryUsername}` : '';
-      return `${this.translationService.t('manage-users-account-status-linked-alias') || 'Linked Alias'}${linkedPrimary}`;
+  isLinkedAlias(user: AccountStatusUser): boolean {
+    return user.accountLinkState === 'linked-alias';
+  }
+
+  getAccountStatusBadge(user: AccountStatusUser): string {
+    if (this.isLinkedAlias(user)) {
+      return this.translationService.t('manage-users-account-status-linked-alias') || 'Linked';
     }
     if ((user.linkedAccountCount || 0) > 0) {
-      return `${this.translationService.t('manage-users-account-status-primary') || 'Primary'} (${user.linkedAccountCount})`;
+      return this.translationService.t('manage-users-account-status-primary') || 'Primary';
     }
     return this.translationService.t('manage-users-account-status-active') || 'Active';
+  }
+
+  getAccountStatusBadgeClass(user: AccountStatusUser): string {
+    if (this.isLinkedAlias(user)) {
+      return 'default';
+    }
+    if ((user.linkedAccountCount || 0) > 0) {
+      return 'info';
+    }
+    return 'default';
+  }
+
+  getAccountStatusContext(user: AccountStatusUser): string | null {
+    if (user.accountLinkState === 'linked-alias') {
+      return user.effectivePrimaryUsername
+        ? this.translationService.t('manage-users-account-status-primary-user', '', { primaryUsername: user.effectivePrimaryUsername }) || `Primary: ${user.effectivePrimaryUsername}`
+        : null;
+    }
+    if ((user.linkedAccountCount || 0) > 0) {
+      return this.translationService.t('manage-users-account-status-linked-accounts', '', { count: user.linkedAccountCount }) || `${user.linkedAccountCount} linked account(s)`;
+    }
+    return null;
   }
 
   async manageLinks(username: string) {

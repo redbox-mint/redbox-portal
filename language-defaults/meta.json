@@ -439,6 +439,14 @@
     "category": "users",
     "description": "Translation for manage-users-account-status-linked-alias"
   },
+  "manage-users-account-status-linked-accounts": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-linked-accounts"
+  },
+  "manage-users-account-status-primary-user": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-primary-user"
+  },
   "manage-users-action": {
     "category": "users",
     "description": "Translation for manage-users-action"
@@ -446,6 +454,10 @@
   "manage-users-edit": {
     "category": "users",
     "description": "Translation for manage-users-edit"
+  },
+  "manage-users-edit-link": {
+    "category": "users",
+    "description": "Translation for manage-users-edit-link"
   },
   "manage-users-link-manage": {
     "category": "users",
@@ -455,9 +467,33 @@
     "category": "users",
     "description": "Translation for manage-users-link-title"
   },
-  "manage-users-link-warning": {
+  "manage-users-link-about": {
     "category": "users",
-    "description": "Translation for manage-users-link-warning"
+    "description": "Translation for manage-users-link-about"
+  },
+  "manage-users-link-info": {
+    "category": "users",
+    "description": "Translation for manage-users-link-info"
+  },
+  "manage-users-link-effects-header": {
+    "category": "users",
+    "description": "Translation for manage-users-link-effects-header"
+  },
+  "manage-users-link-effects-roles": {
+    "category": "users",
+    "description": "Translation for manage-users-link-effects-roles"
+  },
+  "manage-users-link-effects-apikey": {
+    "category": "users",
+    "description": "Translation for manage-users-link-effects-apikey"
+  },
+  "manage-users-link-effects-records": {
+    "category": "users",
+    "description": "Translation for manage-users-link-effects-records"
+  },
+  "manage-users-link-irreversible": {
+    "category": "users",
+    "description": "Translation for manage-users-link-irreversible"
   },
   "manage-users-link-existing": {
     "category": "users",
@@ -535,6 +571,14 @@
     "category": "users",
     "description": "Translation for manage-users-api-generate"
   },
+  "manage-users-api-linked-notice": {
+    "category": "users",
+    "description": "Translation for manage-users-api-linked-notice"
+  },
+  "manage-users-roles-linked-notice": {
+    "category": "users",
+    "description": "Translation for manage-users-roles-linked-notice"
+  },
   "manage-users-api-revoke": {
     "category": "users",
     "description": "Translation for manage-users-api-revoke"
@@ -550,6 +594,10 @@
   "manage-users-password": {
     "category": "users",
     "description": "Translation for manage-users-password"
+  },
+  "manage-users-password-linked-notice": {
+    "category": "users",
+    "description": "Translation for manage-users-password-linked-notice"
   },
   "manage-users-aaf-password": {
     "category": "users",
@@ -590,6 +638,10 @@
   "manage-users-update-password": {
     "category": "users",
     "description": "Translation for manage-users-update-password"
+  },
+  "manage-users-edit-linked-notice": {
+    "category": "users",
+    "description": "Translation for manage-users-edit-linked-notice"
   },
   "welcome-title": {
     "category": "welcome",

@@ -43,7 +43,21 @@
                   <td>{{user.name}}</td>
                   <td>{{user.email}}</td>
                   <td>{{user.roleStr}}</td>
-                  <td>{{ getAccountStatusLabel(user) }}</td>
+                  <td>
+                    <div class="manage-users-status">
+                      <span
+                        class="manage-users-status-badge"
+                        [class.manage-users-status-badge-info]="getAccountStatusBadgeClass(user) === 'info'"
+                        [class.manage-users-status-badge-default]="getAccountStatusBadgeClass(user) === 'default'">
+                        {{ getAccountStatusBadge(user) }}
+                      </span>
+                      @if (getAccountStatusContext(user); as statusContext) {
+                        <div class="manage-users-status-context">
+                          <small>{{ statusContext }}</small>
+                        </div>
+                      }
+                    </div>
+                  </td>
                   <td align="center">
                     @if (user.token) {
                       <i class="fa fa-check" aria-hidden="true"></i>
@@ -76,7 +90,19 @@
           </div>
           <div class="modal-body">
             <p><strong>{{ linkPrimaryUser.name }}</strong> ({{ linkPrimaryUser.username }})</p>
-            <div class="alert alert-warning">{{ 'manage-users-link-warning' | i18next }}</div>
+            <div class="alert alert-info">
+              <p><strong>{{ 'manage-users-link-about' | i18next }}</strong></p>
+              <p>{{ 'manage-users-link-info' | i18next }}</p>
+              <p><strong>{{ 'manage-users-link-effects-header' | i18next }}</strong></p>
+              <ul>
+                <li>{{ 'manage-users-link-effects-roles' | i18next }}</li>
+                <li>{{ 'manage-users-link-effects-apikey' | i18next }}</li>
+                <li>{{ 'manage-users-link-effects-records' | i18next }}</li>
+              </ul>
+            </div>
+            <div class="alert alert-warning">
+              <strong>{{ 'manage-users-link-irreversible' | i18next }}</strong>
+            </div>
 
             <h5>{{ 'manage-users-link-existing' | i18next }}</h5>
             @if (linkedAccounts.length === 0) {
@@ -85,7 +111,7 @@
             @if (linkedAccounts.length > 0) {
               <ul>
                 @for (linkedAccount of linkedAccounts; track linkedAccount.id) {
-                  <li>{{ linkedAccount.name }} ({{ linkedAccount.username }})</li>
+                  <li>{{ linkedAccount.name }} ({{ linkedAccount.username }}) - {{ linkedAccount.email }}</li>
                 }
               </ul>
             }
@@ -118,7 +144,21 @@
                       <tr [class.info]="selectedLinkCandidate?.id === candidate.id">
                         <td>{{ candidate.name }} ({{ candidate.username }})</td>
                         <td>{{ candidate.email }}</td>
-                        <td>{{ candidate.accountLinkState }}</td>
+                        <td>
+                          <div class="manage-users-status">
+                            <span
+                              class="manage-users-status-badge"
+                              [class.manage-users-status-badge-info]="getAccountStatusBadgeClass(candidate) === 'info'"
+                              [class.manage-users-status-badge-default]="getAccountStatusBadgeClass(candidate) === 'default'">
+                              {{ getAccountStatusBadge(candidate) }}
+                            </span>
+                            @if (getAccountStatusContext(candidate); as statusContext) {
+                              <div class="manage-users-status-context">
+                                <small>{{ statusContext }}</small>
+                              </div>
+                            }
+                          </div>
+                        </td>
                         <td>
                           <button type="button" class="btn btn-default btn-sm" (click)="selectLinkCandidate(candidate)">{{ 'manage-users-link-select' | i18next }}</button>
                         </td>
@@ -158,6 +198,11 @@
               <h4 class="modal-title">{{ 'manage-users-edit' | i18next }}</h4>
             </div>
             <div class="modal-body">
+              @if (currentUser.accountLinkState === 'linked-alias') {
+                <div class="alert alert-info">
+                  {{ 'manage-users-edit-linked-notice' | i18next: { primaryUsername: currentUser.effectivePrimaryUsername || currentUser.username } }}
+                </div>
+              }
               <form id="detailsform" [formGroup]="updateUserForm" novalidate (ngSubmit)="updateUserSubmit(updateUserForm.value, updateUserForm.valid)">
                 <div class="table-responsive">
                   <table class="table">
@@ -206,18 +251,21 @@
                       </tr>
                       <tr>
                         <td>{{ 'manage-users-password' | i18next }}</td>
-                        @if (currentUser.type == 'local') {
+                        @if (currentUser.accountLinkState === 'linked-alias') {
+                          <td><em>{{ 'manage-users-password-linked-notice' | i18next }}</em></td>
+                        }
+                        @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.type == 'local') {
                           <td>
                             <div formGroupName="passwords">
                               <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-update-password' | i18next }}"/>
                             </div>
                           </td>
                         }
-                        @if (currentUser.type != 'local') {
+                        @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.type != 'local') {
                           <td>{{ 'manage-users-aaf-password' | i18next}}</td>
                         }
                       </tr>
-                      @if (currentUser.type == 'local') {
+                      @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.type == 'local') {
                         <tr>
                           <td>{{ 'manage-users-confirm-password' | i18next }}</td>
                           <td>
@@ -243,12 +291,15 @@
                       }
                       <tr>
                         <td>{{ 'manage-users-api' | i18next }}</td>
-                        @if (!currentUser.token) {
+                        @if (currentUser.accountLinkState === 'linked-alias') {
+                          <td><em>{{ 'manage-users-api-linked-notice' | i18next }}</em></td>
+                        }
+                        @if (currentUser.accountLinkState !== 'linked-alias' && !currentUser.token) {
                           <td>
                             <button type="button" class="btn btn-primary" (click)="genKey(currentUser.id)">{{ 'manage-users-api-generate' | i18next }}</button>
                           </td>
                         }
-                        @if (currentUser.token) {
+                        @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.token) {
                           <td>
                             @if (showToken) {
                               <p>{{ 'manage-users-token-message' | i18next }}</p>
@@ -261,19 +312,23 @@
                       <tr>
                         <td class="col-md-2">{{ 'manage-roles-role' | i18next }}</td>
                         <td class="col-md-8">
-                          <div [formArrayName]="'allRoles'">
-                            @for (role of getUpdateUserFormControls(); track role; let i = $index) {
-                              <div [formGroup]="role">
-                                <input type="checkbox" formControlName="checked" id="role_{{ role.controls['key'].value }}">
-                                <label attr.for="role_{{ role.controls['key'].value }}">{{ role.controls['value'].value }}</label>
-                              </div>
-                            }
-                            @if (!updateUserForm.controls['roles'].valid) {
-                              <div class='form-text error text-danger'>
-                                <div>{{ 'manage-users-validation-role' | i18next }}</div>
-                              </div>
-                            }
-                          </div>
+                          @if (currentUser.accountLinkState === 'linked-alias') {
+                            <em>{{ 'manage-users-roles-linked-notice' | i18next }}</em>
+                          } @else {
+                            <div [formArrayName]="'allRoles'">
+                              @for (role of getUpdateUserFormControls(); track role; let i = $index) {
+                                <div [formGroup]="role">
+                                  <input type="checkbox" formControlName="checked" id="role_{{ role.controls['key'].value }}">
+                                  <label attr.for="role_{{ role.controls['key'].value }}">{{ role.controls['value'].value }}</label>
+                                </div>
+                              }
+                              @if (!updateUserForm.controls['roles'].valid && submitted) {
+                                <div class='form-text error text-danger'>
+                                  <div>{{ 'manage-users-validation-role' | i18next }}</div>
+                                </div>
+                              }
+                            </div>
+                          }
                         </td>
                       </tr>
                     </tbody>

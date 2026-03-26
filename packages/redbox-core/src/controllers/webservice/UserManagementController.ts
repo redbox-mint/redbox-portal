@@ -367,7 +367,10 @@ export namespace Controllers {
           String(brand.id ?? ''),
           String(req.param('primaryUserId') ?? '')
         ));
-        return this.apiRespond(req, res, candidates);
+        return this.sendResp(req, res, {
+          data: candidates,
+          headers: this.getNoCacheHeaders()
+        });
       } catch (error) {
         sails.log.error(error);
         return this.sendResp(req, res, {
@@ -381,7 +384,10 @@ export namespace Controllers {
     public async getUserLinks(req: Sails.Req, res: Sails.Res) {
       try {
         const links = await firstValueFrom(UsersService.getLinkedAccounts(String(req.param('id') ?? '')));
-        return this.apiRespond(req, res, links);
+        return this.sendResp(req, res, {
+          data: links,
+          headers: this.getNoCacheHeaders()
+        });
       } catch (error) {
         sails.log.error(error);
         return this.sendResp(req, res, {
@@ -401,7 +407,10 @@ export namespace Controllers {
           String(req.user?.username ?? 'system'),
           String(brand.id ?? '')
         ));
-        return this.apiRespond(req, res, response);
+        return this.sendResp(req, res, {
+          data: response,
+          headers: this.getNoCacheHeaders()
+        });
       } catch (error) {
         sails.log.error(error);
         return this.sendResp(req, res, {

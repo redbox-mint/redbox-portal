@@ -1,0 +1,39 @@
+meta {
+  name: Create Secondary API Researcher User
+  type: http
+  seq: 8
+}
+
+put {
+  url: {{host}}/default/rdmp/api/users
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+      "username": "apilinksecondary34",
+      "name": "secondary researcher created via API",
+      "email": "apilinksecondary34@redboxresearchdata.com.au",
+      "password": "a12345672A!",
+      "roles": ["Researcher"]
+  }
+}
+
+tests {
+  test("Status code is 201", function () {
+      expect(res.getStatus()).to.equal(201);
+  });
+
+  test("Stores secondary user id", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property('id');
+      expect(jsonData.username).to.eql('apilinksecondary34');
+      bru.setEnvVar("secondaryApiUserId", jsonData.id);
+  });
+}

@@ -1,1 +1,35 @@
 /* You can add global styles to this file, and also import other style files */
+
+.manage-users-status {
+  line-height: 1.4;
+}
+
+.manage-users-status-badge {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 5px 10px;
+}
+
+.manage-users-status-badge-info {
+  background: #d9edf7;
+  border: 1px solid #bcdff1;
+  color: #1f5f7a;
+}
+
+.manage-users-status-badge-default {
+  background: #f2f4f7;
+  border: 1px solid #d7dde5;
+  color: #425466;
+}
+
+.manage-users-status .manage-users-status-badge {
+  display: inline-block;
+  margin-bottom: 2px;
+}
+
+.manage-users-status-context {
+  color: #666;
+}
