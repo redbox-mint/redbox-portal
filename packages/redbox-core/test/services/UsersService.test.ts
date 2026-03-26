@@ -9,6 +9,7 @@ describe('UsersService', function () {
   let UsersService: any;
   let mockUser: any;
   let mockUserAudit: any;
+  let mockUserLink: any;
   let mockRecord: any;
   let mockRole: any;
 
@@ -62,6 +63,12 @@ describe('UsersService', function () {
       create: sinon.stub().returns(createQueryObject({ id: 'audit-1' }))
     };
 
+    mockUserLink = {
+      find: sinon.stub().returns(createQueryObject([])),
+      findOne: sinon.stub().returns(createQueryObject(null)),
+      create: sinon.stub().returns(createQueryObject({ id: 'link-1' }))
+    };
+
     mockRecord = {
       find: sinon.stub().returns({
         meta: sinon.stub().returns({
@@ -84,6 +91,7 @@ describe('UsersService', function () {
     setupServiceTestGlobals(mockSails);
     (global as any).User = mockUser;
     (global as any).UserAudit = mockUserAudit;
+    (global as any).UserLink = mockUserLink;
     (global as any).Record = mockRecord;
     (global as any).Role = mockRole;
     (global as any).RolesService = {
@@ -95,6 +103,7 @@ describe('UsersService', function () {
     };
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default', roles: [] }),
+      getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default', roles: [] }),
       getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandNameFromReq: sinon.stub().returns('default')
     };
@@ -118,7 +127,8 @@ describe('UsersService', function () {
       })
     };
     (global as any).RecordsService = {
-      provideUserAccessAndRemovePendingAccess: sinon.stub()
+      provideUserAccessAndRemovePendingAccess: sinon.stub(),
+      updateMeta: sinon.stub().resolves({ isSuccessful: () => true })
     };
     (global as any).VocabService = {};
 
@@ -131,6 +141,7 @@ describe('UsersService', function () {
     cleanupServiceTestGlobals();
     delete (global as any).User;
     delete (global as any).UserAudit;
+    delete (global as any).UserLink;
     delete (global as any).Record;
     delete (global as any).Role;
     delete (global as any).RolesService;
@@ -521,6 +532,111 @@ describe('UsersService', function () {
 
       expect(result).to.have.length(1);
     });
+
+    it('should include linked alias users for the brand even when they no longer have brand roles', async function () {
+      configureModelMethod(mockUser.find, [
+        { id: 'primary-1', username: 'primary', roles: [{ branding: 'brand-1' }] },
+        { id: 'alias-1', username: 'alias', linkedPrimaryUserId: 'primary-1', roles: [] }
+      ]);
+      configureModelMethod(mockUserLink.find, [
+        { primaryUserId: 'primary-1', secondaryUserId: 'alias-1', brandId: 'brand-1', status: 'active' }
+      ]);
+
+      const result = await UsersService.getUsersForBrand('brand-1').toPromise();
+
+      expect(result).to.have.length(2);
+    });
+  });
+
+  describe('getEffectiveUser', function () {
+    it('should resolve a linked alias to its primary user', async function () {
+      mockUser.findOne.onFirstCall().returns(createQueryObject({
+        id: 'alias-1',
+        username: 'alias',
+        linkedPrimaryUserId: 'primary-1',
+        roles: []
+      }));
+      mockUser.findOne.onSecondCall().returns(createQueryObject({
+        id: 'primary-1',
+        username: 'primary',
+        roles: []
+      }));
+
+      const result = await UsersService.getEffectiveUser('alias-1').toPromise();
+
+      expect(result).to.exist;
+      expect(result.username).to.equal('primary');
+    });
+  });
+
+  describe('searchLinkCandidates', function () {
+    it('should return active matching users in the brand or with no roles', async function () {
+      configureModelMethod(mockUser.find, [
+        { id: 'user-1', username: 'primary', name: 'Primary User', email: 'primary@test.com', accountLinkState: 'active', roles: [{ branding: 'brand-1' }] },
+        { id: 'user-2', username: 'orphan', name: 'Orphan User', email: 'orphan@test.com', accountLinkState: 'active', roles: [] },
+        { id: 'user-3', username: 'linked', name: 'Linked User', email: 'linked@test.com', accountLinkState: 'linked-alias', roles: [{ branding: 'brand-1' }] },
+        { id: 'user-4', username: 'other', name: 'Other User', email: 'other@test.com', accountLinkState: 'active', roles: [{ branding: 'brand-2' }] }
+      ]);
+
+      const result = await UsersService.searchLinkCandidates('user', 'brand-1', 'user-1').toPromise();
+
+      expect(result).to.have.length(1);
+      expect(result[0].username).to.equal('orphan');
+    });
+  });
+
+  describe('linkAccounts', function () {
+    it('should create links and rewrite authorization references', async function () {
+      mockUser.findOne.onFirstCall().returns(createQueryObject({
+        id: 'primary-1',
+        username: 'primary-user',
+        accountLinkState: 'active',
+        roles: [{ id: 'role-primary', branding: 'brand-1' }]
+      }));
+      mockUser.findOne.onSecondCall().returns(createQueryObject({
+        id: 'secondary-1',
+        username: 'secondary-user',
+        email: 'secondary@test.com',
+        accountLinkState: 'active',
+        roles: [{ id: 'role-secondary', branding: 'brand-1' }]
+      }));
+      configureModelMethod(mockUserLink.findOne, null);
+      configureModelMethod(mockRecord.find, [{
+        redboxOid: 'record-1',
+        metaMetadata: { brandId: 'brand-1' },
+        authorization: {
+          edit: ['secondary-user'],
+          view: [],
+          editPending: ['secondary@test.com'],
+          viewPending: []
+        }
+      }]);
+      configureModelMethod(mockUserLink.find, [{
+        primaryUserId: 'primary-1',
+        secondaryUserId: 'secondary-1',
+        createdAt: '2026-03-26T00:00:00.000Z',
+        status: 'active'
+      }]);
+      mockUser.find.onFirstCall().returns(createQueryObject([{
+        id: 'secondary-1',
+        username: 'secondary-user',
+        name: 'Secondary User',
+        email: 'secondary@test.com',
+        type: 'local',
+        accountLinkState: 'linked-alias',
+        roles: []
+      }]));
+
+      const result = await UsersService.linkAccounts('primary-1', 'secondary-1', 'admin-user', 'brand-1').toPromise();
+
+      expect(mockUserLink.create.calledOnce).to.be.true;
+      expect(mockUser.addToCollection.calledOnce).to.be.true;
+      expect(mockUser.replaceCollection.calledOnce).to.be.true;
+      expect(mockUser.update.called).to.be.true;
+      expect((global as any).RecordsService.updateMeta.calledOnce).to.be.true;
+      expect(result.impact?.rolesMerged).to.equal(1);
+      expect(result.impact?.recordsRewritten).to.equal(1);
+    });
   });
 
   describe('setUserKey', function () {
@@ -808,6 +924,10 @@ describe('UsersService', function () {
       expect(exported).to.have.property('findAndAssignAccessToRecords');
       expect(exported).to.have.property('getUsers');
       expect(exported).to.have.property('getUsersForBrand');
+      expect(exported).to.have.property('getEffectiveUser');
+      expect(exported).to.have.property('getLinkedAccounts');
+      expect(exported).to.have.property('searchLinkCandidates');
+      expect(exported).to.have.property('linkAccounts');
       expect(exported).to.have.property('addUserAuditEvent');
       expect(exported).to.have.property('checkAuthorizedEmail');
     });

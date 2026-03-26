@@ -423,6 +423,22 @@
     "category": "users",
     "description": "Translation for manage-users-role"
   },
+  "manage-users-account-status": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status"
+  },
+  "manage-users-account-status-active": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-active"
+  },
+  "manage-users-account-status-primary": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-primary"
+  },
+  "manage-users-account-status-linked-alias": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-linked-alias"
+  },
   "manage-users-action": {
     "category": "users",
     "description": "Translation for manage-users-action"
@@ -430,6 +446,74 @@
   "manage-users-edit": {
     "category": "users",
     "description": "Translation for manage-users-edit"
+  },
+  "manage-users-link-manage": {
+    "category": "users",
+    "description": "Translation for manage-users-link-manage"
+  },
+  "manage-users-link-title": {
+    "category": "users",
+    "description": "Translation for manage-users-link-title"
+  },
+  "manage-users-link-warning": {
+    "category": "users",
+    "description": "Translation for manage-users-link-warning"
+  },
+  "manage-users-link-existing": {
+    "category": "users",
+    "description": "Translation for manage-users-link-existing"
+  },
+  "manage-users-link-no-linked-accounts": {
+    "category": "users",
+    "description": "Translation for manage-users-link-no-linked-accounts"
+  },
+  "manage-users-link-search-title": {
+    "category": "users",
+    "description": "Translation for manage-users-link-search-title"
+  },
+  "manage-users-link-search-placeholder": {
+    "category": "users",
+    "description": "Translation for manage-users-link-search-placeholder"
+  },
+  "manage-users-link-search": {
+    "category": "users",
+    "description": "Translation for manage-users-link-search"
+  },
+  "manage-users-link-searching": {
+    "category": "users",
+    "description": "Translation for manage-users-link-searching"
+  },
+  "manage-users-link-select": {
+    "category": "users",
+    "description": "Translation for manage-users-link-select"
+  },
+  "manage-users-link-selected": {
+    "category": "users",
+    "description": "Translation for manage-users-link-selected"
+  },
+  "manage-users-link-confirm": {
+    "category": "users",
+    "description": "Translation for manage-users-link-confirm"
+  },
+  "manage-users-link-success": {
+    "category": "users",
+    "description": "Translation for manage-users-link-success"
+  },
+  "manage-users-link-failed": {
+    "category": "users",
+    "description": "Translation for manage-users-link-failed"
+  },
+  "manage-users-link-select-candidate": {
+    "category": "users",
+    "description": "Translation for manage-users-link-select-candidate"
+  },
+  "manage-users-link-linking": {
+    "category": "users",
+    "description": "Translation for manage-users-link-linking"
+  },
+  "manage-users-link-no-results": {
+    "category": "users",
+    "description": "Translation for manage-users-link-no-results"
   },
   "manage-users-new": {
     "category": "users",

@@ -6,10 +6,42 @@ import { BaseComponent, LoggerService, TranslationService, UserService } from '@
 import { UserForm, matchingValuesValidator, optionalEmailValidator, passwordStrengthValidator } from './forms';
 import * as _ from 'lodash';
 
+type LinkedUserSummary = {
+  id: string;
+  username: string;
+  name: string;
+  email: string;
+  type: string;
+  accountLinkState: string;
+  linkedAt?: string;
+};
+
+type UserLinkCandidate = {
+  id: string;
+  username: string;
+  name: string;
+  email: string;
+  type: string;
+  accountLinkState: string;
+};
+
+type UserLinkResponse = {
+  primary: LinkedUserSummary;
+  linkedAccounts: LinkedUserSummary[];
+  impact?: {
+    recordsRewritten: number;
+    rolesMerged: number;
+  };
+};
+
 type ManageUser = User & {
   roleStr?: string;
   token?: string;
   roles: Role[];
+  accountLinkState?: 'active' | 'linked-alias';
+  linkedPrimaryUserId?: string;
+  effectivePrimaryUsername?: string;
+  linkedAccountCount?: number;
 };
 
 type RoleSelection = {
@@ -34,6 +66,12 @@ type UserDetailsPayload = {
 type SaveResponse = {
   status: boolean;
   message: string;
+};
+
+type LinkingUserService = UserService & {
+  getUserLinks: (primaryUserId: string) => Promise<UserLinkResponse>;
+  searchLinkCandidates: (primaryUserId: string, query: string) => Promise<UserLinkCandidate[]>;
+  linkAccounts: (primaryUserId: string, secondaryUserId: string) => Promise<UserLinkResponse>;
 };
 
 @Component({
@@ -69,18 +107,29 @@ export class ManageUsersComponent extends BaseComponent {
 
   @ViewChild('userDetailsModal', { static: false }) userDetailsModal?: ModalDirective;
   @ViewChild('userNewModal', { static: false }) userNewModal?: ModalDirective;
+  @ViewChild('userLinkModal', { static: false }) userLinkModal?: ModalDirective;
 
   isDetailsModalShown: boolean = false;
   isNewUserModalShown: boolean = false;
+  isLinkModalShown: boolean = false;
   updateUserForm: FormGroup | null = null;
   newUserForm: FormGroup | null = null;
   submitted: boolean = false;
   showToken: boolean = false;
+  linkPrimaryUser: ManageUser | null = null;
+  linkedAccounts: LinkedUserSummary[] = [];
+  linkCandidates: UserLinkCandidate[] = [];
+  linkSearchQuery: string = '';
+  selectedLinkCandidate: UserLinkCandidate | null = null;
+  linkMsg: string = '';
+  linkMsgType: string = 'info';
+  isLinkSearchLoading: boolean = false;
+  isLinkSaving: boolean = false;
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
-    @Inject(UserService) private userService: UserService,
+    @Inject(UserService) private userService: LinkingUserService,
     @Inject(FormBuilder) private _fb: FormBuilder
   ) {
     super();
@@ -254,6 +303,27 @@ export class ManageUsersComponent extends BaseComponent {
     this.isNewUserModalShown = false;
   }
 
+  showLinkModal(): void {
+    this.isLinkModalShown = true;
+    this.userLinkModal?.show();
+  }
+
+  hideLinkModal(): void {
+    if (!_.isUndefined(this.userLinkModal)) {
+      this.userLinkModal.hide();
+    }
+  }
+
+  onLinkModalHidden(): void {
+    this.isLinkModalShown = false;
+    this.linkPrimaryUser = null;
+    this.linkedAccounts = [];
+    this.linkCandidates = [];
+    this.linkSearchQuery = '';
+    this.selectedLinkCandidate = null;
+    this.setLinkMessage();
+  }
+
   genKey(userid: string) {
     this.setUpdateMessage('Generating...', 'primary');
     this.userService.genKey(userid).then((response) => {
@@ -344,6 +414,23 @@ export class ManageUsersComponent extends BaseComponent {
     this.newUserMsgType = type;
   }
 
+  setLinkMessage(msg: string = '', type: string = 'primary') {
+    this.linkMsg = msg;
+    this.linkMsgType = type;
+  }
+
+  private buildLinkSuccessMessage(response: UserLinkResponse): string {
+    const baseMessage = this.translationService.t('manage-users-link-success') || 'Accounts linked successfully.';
+    const rolesMerged = response.impact?.rolesMerged ?? 0;
+    const recordsRewritten = response.impact?.recordsRewritten ?? 0;
+
+    if (rolesMerged === 0 && recordsRewritten === 0) {
+      return baseMessage;
+    }
+
+    return `${baseMessage} ${rolesMerged}/${recordsRewritten}`;
+  }
+
   onFilterChange() {
     if (this.searchFilter.name != this.searchFilter.prevName) {
       this.searchFilter.prevName = this.searchFilter.name;
@@ -404,6 +491,94 @@ export class ManageUsersComponent extends BaseComponent {
 
   getNewUserFormControls() {
     return ((this.newUserForm as FormGroup).get('allRoles') as FormArray).controls as FormGroup[];
+  }
+
+  canManageLinks(user: ManageUser): boolean {
+    return user.accountLinkState !== 'linked-alias';
+  }
+
+  getAccountStatusLabel(user: ManageUser): string {
+    if (user.accountLinkState === 'linked-alias') {
+      const linkedPrimary = user.effectivePrimaryUsername ? `: ${user.effectivePrimaryUsername}` : '';
+      return `${this.translationService.t('manage-users-account-status-linked-alias') || 'Linked Alias'}${linkedPrimary}`;
+    }
+    if ((user.linkedAccountCount || 0) > 0) {
+      return `${this.translationService.t('manage-users-account-status-primary') || 'Primary'} (${user.linkedAccountCount})`;
+    }
+    return this.translationService.t('manage-users-account-status-active') || 'Active';
+  }
+
+  async manageLinks(username: string) {
+    const user = _.find(this.allUsers, (existingUser) => existingUser.username === username) || null;
+    if (user == null) {
+      return;
+    }
+    this.linkPrimaryUser = user;
+    this.linkCandidates = [];
+    this.linkSearchQuery = '';
+    this.selectedLinkCandidate = null;
+    this.setLinkMessage();
+    this.showLinkModal();
+    await this.refreshLinkModalData();
+  }
+
+  async refreshLinkModalData() {
+    if (this.linkPrimaryUser == null) {
+      return;
+    }
+    const response = await this.userService.getUserLinks(this.linkPrimaryUser.id) as UserLinkResponse;
+    this.linkedAccounts = response.linkedAccounts || [];
+  }
+
+  selectLinkCandidate(candidate: UserLinkCandidate) {
+    this.selectedLinkCandidate = candidate;
+  }
+
+  async searchCandidates() {
+    if (this.linkPrimaryUser == null) {
+      return;
+    }
+    const query = _.trim(this.linkSearchQuery);
+    if (_.isEmpty(query)) {
+      this.linkCandidates = [];
+      this.selectedLinkCandidate = null;
+      return;
+    }
+    this.isLinkSearchLoading = true;
+    try {
+      this.linkCandidates = await this.userService.searchLinkCandidates(this.linkPrimaryUser.id, query);
+      this.selectedLinkCandidate = null;
+      if (_.isEmpty(this.linkCandidates)) {
+        this.setLinkMessage(this.translationService.t('manage-users-link-no-results') || 'No matching accounts found.', 'warning');
+      } else {
+        this.setLinkMessage();
+      }
+    } finally {
+      this.isLinkSearchLoading = false;
+    }
+  }
+
+  async submitLink() {
+    if (this.linkPrimaryUser == null || this.selectedLinkCandidate == null) {
+      this.setLinkMessage(this.translationService.t('manage-users-link-select-candidate') || 'Select an account to link.', 'danger');
+      return;
+    }
+    this.isLinkSaving = true;
+    this.setLinkMessage(this.translationService.t('manage-users-link-linking') || 'Linking accounts...', 'primary');
+    try {
+      const response = await this.userService.linkAccounts(this.linkPrimaryUser.id, this.selectedLinkCandidate.id);
+      await this.refreshUsers();
+      this.linkPrimaryUser = _.find(this.allUsers, (existingUser) => existingUser.id === response.primary.id) || this.linkPrimaryUser;
+      this.linkedAccounts = response.linkedAccounts || [];
+      this.linkCandidates = [];
+      this.linkSearchQuery = '';
+      this.selectedLinkCandidate = null;
+      this.setLinkMessage(this.buildLinkSuccessMessage(response), 'success');
+    } catch (error: unknown) {
+      this.setLinkMessage((error as Error)?.message || (this.translationService.t('manage-users-link-failed') || 'Failed to link accounts.'), 'danger');
+    } finally {
+      this.isLinkSaving = false;
+    }
   }
 
 }

@@ -27,7 +27,11 @@ let usersData = [
           username: "admin",
           type: "local",
           userid: "ABC123",
+          id: "ABC123",
           email: '',
+          accountLinkState: 'active',
+          linkedAccountCount: 1,
+          effectivePrimaryUsername: 'admin',
           passwords: { password: '', confirmPassword: '' },
           roles: [ 
                    {
@@ -130,6 +134,16 @@ describe('ManageUsersComponent', () => {
     app.onFilterChange();
     expect(app.filteredUsers.length).toBeGreaterThan(0);
     expect(app.filteredUsers[0].name).toBe('Local Admin');
+  });
+
+  it('should render account status metadata from the users payload', async () => {
+    const fixture = TestBed.createComponent(ManageUsersComponent);
+    const app = fixture.componentInstance;
+    fixture.autoDetectChanges(true);
+    await app.waitForInit();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Primary');
   });
 
   it('should map roles correctly', () => {

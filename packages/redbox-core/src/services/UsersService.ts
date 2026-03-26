@@ -86,6 +86,25 @@ export namespace Services {
     userInfoSource?: string;
   }
 
+  interface LinkedUserSummary {
+    id: string;
+    username: string;
+    name: string;
+    email: string;
+    type: string;
+    accountLinkState: string;
+    linkedAt?: string | Date;
+  }
+
+  interface UserLinkResponse {
+    primary: LinkedUserSummary;
+    linkedAccounts: LinkedUserSummary[];
+    impact?: {
+      recordsRewritten: number;
+      rolesMerged: number;
+    };
+  }
+
   /**
    * Use services...
    *
@@ -110,6 +129,10 @@ export namespace Services {
       'findAndAssignAccessToRecords',
       'getUsers',
       'getUsersForBrand',
+      'getEffectiveUser',
+      'getLinkedAccounts',
+      'searchLinkCandidates',
+      'linkAccounts',
       'addUserAuditEvent',
       'checkAuthorizedEmail',
     ];
@@ -118,6 +141,123 @@ export namespace Services {
 
     private getAuthConfig(brandName: string): AuthBrandConfig {
       return (ConfigService.getBrand(brandName, 'auth') as AuthBrandConfig) ?? {};
+    }
+
+    private normalizeAccountLinkState(user: AnyRecord | null | undefined): void {
+      if (user != null && _.isEmpty(user.accountLinkState)) {
+        user.accountLinkState = 'active';
+      }
+    }
+
+    private hasRoleInBrand(user: AnyRecord | null | undefined, brandId: string): boolean {
+      if (user == null || _.isEmpty(brandId)) {
+        return false;
+      }
+      return _.some(user.roles as AnyRecord[] ?? [], (role: unknown) => {
+        const roleObj = role as AnyRecord;
+        const branding = roleObj.branding as string | AnyRecord | undefined;
+        const roleBrandId = _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');
+        return roleBrandId === brandId;
+      });
+    }
+
+    private getRolesForBrand(user: AnyRecord | null | undefined, brandId: string): AnyRecord[] {
+      if (user == null || _.isEmpty(brandId)) {
+        return [];
+      }
+      return _.filter(user.roles as AnyRecord[] ?? [], (role: unknown) => {
+        const roleObj = role as AnyRecord;
+        const branding = roleObj.branding as string | AnyRecord | undefined;
+        const roleBrandId = _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');
+        return roleBrandId === brandId;
+      }) as AnyRecord[];
+    }
+
+    private toLinkedUserSummary(user: AnyRecord, linkedAt?: string | Date): LinkedUserSummary {
+      this.normalizeAccountLinkState(user);
+      return {
+        id: String(user.id ?? ''),
+        username: String(user.username ?? ''),
+        name: String(user.name ?? ''),
+        email: String(user.email ?? ''),
+        type: String(user.type ?? ''),
+        accountLinkState: String(user.accountLinkState ?? 'active'),
+        linkedAt,
+      };
+    }
+
+    private async resolveLinkedUserCandidate(user: unknown): Promise<AnyRecord | null> {
+      if (_.isEmpty(user)) {
+        return null;
+      }
+      const resolved = await firstValueFrom(this.getEffectiveUser(user));
+      return (resolved as AnyRecord | null) ?? (user as AnyRecord);
+    }
+
+    private async rewriteLinkedRecordAuthorizations(
+      primaryUser: AnyRecord,
+      secondaryUser: AnyRecord,
+      actor: string,
+      defaultBrandId: string
+    ): Promise<number> {
+      const secondaryUsername = String(secondaryUser.username ?? '');
+      const secondaryEmail = String(secondaryUser.email ?? '').toLowerCase();
+      const records = await Record.find({
+        or: [
+          { 'authorization.edit': secondaryUsername },
+          { 'authorization.view': secondaryUsername },
+          { 'authorization.editPending': secondaryEmail },
+          { 'authorization.viewPending': secondaryEmail }
+        ]
+      }).meta({
+        enableExperimentalDeepTargets: true
+      });
+
+      let rewrittenCount = 0;
+      for (const record of records as unknown[]) {
+        const recordObj = _.cloneDeep(record) as AnyRecord;
+        const authorization = (recordObj.authorization ?? {}) as AnyRecord;
+        authorization.edit = _.uniq((authorization.edit ?? []) as string[]);
+        authorization.view = _.uniq((authorization.view ?? []) as string[]);
+        authorization.editPending = ((authorization.editPending ?? []) as string[]).map(email => String(email).toLowerCase());
+        authorization.viewPending = ((authorization.viewPending ?? []) as string[]).map(email => String(email).toLowerCase());
+        recordObj.authorization = authorization;
+
+        let changed = false;
+        const nextEdit = _.map(authorization.edit as string[], username => username === secondaryUsername ? String(primaryUser.username ?? '') : username);
+        const nextView = _.map(authorization.view as string[], username => username === secondaryUsername ? String(primaryUser.username ?? '') : username);
+        if (!_.isEqual(nextEdit, authorization.edit)) {
+          authorization.edit = _.uniq(nextEdit);
+          changed = true;
+        }
+        if (!_.isEqual(nextView, authorization.view)) {
+          authorization.view = _.uniq(nextView);
+          changed = true;
+        }
+
+        if (_.includes(authorization.editPending as string[], secondaryEmail)) {
+          authorization.editPending = _.without(authorization.editPending as string[], secondaryEmail);
+          authorization.edit = _.uniq([...(authorization.edit as string[]), String(primaryUser.username ?? '')]);
+          RecordsService.provideUserAccessAndRemovePendingAccess(String(recordObj.redboxOid ?? ''), primaryUser.username, secondaryEmail);
+          changed = true;
+        }
+        if (_.includes(authorization.viewPending as string[], secondaryEmail)) {
+          authorization.viewPending = _.without(authorization.viewPending as string[], secondaryEmail);
+          authorization.view = _.uniq([...(authorization.view as string[]), String(primaryUser.username ?? '')]);
+          RecordsService.provideUserAccessAndRemovePendingAccess(String(recordObj.redboxOid ?? ''), primaryUser.username, secondaryEmail);
+          changed = true;
+        }
+
+        if (changed) {
+          const metaMetadata = (recordObj.metaMetadata ?? {}) as AnyRecord;
+          const brandId = String(metaMetadata.brandId ?? defaultBrandId ?? '');
+          const brand = !_.isEmpty(brandId) ? BrandingService.getBrandById(brandId) : BrandingService.getDefault();
+          await RecordsService.updateMeta(brand, String(recordObj.redboxOid ?? ''), recordObj, { username: actor }, false, false);
+          rewrittenCount++;
+        }
+      }
+
+      return rewrittenCount;
     }
 
     protected localAuthInit() {
@@ -138,6 +278,7 @@ export namespace Services {
         bcrypt = require('bcryptjs') as BcryptLike;
       }
       const passport = sails.config.passport as PassportLike;
+      const that = this;
       passport.serializeUser(function (user: AnyRecord, done: DoneCallback) {
         done(null, user.id);
       });
@@ -145,11 +286,15 @@ export namespace Services {
         User.findOne({
           id: id
         }).populate('roles').exec(function (err: unknown, user: unknown) {
-          done(err, user as AnyRecord);
+          if (err != null || _.isEmpty(user)) {
+            done(err, user as AnyRecord);
+            return;
+          }
+          that.resolveLinkedUserCandidate(user)
+            .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+            .catch((resolveErr: unknown) => done(resolveErr));
         });
       });
-
-      const that = this;
 
       //
       //  Local Strategy
@@ -536,9 +681,12 @@ export namespace Services {
                       sails.log.verbose("Done, returning updated user:");
                       sails.log.verbose(user);
                       const updatedUsers = user as AnyRecord[];
-                      return done(null, updatedUsers[0], {
-                        message: 'Logged In Successfully'
-                      });
+                      that.resolveLinkedUserCandidate(updatedUsers[0])
+                        .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
+                          message: 'Logged In Successfully'
+                        }))
+                        .catch((resolveErr: unknown) => done(resolveErr, false));
+                      return;
                     });
 
                   } else {
@@ -573,9 +721,12 @@ export namespace Services {
                   sails.log.verbose("Done, returning updated user:");
                   sails.log.verbose(user);
                   const updatedUsers = user as AnyRecord[];
-                  return done(null, updatedUsers[0], {
-                    message: 'Logged In Successfully'
-                  });
+                  that.resolveLinkedUserCandidate(updatedUsers[0])
+                    .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
+                      message: 'Logged In Successfully'
+                    }))
+                    .catch((resolveErr: unknown) => done(resolveErr, false));
+                  return;
                 });
 
               }
@@ -630,7 +781,10 @@ export namespace Services {
 
                       sails.log.verbose("Done, returning new user:");
                       sails.log.verbose(newUser);
-                      return done(null, newUser);
+                      that.resolveLinkedUserCandidate(newUser)
+                        .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                        .catch((resolveErr: unknown) => done(resolveErr, false));
+                      return;
                     });
                   } else {
                     return done(`All required conditions for login not met ${userAdditionalInfo.email}`, false);
@@ -657,7 +811,10 @@ export namespace Services {
 
                   sails.log.verbose("Done, returning new user:");
                   sails.log.verbose(newUser);
-                  return done(null, newUser);
+                  that.resolveLinkedUserCandidate(newUser)
+                    .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                    .catch((resolveErr: unknown) => done(resolveErr, false));
+                  return;
                 });
 
               }
@@ -876,7 +1033,10 @@ export namespace Services {
                   sails.log.verbose("Done, returning updated user:");
                   sails.log.verbose(user);
                   const updatedUsers = user as AnyRecord[];
-                  return done(null, updatedUsers[0]);
+                  that.resolveLinkedUserCandidate(updatedUsers[0])
+                    .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                    .catch((resolveErr: unknown) => done(resolveErr, false));
+                  return;
                 });
               } else {
                 return done('All required conditions for login not met', false);
@@ -910,7 +1070,10 @@ export namespace Services {
               sails.log.verbose("Done, returning updated user:");
               sails.log.verbose(user);
               const updatedUsers = user as AnyRecord[];
-              return done(null, updatedUsers[0]);
+              that.resolveLinkedUserCandidate(updatedUsers[0])
+                .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                .catch((resolveErr: unknown) => done(resolveErr, false));
+              return;
             });
 
           }
@@ -976,7 +1139,10 @@ export namespace Services {
 
                   sails.log.verbose("Done, returning new user:");
                   sails.log.verbose(newUser);
-                  return done(null, newUser);
+                  that.resolveLinkedUserCandidate(newUser)
+                    .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                    .catch((resolveErr: unknown) => done(resolveErr, false));
+                  return;
                 });
 
               } else {
@@ -1003,7 +1169,10 @@ export namespace Services {
 
               sails.log.verbose("Done, returning new user:");
               sails.log.verbose(newUser);
-              return done(null, newUser);
+              that.resolveLinkedUserCandidate(newUser)
+                .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                .catch((resolveErr: unknown) => done(resolveErr, false));
+              return;
             });
 
           }
@@ -1015,6 +1184,7 @@ export namespace Services {
 
     protected bearerTokenAuthInit = () => {
       const BearerStrategy = require('passport-http-bearer').Strategy;
+      const that = this;
       (sails.config.passport as PassportLike).use('bearer', new BearerStrategy(
         function (token: string, done: DoneCallback) {
           if (!_.isEmpty(token) && !_.isUndefined(token)) {
@@ -1029,9 +1199,12 @@ export namespace Services {
 
                 return done(null, false);
               }
-              return done(null, user, {
-                scope: 'all'
-              });
+              that.resolveLinkedUserCandidate(user)
+                .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
+                  scope: 'all'
+                }))
+                .catch((resolveErr: unknown) => done(resolveErr));
+              return;
             });
           } else {
             // empty token, deny
@@ -1229,12 +1402,225 @@ export namespace Services {
       }
 
       return super.getObservable<UserModel[]>(User.find({}).populate('roles'))
-        .pipe(map(users => {
+        .pipe(flatMap(async (users: UserModel[]) => {
+          const activeLinks = typeof UserLink !== 'undefined'
+            ? await UserLink.find({ brandId: brandId, status: 'active' })
+            : [];
+          const linkedSecondaryIds = new Set(_.map(activeLinks as AnyRecord[], (link: unknown) => String((link as AnyRecord).secondaryUserId ?? '')));
           return _.filter(users, (user: unknown) => {
             const userObj = user as AnyRecord;
-            return _.some(userObj.roles as AnyRecord[], (role: unknown) => (role as AnyRecord).branding == brandId);
+            return this.hasRoleInBrand(userObj, String(brandId)) || linkedSecondaryIds.has(String(userObj.id ?? ''));
           });
         }));
+    }
+
+    public getEffectiveUser = (userOrId: unknown): Observable<UserModel | null> => {
+      if (_.isEmpty(userOrId)) {
+        return of(null);
+      }
+
+      if (_.isString(userOrId) || _.isNumber(userOrId)) {
+        return this.getUserWithId(String(userOrId)).pipe(flatMap(user => {
+          if (user != null) {
+            return this.getEffectiveUser(user);
+          }
+          return this.getUserWithUsername(String(userOrId)).pipe(flatMap(userByUsername => {
+            if (userByUsername != null) {
+              return this.getEffectiveUser(userByUsername);
+            }
+            return of(null);
+          }));
+        }));
+      }
+
+      const userObj = userOrId as AnyRecord;
+      this.normalizeAccountLinkState(userObj);
+      if (_.isEmpty(userObj.linkedPrimaryUserId)) {
+        return of(userObj as UserModel);
+      }
+
+      return this.getUserWithId(String(userObj.linkedPrimaryUserId)).pipe(map(primaryUser => {
+        if (primaryUser == null) {
+          return userObj as UserModel;
+        }
+        return primaryUser;
+      }));
+    }
+
+    public getLinkedAccounts = (primaryUserId: string | UserModel): Observable<UserLinkResponse> => {
+      return from((async () => {
+        const primaryUser = await firstValueFrom(this.getEffectiveUser(primaryUserId));
+        if (_.isEmpty(primaryUser)) {
+          throw new Error(`No such user with id:${primaryUserId}`);
+        }
+
+        const primaryUserObj = primaryUser as AnyRecord;
+        const links = typeof UserLink !== 'undefined'
+          ? await UserLink.find({ primaryUserId: String(primaryUserObj.id ?? ''), status: 'active' })
+          : [];
+        const secondaryIds = _.map(links as AnyRecord[], (link: unknown) => String((link as AnyRecord).secondaryUserId ?? ''));
+        const secondaryUsers = _.isEmpty(secondaryIds)
+          ? []
+          : await User.find({ id: secondaryIds }).populate('roles');
+        const secondaryUsersById = _.keyBy(secondaryUsers as AnyRecord[], user => String(user.id ?? ''));
+        const linkedAccounts = _.compact(_.map(links as AnyRecord[], (link: unknown) => {
+          const linkObj = link as AnyRecord;
+          const secondary = secondaryUsersById[String(linkObj.secondaryUserId ?? '')];
+          if (_.isEmpty(secondary)) {
+            return null;
+          }
+          this.normalizeAccountLinkState(secondary);
+          return this.toLinkedUserSummary(secondary, linkObj.createdAt as string | Date | undefined);
+        }));
+
+        return {
+          primary: this.toLinkedUserSummary(primaryUserObj),
+          linkedAccounts: linkedAccounts
+        };
+      })());
+    }
+
+    public searchLinkCandidates = (query: string, brandId: string, excludeUserId?: string): Observable<LinkedUserSummary[]> => {
+      const queryText = _.trim(query).toLowerCase();
+      return from((async () => {
+        const users = await User.find({}).populate('roles');
+        return _.chain(users as AnyRecord[])
+          .map(user => {
+            this.normalizeAccountLinkState(user);
+            return user;
+          })
+          .filter(user => {
+            if (String(user.id ?? '') === String(excludeUserId ?? '')) {
+              return false;
+            }
+            if (String(user.accountLinkState ?? 'active') !== 'active') {
+              return false;
+            }
+            const hasBrandRole = this.hasRoleInBrand(user, brandId);
+            const hasNoRoles = _.isEmpty(user.roles);
+            if (!hasBrandRole && !hasNoRoles) {
+              return false;
+            }
+            if (_.isEmpty(queryText)) {
+              return true;
+            }
+            const haystack = [
+              String(user.username ?? ''),
+              String(user.name ?? ''),
+              String(user.email ?? '')
+            ].join(' ').toLowerCase();
+            return haystack.includes(queryText);
+          })
+          .map(user => this.toLinkedUserSummary(user))
+          .sortBy(['name', 'username'])
+          .value();
+      })());
+    }
+
+    public linkAccounts = (primaryUserId: string, secondaryUserId: string, actor: string, brandId: string): Observable<UserLinkResponse> => {
+      return from((async () => {
+        if (_.isEmpty(primaryUserId) || _.isEmpty(secondaryUserId)) {
+          throw new Error('Both primary and secondary users are required');
+        }
+
+        const primaryEffective = await firstValueFrom(this.getEffectiveUser(primaryUserId));
+        const secondaryUser = await firstValueFrom(this.getUserWithId(secondaryUserId));
+        if (_.isEmpty(primaryEffective) || _.isEmpty(secondaryUser)) {
+          throw new Error('Both users must exist before linking');
+        }
+
+        const primaryUser = primaryEffective as AnyRecord;
+        const secondaryUserObj = secondaryUser as AnyRecord;
+        this.normalizeAccountLinkState(primaryUser);
+        this.normalizeAccountLinkState(secondaryUserObj);
+
+        if (String(primaryUser.id ?? '') === String(secondaryUserObj.id ?? '')) {
+          throw new Error('Cannot link a user to itself');
+        }
+        if (String(primaryUser.accountLinkState ?? 'active') === 'linked-alias') {
+          throw new Error('Primary user cannot be a linked alias');
+        }
+        if (!_.isEmpty(secondaryUserObj.linkedPrimaryUserId) && String(secondaryUserObj.linkedPrimaryUserId) !== String(primaryUser.id ?? '')) {
+          throw new Error('Secondary user is already linked to another primary account');
+        }
+        if (!this.hasRoleInBrand(primaryUser, brandId)) {
+          throw new Error('Primary user must already belong to the current brand');
+        }
+
+        const secondaryBrandRoles = this.getRolesForBrand(secondaryUserObj, brandId);
+        const secondaryForeignRoles = _.filter(secondaryUserObj.roles as AnyRecord[] ?? [], (role: unknown) => {
+          const roleObj = role as AnyRecord;
+          const branding = roleObj.branding as string | AnyRecord | undefined;
+          const roleBrandId = _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');
+          return roleBrandId !== brandId;
+        });
+        if (!_.isEmpty(secondaryForeignRoles)) {
+          throw new Error('Secondary user belongs to a different brand and cannot be linked here');
+        }
+
+        const existingLink = typeof UserLink !== 'undefined'
+          ? await UserLink.findOne({ secondaryUserId: String(secondaryUserObj.id ?? ''), status: 'active' })
+          : null;
+        if (!_.isEmpty(existingLink)) {
+          throw new Error('Secondary user is already linked');
+        }
+
+        if (typeof UserLink !== 'undefined') {
+          await UserLink.create({
+            primaryUserId: String(primaryUser.id ?? ''),
+            primaryUsername: String(primaryUser.username ?? ''),
+            secondaryUserId: String(secondaryUserObj.id ?? ''),
+            secondaryUsername: String(secondaryUserObj.username ?? ''),
+            brandId: brandId,
+            status: 'active',
+            createdBy: actor
+          });
+        }
+
+        const primaryBrandRoleIds = new Set(_.map(this.getRolesForBrand(primaryUser, brandId), (role: unknown) => String((role as AnyRecord).id ?? '')));
+        const secondaryBrandRoleIds = _.map(secondaryBrandRoles, (role: unknown) => String((role as AnyRecord).id ?? ''));
+        const roleIdsToMerge = _.filter(secondaryBrandRoleIds, roleId => !primaryBrandRoleIds.has(roleId));
+        if (!_.isEmpty(roleIdsToMerge)) {
+          const addRoleQuery = User.addToCollection(String(primaryUser.id ?? ''), 'roles').members(roleIdsToMerge);
+          await firstValueFrom(this.getObservable(addRoleQuery, 'exec', 'simplecb'));
+        }
+
+        const retainedSecondaryRoleIds = _.map(_.filter(secondaryUserObj.roles as AnyRecord[] ?? [], (role: unknown) => {
+          const roleObj = role as AnyRecord;
+          const branding = roleObj.branding as string | AnyRecord | undefined;
+          const roleBrandId = _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');
+          return roleBrandId !== brandId;
+        }), (role: unknown) => String((role as AnyRecord).id ?? ''));
+        const replaceRoleQuery = User.replaceCollection(String(secondaryUserObj.id ?? ''), 'roles').members(retainedSecondaryRoleIds);
+        await firstValueFrom(this.getObservable(replaceRoleQuery, 'exec', 'simplecb'));
+
+        await User.update({ id: String(secondaryUserObj.id ?? '') }).set({
+          token: '',
+          accountLinkState: 'linked-alias',
+          linkedPrimaryUserId: String(primaryUser.id ?? '')
+        });
+
+        const recordsRewritten = await this.rewriteLinkedRecordAuthorizations(primaryUser, secondaryUserObj, actor, brandId);
+
+        await this.addUserAuditEvent({ username: actor }, 'link-accounts', {
+          primaryUserId: primaryUser.id,
+          primaryUsername: primaryUser.username,
+          secondaryUserId: secondaryUserObj.id,
+          secondaryUsername: secondaryUserObj.username,
+          brandId: brandId,
+          rolesMerged: roleIdsToMerge.length,
+          recordsRewritten: recordsRewritten
+        });
+
+        const linkedAccounts = await firstValueFrom(this.getLinkedAccounts(primaryUser as UserModel));
+        return {
+          ...linkedAccounts,
+          impact: {
+            recordsRewritten: recordsRewritten,
+            rolesMerged: roleIdsToMerge.length
+          }
+        };
+      })());
     }
 
     public setUserKey = (userid: string | number, uuid: string | null): Observable<UserModel> => {
@@ -1380,29 +1766,31 @@ export namespace Services {
      *
      **/
     public findAndAssignAccessToRecords(pendingValue: string, userid: string): void {
-
-      Record.find({
-        'or': [{
-          'authorization.editPending': pendingValue
-        }, {
-          'authorization.viewPending': pendingValue
-        }]
-      }).meta({
-        enableExperimentalDeepTargets: true
-      }).then((records) => {
-        const recordsArr = records as unknown[];
-        if (_.isEmpty(recordsArr)) {
-          sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> No pending records: ${pendingValue}`);
-          return;
-        }
-        sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> Found ${recordsArr.length} records to assign permissions`);
-        for (const record of recordsArr) {
-          const recordObj = record as AnyRecord;
-          RecordsService.provideUserAccessAndRemovePendingAccess(recordObj.redboxOid as string, userid, pendingValue);
-        }
-      }).catch((error: unknown) => {
-        sails.log.warn(`Failed to assign access for user: ${pendingValue}`);
-        sails.log.warn(error);
+      this.getEffectiveUser(userid).subscribe((effectiveUser: UserModel | null) => {
+        const effectiveUsername = _.get(effectiveUser, 'username', userid) as string;
+        Record.find({
+          'or': [{
+            'authorization.editPending': pendingValue
+          }, {
+            'authorization.viewPending': pendingValue
+          }]
+        }).meta({
+          enableExperimentalDeepTargets: true
+        }).then((records) => {
+          const recordsArr = records as unknown[];
+          if (_.isEmpty(recordsArr)) {
+            sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> No pending records: ${pendingValue}`);
+            return;
+          }
+          sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> Found ${recordsArr.length} records to assign permissions`);
+          for (const record of recordsArr) {
+            const recordObj = record as AnyRecord;
+            RecordsService.provideUserAccessAndRemovePendingAccess(recordObj.redboxOid as string, effectiveUsername, pendingValue);
+          }
+        }).catch((error: unknown) => {
+          sails.log.warn(`Failed to assign access for user: ${pendingValue}`);
+          sails.log.warn(error);
+        });
       });
     }
 

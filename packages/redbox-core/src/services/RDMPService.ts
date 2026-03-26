@@ -586,6 +586,12 @@ export namespace Services {
       if (editContributorObs.length === 0 && viewContributorObs.length === 0) {
         return of(record);
       }
+      const normalizeResolvedUsers = (resolvedUsers: unknown): unknown[] => {
+        if (_.isNil(resolvedUsers)) {
+          return [];
+        }
+        return _.isArray(resolvedUsers) ? resolvedUsers : [resolvedUsers];
+      };
       let zippedViewContributorUsers: Observable<unknown>;
       if (editContributorObs.length == 0) {
         const newEditList: string[] = [];
@@ -599,38 +605,52 @@ export namespace Services {
         zippedViewContributorUsers = zip(...viewContributorObs);
       } else {
         zippedViewContributorUsers = zip(...editContributorObs)
-          .pipe(flatMap((editContributorUsers: unknown[]) => {
-            const newEditList: string[] = [];
-            this.filterPending(editContributorUsers, editContributorEmails, newEditList);
-            if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
-              if (createdBy) {
-                newEditList.push(createdBy as string);
+          .pipe(flatMap((editContributorUsers: unknown) => {
+            return from(Promise.all(normalizeResolvedUsers(editContributorUsers).map(async (editContributorUser: unknown) => {
+              if (_.isEmpty(editContributorUser)) {
+                return editContributorUser;
               }
-            }
-            auth.edit = newEditList;
-            auth.editPending = editContributorEmails;
-            if (viewContributorObs.length === 0) {
-              return of(record);
-            } else {
+              const effectiveUser = await firstValueFrom(UsersService.getEffectiveUser(editContributorUser));
+              return effectiveUser ?? editContributorUser;
+            }))).pipe(flatMap((effectiveEditUsers: unknown[]) => {
+              const newEditList: string[] = [];
+              this.filterPending(effectiveEditUsers, editContributorEmails, newEditList);
+              if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
+                if (createdBy) {
+                  newEditList.push(createdBy as string);
+                }
+              }
+              auth.edit = newEditList;
+              auth.editPending = editContributorEmails;
+              if (viewContributorObs.length === 0) {
+                return of(record);
+              }
               return zip(...viewContributorObs);
-            }
+            }));
           }));
       }
       return zippedViewContributorUsers.pipe(flatMap((viewContributorUsers: unknown) => {
         if (useDefaultViewList) {
           return of(record);
         }
-        const viewUsers = viewContributorUsers as unknown[];
-        const newViewList: string[] = [];
-        this.filterPending(viewUsers, viewContributorEmails, newViewList);
-        if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
-          if (createdBy) {
-            newViewList.push(createdBy as string);
+        return from(Promise.all(normalizeResolvedUsers(viewContributorUsers).map(async (viewContributorUser: unknown) => {
+          if (_.isEmpty(viewContributorUser)) {
+            return viewContributorUser;
           }
-        }
-        auth.view = newViewList;
-        auth.viewPending = viewContributorEmails;
-        return of(record);
+          const effectiveUser = await firstValueFrom(UsersService.getEffectiveUser(viewContributorUser));
+          return effectiveUser ?? viewContributorUser;
+        }))).pipe(flatMap((viewUsers: unknown[]) => {
+          const newViewList: string[] = [];
+          this.filterPending(viewUsers, viewContributorEmails, newViewList);
+          if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
+            if (createdBy) {
+              newViewList.push(createdBy as string);
+            }
+          }
+          auth.view = newViewList;
+          auth.viewPending = viewContributorEmails;
+          return of(record);
+        }));
       }));
     }
 

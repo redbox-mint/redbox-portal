@@ -134,6 +134,16 @@ export function getStubUserService(username: string = '', password: string = '',
       return { status: 'OK' };
     }, updateUserRoles() {
       return { status: 'OK' };
+    }, genKey() {
+      return { status: true, message: 'generated-token' };
+    }, revokeKey() {
+      return { status: true, message: 'revoked' };
+    }, searchLinkCandidates() {
+      return [];
+    }, getUserLinks() {
+      return { primary: userData[0] || null, linkedAccounts: [] };
+    }, linkAccounts() {
+      return { primary: userData[0] || null, linkedAccounts: [], impact: { recordsRewritten: 0, rolesMerged: 0 } };
     }
   };
 }

@@ -39,6 +39,10 @@ export interface User {
   roles: Role[];
   newRoles: Role[];
   roleStr: string;
+  accountLinkState?: 'active' | 'linked-alias';
+  linkedPrimaryUserId?: string;
+  effectivePrimaryUsername?: string;
+  linkedAccountCount?: number;
 }
 
 export interface Role {
@@ -58,6 +62,34 @@ export interface UserLoginResult {
 export interface SaveResult {
   status: boolean;
   message: string;
+}
+
+export interface LinkedUserSummary {
+  id: string;
+  username: string;
+  name: string;
+  email: string;
+  type: string;
+  accountLinkState: string;
+  linkedAt?: string;
+}
+
+export interface UserLinkCandidate {
+  id: string;
+  username: string;
+  name: string;
+  email: string;
+  type: string;
+  accountLinkState: string;
+}
+
+export interface UserLinkResponse {
+  primary: LinkedUserSummary;
+  linkedAccounts: LinkedUserSummary[];
+  impact?: {
+    recordsRewritten: number;
+    rolesMerged: number;
+  };
 }
 
 /**
@@ -175,6 +207,40 @@ export class UserService extends HttpClientService {
     const result$ = this.http.post(url, {userid: userid, roles:roleIds},this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned SaveResult[]
+  }
+
+  public async searchLinkCandidates(primaryUserId: string, query: string): Promise<UserLinkCandidate[]> {
+    const url = `${this.brandingAndPortalUrl}/api/users/link/candidates`;
+    const result$ = this.http.get<UserLinkCandidate[]>(url, {
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext,
+      params: {
+        primaryUserId,
+        query
+      }
+    }).pipe(map(res => res));
+    return await firstValueFrom(result$);
+  }
+
+  public async getUserLinks(primaryUserId: string): Promise<UserLinkResponse> {
+    const url = `${this.brandingAndPortalUrl}/api/users/${primaryUserId}/links`;
+    const result$ = this.http.get<UserLinkResponse>(url, {
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext
+    }).pipe(map(res => res));
+    return await firstValueFrom(result$);
+  }
+
+  public async linkAccounts(primaryUserId: string, secondaryUserId: string): Promise<UserLinkResponse> {
+    const url = `${this.brandingAndPortalUrl}/api/users/link`;
+    const result$ = this.http.post<UserLinkResponse>(url, { primaryUserId, secondaryUserId }, {
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext
+    }).pipe(map(res => res));
+    return await firstValueFrom(result$);
   }
   
 }

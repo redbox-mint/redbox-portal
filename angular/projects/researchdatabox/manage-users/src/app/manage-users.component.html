@@ -32,6 +32,7 @@
                 <th>{{ 'manage-users-name' | i18next }}</th>
                 <th>{{ 'manage-users-email' | i18next }}</th>
                 <th>{{ 'manage-users-role' | i18next }}</th>
+                <th>{{ 'manage-users-account-status' | i18next }}</th>
                 <th>{{ 'manage-users-api' | i18next }}</th>
                 <th>{{ 'manage-users-action' | i18next }}</th>
               </tr>
@@ -42,13 +43,18 @@
                   <td>{{user.name}}</td>
                   <td>{{user.email}}</td>
                   <td>{{user.roleStr}}</td>
+                  <td>{{ getAccountStatusLabel(user) }}</td>
                   <td align="center">
                     @if (user.token) {
                       <i class="fa fa-check" aria-hidden="true"></i>
                     }
                   </td>
                   <td>
-                    <a style="cursor:pointer" (click)="editUser(user.username)">Edit</a>
+                    <a style="cursor:pointer" (click)="editUser(user.username)">{{ 'manage-users-edit-link' | i18next }}</a>
+                    @if (canManageLinks(user)) {
+                      <span> | </span>
+                      <a style="cursor:pointer" (click)="manageLinks(user.username)">{{ 'manage-users-link-manage' | i18next }}</a>
+                    }
                   </td>
                 </tr>
               }
@@ -58,6 +64,87 @@
       </div>
     </div>
 </div>
+}
+<!-- Manage Links Modal -->
+@if (isLinkModalShown) {
+  @if (linkPrimaryUser; as linkPrimaryUser) {
+    <div [config]="{backdrop: 'static', show: true}" (onHidden)="onLinkModalHidden()" bsModal #userLinkModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="userlinkform">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">{{ 'manage-users-link-title' | i18next }}</h4>
+          </div>
+          <div class="modal-body">
+            <p><strong>{{ linkPrimaryUser.name }}</strong> ({{ linkPrimaryUser.username }})</p>
+            <div class="alert alert-warning">{{ 'manage-users-link-warning' | i18next }}</div>
+
+            <h5>{{ 'manage-users-link-existing' | i18next }}</h5>
+            @if (linkedAccounts.length === 0) {
+              <p>{{ 'manage-users-link-no-linked-accounts' | i18next }}</p>
+            }
+            @if (linkedAccounts.length > 0) {
+              <ul>
+                @for (linkedAccount of linkedAccounts; track linkedAccount.id) {
+                  <li>{{ linkedAccount.name }} ({{ linkedAccount.username }})</li>
+                }
+              </ul>
+            }
+
+            <h5>{{ 'manage-users-link-search-title' | i18next }}</h5>
+            <div class="input-group">
+              <input type="text" [(ngModel)]="linkSearchQuery" class="form-control" placeholder="{{ 'manage-users-link-search-placeholder' | i18next }}" [attr.aria-label]="'manage-users-link-search-placeholder' | i18next">
+              <span class="input-group-btn">
+                <button type="button" class="btn btn-primary" (click)="searchCandidates()">{{ 'manage-users-link-search' | i18next }}</button>
+              </span>
+            </div>
+
+            @if (isLinkSearchLoading) {
+              <p>{{ 'manage-users-link-searching' | i18next }}</p>
+            }
+
+            @if (linkCandidates.length > 0) {
+              <div class="table-responsive" style="margin-top: 15px;">
+                <table class="table table-bordered table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>{{ 'manage-users-name' | i18next }}</th>
+                      <th>{{ 'manage-users-email' | i18next }}</th>
+                      <th>{{ 'manage-users-account-status' | i18next }}</th>
+                      <th>{{ 'manage-users-action' | i18next }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (candidate of linkCandidates; track candidate.id) {
+                      <tr [class.info]="selectedLinkCandidate?.id === candidate.id">
+                        <td>{{ candidate.name }} ({{ candidate.username }})</td>
+                        <td>{{ candidate.email }}</td>
+                        <td>{{ candidate.accountLinkState }}</td>
+                        <td>
+                          <button type="button" class="btn btn-default btn-sm" (click)="selectLinkCandidate(candidate)">{{ 'manage-users-link-select' | i18next }}</button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+
+            @if (selectedLinkCandidate; as selectedLinkCandidate) {
+              <div class="alert alert-info" style="margin-top: 15px;">
+                {{ 'manage-users-link-selected' | i18next }}: {{ selectedLinkCandidate.name }} ({{ selectedLinkCandidate.username }})
+              </div>
+            }
+
+            <div class="bg-{{linkMsgType}} center-block">{{ linkMsg }}</div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" [disabled]="selectedLinkCandidate == null || isLinkSaving" (click)="submitLink()">{{ 'manage-users-link-confirm' | i18next }}</button>
+            <button type="button" class="btn btn-default" (click)="hideLinkModal()">{{ 'manage-users-cancel' | i18next }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
 }
 <!-- User Details Modal -->
 @if (isDetailsModalShown) {

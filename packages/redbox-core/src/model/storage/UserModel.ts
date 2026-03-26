@@ -12,6 +12,10 @@ export class UserModel {
     token?: string
     lastLogin: Date = new Date()
     additionalAttributes: Record<string, unknown> = {};
+    linkedPrimaryUserId?: string
+    accountLinkState?: 'active' | 'linked-alias'
+    effectivePrimaryUsername?: string
+    linkedAccountCount?: number
     workspaceApps: WorkspaceAppModel[] = [];
     roles: RoleModel[] = [];
 }

@@ -1,6 +1,7 @@
 import { APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, UserModel, UserAPITokenAPIResponse, APIActionResponse, BrandingModel } from '../../index';
 import { UserAttributes } from '../../waterline-models/User';
 import { v4 as uuidv4 } from 'uuid';
+import { firstValueFrom } from 'rxjs';
 
 
 export namespace Controllers {
@@ -21,9 +22,35 @@ export namespace Controllers {
       'updateUser',
       'generateAPIToken',
       'revokeAPIToken',
+      'searchLinkCandidates',
+      'getUserLinks',
+      'linkAccounts',
       'listSystemRoles',
       'createSystemRole'
     ];
+
+    private async enrichUsersWithLinkMetadata(users: UserAttributes[], brandId?: string): Promise<UserAttributes[]> {
+      const links = typeof UserLink !== 'undefined'
+        ? await UserLink.find(_.isEmpty(brandId) ? { status: 'active' } : { brandId: brandId, status: 'active' })
+        : [];
+      const linkCountByPrimary = _.countBy(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? ''));
+      const primaryIds = _.uniq(_.map(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? '')));
+      const primaryUsers = _.isEmpty(primaryIds) ? [] : await User.find({ id: primaryIds });
+      const primaryUsernamesById = _.reduce(primaryUsers as globalThis.Record<string, unknown>[], (acc, user) => {
+        acc[String(user.id ?? '')] = String(user.username ?? '');
+        return acc;
+      }, {} as globalThis.Record<string, string>);
+
+      return _.map(users, (user: UserAttributes) => {
+        const enrichedUser = user as UserAttributes & globalThis.Record<string, unknown>;
+        enrichedUser.accountLinkState = enrichedUser.accountLinkState || 'active';
+        enrichedUser.linkedAccountCount = linkCountByPrimary[String(enrichedUser.id ?? '')] || 0;
+        enrichedUser.effectivePrimaryUsername = _.isEmpty(enrichedUser.linkedPrimaryUserId)
+          ? enrichedUser.username
+          : (primaryUsernamesById[String(enrichedUser.linkedPrimaryUserId ?? '')] || enrichedUser.username);
+        return enrichedUser;
+      });
+    }
 
     /**
      **************************************************************************************************
@@ -35,8 +62,7 @@ export namespace Controllers {
 
     }
 
-    public listUsers(req: Sails.Req, res: Sails.Res) {
-      const that = this;
+    public async listUsers(req: Sails.Req, res: Sails.Res) {
       const pageParam = req.param('page');
       const pageSizeParam = req.param('pageSize');
       const searchField = req.param('searchBy');
@@ -48,35 +74,38 @@ export namespace Controllers {
       const page: number = pageParam != null ? parseInt(pageParam, 10) : 1;
       const pageSize: number = pageSizeParam != null ? parseInt(pageSizeParam, 10) : 10;
       const skip = (page - 1) * pageSize;
+      const response: ListAPIResponse<UserAttributes> = new ListAPIResponse<UserAttributes>();
 
-      User.count({
-        where: queryObject
-      }).exec(function (err: unknown, count: number) {
-        const response: ListAPIResponse<UserAttributes> = new ListAPIResponse<UserAttributes>();
+      try {
+        const count = await User.count({ where: queryObject });
         response.summary.numFound = count;
         response.summary.page = page;
-
-        if (count == 0) {
-          response["records"] = [];
-          return res.json(response);
-        } else {
-          User.find({
-            where: queryObject,
-            limit: pageSize,
-            skip: skip
-          }).exec(function (err: unknown, users: Sails.QueryResult[]) {
-
-            const userRecords = users as unknown as UserAttributes[];
-            _.each(userRecords, (user: UserAttributes) => {
-              delete user["token"];
-              delete user["password"]
-            });
-            response.records = userRecords;
-
-            return that.apiRespond(req, res, response);
-          });
+        if (count === 0) {
+          response.records = [];
+          return this.apiRespond(req, res, response);
         }
-      });
+
+        const users = await User.find({
+          where: queryObject,
+          limit: pageSize,
+          skip: skip
+        });
+        const brandId = _.get(BrandingService.getBrand(req.session.branding as string), 'id');
+        const userRecords = await this.enrichUsersWithLinkMetadata(users as unknown as UserAttributes[], brandId);
+        _.each(userRecords, (user: UserAttributes) => {
+          delete user["token"];
+          delete user["password"];
+        });
+        response.records = userRecords;
+        return this.apiRespond(req, res, response);
+      } catch (err) {
+        sails.log.error(err);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
     }
 
     public getUser(req: Sails.Req, res: Sails.Res) {
@@ -328,6 +357,59 @@ export namespace Controllers {
         });
       }
       return;
+    }
+
+    public async searchLinkCandidates(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const candidates = await firstValueFrom(UsersService.searchLinkCandidates(
+          String(req.param('query') ?? ''),
+          String(brand.id ?? ''),
+          String(req.param('primaryUserId') ?? '')
+        ));
+        return this.apiRespond(req, res, candidates);
+      } catch (error) {
+        sails.log.error(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async getUserLinks(req: Sails.Req, res: Sails.Res) {
+      try {
+        const links = await firstValueFrom(UsersService.getLinkedAccounts(String(req.param('id') ?? '')));
+        return this.apiRespond(req, res, links);
+      } catch (error) {
+        sails.log.error(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async linkAccounts(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const response = await firstValueFrom(UsersService.linkAccounts(
+          String(req.body.primaryUserId ?? ''),
+          String(req.body.secondaryUserId ?? ''),
+          String(req.user?.username ?? 'system'),
+          String(brand.id ?? '')
+        ));
+        return this.apiRespond(req, res, response);
+      } catch (error) {
+        sails.log.error(error);
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
     }
 
     public listSystemRoles(req: Sails.Req, res: Sails.Res) {

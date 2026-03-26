@@ -62,7 +62,8 @@ describe('RDMPService', function() {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
     };
     (global as any).UsersService = {
-      hasRole: sinon.stub().returns(false)
+      hasRole: sinon.stub().returns(false),
+      getEffectiveUser: sinon.stub().callsFake((user: unknown) => of(user))
     };
     (global as any).RolesService = {
       getAdminFromBrand: sinon.stub().returns({ id: 'admin-role', name: 'Admin' })
@@ -808,6 +809,29 @@ describe('RDMPService', function() {
       const result = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
       
       expect(result).to.exist;
+    });
+
+    it('should resolve linked aliases to their effective primary usernames before assigning permissions', async function() {
+      const record: any = {
+        metadata: {
+          editors: [{ email: 'alias@test.com' }]
+        },
+        metaMetadata: { createdBy: 'creator' },
+        authorization: {}
+      };
+      const options = {
+        editContributorProperties: ['metadata.editors'],
+        emailProperty: 'email',
+        recordCreatorPermissions: 'edit'
+      };
+
+      configureModelMethod(mockUser.findOne, { username: 'alias-user', email: 'alias@test.com', linkedPrimaryUserId: 'primary-1' });
+      (global as any).UsersService.getEffectiveUser = sinon.stub().returns(of({ username: 'primary-user', email: 'alias@test.com' }));
+
+      const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
+
+      expect(result.authorization.edit).to.include('primary-user');
+      expect(result.authorization.edit).to.not.include('alias-user');
     });
   });
 

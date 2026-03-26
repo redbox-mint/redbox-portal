@@ -1,9 +1,20 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
-import { of } from 'rxjs';
+import { Observable, of, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { v4 as uuidv4 } from 'uuid';
 
+declare const UsersService: {
+  getUsersForBrand: (brand: BrandingModel | string) => Observable<globalThis.Record<string, unknown>[]>;
+  setUserKey: (userid: string, uuid: string) => Observable<unknown>;
+  updateUserRoles: (userid: string, roleIds: string[]) => Observable<unknown>;
+  updateUserDetails: (userid: string, name: string, email: string, password: string) => Observable<unknown>;
+  addLocalUser: (username: string, name: string, email: string, password: string) => Observable<globalThis.Record<string, unknown>>;
+};
+declare const RolesService: {
+  getRolesWithBrand: (brand: BrandingModel) => Observable<globalThis.Record<string, unknown>[]>;
+  getRoleIds: (roles: unknown, roleNames: string[]) => string[];
+};
 
 export namespace Controllers {
   /**
@@ -84,30 +95,42 @@ export namespace Controllers {
       });
     }
 
-    public getUsers(req: Sails.Req, res: Sails.Res) {
-      const pageData: globalThis.Record<string, unknown> = {};
+    public async getUsers(req: Sails.Req, res: Sails.Res) {
       const brand = BrandingService.getBrand(req.session.branding as string);
       const brandId = _.get(brand, 'id') || brand || req.session.branding;
-      UsersService.getUsersForBrand(brand).pipe(flatMap((users: globalThis.Record<string, unknown>[]) => {
+      try {
+        const users = await firstValueFrom(UsersService.getUsersForBrand(brand));
+        const links = typeof UserLink !== 'undefined'
+          ? await UserLink.find({ brandId: String(brandId), status: 'active' })
+          : [];
+        const linkCountByPrimary = _.countBy(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? ''));
+        const primaryIds = _.uniq(_.map(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? '')));
+        const primaryUsers = _.isEmpty(primaryIds) ? [] : await User.find({ id: primaryIds });
+        const primaryUsernamesById = _.reduce(primaryUsers as globalThis.Record<string, unknown>[], (acc: globalThis.Record<string, string>, user: globalThis.Record<string, unknown>) => {
+          acc[String(user.id ?? '')] = String(user.username ?? '');
+          return acc;
+        }, {} as globalThis.Record<string, string>);
+
+        const responseUsers: globalThis.Record<string, unknown>[] = [];
         _.map(users, (user: globalThis.Record<string, unknown>) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenUsers, (hideUser: string) => { return hideUser == user.name }))) {
-            // not hidden, adding to view data...
-            if (_.isEmpty(pageData.users)) {
-              pageData.users = [];
-            }
-            // need to set a dummy token string, to indicate if this user has a token set, but actual token won't be returned
+            user.accountLinkState = user.accountLinkState || 'active';
+            user.linkedAccountCount = linkCountByPrimary[String(user.id ?? '')] || 0;
+            user.effectivePrimaryUsername = _.isEmpty(user.linkedPrimaryUserId)
+              ? user.username
+              : (primaryUsernamesById[String(user.linkedPrimaryUserId ?? '')] || user.username);
             user.token = _.isEmpty(user.token) ? null : "user-has-token-but-is-suppressed";
             user.roles = brandId ? _.filter(user.roles as globalThis.Record<string, unknown>[], (role: globalThis.Record<string, unknown>) => role.branding === brandId || (role.branding as globalThis.Record<string, unknown>)?.id === brandId) : user.roles;
-            //TODO: Look for config around what other secrets should be hidden from being returned to the client
             delete user.password;
-            (pageData.users as unknown[]).push(user);
+            responseUsers.push(user);
           }
         });
-        return of(pageData);
-      }))
-        .subscribe((pageData: globalThis.Record<string, unknown>) => {
-          this.sendResp(req, res, { data: pageData.users, headers: this.getNoCacheHeaders() });
-        });
+        this.sendResp(req, res, { data: responseUsers, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sails.log.error('Failed to load users');
+        sails.log.error(error);
+        this.sendResp(req, res, { status: 500, data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
+      }
     }
 
     public getBrandRoles(req: Sails.Req, res: Sails.Res) {
@@ -115,7 +138,7 @@ export namespace Controllers {
       const pageData: globalThis.Record<string, unknown> = {};
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       RolesService.getRolesWithBrand(brand).pipe(flatMap((roles) => {
-        _.map(roles, (role) => {
+        _.map(roles as globalThis.Record<string, unknown>[], (role: globalThis.Record<string, unknown>) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenRoles, (hideRole: string) => { return hideRole == role.name }))) {
             // not hidden, adding to view data...
             if (_.isEmpty(pageData.roles)) {
@@ -126,7 +149,7 @@ export namespace Controllers {
         });
         return of(pageData);
       }))
-        .subscribe(pageData => {
+        .subscribe((pageData: globalThis.Record<string, unknown>) => {
           this.sendResp(req, res, { data: pageData.roles, headers: this.getNoCacheHeaders() });
         });
     }
