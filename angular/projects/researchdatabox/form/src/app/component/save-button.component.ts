@@ -71,7 +71,7 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
         createFormSaveRequestedEvent({
           force: this.componentDefinition?.config?.forceSave,
           targetStep: this.componentDefinition?.config?.targetStep,
-          enabledValidationGroups: this.getFormComponent.formDefMap?.formConfig?.enabledValidationGroups ?? ["all"],
+          enabledValidationGroups: this.getFormComponent.enabledValidationGroups,
           sourceId: this.name ?? undefined
         })
       );

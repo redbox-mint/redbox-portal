@@ -434,6 +434,10 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> i
         name: `form-config-generated-accordion-panel-${formComponentName}`,
         componentDefinitions: this.panel?.component?.config?.componentDefinitions ?? [],
         defaultComponentConfig: formConfig?.defaultComponentConfig,
+        // Use the current enabledValidationGroups for creating the component.
+        // Subsequent updates will use the FormComponent's enabledValidationGroups property.
+        enabledValidationGroups: this.formComponentRef?.enabledValidationGroups,
+        validationGroups: this.formComponentRef?.validationGroups,
       };
 
       const parentLineagePaths = this.formService.buildLineagePaths(this.formFieldCompMapEntry?.lineagePaths, {

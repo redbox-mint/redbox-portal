@@ -451,7 +451,7 @@ export function createFormValidationBroadcastEvent(
   return createEventResult<FormValidationBroadcastEvent>(FormComponentEventType.FORM_VALIDATION_BROADCAST, options);
 }
 /** Helper factory for creating validation change request events */
-export function createFormValidationChangeRequestEvent(
+export function createFormValidationGroupsChangeRequestEvent(
   options: FormComponentEventOptions<FormValidationGroupsChangeRequestEvent>
 ): FormComponentEventResult<FormValidationGroupsChangeRequestEvent> {
   return createEventResult<FormValidationGroupsChangeRequestEvent>(FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST, options);

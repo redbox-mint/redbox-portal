@@ -365,6 +365,10 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
       name: `form-config-generated-tab-${formComponentName}`,
       componentDefinitions: this.tab?.component?.config?.componentDefinitions || [],
       defaultComponentConfig: formConfig?.defaultComponentConfig,
+      // Use the current enabledValidationGroups for creating the component.
+      // Subsequent updates will use the FormComponent's enabledValidationGroups property.
+      enabledValidationGroups: this.formComponentRef?.enabledValidationGroups,
+      validationGroups: this.formComponentRef?.validationGroups,
     };
 
     const parentLineagePaths = this.formService.buildLineagePaths(

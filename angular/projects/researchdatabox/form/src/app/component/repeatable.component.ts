@@ -17,6 +17,7 @@ import { FormBaseWrapperComponent } from "./base-wrapper.component";
 import { DefaultLayoutComponent } from "./default-layout.component";
 import { createFormDefinitionChangeRequestEvent, createFormStatusDirtyRequestEvent, FormComponentEventBus } from '../form-state';
 import { CustomSetValueControl } from '../form-state/custom-set-value.control';
+import {FormComponent} from "../form.component";
 
 type RepeatableSetValueOptions = { emitEvent?: boolean; onlySelf?: boolean };
 
@@ -81,6 +82,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   protected formService = inject(FormService);
   protected elemInitFieldEntry?: FormFieldCompMapEntry;
+  protected override formComponent: FormComponent = inject(FormComponent);
 
   protected compDefMapEntries: Array<RepeatableElementEntry> = [];
 
@@ -88,7 +90,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   @ViewChild('removeButtonTemplate', { read: TemplateRef<any>, static: false }) removeButtonTemplate!: TemplateRef<any>;
 
 
-  private newElementFormConfig?: FormConfigFrame;
   private readonly eventBus = inject(FormComponentEventBus);
 
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
@@ -120,12 +121,16 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     // Resolve the classes using the FormService
-    this.newElementFormConfig = {
+    const newElementFormConfig: FormConfigFrame = {
       name: `form-config-generated-repeatable-${formComponentName}`,
       // Add an empty name to satisfy the FormConfig, the name will be replaced with a generated name.
       componentDefinitions: [{ ...elementTemplate, name: "" }],
       // TODO: Get the default config?
       // defaultComponentConfig: this.getFormComponent.formDefMap?.formConfig?.defaultComponentConfig,
+      // Use the current enabledValidationGroups for creating the component.
+      // Subsequent updates will use the FormComponent's enabledValidationGroups property.
+      enabledValidationGroups: this.formComponent?.enabledValidationGroups,
+      validationGroups: this.formComponent?.validationGroups,
     };
     const parentLineagePaths = this.formService.buildLineagePaths(
       this.formFieldCompMapEntry?.lineagePaths,
@@ -136,7 +141,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         formConfig: ['component', 'config', 'elementTemplate'],
       }
     );
-    const formComponentsMap = await this.formService.createFormComponentsMap(this.newElementFormConfig, parentLineagePaths);
+    const formComponentsMap = await this.formService.createFormComponentsMap(newElementFormConfig, parentLineagePaths);
 
     if (_isEmpty(formComponentsMap)) {
       throw new Error(`${this.logName}: No components found in the formComponentsMap for '${formComponentName}'.`);
@@ -276,7 +281,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     // Create new form field.
-    const model = this.formService.createFormFieldModelInstance(elemEntry);
+    const model = this.formService.createFormFieldModelInstance(
+      elemEntry, this.formComponent?.enabledValidationGroups, this.formComponent?.validationGroups);
     if (model !== null) {
       if (!_isUndefined(value)) {
         model.initValue = value;

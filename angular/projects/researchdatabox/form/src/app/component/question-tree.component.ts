@@ -71,8 +71,6 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
   @ViewChild('componentContainer', { read: ViewContainerRef, static: true })
   private componentContainer!: ViewContainerRef;
 
-  private elementFormConfig?: FormConfigFrame;
-
   private eventBus = inject(FormComponentEventBus);
 
   protected get getFormComponent(): FormComponent {
@@ -107,12 +105,16 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     }
 
     const componentDefinitions = componentConfigFormConfig.componentDefinitions;
-    this.elementFormConfig = {
+    const elementFormConfig: FormConfigFrame = {
       name: `form-config-generated-questiontree-${formComponentName}`,
       // Store the child component definitions.
       componentDefinitions: componentDefinitions,
       // Get the default config.
       defaultComponentConfig: formConfig?.defaultComponentConfig,
+      // Use the current enabledValidationGroups for creating the component.
+      // Subsequent updates will use the FormComponent's enabledValidationGroups property.
+      enabledValidationGroups: this.getFormComponent?.enabledValidationGroups,
+      validationGroups: this.getFormComponent?.validationGroups,
     };
 
     // Construct the components.
@@ -124,7 +126,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
         dataModel: [],
         formConfig: ['component', 'config', 'componentDefinitions'],
       });
-    this.formComponentsMap = await this.formService.createFormComponentsMap(this.elementFormConfig, parentLineagePaths);
+    this.formComponentsMap = await this.formService.createFormComponentsMap(elementFormConfig, parentLineagePaths);
 
     if (_isEmpty(this.formComponentsMap)) {
       throw new Error(`${this.logName}: No components found in the formComponentsMap.`);
@@ -139,7 +141,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     for (const key of Object.keys(formGroupMap.withFormControl ?? {})) {
       // Create the wrapper component.
       const wrapperRef = this.componentContainer.createComponent(FormBaseWrapperComponent<unknown>);
-      wrapperRef.instance.defaultComponentConfig = this.elementFormConfig?.defaultComponentConfig;
+      wrapperRef.instance.defaultComponentConfig = elementFormConfig?.defaultComponentConfig;
       const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
       const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
 

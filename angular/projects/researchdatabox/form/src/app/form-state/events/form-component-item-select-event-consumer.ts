@@ -65,10 +65,9 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
 
     const sub = this.eventBus
       .select$(FormComponentEventType.FIELD_ITEM_SELECTED)
-      .subscribe((event: FormComponentEvent) => {
-        const itemEvent = event as FieldItemSelectedEvent;
-        if (this.isSiblingEvent(itemEvent)) {
-          this.handleItemSelected(itemEvent);
+      .subscribe((event: FieldItemSelectedEvent) => {
+        if (this.isSiblingEvent(event)) {
+          this.handleItemSelected(event);
         }
       });
     this.subscriptions.set('field.item.selected', sub);

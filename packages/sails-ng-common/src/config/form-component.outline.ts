@@ -52,18 +52,36 @@ interface FormExpressionsBaseConfigFrame {
     runOnFormReady?: boolean;
 }
 
+/**
+ * An expression that requires the operation.
+ */
 interface FormExpressionsOperationConfigFrame  {
   /**
    * The name of the entry in the `operations` dictionary to execute.
+   * Must be provided.
    */
   operation: string;
+  /**
+   * The JSONata template for the expression. This only is populated in the server-side, the client side will retrieve the template from the pre-compiled dictionary.
+   * Optional when operation is provided.
+   */
+  template?: string;
 }
 
+/**
+ * An expression that requires the template.
+ */
 interface FormExpressionsTemplateConfigFrame {
   /**
    * The JSONata template for the expression. This only is populated in the server-side, the client side will retrieve the template from the pre-compiled dictionary.
+   * Must be provided.
    */
   template: string;
+  /**
+   * The name of the entry in the `operations` dictionary to execute.
+   * Optional when template is provided.
+   */
+  operation?: string;
 }
 
 export const FormExpressionsTargetModelValue = "model.value" as const;
