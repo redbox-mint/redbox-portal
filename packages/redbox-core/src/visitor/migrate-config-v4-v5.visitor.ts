@@ -1580,6 +1580,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     const mappedProps = [
       'startsWith',
+      'recentPdfLimit',
+      'showVersionCounter',
       'showVersionColumn',
       'versionColumnValueField',
       'versionColumnLabelKey',

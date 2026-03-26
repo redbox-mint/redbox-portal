@@ -34,6 +34,8 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
     @Input() public override model?: PDFListModel;
 
     public startsWith = "rdmp-pdf";
+    public recentPdfLimit = 5;
+    public showVersionCounter = false;
     public showVersionColumn = false;
     public versionColumnValueField = "";
     public versionColumnLabelKey = "";
@@ -59,6 +61,8 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
         const cfg = (this.componentDefinition?.config as PDFListFieldComponentConfigOutline) ?? new PDFListFieldComponentConfig();
 
         this.startsWith = String(cfg.startsWith ?? "rdmp-pdf");
+        this.recentPdfLimit = Number.isFinite(cfg.recentPdfLimit) ? Math.max(1, Number(cfg.recentPdfLimit)) : 5;
+        this.showVersionCounter = cfg.showVersionCounter === true;
         this.showVersionColumn = cfg.showVersionColumn === true;
         this.versionColumnValueField = String(cfg.versionColumnValueField ?? "");
         this.versionColumnLabelKey = String(cfg.versionColumnLabelKey ?? "");
@@ -77,8 +81,16 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
         return this.pdfAttachments.slice(1);
     }
 
+    public get recentPdfAttachments(): PDFListAttachmentView[] {
+        return this.pdfAttachments.slice(0, this.recentPdfLimit);
+    }
+
     public get hasHistory(): boolean {
         return this.previousPdfAttachments.length > 0;
+    }
+
+    public get hasMoreThanRecent(): boolean {
+        return this.pdfAttachments.length > this.recentPdfLimit;
     }
 
     public async loadAttachments(): Promise<void> {
@@ -128,6 +140,29 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
         }
 
         return `${this.translate(this.versionColumnLabelKey)}${version}`;
+    }
+
+    public getAttachmentSummary(attachment: RecordAttachment, index: number): string {
+        const versionLabel = this.getVersionLabel(attachment, index);
+        const displayDate = String((attachment as PDFListAttachmentView).formattedDateUpdated ?? attachment.dateUpdated ?? "");
+        return _isEmpty(versionLabel)
+            ? displayDate
+            : `${versionLabel} -- ${displayDate}`;
+    }
+
+    public getDropdownAttachmentLabel(attachment: RecordAttachment, index: number): string {
+        const versionLabel = this.getVersionLabel(attachment, index);
+        const displayDate = String((attachment as PDFListAttachmentView).formattedDateUpdated ?? attachment.dateUpdated ?? "");
+        return _isEmpty(versionLabel)
+            ? displayDate
+            : `${displayDate} -- ${versionLabel}`;
+    }
+
+    public getDownloadAriaLabel(attachment: PDFListAttachmentView, index: number): string {
+        const summary = this.getAttachmentSummary(attachment, index);
+        return _isEmpty(summary)
+            ? this.translate(this.downloadBtnLabel)
+            : `Download PDF from ${summary}`;
     }
 
     public openHistoryModal(): void {

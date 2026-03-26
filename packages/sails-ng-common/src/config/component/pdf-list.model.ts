@@ -24,6 +24,8 @@ import {
 
 export class PDFListFieldComponentConfig extends FieldComponentConfig implements PDFListFieldComponentConfigOutline {
     startsWith = "rdmp-pdf";
+    recentPdfLimit = 5;
+    showVersionCounter = false;
     showVersionColumn = false;
     versionColumnValueField = "";
     versionColumnLabelKey = "";

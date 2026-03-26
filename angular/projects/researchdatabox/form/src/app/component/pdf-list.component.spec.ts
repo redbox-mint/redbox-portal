@@ -64,6 +64,7 @@ describe("PDFListComponent", () => {
         expect(recordService.getAttachments).toHaveBeenCalledWith("oid-123");
         expect(component.pdfAttachments.length).toBe(2);
         expect(component.latestPdf?.label).toBe("rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2.pdf");
+        expect(component.recentPdfAttachments.length).toBe(2);
         expect((formComponent as any).form.value.planPdf.length).toBe(2);
     });
 
@@ -147,9 +148,10 @@ describe("PDFListComponent", () => {
         expect(component.showHistoryModal).toBeFalse();
     });
 
-    it("renders the legacy split button styling and history dropdown", async () => {
+    it("renders the split button styling and history dropdown when history exists", async () => {
         recordService.getAttachments.and.resolveTo([
             { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-03-01T09:00:00Z" },
+            { label: "rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2.pdf", dateUpdated: "2024-02-01T09:00:00Z" },
         ]);
 
         const formConfig: FormConfigFrame = {
@@ -177,10 +179,171 @@ describe("PDFListComponent", () => {
         const host = fixture.nativeElement as HTMLElement;
         expect(host.querySelector(".btn-group .btn.btn-danger")).not.toBeNull();
         expect(host.querySelector(".btn-group .dropdown-toggle")).not.toBeNull();
+        expect(host.querySelector(".btn-group .badge.badge-light")).toBeNull();
 
         const component = fixture.debugElement.query(By.directive(PDFListComponent)).componentInstance as PDFListComponent;
         component.toggleHistoryMenu();
         fixture.detectChanges();
         expect(host.querySelector(".dropdown-menu.show")).not.toBeNull();
+    });
+
+    it("renders a plain button with no dropdown when there is no history", async () => {
+        recordService.getAttachments.and.resolveTo([
+            { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-03-01T09:00:00Z" },
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "planPdf",
+                    component: {
+                        class: "PDFListComponent",
+                    },
+                    model: {
+                        class: "PDFListModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-single", editMode: false } as any);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        expect(host.querySelector(".btn-group")).toBeNull();
+        expect(host.querySelector("a.btn.btn-danger")).not.toBeNull();
+    });
+
+    it("shows recent versions in the dropdown and defers full history to the modal", async () => {
+        recordService.getAttachments.and.resolveTo([
+            { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-03-05T09:00:00Z" },
+            { label: "rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2.pdf", dateUpdated: "2024-03-04T09:00:00Z" },
+            { label: "rdmp-pdf-cccccccccccccccccccccccccccccccc-3.pdf", dateUpdated: "2024-03-03T09:00:00Z" },
+            { label: "rdmp-pdf-dddddddddddddddddddddddddddddddd-4.pdf", dateUpdated: "2024-03-02T09:00:00Z" },
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "planPdf",
+                    component: {
+                        class: "PDFListComponent",
+                        config: {
+                            recentPdfLimit: 2
+                        }
+                    },
+                    model: {
+                        class: "PDFListModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-history", editMode: false } as any);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        const component = fixture.debugElement.query(By.directive(PDFListComponent)).componentInstance as PDFListComponent;
+        const host = fixture.nativeElement as HTMLElement;
+
+        expect(component.recentPdfAttachments.length).toBe(2);
+        expect(component.hasMoreThanRecent).toBeTrue();
+
+        component.toggleHistoryMenu();
+        fixture.detectChanges();
+
+        const dropdownItems = host.querySelectorAll(".dropdown-menu.show .dropdown-item");
+        expect(dropdownItems.length).toBe(3);
+        expect(host.textContent).toContain("Latest");
+        expect(host.textContent).toContain("View all 4 versions...");
+    });
+
+    it("shows the version counter only when enabled in config", async () => {
+        recordService.getAttachments.and.resolveTo([
+            { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-03-01T09:00:00Z" },
+            { label: "rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2.pdf", dateUpdated: "2024-02-01T09:00:00Z" },
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "planPdf",
+                    component: {
+                        class: "PDFListComponent",
+                        config: {
+                            showVersionCounter: true
+                        }
+                    },
+                    model: {
+                        class: "PDFListModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-counter", editMode: false } as any);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        expect(host.querySelector(".btn-group .badge.badge-light")?.textContent).toContain("2");
+    });
+
+    it("renders the latest badge after the date label in the dropdown row", async () => {
+        recordService.getAttachments.and.resolveTo([
+            { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-03-01T09:00:00Z" },
+            { label: "rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2.pdf", dateUpdated: "2024-02-01T09:00:00Z" },
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "planPdf",
+                    component: {
+                        class: "PDFListComponent",
+                        config: {
+                            showVersionColumn: true,
+                            versionColumnValueField: "planVersion",
+                            versionColumnLabelKey: "v"
+                        }
+                    },
+                    model: {
+                        class: "PDFListModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: "oid-dropdown-layout", editMode: false } as any);
+        (formComponent as any).form.addControl("planVersion", new FormControl("4"));
+        await fixture.whenStable();
+
+        const component = fixture.debugElement.query(By.directive(PDFListComponent)).componentInstance as PDFListComponent;
+        component.toggleHistoryMenu();
+        fixture.detectChanges();
+
+        const firstDropdownItem = (fixture.nativeElement as HTMLElement).querySelector(".dropdown-menu.show .dropdown-item");
+        const firstDropdownText = firstDropdownItem?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+        expect(firstDropdownText).toContain("March 1, 2024");
+        expect(firstDropdownText).toContain("v4");
+        expect(firstDropdownText.indexOf("Latest")).toBeGreaterThan(firstDropdownText.indexOf("March 1, 2024"));
+        expect(firstDropdownItem?.querySelector(".d-inline-flex.align-items-center.pl-4 .fa-download")).not.toBeNull();
     });
 });

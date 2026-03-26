@@ -516,6 +516,8 @@ describe("Migrate v4 to v5 Visitor", async () => {
                         definition: {
                             name: 'planPdf',
                             startsWith: 'rdmp-pdf',
+                            recentPdfLimit: 3,
+                            showVersionCounter: true,
                             showVersionColumn: true,
                             versionColumnValueField: 'planVersion',
                             versionColumnLabelKey: 'Version ',
@@ -536,6 +538,8 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(migratedField.component.class).to.equal('PDFListComponent');
         expect(migratedField.model?.class).to.equal('PDFListModel');
         expect(componentConfig?.startsWith).to.equal('rdmp-pdf');
+        expect(componentConfig?.recentPdfLimit).to.equal(3);
+        expect(componentConfig?.showVersionCounter).to.equal(true);
         expect(componentConfig?.showVersionColumn).to.equal(true);
         expect(componentConfig?.versionColumnValueField).to.equal('planVersion');
         expect(componentConfig?.versionColumnLabelKey).to.equal('Version ');

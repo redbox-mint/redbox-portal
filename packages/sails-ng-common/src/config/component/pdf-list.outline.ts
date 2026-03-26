@@ -41,6 +41,8 @@ export type PDFListModelValueType = RecordAttachment[];
 
 export interface PDFListFieldComponentConfigFrame extends FieldComponentConfigFrame {
     startsWith?: string;
+    recentPdfLimit?: number;
+    showVersionCounter?: boolean;
     showVersionColumn?: boolean;
     versionColumnValueField?: string;
     versionColumnLabelKey?: string;

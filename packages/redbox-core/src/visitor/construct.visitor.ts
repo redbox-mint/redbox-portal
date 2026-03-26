@@ -1376,6 +1376,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
     this.sharedProps.setPropOverride('startsWith', item.config, config);
+    this.sharedProps.setPropOverride('recentPdfLimit', item.config, config);
+    this.sharedProps.setPropOverride('showVersionCounter', item.config, config);
     this.sharedProps.setPropOverride('showVersionColumn', item.config, config);
     this.sharedProps.setPropOverride('versionColumnValueField', item.config, config);
     this.sharedProps.setPropOverride('versionColumnLabelKey', item.config, config);
