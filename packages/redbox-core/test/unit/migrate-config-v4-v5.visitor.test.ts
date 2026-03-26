@@ -504,6 +504,55 @@ describe("Migrate v4 to v5 Visitor", async () => {
         });
     });
 
+    it('migrates legacy PDFList fields to PDFListComponent and survives visitor verification', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+        const migrated = visitor.start({
+            data: {
+                name: 'pdf-list-migration',
+                fields: [
+                    {
+                        class: 'PDFList',
+                        compClass: 'PDFListComponent',
+                        definition: {
+                            name: 'planPdf',
+                            startsWith: 'rdmp-pdf',
+                            recentPdfLimit: 3,
+                            showVersionCounter: true,
+                            showVersionColumn: true,
+                            versionColumnValueField: 'planVersion',
+                            versionColumnLabelKey: 'Version ',
+                            useVersionLabelForFileName: true,
+                            downloadBtnLabel: '@download-current',
+                            downloadPreviousBtnLabel: '@download-previous',
+                            downloadPrefix: 'rdmp',
+                            fileNameTemplate: '<%= versionLabel %>.pdf',
+                        }
+                    }
+                ]
+            }
+        });
+
+        const migratedField = migrated.componentDefinitions[0];
+        const componentConfig = migratedField.component.config as Record<string, unknown>;
+
+        expect(migratedField.component.class).to.equal('PDFListComponent');
+        expect(migratedField.model?.class).to.equal('PDFListModel');
+        expect(componentConfig?.startsWith).to.equal('rdmp-pdf');
+        expect(componentConfig?.recentPdfLimit).to.equal(3);
+        expect(componentConfig?.showVersionCounter).to.equal(true);
+        expect(componentConfig?.showVersionColumn).to.equal(true);
+        expect(componentConfig?.versionColumnValueField).to.equal('planVersion');
+        expect(componentConfig?.versionColumnLabelKey).to.equal('Version ');
+        expect(componentConfig?.useVersionLabelForFileName).to.equal(true);
+        expect(componentConfig?.downloadBtnLabel).to.equal('@download-current');
+        expect(componentConfig?.downloadPreviousBtnLabel).to.equal('@download-previous');
+        expect(componentConfig?.downloadPrefix).to.equal('rdmp');
+        expect(componentConfig?.fileNameTemplate).to.equal('{{versionLabel}}.pdf');
+        expect(migratedField.layout?.config?.label).to.equal(undefined);
+
+        await migrateFormConfigVerify(migrated, logger);
+    });
+
     it('maps legacy RecordMetadataRetriever request-param fetch expressions inside tab content containers', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({

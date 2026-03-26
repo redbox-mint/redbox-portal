@@ -128,6 +128,11 @@ import {
   FileUploadFormComponentDefinitionOutline,
 } from '../component/file-upload.outline';
 import {
+  PDFListFieldComponentDefinitionOutline,
+  PDFListFieldModelDefinitionOutline,
+  PDFListFormComponentDefinitionOutline,
+} from '../component/pdf-list.outline';
+import {
   RecordMetadataRetrieverFieldComponentDefinitionOutline,
   RecordMetadataRetrieverFormComponentDefinitionOutline,
 } from '../component/record-metadata-retriever.outline';
@@ -375,6 +380,14 @@ export interface FormConfigVisitorOutline {
   visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void;
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void;
+
+  /* PDF List */
+
+  visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): void;
+
+  visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): void;
+
+  visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): void;
 
   /* Record Metadata Retriever */
 

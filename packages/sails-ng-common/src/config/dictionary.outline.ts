@@ -55,6 +55,7 @@ import { TypeaheadInputTypes } from './component/typeahead-input.outline';
 import { RichTextEditorTypes } from './component/rich-text-editor.outline';
 import { MapTypes } from './component/map.outline';
 import { FileUploadTypes } from './component/file-upload.outline';
+import { PDFListTypes } from './component/pdf-list.outline';
 import { RecordMetadataRetrieverTypes } from './component/record-metadata-retriever.outline';
 import { DataLocationTypes } from './component/data-location.outline';
 import { PublishDataLocationRefreshTypes } from './component/publish-data-location-refresh.outline';
@@ -97,6 +98,7 @@ export type AllTypes =
   | RichTextEditorTypes
   | MapTypes
   | FileUploadTypes
+  | PDFListTypes
   | RecordMetadataRetrieverTypes
   | DataLocationTypes
   // Refresh trigger participates in the shared config unions so all visitors can

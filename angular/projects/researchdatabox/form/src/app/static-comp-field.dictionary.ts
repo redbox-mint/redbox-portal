@@ -29,6 +29,7 @@ import { TypeaheadInputComponent, TypeaheadInputModel } from './component/typeah
 import { RichTextEditorComponent, RichTextEditorModel } from './component/rich-text-editor.component';
 import { MapComponent, MapModel } from './component/map.component';
 import { FileUploadComponent, FileUploadModel } from './component/file-upload.component';
+import { PDFListComponent, PDFListModel } from './component/pdf-list.component';
 import { DataLocationComponent, DataLocationModel } from './component/data-location.component';
 import {
   PublishDataLocationSelectorComponent,
@@ -56,6 +57,7 @@ import {
   RichTextEditorModelName,
   MapModelName,
   FileUploadModelName,
+  PDFListModelName,
   DataLocationModelName,
   PublishDataLocationRefreshComponentName,
   PublishDataLocationSelectorModelName,
@@ -80,6 +82,7 @@ import {
   RichTextEditorComponentName,
   MapComponentName,
   FileUploadComponentName,
+  PDFListComponentName,
   DataLocationComponentName,
   PublishDataLocationSelectorComponentName,
   CancelButtonComponentName,
@@ -129,6 +132,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [RichTextEditorComponentName]: RichTextEditorComponent,
   [MapComponentName]: MapComponent,
   [FileUploadComponentName]: FileUploadComponent,
+  [PDFListComponentName]: PDFListComponent,
   [RecordMetadataRetrieverComponentName]: RecordMetadataRetrieverComponent,
   // Register as component-only on purpose; refresh clicks should not create a
   // backing model object in submitted form data.
@@ -162,6 +166,7 @@ export const getStaticModelClassMap = (): StaticModelClassMapType => ({
   [RichTextEditorModelName]: RichTextEditorModel,
   [MapModelName]: MapModel,
   [FileUploadModelName]: FileUploadModel,
+  [PDFListModelName]: PDFListModel,
   [DataLocationModelName]: DataLocationModel,
   [PublishDataLocationSelectorModelName]: PublishDataLocationSelectorModel,
 });

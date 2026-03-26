@@ -27,6 +27,7 @@ import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
 import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray, clone as _clone, isString as _isString, isNumber as _isNumber } from 'lodash-es';
 import { RecordResponseTable } from "./dashboard-models";
+import { RecordAttachment } from '@researchdatabox/sails-ng-common';
 
 export interface RecordTypeConf {
   name: string;
@@ -74,6 +75,24 @@ export class RecordService extends HttpClientService {
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;
+  }
+
+  public async getAttachments(oid: string): Promise<RecordAttachment[]> {
+    const url = `${this.brandingAndPortalUrl}/record/${oid}/attachments`;
+    const requestOptions = this.getHttpOptions();
+    const httpOptions: {
+      context?: typeof requestOptions.context;
+      observe: 'body';
+      responseType: 'json';
+    } = {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
+    };
+    const result$ = this.http
+      .get<RecordAttachment[] | { data?: RecordAttachment[] }>(url, httpOptions)
+      .pipe(map(response => Array.isArray(response) ? response : response?.data ?? []));
+    return await firstValueFrom(result$);
   }
 
   private getDocMetadata(doc: any) {
