@@ -1,0 +1,85 @@
+@if (latestPdf) {
+  <div class="rb-pdf-list d-flex flex-wrap align-items-start gap-2">
+    <div class="btn-group print-hidden" (click)="$event.stopPropagation()">
+      <a class="btn btn-danger"
+         [href]="getDownloadUrl(latestPdf, true, 0)"
+         target="_blank"
+         rel="noopener noreferrer"
+         download>
+        <i class="fa fa-file-pdf-o" aria-hidden="true">&nbsp;</i>{{ downloadBtnLabel | i18next }}
+      </a>
+      <button type="button"
+              class="btn btn-danger dropdown-toggle"
+              aria-haspopup="true"
+              [attr.aria-expanded]="showHistoryMenu"
+              (click)="toggleHistoryMenu($event)">
+        <span class="visually-hidden">{{ 'toggle-dropdown' | i18next }}</span>
+      </button>
+      <ul class="dropdown-menu" [class.show]="showHistoryMenu">
+        <li>
+          <button type="button" class="dropdown-item" (click)="openHistoryModal()">
+            {{ downloadPreviousBtnLabel | i18next }}
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+}
+
+@if (showHistoryModal) {
+  <div class="modal fade show d-block"
+       id="rbPdfListHistoryModal"
+       tabindex="-1"
+       role="dialog"
+       aria-modal="true"
+       data-bs-backdrop="static"
+       data-bs-keyboard="true"
+       (click)="hideHistoryModal()">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ downloadPreviousBtnLabel | i18next }}</h5>
+          <button type="button"
+                  class="btn-close"
+                  aria-label="Close"
+                  data-bs-dismiss="modal"
+                  (click)="hideHistoryModal()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  @if (showVersionColumn) {
+                    <th scope="col">{{ '@pdf-column-version' | i18next }}</th>
+                  }
+                  <th scope="col">{{ '@pdf-column-date-created' | i18next }}</th>
+                  <th scope="col">{{ '@pdf-column-download' | i18next }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (attachment of pdfAttachments; track attachment.label; let idx = $index) {
+                  <tr>
+                    @if (showVersionColumn) {
+                      <td>{{ getVersionLabel(attachment, idx) }}</td>
+                    }
+                    <td>{{ attachment.formattedDateUpdated }}</td>
+                    <td>
+                      <a [href]="getDownloadUrl(attachment, useVersionLabelForFileName, idx)"
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         download>
+                        <i class="fa fa-file-pdf-o" aria-hidden="true"></i> {{ '@pdf-column-download' | i18next }}
+                      </a>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

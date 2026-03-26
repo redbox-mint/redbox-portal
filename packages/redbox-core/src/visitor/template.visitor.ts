@@ -110,6 +110,11 @@ import {
   FileUploadFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  PDFListFieldComponentDefinitionOutline,
+  PDFListFieldModelDefinitionOutline,
+  PDFListFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   RecordMetadataRetrieverFieldComponentDefinitionOutline,
   RecordMetadataRetrieverFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
@@ -488,6 +493,14 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   visitFileUploadFieldModelDefinition(_item: FileUploadFieldModelDefinitionOutline): void {}
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  visitPDFListFieldComponentDefinition(_item: PDFListFieldComponentDefinitionOutline): void {}
+
+  visitPDFListFieldModelDefinition(_item: PDFListFieldModelDefinitionOutline): void {}
+
+  visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 

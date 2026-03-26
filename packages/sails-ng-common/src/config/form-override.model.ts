@@ -68,6 +68,7 @@ import { TypeaheadInputComponentName, TypeaheadInputFormComponentDefinitionOutli
 import { RichTextEditorComponentName, RichTextEditorFormComponentDefinitionOutline } from './component/rich-text-editor.outline';
 import { MapComponentName } from './component/map.outline';
 import { FileUploadComponentName, FileUploadFormComponentDefinitionOutline } from './component/file-upload.outline';
+import { PDFListComponentName, PDFListFormComponentDefinitionOutline } from './component/pdf-list.outline';
 import { DataLocationComponentName, DataLocationFormComponentDefinitionOutline } from './component/data-location.outline';
 import {
   PublishDataLocationSelectorComponentName,
@@ -108,6 +109,7 @@ export class FormOverride {
     leafOptionMulti: 'view-template-leaf-option-multi',
     leafRichText: 'view-template-leaf-rich-text',
     leafFileUpload: 'view-template-leaf-file-upload',
+    leafPDFList: 'view-template-leaf-pdf-list',
     leafDataLocation: 'view-template-leaf-data-location',
     leafPublishDataLocationSelector: 'view-template-leaf-publish-data-location-selector',
     leafCheckboxTree: 'view-template-leaf-checkbox-tree',
@@ -119,6 +121,8 @@ export class FormOverride {
   } as const;
   private readonly dataLocationLeafFallbackTemplate =
     `{{#if [[valueExpr]]}}<div class="table-responsive mt-2"><table class="table table-bordered table-striped table-hover mb-0 rb-view-data-location"><thead><tr><th width="15%">[[typeHeaderHtml]]</th><th width="40%">[[locationHeaderHtml]]</th>[[notesHeaderCellHtml]][[iscHeaderCellHtml]]</tr></thead><tbody>{{#each [[valueExpr]]}}<tr><td>{{default this.typeLabel this.type}}</td><td>{{#if (or (eq this.type "url") (eq this.type "attachment"))}}<a href="{{default this.url this.location}}" target="_blank" rel="noopener noreferrer">{{default this.name this.location}}</a>{{else}}<span>{{default this.name this.location}}</span>{{/if}}</td>[[notesCellHtml]][[iscCellHtml]]</tr>{{/each}}</tbody></table></div>{{/if}}`;
+  private readonly pdfListLeafFallbackTemplate =
+    `{{#if [[valueExpr]]}}<ul class="rb-view-pdf-list">{{#each [[valueExpr]]}}<li>{{default this.fileName this.label}}</li>{{/each}}</ul>{{/if}}`;
   private readonly publishDataLocationSelectorLeafFallbackTemplate =
     `{{#if [[valueExpr]]}}<div class="table-responsive mt-2"><table class="table table-bordered table-striped table-hover mb-0 rb-view-publish-data-location-selector"><thead><tr><th width="15%">[[typeHeaderHtml]]</th><th width="35%">[[locationHeaderHtml]]</th>[[notesHeaderCellHtml]][[iscHeaderCellHtml]]</tr></thead><tbody>{{#each [[valueExpr]]}}{{#if this.selected}}<tr><td>{{default this.typeLabel this.type}}</td><td>{{#if (or (eq this.type "url") (eq this.type "attachment"))}}<a href="{{default this.url this.location}}" target="_blank" rel="noopener noreferrer">{{default this.name this.location}}</a>{{else}}<span>{{default this.name this.location}}</span>{{/if}}</td>[[notesCellHtml]][[iscCellHtml]]</tr>{{/if}}{{/each}}</tbody></table></div>{{/if}}`;
   private readonly questionTreeHelper: QuestionTreeHelper;
@@ -162,6 +166,9 @@ export class FormOverride {
     },
     [FileUploadComponentName]: {
       [ContentComponentName]: this.sourceFileUploadComponentTargetContentComponent,
+    },
+    [PDFListComponentName]: {
+      [ContentComponentName]: this.sourcePDFListComponentTargetContentComponent,
     },
     [DataLocationComponentName]: {
       [ContentComponentName]: this.sourceDataLocationComponentTargetContentComponent,
@@ -233,6 +240,11 @@ export class FormOverride {
       },
     },
     [FileUploadComponentName]: {
+      view: {
+        component: ContentComponentName,
+      },
+    },
+    [PDFListComponentName]: {
       view: {
         component: ContentComponentName,
       },
@@ -874,6 +886,25 @@ export class FormOverride {
     return target;
   }
 
+  private sourcePDFListComponentTargetContentComponent(
+    source: PDFListFormComponentDefinitionOutline,
+    formMode: FormModesConfig
+  ): ContentFormComponentDefinitionOutline {
+    const target = this.commonContentComponent(source as unknown as AllFormComponentDefinitionOutlines, formMode);
+    if (!target.component.config || source.model?.config?.value === undefined) {
+      return target;
+    }
+    target.component.config.content = source.model.config.value;
+    const template = this.resolveReusableViewTemplate(
+      this.reusableViewTemplateKeys.leafPDFList,
+      this.pdfListLeafFallbackTemplate
+    );
+    target.component.config.template = this.substituteReusableTemplateSlots(template, {
+      valueExpr: 'content',
+    });
+    return target;
+  }
+
   private sourcePublishDataLocationSelectorComponentTargetContentComponent(
     source: PublishDataLocationSelectorFormComponentDefinitionOutline,
     formMode: FormModesConfig
@@ -1234,6 +1265,13 @@ export class FormOverride {
         `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{default this.name this.fileId}}</li>{{/each}}</ul>`
       );
       return this.substituteReusableTemplateSlots(fileTemplate, { valueExpr: expression });
+    }
+    if (className === PDFListComponentName) {
+      const pdfListTemplate = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafPDFList,
+        this.pdfListLeafFallbackTemplate
+      );
+      return this.substituteReusableTemplateSlots(pdfListTemplate, { valueExpr: expression });
     }
     if (className === DataLocationComponentName) {
       const dataLocationTemplate = this.resolveReusableViewTemplate(

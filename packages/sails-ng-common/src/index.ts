@@ -95,6 +95,8 @@ export * from './config/component/map.model';
 export * from './config/component/map.outline';
 export * from './config/component/file-upload.model';
 export * from './config/component/file-upload.outline';
+export * from './config/component/pdf-list.model';
+export * from './config/component/pdf-list.outline';
 export * from './config/component/record-metadata-retriever.model';
 export * from './config/component/record-metadata-retriever.outline';
 // Exported so hooks and Angular runtime can reference the same component name

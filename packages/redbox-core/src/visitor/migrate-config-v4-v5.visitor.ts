@@ -206,6 +206,14 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { FileUploadFieldComponentConfig, FileUploadFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import {
+  PDFListComponentName,
+  PDFListFieldComponentDefinitionOutline,
+  PDFListFieldModelDefinitionOutline,
+  PDFListFormComponentDefinitionOutline,
+  PDFListModelName,
+} from '@researchdatabox/sails-ng-common';
+import { PDFListFieldComponentConfig, PDFListFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
   DataLocationComponentName,
   DataLocationFieldComponentDefinitionOutline,
   DataLocationFieldModelDefinitionOutline,
@@ -497,6 +505,16 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
     DataLocationComponent: {
       componentClassName: DataLocationComponentName,
       modelClassName: DataLocationModelName,
+    },
+  },
+  PDFList: {
+    '': {
+      componentClassName: PDFListComponentName,
+      modelClassName: PDFListModelName,
+    },
+    PDFListComponent: {
+      componentClassName: PDFListComponentName,
+      modelClassName: PDFListModelName,
     },
   },
   PublishDataLocationSelector: {
@@ -1553,6 +1571,42 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.populateFormComponent(item);
   }
 
+  /* PDF List */
+
+  visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new PDFListFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const mappedProps = [
+      'startsWith',
+      'showVersionColumn',
+      'versionColumnValueField',
+      'versionColumnLabelKey',
+      'useVersionLabelForFileName',
+      'downloadBtnLabel',
+      'downloadPreviousBtnLabel',
+      'downloadPrefix',
+      'fileNameTemplate',
+    ] as const;
+
+    for (const prop of mappedProps) {
+      if (field?.definition?.[prop] !== undefined) {
+        this.sharedProps.setPropOverride(prop, item.config, { [prop]: field.definition[prop] });
+      }
+    }
+  }
+
+  visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new PDFListFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
   /* Data Location */
 
   visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void {
@@ -2539,7 +2593,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
     }
     const migratedLabel =
-      (this.shouldSuppressLegacyTextBlockLayoutLabel(field) || this.isLegacyLinkValueControl(field))
+      (this.shouldSuppressLegacyTextBlockLayoutLabel(field) ||
+        this.isLegacyLinkValueControl(field) ||
+        this.isLegacyPDFListControl(field))
         ? undefined
         : hasExplicitLabel
         ? (definition.label as string)
@@ -2568,6 +2624,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const v4ClassName = `${field?.class ?? ''}`.trim();
     const v4CompClassName = `${field?.compClass ?? ''}`.trim();
     return v4ClassName === 'DataLocation' || v4CompClassName === 'DataLocationComponent';
+  }
+
+  private isLegacyPDFListControl(field?: Record<string, unknown>): boolean {
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    const v4CompClassName = `${field?.compClass ?? ''}`.trim();
+    return v4ClassName === 'PDFList' || v4CompClassName === 'PDFListComponent';
   }
 
   protected getV4Data() {
