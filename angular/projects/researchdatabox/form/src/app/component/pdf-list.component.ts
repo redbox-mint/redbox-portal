@@ -123,7 +123,7 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
         const base = String(this.getFormComponent.recordService.brandingAndPortalUrl ?? "").trim();
         const url = `${base}/record/${oid}/datastream?datastreamId=${encodeURIComponent(String(attachment?.label ?? ""))}`;
 
-        if (!generateFileName) {
+        if (!this.shouldGenerateFileName(generateFileName)) {
             return url;
         }
 
@@ -139,7 +139,7 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
         let version: unknown = null;
         if (_isArray(versionValue)) {
             version = versionValue[versionValue.length - (index + 1)];
-        } else if (!_isEmpty(versionValue)) {
+        } else if (versionValue !== null && versionValue !== undefined && versionValue !== "") {
             const numericCandidate = _toNumber(versionValue);
             if (!Number.isFinite(numericCandidate)) {
                 return "";
@@ -171,12 +171,17 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
     }
 
     public getDownloadAriaLabel(attachment: PDFListAttachmentView, index: number): string {
+        const actionLabel = this.getDownloadActionLabel(index);
         const summary = this.getAttachmentSummary(attachment, index);
         if (_isEmpty(summary)) {
-            return this.translate(this.downloadBtnLabel);
+            return actionLabel;
         }
-        const template = this.translate("@pdf-download-from");
-        return template.replace("{{summary}}", summary);
+        return `${actionLabel}: ${summary}`;
+    }
+
+    public getDownloadActionLabel(index: number): string {
+        const label = index === 0 ? this.downloadBtnLabel : this.downloadPreviousBtnLabel;
+        return this.translate(label);
     }
 
     public openHistoryModal(): void {
@@ -211,7 +216,7 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
     private applyAttachments(attachments: PDFListAttachmentView[]): void {
         this.pdfAttachments = attachments;
         this.latestPdf = attachments[0] ?? null;
-        this.formControl.setValue(attachments, { emitEvent: false });
+        this.formControl.setValue(attachments, { emitEvent: true });
         this.formControl.markAsPristine();
         this.formControl.markAsUntouched();
     }
@@ -251,6 +256,10 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
             this.loggerService.warn(`${this.logName}: Failed to evaluate fileNameTemplate. Falling back to the default PDF filename.`, error);
             return fallbackFileName;
         }
+    }
+
+    private shouldGenerateFileName(generateFileName: boolean): boolean {
+        return generateFileName || !_isEmpty(this.fileNameTemplate);
     }
 
     private async prepareFileNameTemplate(): Promise<void> {

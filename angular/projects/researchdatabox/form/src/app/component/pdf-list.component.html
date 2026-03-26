@@ -5,6 +5,7 @@
          [href]="getDownloadUrl(latestPdf, true, 0)"
          target="_blank"
          rel="noopener noreferrer"
+        [attr.title]="getDownloadActionLabel(0)"
          [attr.aria-label]="getDownloadAriaLabel(latestPdf, 0)"
          download>
         <i class="fa fa-file-pdf-o" aria-hidden="true">&nbsp;</i>{{ downloadBtnLabel | i18next }}
@@ -15,6 +16,7 @@
            [href]="getDownloadUrl(latestPdf, true, 0)"
            target="_blank"
            rel="noopener noreferrer"
+            [attr.title]="getDownloadActionLabel(0)"
            [attr.aria-label]="getDownloadAriaLabel(latestPdf, 0)"
            download>
           <i class="fa fa-file-pdf-o" aria-hidden="true">&nbsp;</i>{{ downloadBtnLabel | i18next }}
@@ -35,6 +37,7 @@
                [href]="getDownloadUrl(attachment, useVersionLabelForFileName, idx)"
                target="_blank"
                rel="noopener noreferrer"
+              [attr.title]="getDownloadActionLabel(idx)"
                [attr.aria-label]="getDownloadAriaLabel(attachment, idx)"
                download>
               <span class="d-inline-flex align-items-center pr-4">
@@ -48,6 +51,7 @@
               </span>
               <span class="d-inline-flex align-items-center pl-4">
                 <i class="fa fa-download" aria-hidden="true"></i>
+                <span class="sr-only">{{ getDownloadActionLabel(idx) }}</span>
               </span>
             </a>
           }
@@ -105,6 +109,7 @@
                       <a [href]="getDownloadUrl(attachment, useVersionLabelForFileName, idx)"
                          target="_blank"
                          rel="noopener noreferrer"
+                         [attr.title]="getDownloadActionLabel(idx)"
                          [attr.aria-label]="getDownloadAriaLabel(attachment, idx)"
                          download>
                         <i class="fa fa-file-pdf-o" aria-hidden="true"></i> {{ '@pdf-column-download' | i18next }}

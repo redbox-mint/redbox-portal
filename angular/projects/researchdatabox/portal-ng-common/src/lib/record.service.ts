@@ -79,8 +79,20 @@ export class RecordService extends HttpClientService {
 
   public async getAttachments(oid: string): Promise<RecordAttachment[]> {
     const url = `${this.brandingAndPortalUrl}/record/${oid}/attachments`;
-    const result$ = this.http.get(url, this.getHttpOptions());
-    return await firstValueFrom(result$) as unknown as RecordAttachment[];
+    const requestOptions = this.getHttpOptions();
+    const httpOptions: {
+      context?: typeof requestOptions.context;
+      observe: 'body';
+      responseType: 'json';
+    } = {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
+    };
+    const result$ = this.http
+      .get<RecordAttachment[] | { data?: RecordAttachment[] }>(url, httpOptions)
+      .pipe(map(response => Array.isArray(response) ? response : response?.data ?? []));
+    return await firstValueFrom(result$);
   }
 
   private getDocMetadata(doc: any) {

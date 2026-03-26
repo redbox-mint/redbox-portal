@@ -68,6 +68,41 @@ describe("PDFListComponent", () => {
         expect((formComponent as any).form.value.planPdf.length).toBe(2);
     });
 
+    it("emits form control value changes when attachments are loaded", async () => {
+        recordService.getAttachments.and.resolveTo([
+            { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-02-01T10:00:00Z" },
+            { label: "rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2.pdf", dateUpdated: "2024-03-01T09:00:00Z" },
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "planPdf",
+                    component: {
+                        class: "PDFListComponent",
+                    },
+                    model: {
+                        class: "PDFListModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: "oid-events", editMode: false } as any);
+        const changes: unknown[] = [];
+        (formComponent as any).form.get("planPdf")?.valueChanges.subscribe((value: unknown) => changes.push(value));
+
+        const component = fixture.debugElement.query(By.directive(PDFListComponent)).componentInstance as PDFListComponent;
+        await component.loadAttachments();
+
+        expect(changes.length).toBeGreaterThan(0);
+        expect((changes[changes.length - 1] as Array<unknown>).length).toBe(2);
+    });
+
     it("uses the sibling version field when generating download filenames", async () => {
         recordService.getAttachments.and.resolveTo([
             { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-03-01T09:00:00Z" },
@@ -107,6 +142,46 @@ describe("PDFListComponent", () => {
         expect(component.getVersionLabel(component.pdfAttachments[0], 0)).toBe("v7");
         expect(decodeURIComponent(component.getDownloadUrl(component.pdfAttachments[0], true, 0))).toContain("fileName=rdmp-v7.pdf");
         expect(decodeURIComponent(component.getDownloadUrl(component.pdfAttachments[1], true, 1))).toContain("fileName=rdmp-v6.pdf");
+    });
+
+    it("supports numeric version field values when generating version labels", async () => {
+        recordService.getAttachments.and.resolveTo([
+            { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-03-01T09:00:00Z" },
+            { label: "rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2.pdf", dateUpdated: "2024-02-01T09:00:00Z" },
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "planPdf",
+                    component: {
+                        class: "PDFListComponent",
+                        config: {
+                            showVersionColumn: true,
+                            versionColumnValueField: "planVersion",
+                            versionColumnLabelKey: "v",
+                            useVersionLabelForFileName: true,
+                            downloadPrefix: "rdmp"
+                        }
+                    },
+                    model: {
+                        class: "PDFListModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: "oid-456-number", editMode: false } as any);
+        (formComponent as any).form.addControl("planVersion", new FormControl(7));
+        await fixture.whenStable();
+
+        const component = fixture.debugElement.query(By.directive(PDFListComponent)).componentInstance as PDFListComponent;
+        expect(component.getVersionLabel(component.pdfAttachments[0], 0)).toBe("v7");
+        expect(component.getVersionLabel(component.pdfAttachments[1], 1)).toBe("v6");
     });
 
     it("renders fileNameTemplate with the compiled Handlebars context", async () => {
@@ -160,6 +235,46 @@ describe("PDFListComponent", () => {
             }),
             jasmine.any(Object)
         );
+    });
+
+    it("applies fileNameTemplate even when version labels are not used for filenames", async () => {
+        recordService.getAttachments.and.resolveTo([
+            { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-03-01T09:00:00Z" },
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "planPdf",
+                    component: {
+                        class: "PDFListComponent",
+                        config: {
+                            useVersionLabelForFileName: false,
+                            downloadPrefix: "rdmp",
+                            fileNameTemplate: "{{downloadPrefix}}-custom.pdf"
+                        }
+                    },
+                    model: {
+                        class: "PDFListModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-template-no-version", editMode: false } as any);
+        await fixture.whenStable();
+
+        const component = fixture.debugElement.query(By.directive(PDFListComponent)).componentInstance as PDFListComponent;
+        const evaluateSpy = jasmine.createSpy("evaluate").and.returnValue("rdmp-custom.pdf");
+        (component as any).compiledItems = { evaluate: evaluateSpy };
+        (component as any).fileNameTemplatePath = ["componentDefinitions", 0, "component", "config", "fileNameTemplate"];
+
+        expect(decodeURIComponent(component.getDownloadUrl(component.pdfAttachments[0], false, 0))).toContain("fileName=rdmp-custom.pdf");
+        expect(evaluateSpy).toHaveBeenCalled();
     });
 
     it("shows and hides the history modal", async () => {
@@ -399,5 +514,41 @@ describe("PDFListComponent", () => {
         expect(labelText).toContain("v4");
         expect(firstDropdownLabelParts?.[1]?.classList.contains("badge-primary")).toBeTrue();
         expect(firstDropdownItem?.querySelector(".d-inline-flex.align-items-center.pl-4 .fa-download")).not.toBeNull();
+    });
+
+    it("uses the previous-download label for non-latest attachment accessibility text", async () => {
+        recordService.getAttachments.and.resolveTo([
+            { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-03-01T09:00:00Z" },
+            { label: "rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2.pdf", dateUpdated: "2024-02-01T09:00:00Z" },
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "planPdf",
+                    component: {
+                        class: "PDFListComponent",
+                        config: {
+                            downloadBtnLabel: "@download-current-custom",
+                            downloadPreviousBtnLabel: "@download-previous-custom"
+                        }
+                    },
+                    model: {
+                        class: "PDFListModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-prev-label", editMode: false } as any);
+        await fixture.whenStable();
+
+        const component = fixture.debugElement.query(By.directive(PDFListComponent)).componentInstance as PDFListComponent;
+        expect(component.getDownloadAriaLabel(component.pdfAttachments[0], 0)).toContain("@download-current-custom");
+        expect(component.getDownloadAriaLabel(component.pdfAttachments[1], 1)).toContain("@download-previous-custom");
     });
 });
