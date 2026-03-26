@@ -37,7 +37,7 @@ const formConfig: FormConfigFrame = {
   //     class: "script",// or "valueEquals", "valueInList", "hasKey" etc.
   //     config: {
   //         name: "runSomeOperationThatNeedsTheEntireFormData", // the unique name of the operation
-  //         template: "<%  %>" 
+  //         template: "<%  %>"
   //     }
   //   },
   //   {
@@ -596,7 +596,7 @@ const formConfig: FormConfigFrame = {
                         config: {
                           defaultValue: 'hello world 2!',
                           validators: [
-                            // {class: 'pattern', config: {pattern: /prefix.*/, description: "must start with prefix"}},
+                            // {class: 'pattern', config: {pattern: "prefix.*", description: "must start with prefix"}},
                             // {class: 'minLength', message: "@validator-error-custom-text_2", config: {minLength: 3}},
                           ],
                         },
@@ -651,7 +651,7 @@ const formConfig: FormConfigFrame = {
                             {
                               class: 'pattern',
                               config: {
-                                pattern: /prefix.*/,
+                                pattern: "prefix.*",
                                 description: 'must start with prefix',
                               },
                               groups: { include: ['minimumCreate'] },
@@ -671,9 +671,9 @@ const formConfig: FormConfigFrame = {
                         {
                           name: 'text_7_set_validation_groups',
                           config: {
-                            template: `{"initial": "empty", "groups": {"enable":["minimumCreate"]}}`,
+                            template: `{"initial": "empty", "groups": {"enable":["none"]}}`,
                             conditionKind: 'jsonata',
-                            condition: `formData.text_7 = "prefixa"`,
+                            condition: `formData.text_7 = "a"`,
                             target: 'form.enabledValidationGroups',
                           },
                         },
@@ -957,7 +957,7 @@ const formConfig: FormConfigFrame = {
                                   {
                                     class: 'pattern',
                                     config: {
-                                      pattern: /prefix.*/,
+                                      pattern: "prefix.*",
                                       description: 'must start with prefix',
                                     },
                                   },

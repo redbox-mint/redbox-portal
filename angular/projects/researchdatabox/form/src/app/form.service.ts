@@ -542,12 +542,15 @@ export class FormService extends HttpClientService {
    * @param validators All validators configured on this component.
    * @param enabledValidationGroups The validation group names that are currently enabled. No groups means all validators are enabled.
    * @param validationGroups The available validation groups.
+   * @param updateValueAndValidityOpts Recalculates the value and validation status of the control.
+   *    By default, it also updates the value and validity of its ancestors.
    */
   public setValidators(
     formControl?: AbstractControl | null,
     validators?: FormValidatorConfig[] | null,
     enabledValidationGroups?: string[] | null,
     validationGroups?: FormValidationGroups | null,
+    updateValueAndValidityOpts?: { doUpdate?: boolean, onlySelf?: boolean, emitEvent?: boolean },
   ): void {
     if (!formControl) {
       this.loggerService.warn(`${this.logName}: Cannot set validators because formControl was not provided.`);
@@ -575,7 +578,14 @@ export class FormService extends HttpClientService {
     this.loggerService.debug(`${this.logName}: setting validators to formControl`,
       {definedValidators: validators, enabledValidators, formControlValue: formControl.value});
     formControl.setValidators(validatorFns);
-    formControl.updateValueAndValidity();
+    if (updateValueAndValidityOpts?.doUpdate !== false) {
+      // TODO: Store the first created validator functions per formControl, and use that in .hasValidator.
+      //       This should reduce the amount of churn and events.
+      formControl.updateValueAndValidity({
+        onlySelf: updateValueAndValidityOpts?.onlySelf,
+        emitEvent: updateValueAndValidityOpts?.emitEvent,
+      });
+    }
   }
 
   /**
@@ -589,7 +599,10 @@ export class FormService extends HttpClientService {
   ): void {
     // Set the validators for the form control.
     if (mapEntry?.model?.formControl) {
-      this.setValidators(mapEntry?.model?.formControl, mapEntry?.model?.validators, enabledValidationGroups, validationGroups);
+      const formControl = mapEntry?.model?.formControl;
+      const validators = mapEntry?.model?.validators;
+      const updateValueAndValidityOpts = { doUpdate: true, onlySelf: true, emitEvent: false };
+      this.setValidators(formControl, validators, enabledValidationGroups, validationGroups, updateValueAndValidityOpts);
     }
 
     // Set the validators for any child controls.

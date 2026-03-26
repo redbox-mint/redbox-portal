@@ -534,6 +534,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['setValidationGroupsSub']?.unsubscribe();
     this.subMaps['setValidationGroupsSub'] = this.eventBus.select$(FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST)
       .subscribe((event: FormValidationGroupsChangeRequestEvent) => {
+        const originalEnabledValidationGroups = [...this.enabledValidationGroups];
         const initial = event.initial ?? "enabled";
         const groups = event.groups;
         let enabledNames = [...this.enabledValidationGroups];
@@ -565,9 +566,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
         // Set the enabled validation groups to the form component config.
         this.enabledValidationGroups = enabledNames;
-
         const validationGroups = this.validationGroups;
-        this.componentDefArr?.forEach(mapEntry => this.formService.updateValidators(mapEntry, enabledNames, validationGroups));
+        this.componentDefArr?.forEach(mapEntry =>
+          this.formService.updateValidators(mapEntry, enabledNames, validationGroups)
+        );
+
+        this.loggerService.info(`${this.logName}: Form enabledValidationGroups changed from ${JSON.stringify(originalEnabledValidationGroups)} to ${JSON.stringify(this.enabledValidationGroups)}`);
       });
 
     if (this.form) {
