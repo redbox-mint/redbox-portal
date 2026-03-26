@@ -41,8 +41,8 @@
                 <span>{{ getDropdownAttachmentLabel(attachment, idx) }}</span>
                 @if (idx === 0) {
                   <span class="badge badge-primary mx-2 px-2 py-1 align-middle">
-                    Latest
-                    <span class="sr-only">latest version</span>
+                    {{ '@pdf-latest' | i18next }}
+                    <span class="sr-only">{{ '@pdf-latest-version' | i18next }}</span>
                   </span>
                 }
               </span>
@@ -54,7 +54,7 @@
           @if (hasMoreThanRecent) {
             <div class="dropdown-divider"></div>
             <button type="button" class="dropdown-item" (click)="openHistoryModal()">
-              View all {{ pdfAttachments.length }} versions...
+              {{ '@pdf-view-all-versions' | i18next: { count: pdfAttachments.length } }}
             </button>
           }
         </div>

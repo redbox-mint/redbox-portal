@@ -1594,9 +1594,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     for (const prop of mappedProps) {
       if (field?.definition?.[prop] !== undefined) {
-        this.sharedProps.setPropOverride(prop, item.config, { [prop]: field.definition[prop] });
+        const value = prop === 'fileNameTemplate'
+          ? this.convertLegacyPdfListFileNameTemplate(field.definition[prop])
+          : field.definition[prop];
+        this.sharedProps.setPropOverride(prop, item.config, { [prop]: value });
       }
     }
+  }
+
+  private convertLegacyPdfListFileNameTemplate(value: unknown): unknown {
+    if (typeof value !== 'string') {
+      return value;
+    }
+    return value.replace(/<%=\s*([\s\S]+?)\s*%>/g, '{{$1}}');
   }
 
   visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): void {

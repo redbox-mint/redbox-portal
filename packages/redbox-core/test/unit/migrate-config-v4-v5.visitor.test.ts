@@ -547,7 +547,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(componentConfig?.downloadBtnLabel).to.equal('@download-current');
         expect(componentConfig?.downloadPreviousBtnLabel).to.equal('@download-previous');
         expect(componentConfig?.downloadPrefix).to.equal('rdmp');
-        expect(componentConfig?.fileNameTemplate).to.equal('<%= versionLabel %>.pdf');
+        expect(componentConfig?.fileNameTemplate).to.equal('{{versionLabel}}.pdf');
         expect(migratedField.layout?.config?.label).to.equal(undefined);
 
         await migrateFormConfigVerify(migrated, logger);

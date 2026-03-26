@@ -496,7 +496,16 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     this.acceptFormComponentDefinition(item);
   }
 
-  visitPDFListFieldComponentDefinition(_item: PDFListFieldComponentDefinitionOutline): void {}
+  visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): void {
+    const fileNameTemplate = (item.config?.fileNameTemplate ?? '').trim();
+    if (fileNameTemplate) {
+      this.templates?.push({
+        key: [...(this.formPathHelper.formPath.formConfig ?? []), 'config', 'fileNameTemplate'],
+        value: fileNameTemplate,
+        kind: 'handlebars',
+      });
+    }
+  }
 
   visitPDFListFieldModelDefinition(_item: PDFListFieldModelDefinitionOutline): void {}
 

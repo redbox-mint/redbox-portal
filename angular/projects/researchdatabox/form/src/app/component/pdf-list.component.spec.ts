@@ -109,6 +109,59 @@ describe("PDFListComponent", () => {
         expect(decodeURIComponent(component.getDownloadUrl(component.pdfAttachments[1], true, 1))).toContain("fileName=rdmp-v6.pdf");
     });
 
+    it("renders fileNameTemplate with the compiled Handlebars context", async () => {
+        recordService.getAttachments.and.resolveTo([
+            { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-03-01T09:00:00Z" },
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "planPdf",
+                    component: {
+                        class: "PDFListComponent",
+                        config: {
+                            showVersionColumn: true,
+                            versionColumnValueField: "planVersion",
+                            versionColumnLabelKey: "v",
+                            useVersionLabelForFileName: true,
+                            downloadPrefix: "rdmp",
+                            fileNameTemplate: "{{downloadPrefix}}-{{versionLabel}}-{{index}}.pdf"
+                        }
+                    },
+                    model: {
+                        class: "PDFListModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: "oid-template", editMode: false } as any);
+        (formComponent as any).form.addControl("planVersion", new FormControl("3"));
+        await fixture.whenStable();
+
+        const component = fixture.debugElement.query(By.directive(PDFListComponent)).componentInstance as PDFListComponent;
+        const evaluateSpy = jasmine.createSpy("evaluate").and.returnValue("rdmp-v3-0.pdf");
+        (component as any).compiledItems = { evaluate: evaluateSpy };
+        (component as any).fileNameTemplatePath = ["componentDefinitions", 0, "component", "config", "fileNameTemplate"];
+
+        expect(decodeURIComponent(component.getDownloadUrl(component.pdfAttachments[0], true, 0))).toContain("fileName=rdmp-v3-0.pdf");
+        expect(evaluateSpy).toHaveBeenCalledWith(
+            ["componentDefinitions", 0, "component", "config", "fileNameTemplate"],
+            jasmine.objectContaining({
+                attachment: component.pdfAttachments[0],
+                downloadPrefix: "rdmp",
+                index: 0,
+                versionLabel: "v3"
+            }),
+            jasmine.any(Object)
+        );
+    });
+
     it("shows and hides the history modal", async () => {
         recordService.getAttachments.and.resolveTo([
             { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-03-01T09:00:00Z" },
@@ -263,8 +316,8 @@ describe("PDFListComponent", () => {
 
         const dropdownItems = host.querySelectorAll(".dropdown-menu.show .dropdown-item");
         expect(dropdownItems.length).toBe(3);
-        expect(host.textContent).toContain("Latest");
-        expect(host.textContent).toContain("View all 4 versions...");
+        expect(host.querySelector(".dropdown-menu.show .badge.badge-primary")).not.toBeNull();
+        expect(host.querySelector(".dropdown-menu.show .dropdown-divider + .dropdown-item")).not.toBeNull();
     });
 
     it("shows the version counter only when enabled in config", async () => {
@@ -340,10 +393,11 @@ describe("PDFListComponent", () => {
         fixture.detectChanges();
 
         const firstDropdownItem = (fixture.nativeElement as HTMLElement).querySelector(".dropdown-menu.show .dropdown-item");
-        const firstDropdownText = firstDropdownItem?.textContent?.replace(/\s+/g, " ").trim() ?? "";
-        expect(firstDropdownText).toContain("March 1, 2024");
-        expect(firstDropdownText).toContain("v4");
-        expect(firstDropdownText.indexOf("Latest")).toBeGreaterThan(firstDropdownText.indexOf("March 1, 2024"));
+        const firstDropdownLabelParts = firstDropdownItem?.querySelectorAll(".d-inline-flex.align-items-center.pr-4 > span");
+        const labelText = firstDropdownLabelParts?.[0]?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+        expect(labelText).toContain("March 1, 2024");
+        expect(labelText).toContain("v4");
+        expect(firstDropdownLabelParts?.[1]?.classList.contains("badge-primary")).toBeTrue();
         expect(firstDropdownItem?.querySelector(".d-inline-flex.align-items-center.pl-4 .fa-download")).not.toBeNull();
     });
 });

@@ -1,5 +1,5 @@
 import { Component, HostListener, Injector, Input, inject } from "@angular/core";
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
 import {
     PDFListComponentName,
     PDFListFieldComponentConfig,
@@ -10,9 +10,8 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import { FormComponent } from "../form.component";
 import { FormService } from "../form.service";
-import { escapeRegExp as _escapeRegExp, isArray as _isArray, isEmpty as _isEmpty, template as _template, toNumber as _toNumber } from "lodash-es";
+import { escapeRegExp as _escapeRegExp, isArray as _isArray, isEmpty as _isEmpty, toNumber as _toNumber } from "lodash-es";
 import moment from "moment";
-import * as numeral from "numeral";
 
 interface PDFListAttachmentView extends RecordAttachment {
     formattedDateUpdated: string;
@@ -51,6 +50,9 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
 
     private readonly injector = inject(Injector);
     private readonly formService = inject(FormService);
+    private readonly handlebarsTemplateService = inject(HandlebarsTemplateService);
+    private compiledItems?: { evaluate: (key: Array<string | number>, context: Record<string, unknown>, extra?: Record<string, unknown>) => unknown };
+    private fileNameTemplatePath: Array<string | number> = [];
 
     protected get getFormComponent(): FormComponent {
         return this.injector.get(FormComponent);
@@ -71,10 +73,11 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
         this.downloadPreviousBtnLabel = String(cfg.downloadPreviousBtnLabel ?? "Download a previous version");
         this.downloadPrefix = this.translate(String(cfg.downloadPrefix ?? "rdmp"));
         this.fileNameTemplate = String(cfg.fileNameTemplate ?? "");
+        this.fileNameTemplatePath = [...(formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), "component", "config", "fileNameTemplate"];
     }
 
     protected override async initData(): Promise<void> {
-        await this.loadAttachments();
+        await Promise.all([this.prepareFileNameTemplate(), this.loadAttachments()]);
     }
 
     public get previousPdfAttachments(): PDFListAttachmentView[] {
@@ -101,13 +104,18 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
         }
 
         const matchingExpression = new RegExp(`${_escapeRegExp(this.startsWith)}-[0-9a-fA-F]{32}-[0-9]+\\.pdf`);
-        const allAttachments = await this.getFormComponent.recordService.getAttachments(oid);
-        const pdfAttachments = (allAttachments ?? [])
-            .filter((attachment: RecordAttachment) => matchingExpression.test(String(attachment?.label ?? "")))
-            .map((attachment: RecordAttachment) => this.toAttachmentView(attachment))
-            .sort((a: PDFListAttachmentView, b: PDFListAttachmentView) => b.timestampMs - a.timestampMs);
+        try {
+            const allAttachments = await this.getFormComponent.recordService.getAttachments(oid);
+            const pdfAttachments = (allAttachments ?? [])
+                .filter((attachment: RecordAttachment) => matchingExpression.test(String(attachment?.label ?? "")))
+                .map((attachment: RecordAttachment) => this.toAttachmentView(attachment))
+                .sort((a: PDFListAttachmentView, b: PDFListAttachmentView) => b.timestampMs - a.timestampMs);
 
-        this.applyAttachments(pdfAttachments);
+            this.applyAttachments(pdfAttachments);
+        } catch (error) {
+            this.loggerService.error(`${this.logName}: failed to load PDF attachments for oid '${oid}'.`, error);
+            this.applyAttachments([]);
+        }
     }
 
     public getDownloadUrl(attachment: RecordAttachment, generateFileName = false, index = 0): string {
@@ -132,7 +140,11 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
         if (_isArray(versionValue)) {
             version = versionValue[versionValue.length - (index + 1)];
         } else if (!_isEmpty(versionValue)) {
-            version = _toNumber(versionValue) - index;
+            const numericCandidate = _toNumber(versionValue);
+            if (!Number.isFinite(numericCandidate)) {
+                return "";
+            }
+            version = numericCandidate - index;
         }
 
         if (version === null || version === undefined || version === "") {
@@ -214,20 +226,43 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
 
     private buildFileName(attachment: RecordAttachment, index: number): string {
         const versionLabel = this.useVersionLabelForFileName ? this.getVersionLabel(attachment, index) : "";
+        const fallbackFileName = _isEmpty(versionLabel) ? `${this.downloadPrefix}.pdf` : `${this.downloadPrefix}-${versionLabel}.pdf`;
 
         if (_isEmpty(this.fileNameTemplate)) {
-            return _isEmpty(versionLabel) ? `${this.downloadPrefix}.pdf` : `${this.downloadPrefix}-${versionLabel}.pdf`;
+            return fallbackFileName;
         }
 
-        const compiled = _template(this.fileNameTemplate, {
-            imports: {
-                versionLabel,
-                moment,
-                numeral,
-                ...this
-            }
-        });
-        return String(compiled());
+        try {
+            const rendered = this.compiledItems?.evaluate(
+                this.fileNameTemplatePath,
+                {
+                    attachment,
+                    downloadPrefix: this.downloadPrefix,
+                    index,
+                    versionLabel,
+                },
+                { libraries: this.handlebarsTemplateService.getLibraries() }
+            );
+            const output = String(rendered ?? "").trim();
+            return output || fallbackFileName;
+        } catch (error) {
+            this.loggerService.warn(`${this.logName}: Failed to evaluate fileNameTemplate. Falling back to the default PDF filename.`, error);
+            return fallbackFileName;
+        }
+    }
+
+    private async prepareFileNameTemplate(): Promise<void> {
+        if (_isEmpty(this.fileNameTemplate) || this.fileNameTemplatePath.length === 0) {
+            this.compiledItems = undefined;
+            return;
+        }
+
+        try {
+            this.compiledItems = await this.getFormComponent.getRecordCompiledItems();
+        } catch (error) {
+            this.loggerService.warn(`${this.logName}: Unable to load compiled PDF filename template. Falling back to the default PDF filename.`, error);
+            this.compiledItems = undefined;
+        }
     }
 
     private translate(value?: string): string {

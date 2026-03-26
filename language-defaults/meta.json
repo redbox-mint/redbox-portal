@@ -2875,6 +2875,18 @@
     "category": "pdf",
     "description": "Translation for pdf-column-download"
   },
+  "@pdf-latest": {
+    "category": "pdf",
+    "description": "Translation for pdf-latest"
+  },
+  "@pdf-latest-version": {
+    "category": "pdf",
+    "description": "Translation for pdf-latest-version"
+  },
+  "@pdf-view-all-versions": {
+    "category": "pdf",
+    "description": "Translation for pdf-view-all-versions"
+  },
   "@pdf-close": {
     "category": "pdf",
     "description": "Translation for pdf-close"
