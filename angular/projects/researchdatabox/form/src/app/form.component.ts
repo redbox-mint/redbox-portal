@@ -538,13 +538,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         const groups = event.groups;
         let enabledNames = [...this.enabledValidationGroups];
         switch(initial){
-          case "all":
-            // By convention, the group that enables all validators is named 'all'.
-            enabledNames = ["all"];
-            break;
-          case "none":
-            // By convention, the group that disables all validators is named 'none'.
-            enabledNames = ["none"];
+          case "empty":
+            enabledNames = [];
             break;
           case "enabled":
             // No change to the enabled validation groups.
@@ -553,9 +548,22 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             this.loggerService.error(`${this.logName}: Unknown set enabled validation group initial state '${initial}'.`);
         }
 
-        groups.enable?.forEach(name => {if(!enabledNames.includes(name)){ enabledNames.push(name);}});
-        enabledNames = enabledNames.filter(name => !groups.disable?.includes(name));
+        // Add enabled group names.
+        for (const name of groups?.enable ?? []) {
+          if (!enabledNames.includes(name)) {
+            enabledNames.push(name);
+          }
+        }
 
+        // Remove disabled group names.
+        for (const name of groups?.disable ?? []) {
+          const index = enabledNames.indexOf(name);
+          if (index > -1) {
+            enabledNames.splice(index, 1);
+          }
+        }
+
+        // Set the enabled validation groups to the form component config.
         this.enabledValidationGroups = enabledNames;
 
         const validationGroups = this.validationGroups;

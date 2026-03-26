@@ -103,13 +103,12 @@ export interface FormValidationGroupsChangeRequestEvent extends FormComponentEve
   readonly type: 'form.validation.change.request';
   /**
    * Change step 1: The initial validation groups to enable.
-   * - all - enable all available validation groups (this is expanded to the list of all available validation groups)
-   * - none - disable all validation groups
+   * - empty - enable no validation groups (note this is not the 'none' group, this is an empty array of validation groups)
    * - enabled - don't change the currently enabled validation groups
    *
    * Defaults to "enabled";
    */
-  readonly initial?: "all" | "none" | "enabled";
+  readonly initial?: "empty" | "enabled";
   /**
    * Change step 2: The validation groups to add or remove from the initial set of validation groups.
    * - enable - add all these validation groups that are not in enabledValidationGroups

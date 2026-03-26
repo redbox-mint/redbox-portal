@@ -970,9 +970,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       item.expressions?.forEach(expr => {
         if ('template' in expr?.config) {
           expr.config.hasTemplate = expr.config?.template !== undefined && expr.config?.template !== null;
-          this.removePropsUndefined(expr);
-          this.removePropsUndefined(expr.config);
         }
+        this.removePropsUndefined(expr);
+        this.removePropsUndefined(expr.config);
       });
       if (item.expressions?.length === 0) {
         delete item['expressions'];

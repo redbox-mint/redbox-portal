@@ -667,11 +667,17 @@ const formConfig: FormConfigFrame = {
                       component: {
                         class: 'SimpleInputComponent',
                       },
-                      // expressions: {
-                      //     'model.value': {
-                      //         template: `<%= _.get(model,'text_1_event','') %>`
-                      //     }
-                      // }
+                      expressions: [
+                        {
+                          name: 'text_7_set_validation_groups',
+                          config: {
+                            template: `{"initial": "empty", "groups": {"enable":["minimumCreate"]}}`,
+                            conditionKind: 'jsonata',
+                            condition: `formData.text_7 = "prefixa"`,
+                            target: 'form.enabledValidationGroups',
+                          },
+                        },
+                      ]
                     },
                     {
                       name: 'text_2_event',
