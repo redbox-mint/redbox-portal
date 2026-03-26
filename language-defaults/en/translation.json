@@ -726,6 +726,8 @@
   "@pdf-latest": "Latest",
   "@pdf-latest-version": "latest version",
   "@pdf-view-all-versions": "View all {{count}} versions...",
+  "@pdf-modal-all-versions": "All versions ({{count}})",
+  "@pdf-download-from": "Download PDF from {{summary}}",
   "@pdf-close": "Close",
   "@pdf-download": "Download a PDF of this plan",
   "@pdf-download-previous": "Download a previous version",

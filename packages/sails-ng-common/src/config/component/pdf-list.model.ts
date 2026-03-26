@@ -30,8 +30,8 @@ export class PDFListFieldComponentConfig extends FieldComponentConfig implements
     versionColumnValueField = "";
     versionColumnLabelKey = "";
     useVersionLabelForFileName = false;
-    downloadBtnLabel = "Download a PDF of this plan";
-    downloadPreviousBtnLabel = "Download a previous version";
+    downloadBtnLabel = "@pdf-download";
+    downloadPreviousBtnLabel = "@pdf-download-previous";
     downloadPrefix = "rdmp";
     fileNameTemplate = "";
 }

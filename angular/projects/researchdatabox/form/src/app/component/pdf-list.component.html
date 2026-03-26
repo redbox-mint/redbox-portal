@@ -75,10 +75,10 @@
     <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document" (click)="$event.stopPropagation()">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">All versions ({{ pdfAttachments.length }})</h5>
+          <h5 class="modal-title">{{ '@pdf-modal-all-versions' | i18next: { count: pdfAttachments.length } }}</h5>
           <button type="button"
                   class="btn-close"
-                  aria-label="Close"
+                  [attr.aria-label]="'@pdf-close' | i18next"
                   data-bs-dismiss="modal"
                   (click)="hideHistoryModal()"></button>
         </div>

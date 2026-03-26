@@ -69,8 +69,8 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
         this.versionColumnValueField = String(cfg.versionColumnValueField ?? "");
         this.versionColumnLabelKey = String(cfg.versionColumnLabelKey ?? "");
         this.useVersionLabelForFileName = cfg.useVersionLabelForFileName ?? this.showVersionColumn;
-        this.downloadBtnLabel = String(cfg.downloadBtnLabel ?? "Download a PDF of this plan");
-        this.downloadPreviousBtnLabel = String(cfg.downloadPreviousBtnLabel ?? "Download a previous version");
+        this.downloadBtnLabel = String(cfg.downloadBtnLabel ?? "@pdf-download");
+        this.downloadPreviousBtnLabel = String(cfg.downloadPreviousBtnLabel ?? "@pdf-download-previous");
         this.downloadPrefix = this.translate(String(cfg.downloadPrefix ?? "rdmp"));
         this.fileNameTemplate = String(cfg.fileNameTemplate ?? "");
         this.fileNameTemplatePath = [...(formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), "component", "config", "fileNameTemplate"];
@@ -172,9 +172,11 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
 
     public getDownloadAriaLabel(attachment: PDFListAttachmentView, index: number): string {
         const summary = this.getAttachmentSummary(attachment, index);
-        return _isEmpty(summary)
-            ? this.translate(this.downloadBtnLabel)
-            : `Download PDF from ${summary}`;
+        if (_isEmpty(summary)) {
+            return this.translate(this.downloadBtnLabel);
+        }
+        const template = this.translate("@pdf-download-from");
+        return template.replace("{{summary}}", summary);
     }
 
     public openHistoryModal(): void {

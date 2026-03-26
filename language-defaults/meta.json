@@ -2887,6 +2887,14 @@
     "category": "pdf",
     "description": "Translation for pdf-view-all-versions"
   },
+  "@pdf-modal-all-versions": {
+    "category": "pdf",
+    "description": "Translation for pdf-modal-all-versions (modal heading: 'All versions (N)')"
+  },
+  "@pdf-download-from": {
+    "category": "pdf",
+    "description": "Translation for pdf-download-from (aria-label for download link when a summary is available; supports {{summary}} interpolation)"
+  },
   "@pdf-close": {
     "category": "pdf",
     "description": "Translation for pdf-close"
