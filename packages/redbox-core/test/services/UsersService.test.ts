@@ -577,11 +577,28 @@ describe('UsersService', function () {
         { id: 'user-3', username: 'linked', name: 'Linked User', email: 'linked@test.com', accountLinkState: 'linked-alias', roles: [{ branding: 'brand-1' }] },
         { id: 'user-4', username: 'other', name: 'Other User', email: 'other@test.com', accountLinkState: 'active', roles: [{ branding: 'brand-2' }] }
       ]);
+      configureModelMethod(mockUserLink.find, []);
 
       const result = await UsersService.searchLinkCandidates('user', 'brand-1', 'user-1').toPromise();
 
       expect(result).to.have.length(1);
       expect(result[0].username).to.equal('orphan');
+    });
+
+    it('should exclude users who already have linked accounts of their own', async function () {
+      configureModelMethod(mockUser.find, [
+        { id: 'user-1', username: 'primary', name: 'Primary User', email: 'primary@test.com', accountLinkState: 'active', roles: [{ branding: 'brand-1' }] },
+        { id: 'user-2', username: 'candidate', name: 'Candidate User', email: 'candidate@test.com', accountLinkState: 'active', roles: [] },
+        { id: 'user-3', username: 'alias', name: 'Alias User', email: 'alias@test.com', accountLinkState: 'linked-alias', roles: [] }
+      ]);
+      configureModelMethod(mockUserLink.find, [
+        { primaryUserId: 'user-1', secondaryUserId: 'user-3', status: 'active' }
+      ]);
+
+      const result = await UsersService.searchLinkCandidates('user', 'brand-1').toPromise();
+
+      expect(result).to.have.length(1);
+      expect(result[0].username).to.equal('candidate');
     });
   });
 
@@ -636,6 +653,37 @@ describe('UsersService', function () {
       expect((global as any).RecordsService.updateMeta.calledOnce).to.be.true;
       expect(result.impact?.rolesMerged).to.equal(1);
       expect(result.impact?.recordsRewritten).to.equal(1);
+    });
+
+    it('should reject linking a secondary user that already has linked accounts', async function () {
+      mockUser.findOne.onFirstCall().returns(createQueryObject({
+        id: 'primary-2',
+        username: 'other-primary',
+        accountLinkState: 'active',
+        roles: [{ id: 'role-primary', branding: 'brand-1' }]
+      }));
+      mockUser.findOne.onSecondCall().returns(createQueryObject({
+        id: 'primary-1',
+        username: 'current-primary',
+        email: 'primary@test.com',
+        accountLinkState: 'active',
+        roles: [{ id: 'role-secondary', branding: 'brand-1' }]
+      }));
+      mockUserLink.findOne.onFirstCall().returns(createQueryObject(null));
+      mockUserLink.findOne.onSecondCall().returns(createQueryObject({
+        primaryUserId: 'primary-1',
+        secondaryUserId: 'secondary-1',
+        status: 'active'
+      }));
+
+      try {
+        await UsersService.linkAccounts('primary-2', 'primary-1', 'admin-user', 'brand-1').toPromise();
+        expect.fail('Expected linkAccounts to throw');
+      } catch (error) {
+        expect((error as Error).message).to.equal('Secondary user already has linked accounts');
+      }
+
+      expect(mockUserLink.create.called).to.be.false;
     });
   });
 

@@ -1484,6 +1484,12 @@ export namespace Services {
       const queryText = _.trim(query).toLowerCase();
       return from((async () => {
         const users = await User.find({}).populate('roles');
+        const activeLinks = typeof UserLink !== 'undefined'
+          ? await UserLink.find({ status: 'active' })
+          : [];
+        const primaryUserIdsWithLinkedAccounts = new Set(
+          _.map(activeLinks as AnyRecord[], (link: unknown) => String((link as AnyRecord).primaryUserId ?? ''))
+        );
         return _.chain(users as AnyRecord[])
           .map(user => {
             this.normalizeAccountLinkState(user);
@@ -1494,6 +1500,9 @@ export namespace Services {
               return false;
             }
             if (String(user.accountLinkState ?? 'active') !== 'active') {
+              return false;
+            }
+            if (primaryUserIdsWithLinkedAccounts.has(String(user.id ?? ''))) {
               return false;
             }
             const hasBrandRole = this.hasRoleInBrand(user, brandId);
@@ -1563,6 +1572,13 @@ export namespace Services {
           : null;
         if (!_.isEmpty(existingLink)) {
           throw new Error('Secondary user is already linked');
+        }
+
+        const secondaryOwnLinks = typeof UserLink !== 'undefined'
+          ? await UserLink.findOne({ primaryUserId: String(secondaryUserObj.id ?? ''), status: 'active' })
+          : null;
+        if (!_.isEmpty(secondaryOwnLinks)) {
+          throw new Error('Secondary user already has linked accounts');
         }
 
         if (typeof UserLink !== 'undefined') {
