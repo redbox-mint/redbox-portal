@@ -135,6 +135,9 @@ export namespace Services {
       'linkAccounts',
       'addUserAuditEvent',
       'checkAuthorizedEmail',
+      'enrichUsersWithEffectiveDisabledState',
+      'disableUser',
+      'enableUser',
     ];
 
     searchService!: SearchService;
@@ -260,6 +263,66 @@ export namespace Services {
       return rewrittenCount;
     }
 
+    private async resolveEffectiveDisabledState(user: AnyRecord): Promise<{ effectiveLoginDisabled: boolean; disabledByPrimaryUserId?: string; disabledByPrimaryUsername?: string }> {
+      if (user.loginDisabled === true) {
+        return { effectiveLoginDisabled: true };
+      }
+      if (!_.isEmpty(user.linkedPrimaryUserId)) {
+        const primaryUser = await firstValueFrom(this.getUserWithId(String(user.linkedPrimaryUserId)));
+        if (primaryUser != null && (primaryUser as AnyRecord).loginDisabled === true) {
+          return {
+            effectiveLoginDisabled: true,
+            disabledByPrimaryUserId: String((primaryUser as AnyRecord).id ?? ''),
+            disabledByPrimaryUsername: String((primaryUser as AnyRecord).username ?? '')
+          };
+        }
+      }
+      return { effectiveLoginDisabled: false };
+    }
+
+    private async assertAuthenticationAllowed(user: AnyRecord): Promise<void> {
+      const state = await this.resolveEffectiveDisabledState(user);
+      if (state.effectiveLoginDisabled) {
+        throw new Error('Account is disabled');
+      }
+    }
+
+    public async enrichUsersWithEffectiveDisabledState(users: AnyRecord[]): Promise<AnyRecord[]> {
+      const primaryIds = _.uniq(
+        _.compact(_.map(users, (u: AnyRecord) => !_.isEmpty(u.linkedPrimaryUserId) ? String(u.linkedPrimaryUserId) : null))
+      );
+      const primaryUsers = _.isEmpty(primaryIds) ? [] : await User.find({ id: primaryIds });
+      const primaryUsersById = _.keyBy(primaryUsers as AnyRecord[], (u: AnyRecord) => String(u.id ?? ''));
+
+      return _.map(users, (user: AnyRecord) => {
+        if (user.loginDisabled === true) {
+          user.effectiveLoginDisabled = true;
+        } else if (!_.isEmpty(user.linkedPrimaryUserId)) {
+          const primary = primaryUsersById[String(user.linkedPrimaryUserId)];
+          if (primary != null && primary.loginDisabled === true) {
+            user.effectiveLoginDisabled = true;
+            user.disabledByPrimaryUserId = String(primary.id ?? '');
+            user.disabledByPrimaryUsername = String(primary.username ?? '');
+          } else {
+            user.effectiveLoginDisabled = false;
+          }
+        } else {
+          user.effectiveLoginDisabled = false;
+        }
+        return user;
+      });
+    }
+
+    public async disableUser(userId: string, actor: string, brandId: string): Promise<void> {
+      await User.update({ id: userId }).set({ loginDisabled: true });
+      await this.addUserAuditEvent({ username: actor }, 'disable-user', { userId, brandId });
+    }
+
+    public async enableUser(userId: string, actor: string, brandId: string): Promise<void> {
+      await User.update({ id: userId }).set({ loginDisabled: false });
+      await this.addUserAuditEvent({ username: actor }, 'enable-user', { userId, brandId });
+    }
+
     protected localAuthInit() {
       // users the default brand's configuration on startup
       // TODO: consider moving late initializing this if possible
@@ -326,6 +389,9 @@ export namespace Services {
                   message: 'Incorrect username/password'
                 });
               }
+
+              // Gate disabled users
+              that.assertAuthenticationAllowed(foundUserObj).then(() => {
 
               // foundUser.lastLogin = new Date();
 
@@ -410,6 +476,10 @@ export namespace Services {
                   message: 'Logged In Successfully'
                 });
               }
+
+              }).catch(() => {
+                return done(null, false, { message: 'Account is disabled' });
+              }); // end assertAuthenticationAllowed gate
 
             });
           });
@@ -638,6 +708,8 @@ export namespace Services {
             }
             if (user) {
               const userObj = user as AnyRecord;
+              // Gate disabled users
+              that.assertAuthenticationAllowed(userObj).then(() => {
               const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
               userObj.lastLogin = new Date();
               userObj.name = attrs.cn;
@@ -731,6 +803,7 @@ export namespace Services {
 
               }
 
+              }).catch(() => done(null, false, { message: 'Account is disabled' })); // end AAF disabled gate
             } else {
               sails.log.verbose("At AAF Strategy verify, creating new user...");
               // first time login, create with default role
@@ -988,6 +1061,8 @@ export namespace Services {
         }
         if (user) {
           const userObj = user as AnyRecord;
+          // Gate disabled users
+          that.assertAuthenticationAllowed(userObj).then(() => {
           sails.log.error("At OIDC Strategy verify, updating new user...");
           userObj.lastLogin = new Date();
           const additionalAttributesMapping = claimsMappings['additionalAttributes'];
@@ -1078,6 +1153,7 @@ export namespace Services {
 
           }
 
+          }).catch(() => done(null, false, { message: 'Account is disabled' })); // end OIDC disabled gate
         } else {
           sails.log.verbose("At OIDC Strategy verify, creating new user...");
           let userToCreate: AnyRecord;
@@ -1199,11 +1275,14 @@ export namespace Services {
 
                 return done(null, false);
               }
-              that.resolveLinkedUserCandidate(user)
-                .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
-                  scope: 'all'
-                }))
-                .catch((resolveErr: unknown) => done(resolveErr));
+              // Gate disabled users
+              that.assertAuthenticationAllowed(user as AnyRecord).then(() => {
+                that.resolveLinkedUserCandidate(user)
+                  .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
+                    scope: 'all'
+                  }))
+                  .catch((resolveErr: unknown) => done(resolveErr));
+              }).catch(() => done(null, false));
               return;
             });
           } else {
@@ -1490,12 +1569,16 @@ export namespace Services {
         const primaryUserIdsWithLinkedAccounts = new Set(
           _.map(activeLinks as AnyRecord[], (link: unknown) => String((link as AnyRecord).primaryUserId ?? ''))
         );
-        return _.chain(users as AnyRecord[])
+        const enrichedUsers = await this.enrichUsersWithEffectiveDisabledState(users as AnyRecord[]);
+        return _.chain(enrichedUsers)
           .map(user => {
             this.normalizeAccountLinkState(user);
             return user;
           })
           .filter(user => {
+            if (user.effectiveLoginDisabled === true) {
+              return false;
+            }
             if (String(user.id ?? '') === String(excludeUserId ?? '')) {
               return false;
             }
@@ -1542,6 +1625,15 @@ export namespace Services {
         const secondaryUserObj = secondaryUser as AnyRecord;
         this.normalizeAccountLinkState(primaryUser);
         this.normalizeAccountLinkState(secondaryUserObj);
+
+        const primaryDisabledState = await this.resolveEffectiveDisabledState(primaryUser);
+        if (primaryDisabledState.effectiveLoginDisabled) {
+          throw new Error('Cannot link accounts: primary user is disabled');
+        }
+        const secondaryDisabledState = await this.resolveEffectiveDisabledState(secondaryUserObj);
+        if (secondaryDisabledState.effectiveLoginDisabled) {
+          throw new Error('Cannot link accounts: secondary user is disabled');
+        }
 
         if (String(primaryUser.id ?? '') === String(secondaryUserObj.id ?? '')) {
           throw new Error('Cannot link a user to itself');

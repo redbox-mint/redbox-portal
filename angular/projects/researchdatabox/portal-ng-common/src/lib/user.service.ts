@@ -43,6 +43,10 @@ export interface User {
   linkedPrimaryUserId?: string;
   effectivePrimaryUsername?: string;
   linkedAccountCount?: number;
+  loginDisabled?: boolean;
+  effectiveLoginDisabled?: boolean;
+  disabledByPrimaryUserId?: string;
+  disabledByPrimaryUsername?: string;
 }
 
 export interface Role {
@@ -160,8 +164,11 @@ export class UserService extends HttpClientService {
   // headersObj['X-Source'] = 'jsclient';
   // headersObj['Content-Type'] = 'application/json;charset=utf-8';
   // headersObj['X-CSRF-Token'] = this.config.csrfToken;
-  public async getUsers() {
+  public async getUsers(options?: { includeDisabled?: boolean }) {
     let url = `${this.brandingAndPortalUrl}/admin/users/get`;
+    if (options?.includeDisabled) {
+      url += '?includeDisabled=true';
+    }
     const result$ = this.http.get(url, this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned User[]
@@ -226,6 +233,26 @@ export class UserService extends HttpClientService {
   public async getUserLinks(primaryUserId: string): Promise<UserLinkResponse> {
     const url = `${this.brandingAndPortalUrl}/api/users/${primaryUserId}/links`;
     const result$ = this.http.get<UserLinkResponse>(url, {
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext
+    }).pipe(map(res => res));
+    return await firstValueFrom(result$);
+  }
+
+  public async disableUser(userId: string): Promise<SaveResult> {
+    const url = `${this.brandingAndPortalUrl}/api/users/${userId}/disable`;
+    const result$ = this.http.post<SaveResult>(url, {}, {
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext
+    }).pipe(map(res => res));
+    return await firstValueFrom(result$);
+  }
+
+  public async enableUser(userId: string): Promise<SaveResult> {
+    const url = `${this.brandingAndPortalUrl}/api/users/${userId}/enable`;
+    const result$ = this.http.post<SaveResult>(url, {}, {
       responseType: 'json',
       observe: 'body',
       context: this.httpContext

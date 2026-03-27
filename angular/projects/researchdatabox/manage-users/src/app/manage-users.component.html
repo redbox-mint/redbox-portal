@@ -26,6 +26,10 @@
                 <button class="btn btn-primary manage-users-toolbar-reset" type="button" (click)="resetFilter()">
                   {{ 'manage-users-filter-reset' | i18next }}
                 </button>
+                <label class="manage-users-toolbar-disabled-toggle">
+                  <input type="checkbox" [checked]="showDisabledUsers" (change)="toggleShowDisabled()" />
+                  {{ 'manage-users-show-disabled' | i18next }}
+                </label>
               </div>
             </div>
           </div>
@@ -65,6 +69,7 @@
                         class="manage-users-status-badge"
                         [class.manage-users-status-badge-info]="getAccountStatusBadgeClass(user) === 'info'"
                         [class.manage-users-status-badge-default]="getAccountStatusBadgeClass(user) === 'default'"
+                        [class.manage-users-status-badge-danger]="getAccountStatusBadgeClass(user) === 'danger'"
                       >
                         {{ getAccountStatusBadge(user) }}
                       </span>
@@ -88,6 +93,18 @@
                       <span> | </span>
                       <a style="cursor: pointer" (click)="manageLinks(user.username)">{{
                         'manage-users-link-manage' | i18next
+                      }}</a>
+                    }
+                    @if (isEffectivelyDisabled(user) && isDirectlyDisabled(user)) {
+                      <span> | </span>
+                      <a style="cursor: pointer" (click)="enableUser(user)">{{
+                        'manage-users-enable-action' | i18next
+                      }}</a>
+                    }
+                    @if (!isEffectivelyDisabled(user)) {
+                      <span> | </span>
+                      <a style="cursor: pointer" (click)="disableUser(user)">{{
+                        'manage-users-disable-action' | i18next
                       }}</a>
                     }
                   </td>
@@ -267,6 +284,15 @@
               <h4 class="modal-title">{{ 'manage-users-edit' | i18next }}</h4>
             </div>
             <div class="modal-body">
+              @if (isEffectivelyDisabled(currentUser)) {
+                <div class="alert alert-warning">
+                  @if (isDisabledViaPrimary(currentUser)) {
+                    {{ 'manage-users-disable-notice' | i18next }}: {{ currentUser.disabledByPrimaryUsername }}
+                  } @else {
+                    {{ 'manage-users-disable-notice' | i18next }}
+                  }
+                </div>
+              }
               @if (currentUser.accountLinkState === 'linked-alias') {
                 <div class="alert alert-info">
                   {{
@@ -441,6 +467,16 @@
               <div class="bg-{{ updateDetailsMsgType }} center-block">{{ updateDetailsMsg }}</div>
             </div>
             <div class="modal-footer">
+              @if (isEffectivelyDisabled(currentUser) && isDirectlyDisabled(currentUser)) {
+                <button type="button" class="btn btn-success" (click)="enableUser(currentUser)">
+                  {{ 'manage-users-enable-action' | i18next }}
+                </button>
+              }
+              @if (!isEffectivelyDisabled(currentUser)) {
+                <button type="button" class="btn btn-warning" (click)="disableUser(currentUser)">
+                  {{ 'manage-users-disable-action' | i18next }}
+                </button>
+              }
               <button type="submit" class="btn btn-primary" form="detailsform">
                 {{ 'manage-users-save' | i18next }}
               </button>

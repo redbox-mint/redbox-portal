@@ -348,6 +348,8 @@ export const routes: RoutesConfig = {
     'post /:branding/:portal/api/users/link': { controller: 'webservice/UserManagementController', action: 'linkAccounts', csrf: false },
     'put /:branding/:portal/api/users': { controller: 'webservice/UserManagementController', action: 'createUser', csrf: false },
     'post /:branding/:portal/api/users': { controller: 'webservice/UserManagementController', action: 'updateUser', csrf: false },
+    'post /:branding/:portal/api/users/:id/disable': { controller: 'webservice/UserManagementController', action: 'disableUser', csrf: false },
+    'post /:branding/:portal/api/users/:id/enable': { controller: 'webservice/UserManagementController', action: 'enableUser', csrf: false },
     'get /:branding/:portal/api/users/token/generate': { controller: 'webservice/UserManagementController', action: 'generateAPIToken', csrf: false },
     'get /:branding/:portal/api/users/token/revoke': { controller: 'webservice/UserManagementController', action: 'revokeAPIToken', csrf: false },
 

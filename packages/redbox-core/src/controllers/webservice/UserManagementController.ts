@@ -25,7 +25,9 @@ export namespace Controllers {
       'getUserLinks',
       'linkAccounts',
       'listSystemRoles',
-      'createSystemRole'
+      'createSystemRole',
+      'disableUser',
+      'enableUser'
     ];
 
     private async enrichUsersWithLinkMetadata(users: UserAttributes[], brandId?: string): Promise<UserAttributes[]> {
@@ -103,7 +105,12 @@ export namespace Controllers {
           skip: skip
         });
         const brandId = _.get(BrandingService.getBrand(req.session.branding as string), 'id');
-        const userRecords = await this.enrichUsersWithLinkMetadata(users as unknown as UserAttributes[], brandId);
+        let userRecords = await this.enrichUsersWithLinkMetadata(users as unknown as UserAttributes[], brandId);
+        userRecords = await UsersService.enrichUsersWithEffectiveDisabledState(userRecords as unknown as Record<string, unknown>[]) as unknown as UserAttributes[];
+        const includeDisabled = req.param('includeDisabled') === 'true';
+        if (!includeDisabled) {
+          userRecords = _.filter(userRecords, (user: UserAttributes) => user.effectiveLoginDisabled !== true);
+        }
         _.each(userRecords, (user: UserAttributes) => {
           delete user["token"];
           delete user["password"];
@@ -524,6 +531,82 @@ export namespace Controllers {
       }
     }
 
+
+    public async disableUser(req: Sails.Req, res: Sails.Res) {
+      try {
+        const userId = req.param('id');
+        if (_.isEmpty(userId)) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'User ID is required' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        const adminRole = RolesService.getAdminFromBrand(brand);
+        if (_.isEmpty(adminRole) || _.isEmpty(UsersService.hasRole(req.user, adminRole))) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ detail: 'You are not authorized to disable users' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        await UsersService.disableUser(userId, String(req.user?.username ?? 'system'), String(brand.id));
+        return this.apiRespond(req, res, { status: true, message: 'User disabled successfully' });
+      } catch (err) {
+        sails.log.error(err);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async enableUser(req: Sails.Req, res: Sails.Res) {
+      try {
+        const userId = req.param('id');
+        if (_.isEmpty(userId)) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'User ID is required' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        const adminRole = RolesService.getAdminFromBrand(brand);
+        if (_.isEmpty(adminRole) || _.isEmpty(UsersService.hasRole(req.user, adminRole))) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ detail: 'You are not authorized to enable users' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        await UsersService.enableUser(userId, String(req.user?.username ?? 'system'), String(brand.id));
+        return this.apiRespond(req, res, { status: true, message: 'User enabled successfully' });
+      } catch (err) {
+        sails.log.error(err);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
 
     /**
      **************************************************************************************************

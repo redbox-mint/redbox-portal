@@ -10,6 +10,7 @@ declare const UsersService: {
   updateUserRoles: (userid: string, roleIds: string[]) => Observable<unknown>;
   updateUserDetails: (userid: string, name: string, email: string, password: string) => Observable<unknown>;
   addLocalUser: (username: string, name: string, email: string, password: string) => Observable<globalThis.Record<string, unknown>>;
+  enrichUsersWithEffectiveDisabledState: (users: globalThis.Record<string, unknown>[]) => Promise<globalThis.Record<string, unknown>[]>;
 };
 declare const RolesService: {
   getRolesWithBrand: (brand: BrandingModel) => Observable<globalThis.Record<string, unknown>[]>;
@@ -111,9 +112,14 @@ export namespace Controllers {
           return acc;
         }, {} as globalThis.Record<string, string>);
 
+        const enrichedUsers = await UsersService.enrichUsersWithEffectiveDisabledState(users as globalThis.Record<string, unknown>[]);
+        const includeDisabled = req.query?.includeDisabled === 'true';
         const responseUsers: globalThis.Record<string, unknown>[] = [];
-        _.map(users, (user: globalThis.Record<string, unknown>) => {
+        _.map(enrichedUsers, (user: globalThis.Record<string, unknown>) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenUsers, (hideUser: string) => { return hideUser == user.name }))) {
+            if (!includeDisabled && user.effectiveLoginDisabled === true) {
+              return;
+            }
             user.accountLinkState = user.accountLinkState || 'active';
             user.linkedAccountCount = linkCountByPrimary[String(user.id ?? '')] || 0;
             user.effectivePrimaryUsername = _.isEmpty(user.linkedPrimaryUserId)

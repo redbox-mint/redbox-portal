@@ -2955,6 +2955,46 @@
     "category": "users",
     "description": "Translation for manage-users-token-message"
   },
+  "manage-users-show-disabled": {
+    "category": "users",
+    "description": "Translation for manage-users-show-disabled"
+  },
+  "manage-users-account-status-disabled": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-disabled"
+  },
+  "manage-users-account-status-disabled-via-primary": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-disabled-via-primary"
+  },
+  "manage-users-disable-action": {
+    "category": "users",
+    "description": "Translation for manage-users-disable-action"
+  },
+  "manage-users-enable-action": {
+    "category": "users",
+    "description": "Translation for manage-users-enable-action"
+  },
+  "manage-users-disable-confirm": {
+    "category": "users",
+    "description": "Translation for manage-users-disable-confirm"
+  },
+  "manage-users-disable-notice": {
+    "category": "users",
+    "description": "Translation for manage-users-disable-notice"
+  },
+  "manage-users-enable-notice": {
+    "category": "users",
+    "description": "Translation for manage-users-enable-notice"
+  },
+  "manage-users-disable-success": {
+    "category": "users",
+    "description": "Translation for manage-users-disable-success"
+  },
+  "manage-users-enable-success": {
+    "category": "users",
+    "description": "Translation for manage-users-enable-success"
+  },
   "@refresh-attachments-text": {
     "category": "refresh",
     "description": "Translation for refresh-attachments-text"

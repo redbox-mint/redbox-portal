@@ -1118,6 +1118,72 @@ describe('UsersService', function () {
       expect(exported).to.have.property('linkAccounts');
       expect(exported).to.have.property('addUserAuditEvent');
       expect(exported).to.have.property('checkAuthorizedEmail');
+      expect(exported).to.have.property('enrichUsersWithEffectiveDisabledState');
+      expect(exported).to.have.property('disableUser');
+      expect(exported).to.have.property('enableUser');
+    });
+  });
+
+  describe('disableUser', function () {
+    it('should set loginDisabled to true and create audit event', async function () {
+      configureModelMethod(mockUser.update, [{ id: 'user-1', loginDisabled: true }]);
+      configureModelMethod(mockUserAudit.create, { id: 'audit-1' });
+
+      await UsersService.disableUser('user-1', 'admin', 'brand-1');
+
+      expect(mockUser.update.calledOnce).to.be.true;
+      expect(mockUser.update.firstCall.args[0]).to.deep.equal({ id: 'user-1' });
+      expect(mockUserAudit.create.called).to.be.true;
+    });
+  });
+
+  describe('enableUser', function () {
+    it('should set loginDisabled to false and create audit event', async function () {
+      configureModelMethod(mockUser.update, [{ id: 'user-1', loginDisabled: false }]);
+      configureModelMethod(mockUserAudit.create, { id: 'audit-1' });
+
+      await UsersService.enableUser('user-1', 'admin', 'brand-1');
+
+      expect(mockUser.update.calledOnce).to.be.true;
+      expect(mockUser.update.firstCall.args[0]).to.deep.equal({ id: 'user-1' });
+      expect(mockUserAudit.create.called).to.be.true;
+    });
+  });
+
+  describe('enrichUsersWithEffectiveDisabledState', function () {
+    it('should mark directly disabled users', async function () {
+      const users = [
+        { id: 'user-1', username: 'test', loginDisabled: true }
+      ] as any[];
+      configureModelMethod(mockUser.find, []);
+
+      const result = await UsersService.enrichUsersWithEffectiveDisabledState(users);
+
+      expect(result[0].effectiveLoginDisabled).to.be.true;
+    });
+
+    it('should mark users disabled via primary', async function () {
+      const users = [
+        { id: 'alias-1', username: 'alias', loginDisabled: false, linkedPrimaryUserId: 'primary-1' }
+      ] as any[];
+      configureModelMethod(mockUser.find, [{ id: 'primary-1', username: 'primary-user', loginDisabled: true }]);
+
+      const result = await UsersService.enrichUsersWithEffectiveDisabledState(users);
+
+      expect(result[0].effectiveLoginDisabled).to.be.true;
+      expect(result[0].disabledByPrimaryUserId).to.equal('primary-1');
+      expect(result[0].disabledByPrimaryUsername).to.equal('primary-user');
+    });
+
+    it('should mark enabled users as not disabled', async function () {
+      const users = [
+        { id: 'user-1', username: 'test', loginDisabled: false }
+      ] as any[];
+      configureModelMethod(mockUser.find, []);
+
+      const result = await UsersService.enrichUsersWithEffectiveDisabledState(users);
+
+      expect(result[0].effectiveLoginDisabled).to.be.false;
     });
   });
 });

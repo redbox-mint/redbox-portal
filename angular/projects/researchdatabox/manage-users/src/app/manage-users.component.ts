@@ -42,6 +42,10 @@ type ManageUser = User & {
   linkedPrimaryUserId?: string;
   effectivePrimaryUsername?: string;
   linkedAccountCount?: number;
+  loginDisabled?: boolean;
+  effectiveLoginDisabled?: boolean;
+  disabledByPrimaryUserId?: string;
+  disabledByPrimaryUsername?: string;
 };
 
 type AccountStatusUser = {
@@ -78,6 +82,8 @@ type LinkingUserService = UserService & {
   getUserLinks: (primaryUserId: string) => Promise<UserLinkResponse>;
   searchLinkCandidates: (primaryUserId: string, query: string) => Promise<UserLinkCandidate[]>;
   linkAccounts: (primaryUserId: string, secondaryUserId: string) => Promise<UserLinkResponse>;
+  disableUser: (userId: string) => Promise<{ status: boolean; message: string }>;
+  enableUser: (userId: string) => Promise<{ status: boolean; message: string }>;
 };
 
 @Component({
@@ -131,6 +137,7 @@ export class ManageUsersComponent extends BaseComponent {
   linkMsgType: string = 'info';
   isLinkSearchLoading: boolean = false;
   isLinkSaving: boolean = false;
+  showDisabledUsers: boolean = false;
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -244,7 +251,7 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   async refreshUsers() {
-    const users = await this.userService.getUsers() as unknown as ManageUser[];
+    const users = await this.userService.getUsers({ includeDisabled: this.showDisabledUsers }) as unknown as ManageUser[];
     this.allUsers = [];
     for (const user of users) {
       this.allUsers.push(user);
@@ -445,6 +452,43 @@ export class ManageUsersComponent extends BaseComponent {
     return `${baseMessage} — ${impactDetails.join(', ')}`;
   }
 
+  async toggleShowDisabled() {
+    this.showDisabledUsers = !this.showDisabledUsers;
+    await this.refreshUsers();
+  }
+
+  async disableUser(user: ManageUser) {
+    try {
+      await this.userService.disableUser(user.id);
+      this.setUpdateMessage(this.translationService.t('manage-users-disable-success') || 'User disabled successfully.', 'success');
+      await this.refreshUsers();
+    } catch (error: unknown) {
+      this.setUpdateMessage((error as Error)?.message || 'Failed to disable user.', 'danger');
+    }
+  }
+
+  async enableUser(user: ManageUser) {
+    try {
+      await this.userService.enableUser(user.id);
+      this.setUpdateMessage(this.translationService.t('manage-users-enable-success') || 'User enabled successfully.', 'success');
+      await this.refreshUsers();
+    } catch (error: unknown) {
+      this.setUpdateMessage((error as Error)?.message || 'Failed to enable user.', 'danger');
+    }
+  }
+
+  isEffectivelyDisabled(user: ManageUser): boolean {
+    return user.effectiveLoginDisabled === true;
+  }
+
+  isDirectlyDisabled(user: ManageUser): boolean {
+    return user.loginDisabled === true;
+  }
+
+  isDisabledViaPrimary(user: ManageUser): boolean {
+    return user.effectiveLoginDisabled === true && user.loginDisabled !== true && !_.isEmpty(user.disabledByPrimaryUsername);
+  }
+
   onFilterChange() {
     if (this.searchFilter.name != this.searchFilter.prevName) {
       this.searchFilter.prevName = this.searchFilter.name;
@@ -515,7 +559,13 @@ export class ManageUsersComponent extends BaseComponent {
     return user.accountLinkState === 'linked-alias';
   }
 
-  getAccountStatusBadge(user: AccountStatusUser): string {
+  getAccountStatusBadge(user: AccountStatusUser & { effectiveLoginDisabled?: boolean; loginDisabled?: boolean; disabledByPrimaryUsername?: string }): string {
+    if (user.effectiveLoginDisabled === true) {
+      if (user.loginDisabled !== true && !_.isEmpty(user.disabledByPrimaryUsername)) {
+        return this.translationService.t('manage-users-account-status-disabled-via-primary', '', { primaryUsername: user.disabledByPrimaryUsername }) || `Disabled via ${user.disabledByPrimaryUsername}`;
+      }
+      return this.translationService.t('manage-users-account-status-disabled') || 'Disabled';
+    }
     if (this.isLinkedAlias(user)) {
       return this.translationService.t('manage-users-account-status-linked-alias') || 'Linked';
     }
@@ -525,7 +575,10 @@ export class ManageUsersComponent extends BaseComponent {
     return this.translationService.t('manage-users-account-status-active') || 'Active';
   }
 
-  getAccountStatusBadgeClass(user: AccountStatusUser): string {
+  getAccountStatusBadgeClass(user: AccountStatusUser & { effectiveLoginDisabled?: boolean }): string {
+    if (user.effectiveLoginDisabled === true) {
+      return 'danger';
+    }
     if (this.isLinkedAlias(user)) {
       return 'default';
     }

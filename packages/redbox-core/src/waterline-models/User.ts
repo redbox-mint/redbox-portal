@@ -102,6 +102,9 @@ export class UserClass {
   @Attr({ type: 'string', isIn: ['active', 'linked-alias'] })
   public accountLinkState?: 'active' | 'linked-alias';
 
+  @Attr({ type: 'boolean', defaultsTo: false })
+  public loginDisabled!: boolean;
+
   @HasMany('workspaceApp', 'user')
   public workspaceApps?: unknown[];
 
@@ -126,6 +129,10 @@ export interface UserAttributes extends Sails.WaterlineAttributes {
   lastLogin?: string | Date;
   linkedAccountCount?: number;
   linkedPrimaryUserId?: string;
+  loginDisabled?: boolean;
+  effectiveLoginDisabled?: boolean;
+  disabledByPrimaryUserId?: string;
+  disabledByPrimaryUsername?: string;
   name: string;
   password?: string;
   roles?: unknown[];

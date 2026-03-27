@@ -371,6 +371,7 @@ export namespace Services {
       }
 
       // Check for null bytes and other control characters
+      // eslint-disable-next-line no-control-regex
       if (/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(svg)) {
         errors.push('contains-control-characters');
       }

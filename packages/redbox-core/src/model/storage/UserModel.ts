@@ -16,6 +16,10 @@ export class UserModel {
     accountLinkState?: 'active' | 'linked-alias'
     effectivePrimaryUsername?: string
     linkedAccountCount?: number
+    loginDisabled: boolean = false
+    effectiveLoginDisabled?: boolean
+    disabledByPrimaryUserId?: string
+    disabledByPrimaryUsername?: string
     workspaceApps: WorkspaceAppModel[] = [];
     roles: RoleModel[] = [];
 }

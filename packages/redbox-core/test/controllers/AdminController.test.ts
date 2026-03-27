@@ -44,7 +44,8 @@ describe('AdminController', () => {
             getUsersForBrand: sinon.stub().returns(of([
                 { id: 'primary-1', username: 'primary-user', name: 'Primary User', roles: [{ branding: 'brand-1', name: 'Researcher' }], token: 'hashed' },
                 { id: 'alias-1', username: 'alias-user', name: 'Alias User', linkedPrimaryUserId: 'primary-1', accountLinkState: 'linked-alias', roles: [] }
-            ]))
+            ])),
+            enrichUsersWithEffectiveDisabledState: sinon.stub().callsFake((users: any[]) => Promise.resolve(users.map((u: any) => ({ ...u, effectiveLoginDisabled: false }))))
         };
         (global as any).UserLink = {
             find: sinon.stub().returns(createQueryObject([
@@ -70,7 +71,7 @@ describe('AdminController', () => {
     });
 
     it('should enrich admin users with link metadata', async () => {
-        const req = { session: { branding: 'default' } } as unknown as Sails.Req;
+        const req = { session: { branding: 'default' }, query: {} } as unknown as Sails.Req;
         const res = {} as unknown as Sails.Res;
         const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
@@ -84,7 +85,7 @@ describe('AdminController', () => {
     });
 
     it('should skip primary user lookup when the User model is unavailable', async () => {
-        const req = { session: { branding: 'default' } } as unknown as Sails.Req;
+        const req = { session: { branding: 'default' }, query: {} } as unknown as Sails.Req;
         const res = {} as unknown as Sails.Res;
         const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
