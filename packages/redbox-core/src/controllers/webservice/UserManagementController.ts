@@ -63,7 +63,7 @@ export namespace Controllers {
         return false;
       }
 
-      return !_.isEmpty(UsersService.hasRole(req.user, adminRole));
+      return !!UsersService.hasRole(req.user, adminRole);
     }
 
     /**
@@ -110,6 +110,7 @@ export namespace Controllers {
         const includeDisabled = req.param('includeDisabled') === 'true';
         if (!includeDisabled) {
           userRecords = _.filter(userRecords, (user: UserAttributes) => user.effectiveLoginDisabled !== true);
+          response.summary.numFound = userRecords.length;
         }
         _.each(userRecords, (user: UserAttributes) => {
           delete user["token"];
@@ -551,10 +552,17 @@ export namespace Controllers {
           });
         }
         const adminRole = RolesService.getAdminFromBrand(brand);
-        if (_.isEmpty(adminRole) || _.isEmpty(UsersService.hasRole(req.user, adminRole))) {
+        if (_.isEmpty(adminRole) || !UsersService.hasRole(req.user, adminRole)) {
           return this.sendResp(req, res, {
             status: 403,
             displayErrors: [{ detail: 'You are not authorized to disable users' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        if (String(req.user?.id ?? '') === String(userId)) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'You cannot disable your own account' }],
             headers: this.getNoCacheHeaders()
           });
         }
@@ -589,7 +597,7 @@ export namespace Controllers {
           });
         }
         const adminRole = RolesService.getAdminFromBrand(brand);
-        if (_.isEmpty(adminRole) || _.isEmpty(UsersService.hasRole(req.user, adminRole))) {
+        if (_.isEmpty(adminRole) || !UsersService.hasRole(req.user, adminRole)) {
           return this.sendResp(req, res, {
             status: 403,
             displayErrors: [{ detail: 'You are not authorized to enable users' }],

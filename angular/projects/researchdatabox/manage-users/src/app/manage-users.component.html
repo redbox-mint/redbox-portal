@@ -287,7 +287,10 @@
               @if (isEffectivelyDisabled(currentUser)) {
                 <div class="alert alert-warning">
                   @if (isDisabledViaPrimary(currentUser)) {
-                    {{ 'manage-users-disable-notice' | i18next }}: {{ currentUser.disabledByPrimaryUsername }}
+                    {{
+                      'manage-users-disable-notice-primary'
+                        | i18next: { primaryUsername: currentUser.disabledByPrimaryUsername }
+                    }}
                   } @else {
                     {{ 'manage-users-disable-notice' | i18next }}
                   }

@@ -2983,6 +2983,10 @@
     "category": "users",
     "description": "Translation for manage-users-disable-notice"
   },
+  "manage-users-disable-notice-primary": {
+    "category": "users",
+    "description": "Translation for manage-users-disable-notice-primary (with primaryUsername interpolation)"
+  },
   "manage-users-enable-notice": {
     "category": "users",
     "description": "Translation for manage-users-enable-notice"

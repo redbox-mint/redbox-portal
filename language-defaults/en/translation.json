@@ -750,6 +750,7 @@
   "manage-users-enable-action": "Enable",
   "manage-users-disable-confirm": "Are you sure you want to disable this user?",
   "manage-users-disable-notice": "This account is disabled. Login is blocked.",
+  "manage-users-disable-notice-primary": "This account is disabled via {{primaryUsername}}. Login is blocked.",
   "manage-users-enable-notice": "This account is enabled.",
   "manage-users-disable-success": "User disabled successfully.",
   "manage-users-enable-success": "User enabled successfully.",

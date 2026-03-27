@@ -393,92 +393,95 @@ export namespace Services {
               // Gate disabled users
               that.assertAuthenticationAllowed(foundUserObj).then(() => {
 
-              // foundUser.lastLogin = new Date();
+                // foundUser.lastLogin = new Date();
 
-              const configLocal = _.get(defAuthConfig, 'local', {});
-              if (that.hasPreSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                that.triggerPreSaveTriggers(foundUserObj, configLocal).then((userAdditionalInfo: AnyRecord) => {
+                const configLocal = _.get(defAuthConfig, 'local', {});
+                if (that.hasPreSaveTriggerConfigured(configLocal, 'onUpdate')) {
+                  that.triggerPreSaveTriggers(foundUserObj, configLocal).then((userAdditionalInfo: AnyRecord) => {
 
-                  const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                  if (success) {
+                    const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                    if (success) {
 
-                    User.update({
-                      username: username
-                    }).set(
-                      {
-                        lastLogin: new Date(),
-                        additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes')
-                      }).exec(function (err: unknown, user: unknown) {
-                        if (err) {
-                          sails.log.error("Error updating user:");
-                          sails.log.error(err);
+                      User.update({
+                        username: username
+                      }).set(
+                        {
+                          lastLogin: new Date(),
+                          additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes')
+                        }).exec(function (err: unknown, user: unknown) {
+                          if (err) {
+                            sails.log.error("Error updating user:");
+                            sails.log.error(err);
+                            return;
+                          }
+                          if (_.isEmpty(user)) {
+                            sails.log.error("No user found");
+                            return;
+                          }
+                          sails.log.verbose("Done, returning updated user:");
+                          sails.log.verbose(user);
                           return;
-                        }
-                        if (_.isEmpty(user)) {
-                          sails.log.error("No user found");
-                          return;
-                        }
-                        sails.log.verbose("Done, returning updated user:");
-                        sails.log.verbose(user);
-                        return;
+                        });
+
+                      if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
+                        that.triggerPostSaveTriggers(foundUserObj, configLocal);
+                      }
+
+                      if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
+                        that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
+                      }
+
+                      return done(null, userAdditionalInfo, {
+                        message: 'Logged In Successfully'
                       });
 
-                    if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                      that.triggerPostSaveTriggers(foundUserObj, configLocal);
+                    } else {
+
+                      return done(null, false, {
+                        message: 'All required conditions for login not met'
+                      });
                     }
 
-                    if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
-                      that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
+                  });
+
+                } else {
+
+                  User.update({
+                    username: username
+                  }).set({ lastLogin: new Date() }).exec(function (err: unknown, user: unknown) {
+                    if (err) {
+                      sails.log.error("Error updating user:");
+                      sails.log.error(err);
+                      return;
+                    }
+                    if (_.isEmpty(user)) {
+                      sails.log.error("No user found");
+                      return;
                     }
 
-                    return done(null, userAdditionalInfo, {
-                      message: 'Logged In Successfully'
-                    });
-
-                  } else {
-
-                    return done(null, false, {
-                      message: 'All required conditions for login not met'
-                    });
-                  }
-
-                });
-
-              } else {
-
-                User.update({
-                  username: username
-                }).set({ lastLogin: new Date() }).exec(function (err: unknown, user: unknown) {
-                  if (err) {
-                    sails.log.error("Error updating user:");
-                    sails.log.error(err);
+                    sails.log.verbose("Done, returning updated user:");
+                    sails.log.verbose(user);
                     return;
-                  }
-                  if (_.isEmpty(user)) {
-                    sails.log.error("No user found");
-                    return;
+                  });
+
+                  if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
+                    that.triggerPostSaveTriggers(foundUserObj, configLocal);
                   }
 
-                  sails.log.verbose("Done, returning updated user:");
-                  sails.log.verbose(user);
-                  return;
-                });
+                  if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
+                    that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
+                  }
 
-                if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                  that.triggerPostSaveTriggers(foundUserObj, configLocal);
+                  return done(null, foundUserObj, {
+                    message: 'Logged In Successfully'
+                  });
                 }
 
-                if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
-                  that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
+              }).catch((err: unknown) => {
+                if (err instanceof Error && err.message === 'Account is disabled') {
+                  return done(null, false, { message: 'Account is disabled' });
                 }
-
-                return done(null, foundUserObj, {
-                  message: 'Logged In Successfully'
-                });
-              }
-
-              }).catch(() => {
-                return done(null, false, { message: 'Account is disabled' });
+                return done(err);
               }); // end assertAuthenticationAllowed gate
 
             });
@@ -710,100 +713,105 @@ export namespace Services {
               const userObj = user as AnyRecord;
               // Gate disabled users
               that.assertAuthenticationAllowed(userObj).then(() => {
-              const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
-              userObj.lastLogin = new Date();
-              userObj.name = attrs.cn;
-              userObj.email = String(attrs.mail ?? '').toLowerCase();
-              userObj.displayname = attrs.displayname;
-              userObj.cn = attrs.cn;
-              userObj.edupersonscopedaffiliation = attrs.edupersonscopedaffiliation;
-              userObj.edupersontargetedid = attrs.edupersontargetedid;
-              userObj.edupersonprincipalname = attrs.edupersonprincipalname;
-              userObj.givenname = attrs.givenname;
-              userObj.surname = attrs.surname;
+                const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
+                userObj.lastLogin = new Date();
+                userObj.name = attrs.cn;
+                userObj.email = String(attrs.mail ?? '').toLowerCase();
+                userObj.displayname = attrs.displayname;
+                userObj.cn = attrs.cn;
+                userObj.edupersonscopedaffiliation = attrs.edupersonscopedaffiliation;
+                userObj.edupersontargetedid = attrs.edupersontargetedid;
+                userObj.edupersonprincipalname = attrs.edupersonprincipalname;
+                userObj.givenname = attrs.givenname;
+                userObj.surname = attrs.surname;
 
-              const configAAF = _.get(defAuthConfig, 'aaf', {});
-              if (that.hasPreSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                that.triggerPreSaveTriggers(userObj, configAAF).then((userAdditionalInfo: AnyRecord) => {
+                const configAAF = _.get(defAuthConfig, 'aaf', {});
+                if (that.hasPreSaveTriggerConfigured(configAAF, 'onUpdate')) {
+                  that.triggerPreSaveTriggers(userObj, configAAF).then((userAdditionalInfo: AnyRecord) => {
 
-                  const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                  if (success) {
+                    const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                    if (success) {
 
-                    User.update({
-                      username: _.get(userAdditionalInfo, 'username')
-                    }).set(userAdditionalInfo).exec(function (err: unknown, user: unknown) {
-                      if (err) {
-                        sails.log.error("Error updating user:");
-                        sails.log.error(err);
-                        return done(err, false, { message: "Error updating user" });
-                      }
-                      if (_.isEmpty(user)) {
-                        sails.log.error("No user found");
-                        return done("No user found", false, { message: "No user found" });
-                      }
+                      User.update({
+                        username: _.get(userAdditionalInfo, 'username')
+                      }).set(userAdditionalInfo).exec(function (err: unknown, user: unknown) {
+                        if (err) {
+                          sails.log.error("Error updating user:");
+                          sails.log.error(err);
+                          return done(err, false, { message: "Error updating user" });
+                        }
+                        if (_.isEmpty(user)) {
+                          sails.log.error("No user found");
+                          return done("No user found", false, { message: "No user found" });
+                        }
 
-                      if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                        that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
-                      }
+                        if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
+                          that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
+                        }
 
-                      if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
-                        that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
-                      }
+                        if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
+                          that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
+                        }
 
-                      sails.log.verbose("Done, returning updated user:");
-                      sails.log.verbose(user);
-                      const updatedUsers = user as AnyRecord[];
-                      that.resolveLinkedUserCandidate(updatedUsers[0])
-                        .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
-                          message: 'Logged In Successfully'
-                        }))
-                        .catch((resolveErr: unknown) => done(resolveErr, false));
-                      return;
-                    });
+                        sails.log.verbose("Done, returning updated user:");
+                        sails.log.verbose(user);
+                        const updatedUsers = user as AnyRecord[];
+                        that.resolveLinkedUserCandidate(updatedUsers[0])
+                          .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
+                            message: 'Logged In Successfully'
+                          }))
+                          .catch((resolveErr: unknown) => done(resolveErr, false));
+                        return;
+                      });
 
-                  } else {
-                    return done('All required conditions for login not met', false, { message: 'All required conditions for login not met' });
-                  }
+                    } else {
+                      return done('All required conditions for login not met', false, { message: 'All required conditions for login not met' });
+                    }
 
-                });
+                  });
 
-              } else {
+                } else {
 
-                User.update({
-                  username: userObj.username
-                }).set(userObj).exec(function (err: unknown, user: unknown) {
-                  if (err) {
-                    sails.log.error("Error updating user:");
-                    sails.log.error(err);
-                    return done(err, false, { message: "Error updating user" });
-                  }
-                  if (_.isEmpty(user)) {
-                    sails.log.error("No user found");
-                    return done("No user found", false, { message: "No user found" });
-                  }
+                  User.update({
+                    username: userObj.username
+                  }).set(userObj).exec(function (err: unknown, user: unknown) {
+                    if (err) {
+                      sails.log.error("Error updating user:");
+                      sails.log.error(err);
+                      return done(err, false, { message: "Error updating user" });
+                    }
+                    if (_.isEmpty(user)) {
+                      sails.log.error("No user found");
+                      return done("No user found", false, { message: "No user found" });
+                    }
 
-                  if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                    that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
-                  }
+                    if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
+                      that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
+                    }
 
-                  if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
-                    that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
-                  }
+                    if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
+                      that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
+                    }
 
-                  sails.log.verbose("Done, returning updated user:");
-                  sails.log.verbose(user);
-                  const updatedUsers = user as AnyRecord[];
-                  that.resolveLinkedUserCandidate(updatedUsers[0])
-                    .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
-                      message: 'Logged In Successfully'
-                    }))
-                    .catch((resolveErr: unknown) => done(resolveErr, false));
-                  return;
-                });
+                    sails.log.verbose("Done, returning updated user:");
+                    sails.log.verbose(user);
+                    const updatedUsers = user as AnyRecord[];
+                    that.resolveLinkedUserCandidate(updatedUsers[0])
+                      .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
+                        message: 'Logged In Successfully'
+                      }))
+                      .catch((resolveErr: unknown) => done(resolveErr, false));
+                    return;
+                  });
 
-              }
+                }
 
-              }).catch(() => done(null, false, { message: 'Account is disabled' })); // end AAF disabled gate
+              }).catch((err: unknown) => {
+                if (err instanceof Error && err.message === 'Account is disabled') {
+                  return done(null, false, { message: 'Account is disabled' });
+                }
+                return done(err);
+              }); // end AAF disabled gate
             } else {
               sails.log.verbose("At AAF Strategy verify, creating new user...");
               // first time login, create with default role
@@ -1063,97 +1071,102 @@ export namespace Services {
           const userObj = user as AnyRecord;
           // Gate disabled users
           that.assertAuthenticationAllowed(userObj).then(() => {
-          sails.log.error("At OIDC Strategy verify, updating new user...");
-          userObj.lastLogin = new Date();
-          const additionalAttributesMapping = claimsMappings['additionalAttributes'];
-          userObj.additionalAttributes = that.mapAdditionalAttributes(
-            userinfo,
-            (typeof additionalAttributesMapping === 'object' && additionalAttributesMapping != null
-              ? additionalAttributesMapping
-              : {}) as Record<string, string>
-          );
-          userObj.name = _.get(userinfo, claimsMappings['name'] as string ?? '');
-          userObj.email = String(_.get(userinfo, claimsMappings['email'] as string ?? '', '')).toLowerCase();
-          userObj.displayname = _.get(userinfo, claimsMappings['displayName'] as string ?? '');
-          userObj.cn = _.get(userinfo, claimsMappings['cn'] as string ?? '');
-          userObj.givenname = _.get(userinfo, claimsMappings['givenname'] as string ?? '');
-          userObj.surname = _.get(userinfo, claimsMappings['surname'] as string ?? '');
+            sails.log.error("At OIDC Strategy verify, updating new user...");
+            userObj.lastLogin = new Date();
+            const additionalAttributesMapping = claimsMappings['additionalAttributes'];
+            userObj.additionalAttributes = that.mapAdditionalAttributes(
+              userinfo,
+              (typeof additionalAttributesMapping === 'object' && additionalAttributesMapping != null
+                ? additionalAttributesMapping
+                : {}) as Record<string, string>
+            );
+            userObj.name = _.get(userinfo, claimsMappings['name'] as string ?? '');
+            userObj.email = String(_.get(userinfo, claimsMappings['email'] as string ?? '', '')).toLowerCase();
+            userObj.displayname = _.get(userinfo, claimsMappings['displayName'] as string ?? '');
+            userObj.cn = _.get(userinfo, claimsMappings['cn'] as string ?? '');
+            userObj.givenname = _.get(userinfo, claimsMappings['givenname'] as string ?? '');
+            userObj.surname = _.get(userinfo, claimsMappings['surname'] as string ?? '');
 
-          if (that.hasPreSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-            that.triggerPreSaveTriggers(userObj, oidcConfig as AnyRecord).then((userAdditionalInfo: AnyRecord) => {
+            if (that.hasPreSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
+              that.triggerPreSaveTriggers(userObj, oidcConfig as AnyRecord).then((userAdditionalInfo: AnyRecord) => {
 
-              const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-              if (success) {
-                User.update({
-                  username: _.get(userAdditionalInfo, 'username')
-                }).set(userAdditionalInfo).exec(function (err: unknown, user: unknown) {
-                  if (err) {
-                    sails.log.error("Error updating user:");
-                    sails.log.error(err);
-                    return done(err, false);
-                  }
-                  if (_.isEmpty(user)) {
-                    sails.log.error("No user found");
-                    return done("No user found", false);
-                  }
+                const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                if (success) {
+                  User.update({
+                    username: _.get(userAdditionalInfo, 'username')
+                  }).set(userAdditionalInfo).exec(function (err: unknown, user: unknown) {
+                    if (err) {
+                      sails.log.error("Error updating user:");
+                      sails.log.error(err);
+                      return done(err, false);
+                    }
+                    if (_.isEmpty(user)) {
+                      sails.log.error("No user found");
+                      return done("No user found", false);
+                    }
 
-                  if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-                    that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                  }
+                    if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
+                      that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
+                    }
 
-                  if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
-                    that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                  }
+                    if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
+                      that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
+                    }
 
-                  sails.log.verbose("Done, returning updated user:");
-                  sails.log.verbose(user);
-                  const updatedUsers = user as AnyRecord[];
-                  that.resolveLinkedUserCandidate(updatedUsers[0])
-                    .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
-                    .catch((resolveErr: unknown) => done(resolveErr, false));
-                  return;
-                });
-              } else {
-                return done('All required conditions for login not met', false);
-              }
+                    sails.log.verbose("Done, returning updated user:");
+                    sails.log.verbose(user);
+                    const updatedUsers = user as AnyRecord[];
+                    that.resolveLinkedUserCandidate(updatedUsers[0])
+                      .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                      .catch((resolveErr: unknown) => done(resolveErr, false));
+                    return;
+                  });
+                } else {
+                  return done('All required conditions for login not met', false);
+                }
 
-            });
+              });
 
-          } else {
+            } else {
 
-            User.update({
-              username: userObj.username
-            }).set(userObj).exec(function (err: unknown, user: unknown) {
-              if (err) {
-                sails.log.error("Error updating user:");
-                sails.log.error(err);
-                return done(err, false);
-              }
-              if (_.isEmpty(user)) {
-                sails.log.error("No user found");
-                return done("No user found", false);
-              }
+              User.update({
+                username: userObj.username
+              }).set(userObj).exec(function (err: unknown, user: unknown) {
+                if (err) {
+                  sails.log.error("Error updating user:");
+                  sails.log.error(err);
+                  return done(err, false);
+                }
+                if (_.isEmpty(user)) {
+                  sails.log.error("No user found");
+                  return done("No user found", false);
+                }
 
-              if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-                that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-              }
+                if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
+                  that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
+                }
 
-              if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
-                that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-              }
+                if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
+                  that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
+                }
 
-              sails.log.verbose("Done, returning updated user:");
-              sails.log.verbose(user);
-              const updatedUsers = user as AnyRecord[];
-              that.resolveLinkedUserCandidate(updatedUsers[0])
-                .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
-                .catch((resolveErr: unknown) => done(resolveErr, false));
-              return;
-            });
+                sails.log.verbose("Done, returning updated user:");
+                sails.log.verbose(user);
+                const updatedUsers = user as AnyRecord[];
+                that.resolveLinkedUserCandidate(updatedUsers[0])
+                  .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                  .catch((resolveErr: unknown) => done(resolveErr, false));
+                return;
+              });
 
-          }
+            }
 
-          }).catch(() => done(null, false, { message: 'Account is disabled' })); // end OIDC disabled gate
+          }).catch((err: unknown) => {
+            if (err instanceof Error && err.message === 'Account is disabled') {
+              return done(null, false, { message: 'Account is disabled' });
+            }
+            return done(err);
+          }); // end OIDC disabled gate
         } else {
           sails.log.verbose("At OIDC Strategy verify, creating new user...");
           let userToCreate: AnyRecord;
@@ -1282,7 +1295,12 @@ export namespace Services {
                     scope: 'all'
                   }))
                   .catch((resolveErr: unknown) => done(resolveErr));
-              }).catch(() => done(null, false));
+              }).catch((err: unknown) => {
+                if (err instanceof Error && err.message === 'Account is disabled') {
+                  return done(null, false);
+                }
+                return done(err);
+              });
               return;
             });
           } else {

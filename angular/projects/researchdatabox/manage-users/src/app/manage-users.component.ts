@@ -459,9 +459,13 @@ export class ManageUsersComponent extends BaseComponent {
 
   async disableUser(user: ManageUser) {
     try {
-      await this.userService.disableUser(user.id);
-      this.setUpdateMessage(this.translationService.t('manage-users-disable-success') || 'User disabled successfully.', 'success');
-      await this.refreshUsers();
+      const response = await this.userService.disableUser(user.id);
+      if (response.status) {
+        this.setUpdateMessage(this.translationService.t('manage-users-disable-success') || 'User disabled successfully.', 'success');
+        await this.refreshUsers();
+      } else {
+        this.setUpdateMessage(response.message || 'Failed to disable user.', 'danger');
+      }
     } catch (error: unknown) {
       this.setUpdateMessage((error as Error)?.message || 'Failed to disable user.', 'danger');
     }
@@ -469,9 +473,13 @@ export class ManageUsersComponent extends BaseComponent {
 
   async enableUser(user: ManageUser) {
     try {
-      await this.userService.enableUser(user.id);
-      this.setUpdateMessage(this.translationService.t('manage-users-enable-success') || 'User enabled successfully.', 'success');
-      await this.refreshUsers();
+      const response = await this.userService.enableUser(user.id);
+      if (response.status) {
+        this.setUpdateMessage(this.translationService.t('manage-users-enable-success') || 'User enabled successfully.', 'success');
+        await this.refreshUsers();
+      } else {
+        this.setUpdateMessage(response.message || 'Failed to enable user.', 'danger');
+      }
     } catch (error: unknown) {
       this.setUpdateMessage((error as Error)?.message || 'Failed to enable user.', 'danger');
     }
