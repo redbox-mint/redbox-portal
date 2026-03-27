@@ -105,7 +105,7 @@ export namespace Controllers {
           : [];
         const linkCountByPrimary = _.countBy(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? ''));
         const primaryIds = _.uniq(_.map(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? '')));
-        const primaryUsers = _.isEmpty(primaryIds) ? [] : await User.find({ id: primaryIds });
+        const primaryUsers = _.isEmpty(primaryIds) || typeof User === 'undefined' ? [] : await User.find({ id: primaryIds });
         const primaryUsernamesById = _.reduce(primaryUsers as globalThis.Record<string, unknown>[], (acc: globalThis.Record<string, string>, user: globalThis.Record<string, unknown>) => {
           acc[String(user.id ?? '')] = String(user.username ?? '');
           return acc;

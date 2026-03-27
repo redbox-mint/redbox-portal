@@ -1,8 +1,8 @@
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { of, throwError } from 'rxjs';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject, configureModelMethod } from './testHelper';
+
+let expect: Chai.ExpectStatic;
 
 describe('UsersService', function () {
   let mockSails: any;
@@ -12,6 +12,11 @@ describe('UsersService', function () {
   let mockUserLink: any;
   let mockRecord: any;
   let mockRole: any;
+
+  before(async function () {
+    const chai = await import('chai');
+    expect = chai.expect;
+  });
 
   beforeEach(function () {
     mockSails = createMockSails({
@@ -569,6 +574,78 @@ describe('UsersService', function () {
     });
   });
 
+  describe('getLinkedAccounts', function () {
+    it('should be exported on the public service surface', function () {
+      expect(UsersService.exports()).to.have.property('getLinkedAccounts');
+    });
+
+    it('should return linked account data for a seeded primary user', async function () {
+      mockUser.findOne.onFirstCall().returns(createQueryObject({
+        id: 'primary-1',
+        username: 'primary-user',
+        name: 'Primary User',
+        email: 'primary@test.com',
+        type: 'local',
+        roles: []
+      }));
+      configureModelMethod(mockUserLink.find, [{
+        primaryUserId: 'primary-1',
+        secondaryUserId: 'secondary-1',
+        status: 'active',
+        createdAt: '2026-03-26T00:00:00.000Z'
+      }]);
+      mockUser.find.onFirstCall().returns(createQueryObject([{
+        id: 'secondary-1',
+        username: 'secondary-user',
+        name: 'Secondary User',
+        email: 'secondary@test.com',
+        type: 'local',
+        roles: []
+      }]));
+
+      const result = await UsersService.getLinkedAccounts('primary-1').toPromise();
+
+      expect(result.primary.username).to.equal('primary-user');
+      expect(result.linkedAccounts).to.have.length(1);
+      expect(result.linkedAccounts[0].username).to.equal('secondary-user');
+    });
+
+    it('should return an empty linkedAccounts array when no links exist', async function () {
+      mockUser.findOne.onFirstCall().returns(createQueryObject({
+        id: 'primary-1',
+        username: 'primary-user',
+        name: 'Primary User',
+        email: 'primary@test.com',
+        type: 'local',
+        roles: []
+      }));
+      configureModelMethod(mockUserLink.find, []);
+
+      const result = await UsersService.getLinkedAccounts('primary-1').toPromise();
+
+      expect(result.linkedAccounts).to.deep.equal([]);
+    });
+
+    it('should surface repository failures from linked account lookups', async function () {
+      mockUser.findOne.onFirstCall().returns(createQueryObject({
+        id: 'primary-1',
+        username: 'primary-user',
+        name: 'Primary User',
+        email: 'primary@test.com',
+        type: 'local',
+        roles: []
+      }));
+      mockUserLink.find = sinon.stub().throws(new Error('Permission denied'));
+
+      try {
+        await UsersService.getLinkedAccounts('primary-1').toPromise();
+        expect.fail('Expected getLinkedAccounts to throw');
+      } catch (error) {
+        expect((error as Error).message).to.equal('Permission denied');
+      }
+    });
+  });
+
   describe('searchLinkCandidates', function () {
     it('should return active matching users in the brand or with no roles', async function () {
       configureModelMethod(mockUser.find, [
@@ -599,6 +676,69 @@ describe('UsersService', function () {
 
       expect(result).to.have.length(1);
       expect(result[0].username).to.equal('candidate');
+    });
+  });
+
+  describe('getLinkedAccounts', function () {
+    it('should return linked accounts for a primary user', async function () {
+      mockUser.findOne.onFirstCall().returns(createQueryObject({
+        id: 'primary-1',
+        username: 'primary-user',
+        name: 'Primary User',
+        email: 'primary@test.com',
+        type: 'local',
+        roles: []
+      }));
+      configureModelMethod(mockUserLink.find, [
+        { primaryUserId: 'primary-1', secondaryUserId: 'secondary-1', brandId: 'brand-1', status: 'active', createdAt: '2026-03-26T00:00:00.000Z' }
+      ]);
+      configureModelMethod(mockUser.find, [
+        { id: 'secondary-1', username: 'secondary-user', name: 'Secondary User', email: 'secondary@test.com', type: 'local', accountLinkState: 'linked-alias', roles: [] }
+      ]);
+
+      const result = await UsersService.getLinkedAccounts('primary-1').toPromise();
+
+      expect(result).to.exist;
+      expect(result.primary).to.exist;
+      expect(result.linkedAccounts).to.have.length(1);
+      expect(result.linkedAccounts[0].username).to.equal('secondary-user');
+    });
+
+    it('should return empty linked accounts when none exist', async function () {
+      mockUser.findOne.onFirstCall().returns(createQueryObject({
+        id: 'user-with-no-links',
+        username: 'primary-user',
+        name: 'Primary User',
+        email: 'primary@test.com',
+        type: 'local',
+        roles: []
+      }));
+      configureModelMethod(mockUserLink.find, []);
+      configureModelMethod(mockUser.find, []);
+
+      const result = await UsersService.getLinkedAccounts('user-with-no-links').toPromise();
+
+      expect(result).to.exist;
+      expect(result.linkedAccounts).to.have.length(0);
+    });
+
+    it('should handle errors gracefully', async function () {
+      mockUser.findOne.onFirstCall().returns(createQueryObject({
+        id: 'primary-1',
+        username: 'primary-user',
+        name: 'Primary User',
+        email: 'primary@test.com',
+        type: 'local',
+        roles: []
+      }));
+      (mockUserLink.find as sinon.SinonStub).throws(new Error('Database error'));
+
+      try {
+        await UsersService.getLinkedAccounts('primary-1').toPromise();
+        expect.fail('Expected getLinkedAccounts to throw');
+      } catch (error) {
+        expect((error as Error).message).to.include('Database error');
+      }
     });
   });
 

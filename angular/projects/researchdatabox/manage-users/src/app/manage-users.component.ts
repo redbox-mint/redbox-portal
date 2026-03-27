@@ -434,7 +434,15 @@ export class ManageUsersComponent extends BaseComponent {
       return baseMessage;
     }
 
-    return `${baseMessage} ${rolesMerged}/${recordsRewritten}`;
+    const impactDetails: string[] = [];
+    if (rolesMerged > 0) {
+      impactDetails.push(this.translationService.t('manage-users-link-success-roles-merged', '', { count: rolesMerged }) || `${rolesMerged} role(s) merged`);
+    }
+    if (recordsRewritten > 0) {
+      impactDetails.push(this.translationService.t('manage-users-link-success-records-rewritten', '', { count: recordsRewritten }) || `${recordsRewritten} record(s) rewritten`);
+    }
+
+    return `${baseMessage} — ${impactDetails.join(', ')}`;
   }
 
   onFilterChange() {
@@ -557,8 +565,14 @@ export class ManageUsersComponent extends BaseComponent {
     if (this.linkPrimaryUser == null) {
       return;
     }
-    const response = await this.userService.getUserLinks(this.linkPrimaryUser.id) as UserLinkResponse;
-    this.linkedAccounts = response.linkedAccounts || [];
+    try {
+      const response = await this.userService.getUserLinks(this.linkPrimaryUser.id) as UserLinkResponse;
+      this.linkedAccounts = response.linkedAccounts || [];
+    } catch (error: unknown) {
+      this.loggerService.error('Failed to load linked accounts:', error);
+      this.setLinkMessage((error as Error)?.message || 'Failed to load linked accounts.', 'danger');
+      this.linkedAccounts = [];
+    }
   }
 
   selectLinkCandidate(candidate: UserLinkCandidate) {
@@ -584,6 +598,11 @@ export class ManageUsersComponent extends BaseComponent {
       } else {
         this.setLinkMessage();
       }
+    } catch (error: unknown) {
+      this.loggerService.error('Failed to search link candidates:', error);
+      this.setLinkMessage(this.translationService.t('manage-users-link-search-failed') || 'Failed to search accounts.', 'danger');
+      this.linkCandidates = [];
+      this.selectedLinkCandidate = null;
     } finally {
       this.isLinkSearchLoading = false;
     }

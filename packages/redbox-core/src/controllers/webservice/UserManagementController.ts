@@ -3,7 +3,6 @@ import { UserAttributes } from '../../waterline-models/User';
 import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom } from 'rxjs';
 
-
 export namespace Controllers {
   /**
    * Responsible for all things related to user management
@@ -35,7 +34,7 @@ export namespace Controllers {
         : [];
       const linkCountByPrimary = _.countBy(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? ''));
       const primaryIds = _.uniq(_.map(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? '')));
-      const primaryUsers = _.isEmpty(primaryIds) ? [] : await User.find({ id: primaryIds });
+      const primaryUsers = _.isEmpty(primaryIds) || typeof User === 'undefined' ? [] : await User.find({ id: primaryIds });
       const primaryUsernamesById = _.reduce(primaryUsers as globalThis.Record<string, unknown>[], (acc, user) => {
         acc[String(user.id ?? '')] = String(user.username ?? '');
         return acc;
@@ -50,6 +49,19 @@ export namespace Controllers {
           : (primaryUsernamesById[String(enrichedUser.linkedPrimaryUserId ?? '')] || enrichedUser.username);
         return enrichedUser;
       });
+    }
+
+    private canManageAccountLinks(req: Sails.Req, brand: BrandingModel): boolean {
+      if (_.isEmpty(req.user) || typeof RolesService === 'undefined' || typeof UsersService === 'undefined') {
+        return false;
+      }
+
+      const adminRole = RolesService.getAdminFromBrand(brand);
+      if (_.isEmpty(adminRole)) {
+        return false;
+      }
+
+      return !_.isEmpty(UsersService.hasRole(req.user, adminRole));
     }
 
     /**
@@ -362,9 +374,16 @@ export namespace Controllers {
     public async searchLinkCandidates(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
         const candidates = await firstValueFrom(UsersService.searchLinkCandidates(
           String(req.param('query') ?? ''),
-          String(brand.id ?? ''),
+          String(brand.id),
           String(req.param('primaryUserId') ?? '')
         ));
         return this.sendResp(req, res, {
@@ -399,23 +418,75 @@ export namespace Controllers {
     }
 
     public async linkAccounts(req: Sails.Req, res: Sails.Res) {
+      // Input validation
+      const primaryUserId = String(req.body.primaryUserId ?? '').trim();
+      const secondaryUserId = String(req.body.secondaryUserId ?? '').trim();
+
+      if (!primaryUserId || !secondaryUserId) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Both primaryUserId and secondaryUserId are required' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      if (primaryUserId === secondaryUserId) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Cannot link a user account to itself' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
       try {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        if (!this.canManageAccountLinks(req, brand)) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ detail: 'You are not authorized to link user accounts' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
         const response = await firstValueFrom(UsersService.linkAccounts(
-          String(req.body.primaryUserId ?? ''),
-          String(req.body.secondaryUserId ?? ''),
+          primaryUserId,
+          secondaryUserId,
           String(req.user?.username ?? 'system'),
-          String(brand.id ?? '')
+          String(brand.id)
         ));
         return this.sendResp(req, res, {
           data: response,
           headers: this.getNoCacheHeaders()
         });
       } catch (error) {
+        sails.log.error('Failed to link accounts:');
         sails.log.error(error);
+
+        const errorMessage = (error as Error)?.message ?? 'An error has occurred';
+        const normalizedMessage = errorMessage.toLowerCase();
+        let statusCode = 500;
+
+        if (normalizedMessage.includes('forbidden') || normalizedMessage.includes('unauthor')) {
+          statusCode = 403;
+        } else if (
+          normalizedMessage.includes('required')
+          || normalizedMessage.includes('invalid')
+          || normalizedMessage.includes('must')
+          || normalizedMessage.includes('cannot link a user account to itself')
+        ) {
+          statusCode = 400;
+        }
+
         return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
+          status: statusCode,
+          displayErrors: [{ detail: errorMessage }],
           headers: this.getNoCacheHeaders()
         });
       }

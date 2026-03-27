@@ -1,9 +1,9 @@
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/AdminController';
 import { createQueryObject } from '../services/testHelper';
+
+let expect: Chai.ExpectStatic;
 
 describe('AdminController', () => {
     let controller: Controllers.Admin;
@@ -12,6 +12,11 @@ describe('AdminController', () => {
     let originalBrandingService: any;
     let originalUser: any;
     let originalUserLink: any;
+
+    before(async () => {
+        const chai = await import('chai');
+        expect = chai.expect;
+    });
 
     beforeEach(() => {
         originalSails = (global as any).sails;
@@ -76,5 +81,19 @@ describe('AdminController', () => {
         expect(payload.data).to.have.length(2);
         expect(payload.data[0].linkedAccountCount).to.equal(1);
         expect(payload.data[1].effectivePrimaryUsername).to.equal('primary-user');
+    });
+
+    it('should skip primary user lookup when the User model is unavailable', async () => {
+        const req = { session: { branding: 'default' } } as unknown as Sails.Req;
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        delete (global as any).User;
+
+        await controller.getUsers(req, res);
+
+        expect(sendRespStub.calledOnce).to.be.true;
+        const payload = sendRespStub.firstCall.args[2];
+        expect(payload.data[1].effectivePrimaryUsername).to.equal('alias-user');
     });
 });

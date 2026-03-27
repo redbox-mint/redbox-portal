@@ -24,7 +24,7 @@
                   [attr.aria-label]="'manage-users-filter-name' | i18next"
                 />
                 <button class="btn btn-primary manage-users-toolbar-reset" type="button" (click)="resetFilter()">
-                  Reset
+                  {{ 'manage-users-filter-reset' | i18next }}
                 </button>
               </div>
             </div>
@@ -116,7 +116,7 @@
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h4 class="modal-title">{{ 'manage-users-link-title' | i18next }}</h4>
+            <h4 class="modal-title" id="userlinkform">{{ 'manage-users-link-title' | i18next }}</h4>
           </div>
           <div class="modal-body">
             <p>
@@ -358,7 +358,7 @@
                                 type="password"
                                 formControlName="confirmPassword"
                                 class="form-control input-sm chat-input"
-                                placeholder="Confirm Password"
+                                placeholder="{{ 'manage-users-confirm-password' | i18next }}"
                               />
                             </div>
                             @if (isUpdateUserFormConfirmPasswordTouched() || submitted) {
@@ -465,13 +465,14 @@
       class="modal fade"
       tabindex="-1"
       role="dialog"
-      aria-hidden="true"
+      [attr.aria-hidden]="!isNewUserModalShown"
+      aria-labelledby="newuserform"
     >
       <div class="modal-dialog">
         <!-- Modal content-->
         <div class="modal-content">
           <div class="modal-header">
-            <span class="modal-title h4-header">{{ 'manage-users-new' | i18next }}</span>
+            <span class="modal-title h4-header" id="newuserform">{{ 'manage-users-new' | i18next }}</span>
           </div>
           <div class="modal-body">
             <form
