@@ -91,7 +91,12 @@ export namespace Controllers {
       const response: ListAPIResponse<UserAttributes> = new ListAPIResponse<UserAttributes>();
 
       try {
-        const count = await User.count({ where: queryObject });
+        const includeDisabled = req.param('includeDisabled') === 'true';
+        const dbQuery = includeDisabled
+          ? queryObject
+          : { ...queryObject, loginDisabled: { '!=': true } };
+
+        const count = await User.count({ where: dbQuery });
         response.summary.numFound = count;
         response.summary.page = page;
         if (count === 0) {
@@ -100,17 +105,15 @@ export namespace Controllers {
         }
 
         const users = await User.find({
-          where: queryObject,
+          where: dbQuery,
           limit: pageSize,
           skip: skip
         });
         const brandId = _.get(BrandingService.getBrand(req.session.branding as string), 'id');
         let userRecords = await this.enrichUsersWithLinkMetadata(users as unknown as UserAttributes[], brandId);
         userRecords = await UsersService.enrichUsersWithEffectiveDisabledState(userRecords as unknown as Record<string, unknown>[]) as unknown as UserAttributes[];
-        const includeDisabled = req.param('includeDisabled') === 'true';
         if (!includeDisabled) {
           userRecords = _.filter(userRecords, (user: UserAttributes) => user.effectiveLoginDisabled !== true);
-          response.summary.numFound = userRecords.length;
         }
         _.each(userRecords, (user: UserAttributes) => {
           delete user["token"];

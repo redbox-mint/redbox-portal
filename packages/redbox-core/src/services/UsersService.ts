@@ -314,11 +314,25 @@ export namespace Services {
     }
 
     public async disableUser(userId: string, actor: string, brandId: string): Promise<void> {
+      const user = await User.findOne({ id: userId });
+      if (user == null) {
+        throw new Error('User not found');
+      }
+      if (String((user as unknown as AnyRecord).accountLinkState ?? 'active') === 'linked-alias') {
+        throw new Error('Cannot disable a linked alias user. Disable the primary account instead.');
+      }
       await User.update({ id: userId }).set({ loginDisabled: true });
       await this.addUserAuditEvent({ username: actor }, 'disable-user', { userId, brandId });
     }
 
     public async enableUser(userId: string, actor: string, brandId: string): Promise<void> {
+      const user = await User.findOne({ id: userId });
+      if (user == null) {
+        throw new Error('User not found');
+      }
+      if (String((user as unknown as AnyRecord).accountLinkState ?? 'active') === 'linked-alias') {
+        throw new Error('Cannot enable a linked alias user. Enable the primary account instead.');
+      }
       await User.update({ id: userId }).set({ loginDisabled: false });
       await this.addUserAuditEvent({ username: actor }, 'enable-user', { userId, brandId });
     }
@@ -1647,10 +1661,6 @@ export namespace Services {
         const primaryDisabledState = await this.resolveEffectiveDisabledState(primaryUser);
         if (primaryDisabledState.effectiveLoginDisabled) {
           throw new Error('Cannot link accounts: primary user is disabled');
-        }
-        const secondaryDisabledState = await this.resolveEffectiveDisabledState(secondaryUserObj);
-        if (secondaryDisabledState.effectiveLoginDisabled) {
-          throw new Error('Cannot link accounts: secondary user is disabled');
         }
 
         if (String(primaryUser.id ?? '') === String(secondaryUserObj.id ?? '')) {

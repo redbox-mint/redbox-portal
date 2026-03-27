@@ -95,17 +95,19 @@
                         'manage-users-link-manage' | i18next
                       }}</a>
                     }
-                    @if (isEffectivelyDisabled(user) && isDirectlyDisabled(user)) {
-                      <span> | </span>
-                      <a style="cursor: pointer" (click)="enableUser(user)">{{
-                        'manage-users-enable-action' | i18next
-                      }}</a>
-                    }
-                    @if (!isEffectivelyDisabled(user)) {
-                      <span> | </span>
-                      <a style="cursor: pointer" (click)="disableUser(user)">{{
-                        'manage-users-disable-action' | i18next
-                      }}</a>
+                    @if (!isLinkedAlias(user)) {
+                      @if (isEffectivelyDisabled(user) && isDirectlyDisabled(user)) {
+                        <span> | </span>
+                        <a style="cursor: pointer" (click)="enableUser(user)">{{
+                          'manage-users-enable-action' | i18next
+                        }}</a>
+                      }
+                      @if (!isEffectivelyDisabled(user)) {
+                        <span> | </span>
+                        <a style="cursor: pointer" (click)="disableUser(user)">{{
+                          'manage-users-disable-action' | i18next
+                        }}</a>
+                      }
                     }
                   </td>
                 </tr>
@@ -470,15 +472,17 @@
               <div class="bg-{{ updateDetailsMsgType }} center-block">{{ updateDetailsMsg }}</div>
             </div>
             <div class="modal-footer">
-              @if (isEffectivelyDisabled(currentUser) && isDirectlyDisabled(currentUser)) {
-                <button type="button" class="btn btn-success" (click)="enableUser(currentUser)">
-                  {{ 'manage-users-enable-action' | i18next }}
-                </button>
-              }
-              @if (!isEffectivelyDisabled(currentUser)) {
-                <button type="button" class="btn btn-warning" (click)="disableUser(currentUser)">
-                  {{ 'manage-users-disable-action' | i18next }}
-                </button>
+              @if (!isLinkedAlias(currentUser)) {
+                @if (isEffectivelyDisabled(currentUser) && isDirectlyDisabled(currentUser)) {
+                  <button type="button" class="btn btn-success" (click)="enableUser(currentUser)">
+                    {{ 'manage-users-enable-action' | i18next }}
+                  </button>
+                }
+                @if (!isEffectivelyDisabled(currentUser)) {
+                  <button type="button" class="btn btn-warning" (click)="disableUser(currentUser)">
+                    {{ 'manage-users-disable-action' | i18next }}
+                  </button>
+                }
               }
               <button type="submit" class="btn btn-primary" form="detailsform">
                 {{ 'manage-users-save' | i18next }}

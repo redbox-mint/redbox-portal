@@ -1126,6 +1126,7 @@ describe('UsersService', function () {
 
   describe('disableUser', function () {
     it('should set loginDisabled to true and create audit event', async function () {
+      configureModelMethod(mockUser.findOne, { id: 'user-1', username: 'testuser', accountLinkState: 'active' });
       configureModelMethod(mockUser.update, [{ id: 'user-1', loginDisabled: true }]);
       configureModelMethod(mockUserAudit.create, { id: 'audit-1' });
 
@@ -1135,10 +1136,33 @@ describe('UsersService', function () {
       expect(mockUser.update.firstCall.args[0]).to.deep.equal({ id: 'user-1' });
       expect(mockUserAudit.create.called).to.be.true;
     });
+
+    it('should reject disabling a linked alias user', async function () {
+      configureModelMethod(mockUser.findOne, { id: 'alias-1', username: 'alias', accountLinkState: 'linked-alias', linkedPrimaryUserId: 'primary-1' });
+
+      try {
+        await UsersService.disableUser('alias-1', 'admin', 'brand-1');
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include('Cannot disable a linked alias user');
+      }
+    });
+
+    it('should reject disabling a non-existent user', async function () {
+      configureModelMethod(mockUser.findOne, null);
+
+      try {
+        await UsersService.disableUser('no-such-user', 'admin', 'brand-1');
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include('User not found');
+      }
+    });
   });
 
   describe('enableUser', function () {
     it('should set loginDisabled to false and create audit event', async function () {
+      configureModelMethod(mockUser.findOne, { id: 'user-1', username: 'testuser', accountLinkState: 'active' });
       configureModelMethod(mockUser.update, [{ id: 'user-1', loginDisabled: false }]);
       configureModelMethod(mockUserAudit.create, { id: 'audit-1' });
 
@@ -1147,6 +1171,17 @@ describe('UsersService', function () {
       expect(mockUser.update.calledOnce).to.be.true;
       expect(mockUser.update.firstCall.args[0]).to.deep.equal({ id: 'user-1' });
       expect(mockUserAudit.create.called).to.be.true;
+    });
+
+    it('should reject enabling a linked alias user', async function () {
+      configureModelMethod(mockUser.findOne, { id: 'alias-1', username: 'alias', accountLinkState: 'linked-alias', linkedPrimaryUserId: 'primary-1' });
+
+      try {
+        await UsersService.enableUser('alias-1', 'admin', 'brand-1');
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include('Cannot enable a linked alias user');
+      }
     });
   });
 
