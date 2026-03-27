@@ -4,6 +4,48 @@
   line-height: 1.4;
 }
 
+.manage-users-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.manage-users-toolbar-label {
+  color: #4a5568;
+  font-weight: 600;
+  margin: 0;
+}
+
+.manage-users-toolbar-controls {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.manage-users-toolbar-controls .form-control {
+  flex: 1 1 auto;
+}
+
+.manage-users-toolbar-reset {
+  flex: 0 0 auto;
+}
+
+.manage-users-toolbar-reset:hover,
+.manage-users-toolbar-reset:focus {
+  background: #dce8ff;
+  border-color: #9fbaff;
+  color: #2046a8;
+}
+
+.manage-users-toolbar-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.manage-users-toolbar-add {
+  white-space: nowrap;
+}
+
 .manage-users-status-badge {
   border-radius: 999px;
   display: inline-block;
@@ -32,4 +74,16 @@
 
 .manage-users-status-context {
   color: #666;
+}
+
+@media (max-width: 767px) {
+  .manage-users-toolbar-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .manage-users-toolbar-action {
+    justify-content: flex-start;
+    margin-top: 12px;
+  }
 }
