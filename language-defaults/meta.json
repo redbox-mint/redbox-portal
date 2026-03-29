@@ -407,6 +407,10 @@
     "category": "users",
     "description": "Translation for manage-users-filter-name-placeholder"
   },
+  "manage-users-filter-reset": {
+    "category": "users",
+    "description": "Translation for manage-users-filter-reset"
+  },
   "manage-users-username": {
     "category": "users",
     "description": "Translation for manage-users-username"

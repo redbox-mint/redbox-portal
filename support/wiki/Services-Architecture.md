@@ -109,7 +109,7 @@ export const ServiceExports = {
 
 | Service | Purpose |
 |---|---|
-| `UsersService` | User account management (create, update, find) |
+| `UsersService` | User account management, effective-user resolution for linked aliases, disable/enable flows, and user-audit retrieval |
 | `RolesService` | Role definitions and permission management |
 
 ### Search & Caching Services
@@ -217,6 +217,18 @@ export module Controllers {
 ```
 
 See [Controllers Architecture](Controllers-Architecture) for controller locations, shim generation, and `init()` usage.
+
+## User Management Notes
+
+Recent user-management work extends `UsersService` beyond simple CRUD. It now also owns:
+
+- linked-account resolution via `getEffectiveUser()`
+- linked-account discovery and linking workflows
+- effective disabled-state enrichment for users and aliases
+- disable/enable actions with audit events
+- normalized user-audit retrieval for the Manage Users UI
+
+The corresponding admin-facing controller surface is documented on the **[User Management](https://github.com/redbox-mint/redbox-portal/wiki/User-Management)** page.
 
 ## Overriding Services in Hooks
 

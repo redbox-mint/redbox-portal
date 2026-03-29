@@ -54,6 +54,7 @@ These tests use **Bruno** to make actual HTTP requests against a running instanc
     - `test:bruno:oidc` runs the OIDC authentication flows.
     - Dev mount variants: `test:bruno:general:mount`, `test:bruno:oidc:mount`.
     - Cleanup commands: `test:bruno:clean`, `test:bruno:general:clean`, `test:bruno:oidc:clean`.
+    - The core Bruno collection now includes user-management requests under `test/bruno/1 - REST API/2 - User Management/`, including create-secondary-user, search-link-candidates, get-user-links, and link-accounts flows.
 
 ### 4. Frontend Unit Tests (`test:angular`)
 
@@ -74,7 +75,7 @@ Some packages have their own independent test suites.
   cd packages/redbox-core
   npm test
   ```
-  Runs unit tests for controllers and services in the core-types package.
+  Runs unit tests for controllers and services in the core-types package, including the user-management controller and service coverage for linking, disable/enable logic, and user audit retrieval.
 
 - **Sails-NG-Common**:
   ```bash

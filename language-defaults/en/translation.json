@@ -101,6 +101,7 @@
   "manage-users-title": "User management",
   "manage-users-filter-name": "Search for name",
   "manage-users-filter-name-placeholder": "Name",
+  "manage-users-filter-reset": "Reset",
   "manage-users-username": "Username",
   "manage-users-name": "Name",
   "manage-users-email": "Email Address",

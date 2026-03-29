@@ -101,6 +101,8 @@ export module Controllers {
 | `TranslationController` |
 | `UserManagementController` |
 
+`UserManagementController` now covers more than basic user CRUD. In this branch it also exposes account-linking, user-audit, and disable/enable endpoints for the Manage Users admin interface. See **[User Management](https://github.com/redbox-mint/redbox-portal/wiki/User-Management)** for the feature-level behavior and route summary.
+
 ## Hook Overrides
 
 Hooks can provide or override controllers by declaring `hasControllers` in `package.json` and exporting registration functions:
