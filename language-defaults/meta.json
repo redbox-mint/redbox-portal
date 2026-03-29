@@ -3387,9 +3387,21 @@
     "category": "lang",
     "description": "Translation for lang-en"
   },
+  "lang-fr": {
+    "category": "lang",
+    "description": "Translation for lang-fr"
+  },
+  "lang-it": {
+    "category": "lang",
+    "description": "Translation for lang-it"
+  },
   "lang-mri": {
     "category": "lang",
     "description": "Translation for lang-mri"
+  },
+  "lang-zh-cn": {
+    "category": "lang",
+    "description": "Translation for lang-zh-cn"
   },
   "system-message-enabled": {
     "category": "system",
@@ -3966,5 +3978,85 @@
   "@rich-text-editor-toolbar-table-remove-column": {
     "category": "rich-text-editor",
     "description": "Toolbar label for remove column action"
+  },
+  "manage-users-audit-action": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-action"
+  },
+  "manage-users-audit-modal-title": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-modal-title"
+  },
+  "manage-users-audit-loading": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-loading"
+  },
+  "manage-users-audit-empty": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-empty"
+  },
+  "manage-users-audit-error": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-error"
+  },
+  "manage-users-audit-col-time": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-col-time"
+  },
+  "manage-users-audit-col-action": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-col-action"
+  },
+  "manage-users-audit-col-actor": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-col-actor"
+  },
+  "manage-users-audit-col-details": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-col-details"
+  },
+  "manage-users-audit-raw-toggle": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-raw-toggle"
+  },
+  "manage-users-audit-raw-hide": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-raw-hide"
+  },
+  "manage-users-audit-raw-label": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-raw-label"
+  },
+  "manage-users-audit-truncated": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-truncated"
+  },
+  "manage-users-audit-event-login": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-event-login"
+  },
+  "manage-users-audit-event-logout": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-event-logout"
+  },
+  "manage-users-audit-event-disable": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-event-disable"
+  },
+  "manage-users-audit-event-enable": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-event-enable"
+  },
+  "manage-users-audit-event-link-primary": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-event-link-primary"
+  },
+  "manage-users-audit-event-link-secondary": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-event-link-secondary"
+  },
+  "manage-users-audit-event-link-generic": {
+    "category": "manage-users",
+    "description": "Translation for manage-users-audit-event-link-generic"
   }
 }

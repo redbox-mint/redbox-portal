@@ -65,6 +65,7 @@ describe('UsersService', function () {
     };
 
     mockUserAudit = {
+      find: sinon.stub().returns(createQueryObject([])),
       create: sinon.stub().returns(createQueryObject({ id: 'audit-1' }))
     };
 
@@ -1121,6 +1122,209 @@ describe('UsersService', function () {
       expect(exported).to.have.property('enrichUsersWithEffectiveDisabledState');
       expect(exported).to.have.property('disableUser');
       expect(exported).to.have.property('enableUser');
+      expect(exported).to.have.property('getUserAudit');
+    });
+  });
+
+  describe('getUserAudit', function () {
+    it('should merge, deduplicate, sort, redact, and summarize audit rows for a selected user', async function () {
+      configureModelMethod(mockUser.findOne, { id: 'user-1', username: 'testuser', name: 'Test User', email: 'test@example.com' });
+      mockUserAudit.find.onFirstCall().returns(createQueryObject([
+        {
+          id: 'audit-login-1',
+          action: 'login',
+          user: { id: 'user-1', username: 'testuser', name: 'Test User', email: 'test@example.com' },
+          additionalContext: JSON.stringify({
+            ip: '127.0.0.1',
+            headers: {
+              cookie: 'secret-cookie',
+              authorization: 'Bearer secret',
+              'x-forwarded-for': '10.0.0.1'
+            },
+            rawHeaders: [
+              'Host',
+              'localhost:1500',
+              'Cookie',
+              'secret-cookie',
+              'Authorization',
+              'Bearer secret',
+              'X-Forwarded-For',
+              '10.0.0.1'
+            ],
+            cookies: {
+              lng: 'en',
+              'redbox.sid': 'secret-session'
+            },
+            password: 'hidden'
+          }),
+          createdAt: '2026-03-27T10:00:00.000Z'
+        },
+        {
+          id: 'audit-logout-1',
+          action: 'logout',
+          user: { id: 'someone-else', username: 'otheruser' },
+          additionalContext: JSON.stringify({ ip: '127.0.0.2' }),
+          createdAt: '2026-03-27T09:00:00.000Z'
+        },
+        {
+          id: 'audit-shared',
+          action: 'login',
+          user: { id: 'user-1', username: 'testuser' },
+          additionalContext: JSON.stringify({ ip: '127.0.0.3' }),
+          createdAt: new Date('2026-03-27T08:00:00.000Z')
+        }
+      ]));
+      mockUserAudit.find.onSecondCall().returns(createQueryObject([
+        {
+          id: 'audit-disable-1',
+          action: 'disable-user',
+          user: { username: 'admin-user' },
+          additionalContext: JSON.stringify({ userId: 'user-1', brandId: 'brand-1' }),
+          createdAt: '2026-03-27T12:00:00.000Z'
+        },
+        {
+          id: 'audit-enable-1',
+          action: 'enable-user',
+          user: { username: 'admin-user' },
+          additionalContext: JSON.stringify({ userId: 'someone-else', brandId: 'brand-1' }),
+          createdAt: '2026-03-27T11:00:00.000Z'
+        },
+        {
+          id: 'audit-link-1',
+          action: 'link-accounts',
+          user: { username: 'admin-user' },
+          additionalContext: JSON.stringify({ primaryUserId: 'user-1', secondaryUserId: 'alias-1' }),
+          createdAt: '2026-03-27T13:00:00.000Z'
+        },
+        {
+          id: 'audit-link-2',
+          action: 'link-accounts',
+          user: { username: 'admin-user' },
+          additionalContext: '{"broken"',
+          createdAt: '2026-03-27T07:00:00.000Z'
+        },
+        {
+          id: 'audit-shared',
+          action: 'disable-user',
+          user: { username: 'admin-user' },
+          additionalContext: JSON.stringify({ userId: 'user-1', brandId: 'brand-1' }),
+          createdAt: '2026-03-27T08:30:00.000Z'
+        }
+      ]));
+
+      const result = await UsersService.getUserAudit('user-1');
+
+      expect(mockUserAudit.find.calledTwice).to.be.true;
+      expect(mockUserAudit.find.firstCall.args[0]).to.deep.equal({
+        action: ['login', 'logout'],
+        or: [
+          { 'user.id': 'user-1' },
+          { 'user.username': 'testuser' }
+        ]
+      });
+      expect(mockUserAudit.find.secondCall.args[0]).to.deep.equal({
+        action: ['disable-user', 'enable-user', 'link-accounts']
+      });
+      expect(result.summary.returnedCount).to.equal(4);
+      expect(result.summary.truncated).to.equal(false);
+      expect(result.records.map((record: any) => record.id)).to.deep.equal([
+        'audit-link-1',
+        'audit-disable-1',
+        'audit-login-1',
+        'audit-shared'
+      ]);
+      expect(result.records[0].details).to.equal('This account was chosen as the primary account during account linking');
+      expect(result.records[1].details).to.equal('Admin disabled this account');
+      expect(result.records[2].details).to.equal('User logged in');
+      expect(result.records[2].actor).to.deep.equal({
+        username: 'testuser',
+        name: 'Test User',
+        email: 'test@example.com'
+      });
+      expect(result.records[2].parsedAdditionalContext).to.deep.equal({
+        ip: '127.0.0.1',
+        headers: {
+          cookie: '[REDACTED]',
+          authorization: '[REDACTED]',
+          'x-forwarded-for': '[REDACTED]'
+        },
+        rawHeaders: [
+          'Host',
+          'localhost:1500',
+          'Cookie',
+          '[REDACTED]',
+          'Authorization',
+          '[REDACTED]',
+          'X-Forwarded-For',
+          '[REDACTED]'
+        ],
+        cookies: {
+          lng: '[REDACTED]',
+          'redbox.sid': '[REDACTED]'
+        },
+        password: '[REDACTED]'
+      });
+      expect(result.records[2].rawAdditionalContext).to.equal(JSON.stringify({
+        ip: '127.0.0.1',
+        headers: {
+          cookie: '[REDACTED]',
+          authorization: '[REDACTED]',
+          'x-forwarded-for': '[REDACTED]'
+        },
+        rawHeaders: [
+          'Host',
+          'localhost:1500',
+          'Cookie',
+          '[REDACTED]',
+          'Authorization',
+          '[REDACTED]',
+          'X-Forwarded-For',
+          '[REDACTED]'
+        ],
+        cookies: {
+          lng: '[REDACTED]',
+          'redbox.sid': '[REDACTED]'
+        },
+        password: '[REDACTED]'
+      }));
+    });
+
+    it('should fall back to the generic link summary for malformed or unmatched link context', async function () {
+      configureModelMethod(mockUser.findOne, { id: 'user-1', username: 'testuser' });
+      mockUserAudit.find.onFirstCall().returns(createQueryObject([]));
+      mockUserAudit.find.onSecondCall().returns(createQueryObject([
+        {
+          id: 'audit-link-1',
+          action: 'link-accounts',
+          user: { username: 'admin-user' },
+          additionalContext: '{"broken"',
+          createdAt: '2026-03-27T13:00:00.000Z'
+        }
+      ]));
+
+      const result = await UsersService.getUserAudit('user-1');
+
+      expect(result.records).to.deep.equal([]);
+    });
+
+    it('should truncate to the newest 100 rows', async function () {
+      configureModelMethod(mockUser.findOne, { id: 'user-1', username: 'testuser' });
+      const directRows = Array.from({ length: 101 }, (_unused, index) => ({
+        id: `audit-${index}`,
+        action: 'login',
+        user: { id: 'user-1', username: 'testuser' },
+        additionalContext: JSON.stringify({ ip: `127.0.0.${index}` }),
+        createdAt: new Date(Date.UTC(2026, 2, 27, 0, 0, index)).toISOString()
+      }));
+      mockUserAudit.find.onFirstCall().returns(createQueryObject(directRows));
+      mockUserAudit.find.onSecondCall().returns(createQueryObject([]));
+
+      const result = await UsersService.getUserAudit('user-1');
+
+      expect(result.records).to.have.length(100);
+      expect(result.summary.returnedCount).to.equal(100);
+      expect(result.summary.truncated).to.equal(true);
+      expect(result.records[0].id).to.equal('audit-100');
     });
   });
 

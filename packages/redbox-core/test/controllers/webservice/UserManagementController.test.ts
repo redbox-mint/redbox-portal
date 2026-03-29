@@ -36,6 +36,11 @@ describe('Webservice UserManagementController', () => {
         };
         (global as any).UsersService = {
             hasRole: sinon.stub().returns({ id: 'role-admin', name: 'Admin' }),
+            getUserWithId: sinon.stub().returns(of({ id: 'user-1', username: 'target-user', password: 'secret', token: 'tok' })),
+            getUserAudit: sinon.stub().resolves({
+                records: [{ id: 'audit-1', action: 'login', details: 'User logged in' }],
+                summary: { returnedCount: 1, truncated: false }
+            }),
             searchLinkCandidates: sinon.stub().returns(of([{ id: 'candidate-1', username: 'candidate-user' }])),
             getLinkedAccounts: sinon.stub().returns(of({ primary: { id: 'primary-1', username: 'primary-user' }, linkedAccounts: [] })),
             linkAccounts: sinon.stub().returns(of({ primary: { id: 'primary-1', username: 'primary-user' }, linkedAccounts: [], impact: { rolesMerged: 1, recordsRewritten: 2 } })),
@@ -106,6 +111,95 @@ describe('Webservice UserManagementController', () => {
         expect((global as any).UsersService.getLinkedAccounts.calledWith('primary-1')).to.be.true;
         expect(sendRespStub.calledOnce).to.be.true;
         expect(sendRespStub.firstCall.args[2]?.data?.primary?.id).to.equal('primary-1');
+    });
+
+    describe('getUserAudit', () => {
+        it('should return audit data for an admin and sanitize the user payload', async () => {
+            const param = sinon.stub();
+            param.withArgs('id').returns('user-1');
+            const req = {
+                session: { branding: 'default' },
+                user: { username: 'admin-user' },
+                param
+            } as unknown as Sails.Req;
+            const res = {} as unknown as Sails.Res;
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.getUserAudit(req, res);
+
+            expect((global as any).UsersService.getUserWithId.calledWith('user-1')).to.be.true;
+            expect((global as any).UsersService.getUserAudit.calledWith('user-1')).to.be.true;
+            expect(sendRespStub.calledOnce).to.be.true;
+            expect(sendRespStub.firstCall.args[2]?.data?.user?.password).to.be.undefined;
+            expect(sendRespStub.firstCall.args[2]?.data?.user?.token).to.be.undefined;
+            expect(sendRespStub.firstCall.args[2]?.data?.summary?.returnedCount).to.equal(1);
+        });
+
+        it('should return 400 when the user id is missing', async () => {
+            const param = sinon.stub().returns('');
+            const req = {
+                session: { branding: 'default' },
+                user: { username: 'admin-user' },
+                param
+            } as unknown as Sails.Req;
+            const res = {} as unknown as Sails.Res;
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.getUserAudit(req, res);
+
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+        });
+
+        it('should return 404 when the user does not exist', async () => {
+            (global as any).UsersService.getUserWithId = sinon.stub().returns(of(null));
+            const param = sinon.stub();
+            param.withArgs('id').returns('missing-user');
+            const req = {
+                session: { branding: 'default' },
+                user: { username: 'admin-user' },
+                param
+            } as unknown as Sails.Req;
+            const res = {} as unknown as Sails.Res;
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.getUserAudit(req, res);
+
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+        });
+
+        it('should return 403 for a non-admin caller', async () => {
+            (global as any).UsersService.hasRole = sinon.stub().returns(undefined);
+            const param = sinon.stub();
+            param.withArgs('id').returns('user-1');
+            const req = {
+                session: { branding: 'default' },
+                user: { username: 'non-admin-user' },
+                param
+            } as unknown as Sails.Req;
+            const res = {} as unknown as Sails.Res;
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.getUserAudit(req, res);
+
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
+        });
+
+        it('should return 500 when the audit service fails', async () => {
+            (global as any).UsersService.getUserAudit = sinon.stub().rejects(new Error('audit exploded'));
+            const param = sinon.stub();
+            param.withArgs('id').returns('user-1');
+            const req = {
+                session: { branding: 'default' },
+                user: { username: 'admin-user' },
+                param
+            } as unknown as Sails.Req;
+            const res = {} as unknown as Sails.Res;
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.getUserAudit(req, res);
+
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(500);
+        });
     });
 
     it('should link accounts through the service', async () => {

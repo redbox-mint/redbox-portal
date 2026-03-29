@@ -86,29 +86,68 @@
                     }
                   </td>
                   <td>
-                    <a style="cursor: pointer" (click)="editUser(user.username)">{{
+                    <button
+                      type="button"
+                      class="btn btn-link btn-xs"
+                      style="padding: 0; border: 0; cursor: pointer; vertical-align: baseline;"
+                      (click)="editUser(user.username)"
+                    >
+                      {{
                       'manage-users-edit-link' | i18next
-                    }}</a>
+                      }}
+                    </button>
                     @if (canManageLinks(user)) {
                       <span> | </span>
-                      <a style="cursor: pointer" (click)="manageLinks(user.username)">{{
+                      <button
+                        type="button"
+                        class="btn btn-link btn-xs"
+                        style="padding: 0; border: 0; cursor: pointer; vertical-align: baseline;"
+                        (click)="manageLinks(user.username)"
+                      >
+                        {{
                         'manage-users-link-manage' | i18next
-                      }}</a>
+                        }}
+                      </button>
                     }
                     @if (!isLinkedAlias(user)) {
                       @if (isEffectivelyDisabled(user) && isDirectlyDisabled(user)) {
                         <span> | </span>
-                        <a style="cursor: pointer" (click)="enableUser(user)">{{
+                        <button
+                          type="button"
+                          class="btn btn-link btn-xs"
+                          style="padding: 0; border: 0; cursor: pointer; vertical-align: baseline;"
+                          (click)="enableUser(user)"
+                        >
+                          {{
                           'manage-users-enable-action' | i18next
-                        }}</a>
+                          }}
+                        </button>
                       }
                       @if (!isEffectivelyDisabled(user)) {
                         <span> | </span>
-                        <a style="cursor: pointer" (click)="disableUser(user)">{{
+                        <button
+                          type="button"
+                          class="btn btn-link btn-xs"
+                          style="padding: 0; border: 0; cursor: pointer; vertical-align: baseline;"
+                          (click)="disableUser(user)"
+                        >
+                          {{
                           'manage-users-disable-action' | i18next
-                        }}</a>
+                          }}
+                        </button>
                       }
                     }
+                    <span> | </span>
+                    <button
+                      type="button"
+                      class="btn btn-link btn-xs"
+                      style="padding: 0; border: 0; cursor: pointer; vertical-align: baseline;"
+                      (click)="viewAudit(user)"
+                    >
+                      {{
+                        'manage-users-audit-action' | i18next
+                      }}
+                    </button>
                   </td>
                 </tr>
               }
@@ -257,6 +296,97 @@
               {{ 'manage-users-link-confirm' | i18next }}
             </button>
             <button type="button" class="btn btn-default" (click)="hideLinkModal()">
+              {{ 'manage-users-cancel' | i18next }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+}
+<!-- User Audit Modal -->
+@if (isAuditModalShown) {
+  @if (auditModalUser; as auditModalUser) {
+    <div
+      [config]="{ backdrop: 'static', show: true }"
+      (onHidden)="onAuditModalHidden()"
+      bsModal
+      #userAuditModal="bs-modal"
+      class="modal fade"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="userauditform"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title" id="userauditform">{{ getAuditTitle() }}</h4>
+          </div>
+          <div class="modal-body">
+            @if (isAuditLoading) {
+              <p>{{ 'manage-users-audit-loading' | i18next }}</p>
+            } @else {
+              @if (auditError) {
+                <div class="alert alert-danger">{{ auditError }}</div>
+              }
+
+              @if (auditSummary.truncated) {
+                <div class="alert alert-info">{{ 'manage-users-audit-truncated' | i18next }}</div>
+              }
+
+              @if (!auditError && auditRecords.length === 0) {
+                <p>{{ 'manage-users-audit-empty' | i18next }}</p>
+              }
+
+              @if (auditRecords.length > 0) {
+                <div class="table-responsive">
+                  <table class="table table-bordered table-striped table-hover">
+                    <thead>
+                      <tr>
+                        <th>{{ 'manage-users-audit-col-time' | i18next }}</th>
+                        <th>{{ 'manage-users-audit-col-action' | i18next }}</th>
+                        <th>{{ 'manage-users-audit-col-actor' | i18next }}</th>
+                        <th>{{ 'manage-users-audit-col-details' | i18next }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (record of auditRecords; track record.id) {
+                        <tr>
+                          <td>{{ formatAuditTimestamp(record.timestamp) }}</td>
+                          <td>{{ getAuditActionLabel(record) }}</td>
+                          <td>{{ getAuditActor(record) }}</td>
+                          <td>
+                            <div>{{ getAuditDetailsLabel(record) }}</div>
+                            @if (record.rawAdditionalContext) {
+                              <button
+                                type="button"
+                                class="btn btn-link btn-sm"
+                                (click)="toggleAuditRow(record.id)"
+                              >
+                                {{ getAuditToggleLabel(record.id) }}
+                              </button>
+                            }
+                          </td>
+                        </tr>
+                        @if (isAuditRowExpanded(record.id) && record.rawAdditionalContext) {
+                          <tr>
+                            <td colspan="4">
+                              <strong>{{ 'manage-users-audit-raw-label' | i18next }}</strong>
+                              <pre
+                                style="margin-top: 10px; max-width: 100%; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word;"
+                              ><code>{{ getAuditRawContent(record) }}</code></pre>
+                            </td>
+                          </tr>
+                        }
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            }
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" (click)="hideAuditModal()">
               {{ 'manage-users-cancel' | i18next }}
             </button>
           </div>

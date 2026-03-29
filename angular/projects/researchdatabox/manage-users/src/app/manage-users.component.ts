@@ -78,10 +78,39 @@ type SaveResponse = {
   message: string;
 };
 
+type UserAuditActor = {
+  username: string;
+  name?: string;
+  email?: string;
+};
+
+type UserAuditRecord = {
+  id: string;
+  timestamp: string | null;
+  action: string;
+  actor: UserAuditActor;
+  details: string;
+  parsedAdditionalContext: unknown;
+  rawAdditionalContext: string | null;
+  parseError: boolean;
+};
+
+type UserAuditResponse = {
+  user: User;
+  records: UserAuditRecord[];
+  summary: {
+    returnedCount: number;
+    truncated: boolean;
+  };
+};
+
+type AuditModalUser = Pick<ManageUser, 'id' | 'username' | 'name' | 'email' | 'type'>;
+
 type LinkingUserService = UserService & {
   getUserLinks: (primaryUserId: string) => Promise<UserLinkResponse>;
   searchLinkCandidates: (primaryUserId: string, query: string) => Promise<UserLinkCandidate[]>;
   linkAccounts: (primaryUserId: string, secondaryUserId: string) => Promise<UserLinkResponse>;
+  getUserAudit: (userId: string) => Promise<UserAuditResponse>;
   disableUser: (userId: string) => Promise<{ status: boolean; message: string }>;
   enableUser: (userId: string) => Promise<{ status: boolean; message: string }>;
 };
@@ -120,10 +149,12 @@ export class ManageUsersComponent extends BaseComponent {
   @ViewChild('userDetailsModal', { static: false }) userDetailsModal?: ModalDirective;
   @ViewChild('userNewModal', { static: false }) userNewModal?: ModalDirective;
   @ViewChild('userLinkModal', { static: false }) userLinkModal?: ModalDirective;
+  @ViewChild('userAuditModal', { static: false }) userAuditModal?: ModalDirective;
 
   isDetailsModalShown: boolean = false;
   isNewUserModalShown: boolean = false;
   isLinkModalShown: boolean = false;
+  isAuditModalShown: boolean = false;
   updateUserForm: FormGroup | null = null;
   newUserForm: FormGroup | null = null;
   submitted: boolean = false;
@@ -138,6 +169,12 @@ export class ManageUsersComponent extends BaseComponent {
   isLinkSearchLoading: boolean = false;
   isLinkSaving: boolean = false;
   showDisabledUsers: boolean = false;
+  auditModalUser: AuditModalUser | null = null;
+  auditRecords: UserAuditRecord[] = [];
+  auditExpandedRows: Record<string, boolean> = {};
+  isAuditLoading: boolean = false;
+  auditError: string = '';
+  auditSummary: { returnedCount: number; truncated: boolean } = { returnedCount: 0, truncated: false };
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -337,6 +374,27 @@ export class ManageUsersComponent extends BaseComponent {
     this.setLinkMessage();
   }
 
+  showAuditModal(): void {
+    this.isAuditModalShown = true;
+    this.userAuditModal?.show();
+  }
+
+  hideAuditModal(): void {
+    if (!_.isUndefined(this.userAuditModal)) {
+      this.userAuditModal.hide();
+    }
+  }
+
+  onAuditModalHidden(): void {
+    this.isAuditModalShown = false;
+    this.auditModalUser = null;
+    this.auditRecords = [];
+    this.auditExpandedRows = {};
+    this.isAuditLoading = false;
+    this.auditError = '';
+    this.auditSummary = { returnedCount: 0, truncated: false };
+  }
+
   genKey(userid: string) {
     this.setUpdateMessage('Generating...', 'primary');
     this.userService.genKey(userid).then((response) => {
@@ -430,6 +488,126 @@ export class ManageUsersComponent extends BaseComponent {
   setLinkMessage(msg: string = '', type: string = 'primary') {
     this.linkMsg = msg;
     this.linkMsgType = type;
+  }
+
+  getAuditTitle(): string {
+    const label = this.auditModalUser?.name || this.auditModalUser?.username || '';
+    return this.translationService.t('manage-users-audit-modal-title', '', { user: label }) || `Audit history for ${label}`;
+  }
+
+  getAuditActor(record: UserAuditRecord): string {
+    const actorParts: string[] = [record.actor.username];
+    if (!_.isEmpty(record.actor.name)) {
+      actorParts.push(String(record.actor.name));
+    }
+    if (!_.isEmpty(record.actor.email)) {
+      actorParts.push(String(record.actor.email));
+    }
+    return actorParts.filter((part) => !_.isEmpty(part)).join(' | ');
+  }
+
+  getAuditActionLabel(record: UserAuditRecord): string {
+    return record.action;
+  }
+
+  getAuditDetailsLabel(record: UserAuditRecord): string {
+    if (record.action === 'login') {
+      return this.translationService.t('manage-users-audit-event-login') || record.details;
+    }
+    if (record.action === 'logout') {
+      return this.translationService.t('manage-users-audit-event-logout') || record.details;
+    }
+    if (record.action === 'disable-user') {
+      return this.translationService.t('manage-users-audit-event-disable') || record.details;
+    }
+    if (record.action === 'enable-user') {
+      return this.translationService.t('manage-users-audit-event-enable') || record.details;
+    }
+    if (record.action === 'link-accounts') {
+      const context = record.parsedAdditionalContext as Record<string, unknown> | null;
+      if (context != null && this.auditModalUser != null) {
+        if (String(context['primaryUserId'] ?? '') === this.auditModalUser.id) {
+          return this.translationService.t('manage-users-audit-event-link-primary') || record.details;
+        }
+        if (String(context['secondaryUserId'] ?? '') === this.auditModalUser.id) {
+          return this.translationService.t('manage-users-audit-event-link-secondary') || record.details;
+        }
+      }
+      return this.translationService.t('manage-users-audit-event-link-generic') || record.details;
+    }
+    return record.details;
+  }
+
+  formatAuditTimestamp(timestamp: string | null): string {
+    if (_.isEmpty(timestamp)) {
+      return '';
+    }
+    return new Date(String(timestamp)).toLocaleString();
+  }
+
+  isAuditRowExpanded(recordId: string): boolean {
+    return this.auditExpandedRows[recordId] === true;
+  }
+
+  toggleAuditRow(recordId: string): void {
+    this.auditExpandedRows[recordId] = !this.isAuditRowExpanded(recordId);
+  }
+
+  getAuditToggleLabel(recordId: string): string {
+    const translationKey = this.isAuditRowExpanded(recordId)
+      ? 'manage-users-audit-raw-hide'
+      : 'manage-users-audit-raw-toggle';
+    return this.translationService.t(translationKey) || translationKey;
+  }
+
+  getAuditRawContent(record: UserAuditRecord): string {
+    if (record.parseError) {
+      return record.rawAdditionalContext || '';
+    }
+
+    if (record.parsedAdditionalContext == null) {
+      return record.rawAdditionalContext || '';
+    }
+
+    if (_.isString(record.parsedAdditionalContext)) {
+      return String(record.parsedAdditionalContext);
+    }
+
+    try {
+      return JSON.stringify(record.parsedAdditionalContext, null, 2);
+    } catch {
+      return record.rawAdditionalContext || '';
+    }
+  }
+
+  async viewAudit(user: ManageUser) {
+    this.auditModalUser = {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      type: user.type
+    };
+    this.auditRecords = [];
+    this.auditExpandedRows = {};
+    this.auditError = '';
+    this.auditSummary = { returnedCount: 0, truncated: false };
+    this.isAuditLoading = true;
+    this.showAuditModal();
+
+    try {
+      const response = await this.userService.getUserAudit(user.id);
+      this.auditModalUser = response.user || this.auditModalUser;
+      this.auditRecords = response.records || [];
+      this.auditSummary = response.summary || { returnedCount: this.auditRecords.length, truncated: false };
+    } catch (error: unknown) {
+      this.loggerService.error('Failed to load user audit:', error);
+      this.auditError = (error as Error)?.message || (this.translationService.t('manage-users-audit-error') || 'Failed to load audit history.');
+      this.auditRecords = [];
+      this.auditSummary = { returnedCount: 0, truncated: false };
+    } finally {
+      this.isAuditLoading = false;
+    }
   }
 
   private buildLinkSuccessMessage(response: UserLinkResponse): string {

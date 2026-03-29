@@ -345,6 +345,7 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/api/users/get': { controller: 'webservice/UserManagementController', action: 'getUser', csrf: false },
     'get /:branding/:portal/api/users/link/candidates': { controller: 'webservice/UserManagementController', action: 'searchLinkCandidates', csrf: false },
     'get /:branding/:portal/api/users/:id/links': { controller: 'webservice/UserManagementController', action: 'getUserLinks', csrf: false },
+    'get /:branding/:portal/api/users/:id/audit': { controller: 'webservice/UserManagementController', action: 'getUserAudit', csrf: false },
     'post /:branding/:portal/api/users/link': { controller: 'webservice/UserManagementController', action: 'linkAccounts', csrf: false },
     'put /:branding/:portal/api/users': { controller: 'webservice/UserManagementController', action: 'createUser', csrf: false },
     'post /:branding/:portal/api/users': { controller: 'webservice/UserManagementController', action: 'updateUser', csrf: false },

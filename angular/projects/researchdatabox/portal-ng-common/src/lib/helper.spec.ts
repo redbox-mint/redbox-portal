@@ -142,6 +142,8 @@ export function getStubUserService(username: string = '', password: string = '',
       return [];
     }, getUserLinks() {
       return { primary: userData[0] || null, linkedAccounts: [] };
+    }, getUserAudit() {
+      return { user: userData[0] || null, records: [], summary: { returnedCount: 0, truncated: false } };
     }, linkAccounts() {
       return { primary: userData[0] || null, linkedAccounts: [], impact: { recordsRewritten: 0, rolesMerged: 0 } };
     }

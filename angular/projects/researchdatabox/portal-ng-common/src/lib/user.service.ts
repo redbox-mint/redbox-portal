@@ -96,6 +96,34 @@ export interface UserLinkResponse {
   };
 }
 
+export interface UserAuditActor {
+  username: string;
+  name?: string;
+  email?: string;
+}
+
+export interface UserAuditRecord {
+  id: string;
+  timestamp: string | null;
+  action: string;
+  actor: UserAuditActor;
+  details: string;
+  parsedAdditionalContext: unknown;
+  rawAdditionalContext: string | null;
+  parseError: boolean;
+}
+
+export interface UserAuditSummary {
+  returnedCount: number;
+  truncated: boolean;
+}
+
+export interface UserAuditResponse {
+  user: User;
+  records: UserAuditRecord[];
+  summary: UserAuditSummary;
+}
+
 /**
  * User-centric functions. 
  * 
@@ -233,6 +261,16 @@ export class UserService extends HttpClientService {
   public async getUserLinks(primaryUserId: string): Promise<UserLinkResponse> {
     const url = `${this.brandingAndPortalUrl}/api/users/${primaryUserId}/links`;
     const result$ = this.http.get<UserLinkResponse>(url, {
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext
+    }).pipe(map(res => res));
+    return await firstValueFrom(result$);
+  }
+
+  public async getUserAudit(userId: string): Promise<UserAuditResponse> {
+    const url = `${this.brandingAndPortalUrl}/api/users/${userId}/audit`;
+    const result$ = this.http.get<UserAuditResponse>(url, {
       responseType: 'json',
       observe: 'body',
       context: this.httpContext

@@ -24,6 +24,7 @@ export namespace Controllers {
       'searchLinkCandidates',
       'getUserLinks',
       'linkAccounts',
+      'getUserAudit',
       'listSystemRoles',
       'createSystemRole',
       'disableUser',
@@ -64,6 +65,16 @@ export namespace Controllers {
       }
 
       return !!UsersService.hasRole(req.user, adminRole);
+    }
+
+    private sanitizeUserForResponse(user: UserAttributes | null): UserAttributes | null {
+      if (user == null) {
+        return null;
+      }
+      const sanitizedUser = { ...(user as UserAttributes & globalThis.Record<string, unknown>) };
+      delete sanitizedUser['password'];
+      delete sanitizedUser['token'];
+      return sanitizedUser as UserAttributes;
     }
 
     /**
@@ -416,6 +427,62 @@ export namespace Controllers {
         const links = await firstValueFrom(UsersService.getLinkedAccounts(String(req.param('id') ?? '')));
         return this.sendResp(req, res, {
           data: links,
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        sails.log.error(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async getUserAudit(req: Sails.Req, res: Sails.Res) {
+      const userId = String(req.param('id') ?? '').trim();
+      if (_.isEmpty(userId)) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'User ID is required' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      try {
+        const user = await firstValueFrom(UsersService.getUserWithId(userId));
+        if (user == null) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: 'User not found' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        if (!this.canManageAccountLinks(req, brand)) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ detail: 'You are not authorized to view user audit history' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        const auditResponse = await UsersService.getUserAudit(userId);
+        return this.sendResp(req, res, {
+          data: {
+            user: this.sanitizeUserForResponse(user as UserAttributes),
+            records: auditResponse.records,
+            summary: auditResponse.summary
+          },
           headers: this.getNoCacheHeaders()
         });
       } catch (error) {

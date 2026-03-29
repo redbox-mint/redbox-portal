@@ -105,6 +105,42 @@ export namespace Services {
     };
   }
 
+  interface UserAuditActor {
+    username: string;
+    name?: string;
+    email?: string;
+  }
+
+  interface UserAuditRecord {
+    id: string;
+    timestamp: string | null;
+    action: string;
+    actor: UserAuditActor;
+    details: string;
+    parsedAdditionalContext: unknown;
+    rawAdditionalContext: string | null;
+    parseError: boolean;
+  }
+
+  interface UserAuditSummary {
+    returnedCount: number;
+    truncated: boolean;
+  }
+
+  interface UserAuditResponse {
+    records: UserAuditRecord[];
+    summary: UserAuditSummary;
+  }
+
+  interface UserAuditRow extends AnyRecord {
+    id?: string;
+    action?: string;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+    user?: AnyRecord;
+    additionalContext?: unknown;
+  }
+
   /**
    * Use services...
    *
@@ -138,6 +174,7 @@ export namespace Services {
       'enrichUsersWithEffectiveDisabledState',
       'disableUser',
       'enableUser',
+      'getUserAudit',
     ];
 
     searchService!: SearchService;
@@ -335,6 +372,263 @@ export namespace Services {
       }
       await User.update({ id: userId }).set({ loginDisabled: false });
       await this.addUserAuditEvent({ username: actor }, 'enable-user', { userId, brandId });
+    }
+
+    private toAuditActor(user: unknown): UserAuditActor {
+      const userObj = _.isObject(user) ? user as AnyRecord : {};
+      const actor: UserAuditActor = {
+        username: String(userObj.username ?? '')
+      };
+
+      if (!_.isEmpty(userObj.name)) {
+        actor.name = String(userObj.name);
+      }
+      if (!_.isEmpty(userObj.email)) {
+        actor.email = String(userObj.email);
+      }
+
+      return actor;
+    }
+
+    private toAuditContextString(additionalContext: unknown): string | null {
+      if (_.isNil(additionalContext)) {
+        return null;
+      }
+      if (_.isString(additionalContext)) {
+        return additionalContext;
+      }
+
+      const stringified = this.stringifyObject(additionalContext);
+      return _.isString(stringified) ? stringified : null;
+    }
+
+    private shouldRedactAuditKey(key: string): boolean {
+      const normalizedKey = _.toLower(key);
+      return normalizedKey === 'cookie'
+        || normalizedKey === 'authorization'
+        || normalizedKey.startsWith('x-forwarded-')
+        || normalizedKey.includes('password');
+    }
+
+    private redactHeaderPairs(value: unknown[]): unknown[] {
+      const redactedPairs = [...value];
+      for (let index = 0; index < redactedPairs.length - 1; index += 2) {
+        const headerName = redactedPairs[index];
+        if (_.isString(headerName) && this.shouldRedactAuditKey(headerName)) {
+          redactedPairs[index + 1] = '[REDACTED]';
+        }
+      }
+      return redactedPairs;
+    }
+
+    private redactAuditValue(value: unknown, contextKey?: string): unknown {
+      if (_.isArray(value)) {
+        if (_.toLower(contextKey ?? '') === 'rawheaders') {
+          return this.redactHeaderPairs(value);
+        }
+        return _.map(value, (item: unknown) => this.redactAuditValue(item));
+      }
+      if (_.isPlainObject(value)) {
+        if (_.toLower(contextKey ?? '') === 'cookies') {
+          return _.mapValues(value as Record<string, unknown>, () => '[REDACTED]');
+        }
+        return _.reduce(value as Record<string, unknown>, (acc, nestedValue, nestedKey) => {
+          acc[nestedKey] = this.shouldRedactAuditKey(nestedKey) ? '[REDACTED]' : this.redactAuditValue(nestedValue, nestedKey);
+          return acc;
+        }, {} as Record<string, unknown>);
+      }
+      return value;
+    }
+
+    private sanitizeAuditDebugContext(action: string, parsedAdditionalContext: unknown, rawAdditionalContext: string | null, parseError: boolean): {
+      parsedAdditionalContext: unknown;
+      rawAdditionalContext: string | null;
+    } {
+      if (!_.includes(['login', 'logout'], action)) {
+        return { parsedAdditionalContext, rawAdditionalContext };
+      }
+
+      const redactedParsed = this.redactAuditValue(parsedAdditionalContext);
+      if (parseError) {
+        return {
+          parsedAdditionalContext: null,
+          rawAdditionalContext: rawAdditionalContext == null ? null : '[REDACTED_UNPARSEABLE_AUDIT_CONTEXT]'
+        };
+      }
+
+      return {
+        parsedAdditionalContext: redactedParsed,
+        rawAdditionalContext: redactedParsed == null ? null : JSON.stringify(redactedParsed)
+      };
+    }
+
+    private parseUserAuditContext(action: string, additionalContext: unknown): {
+      parsedAdditionalContext: unknown;
+      rawAdditionalContext: string | null;
+      parseError: boolean;
+    } {
+      const rawAdditionalContext = this.toAuditContextString(additionalContext);
+      if (_.isNil(rawAdditionalContext)) {
+        return {
+          parsedAdditionalContext: null,
+          rawAdditionalContext: null,
+          parseError: false
+        };
+      }
+
+      try {
+        const parsedAdditionalContext = JSON.parse(rawAdditionalContext);
+        const sanitized = this.sanitizeAuditDebugContext(action, parsedAdditionalContext, rawAdditionalContext, false);
+        return {
+          parsedAdditionalContext: sanitized.parsedAdditionalContext,
+          rawAdditionalContext: sanitized.rawAdditionalContext,
+          parseError: false
+        };
+      } catch (_error) {
+        const sanitized = this.sanitizeAuditDebugContext(action, null, rawAdditionalContext, true);
+        return {
+          parsedAdditionalContext: sanitized.parsedAdditionalContext,
+          rawAdditionalContext: sanitized.rawAdditionalContext,
+          parseError: true
+        };
+      }
+    }
+
+    private normalizeAuditTimestamp(value: unknown): string | null {
+      if (value instanceof Date) {
+        return value.toISOString();
+      }
+      if (_.isString(value)) {
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+      }
+      return null;
+    }
+
+    private timestampSortValue(row: UserAuditRow): number {
+      const timestamp = this.normalizeAuditTimestamp(row.createdAt) ?? this.normalizeAuditTimestamp(row.updatedAt);
+      if (timestamp == null) {
+        return 0;
+      }
+      return new Date(timestamp).getTime();
+    }
+
+    private matchesSelectedUserForDirectAudit(selectedUser: AnyRecord, row: UserAuditRow): boolean {
+      const rowUser = _.isObject(row.user) ? row.user as AnyRecord : {};
+      const selectedUserId = String(selectedUser.id ?? '');
+      const selectedUsername = _.toLower(String(selectedUser.username ?? ''));
+      return String(rowUser.id ?? '') === selectedUserId || _.toLower(String(rowUser.username ?? '')) === selectedUsername;
+    }
+
+    private matchesSelectedUserForAdminAudit(selectedUser: AnyRecord, action: string, parsedAdditionalContext: unknown): boolean {
+      if (!_.isPlainObject(parsedAdditionalContext)) {
+        return false;
+      }
+
+      const context = parsedAdditionalContext as AnyRecord;
+      const selectedUserId = String(selectedUser.id ?? '');
+      if (_.includes(['disable-user', 'enable-user'], action)) {
+        return String(context.userId ?? '') === selectedUserId;
+      }
+      if (action === 'link-accounts') {
+        return String(context.primaryUserId ?? '') === selectedUserId || String(context.secondaryUserId ?? '') === selectedUserId;
+      }
+      return false;
+    }
+
+    private getUserAuditDetails(selectedUser: AnyRecord, action: string, parsedAdditionalContext: unknown): string {
+      switch (action) {
+        case 'login':
+          return 'User logged in';
+        case 'logout':
+          return 'User logged out';
+        case 'disable-user':
+          return 'Admin disabled this account';
+        case 'enable-user':
+          return 'Admin enabled this account';
+        case 'link-accounts': {
+          if (!_.isPlainObject(parsedAdditionalContext)) {
+            return 'Account linking event';
+          }
+          const context = parsedAdditionalContext as AnyRecord;
+          if (String(context.primaryUserId ?? '') === String(selectedUser.id ?? '')) {
+            return 'This account was chosen as the primary account during account linking';
+          }
+          if (String(context.secondaryUserId ?? '') === String(selectedUser.id ?? '')) {
+            return 'This account was linked as a secondary alias to another account';
+          }
+          return 'Account linking event';
+        }
+        default:
+          return String(action ?? '');
+      }
+    }
+
+    private normalizeUserAuditRecord(selectedUser: AnyRecord, row: UserAuditRow): UserAuditRecord {
+      const action = String(row.action ?? '');
+      const parsedContext = this.parseUserAuditContext(action, row.additionalContext);
+      return {
+        id: String(row.id ?? ''),
+        timestamp: this.normalizeAuditTimestamp(row.createdAt) ?? this.normalizeAuditTimestamp(row.updatedAt),
+        action,
+        actor: this.toAuditActor(row.user),
+        details: this.getUserAuditDetails(selectedUser, action, parsedContext.parsedAdditionalContext),
+        parsedAdditionalContext: parsedContext.parsedAdditionalContext,
+        rawAdditionalContext: parsedContext.rawAdditionalContext,
+        parseError: parsedContext.parseError
+      };
+    }
+
+    private async fetchDirectUserAuditRows(selectedUser: AnyRecord): Promise<UserAuditRow[]> {
+      const directAuditActions = ['login', 'logout'];
+      try {
+        const rows = await UserAudit.find({
+          action: directAuditActions,
+          or: [
+            { 'user.id': String(selectedUser.id ?? '') },
+            { 'user.username': String(selectedUser.username ?? '') }
+          ]
+        }).meta({
+          enableExperimentalDeepTargets: true
+        });
+        return rows as unknown as UserAuditRow[];
+      } catch (_error) {
+        const rows = await UserAudit.find({ action: directAuditActions });
+        return rows as unknown as UserAuditRow[];
+      }
+    }
+
+    public async getUserAudit(userId: string): Promise<UserAuditResponse> {
+      const selectedUser = await User.findOne({ id: userId });
+      if (selectedUser == null) {
+        throw new Error('User not found');
+      }
+      const selectedUserRecord = selectedUser as unknown as AnyRecord;
+
+      const directRows = await this.fetchDirectUserAuditRows(selectedUserRecord);
+      const adminRows = await UserAudit.find({
+        action: ['disable-user', 'enable-user', 'link-accounts']
+      }) as unknown as UserAuditRow[];
+
+      const matchingDirectRows = _.filter(directRows, (row: UserAuditRow) => this.matchesSelectedUserForDirectAudit(selectedUserRecord, row));
+      const matchingAdminRows = _.filter(adminRows, (row: UserAuditRow) => {
+        const parsed = this.parseUserAuditContext(String(row.action ?? ''), row.additionalContext);
+        return this.matchesSelectedUserForAdminAudit(selectedUserRecord, String(row.action ?? ''), parsed.parsedAdditionalContext);
+      });
+
+      const mergedRows = _.values(_.keyBy([...matchingDirectRows, ...matchingAdminRows], (row: UserAuditRow) => String(row.id ?? '')));
+      const sortedRows = _.orderBy(mergedRows, (row: UserAuditRow) => this.timestampSortValue(row), 'desc');
+      const maxRows = 100;
+      const truncated = sortedRows.length > maxRows;
+      const limitedRows = sortedRows.slice(0, maxRows);
+
+      return {
+        records: _.map(limitedRows, (row: UserAuditRow) => this.normalizeUserAuditRecord(selectedUserRecord, row)),
+        summary: {
+          returnedCount: limitedRows.length,
+          truncated
+        }
+      };
     }
 
     protected localAuthInit() {
