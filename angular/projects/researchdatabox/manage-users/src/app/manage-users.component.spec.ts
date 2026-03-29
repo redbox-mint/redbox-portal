@@ -219,7 +219,14 @@ describe('ManageUsersComponent', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('manage-users-audit-action');
     expect(text).toContain('Alias User');
-    expect(text).toMatch(/manage-users-edit-link\s*\|\s*manage-users-link-manage\s*\|\s*manage-users-disable-action\s*\|\s*manage-users-audit-action/);
+    const editIndex = text.indexOf('manage-users-edit-link');
+    const linkIndex = text.indexOf('manage-users-link-manage');
+    const disableIndex = text.indexOf('manage-users-disable-action');
+    const auditIndex = text.indexOf('manage-users-audit-action');
+    expect(editIndex).toBeGreaterThan(-1);
+    expect(linkIndex).toBeGreaterThan(editIndex);
+    expect(disableIndex).toBeGreaterThan(linkIndex);
+    expect(auditIndex).toBeGreaterThan(disableIndex);
   });
 
   it('should open the audit modal, fetch records, and render them', async () => {

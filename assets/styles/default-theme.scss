@@ -6245,6 +6245,23 @@ a.list-group-item-danger.active,a.list-group-item-danger.active:focus,a.list-gro
     border-bottom-color: $panel-branding-border-color;
 }
 
+/*
+  Expose key SCSS branding variables as CSS custom properties so that
+  independently-built Angular micro-apps can reference the active theme
+  colours without duplicating hex values.
+*/
+:root {
+    --mu-panel-bg: #{$panel-branding-background-color};
+    --mu-panel-color: #{$panel-branding-color};
+    --mu-panel-border: #{$panel-branding-border-color};
+    --mu-anchor-color: #{$anchor-color};
+    --mu-anchor-color-hover: #{$anchor-color-hover};
+    --mu-body-text: #{$body-text-color};
+    --mu-body-bg: #{$body-background-color};
+    --mu-submit-btn-bg: #{$submit-button-background-color};
+    --mu-submit-btn-color: #{$submit-button-text-color};
+}
+
 .embed-responsive {
     position: relative;
     display: block;
