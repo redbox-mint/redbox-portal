@@ -127,6 +127,12 @@ export namespace Services {
     truncated: boolean;
   }
 
+  interface ParsedUserAuditContext {
+    parsedAdditionalContext: unknown;
+    rawAdditionalContext: string | null;
+    parseError: boolean;
+  }
+
   interface UserAuditResponse {
     records: UserAuditRecord[];
     summary: UserAuditSummary;
@@ -139,6 +145,7 @@ export namespace Services {
     updatedAt?: string | Date;
     user?: AnyRecord;
     additionalContext?: unknown;
+    auditContext?: ParsedUserAuditContext;
   }
 
   /**
@@ -462,11 +469,7 @@ export namespace Services {
       };
     }
 
-    private parseUserAuditContext(action: string, additionalContext: unknown): {
-      parsedAdditionalContext: unknown;
-      rawAdditionalContext: string | null;
-      parseError: boolean;
-    } {
+    private parseUserAuditContext(action: string, additionalContext: unknown): ParsedUserAuditContext {
       const rawAdditionalContext = this.toAuditContextString(additionalContext);
       if (_.isNil(rawAdditionalContext)) {
         return {
@@ -566,7 +569,7 @@ export namespace Services {
 
     private normalizeUserAuditRecord(selectedUser: AnyRecord, row: UserAuditRow): UserAuditRecord {
       const action = String(row.action ?? '');
-      const parsedContext = this.parseUserAuditContext(action, row.additionalContext);
+      const parsedContext = row.auditContext ?? this.parseUserAuditContext(action, row.additionalContext);
       return {
         id: String(row.id ?? ''),
         timestamp: this.normalizeAuditTimestamp(row.createdAt) ?? this.normalizeAuditTimestamp(row.updatedAt),
@@ -592,9 +595,10 @@ export namespace Services {
           enableExperimentalDeepTargets: true
         });
         return rows as unknown as UserAuditRow[];
-      } catch (_error) {
-        const rows = await UserAudit.find({ action: directAuditActions });
-        return rows as unknown as UserAuditRow[];
+      } catch (error) {
+        sails.log.error('Failed to query direct user audit rows with deep targets enabled.');
+        sails.log.error(error);
+        throw new Error(`Unable to fetch direct audit records for user ${String(selectedUser.id ?? '')} without an unbounded fallback query.`);
       }
     }
 
@@ -604,17 +608,38 @@ export namespace Services {
         throw new Error('User not found');
       }
       const selectedUserRecord = selectedUser as unknown as AnyRecord;
+      const selectedUserId = String(selectedUserRecord.id ?? '');
+      const adminAuditContextFilters = [
+        `\"userId\":${JSON.stringify(selectedUserId)}`,
+        `\"primaryUserId\":${JSON.stringify(selectedUserId)}`,
+        `\"secondaryUserId\":${JSON.stringify(selectedUserId)}`
+      ];
 
       const directRows = await this.fetchDirectUserAuditRows(selectedUserRecord);
       const adminRows = await UserAudit.find({
-        action: ['disable-user', 'enable-user', 'link-accounts']
+        action: ['disable-user', 'enable-user', 'link-accounts'],
+        or: _.map(adminAuditContextFilters, (contextFilter: string) => ({
+          additionalContext: { contains: contextFilter }
+        }))
       }) as unknown as UserAuditRow[];
 
       const matchingDirectRows = _.filter(directRows, (row: UserAuditRow) => this.matchesSelectedUserForDirectAudit(selectedUserRecord, row));
-      const matchingAdminRows = _.filter(adminRows, (row: UserAuditRow) => {
-        const parsed = this.parseUserAuditContext(String(row.action ?? ''), row.additionalContext);
-        return this.matchesSelectedUserForAdminAudit(selectedUserRecord, String(row.action ?? ''), parsed.parsedAdditionalContext);
-      });
+      const matchingAdminRows = _.chain(adminRows)
+        .map((row: UserAuditRow) => {
+          const auditContext = this.parseUserAuditContext(String(row.action ?? ''), row.additionalContext);
+          return {
+            ...row,
+            auditContext
+          } as UserAuditRow;
+        })
+        .filter((row: UserAuditRow) => {
+          return this.matchesSelectedUserForAdminAudit(
+            selectedUserRecord,
+            String(row.action ?? ''),
+            row.auditContext?.parsedAdditionalContext
+          );
+        })
+        .value();
 
       const mergedRows = _.values(_.keyBy([...matchingDirectRows, ...matchingAdminRows], (row: UserAuditRow) => String(row.id ?? '')));
       const sortedRows = _.orderBy(mergedRows, (row: UserAuditRow) => this.timestampSortValue(row), 'desc');

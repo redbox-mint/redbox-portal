@@ -10,9 +10,7 @@
         <!-- Toolbar -->
         <div class="mu-toolbar">
           <div class="mu-toolbar-search">
-            <label class="mu-toolbar-label" for="manage-users-search">{{
-              'manage-users-filter-name' | i18next
-            }}</label>
+            <label class="mu-toolbar-label" for="manage-users-search">{{ 'manage-users-filter-name' | i18next }}</label>
             <div class="mu-toolbar-search-controls">
               <div class="mu-search-input-wrap">
                 <i class="fa fa-search mu-search-icon"></i>
@@ -358,11 +356,7 @@
                           <td>
                             <div>{{ getAuditDetailsLabel(record) }}</div>
                             @if (record.rawAdditionalContext) {
-                              <button
-                                type="button"
-                                class="btn btn-link btn-sm"
-                                (click)="toggleAuditRow(record.id)"
-                              >
+                              <button type="button" class="btn btn-link btn-sm" (click)="toggleAuditRow(record.id)">
                                 {{ getAuditToggleLabel(record.id) }}
                               </button>
                             }
@@ -417,7 +411,7 @@
             </div>
             <div class="modal-body mu-modal-body">
               @if (isEffectivelyDisabled(currentUser)) {
-                <div class="alert alert-warning" style="margin-bottom: 16px;">
+                <div class="alert alert-warning" style="margin-bottom: 16px">
                   @if (isDisabledViaPrimary(currentUser)) {
                     {{
                       'manage-users-disable-notice-primary'
@@ -429,7 +423,7 @@
                 </div>
               }
               @if (currentUser.accountLinkState === 'linked-alias') {
-                <div class="alert alert-info" style="margin-bottom: 16px;">
+                <div class="alert alert-info" style="margin-bottom: 16px">
                   {{
                     'manage-users-edit-linked-notice'
                       | i18next: { primaryUsername: currentUser.effectivePrimaryUsername || currentUser.username }
@@ -446,7 +440,8 @@
                   <!-- Account Information -->
                   <div class="mu-form-section">
                     <h5 class="mu-form-section-title">
-                      <i class="fa fa-id-card"></i> Account Information
+                      <i class="fa fa-id-card"></i>
+                      {{ 'manage-users-account-information' | i18next }}
                     </h5>
                     @if (currentUser.type == 'local') {
                       <div class="mu-form-group">
@@ -495,7 +490,8 @@
                   <!-- Security -->
                   <div class="mu-form-section">
                     <h5 class="mu-form-section-title">
-                      <i class="fa fa-lock"></i> Security
+                      <i class="fa fa-lock"></i>
+                      {{ 'manage-users-security' | i18next }}
                     </h5>
                     <div class="mu-form-group">
                       <label class="mu-form-label">{{ 'manage-users-password' | i18next }}</label>
@@ -578,7 +574,8 @@
                   <!-- Roles & Permissions -->
                   <div class="mu-form-section">
                     <h5 class="mu-form-section-title">
-                      <i class="fa fa-shield"></i> Roles &amp; Permissions
+                      <i class="fa fa-shield"></i>
+                      {{ 'manage-users-roles-and-permissions' | i18next }}
                     </h5>
                     @if (currentUser.accountLinkState === 'linked-alias') {
                       <em>{{ 'manage-users-roles-linked-notice' | i18next }}</em>
@@ -600,7 +597,7 @@
                         }
                       </div>
                       @if (!updateUserForm.controls['roles'].valid && submitted) {
-                        <div class="form-text error text-danger" style="margin-top: 8px;">
+                        <div class="form-text error text-danger" style="margin-top: 8px">
                           <div>{{ 'manage-users-validation-role' | i18next }}</div>
                         </div>
                       }
@@ -669,7 +666,8 @@
                 <!-- Account Details -->
                 <div class="mu-form-section">
                   <h5 class="mu-form-section-title">
-                    <i class="fa fa-id-card"></i> Account Details
+                    <i class="fa fa-id-card"></i>
+                    {{ 'manage-users-account-details' | i18next }}
                   </h5>
                   <div class="mu-form-group">
                     <label class="mu-form-label">{{ 'manage-users-username' | i18next }}</label>
@@ -733,7 +731,8 @@
                 <!-- Security -->
                 <div class="mu-form-section">
                   <h5 class="mu-form-section-title">
-                    <i class="fa fa-lock"></i> Security
+                    <i class="fa fa-lock"></i>
+                    {{ 'manage-users-security' | i18next }}
                   </h5>
                   <div class="mu-form-group">
                     <label class="mu-form-label">{{ 'manage-users-password' | i18next }}</label>
@@ -785,7 +784,8 @@
                 <!-- Roles -->
                 <div class="mu-form-section">
                   <h5 class="mu-form-section-title">
-                    <i class="fa fa-shield"></i> Roles &amp; Permissions
+                    <i class="fa fa-shield"></i>
+                    {{ 'manage-users-roles-and-permissions' | i18next }}
                   </h5>
                   <div [formArrayName]="'allRoles'" class="mu-roles-grid">
                     @for (role of getNewUserFormControls(); track role; let i = $index) {
@@ -803,8 +803,8 @@
                       </div>
                     }
                   </div>
-                  @if (!newUserForm.controls['roles'].valid) {
-                    <div class="form-text error text-danger" style="margin-top: 8px;">
+                  @if (!newUserForm.controls['roles'].valid && submitted) {
+                    <div class="form-text error text-danger" style="margin-top: 8px">
                       <div>{{ 'manage-users-validation-role' | i18next }}</div>
                     </div>
                   }

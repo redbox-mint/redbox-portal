@@ -1223,7 +1223,24 @@ describe('UsersService', function () {
         ]
       });
       expect(mockUserAudit.find.secondCall.args[0]).to.deep.equal({
-        action: ['disable-user', 'enable-user', 'link-accounts']
+        action: ['disable-user', 'enable-user', 'link-accounts'],
+        or: [
+          {
+            additionalContext: {
+              contains: '"userId":"user-1"'
+            }
+          },
+          {
+            additionalContext: {
+              contains: '"primaryUserId":"user-1"'
+            }
+          },
+          {
+            additionalContext: {
+              contains: '"secondaryUserId":"user-1"'
+            }
+          }
+        ]
       });
       expect(result.summary.returnedCount).to.equal(4);
       expect(result.summary.truncated).to.equal(false);

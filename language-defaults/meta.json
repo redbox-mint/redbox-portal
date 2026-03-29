@@ -419,9 +419,25 @@
     "category": "users",
     "description": "Translation for manage-users-email"
   },
+  "manage-users-account-information": {
+    "category": "users",
+    "description": "Translation for manage-users-account-information"
+  },
+  "manage-users-account-details": {
+    "category": "users",
+    "description": "Translation for manage-users-account-details"
+  },
+  "manage-users-security": {
+    "category": "users",
+    "description": "Translation for manage-users-security"
+  },
   "manage-users-role": {
     "category": "users",
     "description": "Translation for manage-users-role"
+  },
+  "manage-users-roles-and-permissions": {
+    "category": "users",
+    "description": "Translation for manage-users-roles-and-permissions"
   },
   "manage-users-account-status": {
     "category": "users",
@@ -3980,83 +3996,83 @@
     "description": "Toolbar label for remove column action"
   },
   "manage-users-audit-action": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-action"
   },
   "manage-users-audit-modal-title": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-modal-title"
   },
   "manage-users-audit-loading": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-loading"
   },
   "manage-users-audit-empty": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-empty"
   },
   "manage-users-audit-error": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-error"
   },
   "manage-users-audit-col-time": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-col-time"
   },
   "manage-users-audit-col-action": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-col-action"
   },
   "manage-users-audit-col-actor": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-col-actor"
   },
   "manage-users-audit-col-details": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-col-details"
   },
   "manage-users-audit-raw-toggle": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-raw-toggle"
   },
   "manage-users-audit-raw-hide": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-raw-hide"
   },
   "manage-users-audit-raw-label": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-raw-label"
   },
   "manage-users-audit-truncated": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-truncated"
   },
   "manage-users-audit-event-login": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-event-login"
   },
   "manage-users-audit-event-logout": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-event-logout"
   },
   "manage-users-audit-event-disable": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-event-disable"
   },
   "manage-users-audit-event-enable": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-event-enable"
   },
   "manage-users-audit-event-link-primary": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-event-link-primary"
   },
   "manage-users-audit-event-link-secondary": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-event-link-secondary"
   },
   "manage-users-audit-event-link-generic": {
-    "category": "manage-users",
+    "category": "users",
     "description": "Translation for manage-users-audit-event-link-generic"
   }
 }
