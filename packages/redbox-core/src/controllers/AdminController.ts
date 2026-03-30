@@ -6,15 +6,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { UserAttributes } from '../waterline-models/User';
 
 declare const UsersService: {
-  getUsersForBrand: (brand: BrandingModel | string) => Observable<globalThis.Record<string, unknown>[]>;
+  getUsersForBrand: (brand: BrandingModel | string) => Observable<UserAttributes[]>;
   setUserKey: (userid: string, uuid: string) => Observable<unknown>;
   updateUserRoles: (userid: string, roleIds: string[]) => Observable<unknown>;
   updateUserDetails: (userid: string, name: string, email: string, password: string) => Observable<unknown>;
   addLocalUser: (username: string, name: string, email: string, password: string) => Observable<globalThis.Record<string, unknown>>;
-  enrichUsersWithEffectiveDisabledState: (users: globalThis.Record<string, unknown>[]) => Promise<globalThis.Record<string, unknown>[]>;
+  enrichUsersWithEffectiveDisabledState: <T extends UserAttributes>(users: T[]) => Promise<T[]>;
   searchLinkCandidates: (query: string, brandId: string, primaryUserId: string) => Observable<globalThis.Record<string, unknown>[]>;
   getLinkedAccounts: (primaryUserId: string) => Observable<globalThis.Record<string, unknown>>;
-  hasRole: (user: unknown, role: unknown) => unknown;
   getUserWithId: (userId: string) => Observable<UserAttributes | null>;
   getUserAudit: (userId: string) => Promise<{ records: unknown[]; summary: globalThis.Record<string, unknown> }>;
   linkAccounts: (primaryUserId: string, secondaryUserId: string, actor: string, brandId: string) => Observable<globalThis.Record<string, unknown>>;
@@ -56,19 +55,6 @@ export namespace Controllers {
         'enableUser',
         'supportAgreementIndex'
     ];
-
-    private canManageAccountLinks(req: Sails.Req, brand: BrandingModel): boolean {
-      if (_.isEmpty(req.user) || typeof RolesService === 'undefined' || typeof UsersService === 'undefined') {
-        return false;
-      }
-
-      const adminRole = RolesService.getAdminFromBrand(brand);
-      if (_.isEmpty(adminRole)) {
-        return false;
-      }
-
-      return !!UsersService.hasRole(req.user, adminRole);
-    }
 
     private sanitizeUserForResponse(user: UserAttributes | null): UserAttributes | null {
       if (user == null) {
@@ -152,7 +138,7 @@ export namespace Controllers {
           return acc;
         }, {} as globalThis.Record<string, string>);
 
-        const enrichedUsers = await UsersService.enrichUsersWithEffectiveDisabledState(users as globalThis.Record<string, unknown>[]);
+        const enrichedUsers = await UsersService.enrichUsersWithEffectiveDisabledState(users);
         const includeDisabled = req.query?.includeDisabled === 'true';
         const responseUsers: globalThis.Record<string, unknown>[] = [];
         _.map(enrichedUsers, (user: globalThis.Record<string, unknown>) => {
@@ -275,14 +261,6 @@ export namespace Controllers {
           });
         }
 
-        if (!this.canManageAccountLinks(req, brand)) {
-          return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ detail: 'You are not authorized to view user audit history' }],
-            headers: this.getNoCacheHeaders()
-          });
-        }
-
         const auditResponse = await UsersService.getUserAudit(userId);
         return this.sendResp(req, res, {
           data: {
@@ -328,14 +306,6 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ detail: 'Branding context is missing or invalid' }],
-            headers: this.getNoCacheHeaders()
-          });
-        }
-
-        if (!this.canManageAccountLinks(req, brand)) {
-          return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ detail: 'You are not authorized to link user accounts' }],
             headers: this.getNoCacheHeaders()
           });
         }
@@ -395,14 +365,6 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders()
           });
         }
-        const adminRole = RolesService.getAdminFromBrand(brand);
-        if (_.isEmpty(adminRole) || !UsersService.hasRole(req.user, adminRole)) {
-          return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ detail: 'You are not authorized to disable users' }],
-            headers: this.getNoCacheHeaders()
-          });
-        }
         if (String(req.user?.id ?? '') === String(userId)) {
           return this.sendResp(req, res, {
             status: 400,
@@ -437,14 +399,6 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ detail: 'Branding context is missing or invalid' }],
-            headers: this.getNoCacheHeaders()
-          });
-        }
-        const adminRole = RolesService.getAdminFromBrand(brand);
-        if (_.isEmpty(adminRole) || !UsersService.hasRole(req.user, adminRole)) {
-          return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ detail: 'You are not authorized to enable users' }],
             headers: this.getNoCacheHeaders()
           });
         }

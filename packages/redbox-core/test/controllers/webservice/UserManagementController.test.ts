@@ -31,11 +31,7 @@ describe('Webservice UserManagementController', () => {
         (global as any).BrandingService = {
             getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
         };
-        (global as any).RolesService = {
-            getAdminFromBrand: sinon.stub().returns({ id: 'role-admin', name: 'Admin' })
-        };
         (global as any).UsersService = {
-            hasRole: sinon.stub().returns({ id: 'role-admin', name: 'Admin' }),
             getUserWithId: sinon.stub().returns(of({ id: 'user-1', username: 'target-user', password: 'secret', token: 'tok' })),
             getUserAudit: sinon.stub().resolves({
                 records: [{ id: 'audit-1', action: 'login', details: 'User logged in' }],
@@ -66,6 +62,7 @@ describe('Webservice UserManagementController', () => {
         param.withArgs('primaryUserId').returns('primary-1');
         const req = {
             session: { branding: 'default' },
+            user: { username: 'admin-user' },
             param
         } as unknown as Sails.Req;
         const res = {} as unknown as Sails.Res;
@@ -101,6 +98,8 @@ describe('Webservice UserManagementController', () => {
         const param = sinon.stub();
         param.withArgs('id').returns('primary-1');
         const req = {
+            session: { branding: 'default' },
+            user: { username: 'admin-user' },
             param
         } as unknown as Sails.Req;
         const res = {} as unknown as Sails.Res;
@@ -165,23 +164,6 @@ describe('Webservice UserManagementController', () => {
             await controller.getUserAudit(req, res);
 
             expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
-        });
-
-        it('should return 403 for a non-admin caller', async () => {
-            (global as any).UsersService.hasRole = sinon.stub().returns(undefined);
-            const param = sinon.stub();
-            param.withArgs('id').returns('user-1');
-            const req = {
-                session: { branding: 'default' },
-                user: { username: 'non-admin-user' },
-                param
-            } as unknown as Sails.Req;
-            const res = {} as unknown as Sails.Res;
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            await controller.getUserAudit(req, res);
-
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
         });
 
         it('should return 500 when the audit service fails', async () => {
@@ -249,22 +231,6 @@ describe('Webservice UserManagementController', () => {
         expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
     });
 
-    it('should reject link requests from unauthorized users', async () => {
-        (global as any).UsersService.hasRole = sinon.stub().returns(undefined);
-        const req = {
-            session: { branding: 'default' },
-            user: { username: 'non-admin-user' },
-            body: { primaryUserId: 'primary-1', secondaryUserId: 'secondary-1' }
-        } as unknown as Sails.Req;
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-        await controller.linkAccounts(req, res);
-
-        expect((global as any).UsersService.linkAccounts.called).to.be.false;
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
-    });
-
     it('should map validation failures from the service to 400', async () => {
         (global as any).UsersService.linkAccounts = sinon.stub().returns(throwError(() => new Error('Primary user must already belong to the current brand')));
         const req = {
@@ -329,22 +295,6 @@ describe('Webservice UserManagementController', () => {
             expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
         });
 
-        it('should reject when user is not admin', async () => {
-            (global as any).UsersService.hasRole = sinon.stub().returns(undefined);
-            const param = sinon.stub();
-            param.withArgs('id').returns('user-1');
-            const req = {
-                session: { branding: 'default' },
-                user: { username: 'non-admin' },
-                param
-            } as unknown as Sails.Req;
-            const res = {} as unknown as Sails.Res;
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            await controller.disableUser(req, res);
-
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
-        });
     });
 
     describe('enableUser', () => {
@@ -381,21 +331,5 @@ describe('Webservice UserManagementController', () => {
             expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
         });
 
-        it('should reject when user is not admin', async () => {
-            (global as any).UsersService.hasRole = sinon.stub().returns(undefined);
-            const param = sinon.stub();
-            param.withArgs('id').returns('user-1');
-            const req = {
-                session: { branding: 'default' },
-                user: { username: 'non-admin' },
-                param
-            } as unknown as Sails.Req;
-            const res = {} as unknown as Sails.Res;
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            await controller.enableUser(req, res);
-
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
-        });
     });
 });

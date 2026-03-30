@@ -575,7 +575,7 @@ describe('UsersService', function () {
     });
   });
 
-  describe('getLinkedAccounts', function () {
+  describe('getLinkedAccounts (public service surface)', function () {
     it('should be exported on the public service surface', function () {
       expect(UsersService.exports()).to.have.property('getLinkedAccounts');
     });
@@ -659,6 +659,16 @@ describe('UsersService', function () {
 
       const result = await UsersService.searchLinkCandidates('user', 'brand-1', 'user-1').toPromise();
 
+      expect(mockUser.find.firstCall.args[0]).to.deep.equal({
+        accountLinkState: 'active',
+        loginDisabled: { '!=': true },
+        id: { '!=': 'user-1' },
+        or: [
+          { username: { contains: 'user' } },
+          { name: { contains: 'user' } },
+          { email: { contains: 'user' } }
+        ]
+      });
       expect(result).to.have.length(1);
       expect(result[0].username).to.equal('orphan');
     });
@@ -675,12 +685,16 @@ describe('UsersService', function () {
 
       const result = await UsersService.searchLinkCandidates('user', 'brand-1').toPromise();
 
+      expect(mockUserLink.find.firstCall.args[0]).to.deep.equal({
+        status: 'active',
+        primaryUserId: ['user-1', 'user-2', 'user-3']
+      });
       expect(result).to.have.length(1);
       expect(result[0].username).to.equal('candidate');
     });
   });
 
-  describe('getLinkedAccounts', function () {
+  describe('getLinkedAccounts (detailed scenarios)', function () {
     it('should return linked accounts for a primary user', async function () {
       mockUser.findOne.onFirstCall().returns(createQueryObject({
         id: 'primary-1',

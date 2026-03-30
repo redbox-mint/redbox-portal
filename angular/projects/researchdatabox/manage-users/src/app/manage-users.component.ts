@@ -1,38 +1,21 @@
 import { Component, Inject, ViewChild } from '@angular/core';
 import { ModalDirective } from 'ngx-bootstrap/modal';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
-import { Role, User } from '@researchdatabox/portal-ng-common';
-import { BaseComponent, LoggerService, TranslationService, UserService } from '@researchdatabox/portal-ng-common';
+import {
+  Role,
+  User,
+  LinkedUserSummary,
+  UserLinkCandidate,
+  UserLinkResponse,
+  UserAuditRecord,
+  UserAuditResponse,
+  BaseComponent,
+  LoggerService,
+  TranslationService,
+  UserService
+} from '@researchdatabox/portal-ng-common';
 import { UserForm, matchingValuesValidator, optionalEmailValidator, passwordStrengthValidator } from './forms';
 import * as _ from 'lodash';
-
-type LinkedUserSummary = {
-  id: string;
-  username: string;
-  name: string;
-  email: string;
-  type: string;
-  accountLinkState: string;
-  linkedAt?: string;
-};
-
-type UserLinkCandidate = {
-  id: string;
-  username: string;
-  name: string;
-  email: string;
-  type: string;
-  accountLinkState: string;
-};
-
-type UserLinkResponse = {
-  primary: LinkedUserSummary;
-  linkedAccounts: LinkedUserSummary[];
-  impact?: {
-    recordsRewritten: number;
-    rolesMerged: number;
-  };
-};
 
 type ManageUser = User & {
   roleStr?: string;
@@ -76,32 +59,6 @@ type UserDetailsPayload = {
 type SaveResponse = {
   status: boolean;
   message: string;
-};
-
-type UserAuditActor = {
-  username: string;
-  name?: string;
-  email?: string;
-};
-
-type UserAuditRecord = {
-  id: string;
-  timestamp: string | null;
-  action: string;
-  actor: UserAuditActor;
-  details: string;
-  parsedAdditionalContext: unknown;
-  rawAdditionalContext: string | null;
-  parseError: boolean;
-};
-
-type UserAuditResponse = {
-  user: User;
-  records: UserAuditRecord[];
-  summary: {
-    returnedCount: number;
-    truncated: boolean;
-  };
 };
 
 type AuditModalUser = Pick<ManageUser, 'id' | 'username' | 'name' | 'email' | 'type'>;

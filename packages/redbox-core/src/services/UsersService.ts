@@ -29,6 +29,7 @@ import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails
 import { RoleModel } from '../model/storage/RoleModel';
 import { SearchService } from '../SearchService';
 import { UserModel } from '../model/storage/UserModel';
+import { UserAttributes } from '../waterline-models/User';
 import { Services as services } from '../CoreService';
 
 import * as crypto from 'crypto';
@@ -38,6 +39,20 @@ declare const Buffer: typeof globalThis.Buffer;
 
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
+  interface UserLike {
+    id?: string | number;
+    username?: string;
+    name?: string;
+    email?: string;
+    type?: string;
+    roles?: unknown[];
+    linkedPrimaryUserId?: string;
+    accountLinkState?: 'active' | 'linked-alias';
+    loginDisabled?: boolean;
+    effectiveLoginDisabled?: boolean;
+    disabledByPrimaryUserId?: string;
+    disabledByPrimaryUsername?: string;
+  }
   type DoneCallback = (err: unknown, user?: unknown, info?: unknown) => void;
   type BcryptLike = {
     compare: (password: string, hash: string, cb: (err: unknown, res: boolean) => void) => void;
@@ -190,13 +205,13 @@ export namespace Services {
       return (ConfigService.getBrand(brandName, 'auth') as AuthBrandConfig) ?? {};
     }
 
-    private normalizeAccountLinkState(user: AnyRecord | null | undefined): void {
+    private normalizeAccountLinkState(user: UserLike | null | undefined): void {
       if (user != null && _.isEmpty(user.accountLinkState)) {
         user.accountLinkState = 'active';
       }
     }
 
-    private hasRoleInBrand(user: AnyRecord | null | undefined, brandId: string): boolean {
+    private hasRoleInBrand(user: UserLike | null | undefined, brandId: string): boolean {
       if (user == null || _.isEmpty(brandId)) {
         return false;
       }
@@ -208,7 +223,7 @@ export namespace Services {
       });
     }
 
-    private getRolesForBrand(user: AnyRecord | null | undefined, brandId: string): AnyRecord[] {
+    private getRolesForBrand(user: UserLike | null | undefined, brandId: string): AnyRecord[] {
       if (user == null || _.isEmpty(brandId)) {
         return [];
       }
@@ -220,7 +235,7 @@ export namespace Services {
       }) as AnyRecord[];
     }
 
-    private toLinkedUserSummary(user: AnyRecord, linkedAt?: string | Date): LinkedUserSummary {
+    private toLinkedUserSummary(user: UserLike, linkedAt?: string | Date): LinkedUserSummary {
       this.normalizeAccountLinkState(user);
       return {
         id: String(user.id ?? ''),
@@ -307,7 +322,7 @@ export namespace Services {
       return rewrittenCount;
     }
 
-    private async resolveEffectiveDisabledState(user: AnyRecord): Promise<{ effectiveLoginDisabled: boolean; disabledByPrimaryUserId?: string; disabledByPrimaryUsername?: string }> {
+    private async resolveEffectiveDisabledState(user: UserLike): Promise<{ effectiveLoginDisabled: boolean; disabledByPrimaryUserId?: string; disabledByPrimaryUsername?: string }> {
       if (user.loginDisabled === true) {
         return { effectiveLoginDisabled: true };
       }
@@ -331,14 +346,14 @@ export namespace Services {
       }
     }
 
-    public async enrichUsersWithEffectiveDisabledState(users: AnyRecord[]): Promise<AnyRecord[]> {
+    public async enrichUsersWithEffectiveDisabledState<T extends UserLike>(users: T[]): Promise<T[]> {
       const primaryIds = _.uniq(
-        _.compact(_.map(users, (u: AnyRecord) => !_.isEmpty(u.linkedPrimaryUserId) ? String(u.linkedPrimaryUserId) : null))
+        _.compact(_.map(users, (u: T) => !_.isEmpty(u.linkedPrimaryUserId) ? String(u.linkedPrimaryUserId) : null))
       );
       const primaryUsers = _.isEmpty(primaryIds) ? [] : await User.find({ id: primaryIds });
       const primaryUsersById = _.keyBy(primaryUsers as AnyRecord[], (u: AnyRecord) => String(u.id ?? ''));
 
-      return _.map(users, (user: AnyRecord) => {
+      return _.map(users, (user: T) => {
         if (user.loginDisabled === true) {
           user.effectiveLoginDisabled = true;
         } else if (!_.isEmpty(user.linkedPrimaryUserId)) {
@@ -1911,16 +1926,39 @@ export namespace Services {
     }
 
     public searchLinkCandidates = (query: string, brandId: string, excludeUserId?: string): Observable<LinkedUserSummary[]> => {
-      const queryText = _.trim(query).toLowerCase();
+      const queryText = _.trim(query);
       return from((async () => {
-        const users = await User.find({}).populate('roles');
-        const activeLinks = typeof UserLink !== 'undefined'
-          ? await UserLink.find({ status: 'active' })
-          : [];
-        const primaryUserIdsWithLinkedAccounts = new Set(
-          _.map(activeLinks as AnyRecord[], (link: unknown) => String((link as AnyRecord).primaryUserId ?? ''))
-        );
-        const enrichedUsers = await this.enrichUsersWithEffectiveDisabledState(users as AnyRecord[]);
+        const userWhere: AnyRecord = {
+          accountLinkState: 'active',
+          loginDisabled: { '!=': true }
+        };
+
+        if (!_.isEmpty(excludeUserId)) {
+          userWhere.id = { '!=': String(excludeUserId) };
+        }
+
+        if (!_.isEmpty(queryText)) {
+          userWhere.or = [
+            { username: { contains: queryText } },
+            { name: { contains: queryText } },
+            { email: { contains: queryText } }
+          ];
+        }
+
+        const users = await User.find(userWhere).populate('roles');
+        const enrichedUsers = await this.enrichUsersWithEffectiveDisabledState(users as UserLike[]);
+        let primaryUserIdsWithLinkedAccounts = new Set<string>();
+        if (typeof UserLink !== 'undefined' && !_.isEmpty(enrichedUsers)) {
+          const candidateUserIds = _.map(enrichedUsers, (user: UserLike) => String(user.id ?? ''));
+          const activeLinks = await UserLink.find({
+            status: 'active',
+            primaryUserId: candidateUserIds
+          });
+          primaryUserIdsWithLinkedAccounts = new Set(
+            _.map(activeLinks as AnyRecord[], (link: unknown) => String((link as AnyRecord).primaryUserId ?? ''))
+          );
+        }
+
         return _.chain(enrichedUsers)
           .map(user => {
             this.normalizeAccountLinkState(user);
@@ -1944,15 +1982,7 @@ export namespace Services {
             if (!hasBrandRole && !hasNoRoles) {
               return false;
             }
-            if (_.isEmpty(queryText)) {
-              return true;
-            }
-            const haystack = [
-              String(user.username ?? ''),
-              String(user.name ?? ''),
-              String(user.email ?? '')
-            ].join(' ').toLowerCase();
-            return haystack.includes(queryText);
+            return true;
           })
           .map(user => this.toLinkedUserSummary(user))
           .sortBy(['name', 'username'])

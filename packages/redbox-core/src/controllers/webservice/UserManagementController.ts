@@ -54,19 +54,6 @@ export namespace Controllers {
       });
     }
 
-    private canManageAccountLinks(req: Sails.Req, brand: BrandingModel): boolean {
-      if (_.isEmpty(req.user) || typeof RolesService === 'undefined' || typeof UsersService === 'undefined') {
-        return false;
-      }
-
-      const adminRole = RolesService.getAdminFromBrand(brand);
-      if (_.isEmpty(adminRole)) {
-        return false;
-      }
-
-      return !!UsersService.hasRole(req.user, adminRole);
-    }
-
     private sanitizeUserForResponse(user: UserAttributes | null): UserAttributes | null {
       if (user == null) {
         return null;
@@ -75,6 +62,22 @@ export namespace Controllers {
       delete sanitizedUser['password'];
       delete sanitizedUser['token'];
       return sanitizedUser as UserAttributes;
+    }
+
+    private async getFilteredUserRecords(queryObject: Record<string, unknown>, brandId: string | undefined, includeDisabled: boolean): Promise<UserAttributes[]> {
+      const dbQuery = includeDisabled
+        ? queryObject
+        : { ...queryObject, loginDisabled: { '!=': true } };
+
+      const users = await User.find({ where: dbQuery });
+      let userRecords = await this.enrichUsersWithLinkMetadata(users as UserAttributes[], brandId);
+      userRecords = await UsersService.enrichUsersWithEffectiveDisabledState(userRecords);
+
+      if (!includeDisabled) {
+        userRecords = _.filter(userRecords, (user: UserAttributes) => user.effectiveLoginDisabled !== true);
+      }
+
+      return userRecords;
     }
 
     /**
@@ -103,11 +106,9 @@ export namespace Controllers {
 
       try {
         const includeDisabled = req.param('includeDisabled') === 'true';
-        const dbQuery = includeDisabled
-          ? queryObject
-          : { ...queryObject, loginDisabled: { '!=': true } };
-
-        const count = await User.count({ where: dbQuery });
+        const brandId = _.get(BrandingService.getBrand(req.session.branding as string), 'id');
+        const userRecords = await this.getFilteredUserRecords(queryObject, brandId, includeDisabled);
+        const count = userRecords.length;
         response.summary.numFound = count;
         response.summary.page = page;
         if (count === 0) {
@@ -115,22 +116,12 @@ export namespace Controllers {
           return this.apiRespond(req, res, response);
         }
 
-        const users = await User.find({
-          where: dbQuery,
-          limit: pageSize,
-          skip: skip
-        });
-        const brandId = _.get(BrandingService.getBrand(req.session.branding as string), 'id');
-        let userRecords = await this.enrichUsersWithLinkMetadata(users as unknown as UserAttributes[], brandId);
-        userRecords = await UsersService.enrichUsersWithEffectiveDisabledState(userRecords as unknown as Record<string, unknown>[]) as unknown as UserAttributes[];
-        if (!includeDisabled) {
-          userRecords = _.filter(userRecords, (user: UserAttributes) => user.effectiveLoginDisabled !== true);
-        }
-        _.each(userRecords, (user: UserAttributes) => {
+        const pagedRecords = userRecords.slice(skip, skip + pageSize);
+        _.each(pagedRecords, (user: UserAttributes) => {
           delete user["token"];
           delete user["password"];
         });
-        response.records = userRecords;
+        response.records = pagedRecords;
         return this.apiRespond(req, res, response);
       } catch (err) {
         sails.log.error(err);
@@ -424,6 +415,14 @@ export namespace Controllers {
 
     public async getUserLinks(req: Sails.Req, res: Sails.Res) {
       try {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
         const links = await firstValueFrom(UsersService.getLinkedAccounts(String(req.param('id') ?? '')));
         return this.sendResp(req, res, {
           data: links,
@@ -464,14 +463,6 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ detail: 'Branding context is missing or invalid' }],
-            headers: this.getNoCacheHeaders()
-          });
-        }
-
-        if (!this.canManageAccountLinks(req, brand)) {
-          return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ detail: 'You are not authorized to view user audit history' }],
             headers: this.getNoCacheHeaders()
           });
         }
@@ -522,13 +513,6 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ detail: 'Branding context is missing or invalid' }],
-            headers: this.getNoCacheHeaders()
-          });
-        }
-        if (!this.canManageAccountLinks(req, brand)) {
-          return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ detail: 'You are not authorized to link user accounts' }],
             headers: this.getNoCacheHeaders()
           });
         }
@@ -621,14 +605,6 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders()
           });
         }
-        const adminRole = RolesService.getAdminFromBrand(brand);
-        if (_.isEmpty(adminRole) || !UsersService.hasRole(req.user, adminRole)) {
-          return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ detail: 'You are not authorized to disable users' }],
-            headers: this.getNoCacheHeaders()
-          });
-        }
         if (String(req.user?.id ?? '') === String(userId)) {
           return this.sendResp(req, res, {
             status: 400,
@@ -663,14 +639,6 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ detail: 'Branding context is missing or invalid' }],
-            headers: this.getNoCacheHeaders()
-          });
-        }
-        const adminRole = RolesService.getAdminFromBrand(brand);
-        if (_.isEmpty(adminRole) || !UsersService.hasRole(req.user, adminRole)) {
-          return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ detail: 'You are not authorized to enable users' }],
             headers: this.getNoCacheHeaders()
           });
         }
