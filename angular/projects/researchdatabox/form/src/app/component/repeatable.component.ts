@@ -82,7 +82,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   protected formService = inject(FormService);
   protected elemInitFieldEntry?: FormFieldCompMapEntry;
-  protected override formComponent: FormComponent = inject(FormComponent);
 
   protected compDefMapEntries: Array<RepeatableElementEntry> = [];
 
@@ -100,6 +99,10 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   public override get formFieldCompMapEntries(): FormFieldCompMapEntry[] {
     return this.compDefMapEntries?.map(i => i?.defEntry) ?? [];
+  }
+
+  protected get getFormComponent(): FormComponent {
+    return this.formComponent;
   }
 
   protected override async initData() {
@@ -129,8 +132,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       // defaultComponentConfig: this.getFormComponent.formDefMap?.formConfig?.defaultComponentConfig,
       // Use the current enabledValidationGroups for creating the component.
       // Subsequent updates will use the FormComponent's enabledValidationGroups property.
-      enabledValidationGroups: this.formComponent?.enabledValidationGroups,
-      validationGroups: this.formComponent?.validationGroups,
+      enabledValidationGroups: this.getFormComponent.enabledValidationGroups,
+      validationGroups: this.getFormComponent.validationGroups,
     };
     const parentLineagePaths = this.formService.buildLineagePaths(
       this.formFieldCompMapEntry?.lineagePaths,
@@ -282,7 +285,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
     // Create new form field.
     const model = this.formService.createFormFieldModelInstance(
-      elemEntry, this.formComponent?.enabledValidationGroups, this.formComponent?.validationGroups);
+      elemEntry, this.getFormComponent.enabledValidationGroups, this.getFormComponent.validationGroups);
     if (model !== null) {
       if (!_isUndefined(value)) {
         model.initValue = value;

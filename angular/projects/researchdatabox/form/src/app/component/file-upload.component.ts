@@ -91,13 +91,12 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
     private uppy?: Uppy<UppyMeta, UppyBody>;
     private saveSuccessSub?: Subscription;
 
-    private readonly injector = inject(Injector);
     private readonly eventBus = inject(FormComponentEventBus);
     private readonly configService = inject(ConfigService);
     private readonly formService = inject(FormService);
 
     protected get getFormComponent(): FormComponent {
-        return this.injector.get(FormComponent);
+      return this.formComponent;
     }
 
     protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {

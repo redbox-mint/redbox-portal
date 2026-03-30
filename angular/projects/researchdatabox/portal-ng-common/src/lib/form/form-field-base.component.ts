@@ -1,11 +1,14 @@
 import { FormFieldModel } from './base.model';
-import { FormControl, FormGroup } from '@angular/forms';
-import { Directive, HostBinding, ViewChild, signal, inject, TemplateRef, ViewContainerRef, ComponentRef, ApplicationRef, AfterViewInit, effect, EffectRef, Injector } from '@angular/core'; // Import HostBinding, ViewChild, ViewContainerRef, and ComponentRef
+import { FormControl } from '@angular/forms';
+import {
+  Directive, HostBinding, ViewChild, signal, inject, TemplateRef,
+  ViewContainerRef, ComponentRef, AfterViewInit, effect,
+  EffectRef, Injector, ApplicationRef
+} from '@angular/core';
 import { LoggerService } from '../logger.service';
-import { get as _get, isEqual as _isEqual, isEmpty as _isEmpty, isUndefined as _isUndefined, isNull as _isNull, has as _has, set as _set, keys as _keys, isObject as _isObject, isArray as _isArray, cloneDeep as _cloneDeep } from 'lodash-es';
+import { get as _get,  isEmpty as _isEmpty } from 'lodash-es';
 import { UtilityService } from "../utility.service";
 import {
-  FormExpressionsConfigFrame,
   FormComponentDefinitionFrame,
   FieldComponentConfigFrame,
   FieldComponentDefinitionFrame,
@@ -16,7 +19,6 @@ import {
   JSONataQuerySourceProperty,
   FormExpressionsConfigOutline
 } from '@researchdatabox/sails-ng-common';
-import { LoDashTemplateUtilityService } from '../lodash-template-utility.service';
 
 export type FormFieldComponentOrLayoutDefinition = FieldComponentDefinitionFrame | FieldLayoutDefinitionFrame;
 export type FormFieldComponentOrLayoutConfig = FieldComponentConfigFrame | FieldLayoutConfigFrame;
@@ -39,7 +41,6 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   public className: string = '';
   public model?: FormFieldModel<ValueType>;
   public componentDefinition?: FormFieldComponentOrLayoutDefinition;
-  public componentDefinitionCache?: FieldComponentConfigFrame;
   public formFieldCompMapEntry?: FormFieldCompMapEntry;
   public hostBindingCssClasses?: string;
   // The status of the component
@@ -49,10 +50,6 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   @ViewChild('afterContainer', { read: ViewContainerRef, static: false }) protected afterContainer?: ViewContainerRef | null;
 
   public expressions: any = {};
-  public expressionStateChanged: boolean = false;
-
-  protected lodashTemplateUtilityService: LoDashTemplateUtilityService = inject(LoDashTemplateUtilityService);
-
 
   protected utilityService = inject(UtilityService);
   protected loggerService: LoggerService = inject(LoggerService);
@@ -62,17 +59,12 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
    * For obtaining a reference to the FormComponent instance.
    * @private
    */
-  private appRef: ApplicationRef = inject(ApplicationRef);
+  private readonly appRef = inject(ApplicationRef);
   /**
    * Cache the reference to the FormComponent instance.
    * @private
    */
-  protected formComponent: unknown;
-  /**
-   * Cache the reference to the FormGroup instance.
-   * @private
-   */
-  private form?: FormGroup;
+  private formComponentFromAppRef: any;
 
   /**
    * This method is called to initialize the component with the provided configuration.
@@ -163,83 +155,29 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return _get(this.componentDefinition?.config, 'label', '');
   }
 
-  hasExpressionsConfigChanged(lastKeyChanged: string, forceCheckAll: boolean = false): boolean {
-    let propertyChanged = false;
-    for (let key of _keys(this.componentDefinitionCache)) {
-      //TODO in principle comparing properties that are complex objects seems not required
-      //group component has a componentDefinition property of its inner components so it may be
-      //It requires to revisit once we start testing a real form config in the new framework
-      if ((key == lastKeyChanged && !_isObject(key)) || forceCheckAll) {
-        let oldValue = _get(this.componentDefinition?.config, key);
-        let newValue = _get(this.componentDefinitionCache, key);
-        let configPropertyChanged = oldValue !== newValue;
-        if (configPropertyChanged) {
-          propertyChanged = true;
-          this.loggerService.info(`key ${key} oldValue ${oldValue} newValue ${newValue} propertyChanged ${propertyChanged}`, '');
-          break;
-        }
+  /**
+   * Get the FormComponent from the ApplicationRef components array.
+   * @protected
+   */
+  protected get formComponent(): any {
+    if (this.formComponentFromAppRef === undefined) {
+      const components = this.appRef?.components;
+      if (!components || components.length < 1) {
+        throw new Error(`ApplicationRef contained no components, so cannot get FormComponent: ${components}.`);
       }
-    }
-    return propertyChanged;
-  }
 
-  protected getFormComponentFromAppRef(): any {
-    if (this.formComponent === undefined) {
-      this.formComponent = this.appRef.components[0];
-    }
-    return this.formComponent;
-  }
-
-  protected getFormGroupFromAppRef(): FormGroup | undefined {
-    if (this.form == undefined) {
-      this.form = this.getFormComponentFromAppRef()?.instance?.form;
-    }
-    return this.form;
-  }
-
-  public getComponentByName(targetComponentName: string): any {
-    let compRef;
-    try {
-      let formComponent = this.getFormComponentFromAppRef();
-
-      if (!_isUndefined(formComponent)) {
-        let components = formComponent.instance.components;
-
-        for (let compEntry of components) {
-          let compName = _get(compEntry, 'name', '');
-          if (compName == targetComponentName) {
-            compRef = compEntry.component;
-            return compRef;
-          }
-        }
+      const formComponent = components[0];
+      if (!formComponent?.instance?.appName?.startsWith('Form::')) {
+        throw new Error(`First component in ApplicationRef does not appear to be the FormComponent: ${formComponent}.`);
       }
-    } catch (err) {
-      this.loggerService.error(`${this.logName}: getComponentByName failed`, err);
+
+      this.formComponentFromAppRef = formComponent;
     }
-    return compRef;
+    const result = this.formComponentFromAppRef?.instance;
+    this.loggerService.warn(`FormComponent from ApplicationRef ${result}`);
+    return result;
   }
 
-  public getLayoutByName(targetComponentName: string): any {
-    let layoutRef;
-    try {
-      let formComponent = this.getFormComponentFromAppRef();
-
-      if (!_isUndefined(formComponent)) {
-        let components = formComponent.instance.components;
-
-        for (let compEntry of components) {
-          let layoutName = _get(compEntry, 'name', '');
-          if (layoutName == targetComponentName) {
-            layoutRef = compEntry.layout;
-            return layoutRef;
-          }
-        }
-      }
-    } catch (err) {
-      this.loggerService.error(`${this.logName}: getLayoutByName failed`, err);
-    }
-    return layoutRef;
-  }
   /**
    * Retrieve or compute any data needed for the component.
    */

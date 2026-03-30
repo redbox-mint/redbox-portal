@@ -59,7 +59,6 @@ import { FormStateFacade } from '../form-state';
 export class CancelButtonComponent extends FormFieldBaseComponent<undefined> {
   private static dialogSequence = 0;
   public override logName = CancelButtonComponentName;
-  protected override formComponent: FormComponent = inject(FormComponent);
   public override componentDefinition?: CancelButtonFieldComponentDefinitionOutline;
   private location: Location = inject(Location);
   protected formStateFacade = inject(FormStateFacade);

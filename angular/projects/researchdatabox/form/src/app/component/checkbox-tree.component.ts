@@ -218,7 +218,6 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   public focusedNodeId: string | null = null;
 
   private readonly vocabTreeService = inject(VocabTreeService);
-  private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
   private readonly handlebarsTemplateService = inject(HandlebarsTemplateService);
   private readonly selectedByNotation = new Map<string, CheckboxTreeSelectedItem>();
@@ -241,7 +240,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   public readonly selectedItem = signal<CheckboxTreeSelectedItem | null>(null);
 
   protected get getFormComponent(): FormComponent {
-    return this.injector.get(FormComponent);
+    return this.formComponent;
   }
 
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {

@@ -1,10 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { EMPTY, Subject } from 'rxjs';
 import { RecordMetadataRetrieverComponent } from './record-metadata-retriever.component';
-import { createTestbedModule } from '../helpers.spec';
+import {createTestbedModule, ensureApplicationRefFormComponent} from '../helpers.spec';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { FormComponentEventType } from '../form-state/events/form-component-event.types';
 import { RecordService, LoggerService } from '@researchdatabox/portal-ng-common';
+import {FormComponent} from "../form.component";
 
 describe('RecordMetadataRetrieverComponent', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
@@ -95,6 +96,10 @@ describe('RecordMetadataRetrieverComponent', () => {
       (eventType === FormComponentEventType.FORM_DEFINITION_READY ? formReady$.asObservable() : EMPTY) as any
     );
 
+    // FormComponent is required for setup of the component.
+    const formComponentFixture = TestBed.createComponent(FormComponent);
+    ensureApplicationRefFormComponent(formComponentFixture.componentRef);
+
     const component = createComponent();
     component.formFieldCompMapEntry = {
       ...component.formFieldCompMapEntry,
@@ -114,7 +119,6 @@ describe('RecordMetadataRetrieverComponent', () => {
     } as never;
 
     (component as any).expressionConsumer = jasmine.createSpyObj('expressionConsumer', ['bind', 'destroy']);
-    spyOn(component as any, 'getFormComponentFromAppRef').and.returnValue({ instance: {} });
     const runFormReadySpy = spyOn<any>(component, 'runFormReadyExpressions').and.resolveTo();
 
     await (component as any).initEventHandlers();

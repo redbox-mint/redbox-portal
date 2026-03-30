@@ -4,7 +4,12 @@ import { FormComponent } from './form.component';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { GroupFieldComponent } from './component/group.component';
-import { createFormAndWaitForReady, createTestbedModule } from "./helpers.spec";
+import {
+  createFormAndWaitForReady,
+  createTestbedModule,
+  ensureApplicationRefFormComponent,
+  setUpDynamicAssets
+} from "./helpers.spec";
 import { FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { createFieldValueChangedEvent, createFormDefinitionChangedEvent, createFormSaveExecuteEvent, createFormStatusDirtyRequestEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
@@ -719,6 +724,9 @@ describe('FormComponent', () => {
     };
 
     const fixture = TestBed.createComponent(FormComponent);
+
+    ensureApplicationRefFormComponent(fixture.componentRef);
+
     const formComponent = fixture.componentInstance;
     formComponent.downloadAndCreateOnInit.set(false);
     formComponent.oid.set('oid-download-path');
@@ -911,6 +919,9 @@ describe('FormComponent', () => {
     };
 
     const fixture = TestBed.createComponent(FormComponent);
+
+    ensureApplicationRefFormComponent(fixture.componentRef);
+
     const formComponent = fixture.componentInstance;
     formComponent.downloadAndCreateOnInit.set(false);
     fixture.autoDetectChanges();

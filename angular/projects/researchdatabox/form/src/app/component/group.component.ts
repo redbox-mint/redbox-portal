@@ -83,14 +83,13 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
   public override model?: GroupFieldModel;
 
   private formService = inject(FormService);
-  private injector = inject(Injector);
   protected formComponentsMap?: FormComponentsMap;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: true })
   private componentContainer!: ViewContainerRef;
 
   protected get getFormComponent(): FormComponent {
-    return this.injector.get(FormComponent);
+    return this.formComponent;
   }
 
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
@@ -129,8 +128,8 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       defaultComponentConfig: formConfig?.defaultComponentConfig,
       // Use the current enabledValidationGroups for creating the component.
       // Subsequent updates will use the FormComponent's enabledValidationGroups property.
-      enabledValidationGroups: this.getFormComponent?.enabledValidationGroups,
-      validationGroups: this.getFormComponent?.validationGroups,
+      enabledValidationGroups: this.getFormComponent.enabledValidationGroups,
+      validationGroups: this.getFormComponent.validationGroups,
     };
 
     // Construct the components.

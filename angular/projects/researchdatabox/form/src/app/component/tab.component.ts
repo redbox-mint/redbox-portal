@@ -339,7 +339,6 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
   })
   componentsDefinitionsContainerRef?: ViewContainerRef;
   protected formService = inject(FormService);
-  private injector = inject(Injector);
   componentRefs: ComponentRef<FormBaseWrapperComponent<unknown>>[] = [];
   private componentInstances: any[] = [];
   protected formDefMap?: FormComponentsMap;
@@ -367,8 +366,8 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
       defaultComponentConfig: formConfig?.defaultComponentConfig,
       // Use the current enabledValidationGroups for creating the component.
       // Subsequent updates will use the FormComponent's enabledValidationGroups property.
-      enabledValidationGroups: this.formComponentRef?.enabledValidationGroups,
-      validationGroups: this.formComponentRef?.validationGroups,
+      enabledValidationGroups: this.formComponentRef.enabledValidationGroups,
+      validationGroups: this.formComponentRef.validationGroups,
     };
 
     const parentLineagePaths = this.formService.buildLineagePaths(
@@ -400,7 +399,7 @@ export class TabContentComponent extends FormFieldBaseComponent<undefined> {
   }
 
   protected get formComponentRef(): FormComponent {
-    return this.injector.get(FormComponent);
+    return this.formComponent;
   }
 
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {

@@ -102,7 +102,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   ].join(',');
 
   get allValidationErrorsDisplay(): FormValidatorSummaryErrors[] {
-    return this.getFormComponent?.getValidationErrors() ?? [];
+    return this.getFormComponent.getValidationErrors() ?? [];
   }
 
   public trackValidationError(error: FormValidatorComponentErrors, errorIndex: number): string {
@@ -202,7 +202,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
 
     const labels: string[] = [];
     const path = summary.lineagePaths?.angularComponents ?? [];
-    let currentEntries = this.getFormComponent?.componentDefArr ?? [];
+    let currentEntries = this.getFormComponent.componentDefArr ?? [];
 
     for (let index = 0; index < path.length; index++) {
       const segment = path[index];
@@ -237,14 +237,14 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   private getLineageLabelsFromFormConfig(summary: FormValidatorSummaryErrors): string[] {
     const labels: string[] = [];
     const formPath = summary.lineagePaths?.formConfig ?? [];
-    const formConfig = (this.getFormComponent as any)?.formDefMap?.formConfig as Record<string, unknown> | undefined;
+    const formConfig = this.getFormComponent.formDefMap?.formConfig;
     if (!formConfig || formPath.length === 0) {
       return labels;
     }
 
-    let current: unknown = formConfig;
+    let current = formConfig;
     for (let index = 0; index < formPath.length; index++) {
-      const segment = formPath[index] as string | number;
+      const segment = formPath[index];
       if (current === null || current === undefined || (typeof current !== 'object' && !Array.isArray(current))) {
         break;
       }
@@ -270,6 +270,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   }
 
   private getEntryLabel(entry: FormFieldCompMapEntry): string | null {
+    // TODO: use type narrowing instead of type assertion, so that the types are actually checked.
     const layoutConfig = entry.compConfigJson?.layout?.config as { label?: string; buttonLabel?: string } | undefined;
     if (this.isTabEntry(entry)) {
       return layoutConfig?.label ?? layoutConfig?.buttonLabel ?? null;
@@ -386,7 +387,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   }
 
   private get getFormComponent(): FormComponent {
-    return this._injector.get(FormComponent);
+    return this.formComponent;
   }
 
   private buildFocusRequestId(): string {

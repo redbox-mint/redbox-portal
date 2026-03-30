@@ -20,7 +20,6 @@ import {FormService} from "../form.service";
 })
 export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   public override logName = SaveButtonComponentName;
-  protected override formComponent: FormComponent = inject(FormComponent);
   disabled = signal<boolean>(true);
   private readonly eventBus = inject(FormComponentEventBus);
   public override componentDefinition?: SaveButtonFieldComponentDefinitionOutline;
@@ -81,7 +80,7 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   }
 
   private get getFormComponent(): FormComponent {
-    return this._injector.get(FormComponent);
+    return this.formComponent;
   }
 
   private resolveButtonCssClasses(configured: string | undefined, fallbackVariantClass: string): string {

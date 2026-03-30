@@ -508,7 +508,7 @@ export class ${this.componentClassName} extends FormFieldBaseComponent<${this.pa
   @Input() public override model?: ${this.modelClassName};
 
   protected get getFormComponent(): FormComponent {
-    return this.injector.get(FormComponent);
+    return this.formComponent;
   }
 
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {

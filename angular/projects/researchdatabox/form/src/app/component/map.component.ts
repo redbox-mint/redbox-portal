@@ -150,7 +150,6 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   public importDataString = "";
   public importError = "";
 
-  private readonly injector = inject(Injector);
   private map?: L.Map;
   private draw?: any;
   private featureLayer?: L.GeoJSON;
@@ -171,7 +170,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   };
 
   protected get getFormComponent(): FormComponent {
-    return this.injector.get(FormComponent);
+    return this.formComponent;
   }
 
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {

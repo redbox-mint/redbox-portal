@@ -92,7 +92,7 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
     if (!this.formFieldCompMapEntry) {
       throw new Error(`${this.logName}: formFieldCompMapEntry is required.`);
     }
-    const formComponent = this.getFormComponentFromAppRef()?.instance as FormComponent | undefined;
+    const formComponent = this.formComponent;
     if (!formComponent) {
       throw new Error(`${this.logName}: form component is required.`);
     }
@@ -232,7 +232,7 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
     if (!match) {
       return undefined;
     }
-    const formComponent = this.getFormComponentFromAppRef()?.instance as FormComponent | undefined;
+    const formComponent = this.formComponent;
     return formComponent?.requestParams?.()?.[match[1]];
   }
 }

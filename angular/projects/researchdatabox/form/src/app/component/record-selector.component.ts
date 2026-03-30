@@ -235,7 +235,6 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
   private latestSearchRequestId = 0;
   private searchSubscriptionInitialised = false;
   private readonly destroyRef = inject(DestroyRef);
-  private readonly injector = inject(Injector);
   private readonly recordService = inject(RecordService);
   private readonly formService = inject(FormService);
 
@@ -243,7 +242,7 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
   @Input() public override model?: RecordSelectorModel;
 
   protected get getFormComponent(): FormComponent {
-    return this.injector.get(FormComponent);
+    return this.formComponent;
   }
 
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {

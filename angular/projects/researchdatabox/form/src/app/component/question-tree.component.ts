@@ -12,7 +12,7 @@ import {
   QuestionTreeOutcomeInfo,
   QuestionTreeOutcome,
 } from "@researchdatabox/sails-ng-common";
-import { Component, inject, Injector, ViewChild, ViewContainerRef } from "@angular/core";
+import { Component, inject, ViewChild, ViewContainerRef } from "@angular/core";
 import { AbstractControl, FormGroup } from "@angular/forms";
 import { FormComponentsMap, FormService } from "../form.service";
 import { FormComponent } from "../form.component";
@@ -65,7 +65,6 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
   public override model?: QuestionTreeModel;
 
   private formService = inject(FormService);
-  private injector = inject(Injector);
   protected formComponentsMap?: FormComponentsMap;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: true })
@@ -74,7 +73,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
   private eventBus = inject(FormComponentEventBus);
 
   protected get getFormComponent(): FormComponent {
-    return this.injector.get(FormComponent);
+    return this.formComponent;
   }
 
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
@@ -113,8 +112,8 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       defaultComponentConfig: formConfig?.defaultComponentConfig,
       // Use the current enabledValidationGroups for creating the component.
       // Subsequent updates will use the FormComponent's enabledValidationGroups property.
-      enabledValidationGroups: this.getFormComponent?.enabledValidationGroups,
-      validationGroups: this.getFormComponent?.validationGroups,
+      enabledValidationGroups: this.getFormComponent.enabledValidationGroups,
+      validationGroups: this.getFormComponent.validationGroups,
     };
 
     // Construct the components.

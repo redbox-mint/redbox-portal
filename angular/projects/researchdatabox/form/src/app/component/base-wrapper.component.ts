@@ -16,6 +16,7 @@ import { FormComponentUIAttributeChangeEventProducer } from '../form-state/event
 import { FormComponentUIAttributeChangeEventConsumer } from '../form-state/events/form-component-ui-attribute-change-event-consumer';
 import { FormComponentItemSelectEventProducer } from '../form-state/events/form-component-item-select-event-producer';
 import { FormComponentItemSelectEventConsumer } from '../form-state/events/form-component-item-select-event-consumer';
+import {FormComponent} from "../form.component";
 
 const VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS = new Set<string>([
   RecordMetadataRetrieverComponentName,
@@ -139,6 +140,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Bind the change event producer if applicable.
     if (this.shouldAttachValueChangeProducer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.valueChangeEventProducer.formComponent = this.getFormComponent;
       this.valueChangeEventProducer.bind({
         isLayout: isLayout,
         component: compRef.instance,
@@ -147,7 +149,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     }
 
     if (this.shouldAttachValueChangeConsumer(this.formFieldCompMapEntry, compRef.instance)) {
-      this.valueChangeEventConsumer.formComponent = this.getFormComponentFromAppRef()?.instance;
+      this.valueChangeEventConsumer.formComponent = this.getFormComponent;
       this.valueChangeEventConsumer.bind({
         isLayout: isLayout,
         component: compRef.instance,
@@ -157,6 +159,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Bind the UI attribute change event producer alongside the value producer.
     if (this.shouldAttachUIAttributeChangeProducer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.uiAttributeChangeEventProducer.formComponent = this.getFormComponent;
       this.uiAttributeChangeEventProducer.bind({
         isLayout: isLayout,
         component: compRef.instance,
@@ -166,6 +169,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Bind the item select event producer if applicable.
     if (this.shouldAttachItemSelectProducer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.itemSelectEventProducer.formComponent = this.getFormComponent;
       this.itemSelectEventProducer.bind({
         component: compRef.instance,
         definition: this.formFieldCompMapEntry,
@@ -175,6 +179,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Bind the item select event consumer if applicable.
     if (this.shouldAttachItemSelectConsumer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.itemSelectEventConsumer.formComponent = this.getFormComponent;
       this.itemSelectEventConsumer.bind({
         component: compRef.instance,
         definition: this.formFieldCompMapEntry,
@@ -182,7 +187,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     }
 
     if (this.shouldAttachUIAttributeChangeConsumer(this.formFieldCompMapEntry, compRef.instance)) {
-      this.uiAttributeChangeEventConsumer.formComponent = this.getFormComponentFromAppRef()?.instance;
+      this.uiAttributeChangeEventConsumer.formComponent = this.getFormComponent;
       this.uiAttributeChangeEventConsumer.bind({
         isLayout: isLayout,
         component: compRef.instance,
@@ -318,5 +323,9 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
       return false;
     }
     return !!entry.compConfigJson?.component?.config?.onItemSelect;
+  }
+
+  protected get getFormComponent(): FormComponent {
+    return this.formComponent;
   }
 }
