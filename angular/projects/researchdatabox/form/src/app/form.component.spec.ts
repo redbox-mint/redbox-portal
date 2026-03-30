@@ -1019,4 +1019,89 @@ describe('FormComponent', () => {
     fixture.destroy();
   });
 
+  it('changes enabledValidationGroups when requested', async () => {
+    setUpDynamicAssets({
+      urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
+      callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+        switch (keyStr) {
+          case "componentDefinitions__0__expressions__0__config__template":
+            return {"initial": "current", "groups": {"enable":["tester"]}};
+          default:
+            throw new Error(`Unknown key: ${keyStr}`);
+        }
+      }
+    });
+    const formConfig: FormConfigFrame = {
+      name: 'validation-groups-change-request-form',
+      debugValue: true,
+      validationGroups: {
+        "none": {description: "", initialMembership:"none"},
+        "tester": {description: ""}
+      },
+      enabledValidationGroups: ["none"],
+      componentDefinitions: [
+        {
+          name: 'text_1',
+          model: {
+            class: 'SimpleInputModel',
+            config: { value: 'value', validators: [
+              {class: "minLength", config: { minLength: 3 }, groups:{include: ["tester"]}}
+              ]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          },
+          expressions: [
+            {
+              name: 'text_1_set_validation_groups',
+              config: {
+                template: '{"initial": "current", "groups": {"enable":["tester"]}}',
+                condition: "/text_1::field.value.changed",
+                conditionKind: "jsonpointer",
+                target: 'form.enabledValidationGroups',
+                hasTemplate: true,
+              },
+            },
+          ]
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    const events: any[] = [];
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const sub = eventBus.selectAll$().subscribe(e => events.push(e));
+
+    const getFormCompiledItemsSpy = spyOn(formComponent, 'getFormCompiledItems').and.callThrough();
+
+    try {
+      const inputEl = compiled.querySelector<HTMLInputElement>('input');
+      if (!inputEl){
+        throw new Error("could not find inputEl");
+      }
+
+      expect(inputEl.value).toEqual("value");
+
+      inputEl.value = "new-value";
+      inputEl.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(events.length).withContext(JSON.stringify(events)).toEqual(1);
+      expect(events[0].type).toEqual(FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST);
+      expect(events[0].initial).toEqual("current");
+      expect(events[0].groups).toEqual({"enable":["tester"]});
+      expect(formComponent.enabledValidationGroups).toEqual(["none", "tester"]);
+      expect(getFormCompiledItemsSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      sub?.unsubscribe();
+    }
+  });
+
 });

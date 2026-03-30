@@ -227,36 +227,43 @@ export interface FormValidationGroup {
      * A short description of the purpose or usage of the validation group.
      */
     description: string;
-
     /**
      * The approach this validation group uses to specify which validators are included.
-     * Options are:
-     * - 'all': Start with all validators included
-     * - 'none' Start with no validators
+     *
+     * Default is "none".
      */
     initialMembership?: FormValidationGroupMembership;
 }
 
 /**
  * The available form validation group membership approaches.
+ *
+ * Options:
+ * - 'all': Every known / available validator.
+ * - 'none': An empty array / no validators.
  */
 export const formValidationGroupMembership = ["all", "none"] as const;
 /**
- * The available form validation group membership approaches as a typescript type.
+ * The type for the available form validation group membership approaches.
  */
 export type FormValidationGroupMembership = typeof formValidationGroupMembership[number];
 
 /**
- * Specify which validation groups the validator is part of or is not part of.
- * All the validation groups used here must also be present in the top-level validationGroups property.
+ * Specify the validation groups to include or exclude.
+ * All the validation groups used here must also be present in the form top-level validationGroups property.
+ * The groups will be added or removed from some list of validation groups.
  */
 export interface FormFieldValidationGroup {
     /**
-     * A list of the validation groups this field is included in.
+     * A list of the validation groups to include / add / enable.
+     *
+     * Default is empty array.
      */
     include?: string[];
     /**
-     * A list of the validation groups this field is excluded from.
+     * A list of the validation groups to exclude / remove / disable.
+     *
+     * Default is empty array.
      */
     exclude?: string[];
 }

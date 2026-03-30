@@ -106,7 +106,7 @@ export class FormStateFacade {
       FormActions.submitForm({
         force: options?.force ?? false,
         targetStep: options?.targetStep,
-        enabledValidationGroups: options?.enabledValidationGroups,
+        enabledValidationGroups: options?.enabledValidationGroups ?? [],
       })
     );
   }

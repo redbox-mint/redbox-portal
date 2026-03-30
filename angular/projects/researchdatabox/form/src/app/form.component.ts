@@ -66,7 +66,7 @@ import {
   createFormValidationBroadcastEvent,
   FormComponentEvent,
   FormComponentEventType,
-  FormStatusDirtyRequestEvent, FormValidationGroupsChangeRequestEvent,
+  FormStatusDirtyRequestEvent, FormValidationGroupsChangeInitial, FormValidationGroupsChangeRequestEvent,
 } from './form-state/events/form-component-event.types';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
@@ -535,14 +535,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['setValidationGroupsSub'] = this.eventBus.select$(FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST)
       .subscribe((event: FormValidationGroupsChangeRequestEvent) => {
         const originalEnabledValidationGroups = [...this.enabledValidationGroups];
-        const initial = event.initial ?? "enabled";
+        const initial: FormValidationGroupsChangeInitial = event.initial ?? "current";
         const groups = event.groups;
         let enabledNames = [...this.enabledValidationGroups];
-        switch(initial){
-          case "empty":
+        switch(initial) {
+          case "all":
+            enabledNames = Object.keys(this.validationGroups);
+            break;
+          case "none":
             enabledNames = [];
             break;
-          case "enabled":
+          case "current":
             // No change to the enabled validation groups.
             break;
           default:
@@ -550,14 +553,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         }
 
         // Add enabled group names.
-        for (const name of groups?.enable ?? []) {
+        for (const name of groups?.include ?? []) {
           if (!enabledNames.includes(name)) {
             enabledNames.push(name);
           }
         }
 
         // Remove disabled group names.
-        for (const name of groups?.disable ?? []) {
+        for (const name of groups?.exclude ?? []) {
           const index = enabledNames.indexOf(name);
           if (index > -1) {
             enabledNames.splice(index, 1);

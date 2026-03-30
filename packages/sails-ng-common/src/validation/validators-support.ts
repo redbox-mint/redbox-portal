@@ -5,7 +5,6 @@ import {
     FormValidatorFn
 } from "./form.model";
 import {isTypeFormValidatorDefinition} from "../config/form-types.model";
-import {LineagePath} from "../config/names/naming-helpers";
 
 export class ValidatorsSupport {
     /**
@@ -93,46 +92,76 @@ export class ValidatorsSupport {
             })) ?? [];
     }
 
-    /**
-     * Is the validator enabled?
-     * @param availableGroups
-     * @param enabledGroups
-     * @param validator
-     */
-    public isValidatorEnabled(availableGroups: FormValidationGroups, enabledGroups: string[], validator: FormValidatorConfig): boolean {
-        // If there are no validation groups, all validators are enabled.
-        if (Object.keys(availableGroups).length === 0) {
-            return true;
-        }
-        // Check each validation group to see if the validator is enabled.
-        // A validator must pass all the group checks to be enabled.
-        for (const [groupKey, groupConfig] of Object.entries(availableGroups)) {
-            if (!enabledGroups?.includes(groupKey)) {
-                continue;
-            }
-            const membership = groupConfig?.initialMembership ?? "none";
-            const include = validator?.groups?.include ?? [];
-            const exclude = validator?.groups?.exclude ?? [];
-            if (membership === "all" && exclude.includes(groupKey)) {
-                return false;
-            }
-            if (membership === "none" && !include.includes(groupKey)) {
-                return false;
-            }
-            if (exclude.includes(groupKey)) {
-                return false;
-            }
-        }
-        return true;
+  public checkValidationGroups(availableGroups: FormValidationGroups, enabledGroupNames: string[]) {
+    const availableGroupNames = Object.keys(availableGroups);
+    const unknownGroups = enabledGroupNames.filter(g => !availableGroupNames.includes(g));
+    if (unknownGroups.length > 0) {
+      throw new Error(`Unknown enabled validation groups ${JSON.stringify(unknownGroups)}.`)
     }
+  }
+
+  /**
+   * Is the component model validator enabled?
+   * @param availableGroups All available validation groups in this form.
+   * @param enabledGroupNames The currently enabled validation groups.
+   * @param validator The validator config for a component's model.
+   */
+  public isValidatorEnabled(availableGroups: FormValidationGroups, enabledGroupNames: string[], validator: FormValidatorConfig): boolean {
+    if (Object.keys(availableGroups).length === 0) {
+      // If there are no validation groups, all validators are enabled.
+      return true;
+    }
+    if (enabledGroupNames.length === 0) {
+      // If there are no validation groups enabled, all validators are enabled.
+      return true;
+    }
+
+    this.checkValidationGroups(availableGroups, enabledGroupNames);
+
+    // Check each validation group to see if the validator is enabled.
+    // A validator must pass at least one of the group checks to be enabled.
+    const includes = validator?.groups?.include ?? [];
+    this.checkValidationGroups(availableGroups, includes);
+
+    const excludes = validator?.groups?.exclude ?? [];
+    this.checkValidationGroups(availableGroups, excludes);
+
+    for (const [groupKey, groupConfig] of Object.entries(availableGroups)) {
+      const membership = groupConfig?.initialMembership ?? "none";
+
+      if (!enabledGroupNames?.includes(groupKey)) {
+        // Group is not enabled, so move on.
+        continue;
+      }
+
+      if (excludes.includes(groupKey)) {
+        // Validator excludes this group, so move on.
+        continue;
+      }
+
+      if (membership === "all" && !excludes.includes(groupKey)) {
+        // Validator is enabled.
+        // Group is enabled, starts with all validators, and validator does not exclude it.
+        return true;
+      }
+
+      if (membership === "none" && includes.includes(groupKey)) {
+        // Validator is enabled.
+        // Group is enabled, starts with no validators, and validator includes it.
+        return true;
+      }
+    }
+    // Validator was not included in any group, so it is disabled.
+    return false;
+  }
 
     /**
      * Get the enabled validators.
-     * @param availableGroups
-     * @param enabledGroups
-     * @param validators
+     * @param availableGroups All available validation groups in this form.
+     * @param enabledGroups The currently enabled validation groups.
+     * @param validators All available validators in this form.
      */
     public enabledValidators(availableGroups: FormValidationGroups, enabledGroups: string[], validators: FormValidatorConfig[]): FormValidatorConfig[] {
-        return (validators ?? []).filter(validator => this.isValidatorEnabled(availableGroups, enabledGroups,validator));
+        return (validators ?? []).filter(validator => this.isValidatorEnabled(availableGroups, enabledGroups, validator));
     }
 }

@@ -6,6 +6,7 @@
  */
 
 import { FormGroupStatus } from '../../form.component';
+import { FormFieldValidationGroup, formValidationGroupMembership } from "@researchdatabox/sails-ng-common";
 
 /**
  * Base event interface with common properties
@@ -96,6 +97,20 @@ export interface FormValidationBroadcastEvent extends FormComponentEventBase {
 }
 
 /**
+ * The available approaches for changing the enabled form validation groups.
+ *
+ * Options:
+ * - 'all': Every known / available validation group.
+ * - 'none': An empty array / no validation groups.
+ * - 'current': The existing state, allows for changes relative to the existing situation.
+ */
+export const formValidationGroupsChangeInitial = [...formValidationGroupMembership, "current"] as const;
+/**
+ * The type for the available approaches for changing the enabled form validation groups.
+ */
+export type FormValidationGroupsChangeInitial = typeof formValidationGroupsChangeInitial[number];
+
+/**
  * Form validation groups change requested event.
  * Published when a component wants the enabled validation groups to be changed.
  */
@@ -103,20 +118,16 @@ export interface FormValidationGroupsChangeRequestEvent extends FormComponentEve
   readonly type: 'form.validation.change.request';
   /**
    * Change step 1: The initial validation groups to enable.
-   * - empty - enable no validation groups (note this is not the 'none' group, this is an empty array of validation groups)
-   * - enabled - don't change the currently enabled validation groups
    *
-   * Defaults to "enabled";
+   * Defaults to "current".
    */
-  readonly initial?: "empty" | "enabled";
+  readonly initial?: FormValidationGroupsChangeInitial;
   /**
-   * Change step 2: The validation groups to add or remove from the initial set of validation groups.
-   * - enable - add all these validation groups that are not in enabledValidationGroups
-   * - disable - remove all these validation groups that are in enabledValidationGroups
+   * Change step 2: The validation groups to include or exclude from the initial set of validation groups.
    *
    * No default, must be supplied.
    */
-  readonly groups: {enable?: string[], disable?: string[]};
+  readonly groups: FormFieldValidationGroup;
 }
 
 /**

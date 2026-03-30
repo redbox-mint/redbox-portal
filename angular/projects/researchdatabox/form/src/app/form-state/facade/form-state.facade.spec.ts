@@ -195,7 +195,7 @@ describe('FormStateFacade', () => {
         FormActions.submitForm({
           force: false,
           targetStep: undefined,
-          enabledValidationGroups: ["all"],
+          enabledValidationGroups: [],
         })
       );
     });
