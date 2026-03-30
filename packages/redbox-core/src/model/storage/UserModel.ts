@@ -13,7 +13,7 @@ export class UserModel {
     lastLogin: Date = new Date()
     additionalAttributes: Record<string, unknown> = {};
     linkedPrimaryUserId?: string
-    accountLinkState?: 'active' | 'linked-alias'
+    accountLinkState?: 'active' | 'linked-alias' = 'active'
     effectivePrimaryUsername?: string
     linkedAccountCount?: number
     loginDisabled: boolean = false

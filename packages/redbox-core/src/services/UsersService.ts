@@ -1918,11 +1918,7 @@ export namespace Services {
       const queryText = _.trim(query);
       return from((async () => {
         const userWhere: AnyRecord = {
-          or: [
-            { accountLinkState: 'active' },
-            { accountLinkState: null },
-            { accountLinkState: { '!=': 'linked-alias' } }
-          ],
+          accountLinkState: 'active',
           loginDisabled: { '!=': true }
         };
 
@@ -1931,14 +1927,11 @@ export namespace Services {
         }
 
         if (!_.isEmpty(queryText)) {
-          userWhere.and = userWhere.and ?? [];
-          (userWhere.and as AnyRecord[]).push({
-            or: [
+          userWhere.or = [
             { username: { contains: queryText } },
             { name: { contains: queryText } },
             { email: { contains: queryText } }
-            ]
-          });
+          ];
         }
 
         const users = await User.find(userWhere).populate('roles');

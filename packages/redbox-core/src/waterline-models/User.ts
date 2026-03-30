@@ -99,7 +99,7 @@ export class UserClass {
   @Attr({ type: 'string' })
   public linkedPrimaryUserId?: string;
 
-  @Attr({ type: 'string', isIn: ['active', 'linked-alias'] })
+  @Attr({ type: 'string', isIn: ['active', 'linked-alias'], defaultsTo: 'active' })
   public accountLinkState?: 'active' | 'linked-alias';
 
   @Attr({ type: 'boolean', defaultsTo: false })
