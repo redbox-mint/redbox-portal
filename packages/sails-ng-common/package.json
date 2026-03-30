@@ -78,6 +78,11 @@
     "marked": "^17.0.0",
     "ts-json-schema-generator": "^2.4.0"
   },
+  "overrides": {
+    "mocha": {
+      "serialize-javascript": "7.0.5"
+    }
+  },
   "peerDependencies": {
     "jsonata": "^2.1.0"
   }
