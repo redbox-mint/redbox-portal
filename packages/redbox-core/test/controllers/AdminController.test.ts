@@ -40,12 +40,26 @@ describe('AdminController', () => {
         (global as any).BrandingService = {
             getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
         };
+        (global as any).RolesService = {
+            getAdminFromBrand: sinon.stub().returns({ id: 'role-admin', name: 'Admin' })
+        };
         (global as any).UsersService = {
             getUsersForBrand: sinon.stub().returns(of([
                 { id: 'primary-1', username: 'primary-user', name: 'Primary User', roles: [{ branding: 'brand-1', name: 'Researcher' }], token: 'hashed' },
                 { id: 'alias-1', username: 'alias-user', name: 'Alias User', linkedPrimaryUserId: 'primary-1', accountLinkState: 'linked-alias', roles: [] }
             ])),
-            enrichUsersWithEffectiveDisabledState: sinon.stub().callsFake((users: any[]) => Promise.resolve(users.map((u: any) => ({ ...u, effectiveLoginDisabled: false }))))
+            enrichUsersWithEffectiveDisabledState: sinon.stub().callsFake((users: any[]) => Promise.resolve(users.map((u: any) => ({ ...u, effectiveLoginDisabled: false })))),
+            hasRole: sinon.stub().returns({ id: 'role-admin', name: 'Admin' }),
+            getUserWithId: sinon.stub().returns(of({ id: 'user-1', username: 'target-user', password: 'secret', token: 'tok' })),
+            getUserAudit: sinon.stub().resolves({
+                records: [{ id: 'audit-1', action: 'login', details: 'User logged in' }],
+                summary: { returnedCount: 1, truncated: false }
+            }),
+            searchLinkCandidates: sinon.stub().returns(of([{ id: 'candidate-1', username: 'candidate-user' }])),
+            getLinkedAccounts: sinon.stub().returns(of({ primary: { id: 'primary-1', username: 'primary-user' }, linkedAccounts: [] })),
+            linkAccounts: sinon.stub().returns(of({ primary: { id: 'primary-1', username: 'primary-user' }, linkedAccounts: [], impact: { rolesMerged: 1, recordsRewritten: 2 } })),
+            disableUser: sinon.stub().resolves(),
+            enableUser: sinon.stub().resolves()
         };
         (global as any).UserLink = {
             find: sinon.stub().returns(createQueryObject([
@@ -96,5 +110,60 @@ describe('AdminController', () => {
         expect(sendRespStub.calledOnce).to.be.true;
         const payload = sendRespStub.firstCall.args[2];
         expect(payload.data[1].effectivePrimaryUsername).to.equal('alias-user');
+    });
+
+    it('should return audit data for an admin and sanitize the user payload', async () => {
+        const param = sinon.stub();
+        param.withArgs('id').returns('user-1');
+        const req = {
+            session: { branding: 'default' },
+            user: { username: 'admin-user' },
+            param
+        } as unknown as Sails.Req;
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.getUserAudit(req, res);
+
+        expect((global as any).UsersService.getUserWithId.calledWith('user-1')).to.be.true;
+        expect((global as any).UsersService.getUserAudit.calledWith('user-1')).to.be.true;
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.data?.user?.password).to.be.undefined;
+        expect(sendRespStub.firstCall.args[2]?.data?.user?.token).to.be.undefined;
+        expect(sendRespStub.firstCall.args[2]?.data?.summary?.returnedCount).to.equal(1);
+    });
+
+    it('should link accounts through the admin controller', async () => {
+        const req = {
+            session: { branding: 'default' },
+            user: { username: 'admin-user' },
+            body: { primaryUserId: 'primary-1', secondaryUserId: 'secondary-1' }
+        } as unknown as Sails.Req;
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.linkAccounts(req, res);
+
+        expect((global as any).UsersService.linkAccounts.calledWith('primary-1', 'secondary-1', 'admin-user', 'brand-1')).to.be.true;
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.data?.impact?.rolesMerged).to.equal(1);
+    });
+
+    it('should disable a user through the admin controller', async () => {
+        const param = sinon.stub();
+        param.withArgs('id').returns('user-2');
+        const req = {
+            session: { branding: 'default' },
+            user: { id: 'admin-1', username: 'admin-user' },
+            param
+        } as unknown as Sails.Req;
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.disableUser(req, res);
+
+        expect((global as any).UsersService.disableUser.calledWith('user-2', 'admin-user', 'brand-1')).to.be.true;
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.data?.status).to.equal(true);
     });
 });

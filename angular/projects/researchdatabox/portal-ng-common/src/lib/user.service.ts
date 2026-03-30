@@ -245,7 +245,7 @@ export class UserService extends HttpClientService {
   }
 
   public async searchLinkCandidates(primaryUserId: string, query: string): Promise<UserLinkCandidate[]> {
-    const url = `${this.brandingAndPortalUrl}/api/users/link/candidates`;
+    const url = `${this.brandingAndPortalUrl}/admin/users/link/candidates`;
     const result$ = this.http.get<UserLinkCandidate[]>(url, {
       responseType: 'json',
       observe: 'body',
@@ -259,7 +259,7 @@ export class UserService extends HttpClientService {
   }
 
   public async getUserLinks(primaryUserId: string): Promise<UserLinkResponse> {
-    const url = `${this.brandingAndPortalUrl}/api/users/${primaryUserId}/links`;
+    const url = `${this.brandingAndPortalUrl}/admin/users/${primaryUserId}/links`;
     const result$ = this.http.get<UserLinkResponse>(url, {
       responseType: 'json',
       observe: 'body',
@@ -269,7 +269,7 @@ export class UserService extends HttpClientService {
   }
 
   public async getUserAudit(userId: string): Promise<UserAuditResponse> {
-    const url = `${this.brandingAndPortalUrl}/api/users/${userId}/audit`;
+    const url = `${this.brandingAndPortalUrl}/admin/users/${userId}/audit`;
     const result$ = this.http.get<UserAuditResponse>(url, {
       responseType: 'json',
       observe: 'body',
@@ -279,7 +279,7 @@ export class UserService extends HttpClientService {
   }
 
   public async disableUser(userId: string): Promise<SaveResult> {
-    const url = `${this.brandingAndPortalUrl}/api/users/${userId}/disable`;
+    const url = `${this.brandingAndPortalUrl}/admin/users/${userId}/disable`;
     const result$ = this.http.post<SaveResult>(url, {}, {
       responseType: 'json',
       observe: 'body',
@@ -289,7 +289,7 @@ export class UserService extends HttpClientService {
   }
 
   public async enableUser(userId: string): Promise<SaveResult> {
-    const url = `${this.brandingAndPortalUrl}/api/users/${userId}/enable`;
+    const url = `${this.brandingAndPortalUrl}/admin/users/${userId}/enable`;
     const result$ = this.http.post<SaveResult>(url, {}, {
       responseType: 'json',
       observe: 'body',
@@ -299,7 +299,7 @@ export class UserService extends HttpClientService {
   }
 
   public async linkAccounts(primaryUserId: string, secondaryUserId: string): Promise<UserLinkResponse> {
-    const url = `${this.brandingAndPortalUrl}/api/users/link`;
+    const url = `${this.brandingAndPortalUrl}/admin/users/link`;
     const result$ = this.http.post<UserLinkResponse>(url, { primaryUserId, secondaryUserId }, {
       responseType: 'json',
       observe: 'body',

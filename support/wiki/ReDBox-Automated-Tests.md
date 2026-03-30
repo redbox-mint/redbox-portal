@@ -28,6 +28,8 @@ npm ci
 npm run compile:all
 ```
 
+If you only changed backend code in `packages/redbox-core`, `npm run compile:core` is the minimum rebuild step. This matters for mounted Bruno runs because the portal loads `@researchdatabox/redbox-core` from its built `dist` output.
+
 ### 2. Backend Unit/Integration Tests (`test:mocha`)
 
 These tests run the Sails.js backend logic in a Docker container.
@@ -42,6 +44,8 @@ These tests run the Sails.js backend logic in a Docker container.
     - **Custom Paths**: Provide additional test globs via CLI args or the `RBPORTAL_MOCHA_TEST_PATHS` env var (space-delimited). Both are combined.
       - Example: `RBPORTAL_MOCHA_TEST_PATHS="test/integration/**/auth*.test.ts" npm run test:mocha`
 
+Relevant current coverage includes `test/integration/services/AdminUserManagementAjax.test.ts`, which verifies the CSRF-backed admin user-management AJAX routes for link-candidate search, linking, linked-account retrieval, disable/enable, and user-audit retrieval.
+
 ### 3. API Integration Tests (`test:bruno`)
 
 These tests use **Bruno** to make actual HTTP requests against a running instance of the portal.
@@ -54,7 +58,15 @@ These tests use **Bruno** to make actual HTTP requests against a running instanc
     - `test:bruno:oidc` runs the OIDC authentication flows.
     - Dev mount variants: `test:bruno:general:mount`, `test:bruno:oidc:mount`.
     - Cleanup commands: `test:bruno:clean`, `test:bruno:general:clean`, `test:bruno:oidc:clean`.
-    - The core Bruno collection now includes user-management requests under `test/bruno/1 - REST API/2 - User Management/`, including create-secondary-user, search-link-candidates, get-user-links, and link-accounts flows.
+    - The core Bruno collection includes user-management requests under `test/bruno/1 - REST API/2 - User Management/`, including create-secondary-user, search-link-candidates, get-user-links, and link-accounts flows for the legacy webservice `/api/users/*` routes.
+    - The general/AJAX Bruno collection includes browser-admin user-management coverage under `test/bruno/2 - AJAX calls/1 - Admin User Tests/`, including:
+      - create-secondary-user for account linking
+      - search-link-candidates
+      - link-accounts
+      - get-linked-accounts
+      - disable-user
+      - enable-user
+      - get-user-audit
 
 ### 4. Frontend Unit Tests (`test:angular`)
 

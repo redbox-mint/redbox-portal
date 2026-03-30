@@ -196,6 +196,12 @@ export const routes: RoutesConfig = {
     'post /:branding/:portal/admin/users/genKey': 'AdminController.generateUserKey',
     'post /:branding/:portal/admin/users/revokeKey': 'AdminController.revokeUserKey',
     'post /:branding/:portal/admin/users/newUser': 'AdminController.addLocalUser',
+    'get /:branding/:portal/admin/users/link/candidates': 'AdminController.searchLinkCandidates',
+    'get /:branding/:portal/admin/users/:id/links': 'AdminController.getUserLinks',
+    'get /:branding/:portal/admin/users/:id/audit': 'AdminController.getUserAudit',
+    'post /:branding/:portal/admin/users/link': 'AdminController.linkAccounts',
+    'post /:branding/:portal/admin/users/:id/disable': 'AdminController.disableUser',
+    'post /:branding/:portal/admin/users/:id/enable': 'AdminController.enableUser',
     'get /:branding/:portal/admin/roles/get': 'AdminController.getBrandRoles',
     'post /:branding/:portal/admin/roles/user': 'AdminController.updateUserRoles',
 

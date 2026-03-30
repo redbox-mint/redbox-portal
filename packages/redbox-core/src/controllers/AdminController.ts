@@ -3,6 +3,7 @@ import { BrandingModel } from '../model';
 import { Observable, of, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { v4 as uuidv4 } from 'uuid';
+import { UserAttributes } from '../waterline-models/User';
 
 declare const UsersService: {
   getUsersForBrand: (brand: BrandingModel | string) => Observable<globalThis.Record<string, unknown>[]>;
@@ -11,10 +12,19 @@ declare const UsersService: {
   updateUserDetails: (userid: string, name: string, email: string, password: string) => Observable<unknown>;
   addLocalUser: (username: string, name: string, email: string, password: string) => Observable<globalThis.Record<string, unknown>>;
   enrichUsersWithEffectiveDisabledState: (users: globalThis.Record<string, unknown>[]) => Promise<globalThis.Record<string, unknown>[]>;
+  searchLinkCandidates: (query: string, brandId: string, primaryUserId: string) => Observable<globalThis.Record<string, unknown>[]>;
+  getLinkedAccounts: (primaryUserId: string) => Observable<globalThis.Record<string, unknown>>;
+  hasRole: (user: unknown, role: unknown) => unknown;
+  getUserWithId: (userId: string) => Observable<UserAttributes | null>;
+  getUserAudit: (userId: string) => Promise<{ records: unknown[]; summary: globalThis.Record<string, unknown> }>;
+  linkAccounts: (primaryUserId: string, secondaryUserId: string, actor: string, brandId: string) => Observable<globalThis.Record<string, unknown>>;
+  disableUser: (userId: string, actor: string, brandId: string) => Promise<void>;
+  enableUser: (userId: string, actor: string, brandId: string) => Promise<void>;
 };
 declare const RolesService: {
   getRolesWithBrand: (brand: BrandingModel) => Observable<globalThis.Record<string, unknown>[]>;
   getRoleIds: (roles: unknown, roleNames: string[]) => string[];
+  getAdminFromBrand: (brand: BrandingModel) => unknown;
 };
 
 export namespace Controllers {
@@ -38,8 +48,38 @@ export namespace Controllers {
         'addLocalUser',
         'generateUserKey',
         'revokeUserKey',
+        'searchLinkCandidates',
+        'getUserLinks',
+        'getUserAudit',
+        'linkAccounts',
+        'disableUser',
+        'enableUser',
         'supportAgreementIndex'
     ];
+
+    private canManageAccountLinks(req: Sails.Req, brand: BrandingModel): boolean {
+      if (_.isEmpty(req.user) || typeof RolesService === 'undefined' || typeof UsersService === 'undefined') {
+        return false;
+      }
+
+      const adminRole = RolesService.getAdminFromBrand(brand);
+      if (_.isEmpty(adminRole)) {
+        return false;
+      }
+
+      return !!UsersService.hasRole(req.user, adminRole);
+    }
+
+    private sanitizeUserForResponse(user: UserAttributes | null): UserAttributes | null {
+      if (user == null) {
+        return null;
+      }
+
+      const sanitizedUser = { ...(user as UserAttributes & globalThis.Record<string, unknown>) };
+      delete sanitizedUser['password'];
+      delete sanitizedUser['token'];
+      return sanitizedUser as UserAttributes;
+    }
 
     /**
      * **************************************************************************************************
@@ -158,6 +198,266 @@ export namespace Controllers {
         .subscribe((pageData: globalThis.Record<string, unknown>) => {
           this.sendResp(req, res, { data: pageData.roles, headers: this.getNoCacheHeaders() });
         });
+    }
+
+    public async searchLinkCandidates(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        const candidates = await firstValueFrom(UsersService.searchLinkCandidates(
+          String(req.param('query') ?? ''),
+          String(brand.id),
+          String(req.param('primaryUserId') ?? '')
+        ));
+        return this.sendResp(req, res, {
+          data: candidates,
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        sails.log.error(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async getUserLinks(req: Sails.Req, res: Sails.Res) {
+      try {
+        const links = await firstValueFrom(UsersService.getLinkedAccounts(String(req.param('id') ?? '')));
+        return this.sendResp(req, res, {
+          data: links,
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        sails.log.error(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async getUserAudit(req: Sails.Req, res: Sails.Res) {
+      const userId = String(req.param('id') ?? '').trim();
+      if (_.isEmpty(userId)) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'User ID is required' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      try {
+        const user = await firstValueFrom(UsersService.getUserWithId(userId));
+        if (user == null) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: 'User not found' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        if (!this.canManageAccountLinks(req, brand)) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ detail: 'You are not authorized to view user audit history' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        const auditResponse = await UsersService.getUserAudit(userId);
+        return this.sendResp(req, res, {
+          data: {
+            user: this.sanitizeUserForResponse(user),
+            records: auditResponse.records,
+            summary: auditResponse.summary
+          },
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        sails.log.error(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async linkAccounts(req: Sails.Req, res: Sails.Res) {
+      const primaryUserId = String(req.body.primaryUserId ?? '').trim();
+      const secondaryUserId = String(req.body.secondaryUserId ?? '').trim();
+
+      if (!primaryUserId || !secondaryUserId) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Both primaryUserId and secondaryUserId are required' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      if (primaryUserId === secondaryUserId) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Cannot link a user account to itself' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      try {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        if (!this.canManageAccountLinks(req, brand)) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ detail: 'You are not authorized to link user accounts' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        const response = await firstValueFrom(UsersService.linkAccounts(
+          primaryUserId,
+          secondaryUserId,
+          String(req.user?.username ?? 'system'),
+          String(brand.id)
+        ));
+        return this.sendResp(req, res, {
+          data: response,
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        sails.log.error('Failed to link accounts:');
+        sails.log.error(error);
+
+        const errorMessage = (error as Error)?.message ?? 'An error has occurred';
+        const normalizedMessage = errorMessage.toLowerCase();
+        let statusCode = 500;
+
+        if (normalizedMessage.includes('forbidden') || normalizedMessage.includes('unauthor')) {
+          statusCode = 403;
+        } else if (
+          normalizedMessage.includes('required')
+          || normalizedMessage.includes('invalid')
+          || normalizedMessage.includes('must')
+          || normalizedMessage.includes('cannot link a user account to itself')
+        ) {
+          statusCode = 400;
+        }
+
+        return this.sendResp(req, res, {
+          status: statusCode,
+          displayErrors: [{ detail: errorMessage }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async disableUser(req: Sails.Req, res: Sails.Res) {
+      try {
+        const userId = req.param('id');
+        if (_.isEmpty(userId)) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'User ID is required' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        const adminRole = RolesService.getAdminFromBrand(brand);
+        if (_.isEmpty(adminRole) || !UsersService.hasRole(req.user, adminRole)) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ detail: 'You are not authorized to disable users' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        if (String(req.user?.id ?? '') === String(userId)) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'You cannot disable your own account' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        await UsersService.disableUser(userId, String(req.user?.username ?? 'system'), String(brand.id));
+        return this.sendResp(req, res, { data: { status: true, message: 'User disabled successfully' }, headers: this.getNoCacheHeaders() });
+      } catch (err) {
+        sails.log.error(err);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async enableUser(req: Sails.Req, res: Sails.Res) {
+      try {
+        const userId = req.param('id');
+        if (_.isEmpty(userId)) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'User ID is required' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        const adminRole = RolesService.getAdminFromBrand(brand);
+        if (_.isEmpty(adminRole) || !UsersService.hasRole(req.user, adminRole)) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ detail: 'You are not authorized to enable users' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        await UsersService.enableUser(userId, String(req.user?.username ?? 'system'), String(brand.id));
+        return this.sendResp(req, res, { data: { status: true, message: 'User enabled successfully' }, headers: this.getNoCacheHeaders() });
+      } catch (err) {
+        sails.log.error(err);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
     }
 
     public generateUserKey(req: Sails.Req, res: Sails.Res) {

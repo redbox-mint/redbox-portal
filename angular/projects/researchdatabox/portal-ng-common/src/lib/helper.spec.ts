@@ -146,6 +146,10 @@ export function getStubUserService(username: string = '', password: string = '',
       return { user: userData[0] || null, records: [], summary: { returnedCount: 0, truncated: false } };
     }, linkAccounts() {
       return { primary: userData[0] || null, linkedAccounts: [], impact: { recordsRewritten: 0, rolesMerged: 0 } };
+    }, disableUser() {
+      return { status: true, message: 'disabled' };
+    }, enableUser() {
+      return { status: true, message: 'enabled' };
     }
   };
 }

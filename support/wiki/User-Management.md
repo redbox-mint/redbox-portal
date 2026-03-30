@@ -1,6 +1,6 @@
 # User Management
 
-This page documents the user-management enhancements centered on the `/admin/users` screen and the related `/api/users/*` endpoints.
+This page documents the user-management enhancements centered on the `/admin/users` screen, the CSRF-backed admin AJAX endpoints used by that screen, and the related legacy `/api/users/*` webservice endpoints.
 
 ## Overview
 
@@ -11,6 +11,19 @@ Brand administrators can now:
 - View a user-centric audit history for login/logout and account-management actions.
 
 These changes affect both the admin UI and the backend authentication and authorization flows.
+
+## Route Split: Admin AJAX vs Webservice API
+
+User-management functionality now exists in two route families:
+
+- `/:branding/:portal/admin/users/*`
+  Browser-facing admin AJAX routes handled by `AdminController`
+  These routes participate in the normal session-based browser flow and are intended for the Angular Manage Users app.
+- `/:branding/:portal/api/users/*`
+  Webservice routes handled by `webservice/UserManagementController`
+  These remain available for REST/API consumers and keep `csrf: false`.
+
+The Manage Users Angular app now calls the admin AJAX routes for account-linking, user-audit, and disable/enable operations so those browser actions are covered by CSRF protection.
 
 ## Linked Accounts
 
@@ -137,9 +150,31 @@ Each normalized record includes:
 - Sensitive request-debug data is redacted before being returned to the browser.
 - Malformed `additionalContext` payloads are tolerated and surfaced as parse errors instead of breaking the response.
 
-## API Endpoints
+## Endpoint Summary
 
-These brand-admin user-management endpoints are exposed under `/:branding/:portal/api`:
+### Admin AJAX endpoints used by the Manage Users app
+
+These routes are exposed under `/:branding/:portal/admin`:
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/users/get` | Fetch the Manage Users table, enriched with link-state and effective-disabled metadata |
+| `POST` | `/users/update` | Update user details and roles |
+| `POST` | `/users/genKey` | Generate a user API key |
+| `POST` | `/users/revokeKey` | Revoke a user API key |
+| `POST` | `/users/newUser` | Create a local user |
+| `GET` | `/users/link/candidates?primaryUserId=<id>&query=<text>` | Search valid secondary-account candidates |
+| `GET` | `/users/:id/links` | Fetch a primary account and its linked aliases |
+| `POST` | `/users/link` | Link a secondary account to a primary account |
+| `GET` | `/users/:id/audit` | Fetch normalized audit history for a selected user |
+| `POST` | `/users/:id/disable` | Disable a user |
+| `POST` | `/users/:id/enable` | Re-enable a user |
+
+The main `GET /admin/users/get` response supports `includeDisabled=true`.
+
+### Legacy webservice endpoints
+
+Equivalent brand-admin webservice endpoints remain exposed under `/:branding/:portal/api`:
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -150,7 +185,7 @@ These brand-admin user-management endpoints are exposed under `/:branding/:porta
 | `POST` | `/users/:id/disable` | Disable a user |
 | `POST` | `/users/:id/enable` | Re-enable a user |
 
-The admin UI still uses `GET /admin/users/get` for the main Manage Users table, but that response is now enriched with link-state and effective-disabled metadata and supports `includeDisabled=true`.
+The webservice routes remain useful for REST/API clients, but the browser Manage Users flow should use the admin AJAX routes.
 
 ## Data Model Changes
 
@@ -179,6 +214,17 @@ This feature is covered by:
 - `packages/redbox-core/test/controllers/webservice/UserManagementController.test.ts`
 - `packages/redbox-core/test/controllers/AdminController.test.ts`
 - `angular/projects/researchdatabox/manage-users/src/app/manage-users.component.spec.ts`
+- `test/integration/services/AdminUserManagementAjax.test.ts`
 - Bruno REST requests for user-linking flows under `test/bruno/1 - REST API/2 - User Management/`
+- Bruno admin AJAX requests under `test/bruno/2 - AJAX calls/1 - Admin User Tests/` covering:
+  - create-secondary-user for linking
+  - link-candidate search
+  - linked-account retrieval
+  - account linking
+  - disable / enable
+  - user audit retrieval
 
-Current Bruno coverage in this branch focuses on linking flows. Disable/enable and user-audit behavior are covered in the core/controller test suites.
+Current automated coverage verifies both route families:
+
+- webservice `/api/users/*` behavior through REST Bruno and controller/service tests
+- CSRF-backed `/admin/users/*` browser behavior through AdminController tests, the integration Mocha test, and AJAX Bruno requests

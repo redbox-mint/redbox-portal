@@ -555,6 +555,14 @@
     "category": "users",
     "description": "Translation for manage-users-link-success"
   },
+  "manage-users-link-success-roles-merged": {
+    "category": "users",
+    "description": "Translation for manage-users-link-success-roles-merged"
+  },
+  "manage-users-link-success-records-rewritten": {
+    "category": "users",
+    "description": "Translation for manage-users-link-success-records-rewritten"
+  },
   "manage-users-link-failed": {
     "category": "users",
     "description": "Translation for manage-users-link-failed"
@@ -570,6 +578,10 @@
   "manage-users-link-no-results": {
     "category": "users",
     "description": "Translation for manage-users-link-no-results"
+  },
+  "manage-users-link-search-failed": {
+    "category": "users",
+    "description": "Translation for manage-users-link-search-failed"
   },
   "manage-users-new": {
     "category": "users",

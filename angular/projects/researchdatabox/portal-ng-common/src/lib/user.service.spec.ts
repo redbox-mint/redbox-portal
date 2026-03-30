@@ -115,6 +115,53 @@ describe('UserService testing', () => {
     loginFailReq.flush(mockUserLoginResultFailData);
 
   });
+
+  it('should call the admin link candidate endpoint', async function () {
+    void userService.searchLinkCandidates('primary-1', 'candidate');
+
+    const req = httpTestingController.expectOne((request) =>
+      request.method === 'GET'
+      && request.urlWithParams.includes('/admin/users/link/candidates')
+      && request.urlWithParams.includes('primaryUserId=primary-1')
+      && request.urlWithParams.includes('query=candidate')
+    );
+    expect(req.request.method).toEqual('GET');
+    req.flush([]);
+  });
+
+  it('should call the admin user audit endpoint', async function () {
+    void userService.getUserAudit('user-1');
+
+    const req = httpTestingController.expectOne((request) =>
+      request.method === 'GET'
+      && request.url.includes('/admin/users/user-1/audit')
+    );
+    expect(req.request.method).toEqual('GET');
+    req.flush({ user: mockUserData, records: [], summary: { returnedCount: 0, truncated: false } });
+  });
+
+  it('should call the admin disable user endpoint', async function () {
+    void userService.disableUser('user-1');
+
+    const req = httpTestingController.expectOne((request) =>
+      request.method === 'POST'
+      && request.url.includes('/admin/users/user-1/disable')
+    );
+    expect(req.request.method).toEqual('POST');
+    req.flush({ status: true, message: 'User disabled successfully' });
+  });
+
+  it('should call the admin link accounts endpoint', async function () {
+    void userService.linkAccounts('primary-1', 'secondary-1');
+
+    const req = httpTestingController.expectOne((request) =>
+      request.method === 'POST'
+      && request.url.includes('/admin/users/link')
+    );
+    expect(req.request.method).toEqual('POST');
+    expect(req.request.body).toEqual({ primaryUserId: 'primary-1', secondaryUserId: 'secondary-1' });
+    req.flush({ primary: mockUserData, linkedAccounts: [], impact: { rolesMerged: 0, recordsRewritten: 0 } });
+  });
  
   afterEach(() => {
     httpTestingController.verify();
