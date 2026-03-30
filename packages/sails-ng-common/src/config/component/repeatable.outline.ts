@@ -5,6 +5,10 @@ import {
     FieldLayoutDefinitionOutline
 } from "../field-layout.outline";
 import {
+    ActionRowFieldLayoutConfigFrame,
+    ActionRowFieldLayoutConfigOutline
+} from "./action-row-layout.outline";
+import {
     AvailableFieldLayoutDefinitionFrames,
     AvailableFieldLayoutDefinitionOutlines,
     AvailableFormComponentDefinitionFrames,
@@ -40,6 +44,9 @@ export type RepeatableComponentNameType = typeof RepeatableComponentName;
 
 export interface RepeatableFieldComponentConfigFrame extends FieldComponentConfigFrame {
     elementTemplate: AvailableFormComponentDefinitionFrames;
+    addButtonShow?: boolean;
+    allowZeroRows?: boolean;
+    hideWhenZeroRows?: boolean;
 }
 
 export interface RepeatableFieldComponentConfigOutline extends RepeatableFieldComponentConfigFrame, FieldComponentConfigOutline {
@@ -87,10 +94,10 @@ export interface RepeatableFieldModelDefinitionOutline extends RepeatableFieldMo
 export const RepeatableElementLayoutName = `RepeatableElementLayout` as const;
 export type RepeatableElementLayoutNameType = typeof RepeatableElementLayoutName;
 
-export interface RepeatableElementFieldLayoutConfigFrame extends FieldLayoutConfigFrame {
+export interface RepeatableElementFieldLayoutConfigFrame extends ActionRowFieldLayoutConfigFrame, FieldLayoutConfigFrame {
 }
 
-export interface RepeatableElementFieldLayoutConfigOutline extends RepeatableElementFieldLayoutConfigFrame, FieldLayoutConfigOutline {
+export interface RepeatableElementFieldLayoutConfigOutline extends RepeatableElementFieldLayoutConfigFrame, ActionRowFieldLayoutConfigOutline, FieldLayoutConfigOutline {
 
 }
 

@@ -43,4 +43,69 @@ describe('SimpleInputComponent', () => {
     expect((inputElement as HTMLInputElement).value).toEqual('hello world saved!');
   });
 
+  it('should not add is-valid class by default', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_default_valid_state',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'valid value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+
+    const {formComponent} = await createFormAndWaitForReady(formConfig);
+    const inputComp = formComponent.componentDefArr[0]?.component as SimpleInputComponent | undefined;
+    expect(inputComp).toBeTruthy();
+    expect(inputComp?.showValidIndicator).toBeFalse();
+    expect(inputComp?.showValidState).toBeFalse();
+  });
+
+  it('should add is-valid class when showValidIndicator is enabled', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_show_valid_state',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'valid value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent',
+            config: {
+              showValidIndicator: true
+            }
+          }
+        }
+      ]
+    };
+
+    const {formComponent} = await createFormAndWaitForReady(formConfig);
+    const inputComp = formComponent.componentDefArr[0]?.component as SimpleInputComponent | undefined;
+    expect(inputComp).toBeTruthy();
+    expect(inputComp?.showValidIndicator).toBeTrue();
+    expect(inputComp?.showValidState).toBeTrue();
+  });
+
 });

@@ -14,10 +14,8 @@ export class TextAreaModel extends FormFieldModel<string> {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
       <textarea [formControl]="formControl"
         class="form-control"
-        [class.is-valid]="isValid"
+        [class.is-valid]="showValidState"
         [class.is-invalid]="!isValid"
-        [required]="isRequired"
-        [disabled]="isDisabled"
         [readonly]="isReadonly"
         [title]="tooltip"
         [rows]="rows"

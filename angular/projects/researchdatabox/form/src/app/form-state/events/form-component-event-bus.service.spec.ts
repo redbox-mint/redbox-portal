@@ -14,13 +14,16 @@ import { LoggerService } from '@researchdatabox/portal-ng-common';
 import { Store } from '@ngrx/store';
 import {
   FormComponentEventType,
-  FieldMetaChangedEvent,
+  FieldUIAttributeChangedEvent,
   FormValidationBroadcastEvent,
   createFieldValueChangedEvent,
   createFieldDependencyTriggerEvent,
   createFieldFocusRequestEvent,
+  createLineageFieldFocusRequestEvent,
   createFormSaveRequestedEvent,
-  createFormSaveExecuteEvent
+  createFormSaveExecuteEvent,
+  createFormStatusDirtyRequestEvent,
+  createFieldItemSelectedEvent,
 } from './form-component-event.types';
 
 describe('FormComponentEventBus', () => {
@@ -30,7 +33,7 @@ describe('FormComponentEventBus', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [FormComponentEventBus, LoggerService]
+      providers: [FormComponentEventBus, LoggerService],
     });
 
     bus = TestBed.inject(FormComponentEventBus);
@@ -46,152 +49,193 @@ describe('FormComponentEventBus', () => {
   });
 
   describe('Event Publishing (R15.2, AC26-AC28)', () => {
-    it('should publish field value changed events (AC26)', (done) => {
+    it('should publish field value changed events (AC26)', done => {
       const event = createFieldValueChangedEvent({
         fieldId: 'title',
         value: 'New Title',
-        previousValue: 'Old Title'
+        previousValue: 'Old Title',
       });
 
       bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe({
-        next: (received) => {
+        next: received => {
           expect(received.fieldId).toBe('title');
           expect(received.value).toBe('New Title');
           expect(received.previousValue).toBe('Old Title');
           expect(received.timestamp).toBeGreaterThan(0);
           done();
-        }
+        },
       });
 
       bus.publish(event);
     });
 
-    it('should publish field focus request events (AC27)', (done) => {
+    it('should publish field focus request events (AC27)', done => {
       const event = createFieldFocusRequestEvent({ fieldId: 'email' });
 
       bus.select$(FormComponentEventType.FIELD_FOCUS_REQUEST).subscribe({
-        next: (received) => {
+        next: received => {
           expect(received.fieldId).toBe('email');
           expect(received.timestamp).toBeGreaterThan(0);
           done();
-        }
+        },
       });
 
       bus.publish(event);
     });
 
-    it('should publish field dependency trigger events (AC28)', (done) => {
+    it('should publish field dependency trigger events (AC28)', done => {
       const event = createFieldDependencyTriggerEvent({
         fieldId: 'country',
         dependentFields: ['state', 'city'],
-        reason: 'country selection changed'
+        reason: 'country selection changed',
       });
 
       bus.select$(FormComponentEventType.FIELD_DEPENDENCY_TRIGGER).subscribe({
-        next: (received) => {
+        next: received => {
           expect(received.fieldId).toBe('country');
           expect(received.dependentFields).toEqual(['state', 'city']);
           expect(received.reason).toBe('country selection changed');
           expect(received.timestamp).toBeGreaterThan(0);
           done();
-        }
+        },
       });
 
       bus.publish(event);
     });
 
-    it('should publish field meta changed events (R15.17)', (done) => {
-      const event: Omit<FieldMetaChangedEvent, 'timestamp'> = {
-        type: FormComponentEventType.FIELD_META_CHANGED,
+    it('should publish field UI attribute changed events (R15.17)', done => {
+      const event: Omit<FieldUIAttributeChangedEvent, 'timestamp'> = {
+        type: FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED,
         fieldId: 'description',
-        meta: { visible: false, required: true }
+        meta: { visible: false, required: true },
       };
 
-      bus.select$(FormComponentEventType.FIELD_META_CHANGED).subscribe({
-        next: (received) => {
+      bus.select$(FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED).subscribe({
+        next: received => {
           expect(received.fieldId).toBe('description');
           expect(received.meta).toEqual({ visible: false, required: true });
           done();
-        }
+        },
       });
 
       bus.publish(event);
     });
 
-    it('should publish form validation broadcast events (R15.17)', (done) => {
+    it('should publish form validation broadcast events (R15.17)', done => {
       const event: Omit<FormValidationBroadcastEvent, 'timestamp'> = {
         type: FormComponentEventType.FORM_VALIDATION_BROADCAST,
         isValid: false,
-        errors: { title: ['Required field'] }
+        errors: { title: ['Required field'] },
       };
 
       bus.select$(FormComponentEventType.FORM_VALIDATION_BROADCAST).subscribe({
-        next: (received) => {
+        next: received => {
           expect(received.isValid).toBe(false);
           expect(received.errors).toEqual({ title: ['Required field'] });
           done();
-        }
+        },
       });
 
       bus.publish(event);
     });
 
-    it('should publish form save requested events (R15.17.1)', (done) => {
+    it('should publish form save requested events (R15.17.1)', done => {
       const event = createFormSaveRequestedEvent({
         force: true,
-        enabledValidationGroups: ["all"],
+        enabledValidationGroups: ['all'],
         targetStep: 'review',
-        sourceId: 'save-button'
+        sourceId: 'save-button',
       });
 
       bus.select$(FormComponentEventType.FORM_SAVE_REQUESTED).subscribe({
-        next: (received) => {
+        next: received => {
           expect(received.type).toBe(FormComponentEventType.FORM_SAVE_REQUESTED);
           expect(received.force).toBe(true);
-          expect(received.enabledValidationGroups).toEqual(["all"]);
+          expect(received.enabledValidationGroups).toEqual(['all']);
           expect(received.targetStep).toBe('review');
           expect(received.sourceId).toBe('save-button');
           expect(received.timestamp).toBeGreaterThan(0);
           done();
-        }
+        },
       });
 
       bus.publish(event);
     });
 
-    it('should publish form save execute events (R15.30)', (done) => {
+    it('should publish form save execute events (R15.30)', done => {
       const event = createFormSaveExecuteEvent({
         force: false,
-        enabledValidationGroups: ["all"],
+        enabledValidationGroups: ['all'],
         targetStep: 'submit',
-        sourceId: 'effect'
+        sourceId: 'effect',
       });
 
       bus.select$(FormComponentEventType.FORM_SAVE_EXECUTE).subscribe({
-        next: (received) => {
+        next: received => {
           expect(received.type).toBe(FormComponentEventType.FORM_SAVE_EXECUTE);
           expect(received.force).toBe(false);
-          expect(received.enabledValidationGroups).toEqual(["all"]);
+          expect(received.enabledValidationGroups).toEqual(['all']);
           expect(received.targetStep).toBe('submit');
           expect(received.sourceId).toBe('effect');
           expect(received.timestamp).toBeGreaterThan(0);
           done();
-        }
+        },
       });
 
       bus.publish(event);
     });
 
-    it('should auto-timestamp published events (R15.2)', (done) => {
+    it('should publish form status dirty request events', done => {
+      const event = createFormStatusDirtyRequestEvent({
+        fieldId: 'contributors',
+        reason: 'repeatable.element.removed',
+        sourceId: 'repeatable-1',
+      });
+
+      bus.select$(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST).subscribe({
+        next: received => {
+          expect(received.type).toBe(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST);
+          expect(received.fieldId).toBe('contributors');
+          expect(received.reason).toBe('repeatable.element.removed');
+          expect(received.sourceId).toBe('repeatable-1');
+          expect(received.timestamp).toBeGreaterThan(0);
+          done();
+        },
+      });
+
+      bus.publish(event);
+    });
+
+    it('should publish field item selected events', done => {
+      const event = createFieldItemSelectedEvent({
+        fieldId: '/group/name',
+        selectedItem: { label: 'Test', value: 'test-value', raw: { email: 'test@example.com' } },
+        sourceId: '/group/name',
+      });
+
+      bus.select$(FormComponentEventType.FIELD_ITEM_SELECTED).subscribe({
+        next: received => {
+          expect(received.type).toBe(FormComponentEventType.FIELD_ITEM_SELECTED);
+          expect(received.fieldId).toBe('/group/name');
+          expect(received.selectedItem).toBeTruthy();
+          expect(received.timestamp).toBeGreaterThan(0);
+          done();
+        },
+      });
+
+      bus.publish(event);
+    });
+
+    it('should auto-timestamp published events (R15.2)', done => {
       const beforePublish = Date.now();
       const event = createFieldValueChangedEvent({ fieldId: 'test', value: 'test-value' });
 
       bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe({
-        next: (received) => {
+        next: received => {
           expect(received.timestamp).toBeGreaterThanOrEqual(beforePublish);
           expect(received.timestamp).toBeLessThanOrEqual(Date.now());
           done();
-        }
+        },
       });
 
       bus.publish(event);
@@ -207,11 +251,11 @@ describe('FormComponentEventBus', () => {
 
       // Subscribe only to value changes
       bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe({
-        next: (event) => {
+        next: event => {
           expect(event.type).toBe(FormComponentEventType.FIELD_VALUE_CHANGED);
           expect(event.fieldId).toBe('field1');
           receivedEvents++;
-        }
+        },
       });
 
       // Publish both types
@@ -222,7 +266,7 @@ describe('FormComponentEventBus', () => {
       expect(receivedEvents).toBe(1);
     });
 
-    it('should support multiple subscribers to same event type (AC30)', (done) => {
+    it('should support multiple subscribers to same event type (AC30)', done => {
       const event = createFieldValueChangedEvent({ fieldId: 'shared', value: 'shared-value' });
 
       let subscriber1Received = false;
@@ -232,14 +276,14 @@ describe('FormComponentEventBus', () => {
         next: () => {
           subscriber1Received = true;
           checkCompletion();
-        }
+        },
       });
 
       bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe({
         next: () => {
           subscriber2Received = true;
           checkCompletion();
-        }
+        },
       });
 
       function checkCompletion() {
@@ -260,7 +304,7 @@ describe('FormComponentEventBus', () => {
       bus.select$(FormComponentEventType.FIELD_FOCUS_REQUEST).subscribe({
         next: () => {
           focusEventReceived = true;
-        }
+        },
       });
 
       // Publish value change event
@@ -317,7 +361,7 @@ describe('FormComponentEventBus', () => {
       bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe({
         next: () => {
           received = true;
-        }
+        },
       });
 
       // Since no further events are published, this should remain false synchronously
@@ -330,7 +374,7 @@ describe('FormComponentEventBus', () => {
       bus.selectAll$().subscribe({
         complete: () => {
           completed = true;
-        }
+        },
       });
 
       bus.ngOnDestroy();
@@ -345,15 +389,15 @@ describe('FormComponentEventBus', () => {
       const events = [
         createFieldValueChangedEvent({ fieldId: 'f1', value: 'v1' }),
         createFieldValueChangedEvent({ fieldId: 'f2', value: 'v2' }),
-        createFieldValueChangedEvent({ fieldId: 'f3', value: 'v3' })
+        createFieldValueChangedEvent({ fieldId: 'f3', value: 'v3' }),
       ];
 
       const receivedEvents: string[] = [];
 
       bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe({
-        next: (event) => {
+        next: event => {
           receivedEvents.push(event.fieldId);
-        }
+        },
       });
 
       // Publish rapidly
@@ -363,11 +407,11 @@ describe('FormComponentEventBus', () => {
       expect(receivedEvents).toEqual(['f1', 'f2', 'f3']);
     });
 
-    it('should support multiple concurrent event types (AC33)', (done) => {
+    it('should support multiple concurrent event types (AC33)', done => {
       const receivedTypes = new Set<string>();
 
       bus.selectAll$().subscribe({
-        next: (event) => {
+        next: event => {
           receivedTypes.add(event.type);
 
           if (receivedTypes.size === 3) {
@@ -376,7 +420,7 @@ describe('FormComponentEventBus', () => {
             expect(receivedTypes.has(FormComponentEventType.FIELD_DEPENDENCY_TRIGGER)).toBe(true);
             done();
           }
-        }
+        },
       });
 
       bus.publish(createFieldValueChangedEvent({ fieldId: 'f1', value: 'v1' }));
@@ -393,7 +437,7 @@ describe('FormComponentEventBus', () => {
       // We intentionally trigger a subscriber error in AC34 and want to
       // validate bus resilience without failing the entire test run.
       originalOnUnhandledError = rxjsConfig.onUnhandledError;
-      rxjsConfig.onUnhandledError = () => {};
+      rxjsConfig.onUnhandledError = () => { };
     });
 
     afterAll(() => {
@@ -411,14 +455,14 @@ describe('FormComponentEventBus', () => {
           firstSubscriberReceivedCount++;
           // Intentionally throw to simulate subscriber error
           throw new Error('Subscriber error');
-        }
+        },
       });
 
       // Second subscriber should still receive events
       bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe({
         next: () => {
           secondSubscriberReceived = true;
-        }
+        },
       });
 
       // Publishing should not throw even if one subscriber errors
@@ -442,19 +486,19 @@ describe('FormComponentEventBus', () => {
   });
 
   describe('Scoped Channels (R15.10)', () => {
-    it('should create scoped event bus for specific channel', (done) => {
+    it('should create scoped event bus for specific channel', done => {
       const scopedBus = bus.scoped('field-123');
 
       scopedBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe({
-        next: (event) => {
+        next: event => {
           expect(event.sourceId).toBe('field-123');
           expect(event.fieldId).toBe('test');
           done();
-        }
+        },
       });
 
       scopedBus.publish(createFieldValueChangedEvent({ fieldId: 'test', value: 'value' }));
-      });
+    });
 
     it('should filter events by channel ID', () => {
       const scopedBus1 = bus.scoped('channel-1');
@@ -464,17 +508,17 @@ describe('FormComponentEventBus', () => {
       let channel2Received = false;
 
       scopedBus1.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe({
-        next: (event) => {
+        next: event => {
           expect(event.sourceId).toBe('channel-1');
           channel1Received = true;
-        }
+        },
       });
 
       scopedBus2.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe({
-        next: (event) => {
+        next: event => {
           expect(event.sourceId).toBe('channel-2');
           channel2Received = true;
-        }
+        },
       });
 
       // Publish to different channels
@@ -527,7 +571,7 @@ describe('FormComponentEventBus', () => {
         fieldId: 'title',
         value: 'New',
         previousValue: 'Old',
-        sourceId: 'component-1'
+        sourceId: 'component-1',
       });
 
       expect(event.type).toBe(FormComponentEventType.FIELD_VALUE_CHANGED);
@@ -542,7 +586,7 @@ describe('FormComponentEventBus', () => {
         fieldId: 'country',
         dependentFields: ['state', 'city'],
         reason: 'selection changed',
-        sourceId: 'form-1'
+        sourceId: 'form-1',
       });
 
       expect(event.type).toBe(FormComponentEventType.FIELD_DEPENDENCY_TRIGGER);
@@ -555,25 +599,58 @@ describe('FormComponentEventBus', () => {
     it('should create field focus request events via helper', () => {
       const event = createFieldFocusRequestEvent({
         fieldId: 'email',
-        sourceId: 'validation-component'
+        sourceId: 'validation-component',
+        targetElementId: 'form-item-id-email',
+        lineagePath: ['tabs', 'email'],
+        requestId: 'focus-req-1',
+        source: 'validation-summary',
       });
 
       expect(event.type).toBe(FormComponentEventType.FIELD_FOCUS_REQUEST);
       expect(event.fieldId).toBe('email');
       expect(event.sourceId).toBe('validation-component');
+      expect(event.targetElementId).toBe('form-item-id-email');
+      expect(event.lineagePath).toEqual(['tabs', 'email']);
+      expect(event.requestId).toBe('focus-req-1');
+      expect(event.source).toBe('validation-summary');
+    });
+
+    it('should create lineage-based focus request events via helper', () => {
+      const event = createLineageFieldFocusRequestEvent({
+        fieldId: 'email',
+        lineagePath: ['email'],
+        source: 'validation-summary',
+        sourceId: 'form-1',
+      });
+
+      expect(event.type).toBe(FormComponentEventType.FIELD_FOCUS_REQUEST);
+      expect(event.fieldId).toBe('email');
+      expect(event.lineagePath).toEqual(['email']);
+      expect(event.source).toBe('validation-summary');
+      expect(event.sourceId).toBe('form-1');
+    });
+
+    it('should throw when lineage focus request omits lineagePath', () => {
+      expect(() =>
+        createLineageFieldFocusRequestEvent({
+          fieldId: 'email',
+          lineagePath: [],
+          sourceId: 'form-1',
+        })
+      ).toThrow();
     });
 
     it('should create form save requested events via helper', () => {
       const event = createFormSaveRequestedEvent({
         force: true,
-        enabledValidationGroups: ["all"],
+        enabledValidationGroups: ['all'],
         targetStep: 'review',
-        sourceId: 'button-1'
+        sourceId: 'button-1',
       });
 
       expect(event.type).toBe(FormComponentEventType.FORM_SAVE_REQUESTED);
       expect(event.force).toBe(true);
-      expect(event.enabledValidationGroups).toEqual(["all"]);
+      expect(event.enabledValidationGroups).toEqual(['all']);
       expect(event.targetStep).toBe('review');
       expect(event.sourceId).toBe('button-1');
     });
@@ -581,44 +658,70 @@ describe('FormComponentEventBus', () => {
     it('should create form save execute events via helper', () => {
       const event = createFormSaveExecuteEvent({
         force: false,
-        enabledValidationGroups: ["all"],
+        enabledValidationGroups: ['all'],
         targetStep: 'submit',
-        sourceId: 'effect-1'
+        sourceId: 'effect-1',
       });
 
       expect(event.type).toBe(FormComponentEventType.FORM_SAVE_EXECUTE);
       expect(event.force).toBe(false);
-      expect(event.enabledValidationGroups).toEqual(["all"]);
+      expect(event.enabledValidationGroups).toEqual(['all']);
       expect(event.targetStep).toBe('submit');
       expect(event.sourceId).toBe('effect-1');
+    });
+
+    it('should create form status dirty request events via helper', () => {
+      const event = createFormStatusDirtyRequestEvent({
+        fieldId: 'contributors',
+        reason: 'repeatable.element.removed',
+        sourceId: 'repeatable-1',
+      });
+
+      expect(event.type).toBe(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST);
+      expect(event.fieldId).toBe('contributors');
+      expect(event.reason).toBe('repeatable.element.removed');
+      expect(event.sourceId).toBe('repeatable-1');
+    });
+
+    it('should create field item selected events via helper', () => {
+      const event = createFieldItemSelectedEvent({
+        fieldId: '/group/name',
+        selectedItem: { label: 'Test', value: 'test-val', raw: { email: 'a@b.com' } },
+        sourceId: '/group/name',
+      });
+
+      expect(event.type).toBe(FormComponentEventType.FIELD_ITEM_SELECTED);
+      expect(event.fieldId).toBe('/group/name');
+      expect(event.selectedItem).toEqual({ label: 'Test', value: 'test-val', raw: { email: 'a@b.com' } });
+      expect(event.sourceId).toBe('/group/name');
     });
   });
 
   describe('Naming Convention (R15.16)', () => {
-    it('should follow namespace.domain.action naming pattern', () => {
+    it('should follow namespace.domain*.action naming pattern', () => {
       expect(FormComponentEventType.FIELD_VALUE_CHANGED).toBe('field.value.changed');
-      expect(FormComponentEventType.FIELD_META_CHANGED).toBe('field.meta.changed');
+      expect(FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED).toBe('field.ui-attribute.changed');
       expect(FormComponentEventType.FIELD_DEPENDENCY_TRIGGER).toBe('field.dependency.trigger');
       expect(FormComponentEventType.FIELD_FOCUS_REQUEST).toBe('field.request.focus');
       expect(FormComponentEventType.FORM_VALIDATION_BROADCAST).toBe('form.validation.broadcast');
+      expect(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST).toBe('form.status.dirty.request');
       expect(FormComponentEventType.FORM_SAVE_REQUESTED).toBe('form.save.requested');
       expect(FormComponentEventType.FORM_SAVE_EXECUTE).toBe('form.save.execute');
+      expect(FormComponentEventType.FIELD_ITEM_SELECTED).toBe('field.item.selected');
     });
   });
 
   describe('Performance (R15.11, R15.24)', () => {
-    it('should have O(1) publish cost relative to unrelated subscribers', (done) => {
+    it('should have O(1) publish cost relative to unrelated subscribers', done => {
       // Subscribe to different event types
-      bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(() => {});
-      bus.select$(FormComponentEventType.FIELD_FOCUS_REQUEST).subscribe(() => {});
-      bus.select$(FormComponentEventType.FIELD_META_CHANGED).subscribe(() => {});
+      bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(() => { });
+      bus.select$(FormComponentEventType.FIELD_FOCUS_REQUEST).subscribe(() => { });
+      bus.select$(FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED).subscribe(() => { });
 
       const startTime = performance.now();
 
       // Publishing to one type should not scan all subscribers
-      bus.publish(
-        createFieldDependencyTriggerEvent({ fieldId: 'test', dependentFields: [], reason: 'test' })
-      );
+      bus.publish(createFieldDependencyTriggerEvent({ fieldId: 'test', dependentFields: [], reason: 'test' }));
 
       const endTime = performance.now();
       const duration = endTime - startTime;

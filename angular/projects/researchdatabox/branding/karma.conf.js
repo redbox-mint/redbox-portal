@@ -10,7 +10,7 @@ module.exports = function (config) {
       require('karma-coverage'),
       require('@angular-devkit/build-angular/plugins/karma')
     ],
-    client: { jasmine: {}, clearContext: false },
+    client: { __REDBOX_CI_MODE__: process.env.CI === 'true', jasmine: {}, clearContext: false },
     jasmineHtmlReporter: { suppressAll: true },
     coverageReporter: {
       dir: require('path').join(__dirname, './coverage/'),
@@ -22,6 +22,10 @@ module.exports = function (config) {
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
+    browserNoActivityTimeout: 120000,
+    browserDisconnectTimeout: 10000,
+    browserDisconnectTolerance: 2,
+    captureTimeout: 120000,
     autoWatch: true,
     customLaunchers: {
       ChromeHeadlessNoSandbox: {

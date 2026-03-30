@@ -20,7 +20,7 @@ Once you have a NodeJS environment installed install the following dependencies 
 git clone -b dev_build "https://github.com/redbox-mint/redbox-portal"
 ```
 
-2. Create a [ecosytem.json](http://pm2.keymetrics.io/docs/usage/deployment/) file for PM2 as below. See the [configuration guide](https://github.com/redbox-mint/redbox-portal/blob/master/support/docs/Configuring%20web%20forms.md) guide for information on how to configure the env section.
+2. Create a [ecosytem.json](http://pm2.keymetrics.io/docs/usage/deployment/) file for PM2 as below. See the [configuration guide](https://github.com/redbox-mint/redbox-portal/wiki/Configuration-Guide) for information on how to configure the env section.
 ```
 {
   "apps" : [{
@@ -41,7 +41,7 @@ git clone -b dev_build "https://github.com/redbox-mint/redbox-portal"
 }
 ```
 
-3. Copy your configuration changes over the installation. See the [configuration guide](https://github.com/redbox-mint/redbox-portal/blob/master/support/docs/Configuring%20web%20forms.md)
+3. Copy your configuration changes over the installation. See the [configuration guide](https://github.com/redbox-mint/redbox-portal/wiki/Configuration-Guide)
 4. Setup PM2 run on init (depending on your distro) e.g `pm2 startup systemd`
 5. Start the application
 ```

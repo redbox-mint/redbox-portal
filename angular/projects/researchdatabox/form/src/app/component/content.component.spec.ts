@@ -1,49 +1,52 @@
 import {FormConfigFrame, buildKeyString} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
-import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
+import {SimpleInputComponent} from "./simple-input.component";
+import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
-import { UtilityService, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
+import { UtilityService, HandlebarsTemplateService, TranslationService } from "@researchdatabox/portal-ng-common";
 import Handlebars from "handlebars";
 
 
 
 describe('ContentComponent', () => {
   let utilityService: UtilityService;
+  let translationService: any;
+  let lastTemplateContext: any;
   const mockHandlebarsTemplateService = {
     getLibraries: () => ({ Handlebars })
   };
 
   beforeEach(async () => {
+    lastTemplateContext = undefined;
     await createTestbedModule({
-      declarations: {"ContentComponent": ContentComponent},
+      declarations: {"ContentComponent": ContentComponent, "SimpleInputComponent": SimpleInputComponent},
       providers: {
         "UtilityService": null,
-        "HandlebarsTemplateService": { provide: HandlebarsTemplateService, useValue: mockHandlebarsTemplateService }
+        "HandlebarsTemplateService": {provide: HandlebarsTemplateService, useValue: mockHandlebarsTemplateService}
       }
     });
     utilityService = TestBed.inject(UtilityService);
-    spyOn(utilityService, 'getDynamicImport').and.callFake(
-      async function (brandingAndPortalUrl: string, urlPath: string[]) {
-        const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? [])?.join('/')}`;
-        switch (urlKey) {
-          // For the simple test that only creates the component
-          case "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp":
-            return {
-              evaluate: function (key: string[], context: any, extra: any) {
-                // normalise the key the same way as the server
-                const keyStr = buildKeyString(key);
-                switch (keyStr) {
-                  case "componentDefinitions__0__component__config__template":
-                    return Handlebars.compile('<h3>{{content}}</h3>')(context);
-                  default:
-                    throw new Error(`Unknown key: ${keyStr}`);
-                }
-              }
-            };
+    translationService = TestBed.inject(TranslationService as any);
+    translationService.translationMap['@dmpt-project-title'] = 'Project name';
+    spyOn(translationService, 't').and.callFake((key: string) => translationService.translationMap[key] ?? key);
+
+    setUpDynamicAssets({
+      callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+        lastTemplateContext = context;
+        switch (keyStr) {
+          case "componentDefinitions__0__component__config__template":
+            if (context?.content === 'USE_TRANSLATION_TEMPLATE') {
+              return context?.translationService?.t?.('@dmpt-project-title') ?? '';
+            }
+            if (context?.content === 'USE_MISSING_TRANSLATION_TEMPLATE') {
+              return context?.translationService?.t?.('@missing.translation.key') ?? '';
+            }
+            return Handlebars.compile('<h3>{{content}}</h3>')(context);
           default:
-            throw new Error(`Unknown url key: ${urlKey}`);
+            throw new Error(`Unknown key: ${keyStr}`);
         }
-      });
+      }
+    });
   });
 
   it('should create component', () => {
@@ -78,11 +81,134 @@ describe('ContentComponent', () => {
     // act
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
 
-    // Now run your expectations
-    const compiled = fixture.nativeElement as HTMLElement;
-    const inputElement = compiled.querySelector('h3');
+    // assert
     expect(utilityService.getDynamicImport).toHaveBeenCalled();
-    expect((inputElement as HTMLHeadingElement).textContent).toEqual('My first text block component!!!');
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const element = compiled.querySelector('h3');
+    expect((element as HTMLHeadingElement)?.textContent).toEqual('My first text block component!!!');
+  });
+
+  it('should render content as-is when contentIsTranslationCode is false', async () => {
+    // arrange
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          component: {
+            class: 'ContentComponent',
+            config: {
+              content: '@dmpt-project-title',
+              contentIsTranslationCode: false
+            } as any
+          }
+        }
+      ]
+    };
+
+    // act
+    const {fixture} = await createFormAndWaitForReady(formConfig, { editMode: true } as any);
+
+    // assert
+    const compiled = fixture.nativeElement as HTMLElement;
+    const element = compiled.querySelector('span');
+    expect((element as HTMLSpanElement)?.textContent).toEqual('@dmpt-project-title');
+  });
+
+  it('should translate content when contentIsTranslationCode is true', async () => {
+    // arrange
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          component: {
+            class: 'ContentComponent',
+            config: {
+              content: '@dmpt-project-title',
+              contentIsTranslationCode: true
+            } as any
+          }
+        }
+      ]
+    };
+
+    // act
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+
+    // assert
+    const compiled = fixture.nativeElement as HTMLElement;
+    const element = compiled.querySelector('span');
+    expect((element as HTMLSpanElement)?.textContent).toEqual('Project name');
+  });
+
+  it('should pass translationService into template context', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          component: {
+            class: 'ContentComponent',
+            config: {
+              content: 'USE_TRANSLATION_TEMPLATE',
+              template: '{{t "@dmpt-project-title"}}'
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const element = compiled.querySelector('span');
+    expect((element as HTMLSpanElement)?.textContent).toEqual('Project name');
+    expect(lastTemplateContext?.translationService).toBeDefined();
+    expect(typeof lastTemplateContext?.translationService?.t).toEqual('function');
+  });
+
+  it('should fallback to translation key when template key is missing', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          component: {
+            class: 'ContentComponent',
+            config: {
+              content: 'USE_MISSING_TRANSLATION_TEMPLATE',
+              template: '{{t "@missing.translation.key"}}'
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const element = compiled.querySelector('span');
+    expect((element as HTMLSpanElement)?.textContent).toEqual('@missing.translation.key');
   });
 
 });

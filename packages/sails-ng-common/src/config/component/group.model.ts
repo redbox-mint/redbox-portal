@@ -95,3 +95,11 @@ export const GroupMap = [
     {kind: FieldModelDefinitionKind, def: GroupFieldModelDefinition, class: GroupFieldModelName},
     {kind: FormComponentDefinitionKind, def: GroupFormComponentDefinition, class: GroupFieldComponentName},
 ];
+export const GroupDefaults = {
+    [FormComponentDefinitionKind]: {
+        [GroupFieldComponentName]: {
+            [FieldComponentDefinitionKind]: GroupFieldComponentName,
+            [FieldModelDefinitionKind]: GroupFieldModelName,
+        },
+    },
+};

@@ -1,0 +1,39 @@
+:host {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.rb-form-debug-panel__section--events {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.rb-form-debug-event-list {
+  grid-row: 4;
+  min-height: 0;
+  max-height: min(68vh, calc(100vh - 16rem));
+  overflow-y: scroll;
+  overflow-x: auto;
+  scrollbar-gutter: stable both-edges;
+}
+
+.rb-form-debug-event-filters .form-control-sm,
+.rb-form-debug-event-filters .form-select-sm {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  height: calc(1.5em + 0.5rem + 2px);
+  min-height: calc(1.5em + 0.5rem + 2px);
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.rb-form-debug-event-filters .form-select-sm {
+  padding-right: 2rem;
+}

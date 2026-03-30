@@ -3,6 +3,8 @@ This folder contains the default i18n namespace files that seed the database and
 Structure:
 - language-defaults/<lng>/<namespace>.json (e.g., language-defaults/en/translation.json)
 
+Other locales (non-English defaults) live under support/language-defaults to avoid slowing down default bootstrap.
+
 Notes:
 - Do not edit files under assets/locales; those are build artifacts or served static assets.
 

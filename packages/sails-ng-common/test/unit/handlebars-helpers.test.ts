@@ -22,6 +22,24 @@ describe('Shared Handlebars Helpers', function () {
             expect(result).to.match(/\d{4}-\d{2}-\d{2}/);
         });
 
+        it('should format ISO date with Moment-style custom format', function () {
+            const result = handlebarsHelperDefinitions.formatDate('2023-05-18T00:00:00.000Z', 'DD/MM/YYYY');
+            expect(result).to.equal('18/05/2023');
+        });
+
+        it('should format Date instances with custom format', function () {
+            const result = handlebarsHelperDefinitions.formatDate(new Date('2023-05-18T00:00:00.000Z'), 'yyyy-MM-dd');
+            expect(result).to.equal('2023-05-18');
+        });
+
+        it('should ignore the Handlebars options argument when no explicit format is provided', function () {
+            const result = handlebarsHelperDefinitions.formatDate(
+                '2023-05-18T01:30:00.000Z',
+                { hash: {}, data: {}, fn: () => '', inverse: () => '' } as unknown as string
+            );
+            expect(result).to.match(/\d{2}\/\d{2}\/\d{4}/);
+        });
+
         it('should return empty string for empty input', function () {
             const result = handlebarsHelperDefinitions.formatDate('');
             expect(result).to.equal('');
@@ -50,6 +68,25 @@ describe('Shared Handlebars Helpers', function () {
             const obj = { metadata: {} };
             const result = handlebarsHelperDefinitions.get(obj, 'metadata.contributor.name');
             expect(result).to.equal('');
+        });
+    });
+
+    describe('formatDateLocale', function () {
+        it('should format Date instances with locale presets', function () {
+            const result = handlebarsHelperDefinitions.formatDateLocale(new Date('2023-05-18T01:30:00.000Z'), 'DATE_SHORT', 'en');
+            expect(result).to.be.a('string');
+            expect(result).to.not.equal('');
+            expect(result).to.not.equal('Invalid Date');
+        });
+
+        it('should ignore the Handlebars options argument when preset and locale are omitted', function () {
+            const result = handlebarsHelperDefinitions.formatDateLocale(
+                new Date('2023-05-18T01:30:00.000Z'),
+                { hash: {}, data: {}, fn: () => '', inverse: () => '' } as unknown as string
+            );
+            expect(result).to.be.a('string');
+            expect(result).to.not.equal('');
+            expect(result).to.not.equal('Invalid Date');
         });
     });
 
@@ -90,6 +127,20 @@ describe('Shared Handlebars Helpers', function () {
 
         it('should return false for null', function () {
             expect(handlebarsHelperDefinitions.isDefined(null)).to.be.false;
+        });
+    });
+
+    describe('isObject', function () {
+        it('should return true for plain objects', function () {
+            expect(handlebarsHelperDefinitions.isObject({ key: 'value' })).to.be.true;
+        });
+
+        it('should return false for arrays', function () {
+            expect(handlebarsHelperDefinitions.isObject(['value'])).to.be.false;
+        });
+
+        it('should return false for null', function () {
+            expect(handlebarsHelperDefinitions.isObject(null)).to.be.false;
         });
     });
 
@@ -146,6 +197,25 @@ describe('Shared Handlebars Helpers', function () {
         });
     });
 
+    describe('substring', function () {
+        it('should return sliced substring', function () {
+            const result = handlebarsHelperDefinitions.substring('https://linked.data.gov.au/def/anzsrc-for/2020/300101', -6);
+            expect(result).to.equal('300101');
+        });
+    });
+
+    describe('split', function () {
+        it('should return a selected segment by index', function () {
+            const result = handlebarsHelperDefinitions.split('https://linked.data.gov.au/def/anzsrc-for/2020/300101', '/', -1);
+            expect(result).to.equal('300101');
+        });
+
+        it('should return all segments when index is omitted', function () {
+            const result = handlebarsHelperDefinitions.split('a/b/c', '/');
+            expect(result).to.deep.equal(['a', 'b', 'c']);
+        });
+    });
+
     describe('default', function () {
         it('should return value if truthy', function () {
             const result = handlebarsHelperDefinitions.default('hello', 'default');
@@ -155,6 +225,24 @@ describe('Shared Handlebars Helpers', function () {
         it('should return default if value is falsy', function () {
             const result = handlebarsHelperDefinitions.default('', 'default');
             expect(result).to.equal('default');
+        });
+    });
+
+    describe('markdownToHtml', function () {
+        it('should convert markdown input when output format is markdown', function () {
+            const result = handlebarsHelperDefinitions.markdownToHtml('**bold**', 'markdown');
+            expect(result).to.contain('<strong>bold</strong>');
+        });
+
+        it('should pass html input through when output format is html', function () {
+            const html = '<p><em>hello</em></p>';
+            const result = handlebarsHelperDefinitions.markdownToHtml(html, 'html');
+            expect(result).to.equal(html);
+        });
+
+        it('should return empty string when value is nullish', function () {
+            const result = handlebarsHelperDefinitions.markdownToHtml(null, 'markdown');
+            expect(result).to.equal('');
         });
     });
 
@@ -177,6 +265,54 @@ describe('Shared Handlebars Helpers', function () {
         it('lte should return true if first <= second', function () {
             expect(handlebarsHelperDefinitions.lte(5, 5)).to.be.true;
             expect(handlebarsHelperDefinitions.lte(6, 5)).to.be.false;
+        });
+    });
+
+    describe('renderMetadataValue', function () {
+        it('should render plain objects as nested key-value rows', function () {
+            const result = handlebarsHelperDefinitions.renderMetadataValue({
+                given: 'Alice',
+                family: 'Scott'
+            });
+
+            expect(result).to.contain('rb-view-metadata__nested');
+            expect(result).to.contain('given');
+            expect(result).to.contain('Alice');
+            expect(result).to.contain('family');
+            expect(result).to.contain('Scott');
+        });
+
+        it('should render string arrays as unordered lists', function () {
+            const result = handlebarsHelperDefinitions.renderMetadataValue(['one', 'two']);
+
+            expect(result).to.contain('<ul');
+            expect(result).to.contain('<li>one</li>');
+            expect(result).to.contain('<li>two</li>');
+        });
+
+        it('should render arrays of flat objects as tables', function () {
+            const result = handlebarsHelperDefinitions.renderMetadataValue([
+                { name: 'Alice', role: 'CI' },
+                { name: 'Bob', role: 'DM' }
+            ]);
+
+            expect(result).to.contain('<table');
+            expect(result).to.contain('<th>name</th>');
+            expect(result).to.contain('<th>role</th>');
+            expect(result).to.contain('<td>Alice</td>');
+            expect(result).to.contain('<td>DM</td>');
+        });
+
+        it('should render mixed nested arrays recursively', function () {
+            const result = handlebarsHelperDefinitions.renderMetadataValue([
+                'one',
+                { nested: ['two', 'three'] }
+            ]);
+
+            expect(result).to.contain('<ul');
+            expect(result).to.contain('<li>one</li>');
+            expect(result).to.contain('nested');
+            expect(result).to.contain('<li>two</li>');
         });
     });
 });

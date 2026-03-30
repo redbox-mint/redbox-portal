@@ -23,6 +23,8 @@ import {
 
 export class RadioInputFieldComponentConfig extends FieldComponentConfig implements RadioInputFieldComponentConfigOutline {
     options: RadioOption[] = [];
+    vocabRef?: string;
+    inlineVocab?: boolean;
 
     constructor() {
         super();
@@ -90,4 +92,11 @@ export const RadioInputMap = [
     {kind: FieldModelDefinitionKind, def: RadioInputFieldModelDefinition, class: RadioInputModelName},
     {kind: FormComponentDefinitionKind, def: RadioInputFormComponentDefinition, class: RadioInputComponentName},
 ];
-
+export const RadioInputDefaults = {
+    [FormComponentDefinitionKind]: {
+        [RadioInputComponentName]: {
+            [FieldComponentDefinitionKind]: RadioInputComponentName,
+            [FieldModelDefinitionKind]: RadioInputModelName,
+        },
+    },
+};

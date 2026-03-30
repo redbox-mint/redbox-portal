@@ -1,6 +1,6 @@
-import {cloneDeep as _cloneDeep, get as _get} from 'lodash-es';
+import {cloneDeep as _cloneDeep} from 'lodash-es';
 import {AbstractControl, FormControl} from '@angular/forms';
-import {FieldModelDefinitionFrame, FormValidatorConfig} from "@researchdatabox/sails-ng-common";
+import {FieldModelDefinitionFrame, FormValidatorConfig, guessType} from "@researchdatabox/sails-ng-common";
 
 /**
  * Core model for form elements.
@@ -25,7 +25,7 @@ export abstract class FormModel<ValueType, DefinitionType extends FieldModelDefi
   /**
    * Custom initialization logic when constructing the model
    */
-  abstract postCreate(): void;
+  protected abstract postCreate(): void;
 }
 
 /**
@@ -47,14 +47,30 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
     super(initConfig);
   }
 
-  public override postCreate(): void {
+  protected override postCreate(): void {
+    this.initValue = this.postCreateGetInitValue();
+    this.formControl = this.postCreateGetFormControl();
+    // If the config specifies, disable the form control.
+    if (this.fieldConfig.config?.disabled) {
+      this.formControl.disable();
+    }
+    console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value: ${JSON.stringify(this.initValue)}.`);
+  }
+
+  protected postCreateGetInitValue(): ValueType | undefined {
     // The server processes the form config and combines defaultValue and value into just value.
     // The client should not check defaultValue.
-    this.initValue = this.fieldConfig.config?.value;
+    return this.fieldConfig.config?.value;
+  }
 
-    // create the form model
-    this.formControl = this.initValue === undefined ? new FormControl() : new FormControl<ValueType>(this.initValue);
-    console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value:`, this.initValue);
+  protected postCreateGetFormControl(): AbstractControl<ValueType> {
+    // Create a form control with a type based on the ValueType and init value.
+    if (this.initValue === undefined) {
+      return new FormControl();
+    } else {
+      // TODO: FormControl requires considering if ValueType can be null, but we don't do that yet.
+      return new FormControl<ValueType>(this.initValue) as FormControl<ValueType>;
+    }
   }
 
   /**
@@ -69,6 +85,26 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
    * @param value the value to set
    */
   public setValue(value: ValueType): void {
+    // NOTE: There are some form configs or form modes that will throw an error when setting the value.
+    // This can occur when a repeatable (FormArray) or group (FormGroup) component has no controls that have a model.
+    // Use the 'controls' property to check if there are any controls before trying to set the value.
+    if (this.formControl && 'controls' in this.formControl) {
+      const controls = this.formControl.controls;
+      const guessedTypeControls = guessType(controls);
+      if (guessedTypeControls === "array" && (controls as any[]).length === 0) {
+        console.warn(`${this.logName}: FormArray has no controls so not setting value`, {
+          formControl: this.formControl, value
+        });
+        return;
+      }
+      if (guessedTypeControls === "object" && Object.keys(controls as object).length === 0) {
+        console.warn(`${this.logName}: FormGroup has no controls so not setting value`, {
+          formControl: this.formControl, value
+        });
+        return;
+      }
+    }
+
     this.formControl?.setValue(value);
   }
 
@@ -85,7 +121,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
    * @param value the value to set
    */
   public setValueDontEmitEvent(value: ValueType): void {
-    this.formControl?.setValue(value, {emitEvent: false});
+    this.formControl?.setValue(value, { emitEvent: false });
   }
 
   /**

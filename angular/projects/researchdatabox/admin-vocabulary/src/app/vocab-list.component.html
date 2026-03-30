@@ -1,0 +1,91 @@
+<div class="panel panel-default vocab-panel-card">
+  <div class="panel-heading d-flex justify-content-between align-items-center flex-wrap">
+    <strong>{{ 'admin-vocabulary-list-title' | i18next }}</strong>
+    <small class="text-muted">{{ 'admin-vocabulary-list-shown' | i18next: { count: totalCount } }}</small>
+  </div>
+  <div class="panel-body">
+    <div class="row no-gutters align-items-start vocab-filters">
+      <div class="col-md-5 pr-md-3 mb-2 mb-md-0">
+        <label for="vocab-search" class="small text-uppercase text-muted mb-1">{{ 'admin-vocabulary-search' | i18next }}</label>
+        <input
+          id="vocab-search"
+          class="form-control form-control-sm"
+          type="search"
+          [attr.placeholder]="'admin-vocabulary-search-placeholder' | i18next"
+          [ngModel]="searchTerm"
+          (ngModelChange)="onSearchTermChanged($event)"
+        />
+      </div>
+      <div class="col-md-4 pr-md-3 mb-2 mb-md-0">
+        <label class="small text-uppercase text-muted mb-1 d-block">{{ 'admin-vocabulary-source' | i18next }}</label>
+        <div class="btn-group" role="group">
+          <button type="button" class="btn" [ngClass]="sourceFilter === 'all' ? 'btn-info text-white' : 'btn-light'" (click)="setSourceFilter('all')">{{ 'admin-vocabulary-filter-all' | i18next }}</button>
+          <button type="button" class="btn" [ngClass]="sourceFilter === 'local' ? 'btn-info text-white' : 'btn-light'" (click)="setSourceFilter('local')">{{ 'admin-vocabulary-source-local' | i18next }}</button>
+          <button type="button" class="btn" [ngClass]="sourceFilter === 'rva' ? 'btn-info text-white' : 'btn-light'" (click)="setSourceFilter('rva')">{{ 'admin-vocabulary-source-rva' | i18next }}</button>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="small text-uppercase text-muted mb-1 d-block">{{ 'admin-vocabulary-type' | i18next }}</label>
+        <div class="btn-group" role="group">
+          <button type="button" class="btn" [ngClass]="typeFilter === 'all' ? 'btn-info text-white' : 'btn-light'" (click)="setTypeFilter('all')">{{ 'admin-vocabulary-filter-all' | i18next }}</button>
+          <button type="button" class="btn" [ngClass]="typeFilter === 'flat' ? 'btn-info text-white' : 'btn-light'" (click)="setTypeFilter('flat')">{{ 'admin-vocabulary-type-flat' | i18next }}</button>
+          <button type="button" class="btn" [ngClass]="typeFilter === 'tree' ? 'btn-info text-white' : 'btn-light'" (click)="setTypeFilter('tree')">{{ 'admin-vocabulary-type-tree' | i18next }}</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="vocab-table-wrap">
+      <table class="vocab-data-table" [attr.aria-label]="'admin-vocabulary-list-aria-label' | i18next">
+        <colgroup>
+          <col class="vocab-col-name" />
+          <col class="vocab-col-slug" />
+          <col class="vocab-col-type" />
+          <col class="vocab-col-source" />
+          <col class="vocab-col-actions" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>{{ 'admin-vocabulary-name' | i18next }}</th>
+            <th>{{ 'admin-vocabulary-slug' | i18next }}</th>
+            <th>{{ 'admin-vocabulary-type' | i18next }}</th>
+            <th>{{ 'admin-vocabulary-source' | i18next }}</th>
+            <th class="text-right">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let vocabulary of vocabularies; trackBy: trackByVocabularyId" [class.vocab-selected]="selectedId === vocabulary.id"
+            tabindex="0" (keydown.enter)="open(vocabulary.id)">
+            <td><a href="#" (click)="$event.preventDefault(); open(vocabulary.id)">{{ vocabulary.name }}</a></td>
+            <td><code>{{ vocabulary.slug || '-' }}</code></td>
+            <td><span class="badge badge-secondary text-uppercase">{{ ('admin-vocabulary-type-' + vocabulary.type) | i18next }}</span></td>
+            <td><span class="badge text-uppercase" [ngClass]="vocabulary.source === 'rva' ? 'badge-warning' : 'badge-info'">{{ ('admin-vocabulary-source-' + vocabulary.source) | i18next }}</span></td>
+            <td class="text-right text-nowrap">
+              <button class="btn btn-sm btn-primary action-button" type="button" (click)="open(vocabulary.id)">{{ 'admin-vocabulary-edit' | i18next }}</button>
+              <button class="btn btn-sm btn-danger action-button" type="button" (click)="remove(vocabulary.id)">{{ 'admin-vocabulary-delete' | i18next }}</button>
+            </td>
+          </tr>
+          <tr *ngIf="vocabularies.length === 0">
+            <td colspan="5" class="text-muted">{{ 'admin-vocabulary-empty-filtered' | i18next }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="vocab-pagination d-flex justify-content-between align-items-center flex-wrap mt-2">
+      <small class="text-muted">
+        {{ 'admin-vocabulary-pagination-range' | i18next: { start: pageStartIndex, end: pageEndIndex, total: totalCount } }}
+      </small>
+      <div class="btn-group" role="group">
+        <button type="button" class="btn btn-light btn-sm" [disabled]="!canGoPrevious" (click)="previousPage()">
+          {{ 'admin-vocabulary-pagination-previous' | i18next }}
+        </button>
+        <button type="button" class="btn btn-light btn-sm" disabled>
+          {{ 'admin-vocabulary-pagination-page' | i18next: { page: currentPage, totalPages: totalPages } }}
+        </button>
+        <button type="button" class="btn btn-light btn-sm" [disabled]="!canGoNext" (click)="nextPage()">
+          {{ 'admin-vocabulary-pagination-next' | i18next }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

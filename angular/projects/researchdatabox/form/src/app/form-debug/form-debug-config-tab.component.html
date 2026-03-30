@@ -1,0 +1,16 @@
+<section class="rb-form-debug-panel__section" role="region" aria-label="Translated form config debug">
+  <h5>Translated Form Config Debug</h5>
+  <div class="mb-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="debugState.debugShowTranslatedConfig.set(!debugState.debugShowTranslatedConfig())">
+      {{ debugState.debugShowTranslatedConfig() ? 'Hide translated config' : 'Show translated config' }}
+    </button>
+  </div>
+
+  @if (debugState.debugShowTranslatedConfig()) {
+    <h6>Initial translated config snapshot</h6>
+    <pre class="rb-form-debug-pre" [textContent]="debugState.debugTranslatedFormConfigInitial() | json"></pre>
+
+    <h6>Current translated config snapshot</h6>
+    <pre class="rb-form-debug-pre" [textContent]="debugState.debugTranslatedFormConfigCurrent() | json"></pre>
+  }
+</section>

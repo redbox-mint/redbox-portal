@@ -20,6 +20,7 @@ export class BaseFieldComponentConfig implements BaseFieldComponentConfigOutline
     public disabled?: boolean = false;
     public autofocus?: boolean = false;
     public tooltip?: string;
+    public showValidIndicator?: boolean = false;
 }
 
 

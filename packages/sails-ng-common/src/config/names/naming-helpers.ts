@@ -1,16 +1,74 @@
-import { formatJsonPointer } from '@jsonjoy.com/json-pointer';
+// Copyright (c) 2025 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
+//
+// GNU GENERAL PUBLIC LICENSE
+//    Version 2, June 1991
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program; if not, write to the Free Software Foundation, Inc.,
+// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+import { find, findByPointer, formatJsonPointer } from '@jsonjoy.com/json-pointer';
+
 // Shared lineage path helpers and types.
 // Moved from FormService and form-field-base.component to make them reusable across libs.
-// A lineage path is an ordered list of keys (string|number) describing a path lineage for
-// different domains of form configuration (form config JSON, data model, angular components).
 
+/**
+ * A lineage path is an ordered list of keys (string|number) describing a path lineage for
+ * different domains of form configuration.
+ * A string key is a property name or array index number as a string, a number key is an array index.
+ */
 export type LineagePath = (string | number)[];
 
+/**
+ * A collection of lineage paths that describe different relationships.
+ */
 export interface LineagePaths {
-	formConfig: LineagePath;
-	dataModel: LineagePath;
-	angularComponents: LineagePath;
-	angularComponentsJsonPointer?: string;
+    /**
+     * The path to the item in the form config.
+     */
+    formConfig: LineagePath;
+    /**
+     * The path to the item in the form data model.
+     */
+    dataModel: LineagePath;
+    /**
+     * The path to the item in the angular control hierarchy.
+     */
+    angularComponents: LineagePath;
+    /**
+     * The JSONPointer to the angular control.
+     */
+    angularComponentsJsonPointer?: string;
+    /**
+     * The path to the item in the layout hierarchy.
+     * Uses the component name with a "-layout" suffix.
+     */
+    layout: LineagePath;
+    /**
+     * The JSONPointer to the layout item.
+     */
+    layoutJsonPointer?: string;
+}
+
+/**
+ * Allow providing a partial lineage paths object.
+ * This is for adding to an existing lineage path.
+ */
+export interface LineagePathsPartial {
+    formConfig?: LineagePath;
+    dataModel?: LineagePath;
+    angularComponents?: LineagePath;
+    layout?: LineagePath;
 }
 
 /**
@@ -18,14 +76,48 @@ export interface LineagePaths {
  * parts at the end of each lineage path. Undefined inputs default to empty arrays.
  * This was previously an instance method of FormService.
  */
-export function buildLineagePaths(base?: LineagePaths, more?: LineagePaths): LineagePaths {
-	const lineagePaths: LineagePaths = {
-		formConfig: [...(base?.formConfig ?? []), ...(more?.formConfig ?? [])],
-		dataModel: [...(base?.dataModel ?? []), ...(more?.dataModel ?? [])],
-		angularComponents: [...(base?.angularComponents ?? []), ...(more?.angularComponents ?? [])],
-	};
-  lineagePaths.angularComponentsJsonPointer = formatJsonPointer(lineagePaths.angularComponents);
-  return lineagePaths;
+export function buildLineagePaths(base?: LineagePaths, more?: LineagePathsPartial): LineagePaths {
+    const lineagePaths: LineagePaths = {
+        formConfig: [...(base?.formConfig ?? []), ...(more?.formConfig ?? [])],
+        dataModel: [...(base?.dataModel ?? []), ...(more?.dataModel ?? [])],
+        angularComponents: [...(base?.angularComponents ?? []), ...(more?.angularComponents ?? [])],
+        layout: [...(base?.layout ?? []), ...(more?.layout ?? [])],
+    };
+    lineagePaths.angularComponentsJsonPointer = getJSONPointerByArrayPaths(lineagePaths.angularComponents);
+    lineagePaths.layoutJsonPointer = getJSONPointerByArrayPaths(lineagePaths.layout);
+    return lineagePaths;
 }
 
+/**
+ * Get a JSON Pointer string from an array of path segments.
+ *
+ * @param paths
+ * @returns JSON Pointer string
+ */
 
+export function getJSONPointerByArrayPaths(paths: (string | number)[]): string {
+    return formatJsonPointer(paths);
+}
+
+/**
+ * Retrieve any object property using a JSON Pointer or an array of path segments.
+ *
+ * @param obj
+ * @param pointer
+ * @returns JSON Pointer reference: {key: 'key', val: 'object value at key', obj: 'context object, 1 level up from key'}
+ */
+export function getObjectWithJsonPointer(obj: any, pointer: string | string[]): any {
+    if (Array.isArray(pointer)) {
+        return find(obj, pointer);
+    }
+    // Documentation has the order of the parameters reversed compared to the type definition.
+    return findByPointer(pointer, obj);
+}
+
+/**
+ * Retrieve the last segment of a JSONPointer string
+ */
+export function getLastSegmentFromJSONPointer(pointer: string): string {
+    const segments = pointer.split('/');
+    return segments[segments.length - 1];
+}

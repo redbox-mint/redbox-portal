@@ -79,13 +79,11 @@ describe('Form Save Flow Integration', () => {
 
     try {
       // Make the form dirty so the Save button is enabled
-      // Prefer setting the FormControl programmatically to ensure valueChanges and dirty state propagate reliably
-      formComponent.form?.get('text_input')?.setValue('new value');
-      // Explicitly mark the form dirty to satisfy SaveButton gating
-      formComponent.form?.markAsDirty();
-      formComponent.form?.updateValueAndValidity();
+      // Use DOM event to trigger Angular's form change detection
+      const inputElement = fixture.nativeElement.querySelector('input');
+      inputElement.value = 'new value';
+      inputElement.dispatchEvent(new Event('input'));
 
-      fixture.detectChanges();
       await fixture.whenStable();
 
       // Sanity check: button should be enabled now

@@ -1,3 +1,4 @@
+<% let appName = 'record-search'; %>
 <div class="row" id="loading">
   <div class="col-xs-1">
   </div>
@@ -9,16 +10,9 @@
 </div>
 <record-search search_url="record/search" record_type="<%= req.query.type ? req.query.type : 'rdmp'%>" search_str="<%= req.query.q ? req.query.q : '' %>" full_url="<%= req.url %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>></record-search>
 
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/record_search/inline.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/record_search/polyfills.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/record_search/scripts.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% if (sails.config.angularDev) { %>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/record_search/vendor.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% } %>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/record_search/main.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% if (sails.config.angularDev) { %>
-  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/record_search/styles.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% } else { %>
-  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/record_search/styles.bundle.css?ts=<%= sails.config.startupMinute %>">
-<% } %>
-
+<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/polyfills<%= CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
+  type="module"></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/main<%= CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
+    type="module"></script>
+<link rel="stylesheet"
+  href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%= CacheService.getNgAppFileHash(appName, 'styles', '-') %>.css">

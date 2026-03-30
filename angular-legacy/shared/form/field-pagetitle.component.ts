@@ -21,7 +21,7 @@ import { SimpleComponent } from './field-simple.component';
 import { NotInFormField } from './field-simple';
 import * as _ from "lodash";
 import * as moment from 'moment';
-import numeral from 'numeral';
+import * as numeral from 'numeral';
 /**
  * Allows the form to set the page title of the current page.
  * 
@@ -65,7 +65,7 @@ export class PageTitle extends NotInFormField {
     this.template = options['template'];
   }
 
-  public getGroup(group: any, fieldMap: any) : any {
+  public getGroup(group: any, fieldMap: any): any {
     const retval = super.getGroup(group, fieldMap);
     return retval;
   }
@@ -78,8 +78,8 @@ export class PageTitle extends NotInFormField {
       if (_.isEmpty(this.template)) {
         console.error(`PageTitle:: Template not specified!`);
       } else {
-        const imports = _.extend({moment: moment, numeral:numeral, field: this});
-        const templateData = {imports: imports};
+        const imports = _.extend({ moment: moment, numeral: numeral, field: this });
+        const templateData = { imports: imports };
         const template = _.template(this.template, templateData);
         pageTitle = template();
       }

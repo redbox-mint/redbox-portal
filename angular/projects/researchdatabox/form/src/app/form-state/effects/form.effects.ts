@@ -14,7 +14,7 @@ import * as FormActions from '../state/form.actions';
 import * as FormSelectors from '../state/form.selectors';
 import { FormStatus } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
-import { createFormSaveExecuteEvent } from '../events/form-component-event.types';
+import { createFormDeleteExecuteEvent, createFormSaveExecuteEvent } from '../events/form-component-event.types';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
 
 // Abstraction for submit to allow async mocking in tests
@@ -126,8 +126,8 @@ export class FormEffects {
       withLatestFrom(this.store.select(FormSelectors.selectStatus)),
       filter(([action, status]) => {
         // The reducer handles SAVING guard, but we double-check here
-        if (status === FormStatus.SAVING) {
-          this.logDiagnostics('resetAllFields ignored - form is SAVING', { status });
+        if (status === FormStatus.SAVING || status === FormStatus.DELETING) {
+          this.logDiagnostics('resetAllFields ignored - form is busy', { status });
           return false;
         }
         return true;
@@ -159,6 +159,7 @@ export class FormEffects {
         ofType(
           FormActions.loadInitialDataSuccess,
           FormActions.submitFormSuccess,
+          FormActions.deleteRecordSuccess,
           FormActions.resetAllFieldsComplete
         ),
         tap(action => this.logDiagnostics('Success action', { type: action.type }))
@@ -178,6 +179,7 @@ export class FormEffects {
         ofType(
           FormActions.loadInitialDataFailure,
           FormActions.submitFormFailure,
+          FormActions.deleteRecordFailure,
           FormActions.formValidationFailure
         ),
         tap(action => this.logDiagnostics('Failure action', { type: action.type, action }))
@@ -211,6 +213,28 @@ export class FormEffects {
         // Keep stream resilient
         catchError(error => {
           this.logDiagnostics('publishSaveExecuteOnSubmit error', { error });
+          return of(void 0);
+        })
+      ),
+    { dispatch: false }
+  );
+
+  publishDeleteExecuteOnDeleteRecord$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(FormActions.deleteRecord),
+        tap(action => {
+          this.logDiagnostics('publishDeleteExecuteOnDeleteRecord', action);
+          this.eventBus.publish(
+            createFormDeleteExecuteEvent({
+              closeOnDelete: action.closeOnDelete,
+              redirectLocation: action.redirectLocation,
+              redirectDelaySeconds: action.redirectDelaySeconds,
+            })
+          );
+        }),
+        catchError(error => {
+          this.logDiagnostics('publishDeleteExecuteOnDeleteRecord error', { error });
           return of(void 0);
         })
       ),
