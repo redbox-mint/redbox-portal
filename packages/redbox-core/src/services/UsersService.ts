@@ -39,20 +39,6 @@ declare const Buffer: typeof globalThis.Buffer;
 
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
-  interface UserLike {
-    id?: string | number;
-    username?: string;
-    name?: string;
-    email?: string;
-    type?: string;
-    roles?: unknown[];
-    linkedPrimaryUserId?: string;
-    accountLinkState?: 'active' | 'linked-alias';
-    loginDisabled?: boolean;
-    effectiveLoginDisabled?: boolean;
-    disabledByPrimaryUserId?: string;
-    disabledByPrimaryUsername?: string;
-  }
   type DoneCallback = (err: unknown, user?: unknown, info?: unknown) => void;
   type BcryptLike = {
     compare: (password: string, hash: string, cb: (err: unknown, res: boolean) => void) => void;
@@ -205,13 +191,13 @@ export namespace Services {
       return (ConfigService.getBrand(brandName, 'auth') as AuthBrandConfig) ?? {};
     }
 
-    private normalizeAccountLinkState(user: UserLike | null | undefined): void {
+    private normalizeAccountLinkState(user: UserAttributes | null | undefined): void {
       if (user != null && _.isEmpty(user.accountLinkState)) {
         user.accountLinkState = 'active';
       }
     }
 
-    private hasRoleInBrand(user: UserLike | null | undefined, brandId: string): boolean {
+    private hasRoleInBrand(user: UserAttributes | null | undefined, brandId: string): boolean {
       if (user == null || _.isEmpty(brandId)) {
         return false;
       }
@@ -223,7 +209,7 @@ export namespace Services {
       });
     }
 
-    private getRolesForBrand(user: UserLike | null | undefined, brandId: string): AnyRecord[] {
+    private getRolesForBrand(user: UserAttributes | null | undefined, brandId: string): AnyRecord[] {
       if (user == null || _.isEmpty(brandId)) {
         return [];
       }
@@ -235,7 +221,7 @@ export namespace Services {
       }) as AnyRecord[];
     }
 
-    private toLinkedUserSummary(user: UserLike, linkedAt?: string | Date): LinkedUserSummary {
+    private toLinkedUserSummary(user: UserAttributes, linkedAt?: string | Date): LinkedUserSummary {
       this.normalizeAccountLinkState(user);
       return {
         id: String(user.id ?? ''),
@@ -322,7 +308,7 @@ export namespace Services {
       return rewrittenCount;
     }
 
-    private async resolveEffectiveDisabledState(user: UserLike): Promise<{ effectiveLoginDisabled: boolean; disabledByPrimaryUserId?: string; disabledByPrimaryUsername?: string }> {
+    private async resolveEffectiveDisabledState(user: UserAttributes): Promise<{ effectiveLoginDisabled: boolean; disabledByPrimaryUserId?: string; disabledByPrimaryUsername?: string }> {
       if (user.loginDisabled === true) {
         return { effectiveLoginDisabled: true };
       }
@@ -339,14 +325,14 @@ export namespace Services {
       return { effectiveLoginDisabled: false };
     }
 
-    private async assertAuthenticationAllowed(user: AnyRecord): Promise<void> {
+    private async assertAuthenticationAllowed(user: UserAttributes): Promise<void> {
       const state = await this.resolveEffectiveDisabledState(user);
       if (state.effectiveLoginDisabled) {
         throw new Error('Account is disabled');
       }
     }
 
-    public async enrichUsersWithEffectiveDisabledState<T extends UserLike>(users: T[]): Promise<T[]> {
+    public async enrichUsersWithEffectiveDisabledState<T extends UserAttributes>(users: T[]): Promise<T[]> {
       const primaryIds = _.uniq(
         _.compact(_.map(users, (u: T) => !_.isEmpty(u.linkedPrimaryUserId) ? String(u.linkedPrimaryUserId) : null))
       );
@@ -728,7 +714,7 @@ export namespace Services {
               });
             }
 
-            const foundUserObj = foundUser as AnyRecord;
+            const foundUserObj = foundUser as UserAttributes & AnyRecord;
             const passwordHash = String(foundUserObj.password ?? '');
             bcrypt.compare(password, passwordHash, function (err: unknown, res: boolean) {
 
@@ -739,7 +725,7 @@ export namespace Services {
               }
 
               // Gate disabled users
-              that.assertAuthenticationAllowed(foundUserObj).then(() => {
+              that.assertAuthenticationAllowed(foundUserObj as UserAttributes).then(() => {
 
                 // foundUser.lastLogin = new Date();
 
@@ -1058,20 +1044,20 @@ export namespace Services {
               return done(err, false);
             }
             if (user) {
-              const userObj = user as AnyRecord;
+              const userObj = user as UserAttributes & AnyRecord;
               // Gate disabled users
               that.assertAuthenticationAllowed(userObj).then(() => {
                 const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
                 userObj.lastLogin = new Date();
-                userObj.name = attrs.cn;
+                userObj.name = String(attrs.cn ?? '');
                 userObj.email = String(attrs.mail ?? '').toLowerCase();
-                userObj.displayname = attrs.displayname;
-                userObj.cn = attrs.cn;
-                userObj.edupersonscopedaffiliation = attrs.edupersonscopedaffiliation;
-                userObj.edupersontargetedid = attrs.edupersontargetedid;
-                userObj.edupersonprincipalname = attrs.edupersonprincipalname;
-                userObj.givenname = attrs.givenname;
-                userObj.surname = attrs.surname;
+                userObj.displayname = _.isNil(attrs.displayname) ? undefined : String(attrs.displayname);
+                userObj.cn = _.isNil(attrs.cn) ? undefined : String(attrs.cn);
+                userObj.edupersonscopedaffiliation = _.isNil(attrs.edupersonscopedaffiliation) ? undefined : String(attrs.edupersonscopedaffiliation);
+                userObj.edupersontargetedid = _.isNil(attrs.edupersontargetedid) ? undefined : String(attrs.edupersontargetedid);
+                userObj.edupersonprincipalname = _.isNil(attrs.edupersonprincipalname) ? undefined : String(attrs.edupersonprincipalname);
+                userObj.givenname = _.isNil(attrs.givenname) ? undefined : String(attrs.givenname);
+                userObj.surname = _.isNil(attrs.surname) ? undefined : String(attrs.surname);
 
                 const configAAF = _.get(defAuthConfig, 'aaf', {});
                 if (that.hasPreSaveTriggerConfigured(configAAF, 'onUpdate')) {
@@ -1416,7 +1402,7 @@ export namespace Services {
           return done(err, false);
         }
         if (user) {
-          const userObj = user as AnyRecord;
+          const userObj = user as UserAttributes & AnyRecord;
           // Gate disabled users
           that.assertAuthenticationAllowed(userObj).then(() => {
             sails.log.error("At OIDC Strategy verify, updating new user...");
@@ -1428,12 +1414,16 @@ export namespace Services {
                 ? additionalAttributesMapping
                 : {}) as Record<string, string>
             );
-            userObj.name = _.get(userinfo, claimsMappings['name'] as string ?? '');
+            userObj.name = String(_.get(userinfo, claimsMappings['name'] as string ?? '', ''));
             userObj.email = String(_.get(userinfo, claimsMappings['email'] as string ?? '', '')).toLowerCase();
-            userObj.displayname = _.get(userinfo, claimsMappings['displayName'] as string ?? '');
-            userObj.cn = _.get(userinfo, claimsMappings['cn'] as string ?? '');
-            userObj.givenname = _.get(userinfo, claimsMappings['givenname'] as string ?? '');
-            userObj.surname = _.get(userinfo, claimsMappings['surname'] as string ?? '');
+            const displayName = _.get(userinfo, claimsMappings['displayName'] as string ?? '');
+            const commonName = _.get(userinfo, claimsMappings['cn'] as string ?? '');
+            const givenName = _.get(userinfo, claimsMappings['givenname'] as string ?? '');
+            const surname = _.get(userinfo, claimsMappings['surname'] as string ?? '');
+            userObj.displayname = _.isNil(displayName) ? undefined : String(displayName);
+            userObj.cn = _.isNil(commonName) ? undefined : String(commonName);
+            userObj.givenname = _.isNil(givenName) ? undefined : String(givenName);
+            userObj.surname = _.isNil(surname) ? undefined : String(surname);
 
             if (that.hasPreSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
               that.triggerPreSaveTriggers(userObj, oidcConfig as AnyRecord).then((userAdditionalInfo: AnyRecord) => {
@@ -1637,7 +1627,7 @@ export namespace Services {
                 return done(null, false);
               }
               // Gate disabled users
-              that.assertAuthenticationAllowed(user as AnyRecord).then(() => {
+              that.assertAuthenticationAllowed(user as UserAttributes).then(() => {
                 that.resolveLinkedUserCandidate(user)
                   .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
                     scope: 'all'
@@ -1852,9 +1842,8 @@ export namespace Services {
             ? await UserLink.find({ brandId: brandId, status: 'active' })
             : [];
           const linkedSecondaryIds = new Set(_.map(activeLinks as AnyRecord[], (link: unknown) => String((link as AnyRecord).secondaryUserId ?? '')));
-          return _.filter(users, (user: unknown) => {
-            const userObj = user as AnyRecord;
-            return this.hasRoleInBrand(userObj, String(brandId)) || linkedSecondaryIds.has(String(userObj.id ?? ''));
+          return _.filter(users, (user: UserModel) => {
+            return this.hasRoleInBrand(user, String(brandId)) || linkedSecondaryIds.has(String(user.id ?? ''));
           });
         }));
     }
@@ -1878,7 +1867,7 @@ export namespace Services {
         }));
       }
 
-      const userObj = userOrId as AnyRecord;
+      const userObj = userOrId as UserModel;
       this.normalizeAccountLinkState(userObj);
       if (_.isEmpty(userObj.linkedPrimaryUserId)) {
         return of(userObj as UserModel);
@@ -1899,7 +1888,7 @@ export namespace Services {
           throw new Error(`No such user with id:${primaryUserId}`);
         }
 
-        const primaryUserObj = primaryUser as AnyRecord;
+        const primaryUserObj = primaryUser as UserModel;
         const links = typeof UserLink !== 'undefined'
           ? await UserLink.find({ primaryUserId: String(primaryUserObj.id ?? ''), status: 'active' })
           : [];
@@ -1907,7 +1896,7 @@ export namespace Services {
         const secondaryUsers = _.isEmpty(secondaryIds)
           ? []
           : await User.find({ id: secondaryIds }).populate('roles');
-        const secondaryUsersById = _.keyBy(secondaryUsers as AnyRecord[], user => String(user.id ?? ''));
+        const secondaryUsersById = _.keyBy(secondaryUsers as UserModel[], (user: UserModel) => String(user.id ?? ''));
         const linkedAccounts = _.compact(_.map(links as AnyRecord[], (link: unknown) => {
           const linkObj = link as AnyRecord;
           const secondary = secondaryUsersById[String(linkObj.secondaryUserId ?? '')];
@@ -1929,7 +1918,11 @@ export namespace Services {
       const queryText = _.trim(query);
       return from((async () => {
         const userWhere: AnyRecord = {
-          accountLinkState: 'active',
+          or: [
+            { accountLinkState: 'active' },
+            { accountLinkState: null },
+            { accountLinkState: { '!=': 'linked-alias' } }
+          ],
           loginDisabled: { '!=': true }
         };
 
@@ -1938,18 +1931,21 @@ export namespace Services {
         }
 
         if (!_.isEmpty(queryText)) {
-          userWhere.or = [
+          userWhere.and = userWhere.and ?? [];
+          (userWhere.and as AnyRecord[]).push({
+            or: [
             { username: { contains: queryText } },
             { name: { contains: queryText } },
             { email: { contains: queryText } }
-          ];
+            ]
+          });
         }
 
         const users = await User.find(userWhere).populate('roles');
-        const enrichedUsers = await this.enrichUsersWithEffectiveDisabledState(users as UserLike[]);
+        const enrichedUsers = await this.enrichUsersWithEffectiveDisabledState(users as UserAttributes[]);
         let primaryUserIdsWithLinkedAccounts = new Set<string>();
         if (typeof UserLink !== 'undefined' && !_.isEmpty(enrichedUsers)) {
-          const candidateUserIds = _.map(enrichedUsers, (user: UserLike) => String(user.id ?? ''));
+          const candidateUserIds = _.map(enrichedUsers, (user: UserAttributes) => String(user.id ?? ''));
           const activeLinks = await UserLink.find({
             status: 'active',
             primaryUserId: candidateUserIds
@@ -2002,8 +1998,8 @@ export namespace Services {
           throw new Error('Both users must exist before linking');
         }
 
-        const primaryUser = primaryEffective as AnyRecord;
-        const secondaryUserObj = secondaryUser as AnyRecord;
+        const primaryUser = primaryEffective as UserModel;
+        const secondaryUserObj = secondaryUser as UserModel;
         this.normalizeAccountLinkState(primaryUser);
         this.normalizeAccountLinkState(secondaryUserObj);
 
@@ -2026,7 +2022,7 @@ export namespace Services {
         }
 
         const secondaryBrandRoles = this.getRolesForBrand(secondaryUserObj, brandId);
-        const secondaryForeignRoles = _.filter(secondaryUserObj.roles as AnyRecord[] ?? [], (role: unknown) => {
+        const secondaryForeignRoles = _.filter(secondaryUserObj.roles as unknown[] ?? [], (role: unknown) => {
           const roleObj = role as AnyRecord;
           const branding = roleObj.branding as string | AnyRecord | undefined;
           const roleBrandId = _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');
@@ -2070,7 +2066,7 @@ export namespace Services {
           await firstValueFrom(this.getObservable(addRoleQuery, 'exec', 'simplecb'));
         }
 
-        const retainedSecondaryRoleIds = _.map(_.filter(secondaryUserObj.roles as AnyRecord[] ?? [], (role: unknown) => {
+        const retainedSecondaryRoleIds = _.map(_.filter(secondaryUserObj.roles as unknown[] ?? [], (role: unknown) => {
           const roleObj = role as AnyRecord;
           const branding = roleObj.branding as string | AnyRecord | undefined;
           const roleBrandId = _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');

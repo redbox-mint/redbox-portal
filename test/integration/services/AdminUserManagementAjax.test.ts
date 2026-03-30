@@ -57,6 +57,32 @@ describe("Admin user management AJAX routes", function () {
     expect(loginResponse.body.user.username).to.equal("admin");
   });
 
+  after(async function () {
+    if (typeof UserLink !== "undefined") {
+      await UserLink.destroy({
+        or: [
+          { primaryUserId },
+          { secondaryUserId },
+          { primaryUsername },
+          { secondaryUsername }
+        ]
+      });
+    }
+    if (typeof UserAudit !== "undefined") {
+      await UserAudit.destroy({
+        or: [
+          { "user.username": primaryUsername },
+          { "user.username": secondaryUsername },
+          { additionalContext: { contains: JSON.stringify(primaryUserId) } },
+          { additionalContext: { contains: JSON.stringify(secondaryUserId) } }
+        ]
+      }).meta({
+        enableExperimentalDeepTargets: true
+      });
+    }
+    await User.destroy({ id: [primaryUserId, secondaryUserId] });
+  });
+
   it("supports candidate search, linking, disable/enable, and audit retrieval", async function () {
     const candidateResponse = await agent
       .get("/default/rdmp/admin/users/link/candidates")
