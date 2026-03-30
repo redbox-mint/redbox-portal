@@ -1,0 +1,98 @@
+@if (isVisible) {
+  <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
+
+  @if (dataLocations.length > 0) {
+    <div class="table-responsive mt-2">
+      <table class="table table-bordered table-striped table-hover mb-0">
+        <thead>
+          <tr>
+            <th width="5%">
+              <input
+                type="checkbox"
+                [disabled]="isDisabled || isReadonly"
+                [attr.aria-label]="'select-all-items' | i18next"
+                (change)="selectAllLocations($any($event.target).checked)"
+              />
+            </th>
+            <th width="15%">{{ typeHeader | i18next }}</th>
+            <th width="40%">{{ locationHeader | i18next }}</th>
+            @if (notesEnabled) {
+              <th [attr.width]="iscEnabled ? '20%' : '40%'">{{ notesHeader | i18next }}</th>
+            }
+            @if (iscEnabled) {
+              <th width="20%">{{ iscHeader | i18next }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (dataLocation of dataLocations; track $index) {
+            <tr>
+              <td>
+                <input
+                  type="checkbox"
+                  [checked]="dataLocation.selected === true"
+                  [disabled]="isDisabled || isReadonly || !canBeSelected(dataLocation)"
+                  [attr.aria-label]="'select-item' | i18next"
+                  (change)="toggleLocationSelection($index, $any($event.target).checked)"
+                />
+              </td>
+              <td>{{ getLocationTypeLabel(dataLocation) }}</td>
+              <td>
+                @if (isLinkLocation(dataLocation)) {
+                  <a [href]="getLocationHref(dataLocation)" target="_blank" rel="noopener noreferrer">
+                    {{ getLocationDisplayText(dataLocation) }}
+                  </a>
+                } @else {
+                  <span>{{ getLocationDisplayText(dataLocation) }}</span>
+                }
+              </td>
+              @if (notesEnabled) {
+                <td>
+                  <span>{{ dataLocation.notes }}</span>
+                  @if (!(isDisabled || isReadonly)) {
+                    <button type="button" class="btn btn-primary btn-sm float-end" (click)="startEditNotes($index)">
+                      {{ editNotesButtonText | i18next }}
+                    </button>
+                  }
+                </td>
+              }
+              @if (iscEnabled) {
+                <td>{{ dataLocation.isc }}</td>
+              }
+            </tr>
+            @if (editingNotesIndex === $index && notesEnabled) {
+              <tr>
+                <td [attr.colspan]="iscEnabled ? 5 : 4">
+                  <div class="d-flex gap-2 align-items-center">
+                    <input
+                      type="text"
+                      [class]="editNotesCssClasses"
+                      [value]="editingNotesValue"
+                      [attr.aria-label]="editNotesTitle | i18next"
+                      (input)="editingNotesValue = $any($event.target).value"
+                    />
+                    <button type="button" class="btn btn-default" (click)="cancelEditNotes()">
+                      {{ cancelEditNotesButtonText | i18next }}
+                    </button>
+                    <button type="button" class="btn btn-primary" (click)="applyEditNotes()">
+                      {{ applyEditNotesButtonText | i18next }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (shouldShowNoLocationSelected()) {
+    <div class="mt-2">
+      <h5 class="fw-bold">{{ noLocationSelectedText | i18next }}</h5>
+      <p>{{ noLocationSelectedHelp | i18next }}</p>
+    </div>
+  }
+
+  <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
+}

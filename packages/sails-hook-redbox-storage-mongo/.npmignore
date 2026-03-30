@@ -1,0 +1,5 @@
+.tmp
+.circleci
+support
+*.tgz
+.nvmrc

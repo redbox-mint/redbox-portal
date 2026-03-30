@@ -11,6 +11,7 @@ import {
     FieldLayoutConfig,
     FieldLayoutDefinition,
 } from "../field-layout.model";
+import { ActionRowFieldLayoutConfig } from "./action-row-layout.model";
 import {FormConfigVisitorOutline} from "../visitor/base.outline";
 import {
     FieldComponentConfigKind, FieldComponentDefinitionKind,
@@ -37,6 +38,9 @@ import {
 /* Repeatable Component */
 export class RepeatableFieldComponentConfig extends FieldComponentConfig implements RepeatableFieldComponentConfigOutline {
     elementTemplate!: AvailableFormComponentDefinitionOutlines;
+    addButtonShow = true;
+    allowZeroRows = false;
+    hideWhenZeroRows = false;
 
     constructor() {
         super();
@@ -91,7 +95,7 @@ export class RepeatableFieldModelDefinition extends FieldModelDefinition<Repeata
 
 
 /* Repeatable Element Layout */
-export class RepeatableElementFieldLayoutConfig extends FieldLayoutConfig implements RepeatableElementFieldLayoutConfigOutline {
+export class RepeatableElementFieldLayoutConfig extends ActionRowFieldLayoutConfig implements RepeatableElementFieldLayoutConfigOutline {
     constructor() {
         super();
     }
@@ -133,5 +137,13 @@ export const RepeatableMap = [
     {kind: FieldModelDefinitionKind, def: RepeatableFieldModelDefinition, class: RepeatableModelName},
     {kind: FieldLayoutConfigKind, def: RepeatableElementFieldLayoutConfig},
     {kind: FieldLayoutDefinitionKind, def: RepeatableElementFieldLayoutDefinition, class: RepeatableElementLayoutName},
-    {kind: FormComponentDefinitionKind, def: RepeatableFormComponentDefinition, class:RepeatableComponentName},
+    {kind: FormComponentDefinitionKind, def: RepeatableFormComponentDefinition, class: RepeatableComponentName},
 ];
+export const RepeatableDefaults = {
+    [FormComponentDefinitionKind]: {
+        [RepeatableComponentName]: {
+            [FieldComponentDefinitionKind]: RepeatableComponentName,
+            [FieldModelDefinitionKind]: RepeatableModelName,
+        },
+    },
+};

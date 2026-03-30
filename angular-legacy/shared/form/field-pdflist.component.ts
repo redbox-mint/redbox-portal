@@ -16,14 +16,14 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Input, Component, OnInit, Inject, Injector} from '@angular/core';
+import { Input, Component, OnInit, Inject, Injector } from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import * as _ from "lodash";
 import { RecordsService } from './records.service';
 import * as moment from 'moment';
-import numeral from 'numeral';
+import * as numeral from 'numeral';
 
 
 
@@ -49,12 +49,12 @@ export class PDFListField extends FieldBase<any> {
   columns: object[];
   pdfAttachments: object[];
   latestPdf: object;
-  startsWith:string;
-  showHistoryTable:boolean = false;
-  showVersionColumn:boolean = false;
-  versionColumnValueField:string = "";
+  startsWith: string;
+  showHistoryTable: boolean = false;
+  showVersionColumn: boolean = false;
+  versionColumnValueField: string = "";
   versionColumnLabelKey: string = "";
-  useVersionLabelForFileName:boolean = false;
+  useVersionLabelForFileName: boolean = false;
   downloadBtnLabel: string = "";
   downloadPreviousBtnLabel: string = "";
   downloadPrefix: string = "";
@@ -84,7 +84,7 @@ export class PDFListField extends FieldBase<any> {
     const versionValue = this.fieldMap[this.versionColumnValueField].field.value;
     let version = null;
     if (_.isArray(versionValue)) {
-      version = versionValue[versionValue.length - (index+1)];
+      version = versionValue[versionValue.length - (index + 1)];
     } else {
       version = _.toNumber(versionValue) - index;
     }
@@ -96,17 +96,17 @@ export class PDFListField extends FieldBase<any> {
       this.value = valueElem;
     }
 
-      this.formModel = new FormControl(this.value || []);
+    this.formModel = new FormControl(this.value || []);
 
-      if (this.value) {
-        this.setValue(this.value);
-      }
+    if (this.value) {
+      this.setValue(this.value);
+    }
 
     return this.formModel;
   }
 
-  setValue(value:any) {
-    this.formModel.patchValue(value, {emitEvent: false });
+  setValue(value: any) {
+    this.formModel.patchValue(value, { emitEvent: false });
     this.formModel.markAsTouched();
   }
 
@@ -126,8 +126,8 @@ export class PDFListField extends FieldBase<any> {
         fileName = `${this.downloadPrefix}-${versionLabel}.pdf`;
       }
     } else {
-      const imports = _.extend({versionLabel:versionLabel, moment: moment, numeral:numeral}, this);
-      const templateData = {imports: imports};
+      const imports = _.extend({ versionLabel: versionLabel, moment: moment, numeral: numeral }, this);
+      const templateData = { imports: imports };
       const template = _.template(this.fileNameTemplate, templateData);
       fileName = template();
     }
@@ -149,18 +149,18 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
 
   public ngOnInit() {
     const oid = this.fieldMap._rootComp.oid;
-    if(oid) {
+    if (oid) {
       let allAttachmentsPromise = this.field.recordsService.getAttachments(oid);
       let matchingExpression = new RegExp(`${this.field.startsWith}-[0-9a-fA-F]{32}-[0-9]+\\.pdf`);
       var that = this;
       allAttachmentsPromise.then(allAttachments => {
         that.field.latestPdf = null;
-        _.forEach(allAttachments, (attachment:any) => {
-          if(matchingExpression.test(attachment.label)) {
+        _.forEach(allAttachments, (attachment: any) => {
+          if (matchingExpression.test(attachment.label)) {
 
             attachment.dateUpdated = moment(attachment.dateUpdated).format('LLL');
             that.field.pdfAttachments.push(attachment);
-            if(that.field.latestPdf == null || moment(that.field.latestPdf['dateUpdated'], 'LLL').isBefore(moment(attachment.dateUpdated, 'LLL'))) {
+            if (that.field.latestPdf == null || moment(that.field.latestPdf['dateUpdated'], 'LLL').isBefore(moment(attachment.dateUpdated, 'LLL'))) {
               that.field.latestPdf = attachment;
             }
           }
@@ -177,7 +177,7 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
     }
   }
 
-  public getDownloadUrl(attachment, generateFileName:boolean=false, index:number=0) {
+  public getDownloadUrl(attachment, generateFileName: boolean = false, index: number = 0) {
     const oid = this.fieldMap._rootComp.oid;
     const url = `${this.field.recordsService.getBrandingAndPortalUrl}/record/${oid}/datastream?datastreamId=${attachment.label}`
     if (generateFileName) {
@@ -189,7 +189,7 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
 
   // as of writing, there seems to be issues with selecting the dialog by ID, switching to selecting by style
   public showDialog() {
-      const diagSel = `.${this.field.name}PdfDialog`;
-      jQuery(diagSel).modal('show');
+    const diagSel = `.${this.field.name}PdfDialog`;
+    jQuery(diagSel).modal('show');
   }
 }

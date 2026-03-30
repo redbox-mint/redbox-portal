@@ -1,14 +1,15 @@
 <% let appName = 'export'; %>
-<div class="row">
-  <export <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
-    <div class="col-xs-1">
-    </div>
-    <div class="col-xs-10">
-      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
-    </div>
-    <div class="col-xs-1">
-    </div>
-  </export>
+<div class="row admin-layout">
+  <div class="col-md-3 col-lg-2">
+    <%- include('../admin/layout/sidebar.ejs') %>
+  </div>
+  <div class="col-md-9 col-lg-10 admin-main-content">
+    <export <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+      <div class="col-xs-12">
+        <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+      </div>
+    </export>
+  </div>
 </div>
 <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
    type="module"></script>

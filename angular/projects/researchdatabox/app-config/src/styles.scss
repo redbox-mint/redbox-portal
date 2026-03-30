@@ -1,1 +1,4 @@
 /* You can add global styles to this file, and also import other style files */
+
+/* Include menu editor styles - using @use for modern Sass */
+@use 'app/fieldTypes/menu-editor/menu-editor.type';

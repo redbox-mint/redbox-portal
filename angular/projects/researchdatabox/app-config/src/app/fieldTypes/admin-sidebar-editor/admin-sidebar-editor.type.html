@@ -1,0 +1,606 @@
+<div class="admin-sidebar-editor">
+  <!-- Editor Controls -->
+  <div class="editor-controls d-flex flex-wrap align-items-center mb-3">
+    <button 
+      type="button" 
+      class="btn btn-outline-primary btn-sm ms-auto"
+      (click)="addSection()">
+      <i class="fa fa-plus"></i> Add section
+    </button>
+  </div>
+
+  <div class="row">
+    <!-- Main Editor (Left Column) -->
+    <div class="col-lg-8 mb-3">
+      <!-- Header Configuration Card -->
+      <div class="card global-settings mb-3">
+        <div class="card-body">
+          <h6 class="section-title mb-2">Header Configuration</h6>
+          <div class="field-grid">
+            <div class="field">
+              <label for="header-titleKey">Title Key</label>
+              <input 
+                id="header-titleKey"
+                type="text" 
+                class="form-control"
+                [value]="header?.titleKey || 'menu-admin'"
+                (input)="updateHeaderField('titleKey', $any($event.target).value)"
+                placeholder="menu-admin">
+            </div>
+            <div class="field">
+              <label for="header-iconClass">Icon Class</label>
+              <input 
+                id="header-iconClass"
+                type="text" 
+                class="form-control"
+                [value]="header?.iconClass || 'fa fa-cog'"
+                (input)="updateHeaderField('iconClass', $any($event.target).value)"
+                placeholder="fa fa-cog">
+            </div>
+          </div>
+          <p class="text-muted small mb-0 mt-2">
+            <i class="fa fa-info-circle"></i>
+            Configure the sidebar header title and icon. Use Font Awesome classes for icons.
+          </p>
+        </div>
+      </div>
+
+      <!-- Sections -->
+      <h6 class="section-title">Sections ({{ sections.length }})</h6>
+      
+      @if (sections.length === 0) {
+        <div class="alert alert-info">
+          <i class="fa fa-info-circle"></i>
+          No sections configured. Click "Add section" to create your first sidebar section.
+        </div>
+      }
+
+      @for (section of sections; track trackById($index, section); let i = $index) {
+        <div class="item-card" [class.expanded]="isSectionExpanded(i)">
+          <!-- Section Header (Summary) -->
+          <div class="item-header" 
+               (click)="toggleSection(i)"
+               [attr.aria-expanded]="isSectionExpanded(i)"
+               [attr.aria-controls]="'section-body-' + i">
+            <div class="d-flex align-items-center w-100">
+              <span class="item-index">{{ i + 1 }}</span>
+              <div class="item-summary flex-grow-1">
+                <div class="item-id fw-bold">{{ section.id || 'unnamed' }}</div>
+                <div class="item-meta text-muted small">
+                  Title: {{ getResolvedLabel(section.titleKey) }} ({{ section.titleKey }}) | 
+                  Items: {{ section.items.length || 0 }}
+                  @if (section.requiredRoles && section.requiredRoles.length) {
+                    | Roles: {{ section.requiredRoles.join(', ') }}
+                  }
+                </div>
+              </div>
+              <div class="item-actions top-level-toolbar btn-toolbar" (click)="$event.stopPropagation()">
+                <div class="btn-group">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    [disabled]="i === 0"
+                    (click)="moveSection(i, 'up')"
+                    title="Move up"
+                    aria-label="Move section up">
+                    <i class="fa fa-arrow-up"></i> <span class="btn-label">Up</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    [disabled]="i === sections.length - 1"
+                    (click)="moveSection(i, 'down')"
+                    title="Move down"
+                    aria-label="Move section down">
+                    <i class="fa fa-arrow-down"></i> <span class="btn-label">Down</span>
+                  </button>
+                </div>
+                <div class="btn-group ms-2">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    (click)="duplicateSection(i)"
+                    title="Duplicate"
+                    aria-label="Duplicate section">
+                    <i class="fa fa-copy"></i> <span class="btn-label">Duplicate</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-danger"
+                    (click)="removeSection(i)"
+                    title="Remove"
+                    aria-label="Remove section">
+                    <i class="fa fa-trash"></i> <span class="btn-label">Remove</span>
+                  </button>
+                </div>
+              </div>
+              <span class="expand-icon ms-2">
+                <i class="fa" [class.fa-chevron-down]="!isSectionExpanded(i)" [class.fa-chevron-up]="isSectionExpanded(i)"></i>
+              </span>
+            </div>
+          </div>
+
+          <!-- Section Body (Expanded) -->
+          @if (isSectionExpanded(i)) {
+            <div class="item-body" [id]="'section-body-' + i">
+              <!-- Basic Info Group -->
+              <div class="field-group">
+                <div class="group-title">Basic Info</div>
+                <div class="field-grid">
+                  <div class="field">
+                    <label [for]="'section-id-' + i">
+                      ID <span class="required">*</span>
+                    </label>
+                    <input 
+                      [id]="'section-id-' + i"
+                      type="text" 
+                      class="form-control"
+                      [value]="section.id"
+                      (input)="updateSectionField(i, 'id', $any($event.target).value)"
+                      placeholder="unique-section-id">
+                  </div>
+                  <div class="field">
+                    <label [for]="'section-titleKey-' + i">
+                      Title Key <span class="required">*</span>
+                    </label>
+                    <input 
+                      [id]="'section-titleKey-' + i"
+                      type="text" 
+                      class="form-control"
+                      [value]="section.titleKey"
+                      (input)="updateSectionField(i, 'titleKey', $any($event.target).value)"
+                      placeholder="translation-key">
+                  </div>
+                </div>
+                <div class="help-text">
+                  <i class="fa fa-info-circle"></i>
+                  Section ID is used for collapse target and must be unique. Title key is resolved to a label via translations.
+                </div>
+              </div>
+
+              <!-- Visibility and Access Group -->
+              <details class="field-group collapsible">
+                <summary class="group-title clickable">
+                  <i class="fa fa-chevron-right expand-indicator"></i>
+                  Visibility and Access
+                </summary>
+                <div class="group-content">
+                  <div class="checkbox-row">
+                    <div class="form-check">
+                      <input 
+                        [id]="'section-defaultExpanded-' + i"
+                        type="checkbox" 
+                        class="form-check-input"
+                        [checked]="section.defaultExpanded !== false"
+                        (change)="updateSectionField(i, 'defaultExpanded', $any($event.target).checked)">
+                      <label class="form-check-label" [for]="'section-defaultExpanded-' + i">
+                        Expanded by default
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input 
+                        [id]="'section-requiresAuth-' + i"
+                        type="checkbox" 
+                        class="form-check-input"
+                        [checked]="section.requiresAuth !== false"
+                        (change)="updateSectionField(i, 'requiresAuth', $any($event.target).checked)">
+                      <label class="form-check-label" [for]="'section-requiresAuth-' + i">
+                        Requires authentication
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input 
+                        [id]="'section-hideWhenAuth-' + i"
+                        type="checkbox" 
+                        class="form-check-input"
+                        [checked]="section.hideWhenAuth"
+                        (change)="updateSectionField(i, 'hideWhenAuth', $any($event.target).checked)">
+                      <label class="form-check-label" [for]="'section-hideWhenAuth-' + i">
+                        Hide when authenticated
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div class="field-grid mt-3">
+                    <div class="field">
+                      <label>Roles</label>
+                      <div class="roles-selector">
+                        @for (role of availableRoles; track role) {
+                          <span 
+                            class="role-badge"
+                            [class.active]="sectionHasRole(i, role)"
+                            (click)="toggleSectionRole(i, role)">
+                            {{ role }}
+                            @if (sectionHasRole(i, role)) {
+                              <i class="fa fa-check ms-1"></i>
+                            }
+                          </span>
+                        }
+                        @if (!section.requiredRoles?.length) {
+                          <span class="role-badge any-user">Any user</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label [for]="'section-featureFlag-' + i">Feature Flag</label>
+                      <input 
+                        [id]="'section-featureFlag-' + i"
+                        type="text" 
+                        class="form-control"
+                        [value]="section.featureFlag || ''"
+                        (input)="updateSectionField(i, 'featureFlag', $any($event.target).value || undefined)"
+                        placeholder="Optional flag name">
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- Section Items Group -->
+              <div class="field-group">
+                <div class="group-title">Items ({{ section.items.length }})</div>
+                
+                @if (section.items.length) {
+                  <div class="children-list">
+                    @for (item of section.items; track item.id || $index; let itemIdx = $index) {
+                      <div class="child-card">
+                        <div class="child-info flex-grow-1">
+                          <strong>{{ item.id || 'unnamed' }}</strong>
+                          <div class="text-muted small">
+                            Label: {{ getResolvedLabel(item.labelKey) }} | URL: {{ item.href }}
+                          </div>
+                        </div>
+                        <div class="child-actions second-level-toolbar btn-toolbar">
+                          <div class="btn-group btn-group-sm">
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              [disabled]="itemIdx === 0"
+                              (click)="moveItem(i, itemIdx, 'up')"
+                              title="Move up"
+                              aria-label="Move item up">
+                              <i class="fa fa-arrow-up"></i> <span class="btn-label">Up</span>
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              [disabled]="itemIdx === section.items.length - 1"
+                              (click)="moveItem(i, itemIdx, 'down')"
+                              title="Move down"
+                              aria-label="Move item down">
+                              <i class="fa fa-arrow-down"></i> <span class="btn-label">Down</span>
+                            </button>
+                          </div>
+                          <div class="btn-group btn-group-sm ms-1">
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              (click)="openItemEditor(i, itemIdx)"
+                              title="Edit"
+                              aria-label="Edit item">
+                              <i class="fa fa-edit"></i> <span class="btn-label">Edit</span>
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-danger"
+                              (click)="removeItem(i, itemIdx)"
+                              title="Remove"
+                              aria-label="Remove item">
+                              <i class="fa fa-trash"></i> <span class="btn-label">Remove</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <p class="text-muted small mb-2">
+                    No items in this section. Add items to populate the sidebar links.
+                  </p>
+                }
+                
+                <button 
+                  type="button" 
+                  class="btn btn-outline-primary btn-sm"
+                  (click)="openItemEditor(i)">
+                  <i class="fa fa-plus"></i> Add item
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Footer Links Section -->
+      <div class="footer-links-section mt-4">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="section-title mb-0">Footer Links ({{ footerLinks.length }})</h6>
+          <button 
+            type="button" 
+            class="btn btn-outline-primary btn-sm"
+            (click)="openFooterLinkEditor()">
+            <i class="fa fa-plus"></i> Add footer link
+          </button>
+        </div>
+        
+        @if (footerLinks.length === 0) {
+          <div class="alert alert-info">
+            <i class="fa fa-info-circle"></i>
+            No footer links configured. These appear at the bottom of the sidebar, outside of sections.
+          </div>
+        }
+
+        @for (link of footerLinks; track trackById($index, link); let i = $index) {
+          <div class="footer-link-card">
+            <div class="d-flex align-items-center">
+              <span class="item-index small">{{ i + 1 }}</span>
+              <div class="flex-grow-1">
+                <strong>{{ link.id || 'unnamed' }}</strong>
+                <div class="text-muted small">
+                  Label: {{ getResolvedLabel(link.labelKey) }} | URL: {{ link.href }}
+                </div>
+              </div>
+              <div class="second-level-toolbar btn-toolbar">
+                <div class="btn-group btn-group-sm">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary"
+                    [disabled]="i === 0"
+                    (click)="moveFooterLink(i, 'up')"
+                    title="Move up"
+                    aria-label="Move footer link up">
+                    <i class="fa fa-arrow-up"></i> <span class="btn-label">Up</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary"
+                    [disabled]="i === footerLinks.length - 1"
+                    (click)="moveFooterLink(i, 'down')"
+                    title="Move down"
+                    aria-label="Move footer link down">
+                    <i class="fa fa-arrow-down"></i> <span class="btn-label">Down</span>
+                  </button>
+                </div>
+                <div class="btn-group btn-group-sm ms-1">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary"
+                    (click)="openFooterLinkEditor(i)"
+                    title="Edit"
+                    aria-label="Edit footer link">
+                    <i class="fa fa-edit"></i> <span class="btn-label">Edit</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-danger"
+                    (click)="removeFooterLink(i)"
+                    title="Remove"
+                    aria-label="Remove footer link">
+                    <i class="fa fa-trash"></i> <span class="btn-label">Remove</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Live Preview (Right Column) -->
+    <aside class="col-lg-4">
+      <div class="preview-panel">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="section-title mb-0">Live Preview</h6>
+          <div class="form-check form-switch preview-toggle">
+            <input 
+              class="form-check-input" 
+              type="checkbox" 
+              id="toggle-translations"
+              [checked]="resolveTranslations"
+              (change)="resolveTranslations = !resolveTranslations">
+            <label class="form-check-label" for="toggle-translations">
+              Resolve labels
+            </label>
+          </div>
+        </div>
+        <div class="alert alert-warning small mb-3">
+          <i class="fa fa-info-circle"></i>
+          Preview shows the sidebar as it will appear to authenticated admin users. 
+          Click section titles in the tree to navigate to them.
+        </div>
+
+        <!-- Sidebar Preview -->
+        <div class="sidebar-preview">
+          <!-- Header -->
+          <div class="sidebar-header">
+            <i [class]="header?.iconClass || 'fa fa-cog'"></i>
+            <span>{{ getResolvedLabel(header?.titleKey || 'menu-admin') }}</span>
+          </div>
+
+          <!-- Sections -->
+          @for (section of getVisibleSections(); track section.id; let i = $index) {
+            <div class="sidebar-section">
+              <div 
+                class="sidebar-section-header"
+                (click)="expandedSections.add(i); $event.preventDefault()">
+                <i class="fa fa-chevron-down section-collapse-icon"></i>
+                <span>{{ getResolvedLabel(section.titleKey) }}</span>
+              </div>
+              <ul class="sidebar-section-items">
+                @for (item of getVisibleItems(section); track item.id || $index) {
+                  <li>
+                    <a class="sidebar-link">
+                      {{ getResolvedLabel(item.labelKey) }}
+                      @if (item.external) {
+                        <i class="fa fa-external-link ms-1"></i>
+                      }
+                    </a>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+
+          <!-- Footer Links -->
+          @if (footerLinks.length > 0) {
+            <div class="sidebar-footer">
+              @for (link of footerLinks; track link.id || $index) {
+                <a class="sidebar-footer-link">
+                  {{ getResolvedLabel(link.labelKey) }}
+                </a>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Sidebar Tree -->
+        <h6 class="preview-section-title mt-3">Sidebar Tree</h6>
+        <ul class="sidebar-tree">
+          @for (section of sections; track section.id; let i = $index) {
+            <li>
+              <a 
+                class="tree-link"
+                (click)="expandedSections.add(i); $event.preventDefault()">
+                {{ section.id || 'section-' + i }}
+              </a>
+              @if (section.items.length) {
+                <ul>
+                  @for (item of section.items; track item.id || $index) {
+                    <li class="text-muted">{{ item.id || item.labelKey }}</li>
+                  }
+                </ul>
+              }
+            </li>
+          }
+          @if (footerLinks.length > 0) {
+            <li>
+              <span class="tree-label">Footer Links</span>
+              <ul>
+                @for (link of footerLinks; track link.id || $index) {
+                  <li class="text-muted">{{ link.id || link.labelKey }}</li>
+                }
+              </ul>
+            </li>
+          }
+        </ul>
+
+        <!-- Quick Guidance -->
+        <h6 class="preview-section-title">Quick Guidance</h6>
+        <p class="text-muted small mb-0">
+          The admin sidebar displays collapsible sections with navigation links. 
+          Footer links appear outside sections at the bottom. 
+          Use role restrictions to limit visibility by user role.
+        </p>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Item Editor Modal -->
+  @if (itemEditorState.visible) {
+    <div class="modal-backdrop" (click)="closeItemEditor()" (keydown.escape)="closeItemEditor()">
+      <div class="modal-dialog" 
+           role="dialog" 
+           aria-modal="true"
+           aria-labelledby="modal-title"
+           (click)="$event.stopPropagation()"
+           #modalDialog>
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modal-title">
+              {{ itemEditorState.mode === 'add' ? 'Add' : 'Edit' }} 
+              {{ itemEditorState.context === 'footer' ? 'Footer Link' : 'Item' }}
+            </h5>
+            <button type="button" class="btn-close" aria-label="Close" (click)="closeItemEditor()"></button>
+          </div>
+          <div class="modal-body">
+            <div class="field-grid">
+              <div class="field">
+                <label for="item-id">ID</label>
+                <input 
+                  id="item-id"
+                  type="text" 
+                  class="form-control"
+                  [(ngModel)]="itemEditorState.item.id"
+                  placeholder="item-id">
+              </div>
+              <div class="field">
+                <label for="item-labelKey">Label Key <span class="required">*</span></label>
+                <input 
+                  id="item-labelKey"
+                  type="text" 
+                  class="form-control"
+                  [(ngModel)]="itemEditorState.item.labelKey"
+                  placeholder="translation-key">
+              </div>
+              <div class="field full-width">
+                <label for="item-href">URL <span class="required">*</span></label>
+                <input 
+                  id="item-href"
+                  type="text" 
+                  class="form-control"
+                  [(ngModel)]="itemEditorState.item.href"
+                  placeholder="/path or https://external.url">
+              </div>
+              <div class="field">
+                <div class="form-check">
+                  <input 
+                    id="item-requiresAuth"
+                    type="checkbox" 
+                    class="form-check-input"
+                    [(ngModel)]="itemEditorState.item.requiresAuth">
+                  <label class="form-check-label" for="item-requiresAuth">
+                    Requires authentication
+                  </label>
+                </div>
+              </div>
+              <div class="field">
+                <div class="form-check">
+                  <input 
+                    id="item-external"
+                    type="checkbox" 
+                    class="form-check-input"
+                    [(ngModel)]="itemEditorState.item.external">
+                  <label class="form-check-label" for="item-external">
+                    External link
+                  </label>
+                </div>
+              </div>
+              <div class="field">
+                <div class="form-check">
+                  <input 
+                    id="item-hideWhenAuth"
+                    type="checkbox" 
+                    class="form-check-input"
+                    [(ngModel)]="itemEditorState.item.hideWhenAuth">
+                  <label class="form-check-label" for="item-hideWhenAuth">
+                    Hide when authenticated
+                  </label>
+                </div>
+              </div>
+              <div class="field">
+                <label for="item-featureFlag">Feature Flag</label>
+                <input 
+                  id="item-featureFlag"
+                  type="text" 
+                  class="form-control"
+                  [(ngModel)]="itemEditorState.item.featureFlag"
+                  placeholder="Optional flag name">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeItemEditor()">
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary"
+              [disabled]="!itemEditorState.item.labelKey || !itemEditorState.item.href"
+              (click)="saveItem()">
+              {{ itemEditorState.mode === 'add' ? 'Add' : 'Save' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

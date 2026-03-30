@@ -12,10 +12,12 @@ x-rbportal-env: &rbportal-env
   - sails_redbox__mochaTesting=true
   - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
   - sails_security__csrf=false
+  - LOAD_DEFAULT_FORMS=true
   - datacite_username=${datacite_username:-}
   - datacite_password=${datacite_password:-}
   - datacite_doiPrefix=${datacite_doiPrefix:-}
   - CI=${CI:-false}
+  - RBPORTAL_COVERAGE_DIR=/tmp/coverage/mocha
 
 x-rbportal-depends: &rbportal-depends
   keycloak:
@@ -30,7 +32,6 @@ x-rbportal-depends: &rbportal-depends
 x-rbportal-service: &rbportal-service
   image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
   pull_policy: 'missing'
-  user: root
   ports:
     - "1500:1500"
     # Debugging port
@@ -38,12 +39,15 @@ x-rbportal-service: &rbportal-service
   volumes:
     - "../../test:/opt/redbox-portal/test"
     - "../../support:/opt/redbox-portal/support"
-    - "../../coverage/mocha:/opt/redbox-portal/coverage/mocha"
+    - "../../typescript:/opt/redbox-portal/typescript"
+    - "../../coverage/mocha:/tmp/coverage/mocha"
     - "../../.tmp/junit/backend-mocha:/opt/redbox-portal/.tmp/junit/backend-mocha"
     - "../../.tmp/attachments:/attachments"
+    - "../../tsconfig.json:/opt/redbox-portal/tsconfig.json"
     - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
     - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
     - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+    - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
   depends_on: *rbportal-depends
   expose:
     - "1500"
@@ -61,6 +65,7 @@ services:
   redboxportal:
     <<: *rbportal-service
     profiles: [portal]
+    user: "${UID:-1000}:${GID:-1000}"
   redboxportal-mount:
     <<: *rbportal-service
     profiles: [mount]
@@ -70,6 +75,7 @@ services:
       - "../../.tmp/attachments:/attachments"
       - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
       - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
+      - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
   mongodb:
     image: mongo:latest
     pull_policy: 'always'

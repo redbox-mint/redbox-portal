@@ -12,7 +12,7 @@
  * - AC59: Integration test shall assert INIT -> READY transition
  */
 
-import { TestBed, waitForAsync } from '@angular/core/testing';
+import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { Subscription } from 'rxjs';
 import { FormComponent } from './form.component';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
@@ -25,6 +25,8 @@ import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from './helpers.spec';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { FormEventBusAdapterEffects } from './form-state/effects/form-event-bus-adapter.effects';
+import { TypeaheadInputComponent } from './component/typeahead-input.component';
+import { TypeaheadModule } from 'ngx-bootstrap/typeahead';
 
 describe('FormComponent Integration Tests', () => {
   let component: FormComponent;
@@ -34,6 +36,7 @@ describe('FormComponent Integration Tests', () => {
   let resetTokenSub: Subscription | undefined;
   let eventBus: FormComponentEventBus;
   let busEffects: FormEventBusAdapterEffects;
+  let activeFixtures: Array<ComponentFixture<FormComponent>>;
 
   const basicFormConfig: FormConfigFrame = {
     name: 'testing',
@@ -63,10 +66,15 @@ describe('FormComponent Integration Tests', () => {
   };
 
   beforeEach(async () => {
+    activeFixtures = [];
     await createTestbedModule({
       declarations: {
-        "SimpleInputComponent": SimpleInputComponent
-      }
+        "SimpleInputComponent": SimpleInputComponent,
+        "TypeaheadInputComponent": TypeaheadInputComponent
+      },
+      imports: {
+        "TypeaheadModule": TypeaheadModule.forRoot()
+      },
     });
 
     facade = TestBed.inject(FormStateFacade);
@@ -75,12 +83,21 @@ describe('FormComponent Integration Tests', () => {
     busEffects = TestBed.inject(FormEventBusAdapterEffects);
   });
 
+  async function createReadyForm(formConfig: FormConfigFrame, formComponentProps?: any) {
+    const result = await createFormAndWaitForReady(formConfig, formComponentProps);
+    activeFixtures.push(result.fixture);
+    return result;
+  }
+
   afterEach(() => {
     // Ensure any test subscriptions are cleaned up to avoid memory leaks
     statusSub?.unsubscribe();
     statusSub = undefined;
     resetTokenSub?.unsubscribe();
     resetTokenSub = undefined;
+    activeFixtures.forEach((fixture) => fixture.destroy());
+    activeFixtures = [];
+    TestBed.resetTestingModule();
   });
 
   /**
@@ -89,7 +106,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should initialize FormComponent and transition from INIT to READY', waitForAsync(async () => {
     // Arrange & Act: Create form using helper
-    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createReadyForm(basicFormConfig);
     component = formComponent;
 
     // Assert: Status should be READY after successful load
@@ -103,7 +120,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should propagate reset via resetToken increment', waitForAsync(async () => {
     // Arrange: Create form using helper
-    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createReadyForm(basicFormConfig);
     component = formComponent;
 
     // Get initial reset token
@@ -137,7 +154,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should handle submit success flow via facade', waitForAsync(async () => {
     // Arrange: Create form using helper
-    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createReadyForm(basicFormConfig);
     component = formComponent;
 
     expect(facade.status()).toBe(FormStatus.READY);
@@ -156,7 +173,7 @@ describe('FormComponent Integration Tests', () => {
 
   it('should handle submit success flow via event bus', waitForAsync(async () => {
     // Arrange: Create form using helper
-    const { fixture, formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { fixture, formComponent } = await createReadyForm(basicFormConfig);
     component = formComponent;
 
     expect(facade.status()).toBe(FormStatus.READY);
@@ -193,7 +210,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should expose reactive facade signals without runtime errors', waitForAsync(async () => {
     // Arrange: Create form using helper
-    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createReadyForm(basicFormConfig);
     component = formComponent;
 
     // Assert: Facade signals are accessible and reactive
@@ -223,7 +240,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should track dirty state through facade signals', waitForAsync(async () => {
     // Arrange: Create form using helper
-    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createReadyForm(basicFormConfig);
     component = formComponent;
 
     // Assert: Initial state is pristine
@@ -248,7 +265,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should handle validation lifecycle via store actions', waitForAsync(async () => {
     // Arrange: Create form using helper
-    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createReadyForm(basicFormConfig);
     component = formComponent;
 
     expect(facade.status()).toBe(FormStatus.READY);
@@ -280,7 +297,7 @@ describe('FormComponent Integration Tests', () => {
    */
   it('should source status from facade (readonly)', waitForAsync(async () => {
     // Arrange: Create form using helper
-    const { formComponent } = await createFormAndWaitForReady(basicFormConfig);
+    const { formComponent } = await createReadyForm(basicFormConfig);
     component = formComponent;
 
     // Assert: Component status should be same as facade status
@@ -326,5 +343,29 @@ describe('FormComponent Integration Tests', () => {
 
     // Assert: resetAllFields action dispatched
     expect(dispatchSpy).toHaveBeenCalledWith(FormActions.resetAllFields());
+  }));
+
+  it('renders typeahead input from form config', waitForAsync(async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'typeahead-integration',
+      componentDefinitions: [
+        {
+          name: 'person_lookup',
+          component: {
+            class: 'TypeaheadInputComponent',
+            config: {
+              sourceType: 'static',
+              staticOptions: [{ label: 'Jane Doe', value: 'jane' }]
+            }
+          },
+          model: { class: 'TypeaheadInputModel', config: {} }
+        }
+      ]
+    };
+
+    const { fixture } = await createReadyForm(formConfig);
+    const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+    expect(input).toBeTruthy();
+    expect(input.getAttribute('role')).toBe('combobox');
   }));
 });

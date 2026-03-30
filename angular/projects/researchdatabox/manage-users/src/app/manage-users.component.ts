@@ -1,35 +1,66 @@
 import { Component, Inject, ViewChild } from '@angular/core';
 import { ModalDirective } from 'ngx-bootstrap/modal';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
-import { Role, User, UserLoginResult, SaveResult } from '@researchdatabox/portal-ng-common';
-import { BaseComponent, LoggerService, TranslationService, UserService} from '@researchdatabox/portal-ng-common';
+import { Role, User } from '@researchdatabox/portal-ng-common';
+import { BaseComponent, LoggerService, TranslationService, UserService } from '@researchdatabox/portal-ng-common';
 import { UserForm, matchingValuesValidator, optionalEmailValidator, passwordStrengthValidator } from './forms';
 import * as _ from 'lodash';
 
+type ManageUser = User & {
+  roleStr?: string;
+  token?: string;
+  roles: Role[];
+};
+
+type RoleSelection = {
+  key?: string | null;
+  value?: string | null;
+  checked?: boolean | null;
+};
+
+type UserFilterOption = {
+  value: string | null;
+  label: string;
+  checked: boolean;
+};
+
+type UserDetailsPayload = {
+  name: string;
+  email: string;
+  password: string;
+  roles: string[];
+};
+
+type SaveResponse = {
+  status: boolean;
+  message: string;
+};
+
 @Component({
-    selector: 'manage-users',
-    templateUrl: './manage-users.component.html',
-    standalone: false
+  selector: 'manage-users',
+  templateUrl: './manage-users.component.html',
+  standalone: false
 })
 export class ManageUsersComponent extends BaseComponent {
 
   title = '@researchdatabox/manage-users';
-  
-  allUsers: User[] = [];
-  filteredUsers: any[] = [];
+
+  allUsers: ManageUser[] = [];
+  filteredUsers: ManageUser[] = [];
   allRoles: Role[] = [];
 
-  searchFilter: { name: string, 
-                  prevName: string, 
-                  users: any[] 
-                } = {
-                      name: '', 
-                      prevName: '', 
-                      users: [ {value: null, label:'Any', checked:true}]
-                    };
+  searchFilter: {
+    name: string,
+    prevName: string,
+    users: UserFilterOption[]
+  } = {
+      name: '',
+      prevName: '',
+      users: [{ value: null, label: 'Any', checked: true }]
+    };
 
-  hiddenUsers: any = [''];
-  currentUser: User = null as any;
+  hiddenUsers: string[] = [''];
+  currentUser: ManageUser | null = null;
 
   updateDetailsMsg: string = '';
   updateDetailsMsgType: string = 'info';
@@ -41,8 +72,8 @@ export class ManageUsersComponent extends BaseComponent {
 
   isDetailsModalShown: boolean = false;
   isNewUserModalShown: boolean = false;
-  updateUserForm: FormGroup = null as any;;
-  newUserForm: FormGroup = null as any;;
+  updateUserForm: FormGroup | null = null;
+  newUserForm: FormGroup | null = null;
   submitted: boolean = false;
   showToken: boolean = false;
 
@@ -53,13 +84,13 @@ export class ManageUsersComponent extends BaseComponent {
     @Inject(FormBuilder) private _fb: FormBuilder
   ) {
     super();
-    this.loggerService.debug(`Manage Users waiting for deps to init...`); 
+    this.loggerService.debug(`Manage Users waiting for deps to init...`);
     this.initDependencies = [this.translationService, this.userService];
   }
 
-  protected override async initComponent():Promise<void> {
-    let roles: any = await this.userService.getBrandRoles();
-    for(let role of roles) {
+  protected override async initComponent(): Promise<void> {
+    const roles = await this.userService.getBrandRoles() as unknown as Role[];
+    for (const role of roles) {
       this.allRoles.push(role);
     }
     await this.refreshUsers();
@@ -68,9 +99,9 @@ export class ManageUsersComponent extends BaseComponent {
   setupForms(newUser: boolean) {
     this.submitted = false;
 
-    if(newUser) {
+    if (newUser) {
 
-      let newRolesControlArray = new FormArray(this.allRoles.map((role) => {
+      const newRolesControlArray = new FormArray(this.allRoles.map((role) => {
         return new FormGroup({
           key: new FormControl(role.id),
           value: new FormControl(role.name),
@@ -85,7 +116,7 @@ export class ManageUsersComponent extends BaseComponent {
         }
       );
       pwGroup_new.setValidators([matchingValuesValidator('password', 'confirmPassword'), passwordStrengthValidator('confirmPassword')]);
-      
+
       this.newUserForm = this._fb.group({
         username: ['', Validators.required],
         name: ['', Validators.required],
@@ -96,16 +127,21 @@ export class ManageUsersComponent extends BaseComponent {
       });
 
       newRolesControlArray.valueChanges.subscribe((v) => {
-        this.newUserForm.controls['roles'].setValue(this.mapRoles(v));
+        this.newUserForm?.controls['roles'].setValue(this.mapRoles(v));
       });
 
     } else {
 
-      let updateRolesControlArray = new FormArray(this.allRoles.map((role) => {
+      if (this.currentUser == null) {
+        return;
+      }
+
+      const currentUser = this.currentUser;
+      const updateRolesControlArray = new FormArray(this.allRoles.map((role) => {
         return new FormGroup({
           key: new FormControl(role.id),
           value: new FormControl(role.name),
-          checked: new FormControl(_.includes(_.flatMap(this.currentUser.roles, role => { return role['name']; }), role.name)),
+          checked: new FormControl(_.includes(_.flatMap(currentUser.roles, existingRole => { return existingRole['name']; }), role.name)),
         });
       }));
 
@@ -129,50 +165,53 @@ export class ManageUsersComponent extends BaseComponent {
       });
 
       updateRolesControlArray.valueChanges.subscribe((v) => {
-        this.updateUserForm.controls['roles'].setValue(this.mapRoles(v));
+        this.updateUserForm?.controls['roles'].setValue(this.mapRoles(v));
       });
-      
+
     }
   }
 
-  mapRoles(roles: any) {
-    let selectedRoles = roles.filter((role: any) => role.checked).map((r: any) => {
-      let ret: Role = {      
-        id: '',
-        name: '',
-        users: [],
-        hasRole: true
-      };
-      ret.id = r.key;
-      ret.name = r.value;
-      return ret;
+  mapRoles(roles: RoleSelection[]): Role[] | null {
+    const selectedRoles = roles
+      .filter((role) => role.checked && role.key != null && role.value != null)
+      .map((roleSelection) => {
+        const ret: Role = {
+          id: '',
+          name: '',
+          users: [],
+          hasRole: true
+        };
+        ret.id = roleSelection.key as string;
+        ret.name = roleSelection.value as string;
+        return ret;
       });
     return selectedRoles.length ? selectedRoles : null;
   }
 
   async refreshUsers() {
-    let users: any =  await this.userService.getUsers();
-    for(let user of users) {
+    const users = await this.userService.getUsers() as unknown as ManageUser[];
+    this.allUsers = [];
+    for (const user of users) {
       this.allUsers.push(user);
     }
-    _.forEach(this.searchFilter.users, (user:any) => {
+    _.forEach(this.searchFilter.users, () => {
       this.searchFilter.users.pop();
     });
     this.filteredUsers = [];
-    _.forEach(users, (user:any) => {
-      this.searchFilter.users.push({value:user.name, label:user.name, checked:false});
+    _.forEach(users, (user) => {
+      this.searchFilter.users.push({ value: user.name, label: user.name, checked: false });
       if (!_.includes(this.hiddenUsers, user.username)) {
         this.filteredUsers.push(user);
       }
     });
-    _.map(this.filteredUsers, (user:any)=> {user.roleStr = _.join(_.map(user.roles, 'name'), ', ')});
+    _.map(this.filteredUsers, (user) => { user.roleStr = _.join(_.map(user.roles, 'name'), ', '); });
   }
 
   editUser(username: string) {
     this.showToken = false;
     this.setUpdateMessage();
-    let user = _.find(this.allUsers, (user:any)=>{return user.username == username});
-    if(!_.isUndefined(user)) {
+    const user = _.find(this.allUsers, (existingUser) => { return existingUser.username == username; });
+    if (!_.isUndefined(user)) {
       this.currentUser = user;
     }
     this.setupForms(false);
@@ -191,7 +230,7 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   hideDetailsModal(): void {
-    if(!_.isUndefined(this.userDetailsModal)) {
+    if (!_.isUndefined(this.userDetailsModal)) {
       this.userDetailsModal.hide();
     }
   }
@@ -202,11 +241,11 @@ export class ManageUsersComponent extends BaseComponent {
 
   showNewUserModal(): void {
     this.isNewUserModalShown = true;
-    
+
   }
 
   hideNewUserModal(): void {
-    if(!_.isUndefined(this.userNewModal)) {
+    if (!_.isUndefined(this.userNewModal)) {
       this.userNewModal.hide();
     }
   }
@@ -217,10 +256,13 @@ export class ManageUsersComponent extends BaseComponent {
 
   genKey(userid: string) {
     this.setUpdateMessage('Generating...', 'primary');
-    this.userService.genKey(userid).then((saveRes:any) => { //SaveResult
+    this.userService.genKey(userid).then((response) => {
+      const saveRes = response as unknown as SaveResponse;
       if (saveRes.status) {
         this.showToken = true;
-        this.currentUser.token = saveRes.message;
+        if (this.currentUser != null) {
+          this.currentUser.token = saveRes.message;
+        }
         this.refreshUsers();
         this.setUpdateMessage('Token generated.', 'primary');
       } else {
@@ -231,9 +273,12 @@ export class ManageUsersComponent extends BaseComponent {
 
   revokeKey(userid: string) {
     this.setUpdateMessage('Revoking...', 'primary');
-    this.userService.revokeKey(userid).then((saveRes:any) => { //SaveResult
+    this.userService.revokeKey(userid).then((response) => {
+      const saveRes = response as unknown as SaveResponse;
       if (saveRes.status) {
-        this.currentUser.token = '';
+        if (this.currentUser != null) {
+          this.currentUser.token = '';
+        }
         this.refreshUsers();
         this.setUpdateMessage('Token revoked.', 'primary');
       } else {
@@ -244,18 +289,18 @@ export class ManageUsersComponent extends BaseComponent {
 
   async updateUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
-    if (!isValid){
+    if (!isValid) {
       this.setUpdateMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
       return;
     }
-    let details: { name: string, email: string, password: string, roles: any[] } =
+    const details: UserDetailsPayload =
       { name: user.name, email: user.email, password: user.passwords.password, roles: [] };
-    _.forEach(user.roles, (role:any) => {
+    _.forEach(user.roles, (role) => {
       details.roles.push(role.name);
     });
     this.setUpdateMessage('Saving...', 'primary');
 
-    let saveRes:any = await this.userService.updateUserDetails(user.userid, details); //SaveResult
+    const saveRes = await this.userService.updateUserDetails(user.userid, details) as unknown as SaveResponse;
     if (saveRes.status) {
       this.hideDetailsModal();
       this.refreshUsers();
@@ -267,19 +312,19 @@ export class ManageUsersComponent extends BaseComponent {
 
   async newUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
-    if (!isValid){
+    if (!isValid) {
       this.setNewUserMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
       return;
     }
-    let details: { name: string, email: string, password: string, roles: any[] } =
+    const details: UserDetailsPayload =
       { name: user.name, email: user.email, password: user.passwords.password, roles: [] };
 
-    _.forEach(user.roles, (role:any) => {
+    _.forEach(user.roles, (role) => {
       details.roles.push(role.name);
     });
 
     this.setNewUserMessage('Saving...', 'primary');
-    let saveRes:any = await this.userService.addLocalUser(user.username, details); //SaveResult
+    const saveRes = await this.userService.addLocalUser(user.username, details) as unknown as SaveResponse;
     if (saveRes.status) {
       this.hideNewUserModal();
       this.refreshUsers();
@@ -289,12 +334,12 @@ export class ManageUsersComponent extends BaseComponent {
     }
   }
 
-  setUpdateMessage(msg:any=undefined, type:string='primary') {
+  setUpdateMessage(msg: string = '', type: string = 'primary') {
     this.updateDetailsMsg = msg;
     this.updateDetailsMsgType = type;
   }
 
-  setNewUserMessage(msg:any=undefined, type:string='primary') {
+  setNewUserMessage(msg: string = '', type: string = 'primary') {
     this.newUserMsg = msg;
     this.newUserMsgType = type;
   }
@@ -302,10 +347,10 @@ export class ManageUsersComponent extends BaseComponent {
   onFilterChange() {
     if (this.searchFilter.name != this.searchFilter.prevName) {
       this.searchFilter.prevName = this.searchFilter.name;
-      var nameFilter =_.isEmpty(this.searchFilter.name) ? '' : _.trim(this.searchFilter.name);
+      const nameFilter = _.isEmpty(this.searchFilter.name) ? '' : _.trim(this.searchFilter.name);
 
-      this.filteredUsers = _.filter(this.allUsers, (user:any) => {
-        var hasNameMatch = nameFilter == '' ? true : (_.toLower(user.name).indexOf(_.toLower(this.searchFilter.name)) >= 0);
+      this.filteredUsers = _.filter(this.allUsers, (user) => {
+        const hasNameMatch = nameFilter == '' ? true : (_.toLower(user.name).indexOf(_.toLower(this.searchFilter.name)) >= 0);
         return hasNameMatch;
       });
     }
@@ -313,23 +358,23 @@ export class ManageUsersComponent extends BaseComponent {
 
   resetFilter() {
     this.searchFilter.name = '';
-    _.map(this.searchFilter.users, (user:any)=> user.checked = user.value == null);
+    _.map(this.searchFilter.users, (user) => user.checked = user.value == null);
     this.onFilterChange();
   }
 
   isUpdateUserFormConfirmPasswordTouched() {
-    let passControls = (this.updateUserForm.controls['passwords'] as FormGroup).controls;
-    if(passControls['confirmPassword'] && passControls['confirmPassword'].touched) {
-        return true;  
+    const passControls = ((this.updateUserForm as FormGroup).controls['passwords'] as FormGroup).controls;
+    if (passControls['confirmPassword'] && passControls['confirmPassword'].touched) {
+      return true;
     }
     return false;
   }
-  
+
   getUpdateUserPasswordErrors() {
-    let errors = this.updateUserForm.controls['passwords'].errors;
-    let errorMessages = [];
-    if(errors) {
-      for(let errorMsg of errors['passwordStrengthDetails'].errors) {
+    const errors = (this.updateUserForm as FormGroup).controls['passwords'].errors as { passwordStrengthDetails?: { errors: string[] } } | null;
+    const errorMessages: string[] = [];
+    if (errors?.passwordStrengthDetails) {
+      for (const errorMsg of errors.passwordStrengthDetails.errors) {
         errorMessages.push(errorMsg);
       }
     }
@@ -338,10 +383,10 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   getNewUserPasswordErrors() {
-    let errors = this.newUserForm.controls['passwords'].errors;
-    let errorMessages = [];
-    if(errors) {
-      for(let errorMsg of errors['passwordStrengthDetails'].errors) {
+    const errors = (this.newUserForm as FormGroup).controls['passwords'].errors as { passwordStrengthDetails?: { errors: string[] } } | null;
+    const errorMessages: string[] = [];
+    if (errors?.passwordStrengthDetails) {
+      for (const errorMsg of errors.passwordStrengthDetails.errors) {
         errorMessages.push(errorMsg);
       }
     }
@@ -350,15 +395,15 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   getNewUserPasswordFormControls() {
-    return (this.newUserForm.controls['passwords'] as FormGroup).controls;
+    return ((this.newUserForm as FormGroup).controls['passwords'] as FormGroup).controls;
   }
 
   getUpdateUserFormControls() {
-    return (this.updateUserForm.get('allRoles') as FormArray).controls as FormGroup[];
+    return ((this.updateUserForm as FormGroup).get('allRoles') as FormArray).controls as FormGroup[];
   }
 
   getNewUserFormControls() {
-    return (this.newUserForm.get('allRoles') as FormArray).controls as FormGroup[];
+    return ((this.newUserForm as FormGroup).get('allRoles') as FormArray).controls as FormGroup[];
   }
 
 }

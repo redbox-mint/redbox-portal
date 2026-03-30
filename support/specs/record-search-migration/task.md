@@ -1,0 +1,22 @@
+# Tasks
+
+- [x] Research
+  - [x] Locate `@angular-legacy/record_search` source code
+  - [x] Analyze component structure and logic
+  - [x] Identify API endpoints and contracts
+  - [x] Review UI/HTML templates
+- [ ] Implementation Plan
+  - [ ] Create `implementation_plan.md`
+  - [ ] Review with user
+- [ ] Implementation
+  - [ ] Generate new Angular app `record-search`
+  - [ ] Configure `angular.json` and build paths
+  - [ ] Implement `RecordSearchComponent` (Port logic & UI)
+  - [ ] Implement `RecordSearchRefinerComponent` (Port logic & UI)
+  - [ ] Implement `SearchService` (Port legacy `RecordsService` search logic)
+  - [ ] Port `RecordSearchParams` and `RecordSearchRefiner` models
+  - [ ] Update `views/default/default/record/search.ejs` to use new bundles
+- [ ] Verification
+  - [ ] Verify build success
+  - [ ] Verify UI parity (manual check)
+  - [ ] Verify search functionality (API calls)

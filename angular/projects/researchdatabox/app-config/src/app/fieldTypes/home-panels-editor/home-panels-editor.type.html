@@ -1,0 +1,480 @@
+<div class="home-panels-editor">
+  <!-- Editor Controls -->
+  <div class="editor-controls d-flex flex-wrap align-items-center mb-3">
+    <button 
+      type="button" 
+      class="btn btn-outline-primary btn-sm ms-auto"
+      (click)="addPanel()">
+      <i class="fa fa-plus"></i> Add panel
+    </button>
+  </div>
+
+  <div class="row">
+    <!-- Panels Editor (Left Column) -->
+    <div class="col-lg-8 mb-3">
+      <h6 class="section-title">Home Panels</h6>
+      
+      @if (panels.length === 0) {
+        <div class="alert alert-info">
+          <i class="fa fa-info-circle"></i>
+          No panels configured. Click "Add panel" to create your first home page panel.
+        </div>
+      }
+
+      @for (panel of panels; track trackById($index, panel); let i = $index) {
+        <div class="panel-card" [class.expanded]="isPanelExpanded(i)">
+          <!-- Panel Header (Summary) -->
+          <div class="panel-header" (click)="togglePanel(i)">
+            <div class="d-flex align-items-center w-100">
+              <span class="panel-index">{{ i + 1 }}</span>
+              <div class="panel-icon-preview me-2">
+                <i [class]="getIconPreviewClass(panel.iconClass)"></i>
+              </div>
+              <div class="panel-summary flex-grow-1">
+                <div class="panel-id fw-bold">{{ panel.id || 'unnamed' }}</div>
+                <div class="panel-meta text-muted small">
+                  Title: {{ getResolvedLabel(panel.titleKey) }} ({{ panel.titleKey }}) | 
+                  Items: {{ panel.items?.length || 0 }}
+                </div>
+              </div>
+              <div class="panel-actions top-level-toolbar btn-toolbar" (click)="$event.stopPropagation()">
+                <div class="btn-group">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    [disabled]="i === 0"
+                    (click)="movePanel(i, 'up')"
+                    title="Move up"
+                    aria-label="Move panel up">
+                    <i class="fa fa-arrow-up"></i> <span class="btn-label">Up</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    [disabled]="i === panels.length - 1"
+                    (click)="movePanel(i, 'down')"
+                    title="Move down"
+                    aria-label="Move panel down">
+                    <i class="fa fa-arrow-down"></i> <span class="btn-label">Down</span>
+                  </button>
+                </div>
+                <div class="btn-group ms-2">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary"
+                    (click)="duplicatePanel(i)"
+                    title="Duplicate"
+                    aria-label="Duplicate panel">
+                    <i class="fa fa-copy"></i> <span class="btn-label">Duplicate</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-danger"
+                    (click)="removePanel(i)"
+                    title="Remove"
+                    aria-label="Remove panel">
+                    <i class="fa fa-trash"></i> <span class="btn-label">Remove</span>
+                  </button>
+                </div>
+              </div>
+              <span class="expand-icon ms-2">
+                <i class="fa" [class.fa-chevron-down]="!isPanelExpanded(i)" [class.fa-chevron-up]="isPanelExpanded(i)"></i>
+              </span>
+            </div>
+          </div>
+
+          <!-- Panel Body (Expanded) -->
+          @if (isPanelExpanded(i)) {
+            <div class="panel-body">
+              <!-- Basic Info Group -->
+              <div class="field-group">
+                <div class="group-title">Panel Info</div>
+                <div class="field-grid">
+                  <div class="field">
+                    <label [for]="'panel-id-' + i">
+                      ID <span class="required">*</span>
+                    </label>
+                    <input 
+                      [id]="'panel-id-' + i"
+                      type="text" 
+                      class="form-control"
+                      [value]="panel.id"
+                      (input)="updatePanelField(i, 'id', $any($event.target).value)"
+                      placeholder="unique-panel-id">
+                  </div>
+                  <div class="field">
+                    <label [for]="'panel-titleKey-' + i">
+                      Title Key <span class="required">*</span>
+                    </label>
+                    <input 
+                      [id]="'panel-titleKey-' + i"
+                      type="text" 
+                      class="form-control"
+                      [value]="panel.titleKey"
+                      (input)="updatePanelField(i, 'titleKey', $any($event.target).value)"
+                      placeholder="translation-key">
+                  </div>
+                  <div class="field full-width">
+                    <label [for]="'panel-iconClass-' + i">
+                      Icon Class <span class="required">*</span>
+                    </label>
+                    <input 
+                      [id]="'panel-iconClass-' + i"
+                      type="text" 
+                      class="form-control"
+                      [value]="panel.iconClass"
+                      (input)="updatePanelField(i, 'iconClass', $any($event.target).value)"
+                      placeholder="e.g., fa fa-rocket fa-3x">
+                    <div class="icon-quick-select mt-2">
+                      @for (icon of commonIcons; track icon) {
+                        <button 
+                          type="button"
+                          class="icon-option"
+                          [class.active]="panel.iconClass === icon"
+                          (click)="updatePanelField(i, 'iconClass', icon)"
+                          [title]="icon">
+                          <i [class]="getIconPreviewClass(icon)"></i>
+                        </button>
+                      }
+                    </div>
+                  </div>
+                  <div class="field full-width">
+                    <label [for]="'panel-columnClass-' + i">
+                      Column Class
+                    </label>
+                    <input 
+                      [id]="'panel-columnClass-' + i"
+                      type="text" 
+                      class="form-control"
+                      [value]="panel.columnClass || 'col-md-3 homepanel'"
+                      (input)="updatePanelField(i, 'columnClass', $any($event.target).value)"
+                      placeholder="col-md-3 homepanel">
+                    <small class="text-muted">Bootstrap column classes for responsive layout</small>
+                  </div>
+                </div>
+                <div class="help-text">
+                  <i class="fa fa-info-circle"></i>
+                  Title key is resolved to a human label in the preview. Icon class supports FontAwesome and custom icon fonts.
+                </div>
+              </div>
+
+              <!-- Panel Items Group -->
+              <div class="field-group">
+                <div class="group-title">Panel Items ({{ panel.items?.length || 0 }})</div>
+                
+                @if (panel.items?.length) {
+                  <div class="items-list">
+                    @for (item of panel.items; track item.id || $index; let ii = $index) {
+                      <div class="item-card">
+                        <div class="item-info flex-grow-1">
+                          <strong>{{ item.id || 'unnamed' }}</strong>
+                          <div class="text-muted small">
+                            Label: {{ getResolvedLabel(item.labelKey) }} | URL: {{ item.href }}
+                          </div>
+                        </div>
+                        <div class="item-actions second-level-toolbar btn-toolbar">
+                          <div class="btn-group btn-group-sm">
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              [disabled]="ii === 0"
+                              (click)="moveItem(i, ii, 'up')"
+                              title="Move up"
+                              aria-label="Move item up">
+                              <i class="fa fa-arrow-up"></i> <span class="btn-label">Up</span>
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              [disabled]="ii === (panel.items?.length || 0) - 1"
+                              (click)="moveItem(i, ii, 'down')"
+                              title="Move down"
+                              aria-label="Move item down">
+                              <i class="fa fa-arrow-down"></i> <span class="btn-label">Down</span>
+                            </button>
+                          </div>
+                          <div class="btn-group btn-group-sm ms-1">
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary"
+                              (click)="openItemEditor(i, ii)"
+                              title="Edit"
+                              aria-label="Edit item">
+                              <i class="fa fa-edit"></i> <span class="btn-label">Edit</span>
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-danger"
+                              (click)="removeItem(i, ii)"
+                              title="Remove"
+                              aria-label="Remove item">
+                              <i class="fa fa-trash"></i> <span class="btn-label">Remove</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <p class="text-muted small mb-2">
+                    No items in this panel. Add items to display links in this panel.
+                  </p>
+                }
+                
+                <button 
+                  type="button" 
+                  class="btn btn-outline-primary btn-sm"
+                  (click)="openItemEditor(i)">
+                  <i class="fa fa-plus"></i> Add item
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Live Preview (Right Column) -->
+    <aside class="col-lg-4">
+      <div class="preview-panel">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="section-title mb-0">Live Preview</h6>
+          <div class="form-check form-switch preview-toggle">
+            <input 
+              class="form-check-input" 
+              type="checkbox" 
+              id="toggle-translations"
+              [checked]="resolveTranslations"
+              (change)="resolveTranslations = !resolveTranslations">
+            <label class="form-check-label" for="toggle-translations">
+              Resolve labels
+            </label>
+          </div>
+        </div>
+        <div class="alert alert-warning small mb-3">
+          <i class="fa fa-info-circle"></i>
+          Preview shows the home page panel layout with resolved labels. 
+          Click panel titles to jump to that panel in the editor.
+        </div>
+
+        <!-- Authenticated View -->
+        <h6 class="preview-section-title">Authenticated View</h6>
+        <div class="preview-panels-grid mb-3">
+          @for (wrapper of getAuthenticatedPanels(); track wrapper.panel.id) {
+            <div class="preview-panel-card" (click)="expandedPanels.add(wrapper.originalIndex)">
+              <div class="preview-panel-header">
+                <i [class]="getIconPreviewClass(wrapper.panel.iconClass)"></i>
+                <span class="preview-panel-title">{{ getResolvedLabel(wrapper.panel.titleKey) }}</span>
+              </div>
+              <ul class="preview-panel-items">
+                @for (item of wrapper.panel.items; track item.id) {
+                  <li>
+                    <i class="fa fa-angle-right me-1"></i>
+                    {{ getResolvedLabel(item.labelKey) }}
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+          @if (getAuthenticatedPanels().length === 0) {
+            <div class="text-muted small">No panels visible for authenticated users</div>
+          }
+        </div>
+
+        <!-- Anonymous View -->
+        <h6 class="preview-section-title">Anonymous View</h6>
+        <div class="preview-panels-grid mb-3">
+          @for (wrapper of getAnonymousPanels(); track wrapper.panel.id) {
+            <div class="preview-panel-card" (click)="expandedPanels.add(wrapper.originalIndex)">
+              <div class="preview-panel-header">
+                <i [class]="getIconPreviewClass(wrapper.panel.iconClass)"></i>
+                <span class="preview-panel-title">{{ getResolvedLabel(wrapper.panel.titleKey) }}</span>
+              </div>
+              <ul class="preview-panel-items">
+                @for (item of wrapper.panel.items; track item.id) {
+                  <li>
+                    <i class="fa fa-angle-right me-1"></i>
+                    {{ getResolvedLabel(item.labelKey) }}
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+          @if (getAnonymousPanels().length === 0) {
+            <div class="text-muted small">No panels visible for anonymous users</div>
+          }
+        </div>
+
+        <!-- Panel Structure Tree -->
+        <h6 class="preview-section-title">Panel Structure</h6>
+        <ul class="panel-tree">
+          @for (panel of panels; track panel.id; let i = $index) {
+            <li>
+              <a 
+                class="tree-link"
+                (click)="expandedPanels.add(i); $event.preventDefault()">
+                <i [class]="getIconPreviewClass(panel.iconClass)" class="me-1"></i>
+                {{ panel.id || 'panel-' + i }}
+              </a>
+              @if (panel.items?.length) {
+                <ul>
+                  @for (item of panel.items; track item.id) {
+                    <li class="text-muted">{{ item.id || item.labelKey }}</li>
+                  }
+                </ul>
+              }
+            </li>
+          }
+        </ul>
+
+        <!-- Quick Guidance -->
+        <h6 class="preview-section-title">Quick Guidance</h6>
+        <p class="text-muted small mb-0">
+          Home panels appear on the researcher home page. Each panel has a title, icon, and list of link items.
+          Items can be restricted by authentication status and roles.
+        </p>
+      </div>
+    </aside>
+  </div>
+
+  @if (itemEditorState.visible) {
+    <div class="modal-backdrop" (click)="closeItemEditor()" (keydown.escape)="closeItemEditor()">
+      <div class="modal-dialog" 
+           (click)="$event.stopPropagation()"
+           role="dialog"
+           aria-modal="true"
+           aria-labelledby="item-editor-title">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="item-editor-title">
+              {{ itemEditorState.mode === 'add' ? 'Add Panel Item' : 'Edit Panel Item' }}
+            </h5>
+            <button type="button" class="btn-close" (click)="closeItemEditor()" aria-label="Close modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="field-grid">
+              <div class="field">
+                <label for="item-id">ID</label>
+                <input 
+                  id="item-id"
+                  type="text" 
+                  class="form-control"
+                  [(ngModel)]="itemEditorState.item.id"
+                  placeholder="item-id">
+              </div>
+              <div class="field">
+                <label for="item-labelKey">Label Key <span class="required">*</span></label>
+                <input 
+                  id="item-labelKey"
+                  type="text" 
+                  class="form-control"
+                  [(ngModel)]="itemEditorState.item.labelKey"
+                  placeholder="translation-key">
+              </div>
+              <div class="field full-width">
+                <label for="item-href">URL <span class="required">*</span></label>
+                <input 
+                  id="item-href"
+                  type="text" 
+                  class="form-control"
+                  [(ngModel)]="itemEditorState.item.href"
+                  placeholder="/path or https://external.url">
+              </div>
+              
+              <!-- Visibility Options -->
+              <div class="field full-width">
+                <label>Visibility Options</label>
+                <div class="checkbox-row">
+                  <div class="form-check">
+                    <input 
+                      id="item-requiresAuth"
+                      type="checkbox" 
+                      class="form-check-input"
+                      [(ngModel)]="itemEditorState.item.requiresAuth">
+                    <label class="form-check-label" for="item-requiresAuth">
+                      Requires authentication
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input 
+                      id="item-external"
+                      type="checkbox" 
+                      class="form-check-input"
+                      [(ngModel)]="itemEditorState.item.external">
+                    <label class="form-check-label" for="item-external">
+                      External link
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input 
+                      id="item-hideWhenAuth"
+                      type="checkbox" 
+                      class="form-check-input"
+                      [(ngModel)]="itemEditorState.item.hideWhenAuth">
+                    <label class="form-check-label" for="item-hideWhenAuth">
+                      Hide when authenticated
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input 
+                      id="item-visibleWhenTranslation"
+                      type="checkbox" 
+                      class="form-check-input"
+                      [(ngModel)]="itemEditorState.item.visibleWhenTranslationExists">
+                    <label class="form-check-label" for="item-visibleWhenTranslation">
+                      Visible when translation exists
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Roles Selection -->
+              <div class="field full-width">
+                <label>Required Roles</label>
+                <div class="roles-selector">
+                  @for (role of availableRoles; track role) {
+                    <span 
+                      class="role-badge"
+                      [class.active]="hasItemRole(role)"
+                      (click)="toggleItemRole(role)">
+                      {{ role }}
+                      @if (hasItemRole(role)) {
+                        <i class="fa fa-check ms-1"></i>
+                      }
+                    </span>
+                  }
+                  @if (!itemEditorState.item.requiredRoles?.length) {
+                    <span class="role-badge any-user">Any user</span>
+                  }
+                </div>
+              </div>
+
+              <!-- Feature Flag -->
+              <div class="field full-width">
+                <label for="item-featureFlag">Feature Flag</label>
+                <input 
+                  id="item-featureFlag"
+                  type="text" 
+                  class="form-control"
+                  [(ngModel)]="itemEditorState.item.featureFlag"
+                  placeholder="Optional flag name">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeItemEditor()">
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary"
+              [disabled]="!itemEditorState.item.labelKey || !itemEditorState.item.href"
+              (click)="saveItem()">
+              {{ itemEditorState.mode === 'add' ? 'Add Item' : 'Save Changes' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

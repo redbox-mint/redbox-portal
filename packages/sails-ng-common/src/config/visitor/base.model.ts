@@ -1,439 +1,603 @@
-import {get as _get} from "lodash";
-import {FormConfigFrame, FormConfigOutline} from "../form-config.outline";
-import {CanVisit, FormConfigVisitorOutline} from "./base.outline";
+import { FormConfigOutline } from '../form-config.outline';
+import { FormConfigVisitorOutline } from './base.outline';
 import {
-    SimpleInputFieldComponentDefinitionOutline,
-    SimpleInputFieldModelDefinitionOutline,
-    SimpleInputFormComponentDefinitionOutline,
-} from "../component/simple-input.outline";
+  SimpleInputFieldComponentDefinitionOutline,
+  SimpleInputFieldModelDefinitionOutline,
+  SimpleInputFormComponentDefinitionOutline,
+} from '../component/simple-input.outline';
 import {
-    ContentFieldComponentDefinitionOutline,
-    ContentFormComponentDefinitionOutline,
-} from "../component/content.outline";
+  ContentFieldComponentDefinitionOutline,
+  ContentFormComponentDefinitionOutline,
+} from '../component/content.outline';
 import {
-    RepeatableElementFieldLayoutDefinitionOutline,
-    RepeatableFieldComponentDefinitionOutline,
-    RepeatableFieldModelDefinitionOutline,
-    RepeatableFormComponentDefinitionOutline,
-} from "../component/repeatable.outline";
+  RepeatableElementFieldLayoutDefinitionOutline,
+  RepeatableFieldComponentDefinitionOutline,
+  RepeatableFieldModelDefinitionOutline,
+  RepeatableFormComponentDefinitionOutline,
+} from '../component/repeatable.outline';
 import {
-    ValidationSummaryFieldComponentDefinitionOutline,
-    ValidationSummaryFormComponentDefinitionOutline,
-} from "../component/validation-summary.outline";
+  ValidationSummaryFieldComponentDefinitionOutline,
+  ValidationSummaryFormComponentDefinitionOutline,
+} from '../component/validation-summary.outline';
 import {
-    GroupFieldComponentDefinitionOutline,
-    GroupFieldModelDefinitionOutline,
-    GroupFormComponentDefinitionOutline,
-} from "../component/group.outline";
+  GroupFieldComponentDefinitionOutline,
+  GroupFieldModelDefinitionOutline,
+  GroupFormComponentDefinitionOutline,
+} from '../component/group.outline';
 import {
-    TabFieldComponentDefinitionOutline,
-    TabFieldLayoutDefinitionOutline,
-    TabFormComponentDefinitionOutline,
-} from "../component/tab.outline";
+  TabFieldComponentDefinitionOutline,
+  TabFieldLayoutDefinitionOutline,
+  TabFormComponentDefinitionOutline,
+} from '../component/tab.outline';
 import {
-    TabContentFieldComponentDefinitionOutline,
-    TabContentFieldLayoutDefinitionOutline,
-    TabContentFormComponentDefinitionOutline,
-} from "../component/tab-content.outline";
+  AccordionFieldComponentDefinitionOutline,
+  AccordionFieldLayoutDefinitionOutline,
+  AccordionFormComponentDefinitionOutline,
+  AccordionPanelFieldComponentDefinitionOutline,
+  AccordionPanelFieldLayoutDefinitionOutline,
+  AccordionPanelFormComponentDefinitionOutline,
+} from '../component/accordion.outline';
 import {
-    SaveButtonFieldComponentDefinitionOutline,
-    SaveButtonFormComponentDefinitionOutline,
-} from "../component/save-button.outline";
+  TabContentFieldComponentDefinitionOutline,
+  TabContentFieldLayoutDefinitionOutline,
+  TabContentFormComponentDefinitionOutline,
+} from '../component/tab-content.outline';
 import {
-    TextAreaFieldComponentDefinitionOutline,
-    TextAreaFieldModelDefinitionOutline,
-    TextAreaFormComponentDefinitionOutline,
-} from "../component/text-area.outline";
+  SaveButtonFieldComponentDefinitionOutline,
+  SaveButtonFormComponentDefinitionOutline,
+} from '../component/save-button.outline';
 import {
-    DefaultFieldLayoutDefinitionOutline,
-} from "../component/default-layout.outline";
+  SaveStatusFieldComponentDefinitionOutline,
+  SaveStatusFormComponentDefinitionOutline,
+} from '../component/save-status.outline';
 import {
-    CheckboxInputFieldComponentDefinitionOutline,
-    CheckboxInputFieldModelDefinitionOutline, CheckboxInputFormComponentDefinitionOutline
-} from "../component/checkbox-input.outline";
+  CancelButtonFieldComponentDefinitionOutline,
+  CancelButtonFormComponentDefinitionOutline,
+} from '../component/cancel-button.outline';
 import {
-    DropdownInputFieldComponentDefinitionOutline,
-    DropdownInputFieldModelDefinitionOutline, DropdownInputFormComponentDefinitionOutline
-} from "../component/dropdown-input.outline";
+  DeleteButtonFieldComponentDefinitionOutline,
+  DeleteButtonFormComponentDefinitionOutline,
+} from '../component/delete-button.outline';
 import {
-    RadioInputFieldComponentDefinitionOutline,
-    RadioInputFieldModelDefinitionOutline, RadioInputFormComponentDefinitionOutline
-} from "../component/radio-input.outline";
-import {FieldLayoutConfigFrame} from "../field-layout.outline";
-import {FieldModelConfigFrame} from "../field-model.outline";
-import {FieldComponentConfigFrame} from "../field-component.outline";
+  TabNavButtonFieldComponentDefinitionOutline,
+  TabNavButtonFormComponentDefinitionOutline,
+} from '../component/tab-nav-button.outline';
 import {
-    DateInputFieldComponentDefinitionOutline,
-    DateInputFieldModelDefinitionOutline, DateInputFormComponentDefinitionOutline
-} from "../component/date-input.outline";
-import {TemplateCompileKey} from "../../template.outline";
-import {FormComponentDefinitionOutline} from "../form-component.outline";
-import {ILogger} from "@researchdatabox/redbox-core-types";
-
+  TextAreaFieldComponentDefinitionOutline,
+  TextAreaFieldModelDefinitionOutline,
+  TextAreaFormComponentDefinitionOutline,
+} from '../component/text-area.outline';
+import { DefaultFieldLayoutDefinitionOutline } from '../component/default-layout.outline';
+import { ActionRowFieldLayoutDefinitionOutline } from '../component/action-row-layout.outline';
+import { InlineFieldLayoutDefinitionOutline } from '../component/inline-layout.outline';
+import {
+  CheckboxInputFieldComponentDefinitionOutline,
+  CheckboxInputFieldModelDefinitionOutline,
+  CheckboxInputFormComponentDefinitionOutline,
+} from '../component/checkbox-input.outline';
+import {
+  DropdownInputFieldComponentDefinitionOutline,
+  DropdownInputFieldModelDefinitionOutline,
+  DropdownInputFormComponentDefinitionOutline,
+} from '../component/dropdown-input.outline';
+import {
+  RadioInputFieldComponentDefinitionOutline,
+  RadioInputFieldModelDefinitionOutline,
+  RadioInputFormComponentDefinitionOutline,
+} from '../component/radio-input.outline';
+import {
+  DateInputFieldComponentDefinitionOutline,
+  DateInputFieldModelDefinitionOutline,
+  DateInputFormComponentDefinitionOutline,
+} from '../component/date-input.outline';
+import { ILogger } from '../../logger.interface';
+import {
+  ReusableFieldComponentDefinitionOutline,
+  ReusableFormComponentDefinitionOutline,
+} from '../component/reusable.outline';
+import {
+  QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFieldModelDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
+} from '../component/question-tree.outline';
+import {
+  CheckboxTreeFieldComponentDefinitionOutline,
+  CheckboxTreeFieldModelDefinitionOutline,
+  CheckboxTreeFormComponentDefinitionOutline,
+} from '../component/checkbox-tree.outline';
+import {
+  RecordSelectorFieldComponentDefinitionOutline,
+  RecordSelectorFieldModelDefinitionOutline,
+  RecordSelectorFormComponentDefinitionOutline,
+} from '../component/record-selector.outline';
+import {
+  TypeaheadInputFieldComponentDefinitionOutline,
+  TypeaheadInputFieldModelDefinitionOutline,
+  TypeaheadInputFormComponentDefinitionOutline,
+} from '../component/typeahead-input.outline';
+import {
+  RichTextEditorFieldComponentDefinitionOutline,
+  RichTextEditorFieldModelDefinitionOutline,
+  RichTextEditorFormComponentDefinitionOutline,
+} from '../component/rich-text-editor.outline';
+import {
+  MapFieldComponentDefinitionOutline,
+  MapFieldModelDefinitionOutline,
+  MapFormComponentDefinitionOutline,
+} from '../component/map.outline';
+import {
+  FileUploadFieldComponentDefinitionOutline,
+  FileUploadFieldModelDefinitionOutline,
+  FileUploadFormComponentDefinitionOutline,
+} from '../component/file-upload.outline';
+import {
+  PDFListFieldComponentDefinitionOutline,
+  PDFListFieldModelDefinitionOutline,
+  PDFListFormComponentDefinitionOutline,
+} from '../component/pdf-list.outline';
+import {
+  RecordMetadataRetrieverFieldComponentDefinitionOutline,
+  RecordMetadataRetrieverFormComponentDefinitionOutline,
+} from '../component/record-metadata-retriever.outline';
+import {
+  DataLocationFieldComponentDefinitionOutline,
+  DataLocationFieldModelDefinitionOutline,
+  DataLocationFormComponentDefinitionOutline,
+} from '../component/data-location.outline';
+import {
+  PublishDataLocationSelectorFieldComponentDefinitionOutline,
+  PublishDataLocationSelectorFieldModelDefinitionOutline,
+  PublishDataLocationSelectorFormComponentDefinitionOutline,
+} from '../component/publish-data-location-selector.outline';
+import {
+  PublishDataLocationRefreshFieldComponentDefinitionOutline,
+  PublishDataLocationRefreshFormComponentDefinitionOutline,
+} from '../component/publish-data-location-refresh.outline';
 
 /**
  * The form config visitor definition.
  */
 export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
-    protected logName = "FormConfigVisitor";
-    protected logger: ILogger;
-    protected sharedProps: PopulateProperties;
+  protected logName = 'FormConfigVisitor';
+  protected logger: ILogger;
 
-    protected constructor(logger: ILogger) {
-        this.logger = logger;
-        this.sharedProps = new PopulateProperties();
-    }
+  protected constructor(logger: ILogger) {
+    this.logger = logger;
+  }
 
-    /* Form Config */
+  /* Form Config */
 
-    visitFormConfig(item: FormConfigOutline): void {
-        this.notImplemented();
-    }
+  visitFormConfig(item: FormConfigOutline): void {
+    this.notImplemented();
+  }
 
-    /* SimpleInput */
+  /* SimpleInput */
 
-    visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    /* Content */
+  /* Content */
 
-    visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    /* Repeatable  */
+  /* Repeatable  */
 
-    visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    /* Validation Summary */
+  /* Validation Summary */
 
-    visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    /* Group */
+  /* Group */
 
-    visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    /* Tab  */
+  /* Tab  */
 
-    visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    /*  Tab Content */
+  /* Accordion */
 
-    visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    /* Save Button  */
+  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    /* Text Area */
+  /*  Tab Content */
 
-    visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    /* Default Layout  */
+  /* Save Button  */
 
-    visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    /* Checkbox Input */
+  visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  /* Cancel Button  */
 
-    /* Dropdown Input */
+  visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
+  visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
-    visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
-        this.notImplemented();
-    }
+  /* Delete Button  */
 
-    visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    /* Radio Input */
-
-    visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    /* Date Input */
-
-    visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-        this.notImplemented();
-    }
-
-    /* Shared */
-
-    protected notImplemented() {
-        throw new Error(`Visitor method must be implemented.`);
-    }
-
-    // TODO: fix typing
-    protected getDataPath(data?: unknown, path?: string[]) {
-        const result = path && path.length > 0 ? _get(data, path.map((i: string) => i.toString())) : data;
-
-        // for debugging:
-        // const msg = [
-        //     result?.['name'] ? `with name '${result?.['name']}'` : '',
-        //     result?.['class'] ? `with class '${result?.['class']}'` : '',
-        // ];
-        // this.logger.debug(`Visitor path '${path}' ${msg.filter(i => !!i).join(' ')}`.trim());
-
-        return result;
-    }
-
-
-}
-
-export abstract class CurrentPathFormConfigVisitor extends FormConfigVisitor {
-    protected currentPath: TemplateCompileKey = [];
-
-    protected constructor(logger: ILogger) {
-        super(logger);
-    }
-
-    /**
-     * Reset the current path to an empty array.
-     * @protected
-     */
-    protected resetCurrentPath(): void {
-        this.currentPath = [];
-    }
-
-    /**
-     * Call accept on the provided item and set the current path with the given suffix.
-     * Set the current path to the previous value after the accept method is done.
-     * @param item
-     * @param suffixPath
-     * @protected
-     */
-    protected acceptCurrentPath(item: CanVisit, suffixPath: TemplateCompileKey): void {
-        const itemCurrentPath = [...(this.currentPath ?? [])];
-        try {
-            this.currentPath = [...itemCurrentPath, ...(suffixPath ?? [])];
-
-            // for debugging
-            // this.logger.debug(`Accept '${item.constructor.name}' at '${this.currentPath}'.`);
-
-            item.accept(this);
-        } catch (error) {
-            // rethrow error - the finally block will ensure the currentPath is correct
-            throw error;
-        } finally {
-            this.currentPath = itemCurrentPath;
-        }
-    }
-
-    /**
-     * Call accept on the properties of the form component definition outline that can be visited.
-     * @param item The form component definition outline.
-     * @protected
-     */
-    protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
-        this.acceptCurrentPath(item.component, ['component']);
-        if (item.model) {
-            this.acceptCurrentPath(item.model, ['model']);
-        }
-        if (item.layout) {
-            this.acceptCurrentPath(item.layout, ['layout']);
-        }
-    }
-}
-
-export class PopulateProperties {
-    public sharedPopulateFieldComponentConfig(item: FieldComponentConfigFrame, config?: FieldComponentConfigFrame) {
-        // Set the common field component config properties
-        this.setPropOverride('readonly', item, config);
-        this.setPropOverride('visible', item, config);
-        this.setPropOverride('editMode', item, config);
-        this.setPropOverride('label', item, config);
-        this.setPropOverride('defaultComponentCssClasses', item, config);
-        this.setPropOverride('hostCssClasses', item, config);
-        this.setPropOverride('wrapperCssClasses', item, config);
-        this.setPropOverride('disabled', item, config);
-        this.setPropOverride('autofocus', item, config);
-        this.setPropOverride('tooltip', item, config);
-    }
-
-    public sharedPopulateFieldModelConfig(item: FieldModelConfigFrame<unknown>, config?: FieldModelConfigFrame<unknown>) {
-        // Set the common field model config properties
-        this.setPropOverride('disableFormBinding', item, config);
-        this.setPropOverride('value', item, config);
-        this.setPropOverride('defaultValue', item, config);
-        this.setPropOverride('validators', item, config);
-        this.setPropOverride('wrapperCssClasses', item, config);
-        this.setPropOverride('editCssClasses', item, config);
-    }
-
-    public sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, config?: FieldLayoutConfigFrame) {
-        // Set the common field model config properties
-        this.sharedPopulateFieldComponentConfig(item, config);
-        this.setPropOverride('labelRequiredStr', item, config);
-        this.setPropOverride('helpText', item, config);
-        this.setPropOverride('cssClassesMap', item, config);
-        this.setPropOverride('helpTextVisibleOnInit', item, config);
-        this.setPropOverride('helpTextVisible', item, config);
-    }
-
-    /**
-     * Set the property on target.
-     * Retain the target property value if it is not undefined.
-     * Use the value of the property from the first source with a non-undefined property of the same name.
-     *
-     * @param target Set the name property on the target.
-     * @param name The property to set.
-     * @param sources The sources that might have the name property.
-     */
-    public setPropDefault(
-        name: string,
-        target: { [x: string]: any },
-        ...sources: ({ [x: string]: any; } | null | undefined)[]
-    ) {
-        if (target === undefined || target === null) {
-            throw new Error("Target provided to setProp was undefined or null.");
-        }
-        if (name === undefined || name === null) {
-            throw new Error("Property name provided to setProp was undefined or null.");
-        }
-
-        const propValue = [target, ...sources].find(val => val?.[name] !== undefined)?.[name];
-        if (propValue !== undefined) {
-            target[name] = propValue;
-        }
-    }
-
-    /**
-     * Set the property on target.
-     * Override the value of the property from the last source with a non-undefined property of the same name.
-     * @param target Set the name property on the target.
-     * @param name The property to set.
-     * @param sources The sources that might have the name property.
-     */
-    public setPropOverride(
-        name: string,
-        target: { [x: string]: any },
-        ...sources: ({ [x: string]: any; } | null | undefined)[]
-    ) {
-        if (target === undefined || target === null) {
-            throw new Error("Target provided to setPropOverride was undefined or null.");
-        }
-        if (name === undefined || name === null) {
-            throw new Error("Property name provided to setPropOverride was undefined or null.");
-        }
-
-        const propValue = [target, ...sources].findLast(val => val?.[name] !== undefined)?.[name];
-        if (propValue !== undefined) {
-            target[name] = propValue;
-        }
-    }
+  visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
+  visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
 
+  /* Tab Nav Button  */
+
+  visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Text Area */
+
+  visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Default Layout  */
+
+  visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Inline Layout  */
+
+  visitInlineFieldLayoutDefinition(item: InlineFieldLayoutDefinitionOutline): void {
+    this.visitDefaultFieldLayoutDefinition(item as any);
+  }
+
+  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
+    this.visitDefaultFieldLayoutDefinition(item as any);
+  }
+
+  /* Checkbox Input */
+
+  visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Dropdown Input */
+
+  visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Radio Input */
+
+  visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Date Input */
+
+  visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Reusable */
+
+  visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Question Tree */
+
+  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Checkbox Tree */
+
+  visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Record Selector */
+
+  visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Typeahead Input */
+
+  visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Rich Text Editor */
+
+  visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Map */
+
+  visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* File Upload */
+
+  visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitRecordMetadataRetrieverFieldComponentDefinition(
+    item: RecordMetadataRetrieverFieldComponentDefinitionOutline
+  ): void {
+    this.notImplemented();
+  }
+
+  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Data Location */
+
+  visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  // Default stubs keep the new component aligned with the rest of the visitor
+  // contract until each concrete visitor opts in explicitly.
+  visitPublishDataLocationRefreshFieldComponentDefinition(
+    item: PublishDataLocationRefreshFieldComponentDefinitionOutline
+  ): void {
+    this.notImplemented();
+  }
+
+  visitPublishDataLocationRefreshFormComponentDefinition(
+    item: PublishDataLocationRefreshFormComponentDefinitionOutline
+  ): void {
+    this.notImplemented();
+  }
+
+  visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  /* Shared */
+
+  protected notImplemented() {
+    throw new Error(`Visitor method must be implemented.`);
+  }
 }

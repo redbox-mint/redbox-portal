@@ -25,6 +25,8 @@ export class CheckboxInputFieldComponentConfig extends FieldComponentConfig impl
     placeholder?: string;
     options: CheckboxOption[] = [];
     multipleValues?: boolean;
+    vocabRef?: string;
+    inlineVocab?: boolean;
 
     constructor() {
         super();
@@ -92,4 +94,11 @@ export const CheckboxInputMap = [
     {kind: FieldModelDefinitionKind, def: CheckboxInputFieldModelDefinition, class: CheckboxInputModelName},
     {kind: FormComponentDefinitionKind, def: CheckboxInputFormComponentDefinition, class: CheckboxInputComponentName},
 ];
-
+export const CheckboxInputDefaults = {
+    [FormComponentDefinitionKind]: {
+        [CheckboxInputComponentName]: {
+            [FieldComponentDefinitionKind]: CheckboxInputComponentName,
+            [FieldModelDefinitionKind]: CheckboxInputModelName,
+        }
+    }
+};

@@ -28,9 +28,25 @@ tests {
   
   test("Test response format", function () {
         var jsonData = res.getBody();
-        expect(jsonData[0]).to.have.property('fullName');
-        expect(jsonData[0]).to.have.property('email');
-        expect(jsonData[0]).to.have.property('orcid');
+        var records = jsonData;
+
+        if (!Array.isArray(jsonData)) {
+          expect(jsonData).to.have.property('summary');
+          expect(jsonData).to.have.property('records');
+          records = jsonData.records;
+        }
+
+        expect(records).to.be.an('array');
+
+        var firstRecord = records.find(function (record) {
+          return record && typeof record === 'object';
+        });
+
+        if (firstRecord) {
+          expect(firstRecord).to.have.property('fullName');
+          expect(firstRecord).to.have.property('email');
+          expect(firstRecord).to.have.property('orcid');
+        }
   });
   
 }

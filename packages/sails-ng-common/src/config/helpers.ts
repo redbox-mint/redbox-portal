@@ -3,13 +3,10 @@ import {
     isArray as _isArray,
     isString as _isString,
     isPlainObject as _isPlainObject,
+    isObjectLike as _isObjectLike,
     isFunction as _isFunction,
 } from "lodash";
 import {DateTime} from 'luxon';
-import {FormComponentDefinitionFrame} from "./form-component.outline";
-import {FormConfigFrame} from "./form-config.outline";
-import {FieldDefinitionFrame} from "./field.outline";
-import {FormValidatorDefinition} from "../validation/form.model";
 
 export type GuessedType = "null"
     | "undefined"
@@ -51,6 +48,17 @@ export function guessType(value: unknown): GuessedType {
         return "object";
     }
 
+    // Check for custom Object.
+    try {
+        const valueInfo = valueProtoInfo(value);
+        if (valueInfo.isObjectLike && valueInfo.isValueStringTagObject &&
+            valueInfo.isValueProtoCtorFunc && !valueInfo.isValueProtoCtorFuncObj) {
+            return "object";
+        }
+    } catch (err) {
+        console.debug(`guessType custom object error with value '${value}': ${err}`);
+    }
+
     if (_isFunction(value)) {
         return "function";
     }
@@ -76,136 +84,22 @@ export function guessType(value: unknown): GuessedType {
         return "string";
     }
 
+    console.debug(`guessType unknown type for '${value}' info ${JSON.stringify(valueProtoInfo(value))}`);
+
     return "unknown";
 }
 
-/*
- * The functions starting with 'isType*' use typescript narrowing to check the value
- * see: https://www.typescriptlang.org/docs/handbook/2/narrowing.html
- */
-
-/**
- * Check if the item is a field definition (it has at least 'class' and optional 'config' properties).
- * @param item The item to check.
- */
-export function isTypeFieldDefinition(item: unknown): item is FieldDefinitionFrame {
-    if (item === undefined || item === null) {
-        return false;
-    }
-    const i = item as FieldDefinitionFrame;
-
-    const hasExpectedPropClass = 'class' in i && guessType(i?.class) === 'string';
-    // 'config' can be null or object or not set
-    const hasExpectedPropConfig = ('config' in i && ["object", "null"].includes(guessType(i.config))) || i?.config === undefined;
-
-    return hasExpectedPropClass && hasExpectedPropConfig;
-}
-
-/**
- * Check if the item is a field definition of a particular type by comparing the class name
- * (class name is the discriminator in the type union).
- * @param item The item to check.
- * @param name The class name to check.
- */
-export function isTypeFieldDefinitionName<T extends FieldDefinitionFrame>(item: unknown, name: string): item is T {
-    if (item === undefined || item === null) {
-        return false;
-    }
-
-    const hasExpectedFieldDefClass = isTypeFieldDefinition(item) && item?.class === name;
-
-    return hasExpectedFieldDefClass;
-}
-
-/**
- * Check if the item is a form component definition (it has at least 'name' and 'component' properties).
- * @param item The item to check.
- */
-export function isTypeFormComponentDefinition(item: unknown): item is FormComponentDefinitionFrame {
-    if (item === undefined || item === null) {
-        return false;
-    }
-    // use typescript narrowing to check the value
-    const i = item as FormComponentDefinitionFrame;
-    // only name and component are required
-    const hasName = 'name' in i;
-    const hasExpectedNameValue = ["null", "string"].includes(guessType(i?.name));
-    const hasComponent = 'component' in i;
-    const isFormFieldComponent = isTypeFieldDefinition(i?.component);
-
-    return hasName && hasExpectedNameValue && hasComponent && isFormFieldComponent;
-}
-
-/**
- * Check if the item is a form definition of a particular type by comparing the component class
- * (component class name is the discriminator in the type union).
- * @param item The item to check.
- * @param name The class name to check.
- */
-export function isTypeFormComponentDefinitionName<T extends FormComponentDefinitionFrame>(item: unknown, name: string): item is T {
-    if (item === undefined || item === null) {
-        return false;
-    }
-
-    const hasExpectedFormDefClass = isTypeFormComponentDefinition(item) && item?.component?.class === name;
-
-    return hasExpectedFormDefClass;
-}
-
-/**
- * Check if the item has a componentDefinitions array property.
- * @param item The item to check.
- */
-export function isTypeWithComponentDefinitions<T extends {
-    componentDefinitions: unknown[]
-}>(item: unknown): item is T {
-    if (item === undefined || item === null) {
-        return false;
-    }
-    // use typescript narrowing to check the value
-    const i = item as { componentDefinitions: unknown[] };
-
-    const hasExpectedPropCompDefs = 'componentDefinitions' in i && guessType(i?.componentDefinitions) === 'array';
-
-    return hasExpectedPropCompDefs;
-}
-
-/**
- * Check if the item is a FormConfig (it has a name and componentDefinitions array property).
- * @param item The item to check.
- */
-export function isTypeFormConfig<T extends FormConfigFrame>(item: unknown): item is T {
-    if (item === undefined || item === null) {
-        return false;
-    }
-
-    const i = item as FormConfigFrame;
-
-    const hasExpectedPropName = 'name' in i && guessType(i.name) === 'string';
-    const hasExpectedPropCompDefs = isTypeWithComponentDefinitions<FormConfigFrame>(item);
-
-    return hasExpectedPropName && hasExpectedPropCompDefs;
-}
-
-/**
- * Check if the item is a valid form validation definition.
- * @param item The item to check.
- */
-export function isTypeFormValidatorDefinition(item: unknown): item is FormValidatorDefinition {
-    if (item === undefined || item === null) {
-        return false;
-    }
-    const i = item as FormValidatorDefinition;
-
-    const hasExpectedPropClass = 'class' in i && guessType(i.class) === 'string';
-    const hasExpectedPropClassValue = i.class?.toString()?.trim().length > 0;
-
-    const hasExpectedPropMessage = 'message' in i && guessType(i.message) === 'string';
-    const hasExpectedPropMessageValue = i.message?.toString()?.trim().length > 0;
-
-    const hasExpectedPropCreate = 'create' in i;
-
-    return hasExpectedPropClass && hasExpectedPropClassValue
-        && hasExpectedPropMessage && hasExpectedPropMessageValue
-        && hasExpectedPropCreate;
+function valueProtoInfo(value: any) {
+    const isObjectLike = _isObjectLike(value);
+    const isValueStringTagObject = Object.prototype.toString.call(value) === '[object Object]';
+    const valuePrototypeCtor = Object.getPrototypeOf(value).constructor;
+    const isValueProtoCtorFunc = typeof valuePrototypeCtor === 'function';
+    const isValueProtoCtorFuncObj = Function.prototype.toString.call(valuePrototypeCtor) === Function.prototype.toString.call(Object);
+    return {
+        isObjectLike,
+        isValueStringTagObject,
+        valuePrototypeCtor,
+        isValueProtoCtorFunc,
+        isValueProtoCtorFuncObj,
+    };
 }

@@ -889,13 +889,13 @@ export class DashboardComponent extends BaseComponent {
         let secondarySort = sortMapAtStep[sortField].secondarySort;
 
         if (sortMapAtStep[sortField].sort == 'desc') {
-          if (secondarySort != '') {
+          if (secondarySort != null && secondarySort !== '') {
             let sortString = `${secondarySort}:`;
             sortString = sortString + "-1";
             return sortString;
           }
         } else {
-          if (secondarySort != '') {
+          if (secondarySort != null && secondarySort !== '') {
             let sortString = `${secondarySort}:`;
             sortString = sortString + "1";
             return sortString;
@@ -977,10 +977,10 @@ export class DashboardComponent extends BaseComponent {
           for (let j = 0; j < queryFilter.filterFields.length; j++) {
             let filterField = queryFilter.filterFields[j];
             if (filterField.path == this.filterFieldPath) {
-              if (filterField.template) {
+              if ((filterField as any).template) {
                 const keyBase = [this.recordType, this.dashboardTypeSelected, 'filters', i.toString(), 'fields', j.toString(), 'template'];
                 const imports: any = { value: filterString };
-                return this.handlebarsTemplateService.compileAndRunTemplate(filterField.template, imports, keyBase);
+                return this.handlebarsTemplateService.compileAndRunTemplate((filterField as any).template, imports, keyBase);
               }
             }
           }

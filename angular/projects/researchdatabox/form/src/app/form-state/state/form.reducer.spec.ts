@@ -145,6 +145,23 @@ describe('formReducer', () => {
       expect(state.submissionAttempt).toBe(2);
     });
 
+    it('should ignore submitForm while already deleting', () => {
+      const deletingState: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.DELETING,
+        initialDataLoaded: true,
+        pendingActions: ['deleteRecord'],
+        submissionAttempt: 2,
+      };
+
+      const result = formReducer(deletingState, FormActions.submitForm({
+        force: false,
+        enabledValidationGroups: ["all"],
+      }));
+
+      expect(result).toEqual(deletingState);
+    });
+
     it('should transition SAVING → READY on submitFormSuccess (AC7, R4.4)', () => {
       const savingState: FormFeatureState = {
         ...formInitialState,
@@ -206,6 +223,63 @@ describe('formReducer', () => {
   expect(typeof result.lastSavedAt).toBe('string');
   // Parse back to Date only at UI boundary; here we verify it is a valid ISO string
   expect(() => new Date(result.lastSavedAt as string).toISOString()).not.toThrow();
+    });
+  });
+
+  describe('Delete transitions', () => {
+    it('should transition READY -> DELETING on deleteRecord', () => {
+      const readyState: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.READY,
+        initialDataLoaded: true,
+      };
+
+      const result = formReducer(readyState, FormActions.deleteRecord({}));
+
+      expect(result.status).toBe(FormStatus.DELETING);
+      expect(result.pendingActions).toContain('deleteRecord');
+    });
+
+    it('should ignore deleteRecord while already saving', () => {
+      const savingState: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.SAVING,
+        initialDataLoaded: true,
+        pendingActions: ['submitForm'],
+      };
+
+      const result = formReducer(savingState, FormActions.deleteRecord({}));
+
+      expect(result).toEqual(savingState);
+    });
+
+    it('should transition DELETING -> READY on deleteRecordSuccess', () => {
+      const deletingState: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.DELETING,
+        error: 'Previous delete error',
+        pendingActions: ['deleteRecord'],
+      };
+
+      const result = formReducer(deletingState, FormActions.deleteRecordSuccess({ oid: 'oid-123' }));
+
+      expect(result.status).toBe(FormStatus.READY);
+      expect(result.error).toBeNull();
+      expect(result.pendingActions).toEqual([]);
+    });
+
+    it('should transition DELETING -> READY with error on deleteRecordFailure', () => {
+      const deletingState: FormFeatureState = {
+        ...formInitialState,
+        status: FormStatus.DELETING,
+        pendingActions: ['deleteRecord'],
+      };
+
+      const result = formReducer(deletingState, FormActions.deleteRecordFailure({ error: 'Delete failed' }));
+
+      expect(result.status).toBe(FormStatus.READY);
+      expect(result.error).toBe('Delete failed');
+      expect(result.pendingActions).toEqual([]);
     });
   });
 

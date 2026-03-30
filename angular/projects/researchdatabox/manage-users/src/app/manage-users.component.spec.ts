@@ -110,9 +110,14 @@ describe('ManageUsersComponent', () => {
     app.hideDetailsModal();
     app.onDetailsModalHidden();
     expect(app.isDetailsModalShown).toEqual(false);
-    app.updateUserSubmit(usersData[0], true);
+    await app.updateUserSubmit(usersData[0] as any, true);
+    expect(app.currentUser).not.toBeNull();
+    if (app.currentUser == null) {
+      fail('Expected currentUser to be set after editing a user');
+      return;
+    }
     expect(app.currentUser.roles.length).toBeGreaterThan(0);
-    app.newUserSubmit(usersData[0], true);
+    await app.newUserSubmit(usersData[0] as any, true);
     expect(app.currentUser.roles.length).toBeGreaterThan(0);
   });
 
@@ -135,6 +140,11 @@ describe('ManageUsersComponent', () => {
       { key: '456', value: 'User', checked: false }
     ];
     const mapped = app.mapRoles(roles);
+    expect(mapped).not.toBeNull();
+    if (mapped == null) {
+      fail('Expected selected roles to be mapped');
+      return;
+    }
     expect(mapped.length).toBe(1);
     expect(mapped[0].name).toBe('Admin');
   });

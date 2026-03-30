@@ -1,13 +1,14 @@
 <% let appName = 'report'; %>
-<div class="row"><div class="col-xs-2"></div><div class="col-xs-8"><a class="btn btn-large btn-primary" href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/reports"><i class="fa fa-arrow-left"></i> <%= TranslationService.t('report-return-to-reports-list') %></a></div></div>
-<div class="row">
-  <div class="col-xs-2"></div>
-  <div class="col-xs-8">
-   <report branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" reportName="<%= req.param('name') %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
-    <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
-   </report>
+<div class="row admin-layout">
+  <div class="col-md-3 col-lg-2">
+    <%- include('layout/sidebar.ejs') %>
   </div>
-  <div class="col-xs-2"></div>
+  <div class="col-md-9 col-lg-10 admin-main-content">
+    <a class="btn btn-large btn-primary" href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/reports"><i class="fa fa-arrow-left"></i> <%= TranslationService.t('report-return-to-reports-list') %></a>
+    <report branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" reportName="<%= req.param('name') %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    </report>
+  </div>
 </div>
 <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
    type="module"></script>
