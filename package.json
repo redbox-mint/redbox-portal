@@ -15,8 +15,8 @@
     "bootstrap": "^5.3.8",
     "connect-mongo": "^6.0.0",
     "ejs": "3.1.10",
-    "express-session": "^1.18.2",
-    "fs-extra": "^11.3.2",
+    "express-session": "^1.19.0",
+    "fs-extra": "^11.3.4",
     "handlebars": "^4.7.9",
     "include-all": "^4.0.3",
     "jquery": "^3.7.1",
@@ -36,7 +36,7 @@
     "ts-node": "^10.9.2",
     "typescript": "5.9",
     "typescript-require": "~0.3.0",
-    "zone.js": "^0.16.0"
+    "zone.js": "^0.16.1"
   },
   "scripts": {
     "debug": "node debug app.js",
@@ -94,6 +94,7 @@
   "author": "QCIF Engineering",
   "license": "GPL2",
   "overrides": {
+    "@aws-sdk/xml-builder": "3.972.16",
     "on-headers": "1.1.0",
     "serialize-javascript": "7.0.5",
     "@uppy/companion": {
@@ -128,15 +129,15 @@
     "@types/jquery": "^3.5.33",
     "@types/lodash-es": "^4.17.12",
     "@types/mocha": "^10.0.1",
-    "@types/node": "^22.5.5",
+    "@types/node": "^22.19.15",
     "chai": "^6.0.1",
     "css-loader": "^7.1.2",
     "ejs-cli": "^2.2.3",
-    "mini-css-extract-plugin": "^2.9.4",
+    "mini-css-extract-plugin": "^2.10.2",
     "mocha": "^11.7.2",
     "mocha-junit-reporter": "^2.2.1",
     "nyc": "^17.1.0",
-    "oxlint": "^1.55.0",
+    "oxlint": "^1.57.0",
     "pino-test": "^1.1.0",
     "prettier": "^3.8.1",
     "sass-loader": "^16.0.7",
