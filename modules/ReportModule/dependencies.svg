@@ -24,59 +24,59 @@
 <title>cluster_ReportModule</title>
 <polygon fill="none" stroke="black" stroke-dasharray="1,5" points="78,-70 78,-268 418,-268 418,-70 78,-70"/>
 </g>
-<g id="clust2" class="cluster">
-<title>cluster_ReportModule_declarations</title>
-<polygon fill="none" stroke="black" points="274,-78 274,-130 410,-130 410,-78 274,-78"/>
-</g>
 <g id="clust4" class="cluster">
 <title>cluster_ReportModule_imports</title>
-<polygon fill="none" stroke="black" points="86,-78 86,-130 266,-130 266,-78 86,-78"/>
+<polygon fill="none" stroke="black" points="230,-78 230,-130 410,-130 410,-78 230,-78"/>
 </g>
 <g id="clust6" class="cluster">
 <title>cluster_ReportModule_bootstrap</title>
-<polygon fill="none" stroke="black" points="189,-208 189,-260 327,-260 327,-208 189,-208"/>
+<polygon fill="none" stroke="black" points="168,-208 168,-260 306,-260 306,-208 168,-208"/>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_ReportModule_declarations</title>
+<polygon fill="none" stroke="black" points="86,-78 86,-130 222,-130 222,-78 86,-78"/>
 </g>
 <!-- ReportComponent -->
 <g id="node1" class="node">
 <title>ReportComponent</title>
-<polygon fill="#ffffb3" stroke="black" points="401.94,-122 282.06,-122 282.06,-86 401.94,-86 401.94,-122"/>
-<text text-anchor="middle" x="342" y="-99.8" font-family="Times,serif" font-size="14.00">ReportComponent</text>
+<polygon fill="#ffffb3" stroke="black" points="213.94,-122 94.06,-122 94.06,-86 213.94,-86 213.94,-122"/>
+<text text-anchor="middle" x="154" y="-99.8" font-family="Times,serif" font-size="14.00">ReportComponent</text>
 </g>
 <!-- ReportModule -->
 <g id="node2" class="node">
 <title>ReportModule</title>
-<polygon fill="#8dd3c7" stroke="black" points="306.65,-187 303.65,-191 282.65,-191 279.65,-187 209.35,-187 209.35,-151 306.65,-151 306.65,-187"/>
-<text text-anchor="middle" x="258" y="-164.8" font-family="Times,serif" font-size="14.00">ReportModule</text>
+<polygon fill="#8dd3c7" stroke="black" points="285.65,-187 282.65,-191 261.65,-191 258.65,-187 188.35,-187 188.35,-151 285.65,-151 285.65,-187"/>
+<text text-anchor="middle" x="237" y="-164.8" font-family="Times,serif" font-size="14.00">ReportModule</text>
 </g>
 <!-- ReportComponent&#45;&gt;ReportModule -->
 <g id="edge1" class="edge">
 <title>ReportComponent&#45;&gt;ReportModule</title>
-<path fill="none" stroke="black" d="M294.55,-122.11C294.55,-122.11 294.55,-140.99 294.55,-140.99"/>
-<polygon fill="black" stroke="black" points="291.05,-140.99 294.55,-150.99 298.05,-140.99 291.05,-140.99"/>
+<path fill="none" stroke="black" d="M200.95,-122.11C200.95,-122.11 200.95,-140.99 200.95,-140.99"/>
+<polygon fill="black" stroke="black" points="197.45,-140.99 200.95,-150.99 204.45,-140.99 197.45,-140.99"/>
 </g>
 <!-- ReportComponent  -->
 <g id="node4" class="node">
 <title>ReportComponent </title>
-<polygon fill="#80b1d3" stroke="black" points="319.43,-252 196.57,-252 196.57,-216 319.43,-216 319.43,-252"/>
-<text text-anchor="middle" x="258" y="-229.8" font-family="Times,serif" font-size="14.00">ReportComponent </text>
+<polygon fill="#80b1d3" stroke="black" points="298.43,-252 175.57,-252 175.57,-216 298.43,-216 298.43,-252"/>
+<text text-anchor="middle" x="237" y="-229.8" font-family="Times,serif" font-size="14.00">ReportComponent </text>
 </g>
 <!-- ReportModule&#45;&gt;ReportComponent  -->
 <g id="edge3" class="edge">
 <title>ReportModule&#45;&gt;ReportComponent </title>
-<path fill="none" stroke="black" stroke-dasharray="1,5" d="M258,-187.11C258,-187.11 258,-205.99 258,-205.99"/>
-<polygon fill="black" stroke="black" points="254.5,-205.99 258,-215.99 261.5,-205.99 254.5,-205.99"/>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M237,-187.11C237,-187.11 237,-205.99 237,-205.99"/>
+<polygon fill="black" stroke="black" points="233.5,-205.99 237,-215.99 240.5,-205.99 233.5,-205.99"/>
 </g>
 <!-- RedboxPortalCoreModule -->
 <g id="node3" class="node">
 <title>RedboxPortalCoreModule</title>
-<polygon fill="#8dd3c7" stroke="black" points="257.75,-122 254.75,-126 233.75,-126 230.75,-122 94.25,-122 94.25,-86 257.75,-86 257.75,-122"/>
-<text text-anchor="middle" x="176" y="-99.8" font-family="Times,serif" font-size="14.00">RedboxPortalCoreModule</text>
+<polygon fill="#8dd3c7" stroke="black" points="401.75,-122 398.75,-126 377.75,-126 374.75,-122 238.25,-122 238.25,-86 401.75,-86 401.75,-122"/>
+<text text-anchor="middle" x="320" y="-99.8" font-family="Times,serif" font-size="14.00">RedboxPortalCoreModule</text>
 </g>
 <!-- RedboxPortalCoreModule&#45;&gt;ReportModule -->
 <g id="edge2" class="edge">
 <title>RedboxPortalCoreModule&#45;&gt;ReportModule</title>
-<path fill="none" stroke="black" d="M233.52,-122.11C233.52,-122.11 233.52,-140.99 233.52,-140.99"/>
-<polygon fill="black" stroke="black" points="230.02,-140.99 233.52,-150.99 237.02,-140.99 230.02,-140.99"/>
+<path fill="none" stroke="black" d="M261.98,-122.11C261.98,-122.11 261.98,-140.99 261.98,-140.99"/>
+<polygon fill="black" stroke="black" points="258.48,-140.99 261.98,-150.99 265.48,-140.99 258.48,-140.99"/>
 </g>
 </g>
 </svg>
