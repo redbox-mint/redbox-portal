@@ -33,7 +33,7 @@ import {
 import { Subscription } from 'rxjs';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup, FormControlStatus, StatusChangeEvent, PristineChangeEvent, ValueChangeEvent } from '@angular/forms';
-import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, get as _get, trim as _trim } from 'lodash-es';
+import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, get as _get, trim as _trim, set as _set } from 'lodash-es';
 import {
   ConfigService,
   LoggerService,
@@ -536,36 +536,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       .subscribe((event: FormValidationGroupsChangeRequestEvent) => {
         const originalEnabledValidationGroups = [...this.enabledValidationGroups];
         const initial: FormValidationGroupsChangeInitial = event.initial ?? "current";
-        const groups = event.groups;
-        let enabledNames = [...this.enabledValidationGroups];
-        switch(initial) {
-          case "all":
-            enabledNames = Object.keys(this.validationGroups);
-            break;
-          case "none":
-            enabledNames = [];
-            break;
-          case "current":
-            // No change to the enabled validation groups.
-            break;
-          default:
-            this.loggerService.error(`${this.logName}: Unknown set enabled validation group initial state '${initial}'.`);
-        }
+        const groups = event.groups ?? {};
 
-        // Add enabled group names.
-        for (const name of groups?.include ?? []) {
-          if (!enabledNames.includes(name)) {
-            enabledNames.push(name);
-          }
-        }
-
-        // Remove disabled group names.
-        for (const name of groups?.exclude ?? []) {
-          const index = enabledNames.indexOf(name);
-          if (index > -1) {
-            enabledNames.splice(index, 1);
-          }
-        }
+        const enabledNames = this.formService.calculateValidationGroups(
+          originalEnabledValidationGroups,
+          this.validationGroups,
+          initial,
+          groups
+        );
 
         // Set the enabled validation groups to the form component config.
         this.enabledValidationGroups = enabledNames;
@@ -574,7 +552,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.formService.updateValidators(mapEntry, enabledNames, validationGroups)
         );
 
-        this.loggerService.info(`${this.logName}: Form enabledValidationGroups changed from ${JSON.stringify(originalEnabledValidationGroups)} to ${JSON.stringify(this.enabledValidationGroups)}`);
+        this.loggerService.debug(`${this.logName}: Form enabledValidationGroups changed from ${JSON.stringify(originalEnabledValidationGroups)} to ${JSON.stringify(this.enabledValidationGroups)} from event field ${event.fieldId}`);
       });
 
     if (this.form) {
@@ -1135,9 +1113,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * @param value The validation groups to enable.
    */
   public set enabledValidationGroups(value: string[] | null | undefined) {
-    const formConfig = this.formDefMap?.formConfig;
-    if (formConfig) {
-      formConfig.enabledValidationGroups = value ?? [];
+    if (this.formDefMap) {
+      _set(this.formDefMap, 'formConfig.enabledValidationGroups', value ?? []);
     }
   }
 

@@ -390,14 +390,19 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       }
     } else if (exprTarget === FormExpressionsTargetValidationGroups) {
       if (isTypeFormValidationGroupsChangeRequestInfo(targetValue)) {
-        this.eventBus.publish(createFormValidationGroupsChangeRequestEvent({
-          sourceId: '',
-          fieldId: '',
-          ...targetValue,
-        }));
+        // Only publish an event in response to scoped change events, don't need to respond to the broadcast events.
+        // Only want to respond to events targeted to a specific component.
+        if (event.sourceId !== "*") {
+          this.eventBus.publish(createFormValidationGroupsChangeRequestEvent({
+            // Create a broadcast event, as this event is intended as a general broadcast.
+            sourceId: '*',
+            fieldId: event.fieldId,
+            ...targetValue,
+          }));
+        }
       } else {
         this.loggerService.error(
-          `FormComponentBaseEventConsumer: Invalid value '${targetValue}' for expression target ${FormExpressionsTargetValidationGroups}, expected {initial?: '[value]', groups: {enable?: string[], disable?: string[]}}.`,
+          `FormComponentBaseEventConsumer: Invalid value '${targetValue}' for expression target ${FormExpressionsTargetValidationGroups}, expected {initial?: '[value]', groups: {include?: string[], exclude?: string[]}}.`,
           {event, expression}
         );
       }

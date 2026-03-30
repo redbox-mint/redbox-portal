@@ -671,7 +671,7 @@ const formConfig: FormConfigFrame = {
                         {
                           name: 'text_7_set_validation_groups',
                           config: {
-                            template: `{"initial": "empty", "groups": {"enable":["none"]}}`,
+                            template: `{"initial": "empty", "groups": {"include":["none"]}}`,
                             conditionKind: 'jsonata',
                             condition: `formData.text_7 = "a"`,
                             target: 'form.enabledValidationGroups',
@@ -719,9 +719,6 @@ const formConfig: FormConfigFrame = {
                           type: 'text',
                         },
                       },
-                      // expressions: [
-
-                      // ]
                     },
                     {
                       name: 'text_3_event',

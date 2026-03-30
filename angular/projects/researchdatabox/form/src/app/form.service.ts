@@ -55,10 +55,12 @@ import {
   getObjectWithJsonPointer,
   FormModesConfig, KindNameDefaultsMap, FieldModelDefinitionKind,
   FormComponentDefinitionKind, KindNameDefaultsMapType, JSONataQueryRuntimeContext, FormValidationGroups,
+  FormFieldValidationGroup,
 } from '@researchdatabox/sails-ng-common';
 import { HttpClient } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
 import { firstValueFrom } from "rxjs";
+import {FormValidationGroupsChangeInitial} from "./form-state";
 
 
 // redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
@@ -879,6 +881,55 @@ export class FormService extends HttpClientService {
       return value;
     }
     return translated?.toString() ?? "";
+  }
+
+  /**
+   * Calculate the new validation group names.
+   * @param currentValidationGroups The currently enabled validation groups.
+   * @param validationGroups The available validation groups.
+   * @param initial The initial validation groups to use when calculating the new validation groups.
+   * @param groups The validation group names to include and exclude.
+   */
+  public calculateValidationGroups(
+    currentValidationGroups: string[],
+    validationGroups: FormValidationGroups,
+    initial?: FormValidationGroupsChangeInitial,
+    groups?: FormFieldValidationGroup
+  ): string[]{
+    let enabledNames = [...currentValidationGroups];
+    switch(initial) {
+      case "all":
+        enabledNames = Object.keys(validationGroups);
+        break;
+      case "none":
+        enabledNames = [];
+        break;
+      case "current":
+        // No change to the enabled validation groups.
+        break;
+      default:
+        // For an unknown initial state, default to 'current'.
+        this.loggerService.error(`${this.logName}: Unknown set enabled validation group initial state '${initial}'.`);
+    }
+
+    // Add enabled group names.
+    for (const name of groups?.include ?? []) {
+      if (!enabledNames.includes(name)) {
+        enabledNames.push(name);
+      }
+    }
+
+    // Remove disabled group names.
+    for (const name of groups?.exclude ?? []) {
+      const index = enabledNames.indexOf(name);
+      if (index > -1) {
+        enabledNames.splice(index, 1);
+      }
+    }
+
+    this.loggerService.debug(`${this.logName}: Calculated validation groups ${JSON.stringify(enabledNames)} from currentValidationGroups ${JSON.stringify(currentValidationGroups)} validationGroups ${JSON.stringify(validationGroups)} initial ${initial} groups ${JSON.stringify(groups)}`);
+
+    return enabledNames;
   }
 }
 

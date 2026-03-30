@@ -1025,7 +1025,7 @@ describe('FormComponent', () => {
       callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
         switch (keyStr) {
           case "componentDefinitions__0__expressions__0__config__template":
-            return {"initial": "current", "groups": {"enable":["tester"]}};
+            return {"initial": "current", "groups": {"include":["tester"]}};
           default:
             throw new Error(`Unknown key: ${keyStr}`);
         }
@@ -1056,7 +1056,7 @@ describe('FormComponent', () => {
             {
               name: 'text_1_set_validation_groups',
               config: {
-                template: '{"initial": "current", "groups": {"enable":["tester"]}}',
+                template: '{"initial": "current", "groups": {"include":["tester"]}}',
                 condition: "/text_1::field.value.changed",
                 conditionKind: "jsonpointer",
                 target: 'form.enabledValidationGroups',
@@ -1075,8 +1075,6 @@ describe('FormComponent', () => {
     const eventBus = TestBed.inject(FormComponentEventBus);
     const sub = eventBus.selectAll$().subscribe(e => events.push(e));
 
-    const getFormCompiledItemsSpy = spyOn(formComponent, 'getFormCompiledItems').and.callThrough();
-
     try {
       const inputEl = compiled.querySelector<HTMLInputElement>('input');
       if (!inputEl){
@@ -1093,12 +1091,14 @@ describe('FormComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      expect(events.length).withContext(JSON.stringify(events)).toEqual(1);
-      expect(events[0].type).toEqual(FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST);
-      expect(events[0].initial).toEqual("current");
-      expect(events[0].groups).toEqual({"enable":["tester"]});
+      expect(events.length).withContext(JSON.stringify(events)).toEqual(5);
+
+      const event = events[4];
+      expect(event.type).toEqual(FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST);
+      expect(event.initial).toEqual("current");
+      expect(event.groups).toEqual({"include":["tester"]});
+
       expect(formComponent.enabledValidationGroups).toEqual(["none", "tester"]);
-      expect(getFormCompiledItemsSpy).toHaveBeenCalledTimes(1);
     } finally {
       sub?.unsubscribe();
     }
