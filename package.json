@@ -20,8 +20,8 @@
     "handlebars": "^4.7.9",
     "include-all": "^4.0.3",
     "jquery": "^3.7.1",
-    "lodash": "^4.17.21",
-    "lodash-es": "^4.17.21",
+    "lodash": "^4.17.23",
+    "lodash-es": "^4.17.23",
     "lucene-escape-query": "^1.0.1",
     "luxon": "^3.7.1",
     "moment": "^2.30.1",
@@ -94,22 +94,12 @@
   "author": "QCIF Engineering",
   "license": "GPL2",
   "overrides": {
-    "brace-expansion": "1.1.13",
-    "minimatch": "3.1.5",
     "on-headers": "1.1.0",
-    "path-to-regexp": "0.1.13",
-    "picomatch": "2.3.2",
-    "qs": "6.15.0",
     "serialize-javascript": "7.0.5",
-    "@sailshq/router": {
-      "path-to-regexp": "0.1.13"
-    },
     "@uppy/companion": {
       "express": "4.22.1",
       "express-session": "1.18.2",
       "morgan": "1.10.1",
-      "path-to-regexp": "0.1.13",
-      "qs": "6.15.0",
       "serialize-javascript": "7.0.5"
     },
     "compression": {
@@ -129,9 +119,6 @@
     },
     "morgan": {
       "on-headers": "1.1.0"
-    },
-    "sails-mongo": {
-      "qs": "6.15.0"
     },
     "socket.io-parser": "4.2.6",
     "svgo": "4.0.1"

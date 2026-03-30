@@ -63,20 +63,12 @@
   },
   "overrides": {
     "on-headers": "1.1.0",
-    "path-to-regexp": "0.1.13",
-    "qs": "6.15.0",
     "serialize-javascript": "7.0.5",
-    "@sailshq/router": {
-      "path-to-regexp": "0.1.13"
-    },
     "compression": {
       "on-headers": "1.1.0"
     },
     "express-session": {
       "on-headers": "1.1.0"
-    },
-    "sails-mongo": {
-      "qs": "6.15.0"
     }
   },
   "publishConfig": {
