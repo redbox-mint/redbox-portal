@@ -800,12 +800,14 @@ describe('QuestionTreeComponent', async () => {
       const {fixture} = await createFormAndWaitForReady(formConfigWithDirectQuestionLabel);
       const element = fixture.nativeElement as HTMLElement;
 
-      const fieldLabels = element.querySelectorAll('.rb-form-field-label');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const fieldLabels = element.querySelectorAll('.rb-form-field-label span');
       expect(fieldLabels.length).toEqual(1);
 
       const firstLabel = fieldLabels[0];
       expect(firstLabel).toBeTruthy();
-      expect(firstLabel?.innerHTML?.trim()).toContain('Direct Question Label');
       expect(firstLabel?.textContent?.trim()).toContain('Direct Question Label');
     });
 
