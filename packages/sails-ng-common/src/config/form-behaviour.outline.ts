@@ -34,7 +34,6 @@ export type FormBehaviourProcessorTypeValue =
 export const FormBehaviourActionType = {
   SetValue: 'setValue',
   EmitEvent: 'emitEvent',
-  SetValidationGroups: 'setValidationGroups',
 } as const;
 
 export type FormBehaviourActionTypeValue = (typeof FormBehaviourActionType)[keyof typeof FormBehaviourActionType];
@@ -109,17 +108,8 @@ export interface FormBehaviourEmitEventActionConfig {
   hasValueTemplate?: boolean;
 }
 
-/**
- * TODO
- */
-export interface FormBehaviourSetValidationGroupsActionConfig {
-
-}
-
-
-
 export interface FormBehaviourActionConfigFrame<
-  TConfig = FormBehaviourSetValueActionConfig | FormBehaviourEmitEventActionConfig | FormBehaviourSetValidationGroupsActionConfig,
+  TConfig = FormBehaviourSetValueActionConfig | FormBehaviourEmitEventActionConfig,
 > {
   type: FormBehaviourActionTypeValue;
   config: TConfig;
@@ -133,14 +123,9 @@ export type FormBehaviourEmitEventAction = FormBehaviourActionConfigFrame<FormBe
   type: typeof FormBehaviourActionType.EmitEvent;
 };
 
-export type FormBehaviourSetValidationGroupsAction = FormBehaviourActionConfigFrame<FormBehaviourSetValidationGroupsActionConfig> & {
-  type: typeof FormBehaviourActionType.SetValidationGroups;
-};
-
 export type FormBehaviourActionConfig =
   | FormBehaviourSetValueAction
   | FormBehaviourEmitEventAction
-  | FormBehaviourSetValidationGroupsAction
   ;
 
 /**
