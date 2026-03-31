@@ -30,7 +30,7 @@ import { RepeatableComponent } from './repeatable.component';
 import { syncComponentDisplayFromModel } from '../form-state/custom-display-sync.control';
 
 
-export type GroupFormControlValueType = { [key: string]: AbstractControl<unknown> };
+export type GroupFormControlValueType = { [key: string]: AbstractControl<GroupFieldModelValueType> };
 export type GroupFormControlType = FormGroup<GroupFormControlValueType>;
 
 /**

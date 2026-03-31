@@ -29,7 +29,7 @@ export class QuestionTreeModel extends FormFieldModel<QuestionTreeModelValueType
   public override formControl?: QuestionTreeFormControlType;
 
   protected override postCreateGetInitValue(): QuestionTreeModelValueType {
-    return this.fieldConfig.config?.value ?? {};
+    return this.fieldConfig.config?.value ?? QuestionTreeModel.getEmptyModel();
   }
 
   protected override postCreateGetFormControl(): QuestionTreeFormControlType {
@@ -48,6 +48,10 @@ export class QuestionTreeModel extends FormFieldModel<QuestionTreeModelValueType
     } else {
       throw new Error(`${this.logName}: formControl or name or targetModel are not valid. Cannot add item.`);
     }
+  }
+
+  public static getEmptyModel():  QuestionTreeModelValueType {
+    return {[QuestionTreeOutcomeInfoKey]: null}
   }
 }
 
@@ -135,7 +139,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     }
 
     // Create the form fields from the form components map.
-    const elemVals: QuestionTreeModelValueType = this.model.initValue ?? {};
+    const elemVals: QuestionTreeModelValueType = this.model.initValue ?? QuestionTreeModel.getEmptyModel();
     const formGroupMap = this.formService.groupComponentsByName(this.formComponentsMap);
     for (const key of Object.keys(formGroupMap.withFormControl ?? {})) {
       // Create the wrapper component.
@@ -180,7 +184,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
         // When a value in the question tree changes,
         // calculate the outcome and set the data model properties.
         const newValue = this.getOutcomeInfo();
-        const modelValue: QuestionTreeModelValueType = this.model?.getValue() ?? {};
+        const modelValue: QuestionTreeModelValueType = this.model?.getValue() ?? QuestionTreeModel.getEmptyModel();
         const currentValue = modelValue?.[QuestionTreeOutcomeInfoKey];
         const hasChanged = JSON.stringify(newValue) !== JSON.stringify(currentValue);
         if (hasChanged && modelValue) {
@@ -211,7 +215,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     if (!config) {
       throw new Error(`${this.logName}: Could not get Question Tree component config.`);
     }
-    const data = this.model?.getValue() ?? {};
+    const data = this.model?.getValue() ?? QuestionTreeModel.getEmptyModel();
     const outcomeInfo = this.calculateOutcomeInfo(config, data);
     return outcomeInfo;
   }
