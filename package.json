@@ -139,7 +139,7 @@
     "mocha-junit-reporter": "^2.2.1",
     "nyc": "^17.1.0",
     "oxlint": "^1.57.0",
-    "pino-test": "^1.1.0",
+    "pino-test": "^2.0.0",
     "prettier": "^3.8.1",
     "sass": "^1.98.0",
     "sass-loader": "^16.0.7",
