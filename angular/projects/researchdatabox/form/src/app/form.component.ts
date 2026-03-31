@@ -716,7 +716,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     siblingIndex: number = 0
   ): DebugInfo {
     const componentEntry = formFieldCompMapEntry;
-    this.loggerService.debug('getComponentDebugInfo', formFieldCompMapEntry);
     const componentConfigClassName = formFieldCompMapEntry?.compConfigJson?.component?.class ?? '';
     const name = this.utilityService.formFieldConfigName(formFieldCompMapEntry);
     const hierarchicalNamePath = [...parentNamePath, name];
