@@ -32,6 +32,7 @@ import { TypeaheadInputDefaults, TypeaheadInputMap } from './component/typeahead
 import { RichTextEditorDefaults, RichTextEditorMap } from './component/rich-text-editor.model';
 import { MapDefaults, MapMap } from './component/map.model';
 import { FileUploadDefaults, FileUploadMap } from './component/file-upload.model';
+import { PDFListDefaults, PDFListMap } from './component/pdf-list.model';
 import {
   RecordMetadataRetrieverDefaults,
   RecordMetadataRetrieverMap,
@@ -83,6 +84,7 @@ export const AllDefs = [
   ...RichTextEditorMap,
   ...MapMap,
   ...FileUploadMap,
+  ...PDFListMap,
   ...RecordMetadataRetrieverMap,
   ...DataLocationMap,
   // Register the stateless refresh trigger alongside the publication selector so
@@ -123,6 +125,7 @@ const RawDefaults = [
   RichTextEditorDefaults,
   MapDefaults,
   FileUploadDefaults,
+  PDFListDefaults,
   RecordMetadataRetrieverDefaults,
   DataLocationDefaults,
   PublishDataLocationRefreshDefaults,

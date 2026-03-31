@@ -160,6 +160,16 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { FileUploadFieldComponentConfig, FileUploadFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import {
+  PDFListComponentName,
+  PDFListFieldComponentDefinitionFrame,
+  PDFListFieldComponentDefinitionOutline,
+  PDFListFieldModelDefinitionFrame,
+  PDFListFieldModelDefinitionOutline,
+  PDFListFormComponentDefinitionOutline,
+  PDFListModelName,
+} from '@researchdatabox/sails-ng-common';
+import { PDFListFieldComponentConfig, PDFListFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
   RecordMetadataRetrieverComponentName,
   RecordMetadataRetrieverFieldComponentDefinitionFrame,
   RecordMetadataRetrieverFieldComponentDefinitionOutline,
@@ -1348,6 +1358,53 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* PDF List */
+
+  visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<PDFListFieldComponentDefinitionFrame>(currentData, PDFListComponentName)) {
+      throw new Error(
+        `Invalid ${PDFListComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    item.config = new PDFListFieldComponentConfig();
+
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+    this.sharedProps.setPropOverride('startsWith', item.config, config);
+    this.sharedProps.setPropOverride('recentPdfLimit', item.config, config);
+    this.sharedProps.setPropOverride('showVersionCounter', item.config, config);
+    this.sharedProps.setPropOverride('showVersionColumn', item.config, config);
+    this.sharedProps.setPropOverride('versionColumnValueField', item.config, config);
+    this.sharedProps.setPropOverride('versionColumnLabelKey', item.config, config);
+    this.sharedProps.setPropOverride('useVersionLabelForFileName', item.config, config);
+    this.sharedProps.setPropOverride('downloadBtnLabel', item.config, config);
+    this.sharedProps.setPropOverride('downloadPreviousBtnLabel', item.config, config);
+    this.sharedProps.setPropOverride('downloadPrefix', item.config, config);
+    this.sharedProps.setPropOverride('fileNameTemplate', item.config, config);
+  }
+
+  visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): void {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<PDFListFieldModelDefinitionFrame>(currentData, PDFListModelName)) {
+      throw new Error(
+        `Invalid ${PDFListModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+
+    item.config = new PDFListFieldModelConfig();
+
+    this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+    this.setModelValue(item, currentData?.config);
+  }
+
+  visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
   }
 
