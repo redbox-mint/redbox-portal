@@ -6,28 +6,31 @@ import {
   TabNavButtonFieldComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import { TabComponent } from './tab.component';
+import {FormService} from "../form.service";
 
 @Component({
   selector: 'redbox-form-tab-nav-button',
   template: `
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-      @if (endDisplayMode === 'disabled') {
-        <button type="button" class="btn btn-secondary" [disabled]="!canGoPrev()" (click)="stepToTab(-1)">
-          {{ prevLabel }}
-        </button>
-        <button type="button" class="btn btn-primary" [disabled]="!canGoNext()" (click)="stepToTab(1)">
-          {{ nextLabel }}
-        </button>
-      }
-      @if (endDisplayMode === 'hidden') {
-        @if (canGoPrev()) {
-          <button type="button" class="btn btn-secondary" (click)="stepToTab(-1)">{{ prevLabel }}</button>
+      <div class="rb-form-tab-nav-buttons">
+        @if (endDisplayMode === 'disabled') {
+          <button type="button" class="btn btn-secondary" [disabled]="!canGoPrev()" (click)="stepToTab(-1)">
+            {{ prevLabel }}
+          </button>
+          <button type="button" class="btn btn-primary" [disabled]="!canGoNext()" (click)="stepToTab(1)">
+            {{ nextLabel }}
+          </button>
         }
-        @if (canGoNext()) {
-          <button type="button" class="btn btn-primary" (click)="stepToTab(1)">{{ nextLabel }}</button>
+        @if (endDisplayMode === 'hidden') {
+          @if (canGoPrev()) {
+            <button type="button" class="btn btn-secondary" (click)="stepToTab(-1)">{{ prevLabel }}</button>
+          }
+          @if (canGoNext()) {
+            <button type="button" class="btn btn-primary" (click)="stepToTab(1)">{{ nextLabel }}</button>
+          }
         }
-      }
+      </div>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
@@ -37,17 +40,18 @@ export class TabNavButtonComponent extends FormFieldBaseComponent<undefined> imp
   public override logName = TabNavButtonComponentName;
   protected override formComponent: FormComponent = inject(FormComponent);
   public override componentDefinition?: TabNavButtonFieldComponentDefinitionOutline;
+  private readonly formService = inject(FormService);
 
   private tabComponent: TabComponent | null = null;
   private tabIds: string[] = [];
   currentTabIndex = signal<number>(0);
 
   get prevLabel(): string {
-    return this.componentDefinition?.config?.prevLabel ?? 'Previous';
+    return this.translateLabel(this.componentDefinition?.config?.prevLabel, 'Previous');
   }
 
   get nextLabel(): string {
-    return this.componentDefinition?.config?.nextLabel ?? 'Next';
+    return this.translateLabel(this.componentDefinition?.config?.nextLabel, 'Next');
   }
 
   get endDisplayMode(): string {
@@ -134,5 +138,9 @@ export class TabNavButtonComponent extends FormFieldBaseComponent<undefined> imp
       }
     }
     return this.currentTabIndex();
+  }
+
+  private translateLabel(label: string | undefined, fallback: string): string {
+    return this.formService.translate(label ?? fallback);
   }
 }

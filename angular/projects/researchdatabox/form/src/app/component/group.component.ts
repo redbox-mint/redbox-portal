@@ -5,7 +5,7 @@ import {
   ViewChild,
   ViewContainerRef
 } from '@angular/core';
-import { FormGroup } from "@angular/forms";
+import { AbstractControl, FormGroup } from "@angular/forms";
 import {
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
@@ -13,7 +13,10 @@ import {
 } from "@researchdatabox/portal-ng-common";
 import {
   FormConfigFrame,
-  GroupFieldModelValueType, GroupFieldComponentConfig, GroupFieldModelName, GroupFieldComponentName,
+  GroupFieldModelValueType, GroupFieldModelName, GroupFieldComponentName,
+  isTypeFieldDefinitionName,
+  isTypeWithComponentDefinitions,
+  GroupFieldComponentDefinitionFrame,
 } from "@researchdatabox/sails-ng-common";
 import { FormComponentsMap, FormService } from "../form.service";
 import { FormComponent } from "../form.component";
@@ -23,29 +26,32 @@ import {
   isUndefined as _isUndefined,
 } from "lodash-es";
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
+import { RepeatableComponent } from './repeatable.component';
+import { syncComponentDisplayFromModel } from '../form-state/custom-display-sync.control';
+
+
+export type GroupFormControlValueType = { [key: string]: AbstractControl<unknown> };
+export type GroupFormControlType = FormGroup<GroupFormControlValueType>;
 
 /**
  * The model for the Group Component.
  */
 export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
   protected override logName = GroupFieldModelName;
-  public override formControl?: FormGroup;
+  public override formControl?: GroupFormControlType;
 
-  override postCreate(): void {
-    // Don't call the super method, as this model needs a FormGroup, and needs to populate it differently.
-    // super.postCreate();
+  protected override postCreateGetInitValue(): GroupFieldModelValueType {
+    return this.fieldConfig.config?.value ?? {};
+  }
 
-    // Store the init value. Use the default value if the value is not set.
-    this.initValue = _get(this.fieldConfig, 'config.value');
-
+  protected override postCreateGetFormControl(): GroupFormControlType {
     // Create the empty FormGroup here, not in the component.
     // This is different from FormComponent, which has no model.
     // Creating the FormGroup here allows encapsulating the FormGroup & children in the same way as other components.
-    this.formControl = new FormGroup({});
-    if (this.fieldConfig.config?.disabled) {
-      this.formControl.disable();
-    }
-    console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value:`, this.initValue);
+    // in the same way as other components.
+    const modelElems: GroupFormControlValueType = {};
+    const formControl = new FormGroup(modelElems);
+    return formControl;
   }
 
   public addItem(name: string, targetModel?: FormFieldModel<unknown>) {
@@ -65,7 +71,9 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
   selector: 'redbox-groupfield',
   template: `
     <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
-    <ng-container #componentContainer/>
+    <div class="rb-form-group">
+      <ng-container #componentContainer/>
+    </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
   `,
   standalone: false
@@ -86,6 +94,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
   protected get getFormComponent(): FormComponent {
     return this.injector.get(FormComponent);
   }
+
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
     return this.formFieldCompMapEntries
       .map(c => c.component)
@@ -101,12 +110,23 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
 
     // Build a form config to store the info needed to build the components.
     const formConfig = this.getFormComponent.formDefMap?.formConfig;
-    const groupComponentDefinitions = (this.formFieldCompMapEntry?.compConfigJson?.component?.config as GroupFieldComponentConfig)?.componentDefinitions ?? [];
     const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
+
+    const componentFormConfig = this.formFieldCompMapEntry?.compConfigJson?.component;
+    if (!isTypeFieldDefinitionName<GroupFieldComponentDefinitionFrame>(componentFormConfig, GroupFieldComponentName)) {
+      throw new Error(`Expected a group component, but got ${JSON.stringify(componentFormConfig)}`);
+    }
+
+    const componentConfigFormConfig = componentFormConfig.config;
+    if (!isTypeWithComponentDefinitions(componentConfigFormConfig) || componentConfigFormConfig.componentDefinitions?.length < 1) {
+      throw new Error(`Expected a group component config with at least one componentDefinition, but got ${JSON.stringify(componentConfigFormConfig)}`);
+    }
+
+    const componentDefinitions = componentConfigFormConfig.componentDefinitions;
     this.elementFormConfig = {
       name: `form-config-generated-group-${formComponentName}`,
       // Store the child component definitions.
-      componentDefinitions: groupComponentDefinitions,
+      componentDefinitions: componentDefinitions,
       // Get the default config.
       defaultComponentConfig: formConfig?.defaultComponentConfig,
     };
@@ -116,6 +136,7 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       this.formFieldCompMapEntry?.lineagePaths,
       {
         angularComponents: [],
+        layout: [],
         dataModel: [],
         formConfig: ['component', 'config', 'componentDefinitions'],
       });
@@ -144,29 +165,25 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       if (hasModel && includeInFormControlMap) {
         const elemVal = elemVals?.[key];
         if (compInstance?.model && !_isUndefined(elemVal)) {
-          compInstance.model.setValue(elemVal);
+          if (compInstance instanceof RepeatableComponent && Array.isArray(elemVal) && compInstance.formFieldCompMapEntries.length === 0) {
+            for (const repeatableValue of elemVal) {
+              await compInstance.appendNewElement(repeatableValue, false);
+            }
+          } else {
+            compInstance.model.setValue(elemVal as never);
+          }
         }
         this.model.addItem(key, compInstance.model);
+        await syncComponentDisplayFromModel(compInstance);
       } else {
         this.loggerService.debug(`${this.logName}: component for '${key}' does not have a model or formControl, skipping addItem.`);
       }
 
-      // Set the lineage path and reference to the wrapper component.
+      // Set the reference to the wrapper component.
+      // TODO: is this needed? See how other components with nested components do this?
       if (elemFieldEntry) {
-        const dataModel = hasModel && includeInFormControlMap ? [key] : [];
-        elemFieldEntry.lineagePaths = this.formService.buildLineagePaths(
-          this.formFieldCompMapEntry?.lineagePaths,
-          {
-            angularComponents: [key],
-            dataModel: dataModel,
-            // TODO: The formConfig likely needs to be updated with the path to the group child component.
-            //       This requires the index in the componentDefinition, which isn't readily available here.
-            formConfig: [],
-          }
-        )
         elemFieldEntry.componentRef = wrapperRef;
       }
     }
   }
-
 }

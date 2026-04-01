@@ -6,15 +6,15 @@ have them applied to the instance during the lifting process.
 
 ### Getting Started with TypeScript
 
-The recommended way to develop hooks is using the [Redbox Hook Kit](Redbox-Hook-Kit):
+The recommended way to develop hooks is using the [Redbox Hook Kit](redbox-dev-tools):
 
 ```bash
 # Initialize a new hook project
-npx @researchdatabox/redbox-hook-kit init
+npx @researchdatabox/redbox-dev-tools init
 
 # Install dependencies
-npm install --save-dev @researchdatabox/redbox-hook-kit
-npm install @researchdatabox/redbox-core-types
+npm install --save-dev @researchdatabox/redbox-dev-tools
+npm install @researchdatabox/redbox-core
 
 # Build TypeScript
 npm run build
@@ -110,7 +110,7 @@ Hooks can provide custom services or override core services. Hook services take 
 **TypeScript Example (Recommended):**
 
 ```typescript
-import { Services as services } from '@researchdatabox/redbox-core-types';
+import { Services as services } from '@researchdatabox/redbox-core';
 
 export module Services {
     export class MyCustomService extends services.Core.Service {
@@ -139,7 +139,7 @@ module.exports.registerRedboxServices = function() {
 
 ```typescript
 // Override RecordsService to add custom behavior
-import { RecordsService } from '@researchdatabox/redbox-core-types';
+import { RecordsService } from '@researchdatabox/redbox-core';
 
 export module Services {
     export class CustomRecordsService extends RecordsService.Services.Records {
@@ -167,7 +167,7 @@ module.exports.registerRedboxServices = function() {
 Hooks can provide API controllers or webservice controllers. Hook controllers take precedence over core controllers with the same name.
 
 ```typescript
-import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers } from '@researchdatabox/redbox-core';
 
 export module Controllers {
     export class MyController extends controllers.Core.Controller {
@@ -238,6 +238,6 @@ These files are copied into `/opt/redbox-portal/assets` and `/opt/redbox-portal/
 
 ## See Also
 
-- [Redbox Hook Kit](Redbox-Hook-Kit) - TypeScript development toolkit
-- [Redbox Core Types](Redbox-Core-Types) - Core types and base classes
+- [Redbox Hook Kit](redbox-dev-tools) - TypeScript development toolkit
+- [Redbox Core Types](redbox-core) - Core types and base classes
 - [Redbox Loader](Redbox-Loader) - How hooks are discovered and loaded

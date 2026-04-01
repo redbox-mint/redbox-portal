@@ -206,15 +206,28 @@ describe("Validator", async () => {
                     expected: null,
                 },
                 {
-                    title: "pattern - expect failure",
+                    title: "pattern - expect failure with regex",
                     args: {
                         value: "a", definition: formValidatorsSharedDefinitions,
-                        block: {class: "pattern", config: {pattern: /prefix.*/, description: "must start with prefix"}},
+                        block: {class: "pattern", config: {pattern: new RegExp("prefix.*"), description: "must start with prefix"}},
                     },
                     expected: {
                         pattern: {
                             message: "@validator-error-pattern",
-                            params: {actual: "a", description: "must start with prefix", requiredPattern: "/prefix.*/"},
+                            params: {actual: "a", description: "must start with prefix", requiredPattern: "^prefix.*$"},
+                        },
+                    },
+                },
+                {
+                    title: "pattern - expect failure with string",
+                    args: {
+                        value: "a", definition: formValidatorsSharedDefinitions,
+                        block: {class: "pattern", config: {pattern: "prefix.*", description: "must start with prefix"}},
+                    },
+                    expected: {
+                        pattern: {
+                            message: "@validator-error-pattern",
+                            params: {actual: "a", description: "must start with prefix", requiredPattern: "^prefix.*$"},
                         },
                     },
                 },
@@ -222,7 +235,15 @@ describe("Validator", async () => {
                     title: "pattern - expect pass",
                     args: {
                         value: "prefixa", definition: formValidatorsSharedDefinitions,
-                        block: {class: "pattern", config: {pattern: /prefix.*/, description: "must start with prefix"}},
+                        block: {class: "pattern", config: {pattern: new RegExp("prefix.*"), description: "must start with prefix"}},
+                    },
+                    expected: null,
+                },
+                {
+                    title: "pattern - expect pass",
+                    args: {
+                        value: "prefixa", definition: formValidatorsSharedDefinitions,
+                        block: {class: "pattern", config: {pattern: "^prefix.*", description: "must start with prefix"}},
                     },
                     expected: null,
                 },
@@ -328,7 +349,7 @@ describe("Validator", async () => {
                         }
                     },
                 },
-                
+
                 {
                     title: "orcid - expect failure (URL www)",
                     args: {
@@ -441,7 +462,7 @@ describe("Validator", async () => {
         }[] =
             [
                 {
-                    title: "",
+                    title: "enable validator with no group when enabledGroups is empty array",
                     args: {
                         availableGroups: {
                             all: {

@@ -1,5 +1,4 @@
-
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 const formConfig: FormConfigFrame = {
   "name": "v4FormConfig",
   "enabledValidationGroups": [
@@ -34,6 +33,7 @@ const formConfig: FormConfigFrame = {
           "label": "@dataPublication-citation-tab",
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "componentDefinitions": [
             {
               "name": "ContentComponent-fields-0-definition-fields-0",
@@ -51,7 +51,8 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "disabled": false,
                   "autofocus": false,
-                  "template": "<span role=\"heading\" aria-level=\"3\">{{content}}</span>",
+                  "showValidIndicator": false,
+                  "template": "<h3>{{t content}}</h3>",
                   "content": "@dataPublication-citation-tab-heading"
                 }
               },
@@ -63,6 +64,7 @@ const formConfig: FormConfigFrame = {
                   "editMode": true,
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -92,6 +94,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-identifier",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "type": "text"
                 }
               },
@@ -110,6 +113,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-identifier",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -136,6 +140,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-identifier",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "type": "text"
                 }
               },
@@ -154,6 +159,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-identifier",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -180,6 +186,7 @@ const formConfig: FormConfigFrame = {
                   "label": "requestIdentifier",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "options": [
                     {
                       "label": "@dataPublication-citation-request-identifier",
@@ -200,8 +207,10 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "requestIdentifier",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -226,6 +235,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-identifiers",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "elementTemplate": {
                     "name": "",
                     "constraints": {
@@ -242,6 +252,7 @@ const formConfig: FormConfigFrame = {
                         "editMode": true,
                         "disabled": false,
                         "autofocus": false,
+                        "showValidIndicator": false,
                         "type": "text"
                       }
                     },
@@ -252,13 +263,14 @@ const formConfig: FormConfigFrame = {
                       }
                     },
                     "layout": {
-                      "class": "DefaultLayout",
+                      "class": "RepeatableElementLayout",
                       "config": {
                         "readonly": false,
                         "visible": true,
                         "editMode": true,
                         "disabled": false,
                         "autofocus": false,
+                        "showValidIndicator": false,
                         "labelRequiredStr": "*",
                         "cssClassesMap": {},
                         "helpTextVisibleOnInit": false,
@@ -283,6 +295,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-identifiers",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "helpText": "@dataPublication-identifiers-help",
                   "cssClassesMap": {},
@@ -308,6 +321,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-title",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "type": "text"
                 }
               },
@@ -330,6 +344,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-title",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "helpText": "@dataPublication-citation-title-help",
                   "cssClassesMap": {},
@@ -355,6 +370,7 @@ const formConfig: FormConfigFrame = {
                   "label": "creators",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "elementTemplate": {
                     "name": "",
                     "constraints": {
@@ -375,6 +391,7 @@ const formConfig: FormConfigFrame = {
                         "label": "@dataPublication-creators",
                         "disabled": false,
                         "autofocus": false,
+                        "showValidIndicator": false,
                         "componentDefinitions": [
                           {
                             "name": "standard_contributor_fields_group",
@@ -396,6 +413,7 @@ const formConfig: FormConfigFrame = {
                                 "label": "@dataPublication-creators",
                                 "disabled": false,
                                 "autofocus": false,
+                                "showValidIndicator": false,
                                 "componentDefinitions": []
                               }
                             },
@@ -414,6 +432,7 @@ const formConfig: FormConfigFrame = {
                                 "label": "@dataPublication-creators",
                                 "disabled": false,
                                 "autofocus": false,
+                                "showValidIndicator": false,
                                 "labelRequiredStr": "*",
                                 "helpText": "@dataPublication-creators-help",
                                 "cssClassesMap": {},
@@ -440,8 +459,10 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "@dataPublication-creators",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -466,6 +487,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-publisher",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "type": "text"
                 }
               },
@@ -489,6 +511,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-publisher",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "helpText": "@dataPublication-citation-publisher-help",
                   "cssClassesMap": {},
@@ -514,6 +537,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-url",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "content": "Not yet implemented in v5: v4ClassName \"LinkValueComponent\" v4CompClassName \"\" v4Name \"citation_url\". At path '[\"fields\",\"0\",\"definition\",\"fields\",\"8\"]'."
                 }
               },
@@ -526,6 +550,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-url",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "helpText": "@dataPublication-citation-url-help",
                   "cssClassesMap": {},
@@ -551,6 +576,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-publication-date",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "placeholder": "",
                   "dateFormat": "DD/MM/YYYY",
                   "showWeekNumbers": false,
@@ -574,6 +600,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-publication-date",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "helpText": "@dataPublication-citation-publication-datel-help",
                   "cssClassesMap": {},
@@ -599,6 +626,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-generated-label",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "type": "text"
                 }
               },
@@ -617,6 +645,7 @@ const formConfig: FormConfigFrame = {
                   "label": "@dataPublication-citation-generated-label",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -641,6 +670,7 @@ const formConfig: FormConfigFrame = {
                   "label": "dataowner_name",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "type": "hidden"
                 }
               },
@@ -656,8 +686,10 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "dataowner_name",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -682,6 +714,7 @@ const formConfig: FormConfigFrame = {
                   "label": "dataowner_email",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "type": "hidden"
                 }
               },
@@ -697,8 +730,10 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "dataowner_email",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -723,6 +758,7 @@ const formConfig: FormConfigFrame = {
                   "label": "contributor_ci",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "type": "hidden"
                 }
               },
@@ -738,8 +774,10 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "contributor_ci",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -764,6 +802,7 @@ const formConfig: FormConfigFrame = {
                   "label": "contributor_data_manager",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "type": "hidden"
                 }
               },
@@ -779,8 +818,10 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "contributor_data_manager",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -805,6 +846,7 @@ const formConfig: FormConfigFrame = {
                   "label": "contributor_supervisor",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "type": "hidden"
                 }
               },
@@ -820,8 +862,10 @@ const formConfig: FormConfigFrame = {
                   "readonly": false,
                   "visible": true,
                   "editMode": true,
+                  "label": "contributor_supervisor",
                   "disabled": false,
                   "autofocus": false,
+                  "showValidIndicator": false,
                   "labelRequiredStr": "*",
                   "cssClassesMap": {},
                   "helpTextVisibleOnInit": false,
@@ -847,6 +891,7 @@ const formConfig: FormConfigFrame = {
           "label": "@dataPublication-citation-tab",
           "disabled": false,
           "autofocus": false,
+          "showValidIndicator": false,
           "labelRequiredStr": "*",
           "cssClassesMap": {},
           "helpTextVisibleOnInit": false,
@@ -870,4 +915,4 @@ const formConfig: FormConfigFrame = {
   "debugValue": true,
   "attachmentFields": []
 };
-module.exports = formConfig;
+export default formConfig;

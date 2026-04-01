@@ -269,17 +269,20 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       const optionPatternKey = "pattern";
       const pattern = formValidatorGetDefinitionItem(config, optionPatternKey);
       let regex: RegExp;
-      let regexStr: string;
-      if (typeof pattern === "string") {
-        regexStr = "";
-        if (pattern.charAt(0) !== "^") regexStr = ("^" + regexStr);
-        regexStr += pattern;
-        if (pattern.charAt(pattern.length - 1) !== "$") regexStr = (regexStr + "$");
-        regex = new RegExp(regexStr);
-      } else if (pattern instanceof RegExp) {
-        regexStr = pattern.toString();
-        regex = pattern;
+      let regexStr = (pattern instanceof RegExp ? pattern?.source : pattern?.toString()) ?? "";
+
+      // The pattern must start with '^' (start anchor)
+      if (regexStr.charAt(0) !== "^"){
+        regexStr = ("^" + regexStr);
       }
+
+      // The pattern must end with '$' (end anchor).
+      if (regexStr.charAt(regexStr.length - 1) !== "$") {
+        regexStr = (regexStr + "$");
+      }
+
+      regex = new RegExp(regexStr);
+
       return (control) => {
         if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
           return null; // don't validate empty values to allow optional controls

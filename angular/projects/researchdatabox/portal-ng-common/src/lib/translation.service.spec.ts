@@ -85,6 +85,85 @@ describe('TranslationService testing', () => {
     expect(translationService.t('key1')).toEqual("value1");
   });
 
+  it('should resolve translation keys containing colon characters', async function () {
+    const mockConfigData = {
+      csrfToken: 'test',
+      rootContext: 'base',
+      branding: 'default',
+      portal: 'rdmp',
+      baseUrl: '',
+      i18NextOpts: {
+        lng: 'en',
+        fallbackLng: 'en',
+        supportedLngs: ['en'],
+        ns: ['translation'],
+        resources: {
+          en: {
+            translation: {
+              '@dmpt-foaf:fundedBy_foaf:Agent': 'Funding source'
+            }
+          }
+        }
+      }
+    };
+    configService.getConfig = function () { return mockConfigData };
+    await translationService.waitForInit();
+    expect(translationService.t('@dmpt-foaf:fundedBy_foaf:Agent')).toEqual("Funding source");
+  });
+
+  it('should preserve explicit empty string translations', async function () {
+    const mockConfigData = {
+      csrfToken: 'test',
+      rootContext: 'base',
+      branding: 'default',
+      portal: 'rdmp',
+      baseUrl: '',
+      i18NextOpts: {
+        lng: 'en',
+        fallbackLng: 'en',
+        supportedLngs: ['en'],
+        ns: ['translation'],
+        resources: {
+          en: {
+            translation: {
+              '@dmpt-agls:policy_dc:identifier': ''
+            }
+          }
+        }
+      }
+    };
+    configService.getConfig = function () { return mockConfigData };
+    await translationService.waitForInit();
+    expect(translationService.t('@dmpt-agls:policy_dc:identifier')).toEqual("");
+  });
+
+  it('should preserve explicit empty string translations even if config sets returnEmptyString false', async function () {
+    const mockConfigData = {
+      csrfToken: 'test',
+      rootContext: 'base',
+      branding: 'default',
+      portal: 'rdmp',
+      baseUrl: '',
+      i18NextOpts: {
+        lng: 'en',
+        fallbackLng: 'en',
+        supportedLngs: ['en'],
+        ns: ['translation'],
+        returnEmptyString: false,
+        resources: {
+          en: {
+            translation: {
+              '@dmpt-agls:policy_dc:identifier': ''
+            }
+          }
+        }
+      }
+    };
+    configService.getConfig = function () { return mockConfigData };
+    await translationService.waitForInit();
+    expect(translationService.t('@dmpt-agls:policy_dc:identifier')).toEqual("");
+  });
+
   it('should produce a valid translation using configService with default config', async function () {
     await translationService.waitForInit();
     expect(translationService.t('key1')).toEqual("value1");

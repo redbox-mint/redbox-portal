@@ -130,6 +130,14 @@ describe('Form Selectors', () => {
       expect(result).toBe(false);
     });
 
+    it('should derive isDeleting from status', () => {
+      const status = FormStatus.DELETING;
+
+      const result = FormSelectors.selectIsDeleting.projector(status);
+
+      expect(result).toBe(true);
+    });
+
     it('should derive isValidationPending from status', () => {
       const status = FormStatus.VALIDATION_PENDING;
       

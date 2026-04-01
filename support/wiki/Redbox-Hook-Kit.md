@@ -1,6 +1,6 @@
 # Redbox Hook Kit
 
-The `@researchdatabox/redbox-hook-kit` package provides TypeScript tooling and shared configuration for developing ReDBox customisation hooks.
+The `@researchdatabox/redbox-dev-tools` package provides TypeScript tooling and shared configuration for developing ReDBox customisation hooks.
 
 ## Overview
 
@@ -13,8 +13,8 @@ This package provides:
 ## Installation
 
 ```bash
-npm install --save-dev @researchdatabox/redbox-hook-kit
-npm install @researchdatabox/redbox-core-types
+npm install --save-dev @researchdatabox/redbox-dev-tools
+npm install @researchdatabox/redbox-core
 ```
 
 ## Quick Start
@@ -22,7 +22,7 @@ npm install @researchdatabox/redbox-core-types
 Initialize a new hook project:
 
 ```bash
-npx @researchdatabox/redbox-hook-kit init
+npx @researchdatabox/redbox-dev-tools init
 ```
 
 This creates:
@@ -36,13 +36,13 @@ Your hook's `tsconfig.json` should extend the shared configuration:
 
 ```json
 {
-    "extends": "@researchdatabox/redbox-hook-kit/config/tsconfig.base.json",
+    "extends": "@researchdatabox/redbox-dev-tools/config/tsconfig.base.json",
     "compilerOptions": {
         "outDir": "./",
         "rootDir": "./typescript",
         "typeRoots": [
             "node_modules/@types",
-            "node_modules/@researchdatabox/redbox-hook-kit/node_modules/@types"
+            "node_modules/@researchdatabox/redbox-dev-tools/node_modules/@types"
         ]
     },
     "include": [
@@ -75,7 +75,7 @@ Or add to your `package.json` scripts:
 ## Example Controller
 
 ```typescript
-import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers } from '@researchdatabox/redbox-core';
 
 declare var sails;
 
@@ -113,7 +113,7 @@ The hook-kit includes these development dependencies:
 
 ## Peer Dependencies
 
-- `@researchdatabox/redbox-core-types` (required)
+- `@researchdatabox/redbox-core` (required)
 
 ## Versioning
 
@@ -123,13 +123,13 @@ Package versions match ReDBox Portal releases. For example, version `4.5.1` is c
 
 | Command | Description |
 |---|---|
-| `npx @researchdatabox/redbox-hook-kit init` | Initialize a new ReDBox hook project with TypeScript setup |
-| `npx @researchdatabox/redbox-hook-kit migrate-form-config --input <legacy.js> --output <migrated.ts>` | Migrate a legacy v4 JS form config file to v5 TS format |
-| `npx @researchdatabox/redbox-hook-kit completion <shell>` | Output shell completion script for `bash`, `zsh`, `fish`, and `powershell` |
-| `npx @researchdatabox/redbox-hook-kit help` | Show CLI help and usage information |
+| `npx @researchdatabox/redbox-dev-tools init` | Initialize a new ReDBox hook project with TypeScript setup |
+| `npx @researchdatabox/redbox-dev-tools migrate-form-config --input <legacy.js> --output <migrated.ts>` | Migrate a legacy v4 JS form config file to v5 TS format |
+| `npx @researchdatabox/redbox-dev-tools completion <shell>` | Output shell completion script for `bash`, `zsh`, `fish`, and `powershell` |
+| `npx @researchdatabox/redbox-dev-tools help` | Show CLI help and usage information |
 
 ## See Also
 
-- [Redbox Core Types](Redbox-Core-Types) - Core type definitions and business logic
+- [Redbox Core Types](redbox-core) - Core type definitions and business logic
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Hook development guide
 - [Redbox Loader](Redbox-Loader) - How hooks are discovered and loaded

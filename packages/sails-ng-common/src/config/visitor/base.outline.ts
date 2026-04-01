@@ -28,6 +28,14 @@ import {
   TabFormComponentDefinitionOutline,
 } from '../component/tab.outline';
 import {
+  AccordionFieldComponentDefinitionOutline,
+  AccordionFieldLayoutDefinitionOutline,
+  AccordionFormComponentDefinitionOutline,
+  AccordionPanelFieldComponentDefinitionOutline,
+  AccordionPanelFieldLayoutDefinitionOutline,
+  AccordionPanelFormComponentDefinitionOutline,
+} from '../component/accordion.outline';
+import {
   TabContentFieldComponentDefinitionOutline,
   TabContentFieldLayoutDefinitionOutline,
   TabContentFormComponentDefinitionOutline,
@@ -37,9 +45,17 @@ import {
   SaveButtonFormComponentDefinitionOutline,
 } from '../component/save-button.outline';
 import {
+  SaveStatusFieldComponentDefinitionOutline,
+  SaveStatusFormComponentDefinitionOutline,
+} from '../component/save-status.outline';
+import {
   CancelButtonFieldComponentDefinitionOutline,
   CancelButtonFormComponentDefinitionOutline,
 } from '../component/cancel-button.outline';
+import {
+  DeleteButtonFieldComponentDefinitionOutline,
+  DeleteButtonFormComponentDefinitionOutline,
+} from '../component/delete-button.outline';
 import {
   TabNavButtonFieldComponentDefinitionOutline,
   TabNavButtonFormComponentDefinitionOutline,
@@ -50,6 +66,7 @@ import {
   TextAreaFormComponentDefinitionOutline,
 } from '../component/text-area.outline';
 import { DefaultFieldLayoutDefinitionOutline } from '../component/default-layout.outline';
+import { ActionRowFieldLayoutDefinitionOutline } from '../component/action-row-layout.outline';
 import { InlineFieldLayoutDefinitionOutline } from '../component/inline-layout.outline';
 import {
   CheckboxInputFieldComponentDefinitionOutline,
@@ -76,10 +93,20 @@ import {
   ReusableFormComponentDefinitionOutline,
 } from '../component/reusable.outline';
 import {
+  QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFieldModelDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
+} from '../component/question-tree.outline';
+import {
   CheckboxTreeFieldComponentDefinitionOutline,
   CheckboxTreeFieldModelDefinitionOutline,
   CheckboxTreeFormComponentDefinitionOutline,
 } from '../component/checkbox-tree.outline';
+import {
+  RecordSelectorFieldComponentDefinitionOutline,
+  RecordSelectorFieldModelDefinitionOutline,
+  RecordSelectorFormComponentDefinitionOutline,
+} from '../component/record-selector.outline';
 import {
   TypeaheadInputFieldComponentDefinitionOutline,
   TypeaheadInputFieldModelDefinitionOutline,
@@ -100,6 +127,29 @@ import {
   FileUploadFieldModelDefinitionOutline,
   FileUploadFormComponentDefinitionOutline,
 } from '../component/file-upload.outline';
+import {
+  PDFListFieldComponentDefinitionOutline,
+  PDFListFieldModelDefinitionOutline,
+  PDFListFormComponentDefinitionOutline,
+} from '../component/pdf-list.outline';
+import {
+  RecordMetadataRetrieverFieldComponentDefinitionOutline,
+  RecordMetadataRetrieverFormComponentDefinitionOutline,
+} from '../component/record-metadata-retriever.outline';
+import {
+  DataLocationFieldComponentDefinitionOutline,
+  DataLocationFieldModelDefinitionOutline,
+  DataLocationFormComponentDefinitionOutline,
+} from '../component/data-location.outline';
+import {
+  PublishDataLocationSelectorFieldComponentDefinitionOutline,
+  PublishDataLocationSelectorFieldModelDefinitionOutline,
+  PublishDataLocationSelectorFormComponentDefinitionOutline,
+} from '../component/publish-data-location-selector.outline';
+import {
+  PublishDataLocationRefreshFieldComponentDefinitionOutline,
+  PublishDataLocationRefreshFormComponentDefinitionOutline,
+} from '../component/publish-data-location-refresh.outline';
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -129,13 +179,13 @@ export interface FormConfigVisitorOutline {
 
   visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
 
-  visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void;
+    visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void;
+
+    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
 
   /* Repeatable  */
 
-  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
-
-  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void;
+    visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void;
 
   visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void;
 
@@ -165,6 +215,20 @@ export interface FormConfigVisitorOutline {
 
   visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void;
 
+  /* Accordion */
+
+  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void;
+
+  visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): void;
+
+  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void;
+
+  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void;
+
+  visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): void;
+
+  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void;
+
   /*  Tab Content */
 
   visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void;
@@ -179,11 +243,23 @@ export interface FormConfigVisitorOutline {
 
   visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void;
 
+  /* Save Status  */
+
+  visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): void;
+
+  visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void;
+
   /* Cancel Button  */
 
   visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): void;
 
   visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void;
+
+  /* Delete Button  */
+
+  visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): void;
+
+  visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): void;
 
   /* Tab Nav Button  */
 
@@ -206,6 +282,10 @@ export interface FormConfigVisitorOutline {
   /* Inline Layout  */
 
   visitInlineFieldLayoutDefinition(item: InlineFieldLayoutDefinitionOutline): void;
+
+  /* Action Row Layout  */
+
+  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void;
 
   /* Checkbox Input */
 
@@ -245,6 +325,14 @@ export interface FormConfigVisitorOutline {
 
   visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void;
 
+  /* Question Tree */
+
+  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void;
+
+  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void;
+
+  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void;
+
   /* Checkbox Tree */
 
   visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void;
@@ -252,6 +340,14 @@ export interface FormConfigVisitorOutline {
   visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void;
 
   visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void;
+
+  /* Record Selector */
+
+  visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): void;
+
+  visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): void;
+
+  visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void;
 
   /* Typeahead Input */
 
@@ -284,4 +380,45 @@ export interface FormConfigVisitorOutline {
   visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void;
 
   visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void;
+
+  /* PDF List */
+
+  visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): void;
+
+  visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): void;
+
+  visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): void;
+
+  /* Record Metadata Retriever */
+
+  visitRecordMetadataRetrieverFieldComponentDefinition(
+    item: RecordMetadataRetrieverFieldComponentDefinitionOutline
+  ): void;
+
+  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void;
+
+  /* Data Location */
+
+  visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void;
+
+  visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void;
+
+  visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void;
+
+  // Refresh trigger gets dedicated visitor hooks because it is component-only
+  // and should never be mistaken for a normal field+model pair.
+  visitPublishDataLocationRefreshFieldComponentDefinition(
+    item: PublishDataLocationRefreshFieldComponentDefinitionOutline
+  ): void;
+
+  visitPublishDataLocationRefreshFormComponentDefinition(
+    item: PublishDataLocationRefreshFormComponentDefinitionOutline
+  ): void;
+
+  visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void;
+
+  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): void;
+
+  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void;
+
 }

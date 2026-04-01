@@ -118,4 +118,20 @@ describe('FormComponentChangeEventProducer', () => {
     expect(eventBus.publish).not.toHaveBeenCalled();
     expect(scopedBus.publish).not.toHaveBeenCalled();
   });
+
+  it('should not publish an event when value has not changed', () => {
+    const { control, component, definition } = createOptions('title', 'original');
+
+    producer.bind({ component, definition });
+
+    control.setValue('original');
+
+    expect(eventBus.publish).toHaveBeenCalledTimes(0);
+    const eventArgs = eventBus.publish.calls.mostRecent();
+    expect(eventArgs).toBeFalsy();
+
+    expect(scopedBus.publish).toHaveBeenCalledTimes(0);
+    const scopedArgs = scopedBus.publish.calls.mostRecent();
+    expect(scopedArgs).toBeFalsy();
+  });
 });

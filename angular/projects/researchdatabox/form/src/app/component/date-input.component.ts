@@ -10,10 +10,73 @@ import { DateTime } from 'luxon';
 import { BsDatepickerConfig, BsDatepickerDirective } from 'ngx-bootstrap/datepicker';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty, isNull as _isNull } from 'lodash-es';
 
+function normalizeDateInputValue(value: unknown): DateInputModelValueType | undefined {
+  if (_isUndefined(value) || _isNull(value)) {
+    return value as DateInputModelValueType;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value === 'string') {
+    const trimmedValue = value.trim();
+    if (trimmedValue === '') {
+      return null;
+    }
+
+    const isoDate = DateTime.fromISO(trimmedValue);
+    if (isoDate.isValid) {
+      return isoDate.toJSDate();
+    }
+
+    const jsDate = new Date(trimmedValue);
+    if (!Number.isNaN(jsDate.getTime())) {
+      return jsDate;
+    }
+  }
+
+  return undefined;
+}
+
+function areDateInputValuesEqual(left: unknown, right: unknown): boolean {
+  const normalizedLeft = normalizeDateInputValue(left);
+  const normalizedRight = normalizeDateInputValue(right);
+
+  if (normalizedLeft === undefined || normalizedRight === undefined) {
+    return left === right;
+  }
+
+  if (normalizedLeft === null || normalizedRight === null) {
+    return normalizedLeft === normalizedRight;
+  }
+
+  return normalizedLeft.getTime() === normalizedRight.getTime();
+}
+
 export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
   public override logName = DateInputModelName;
   public enableTimePicker: boolean = false;
   public dateFormat: string = '';
+
+  protected override postCreateGetInitValue(): DateInputModelValueType | undefined {
+    return normalizeDateInputValue(this.fieldConfig.config?.value) ?? null;
+  }
+
+  public override setValue(value: DateInputModelValueType): void {
+    const normalizedValue = normalizeDateInputValue(value);
+    super.setValue((normalizedValue ?? value) as DateInputModelValueType);
+  }
+
+  public override patchValue(value: DateInputModelValueType): void {
+    const normalizedValue = normalizeDateInputValue(value);
+    super.patchValue((normalizedValue ?? value) as DateInputModelValueType);
+  }
+
+  public override setValueDontEmitEvent(value: DateInputModelValueType): void {
+    const normalizedValue = normalizeDateInputValue(value);
+    super.setValueDontEmitEvent((normalizedValue ?? value) as DateInputModelValueType);
+  }
 
   public setTimeValue(timeValue: string): void {
     if(this.enableTimePicker) {
@@ -45,7 +108,7 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
           bsDatepicker
           [bsConfig]="bsConfig"
           [formControl]="formControl"
-          [class.is-valid]="isValid"
+          [class.is-valid]="showValidState"
           [class.is-invalid]="!isValid"
           [readonly]="isReadonly"
           [title]="tooltip"
@@ -81,8 +144,8 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
 export class DateInputComponent extends FormFieldBaseComponent<DateInputModelValueType> {
   protected override logName = DateInputComponentName;
   public tooltip: string = '';
-  public placeholder: string | undefined = 'DD/MM/YYYY';
-  private dateFormatDefault: string = 'DD/MM/YYYY';
+  public placeholder: string | undefined = 'yyyy/mm/dd';
+  private dateFormatDefault: string = 'YYYY/MM/DD';
   private showWeekNumbers: boolean = false;
   private containerClass: string = 'theme-dark-blue';
   private bsFullConfig: any = {};
@@ -91,8 +154,9 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   @ViewChild(BsDatepickerDirective) datepicker!: BsDatepickerDirective;
 
   override ngAfterViewInit() {
-    this.formControl.valueChanges.subscribe((value: DateInputModelValueType) => {
-      this.onDateChange(value);
+    this.syncDateValue(this.formControl?.value);
+    this.formControl.valueChanges.subscribe((value: DateInputModelValueType | string) => {
+      this.syncDateValue(value);
     });
 
     super.ngAfterViewInit();
@@ -104,7 +168,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     let dateConfig = this.componentDefinition?.config as DateInputFieldComponentConfigFrame;
     let defaultConfig = new DateInputFieldComponentConfig();
     let cfg = (_isUndefined(dateConfig) || _isEmpty(dateConfig)) ? defaultConfig : dateConfig;
-    this.placeholder = cfg.placeholder ?? defaultConfig.placeholder;
+    this.placeholder = cfg.placeholder ?? defaultConfig.placeholder ?? this.placeholder;
     this.showWeekNumbers = cfg.showWeekNumbers ?? defaultConfig.showWeekNumbers ?? this.showWeekNumbers;
     this.containerClass = cfg.containerClass ?? defaultConfig.containerClass ?? this.containerClass;
     this.bsFullConfig = cfg.bsFullConfig ?? {};
@@ -115,8 +179,26 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   }
 
   onDateChange(dateValue: DateInputModelValueType) {
-    this.loggerService.info(`dateValue ${dateValue}`,'');
-    this.model?.setValue(dateValue);
+    const currentValue = this.model?.getValue();
+    // Protect against infinite loops, as `onDateChange` is called in `ngAfterViewInit`.
+    // `ngAfterViewInit` is run as part of change detection, such as when the model value is changed.
+    if (!areDateInputValuesEqual(currentValue, dateValue)) {
+      this.model?.setValue(dateValue);
+    }
+  }
+
+  private syncDateValue(dateValue: DateInputModelValueType | string | undefined): void {
+    const normalizedValue = normalizeDateInputValue(dateValue);
+
+    if (typeof dateValue === 'string' && normalizedValue === undefined) {
+      return;
+    }
+
+    if (normalizedValue !== undefined && !areDateInputValuesEqual(this.formControl?.value, normalizedValue)) {
+      this.formControl?.setValue(normalizedValue, { emitEvent: false });
+    }
+
+    this.onDateChange((normalizedValue ?? dateValue ?? null) as DateInputModelValueType);
   }
 
   //Note there are at least two known issues with ngx timepicker plus the layout with arrows above and below the time input field
@@ -162,5 +244,3 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
 
   @Input() public override model?: DateInputModel;
 }
-
-

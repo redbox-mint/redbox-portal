@@ -134,9 +134,11 @@
     }
     return ('0000000' + (hash >>> 0).toString(16)).slice(-8);
   }
+  var dismissalDurationHours = systemMessageConfig.dismissalDurationHours ?? 8;
   var rawSystemMessageKey = JSON.stringify({
     title: systemMessageConfig.title || '',
-    message: systemMessageConfig.message || ''
+    message: systemMessageConfig.message || '',
+    dismissalDurationHours: dismissalDurationHours
   });
   var systemMessageKey = fnv1aHash(rawSystemMessageKey);
   var systemMessageScope = brandingName + ':' + portalName;
@@ -144,11 +146,14 @@
 <% if (systemMessageConfig.enabled === true) { %>
   <div id="system-message-area" class="container"
     data-system-message-key="<%= systemMessageKey %>"
-    data-system-message-scope="<%= systemMessageScope %>">
-  <div id="system-message" class="alert alert-primary alert-dismissible fade show" role="alert">
+    data-system-message-scope="<%= systemMessageScope %>"
+    data-system-message-dismissal-hours="<%= dismissalDurationHours %>">
+  <div id="system-message" class="alert alert-primary<% if (dismissalDurationHours > 0) { %> alert-dismissible<% } %> fade show" role="alert">
     <h4><%- systemMessageConfig.title || '' %></h4>
     <div><%- systemMessageConfig.message || '' %></div>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <% if (dismissalDurationHours > 0) { %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <% } %>
   </div>
 </div>
  <% } %>

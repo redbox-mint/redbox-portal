@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {find, findByPointer, formatJsonPointer} from '@jsonjoy.com/json-pointer';
+import { find, findByPointer, formatJsonPointer } from '@jsonjoy.com/json-pointer';
 
 // Shared lineage path helpers and types.
 // Moved from FormService and form-field-base.component to make them reusable across libs.
@@ -49,6 +49,15 @@ export interface LineagePaths {
      * The JSONPointer to the angular control.
      */
     angularComponentsJsonPointer?: string;
+    /**
+     * The path to the item in the layout hierarchy.
+     * Uses the component name with a "-layout" suffix.
+     */
+    layout: LineagePath;
+    /**
+     * The JSONPointer to the layout item.
+     */
+    layoutJsonPointer?: string;
 }
 
 /**
@@ -59,6 +68,7 @@ export interface LineagePathsPartial {
     formConfig?: LineagePath;
     dataModel?: LineagePath;
     angularComponents?: LineagePath;
+    layout?: LineagePath;
 }
 
 /**
@@ -71,8 +81,10 @@ export function buildLineagePaths(base?: LineagePaths, more?: LineagePathsPartia
         formConfig: [...(base?.formConfig ?? []), ...(more?.formConfig ?? [])],
         dataModel: [...(base?.dataModel ?? []), ...(more?.dataModel ?? [])],
         angularComponents: [...(base?.angularComponents ?? []), ...(more?.angularComponents ?? [])],
+        layout: [...(base?.layout ?? []), ...(more?.layout ?? [])],
     };
     lineagePaths.angularComponentsJsonPointer = getJSONPointerByArrayPaths(lineagePaths.angularComponents);
+    lineagePaths.layoutJsonPointer = getJSONPointerByArrayPaths(lineagePaths.layout);
     return lineagePaths;
 }
 

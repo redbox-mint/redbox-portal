@@ -4,8 +4,8 @@
   <% let appName = 'form' %>
   <div class="row"></div>
   <div class="row">
-    <div class="col-xs-2"></div>
-    <div class="col-xs-8">
+    <div class="col-xs-1"></div>
+    <div class="col-xs-10">
     <redbox-form oid="<%= oid %>" rdmp="<%= rdmp %>" editMode="true" recordType="<%= recordType %>"
                  branding="<%= typeof branding == 'undefined'? data.branding : branding %>"
                  portal="<%= typeof portal == 'undefined'? data.portal : portal %>" formName="<%= formName %>"
@@ -13,7 +13,7 @@
       <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
     </redbox-form>
     </div>
-    <div class="col-xs-2"></div>
+    <div class="col-xs-1"></div>
   </div>
   <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
     type="module"></script>

@@ -4,9 +4,9 @@ Server-side sanitization of rich text editor content to prevent stored XSS using
 
 ## Proposed Changes
 
-### 1. Move Visitor to redbox-core-types
+### 1. Move Visitor to redbox-core
 
-#### [NEW] [validator.visitor.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core-types/src/visitor/validator.visitor.ts)
+#### [NEW] [validator.visitor.ts](../../../packages/redbox-core/src/visitor/validator.visitor.ts)
 
 Move the existing `ValidatorFormConfigVisitor` from `sails-ng-common` → here. All outline-type imports come from `@researchdatabox/sails-ng-common` (already a dependency). Then implement `visitRichTextEditorFieldModelDefinition`:
 
@@ -47,24 +47,24 @@ visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinition
 
 A `sails.config.record.form.htmlSanitizationMode` setting (follows existing pattern like `svgMaxBytes`):
 
-| Value | Behaviour |
-|-------|-----------|
-| `'sanitize'` (default) | Mutate model value in-place, report info warning |
-| `'reject'` | Do **not** mutate, report validation error (blocks save) |
+| Value                  | Behaviour                                                |
+| ---------------------- | -------------------------------------------------------- |
+| `'sanitize'` (default) | Mutate model value in-place, report info warning         |
+| `'reject'`             | Do **not** mutate, report validation error (blocks save) |
 
 ---
 
 ### 3. Remove Old File & Update Exports/Imports
 
-#### [DELETE] [validator.visitor.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/sails-ng-common/src/config/visitor/validator.visitor.ts)
+#### [DELETE] [validator.visitor.ts](../../../packages/sails-ng-common/src/config/visitor/validator.visitor.ts)
 
-#### [MODIFY] [index.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/sails-ng-common/src/index.ts)
+#### [MODIFY] [index.ts](../../../packages/sails-ng-common/src/index.ts)
 
 ```diff
 -export * from "./config/visitor/validator.visitor";
 ```
 
-#### [MODIFY] [FormRecordConsistencyService.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-core-types/src/services/FormRecordConsistencyService.ts)
+#### [MODIFY] [FormRecordConsistencyService.ts](../../../packages/redbox-core/src/services/FormRecordConsistencyService.ts)
 
 ```diff
 -import { ... ValidatorFormConfigVisitor ... } from "@researchdatabox/sails-ng-common";
@@ -75,7 +75,7 @@ A `sails.config.record.form.htmlSanitizationMode` setting (follows existing patt
 
 ### 4. Tests
 
-Move `sails-ng-common/test/unit/validator.visitor.test.ts` → `redbox-core-types/test/unit/validator.visitor.test.ts` with updated imports. Add:
+Move `sails-ng-common/test/unit/validator.visitor.test.ts` → `redbox-core/test/unit/validator.visitor.test.ts` with updated imports. Add:
 
 1. **"should sanitize dangerous HTML in rich text value"** — dirty input → mutated + warning
 2. **"should reject dirty HTML when mode is 'reject'"** — dirty input → validation error, value unchanged
@@ -86,5 +86,5 @@ Move `sails-ng-common/test/unit/validator.visitor.test.ts` → `redbox-core-type
 
 ```bash
 cd packages/sails-ng-common && npm test       # no regressions from removed export
-cd packages/redbox-core-types && npm test      # moved + new tests pass
+cd packages/redbox-core && npm test      # moved + new tests pass
 ```

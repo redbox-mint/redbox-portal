@@ -15,6 +15,8 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Architecture Overview](https://github.com/redbox-mint/redbox-portal/wiki/Architecture-Overview)**: High-level system structure and key components.
 - **[Coding Standards and Conventions](https://github.com/redbox-mint/redbox-portal/wiki/Coding-Standards-and-Conventions)**: Shared language and style expectations.
 - **[Configuration Guide](https://github.com/redbox-mint/redbox-portal/wiki/Configuration-Guide)**: Portal configuration and environment settings.
+- **[TUS and Uppy Companion Setup](https://github.com/redbox-mint/redbox-portal/wiki/TUS-and-Uppy-Companion-Setup)**: Configure resumable uploads and cloud-provider imports, including security behavior.
+- **[Uppy and TUS Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Uppy-and-TUS-Architecture)**: End-to-end architecture and orchestration flows for local and provider-backed uploads.
 - **[Form Configuration Internals](https://github.com/redbox-mint/redbox-portal/wiki/Form-Configuration-Internals)**: Form config types, conventions, visitors, and validation details.
 - **[Configuring Form Expressions](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Form-Expressions)**: Event-driven expressions for dynamic form behavior using JSONata.
 - **[Form Event Bus Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Form-Event-Bus-Architecture)**: Technical documentation of the event bus system for developers.
@@ -23,9 +25,9 @@ If you're new to RedBox Portal, here's where you can get started:
 
 ## Core Packages
 
-- **[Redbox Core Types](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Core-Types)**: Core type definitions, **business logic services**, Waterline models, policies, config defaults, and bootstrap functions.
+- **[Redbox Core Types](https://github.com/redbox-mint/redbox-portal/wiki/redbox-core)**: Core type definitions, **business logic services**, Waterline models, policies, config defaults, and bootstrap functions.
 - **[Redbox Loader](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader)**: Pre-lift shim generation system that bridges Sails.js to core types, including service shim generation.
-- **[Redbox Hook Kit](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Hook-Kit)**: TypeScript development toolkit for creating ReDBox hooks.
+- **[Redbox Hook Kit](https://github.com/redbox-mint/redbox-portal/wiki/redbox-dev-tools)**: TypeScript development toolkit for creating ReDBox hooks.
 - **[Services Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture)**: Deep dive into the service layer architecture and how to extend or override services.
 - **[Controllers Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Controllers-Architecture)**: Controller locations, lifecycle (`init()`), shim generation, and hook overrides.
 

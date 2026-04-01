@@ -30,18 +30,23 @@ import { ValidationSummaryFieldComponent } from './component/validation-summary.
 import { I18NextPipe, provideI18Next } from 'angular-i18next';
 import { GroupFieldComponent } from './component/group.component';
 import { DefaultLayoutComponent } from './component/default-layout.component';
+import { ActionRowLayoutComponent } from './component/action-row-layout.component';
 import { InlineLayoutComponent } from './component/inline-layout.component';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
 import { FormBaseWrapperDirective } from './component/base-wrapper.directive';
 import { ContentComponent } from './component/content.component';
 import { SaveButtonComponent } from './component/save-button.component';
+import { SaveStatusComponent } from './component/save-status.component';
 import { CancelButtonComponent } from './component/cancel-button.component';
+import { DeleteButtonComponent } from './component/delete-button.component';
 import { TabNavButtonComponent } from './component/tab-nav-button.component';
 import { TabComponent, TabComponentLayout, TabContentComponent } from './component/tab.component';
+import { AccordionComponent, AccordionPanelComponent } from './component/accordion.component';
 import { TextAreaComponent } from './component/text-area.component';
 import { DropdownInputComponent } from './component/dropdown-input.component';
 import { CheckboxInputComponent } from './component/checkbox-input.component';
 import { RadioInputComponent } from './component/radio-input.component';
+import { QuestionTreeComponent } from './component/question-tree.component';
 import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
 import { provideFormFeature } from './form-state';
@@ -49,6 +54,7 @@ import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { DateInputComponent } from './component/date-input.component';
 import { CheckboxTreeComponent } from './component/checkbox-tree.component';
+import { RecordSelectorComponent } from './component/record-selector.component';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { TypeaheadModule } from 'ngx-bootstrap/typeahead';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
@@ -57,10 +63,24 @@ import { RichTextEditorComponent } from './component/rich-text-editor.component'
 import { TiptapEditorDirective } from 'ngx-tiptap';
 import { MapComponent } from './component/map.component';
 import { FileUploadComponent } from './component/file-upload.component';
+import { PDFListComponent } from './component/pdf-list.component';
+import { DataLocationComponent } from './component/data-location.component';
+import { PublishDataLocationRefreshComponent } from './component/publish-data-location-refresh.component';
+import { PublishDataLocationSelectorComponent } from './component/publish-data-location-selector.component';
+import { RecordMetadataRetrieverComponent } from './component/record-metadata-retriever.component';
 import { A11yModule } from '@angular/cdk/a11y';
+import { FieldErrorSummaryComponent } from './component/field-error-summary.component';
+import { ConfirmationDialogService } from './confirmation-dialog.service';
+import { ConfirmationDialogComponent } from './component/confirmation-dialog.component';
+import { FormDebugPanelComponent } from './form-debug/form-debug-panel.component';
+import { FormDebugModelTabComponent } from './form-debug/form-debug-model-tab.component';
+import { FormDebugConfigTabComponent } from './form-debug/form-debug-config-tab.component';
+import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.component';
 @NgModule({
   declarations: [
+    FieldErrorSummaryComponent,
     DefaultLayoutComponent,
+    ActionRowLayoutComponent,
     InlineLayoutComponent,
     FormBaseWrapperComponent,
     FormBaseWrapperDirective,
@@ -73,20 +93,37 @@ import { A11yModule } from '@angular/cdk/a11y';
     ValidationSummaryFieldComponent,
     GroupFieldComponent,
     SaveButtonComponent,
+    SaveStatusComponent,
     CancelButtonComponent,
+    DeleteButtonComponent,
     TabNavButtonComponent,
     TabComponent,
     TabContentComponent,
     TabComponentLayout,
+    AccordionComponent,
+    AccordionPanelComponent,
     DropdownInputComponent,
     CheckboxInputComponent,
     RadioInputComponent,
     DateInputComponent,
+    QuestionTreeComponent,
     CheckboxTreeComponent,
+    RecordSelectorComponent,
     TypeaheadInputComponent,
     RichTextEditorComponent,
     MapComponent,
     FileUploadComponent,
+    PDFListComponent,
+    RecordMetadataRetrieverComponent,
+    // Dedicated V5 replacement for the legacy publish-data-location refresh button.
+    PublishDataLocationRefreshComponent,
+    DataLocationComponent,
+    PublishDataLocationSelectorComponent,
+    FormDebugPanelComponent,
+    FormDebugModelTabComponent,
+    FormDebugConfigTabComponent,
+    FormDebugEventsTabComponent,
+    ConfirmationDialogComponent,
   ],
   imports: [
     CommonModule,
@@ -110,6 +147,7 @@ import { A11yModule } from '@angular/cdk/a11y';
     FormService,
     FormStateFacade,
     FormComponentEventBus,
+    ConfirmationDialogService,
     provideStore(),
     provideEffects(),
     provideFormFeature(),
@@ -117,6 +155,5 @@ import { A11yModule } from '@angular/cdk/a11y';
     provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() }),
   ],
   bootstrap: [FormComponent],
-  exports: [],
 })
 export class FormModule { }

@@ -31,13 +31,13 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 		this.options = options;
 		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component?.model?.formControl;
 		if (!control) {
-			this.loggerService.debug(`FormComponentChangeEventProducer: No form control found for component '${options.component?.formFieldConfigName()}'. Change events will not be published.`, options.definition);
+			this.logDebug(`FormComponentChangeEventProducer: No form control found for component '${options.component?.formFieldConfigName()}'. Change events will not be published.`, options.definition);
 			return;
 		}
 
 		const fieldId = this.resolveFieldId(options);
 		if (!fieldId) {
-			this.loggerService.debug(`FormComponentChangeEventProducer: Unable to resolve field ID for component '${options.component?.formFieldConfigName()}'. Change events will not be published.`, options.definition);
+			this.logDebug(`FormComponentChangeEventProducer: Unable to resolve field ID for component '${options.component?.formFieldConfigName()}'. Change events will not be published.`, options.definition);
 			return;
 		}
 
@@ -89,25 +89,37 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 			return;
 		}
 
-		// The general channel uses sourceId="*" to indicate broadcast
-		const previousValue = this.previousValue;
-		const baseEvent = createFieldValueChangedEvent({
-			fieldId: this.fieldId,
-			value,
-			previousValue,
-			sourceId: "*" 
-		});
+    const previousValue = this.previousValue;
+
+    // Only publish the event if the value has changed.
+    // Try a direct comparison first, then a structuredClone comparison.
+    if (value === previousValue) {
+      return;
+    }
+    const valueClone = structuredClone(value);
+    const previousValueClone = structuredClone(previousValue);
+    if (valueClone === previousValueClone) {
+      return;
+    }
+
+    // The general channel uses sourceId="*" to indicate broadcast
+    const baseEvent = createFieldValueChangedEvent({
+      fieldId: this.fieldId,
+      value: valueClone,
+      previousValue: previousValueClone,
+      sourceId: "*"
+    });
 
 		this.eventBus.publish(baseEvent);
 
-		const scopedEvent = createFieldValueChangedEvent({
-			fieldId: this.fieldId,
-			value,
-			previousValue,
-			sourceId: this.fieldId
-		});
+    const scopedEvent = createFieldValueChangedEvent({
+      fieldId: this.fieldId,
+      value: valueClone,
+      previousValue: previousValueClone,
+      sourceId: this.fieldId
+    });
 
-		this.scopedBus?.publish(scopedEvent);
-		this.previousValue = value;
-	}
+    this.scopedBus?.publish(scopedEvent);
+    this.previousValue = valueClone;
+  }
 }

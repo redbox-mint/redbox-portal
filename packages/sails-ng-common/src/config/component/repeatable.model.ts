@@ -11,6 +11,7 @@ import {
     FieldLayoutConfig,
     FieldLayoutDefinition,
 } from "../field-layout.model";
+import { ActionRowFieldLayoutConfig } from "./action-row-layout.model";
 import {FormConfigVisitorOutline} from "../visitor/base.outline";
 import {
     FieldComponentConfigKind, FieldComponentDefinitionKind,
@@ -37,6 +38,9 @@ import {
 /* Repeatable Component */
 export class RepeatableFieldComponentConfig extends FieldComponentConfig implements RepeatableFieldComponentConfigOutline {
     elementTemplate!: AvailableFormComponentDefinitionOutlines;
+    addButtonShow = true;
+    allowZeroRows = false;
+    hideWhenZeroRows = false;
 
     constructor() {
         super();
@@ -91,7 +95,7 @@ export class RepeatableFieldModelDefinition extends FieldModelDefinition<Repeata
 
 
 /* Repeatable Element Layout */
-export class RepeatableElementFieldLayoutConfig extends FieldLayoutConfig implements RepeatableElementFieldLayoutConfigOutline {
+export class RepeatableElementFieldLayoutConfig extends ActionRowFieldLayoutConfig implements RepeatableElementFieldLayoutConfigOutline {
     constructor() {
         super();
     }
@@ -143,4 +147,3 @@ export const RepeatableDefaults = {
         },
     },
 };
-

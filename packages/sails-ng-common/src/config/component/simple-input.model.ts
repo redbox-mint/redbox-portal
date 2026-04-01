@@ -28,6 +28,7 @@ import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 
 export class SimpleInputFieldComponentConfig extends FieldComponentConfig implements SimpleInputFieldComponentConfigOutline {
     type?: SimpleInputFieldComponentConfigType = "text";
+    placeholder?: string = '';
 
     constructor() {
         super();

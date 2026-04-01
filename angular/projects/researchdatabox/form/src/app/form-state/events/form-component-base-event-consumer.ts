@@ -123,9 +123,9 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
    * @returns The result of the evaluated expression.
 	 */
 	protected async evaluateExpressionJSONata(expression: FormExpressionsConfigFrame, event: FormComponentEvent, propertyName: string, additionalData: object = {}): Promise<unknown> {
-		const compiledItems = await this.getCompiledItems();
-		if (!compiledItems) {
-			return (event as { value?: unknown }).value;
+			const compiledItems = await this.getCompiledItems();
+			if (!compiledItems) {
+				return (event as { value?: unknown }).value;
 		}
 
 		const templateKey = this.buildExpressionPropertyKey(expression, propertyName);
@@ -135,26 +135,58 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 
 		try {
       const dataFieldId = getLastSegmentFromJSONPointer(event.fieldId || '');
-			// Build the context for JSONata evaluation
-			// Include the event value and any additional data that may be useful
+
+      // The value from angular may be frozen (from Object.freeze).
+	      // This is good, it reduces the chances of accidentally changing the value in the angular model.
+	      // However, some jsonata expressions might involve trying to change the value, which will fail.
+	      // So convert to and then from JSON to get a fresh value.
+	      const valueOriginal = dataFieldId ? this.formComp?.form?.value[dataFieldId] : undefined;
+	      const value = this.cloneExpressionContextValue(valueOriginal, 'value');
+	      const eventClone = this.cloneExpressionContextValue(event, 'event');
+	      const formData = this.cloneExpressionContextValue(this.formComp?.form?.value ?? {}, 'formData');
+      const requestParams = this.cloneExpressionContextValue(
+        (additionalData as { requestParams?: unknown }).requestParams ?? this.formComp?.requestParams?.() ?? {},
+        'requestParams'
+      );
+      const runtimeContext = this.cloneExpressionContextValue(
+        (additionalData as { runtimeContext?: unknown }).runtimeContext ?? { requestParams },
+        'runtimeContext'
+      );
+
+      // Build the context for JSONata evaluation
+      // Include the event value and any additional data that may be useful
 			const context = {
-        value: dataFieldId ? this.formComp?.form?.value[dataFieldId] : undefined,
-				event: event,
+				...additionalData,
+        value: value,
+				event: eventClone,
 				// Include the current form data if available
-				formData: this.formComp?.form?.value ?? {},
-        ...additionalData
+				formData: formData,
+        requestParams,
+				runtimeContext
 			};
 
 			const result = await compiledItems.evaluate(templateKey, context, {libraries : {jsonata: jsonata}});
 			return result;
 		} catch (error) {
-			this.loggerService.error(`${this.constructor.name}: Error evaluating expression template.`, error);
-			return (event as { value?: unknown }).value;
+				this.loggerService.error(`${this.constructor.name}: Error evaluating expression template.`, error);
+				return (event as { value?: unknown }).value;
+			}
 		}
-	}
-	/**
-	 * 
-	 * Checks if the event matches the JSON Pointer condition.
+
+		protected cloneExpressionContextValue<T>(value: T, label: string): T {
+			if (value === undefined) {
+				return value;
+			}
+			try {
+				return structuredClone(value);
+			} catch (error) {
+				this.loggerService.warn(`${this.constructor.name}: Failed to clone ${label} for JSONata context. Falling back to the original value.`, error);
+				return value;
+			}
+		}
+		/**
+		 * 
+		 * Checks if the event matches the JSON Pointer condition.
 	 * 
 	 * @param opts 
 	 * @returns 
@@ -164,6 +196,9 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 		if (!querySource) {
 			return false;
 		}
+		if (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && opts.expression.config.runOnFormReady === false) {
+			return false;
+		} 
 		const pointerCondition = this.getEventJSONPointerCondition(opts.condition);
 		// Check if the pointer has a match in the query source, broadcasts will fail this check
 		const ref = getObjectWithJsonPointer(querySource.jsonPointerSource, pointerCondition.jsonPointer);
@@ -196,14 +231,14 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 		const expressions: FormExpressionsConfigFrame[] | undefined  = options.definition?.expressions;
 		if (expressions === undefined || _isEmpty(expressions)) {
 			const msg = `${this.constructor.name}: No expressions defined for component '${options.component?.formFieldConfigName()}'. Change events will not be consumed.`;
-			this.loggerService.debug(msg, options.definition);
-			throw new Error(msg);
-		}	
+			this.logDebug(msg, options.definition);
+			return;
+		}
 		this.expressions = expressions;
 		// FormControl is optional for some components
 		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component?.model?.formControl;
 		if (!control) {
-			this.loggerService.debug(`${this.constructor.name}: No form control found for component '${options.component?.formFieldConfigName()}'. Change events may or may not be properly consumed.`, options.definition);
+			this.logDebug(`${this.constructor.name}: No form control found for component '${options.component?.formFieldConfigName()}'. Change events may or may not be properly consumed.`, options.definition);
 		} else {
 			this.control = control;
 		}
@@ -301,7 +336,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     if (opts.event.sourceId !== '*' && !isRunOnFormReady) {
       return false;
     }
-		const result = await this.evaluateExpressionJSONata(expression, opts.event, 'condition', opts.querySource?.querySource);
+		const result = await this.evaluateExpressionJSONata(expression, opts.event, 'condition', {
+      querySource: opts.querySource?.querySource,
+      runtimeContext: opts.querySource?.runtimeContext
+    });
 		return !!result;
 	}
 

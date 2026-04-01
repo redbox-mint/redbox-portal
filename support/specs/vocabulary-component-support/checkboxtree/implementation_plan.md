@@ -13,9 +13,9 @@ The model value is an **array of objects**, each containing the selected item's 
 ```typescript
 // CheckboxTreeSelectedItem — stored in the form model value
 interface CheckboxTreeSelectedItem {
-  notation: string;    // The unique code identifier (e.g. "0101")
-  label: string;       // Human-readable label
-  name: string;        // Display string e.g. "0101 - Pure Mathematics"
+  notation: string; // The unique code identifier (e.g. "0101")
+  label: string; // Human-readable label
+  name: string; // Display string e.g. "0101 - Pure Mathematics"
   genealogy?: string[]; // Parent notation codes, ancestors-first
 }
 
@@ -26,10 +26,12 @@ type CheckboxTreeValue = CheckboxTreeSelectedItem[];
 ### Selection Modes
 
 Configurable via `leafOnly` (default: `true`):
+
 - **`leafOnly: true`** — Only leaf nodes (e.g. 6-digit ANZSRC FoR codes) get checkboxes
 - **`leafOnly: false`** — All nodes at any depth level are selectable
 
 Selection behavior for hierarchical nodes:
+
 - Selecting a parent node does **not** auto-select descendants.
 - Deselecting a parent node does **not** auto-deselect descendants.
 - Parent checkbox visual state may be `indeterminate` to reflect selected descendants, but model values remain explicit selected nodes only.
@@ -69,6 +71,7 @@ Response shape:
 ```
 
 Error behavior:
+
 - `400` + `invalid-vocabulary-id-or-slug` when `vocabIdOrSlug` is empty
 - `404` + `vocabulary-not-found` when vocabulary does not exist for branding
 - `400` + `invalid-parent-id` when `parentId` does not belong to vocabulary
@@ -77,11 +80,13 @@ Error behavior:
 ### Genealogy Strategy
 
 For now, genealogy is computed in the Angular component from the rendered ancestry path:
+
 - Selection is only possible on nodes already rendered in the tree.
 - Rendered nodes have a known parent chain from expansion history.
 - Build `genealogy` as ancestor notations from root to parent.
 
 Future extension (if needed):
+
 - If selection flows are added that can bypass rendered ancestry (for example search-first selection), add a server endpoint that returns ancestry by node id.
 
 ### Accessibility Requirements
@@ -152,19 +157,20 @@ Add `CheckboxTreeMap` to `AllDefs` and `CheckboxTreeDefaults` to `RawDefaults`.
 
 Add 3 new visitor methods (`visitCheckboxTree{FieldComponent,FieldModel,FormComponent}Definition`) to:
 
-| File | Change |
-|------|--------|
-| `packages/sails-ng-common/src/config/visitor/base.outline.ts` | Add to `FormConfigVisitorOutline` interface |
-| `packages/sails-ng-common/src/config/visitor/base.model.ts` | Add default `notImplemented()` stubs |
-| `packages/sails-ng-common/src/config/visitor/vocab-inline.visitor.ts` | Handle `CheckboxTreeComponentName`: call `getEntries(branding, vocabRef, ...)` and transform flat entries to nested `treeData` |
-| `packages/sails-ng-common/src/config/visitor/construct.visitor.ts` | Pass-through stubs |
-| `packages/sails-ng-common/src/config/visitor/client.visitor.ts` | Pass-through stubs |
-| `packages/sails-ng-common/src/config/visitor/data-value.visitor.ts` | Pass-through stubs |
-| `packages/sails-ng-common/src/config/visitor/template.visitor.ts` | Pass-through stubs |
-| `packages/sails-ng-common/src/config/visitor/validator.visitor.ts` | Pass-through stubs |
-| `packages/sails-ng-common/src/config/visitor/json-type-def.visitor.ts` | Pass-through stubs |
+| File                                                                   | Change                                                                                                                         |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `packages/sails-ng-common/src/config/visitor/base.outline.ts`          | Add to `FormConfigVisitorOutline` interface                                                                                    |
+| `packages/sails-ng-common/src/config/visitor/base.model.ts`            | Add default `notImplemented()` stubs                                                                                           |
+| `packages/sails-ng-common/src/config/visitor/vocab-inline.visitor.ts`  | Handle `CheckboxTreeComponentName`: call `getEntries(branding, vocabRef, ...)` and transform flat entries to nested `treeData` |
+| `packages/sails-ng-common/src/config/visitor/construct.visitor.ts`     | Pass-through stubs                                                                                                             |
+| `packages/sails-ng-common/src/config/visitor/client.visitor.ts`        | Pass-through stubs                                                                                                             |
+| `packages/sails-ng-common/src/config/visitor/data-value.visitor.ts`    | Pass-through stubs                                                                                                             |
+| `packages/sails-ng-common/src/config/visitor/template.visitor.ts`      | Pass-through stubs                                                                                                             |
+| `packages/sails-ng-common/src/config/visitor/validator.visitor.ts`     | Pass-through stubs                                                                                                             |
+| `packages/sails-ng-common/src/config/visitor/json-type-def.visitor.ts` | Pass-through stubs                                                                                                             |
 
 For inline resolution, reuse existing `VocabularyService.getEntries()` and construct the hierarchy in the visitor:
+
 - Fetch all entries for `vocabRef` (iterate `limit`/`offset` pages until `meta.total` is reached)
 - Build parent/child links from entry `parent` ids
 - Compute `hasChildren` for each node while building the tree
@@ -193,6 +199,7 @@ Add legacy `ANDSVocab` → `CheckboxTree` mapping:
 Add `visitCheckboxTreeFieldComponentDefinition` that maps `definition.vocabId` → `vocabRef` and carries over `leafOnly`-related regex config.
 
 Add migration edge-case handling:
+
 - missing `vocabId` leaves `vocabRef` undefined and emits migration warning
 - malformed regex/legacy flags fallback to safe defaults
 - unknown legacy `compClass` falls back to generic mapping with warning
@@ -200,27 +207,28 @@ Add migration edge-case handling:
 
 ---
 
-### Server API (`redbox-core-types`)
+### Server API (`redbox-core`)
 
 ---
 
-#### [MODIFY] `packages/redbox-core-types/src/services/VocabularyService.ts`
+#### [MODIFY] `packages/redbox-core/src/services/VocabularyService.ts`
 
 Add `getChildren(branding: string, vocabIdOrSlug: string, parentId?: string)` — resolves vocabulary by id/slug + branding, then returns immediate children of a parent entry (or root entries if no `parentId`). Each result includes a `hasChildren` boolean.
 
-#### [MODIFY] `packages/redbox-core-types/src/controllers/FormVocabularyController.ts`
+#### [MODIFY] `packages/redbox-core/src/controllers/FormVocabularyController.ts`
 
 Add `children` action accepting `vocabIdOrSlug` and optional `parentId`.
 Also add `'children'` to `_exportedMethods`.
 Implement contract-aligned validation and error mapping for `invalid-parent-id` and `vocabulary-children-failed`.
 
-#### [MODIFY] `packages/redbox-core-types/src/config/routes.config.ts`
+#### [MODIFY] `packages/redbox-core/src/config/routes.config.ts`
 
 Add route: `'get /:branding/:portal/vocab/:vocabIdOrSlug/children'` → `FormVocabularyController.children`
 
-#### [MODIFY] `packages/redbox-core-types/test/controllers/FormVocabularyController.test.ts`
+#### [MODIFY] `packages/redbox-core/test/controllers/FormVocabularyController.test.ts`
 
 Add tests for `children`:
+
 - success for root fetch (`parentId` omitted)
 - success for nested fetch (`parentId` provided)
 - `400` invalid vocab id
@@ -228,9 +236,10 @@ Add tests for `children`:
 - `400` invalid parent id
 - `500` unexpected service failure
 
-#### [MODIFY] `packages/redbox-core-types/test/services/VocabularyService.test.ts`
+#### [MODIFY] `packages/redbox-core/test/services/VocabularyService.test.ts`
 
 Add tests for `getChildren`:
+
 - returns direct roots only when `parentId` absent
 - returns direct children only when `parentId` present
 - computes `hasChildren` correctly
@@ -246,6 +255,7 @@ Add tests for `getChildren`:
 #### [NEW] `angular/projects/researchdatabox/form/src/app/service/vocab-tree.service.ts`
 
 Shared service for vocabulary tree APIs used by form components:
+
 - Wraps `GET /:branding/:portal/vocab/:vocabRef/children?parentId=X`
 - Centralizes request/response mapping and error handling
 - Keeps component focused on rendering and selection state
@@ -257,6 +267,7 @@ Unit tests for API URL construction, query params, and response mapping.
 #### [NEW] `angular/projects/researchdatabox/form/src/app/component/checkbox-tree.component.ts`
 
 Angular component (`redbox-checkbox-tree`) that:
+
 - Recursively renders tree nodes with expand/collapse toggles and checkboxes
 - Supports `leafOnly` mode (checkboxes only on leaves vs. all nodes)
 - Tracks selected values as `CheckboxTreeSelectedItem[]` with genealogy
@@ -268,6 +279,7 @@ Angular component (`redbox-checkbox-tree`) that:
 
 Unit tests: creation, inline tree rendering, selection/deselection, leafOnly mode, model value updates.
 Also include:
+
 - no parent/child cascade selection behavior
 - indeterminate state behavior
 - keyboard interaction behavior
@@ -290,7 +302,7 @@ Add `CheckboxTreeComponent` to `declarations`.
 
 ```bash
 # Server-side (new children endpoint tests)
-cd packages/redbox-core-types && npm test
+cd packages/redbox-core && npm test
 
 # Shared types (compile + dictionary registration)
 cd packages/sails-ng-common && npm run pretest && npm test
@@ -300,6 +312,7 @@ cd angular && npx ng test @researchdatabox/form --watch=false
 ```
 
 Non-happy-path tests required:
+
 - empty vocabulary
 - duplicated entry ids in source data
 - broken parent references
@@ -309,6 +322,7 @@ Non-happy-path tests required:
 ### Manual Verification
 
 Add a `CheckboxTreeComponent` definition to an existing form config file, boot the dev server, and confirm:
+
 1. Tree renders with expand/collapse
 2. Checkboxes appear on correct nodes (leaf-only vs all)
 3. Selection updates the model value with `{notation, label, name, genealogy}`

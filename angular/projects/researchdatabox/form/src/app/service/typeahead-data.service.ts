@@ -116,6 +116,49 @@ export class TypeaheadDataService extends HttpClientService {
             .filter((entry) => Boolean(entry.label || entry.value));
     }
 
+    public async searchExternal(
+        provider: string,
+        search: string,
+        resultArrayProperty = "",
+        labelField = "label",
+        valueField = "value"
+    ): Promise<TypeaheadOption[]> {
+        await this.waitForInit();
+        const trimmedProvider = String(provider ?? "").trim();
+        if (!trimmedProvider) {
+            throw new Error("provider is required");
+        }
+
+        const url = `${this.brandingAndPortalUrl}/external/vocab/${encodeURIComponent(trimmedProvider)}`;
+        const response = await firstValueFrom(
+            this.http.post<WrappedResponse<unknown> | unknown>(url, {
+                options: {
+                    query: String(search ?? "")
+                }
+            }, {
+                responseType: "json",
+                observe: "body",
+                context: this.httpContext
+            })
+        );
+
+        const records = this.extractExternalRecords(response, resultArrayProperty);
+        const resolvedLabelField = String(labelField ?? "").trim() || "label";
+        const resolvedValueField = String(valueField ?? "").trim() || "value";
+        return records
+            .map((record) => {
+                const label = this.getPathValue(record, resolvedLabelField);
+                const value = this.getPathValue(record, resolvedValueField);
+                return {
+                    label: String(label ?? ""),
+                    value: String(value ?? label ?? ""),
+                    sourceType: "external" as const,
+                    raw: record
+                };
+            })
+            .filter((entry) => Boolean(entry.label || entry.value));
+    }
+
     private unwrapArrayResponse(response: WrappedResponse<Array<Record<string, unknown>>> | Array<Record<string, unknown>>): Array<Record<string, unknown>> {
         if (Array.isArray(response)) {
             return response;
@@ -133,6 +176,21 @@ export class TypeaheadDataService extends HttpClientService {
         }
         if (Array.isArray((root as { response?: { docs?: unknown[] } })?.response?.docs)) {
             return ((root as { response: { docs: Array<Record<string, unknown>> } }).response.docs) ?? [];
+        }
+        return [];
+    }
+
+    private extractExternalRecords(response: WrappedResponse<unknown> | unknown, resultArrayProperty: string): Array<Record<string, unknown>> {
+        const root = (response as WrappedResponse<unknown>)?.data ?? response;
+        if (Array.isArray(root)) {
+            return root as Array<Record<string, unknown>>;
+        }
+        const propertyPath = String(resultArrayProperty ?? "").trim();
+        if (propertyPath) {
+            const nested = this.getPathValue(root, propertyPath);
+            if (Array.isArray(nested)) {
+                return nested as Array<Record<string, unknown>>;
+            }
         }
         return [];
     }

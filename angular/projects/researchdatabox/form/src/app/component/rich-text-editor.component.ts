@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy } from "@angular/core";
+import { Component, CSP_NONCE, inject, Input, OnDestroy } from "@angular/core";
 import { Editor, type AnyExtension } from "@tiptap/core";
 import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
@@ -152,6 +152,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
   private valueSyncSub?: Subscription;
   private markdownViewEditor: Editor | null = null;
   private skipNextSync = false;
+  private readonly cspNonce = inject(CSP_NONCE, { optional: true });
 
   @Input() public override model?: RichTextEditorModel;
 
@@ -309,6 +310,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     try {
       this.editor = new Editor({
         extensions: this.buildExtensions(),
+        injectNonce: this.resolveCspNonce(),
         contentType: this.outputFormat === "markdown" ? "markdown" : "html",
         content: initialValue,
         editable: !this.isReadonly && !this.isDisabled,
@@ -412,6 +414,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     if (!this.markdownViewEditor) {
       this.markdownViewEditor = new Editor({
         extensions: this.buildExtensions(),
+        injectNonce: this.resolveCspNonce(),
         contentType: "markdown",
         content: "",
         editable: false,
@@ -434,5 +437,13 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
       .replaceAll(">", "&gt;")
       .replaceAll("\"", "&quot;")
       .replaceAll("'", "&#039;");
+  }
+
+  private resolveCspNonce(): string | undefined {
+    const injectedNonce = this.cspNonce?.trim();
+    if (injectedNonce) {
+      return injectedNonce;
+    }
+    return undefined;
   }
 }

@@ -27,6 +27,10 @@ import { Observable } from 'rxjs';
 export class FormStateFacade {
   private readonly store = inject(Store);
 
+  private isBusy(): boolean {
+    return this.isSaving() || this.isDeleting();
+  }
+
   // Signal API (R7.1, R7.2)
   // Convert store selectors to signals using toSignal
 
@@ -45,6 +49,9 @@ export class FormStateFacade {
 
   /** Whether form is currently saving */
   readonly isSaving: Signal<boolean> = this.store.selectSignal(FormSelectors.selectIsSaving);
+
+  /** Whether form is currently deleting */
+  readonly isDeleting: Signal<boolean> = this.store.selectSignal(FormSelectors.selectIsDeleting);
 
   /** Whether validation is pending */
   readonly isValidationPending: Signal<boolean> = this.store.selectSignal(FormSelectors.selectIsValidationPending);
@@ -92,11 +99,27 @@ export class FormStateFacade {
    * @param options.enabledValidationGroups The validation groups that are currently enabled. This information comes from the top-level form.
    */
   submit(options?: { force?: boolean; targetStep?: string; enabledValidationGroups?: string[] }): void {
+    if (this.isBusy()) {
+      return;
+    }
     this.store.dispatch(
       FormActions.submitForm({
         force: options?.force ?? false,
         targetStep: options?.targetStep,
         enabledValidationGroups: options?.enabledValidationGroups ?? ["all"],
+      })
+    );
+  }
+
+  deleteRecord(options?: { closeOnDelete?: boolean; redirectLocation?: string; redirectDelaySeconds?: number }): void {
+    if (this.isBusy()) {
+      return;
+    }
+    this.store.dispatch(
+      FormActions.deleteRecord({
+        closeOnDelete: options?.closeOnDelete,
+        redirectLocation: options?.redirectLocation,
+        redirectDelaySeconds: options?.redirectDelaySeconds,
       })
     );
   }

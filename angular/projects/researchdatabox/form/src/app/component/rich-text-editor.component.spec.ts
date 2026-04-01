@@ -249,4 +249,19 @@ describe("RichTextEditorComponent", () => {
     await fixture.whenStable();
     expect(setValueSpy.calls.count()).toBe(callsAfterEditorUpdate + 1);
   });
+
+  it("returns undefined when injected CSP nonce is absent", () => {
+    const fixture = TestBed.createComponent(RichTextEditorComponent);
+    const component = fixture.componentInstance as any;
+    component.cspNonce = undefined;
+    expect(component.resolveCspNonce()).toBeUndefined();
+  });
+
+  it("prefers injected CSP nonce when present", () => {
+    const fixture = TestBed.createComponent(RichTextEditorComponent);
+    const component = fixture.componentInstance as any;
+    component.cspNonce = "injected-csp-nonce";
+
+    expect(component.resolveCspNonce()).toBe("injected-csp-nonce");
+  });
 });

@@ -4,8 +4,9 @@ import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import { Store } from '@ngrx/store';
 import * as FormActions from '../form-state/state/form.actions';
-import { FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import {  FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from '../form-state/events';
+import {TranslationService} from "@researchdatabox/portal-ng-common";
 
 let formConfig: FormConfigFrame;
 
@@ -44,7 +45,8 @@ describe('SaveButtonComponent', () => {
           component: {
             class: 'SaveButtonComponent',
             config: {
-                label: 'Save',
+                label: '@save-button-default',
+                labelSaving: "@save-button-saving",
                 targetStep: 'next_step',
                 forceSave: true,
             }
@@ -62,25 +64,59 @@ describe('SaveButtonComponent', () => {
   });
 
   it('should disable save button when form status is VALIDATION_PENDING', async () => {
+    const translationService = TestBed.inject(TranslationService) as any;
+    translationService.translationMap['@save-button-default'] = 'Save';
+    translationService.translationMap['@save-button-saving'] = 'Saving';
+
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
     const store = TestBed.inject(Store);
     // Dispatch validation pending action instead of direct mutation
     store.dispatch(FormActions.formValidationPending());
     fixture.detectChanges();
     await fixture.whenStable();
+    TestBed.tick();
     const saveButton = fixture.nativeElement.querySelector('button');
     expect(saveButton.disabled).toBeTrue();
+
+    expect(saveButton.textContent).toEqual("Save");
   });
 
   it('should disable save button when form status is SAVING', async () => {
+    const translationService = TestBed.inject(TranslationService) as any;
+    translationService.translationMap['@save-button-default'] = 'Save';
+    translationService.translationMap['@save-button-saving'] = 'Saving';
+
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+
+    // TODO: how to get a protected / private property?
+    const saveButtonComponent = fixture.componentInstance.componentDefArr[1].component as any;
+    const currentLabelSpy = spyOn(saveButtonComponent, 'currentLabel').and.callThrough();
+    const translateSpy = spyOn(saveButtonComponent, 'translate').and.callThrough();
+
     const store = TestBed.inject(Store);
     // Dispatch submit action to trigger SAVING status
     store.dispatch(FormActions.submitForm({ force: false }));
     fixture.detectChanges();
     await fixture.whenStable();
+
+    TestBed.flushEffects();
     const saveButton = fixture.nativeElement.querySelector('button');
     expect(saveButton.disabled).toBeTrue();
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    // console.log(JSON.stringify({
+    //   translateSpy: translateSpy.calls.all().map(i => i.args),
+    //   currentLabelSpy: currentLabelSpy.calls.all().map(i => i.args)
+    // }));
+
+    expect(translateSpy).toHaveBeenCalled();
+    expect(currentLabelSpy).toHaveBeenCalled();
+
+    // TODO: the effect doesn't seem to trigger - how to test the change from Save to Saving?
+    // expect(saveButton.textContent).toEqual("Saving");
+
   });
 
   it('should enable save button when form status is READY and valid/dirty', async () => {
@@ -94,6 +130,8 @@ describe('SaveButtonComponent', () => {
 
     const saveButton = fixture.nativeElement.querySelector('button');
     expect(saveButton.disabled).toBeFalse();
+
+    expect(saveButton.textContent).toEqual("@save-button-default");
   });
 
   it('should not publish save requested when disabled', async () => {
@@ -163,5 +201,11 @@ describe('SaveButtonComponent', () => {
     } finally {
       sub.unsubscribe();
     }
+  });
+
+  it('should render save button wrapper class used by action row', async () => {
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const wrapper = fixture.nativeElement.querySelector('.rb-form-save-button');
+    expect(wrapper).toBeTruthy();
   });
 });

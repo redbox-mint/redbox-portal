@@ -8,7 +8,6 @@
  * Debug view: see support/debug-config/resolved.js
  */
 const _ = require('lodash');
-const { Config } = require('@researchdatabox/redbox-core-types');
-
+const { Config } = require('@researchdatabox/redbox-core');
 
 module.exports.solr = Config.solr;
