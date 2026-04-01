@@ -18,11 +18,11 @@ function buildAngularApp() {
 function installAngularDependencies() {
   # esbuild provides platform binaries via optional dependencies. Force-include them
   # to avoid failures when user/global npm config omits optional packages.
-  npm install --include=optional
+  npm install --include=optional --ignore-scripts --strict-peer-deps
 
   if ! node -e "require.resolve('esbuild')" >/dev/null 2>&1; then
     echo "esbuild package missing after npm install; retrying..."
-    npm install --include=optional esbuild
+    npm install --include=optional --ignore-scripts --strict-peer-deps esbuild
   fi
 
   PLATFORM_ESBUILD_PACKAGE=""
@@ -38,7 +38,7 @@ function installAngularDependencies() {
 
   if [[ -n "$PLATFORM_ESBUILD_PACKAGE" ]] && ! node -e "require.resolve('${PLATFORM_ESBUILD_PACKAGE}')" >/dev/null 2>&1; then
     echo "Installing missing platform esbuild package ${PLATFORM_ESBUILD_PACKAGE}"
-    npm install --no-save "${PLATFORM_ESBUILD_PACKAGE}"
+    npm install --no-save --ignore-scripts --strict-peer-deps "${PLATFORM_ESBUILD_PACKAGE}"
   fi
 }
 
@@ -46,6 +46,7 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
 nvm install
+nvm use
 OS=$(uname -s)
 ARCH=$(uname -m)
 echo "Detected $ARCH architecture on $OS"
