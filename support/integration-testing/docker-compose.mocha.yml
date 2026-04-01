@@ -122,19 +122,20 @@ services:
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD-SHELL", "curl http://localhost:8080"]
+      test: ["CMD-SHELL", "/usr/bin/bash -c 'true </dev/tcp/127.0.0.1/8080'"]
       interval: '10s'
       timeout: '5s'
       retries: 10
       start_period: '30s'
     volumes:
-      - "./keycloakdb/data:/opt/keycloak/data"
+      - "./keycloakdb/import:/opt/keycloak/data/import:ro"
     networks:
       main:
        aliases:
          - keycloak
     command:
       - start-dev
+      - --import-realm
   email:
     image: axllent/mailpit:latest
     pull_policy: 'always'

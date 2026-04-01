@@ -149,25 +149,26 @@ services:
       - solr-precreate
       - redbox
   keycloak:
-    image: quay.io/keycloak/keycloak:17.0.1
+    image: quay.io/keycloak/keycloak:26.5.6
     pull_policy: 'missing'
     expose:
       - "8080"
     # No published ports needed in CI
     healthcheck:
-      test: ["CMD-SHELL", "curl http://localhost:8080"]
+      test: ["CMD-SHELL", "/usr/bin/bash -c 'true </dev/tcp/127.0.0.1/8080'"]
       interval: '10s'
       timeout: '5s'
       retries: 10
       start_period: '30s'
     volumes:
-      - "./keycloakdb/data:/opt/keycloak/data"
+      - "./keycloakdb/import:/opt/keycloak/data/import:ro"
     networks:
       main:
        aliases:
          - keycloak
     command:
       - start-dev
+      - --import-realm
   email:
     image: axllent/mailpit:latest
     pull_policy: 'missing'

@@ -1,0 +1,70 @@
+{
+  "realm" : "redbox",
+  "users" : [ {
+    "id" : "107bd77c-dcd6-439f-a2d9-e19a6c3d3fc1",
+    "createdTimestamp" : 1724222024553,
+    "username" : "test-exception",
+    "enabled" : true,
+    "totp" : false,
+    "emailVerified" : false,
+    "firstName" : "Test",
+    "lastName" : "Exception",
+    "email" : "test@exception.example.com",
+    "credentials" : [ {
+      "id" : "86d5ee0a-dafc-40ab-880e-e687d6475614",
+      "type" : "password",
+      "createdDate" : 1724222187216,
+      "secretData" : "{\"value\":\"jVjyT+JOShZms+X3g29wpSTyLM0rf1OYt5MSF28RUCnCBHjhk8usr9De2ayQgADMEUSBrEaArSuiqunFdqGyDg==\",\"salt\":\"bDbixwwmee3mCQhWeV/nJw==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\",\"additionalParameters\":{}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-redbox" ],
+    "notBefore" : 0,
+    "groups" : [ ]
+  }, {
+    "id" : "1d13bd05-09fb-453b-959e-da52b74bcd7d",
+    "createdTimestamp" : 1724219687693,
+    "username" : "test-external",
+    "enabled" : true,
+    "totp" : false,
+    "emailVerified" : false,
+    "firstName" : "Test",
+    "lastName" : "External",
+    "email" : "test-external@external.example.com",
+    "credentials" : [ {
+      "id" : "1a22a524-ae36-4929-a975-3ca4d537d0d6",
+      "type" : "password",
+      "createdDate" : 1724222202690,
+      "secretData" : "{\"value\":\"mqho/91hrOdQIwFu8weaxOa0UUQa5A2mxzfd/aGcgciANLcSAiL3LlDsYgj8keBNZnn8lk1RIqxqlWIgQK5KKw==\",\"salt\":\"X3rLOOu4Z3H+mgVj7JzTUw==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\",\"additionalParameters\":{}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-redbox" ],
+    "notBefore" : 0,
+    "groups" : [ ]
+  }, {
+    "id" : "2b141096-ac49-41ad-800c-d42907131278",
+    "createdTimestamp" : 1650027613191,
+    "username" : "test-researcher",
+    "enabled" : true,
+    "totp" : false,
+    "emailVerified" : false,
+    "firstName" : "Test",
+    "lastName" : "Researcher",
+    "email" : "test@researcher.com",
+    "credentials" : [ {
+      "id" : "2ec28143-91e9-491c-a4bf-cdd441766e75",
+      "type" : "password",
+      "createdDate" : 1650027629856,
+      "secretData" : "{\"value\":\"pNjuz2E7fOYnhduedkx8fHeHrIM3BStbwh8AYuBIr5mq3LJQRae5yZucwDUPvEaIjpRABJi7Dq+wcLG7unQP/Q==\",\"salt\":\"KQREzZ1M3S5bQ4COMZbpiQ==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\",\"additionalParameters\":{}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-redbox" ],
+    "notBefore" : 0,
+    "groups" : [ ]
+  } ]
+}
