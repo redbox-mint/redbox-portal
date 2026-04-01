@@ -2,7 +2,7 @@ networks:
   main:
 
 x-bruno-service: &bruno-service
-  image: node:24-bullseye
+  image: node:24.14.1-bullseye
   pull_policy: 'missing'
   volumes:
     - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"

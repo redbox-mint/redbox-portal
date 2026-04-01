@@ -36,8 +36,11 @@ script:pre-request {
 
 tests {
   test("Status code is 302", function () {
-      expect(res.getStatus()).to.equal(302);
-      bru.setVar("rb_login_url", res.headers['location']);
-      // console.log(bru.getVar("rb_login_url"))
+    expect(res.getStatus()).to.equal(302);
+    let loc = (res.getHeader && res.getHeader('location')) || res.headers['location'];
+    if (Array.isArray(loc)) {
+      loc = loc[0];
+    }
+    bru.setVar("rb_login_url", loc);
   });
 }
