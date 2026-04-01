@@ -1,6 +1,6 @@
 ### Node Version Manager (NVM) Usage ###
 
-Our project requires different Node.js versions for the backend Sails application and legacy Angular applications. We manage these requirements with Node Version Manager (NVM). `.nvmrc` files located in the root, `/angular`, and `/angular-legacy` directories specify the needed Node versions. Navigate to each directory and execute `nvm install` followed by `nvm use` to ensure the proper Node environment for each segment. This ensures consistency across different parts of the project.
+Our project requires different Node.js versions for the backend Sails application and legacy Angular applications. We manage these requirements with Node Version Manager (NVM). `.nvmrc` files located in the root and `/angular-legacy` directories specify the needed Node versions. Navigate to each directory and execute `nvm install` followed by `nvm use` to ensure the proper Node environment for each segment. This ensures consistency across different parts of the project.
 
 ### Backend Compilation (Sails):
 1. **Install Packages**: Run `npm install` within the backend directory to ensure all dependencies are up to date.
