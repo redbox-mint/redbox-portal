@@ -371,8 +371,15 @@ export namespace Services {
       }
 
       // Check for null bytes and other control characters
-      // eslint-disable-next-line no-control-regex
-      if (/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(svg)) {
+      const containsControlCharacters = Array.from(svg).some((char) => {
+        const code = char.charCodeAt(0);
+        return (code >= 0 && code <= 8)
+          || code === 11
+          || code === 12
+          || (code >= 14 && code <= 31)
+          || code === 127;
+      });
+      if (containsControlCharacters) {
         errors.push('contains-control-characters');
       }
 

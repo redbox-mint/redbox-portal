@@ -7,13 +7,13 @@ function buildAngularApp() {
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular-legacy
-nvm i < .nvmrc && npm ci --legacy-peer-deps
+nvm install && npm ci --legacy-peer-deps
 
 if [ $# -ne 0 ]
   then
     echo "Bundling ${1}"
     buildAngularApp "$1"
-else 
+else
   ng2apps=( `find ./ -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
   for ng2app in "${ng2apps[@]}"
   do

@@ -94,7 +94,7 @@ const formConfig: FormConfigFrame = {
                     cssClasses: 'btn btn-info',
                     label: 'View Audit Records',
                   },
-                  template: '<a href="{{concat \"/\" branding \"/\" portal \"/record/viewAudit/\" oid}}" class="{{content.cssClasses}}">{{content.label}}</a>',
+                  template: '<a href="{{concat "/" branding "/" portal "/record/viewAudit/" oid}}" class="{{content.cssClasses}}">{{content.label}}</a>',
                 },
               },
               layout: {
@@ -117,7 +117,7 @@ const formConfig: FormConfigFrame = {
                     cssClasses: 'btn btn-danger',
                     label: 'Delete Record',
                   },
-                  template: '<a href="{{concat \"/\" branding \"/\" portal \"/record/delete/\" oid}}" class="{{content.cssClasses}}" data-confirm="Are you sure you want to delete this record? This action cannot be undone.">{{content.label}}</a>',
+                  template: '<a href="{{concat "/" branding "/" portal "/record/delete/" oid}}" class="{{content.cssClasses}}" data-confirm="Are you sure you want to delete this record? This action cannot be undone.">{{content.label}}</a>',
                 },
               },
               layout: {

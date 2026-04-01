@@ -1257,46 +1257,94 @@ export namespace Services {
           }
           for (const oidcConfig of oidcConfigArray) {
             const oidcOpts = oidcConfig.opts;
-            const {
-              Issuer,
-              Strategy
-            } = require('openid-client');
+            const openIdClient = require('openid-client');
+            const { Strategy } = require('openid-client/passport');
             let configured = false;
             let discoverAttemptsCtr = 0;
             while (!configured && discoverAttemptsCtr < oidcConfig.discoverAttemptsMax) {
               discoverAttemptsCtr++;
               try {
-                let issuer;
+                const clientMetadata = (oidcOpts.client ?? {}) as Record<string, unknown>;
+                const clientId = String(clientMetadata.client_id ?? '');
+                let oidcClientConfig;
+
                 if (_.isString(oidcOpts.issuer)) {
-                  sails.log.verbose(`OIDC, using issuer URL for discovery: ${oidcOpts.issuer}`);
-                  issuer = await Issuer.discover(oidcOpts.issuer);
+                  const issuerUrl = String(oidcOpts.issuer).replace(/\/+$/, '');
+                  sails.log.verbose(`OIDC, using issuer URL for discovery: ${issuerUrl}`);
+                  const discoveryOptions = issuerUrl.startsWith('http://')
+                    ? { execute: [openIdClient.allowInsecureRequests] }
+                    : undefined;
+                  oidcClientConfig = await openIdClient.discovery(
+                    new URL(issuerUrl),
+                    clientId,
+                    clientMetadata,
+                    undefined,
+                    discoveryOptions
+                  );
                 } else {
                   sails.log.verbose(`OIDC, using issuer hardcoded configuration:`);
                   sails.log.verbose(JSON.stringify(oidcOpts.issuer));
-                  issuer = new Issuer(oidcOpts.issuer);
+                  oidcClientConfig = new openIdClient.Configuration(
+                    oidcOpts.issuer,
+                    clientId,
+                    clientMetadata
+                  );
+                  const configuredIssuer = String((oidcOpts.issuer as Record<string, unknown>)?.issuer ?? '');
+                  if (configuredIssuer.startsWith('http://')) {
+                    openIdClient.allowInsecureRequests(oidcClientConfig);
+                  }
                 }
+                const serverMetadata = oidcClientConfig.serverMetadata();
                 configured = true;
                 sails.log.verbose(`OIDC, Got issuer config, after ${discoverAttemptsCtr} attempt(s).`);
-                sails.log.verbose(issuer);
-                const oidcClient = new issuer.Client(oidcOpts.client);
-                let verifyCallbackFn = (req: AnyRecord, tokenSet: AnyRecord, userinfo: AnyRecord, done: DoneCallback) => {
-                  that.openIdConnectAuthVerifyCallback(oidcConfig as unknown as AnyRecord, issuer as AnyRecord, req, tokenSet, userinfo, done);
+                sails.log.verbose(serverMetadata);
+                const verifyCallbackFn = async (req: AnyRecord, tokenSet: AnyRecord, done: DoneCallback) => {
+                  try {
+                    let userinfo: AnyRecord | undefined;
+                    if (oidcConfig.userInfoSource !== 'tokenset_claims') {
+                      const tokenClaims = typeof tokenSet.claims === 'function' ? tokenSet.claims() : {};
+                      const accessToken = String(tokenSet.access_token ?? '');
+                      const subject = String(_.get(tokenClaims, 'sub', ''));
+                      if (!_.isEmpty(accessToken) && !_.isEmpty(subject)) {
+                        userinfo = await openIdClient.fetchUserInfo(oidcClientConfig, accessToken, subject);
+                      }
+                    }
+                    that.openIdConnectAuthVerifyCallback(oidcConfig as unknown as AnyRecord, serverMetadata as AnyRecord, req, tokenSet, userinfo, done);
+                  } catch (err) {
+                    done(err, false);
+                  }
                 };
-                if (oidcConfig.userInfoSource == 'tokenset_claims') {
-                  verifyCallbackFn = (req: AnyRecord, tokenSet: AnyRecord, _userinfo: AnyRecord, done: DoneCallback) => {
-                    that.openIdConnectAuthVerifyCallback(oidcConfig as unknown as AnyRecord, issuer as AnyRecord, req, tokenSet, undefined, done);
-                  };
-                }
                 let passportIdentifier = 'oidc';
                 if (!_.isEmpty(oidcConfig.identifier)) {
                   passportIdentifier = `oidc-${oidcConfig.identifier}`
                 }
-
-                (sails.config.passport as PassportLike).use(passportIdentifier, new Strategy({
-                  client: oidcClient,
-                  passReqToCallback: true,
-                  params: oidcOpts.params
-                }, verifyCallbackFn));
+                const strategyOptions: AnyRecord = {
+                  config: oidcClientConfig,
+                  passReqToCallback: true
+                };
+                const callbackUrl = _.get(clientMetadata, 'redirect_uris[0]');
+                if (_.isString(callbackUrl) && !_.isEmpty(callbackUrl)) {
+                  strategyOptions.callbackURL = callbackUrl;
+                }
+                const authParams = (oidcOpts.params ?? {}) as Record<string, unknown>;
+                if (_.isString(authParams.scope) && !_.isEmpty(authParams.scope)) {
+                  strategyOptions.scope = authParams.scope;
+                }
+                const strategy = new Strategy(strategyOptions, verifyCallbackFn);
+                const additionalAuthParams = _.omit(authParams, ['scope']);
+                if (!_.isEmpty(additionalAuthParams)) {
+                  strategy.authorizationRequestParams = () => {
+                    const params = new URLSearchParams();
+                    for (const [key, value] of Object.entries(additionalAuthParams)) {
+                      if (_.isNil(value)) {
+                        continue;
+                      }
+                      params.set(key, _.isString(value) ? value : JSON.stringify(value));
+                    }
+                    return params;
+                  };
+                }
+                (sails.config.passport as PassportLike).use(passportIdentifier, strategy);
                 sails.log.info(`OIDC is active, client ${passportIdentifier} configured and ready.`);
 
 

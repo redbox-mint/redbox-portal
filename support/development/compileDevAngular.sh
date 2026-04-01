@@ -18,11 +18,11 @@ function buildAngularApp() {
 function installAngularDependencies() {
   # esbuild provides platform binaries via optional dependencies. Force-include them
   # to avoid failures when user/global npm config omits optional packages.
-  npm install --include=optional
+  npm install --include=optional --ignore-scripts --strict-peer-deps
 
   if ! node -e "require.resolve('esbuild')" >/dev/null 2>&1; then
     echo "esbuild package missing after npm install; retrying..."
-    npm install --include=optional esbuild
+    npm install --include=optional --ignore-scripts --strict-peer-deps esbuild
   fi
 
   PLATFORM_ESBUILD_PACKAGE=""
@@ -38,14 +38,15 @@ function installAngularDependencies() {
 
   if [[ -n "$PLATFORM_ESBUILD_PACKAGE" ]] && ! node -e "require.resolve('${PLATFORM_ESBUILD_PACKAGE}')" >/dev/null 2>&1; then
     echo "Installing missing platform esbuild package ${PLATFORM_ESBUILD_PACKAGE}"
-    npm install --no-save "${PLATFORM_ESBUILD_PACKAGE}"
+    npm install --no-save --ignore-scripts --strict-peer-deps "${PLATFORM_ESBUILD_PACKAGE}"
   fi
 }
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
-nvm i < .nvmrc 
+nvm install
+nvm use
 OS=$(uname -s)
 ARCH=$(uname -m)
 echo "Detected $ARCH architecture on $OS"
@@ -62,12 +63,12 @@ cp ../support/build/angular-i18next-index.d.ts node_modules/angular-i18next/inde
 if [ $# -ne 0 ]
   then
     buildAngularApp "$1"
-else 
+else
   # Check if the custom form components directory is included in this build. Set `BUILD_PORTAL_NG_FORM_CUSTOM` to true if you want to build the custom form components.
   if [ "$BUILD_PORTAL_NG_FORM_CUSTOM" == "true" ]; then
     # Check if the custom form components placeholder is available one directory up from the parent, clone if not...
     PORTAL_NG_FORM_CUSTOM_DIR="../../portal-ng-form-custom"
-    if [[ -d "${PORTAL_NG_FORM_CUSTOM_DIR}" ]]; then 
+    if [[ -d "${PORTAL_NG_FORM_CUSTOM_DIR}" ]]; then
       echo "Custom form component placeholder already available"
     else
       echo "Cloning custom form component placeholder..."
@@ -79,14 +80,14 @@ else
       PORTAL_NG_FORM_CUSTOM_BRANCH="$3"
       CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
       if [ $? -ne 0 ]; then
-        if [ -n "$PORTAL_NG_FORM_CUSTOM_BRANCH" ]; then 
+        if [ -n "$PORTAL_NG_FORM_CUSTOM_BRANCH" ]; then
           echo "Custom form branch specified, using ${PORTAL_NG_FORM_CUSTOM_BRANCH}"
           CURRENT_BRANCH="$PORTAL_NG_FORM_CUSTOM_BRANCH"
         else
           echo "No core branch specified, using default branch for core and custom form repositories"
           CURRENT_BRANCH=""
-        fi 
-      else 
+        fi
+      else
         if [ -z "$PORTAL_NG_FORM_CUSTOM_BRANCH" ]; then
           echo "No custom branch repo specified, checking current core branch '${CURRENT_BRANCH}'"
           if [ "$CURRENT_BRANCH" != "master" ]; then
@@ -105,7 +106,7 @@ else
         git checkout "${PORTAL_NG_FORM_CUSTOM_BRANCH}"
         cd -
       fi
-    fi 
+    fi
   fi
   echo "Building core..."
   buildAngularApp "portal-ng-common" "ignore-ouput"
@@ -119,7 +120,7 @@ else
     cp angular-custom.json angular.json
     buildAngularApp "portal-ng-form-custom" "ignore-ouput"
     mv angular-orig.json angular.json
-  else 
+  else
     echo "Building form-custom placeholder..."
     buildAngularApp "portal-ng-form-custom" "ignore-ouput"
   fi
