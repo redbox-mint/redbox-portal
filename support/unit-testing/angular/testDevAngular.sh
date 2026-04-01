@@ -19,7 +19,7 @@ function testAngular() {
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
-nvm i < .nvmrc && npm install
+nvm install && npm install
 
 testAngular "portal-ng-common" "frontend-core-lib"
 ng2apps=( $(find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -exec basename {} \;) )
