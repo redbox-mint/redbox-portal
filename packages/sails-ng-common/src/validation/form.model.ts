@@ -258,12 +258,14 @@ export interface FormFieldValidationGroup {
      * A list of the validation groups to include / add / enable.
      *
      * Default is empty array.
+     * Use when a validator should be included in a group with initial membership of none.
      */
     include?: string[];
     /**
      * A list of the validation groups to exclude / remove / disable.
      *
      * Default is empty array.
+     * Use when a validator should be excluded from a group with initial membership of all.
      */
     exclude?: string[];
 }
