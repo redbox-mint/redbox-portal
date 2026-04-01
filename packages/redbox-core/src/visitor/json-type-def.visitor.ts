@@ -677,8 +677,6 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     try {
       this.jsonTypeDefPath = [...originalPath, ...(jsonTypeDefPathKeys ?? [])];
       this.formPathHelper.acceptFormPath(item, more);
-    } catch (error) {
-      throw error;
     } finally {
       this.jsonTypeDefPath = originalPath;
     }

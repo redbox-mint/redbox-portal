@@ -1945,7 +1945,6 @@ export namespace Services {
 
           this.logWithLevel(config.logLevel, 'FigService - processFileUploadToFigshare - file saved to ' + fileFullPath);
           let uploadURL = '';
-          let fileId: number | string | undefined;
           let uploadParts: AnyRecord[] = [];
 
           this.logWithLevel(config.logLevel, 'FigService - processFileUploadToFigshare - articleId ' + articleId);
@@ -1997,7 +1996,7 @@ export namespace Services {
           this.logWithLevel(config.logLevel, `FigService - processFileUploadToFigshare - response step 2 status: ${responseStep2.status} statusText: ${responseStep2.statusText}`);
           const responseStep2Data = (responseStep2.data ?? {}) as AnyRecord;
           uploadURL = (responseStep2Data.upload_url as string) || '';
-          fileId = responseStep2Data.id as number | string;
+          const fileId = responseStep2Data.id as number | string;
 
           //example reply
           /*
