@@ -14,11 +14,19 @@ import { Injectable, inject, InjectionToken } from '@angular/core';
 import { Actions, createEffect } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { Observable, EMPTY } from 'rxjs';
-import { map, throttleTime, tap, filter, catchError } from 'rxjs/operators';
+import { map, throttleTime, tap, filter, catchError, withLatestFrom } from 'rxjs/operators';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
-import { FormComponentEventType, FormSaveSuccessEvent } from '../events/form-component-event.types';
+import {
+  FormComponentEventType,
+  FormDeleteFailureEvent,
+  FormDeleteSuccessEvent,
+  FormSaveFailureEvent,
+  FormSaveSuccessEvent,
+} from '../events/form-component-event.types';
 import * as FormActions from '../state/form.actions';
+import * as FormSelectors from '../state/form.selectors';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
+import { FormStatus } from '@researchdatabox/sails-ng-common';
 
 /**
  * Configuration for the adapter
@@ -171,15 +179,92 @@ export class FormEventBusAdapterEffects {
    * R15.20–R15.23
    */
   promoteSaveRequested$ = createEffect(() =>
-    this.createPromotionStream(
-      FormComponentEventType.FORM_SAVE_REQUESTED,
-      PromotionCriterion.TRIGGERS_SIDE_EFFECT,
-      (event: any) =>
-        FormActions.submitForm({
+    this.eventBus.select$(FormComponentEventType.FORM_SAVE_REQUESTED).pipe(
+      filter(() => {
+        if (this.config.disabled) {
+          if (this.config.diagnosticsEnabled) {
+            logSkipped(this.logger, FormComponentEventType.FORM_SAVE_REQUESTED, 'Adapter disabled');
+          }
+          return false;
+        }
+        return true;
+      }),
+      throttleTime(this.config.throttleWindowMs, undefined, {
+        leading: true,
+        trailing: false
+      }),
+      withLatestFrom(this.store.select(FormSelectors.selectStatus)),
+      filter(([event, status]) => {
+        if (status === FormStatus.SAVING || status === FormStatus.DELETING) {
+          if (this.config.diagnosticsEnabled) {
+            logSkipped(this.logger, event.type, `Form busy: ${status}`);
+          }
+          return false;
+        }
+        return true;
+      }),
+      map(([event]) => {
+        const action = FormActions.submitForm({
           force: event.force,
           enabledValidationGroups: event.enabledValidationGroups,
           targetStep: event.targetStep,
-        })
+        });
+        if (this.config.diagnosticsEnabled) {
+          logPromotion(this.logger, FormComponentEventType.FORM_SAVE_REQUESTED, PromotionCriterion.TRIGGERS_SIDE_EFFECT, action.type);
+        }
+        return action;
+      }),
+      catchError((err) => {
+        if (this.config.diagnosticsEnabled) {
+          this.logger.error('[FormEventBusAdapter] Promotion stream error', err);
+        }
+        return EMPTY;
+      })
+    )
+  );
+
+  promoteDeleteRequested$ = createEffect(() =>
+    this.eventBus.select$(FormComponentEventType.FORM_DELETE_REQUESTED).pipe(
+      filter(() => {
+        if (this.config.disabled) {
+          if (this.config.diagnosticsEnabled) {
+            logSkipped(this.logger, FormComponentEventType.FORM_DELETE_REQUESTED, 'Adapter disabled');
+          }
+          return false;
+        }
+        return true;
+      }),
+      throttleTime(this.config.throttleWindowMs, undefined, {
+        leading: true,
+        trailing: false
+      }),
+      withLatestFrom(this.store.select(FormSelectors.selectStatus)),
+      filter(([event, status]) => {
+        if (status === FormStatus.SAVING || status === FormStatus.DELETING) {
+          if (this.config.diagnosticsEnabled) {
+            logSkipped(this.logger, event.type, `Form busy: ${status}`);
+          }
+          return false;
+        }
+        return true;
+      }),
+      map(([event]) => {
+        const action = FormActions.deleteRecord({
+          closeOnDelete: event.closeOnDelete,
+          redirectLocation: event.redirectLocation,
+          redirectDelaySeconds: event.redirectDelaySeconds,
+        });
+        if (this.config.diagnosticsEnabled) {
+          logPromotion(this.logger, FormComponentEventType.FORM_DELETE_REQUESTED, PromotionCriterion.TRIGGERS_SIDE_EFFECT, action.type);
+        }
+        return action;
+      }),
+      catchError((err) => {
+        if (this.config.diagnosticsEnabled) {
+          this.logger.error('[FormEventBusAdapter] Promotion stream error', err);
+        }
+        return EMPTY;
+      })
     )
   );
 
@@ -209,8 +294,39 @@ export class FormEventBusAdapterEffects {
     this.createPromotionStream(
       FormComponentEventType.FORM_SAVE_FAILURE,
       PromotionCriterion.TRIGGERS_SIDE_EFFECT,
-      (event: any) =>
-        FormActions.submitFormFailure({ error: formatErrorsForMessage(event.errors) })
+      (event: FormSaveFailureEvent) =>
+        FormActions.submitFormFailure({ error: formatErrorsForMessage(event.error) })
+    )
+  );
+
+  promoteDeleteSuccess$ = createEffect(() =>
+    this.createPromotionStream(
+      FormComponentEventType.FORM_DELETE_SUCCESS,
+      PromotionCriterion.TRIGGERS_SIDE_EFFECT,
+      (event: FormDeleteSuccessEvent) => {
+        if (event.oid == null) {
+          this.logger.warn('[FormEventBusAdapter] Missing oid on delete success event', {
+            event,
+            redirectLocation: event.redirectLocation,
+          });
+        }
+
+        return FormActions.deleteRecordSuccess({
+          oid: event.oid ?? '',
+          closeOnDelete: event.closeOnDelete,
+          redirectLocation: event.redirectLocation,
+          redirectDelaySeconds: event.redirectDelaySeconds,
+        });
+      }
+    )
+  );
+
+  promoteDeleteFailure$ = createEffect(() =>
+    this.createPromotionStream(
+      FormComponentEventType.FORM_DELETE_FAILURE,
+      PromotionCriterion.TRIGGERS_SIDE_EFFECT,
+      (event: FormDeleteFailureEvent) =>
+        FormActions.deleteRecordFailure({ error: formatErrorsForMessage(event.error) })
     )
   );
 

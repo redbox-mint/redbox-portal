@@ -216,13 +216,15 @@ api/shims/*.js
 api/policies/*.js
 api/middleware/*.js
 api/responses/*.js
+api/form-config/*.js
 
 attachments/
 docs/
 test/integration/**/*.test.js
 
-packages/redbox-core-types/.nyc_output/*
-packages/redbox-core-types/coverage/*
+packages/redbox-core/.nyc_output/*
+packages/redbox-core/coverage/*
 
 packages/**/coverage
 packages/**/dist
+

@@ -1,6 +1,7 @@
 # Checkbox Tree Component for Hierarchical Vocabulary
 
 ## Planning
+
 - [x] Research existing form framework architecture
 - [x] Study component registration pipeline (outline → model → Angular → dictionary)
 - [x] Study visitor infrastructure and vocab-inline visitor
@@ -18,6 +19,7 @@
 ## Execution
 
 ### Package: `sails-ng-common` — Type Definitions
+
 - [ ] Create `component/checkbox-tree.outline.ts` — Frame/Outline interfaces + Types union
 - [ ] Create `component/checkbox-tree.model.ts` — Model classes + visitor accept + Map/Defaults
 - [ ] Update `dictionary.outline.ts` — Add `CheckboxTreeTypes` to `AllTypes` union
@@ -27,7 +29,8 @@
 - [ ] Update `visitor/vocab-inline.visitor.ts` — Handle checkbox-tree inline resolution
 - [ ] Update all other visitors (`construct`, `client`, `data-value`, `template`, `validator`, `json-type-def`, `migrate-config-v4-v5`) with new visitor methods
 
-### Package: `redbox-core-types` — Server API
+### Package: `redbox-core` — Server API
+
 - [ ] Add `getChildren` method to `VocabularyService` for lazy tree loading
 - [ ] Add `children` endpoint to `FormVocabularyController`
 - [ ] Update `FormVocabularyController._exportedMethods` to include `children`
@@ -35,6 +38,7 @@
 - [ ] Add `children` route to `routes.config.ts`
 
 ### Package: Angular `form` — UI Component + Services
+
 - [ ] Create `service/vocab-tree.service.ts` — Shared service for vocabulary tree APIs
 - [ ] Create `service/vocab-tree.service.spec.ts` — Service unit tests
 - [ ] Create `component/checkbox-tree.component.ts` — Angular component
@@ -46,12 +50,15 @@
 - [ ] Update `form.module.ts` — Declare component
 
 ### Package: `sails-ng-common` — Exports
+
 - [ ] Update package index exports to include new types
 
-### Package: `redbox-core-types` — Exports
+### Package: `redbox-core` — Exports
+
 - [ ] Update package index exports for controller changes
 
 ## Testing
+
 - [ ] Write unit tests for `FormVocabularyController.children`
 - [ ] Write unit tests for `vocab-tree.service`
 - [ ] Write Angular component spec tests

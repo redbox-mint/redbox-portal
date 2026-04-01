@@ -12,6 +12,7 @@ x-rbportal-env: &rbportal-env
   - sails_redbox__mochaTesting=true
   - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
   - sails_security__csrf=false
+  - LOAD_DEFAULT_FORMS=true
   - datacite_username=${datacite_username:-}
   - datacite_password=${datacite_password:-}
   - datacite_doiPrefix=${datacite_doiPrefix:-}

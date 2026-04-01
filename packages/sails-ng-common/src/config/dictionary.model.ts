@@ -6,29 +6,49 @@ import {
 } from './shared.outline';
 
 import { DefaultLayoutDefaults, DefaultLayoutMap } from './component/default-layout.model';
+import { ActionRowLayoutMap } from './component/action-row-layout.model';
 import { InlineLayoutMap } from './component/inline-layout.model';
 import { RepeatableDefaults, RepeatableMap } from './component/repeatable.model';
 import { GroupDefaults, GroupMap } from './component/group.model';
 import { SaveButtonDefaults, SaveButtonMap } from './component/save-button.model';
+import { SaveStatusDefaults, SaveStatusMap } from './component/save-status.model';
 import { TextAreaDefaults, TextAreaMap } from './component/text-area.model';
 import { ContentDefaults, ContentMap } from './component/content.model';
 import { SimpleInputDefaults, SimpleInputMap } from './component/simple-input.model';
 import { ValidationSummaryDefaults, ValidationSummaryMap } from './component/validation-summary.model';
 import { TabContentDefaults, TabContentMap } from './component/tab-content.model';
 import { TabDefaults, TabMap } from './component/tab.model';
+import { AccordionDefaults, AccordionMap } from './component/accordion.model';
 import { CheckboxInputDefaults, CheckboxInputMap } from './component/checkbox-input.model';
 import { DropdownInputDefaults, DropdownInputMap } from './component/dropdown-input.model';
 import { RadioInputDefaults, RadioInputMap } from './component/radio-input.model';
 import { DateInputDefaults, DateInputMap } from './component/date-input.model';
 import { ReusableDefaults, ReusableMap } from './component/reusable.model';
 import { ReusableComponentName } from './component/reusable.outline';
+import { QuestionTreeDefaults, QuestionTreeMap } from './component/question-tree.model';
 import { CheckboxTreeDefaults, CheckboxTreeMap } from './component/checkbox-tree.model';
+import { RecordSelectorDefaults, RecordSelectorMap } from './component/record-selector.model';
 import { TypeaheadInputDefaults, TypeaheadInputMap } from './component/typeahead-input.model';
 import { RichTextEditorDefaults, RichTextEditorMap } from './component/rich-text-editor.model';
 import { MapDefaults, MapMap } from './component/map.model';
 import { FileUploadDefaults, FileUploadMap } from './component/file-upload.model';
+import { PDFListDefaults, PDFListMap } from './component/pdf-list.model';
+import {
+  RecordMetadataRetrieverDefaults,
+  RecordMetadataRetrieverMap,
+} from './component/record-metadata-retriever.model';
+import { DataLocationDefaults, DataLocationMap } from './component/data-location.model';
+import {
+  PublishDataLocationRefreshDefaults,
+  PublishDataLocationRefreshMap,
+} from './component/publish-data-location-refresh.model';
+import {
+  PublishDataLocationSelectorDefaults,
+  PublishDataLocationSelectorMap,
+} from './component/publish-data-location-selector.model';
 import { CancelButtonDefaults, CancelButtonMap } from './component/cancel-button.model';
 import { TabNavButtonDefaults, TabNavButtonMap } from './component/tab-nav-button.model';
+import { DeleteButtonDefaults, DeleteButtonMap } from './component/delete-button.model';
 
 /**
  * The static array of all available classes and the kind of class.
@@ -36,11 +56,14 @@ import { TabNavButtonDefaults, TabNavButtonMap } from './component/tab-nav-butto
  */
 export const AllDefs = [
   ...DefaultLayoutMap,
+  ...ActionRowLayoutMap,
   ...InlineLayoutMap,
   ...RepeatableMap,
   ...GroupMap,
   ...SaveButtonMap,
+  ...SaveStatusMap,
   ...CancelButtonMap,
+  ...DeleteButtonMap,
   ...TabNavButtonMap,
   ...TextAreaMap,
   ...ContentMap,
@@ -48,16 +71,26 @@ export const AllDefs = [
   ...ValidationSummaryMap,
   ...TabContentMap,
   ...TabMap,
+  ...AccordionMap,
   ...CheckboxInputMap,
   ...DropdownInputMap,
   ...RadioInputMap,
   ...DateInputMap,
   ...ReusableMap,
+  ...QuestionTreeMap,
   ...CheckboxTreeMap,
+  ...RecordSelectorMap,
   ...TypeaheadInputMap,
   ...RichTextEditorMap,
   ...MapMap,
   ...FileUploadMap,
+  ...PDFListMap,
+  ...RecordMetadataRetrieverMap,
+  ...DataLocationMap,
+  // Register the stateless refresh trigger alongside the publication selector so
+  // construct/migrate/client visitors all see one coherent component family.
+  ...PublishDataLocationRefreshMap,
+  ...PublishDataLocationSelectorMap,
 ] as const;
 
 /**
@@ -69,7 +102,9 @@ const RawDefaults = [
   RepeatableDefaults,
   GroupDefaults,
   SaveButtonDefaults,
+  SaveStatusDefaults,
   CancelButtonDefaults,
+  DeleteButtonDefaults,
   TabNavButtonDefaults,
   TextAreaDefaults,
   ContentDefaults,
@@ -77,16 +112,24 @@ const RawDefaults = [
   ValidationSummaryDefaults,
   TabContentDefaults,
   TabDefaults,
+  AccordionDefaults,
   CheckboxInputDefaults,
   DropdownInputDefaults,
   RadioInputDefaults,
   DateInputDefaults,
   ReusableDefaults,
+  QuestionTreeDefaults,
   CheckboxTreeDefaults,
+  RecordSelectorDefaults,
   TypeaheadInputDefaults,
   RichTextEditorDefaults,
   MapDefaults,
   FileUploadDefaults,
+  PDFListDefaults,
+  RecordMetadataRetrieverDefaults,
+  DataLocationDefaults,
+  PublishDataLocationRefreshDefaults,
+  PublishDataLocationSelectorDefaults,
 ];
 
 /**

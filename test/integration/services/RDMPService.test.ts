@@ -33,7 +33,7 @@ describe('The RDMPService', function () {
     });
     after(function () {
         // remove the users added in `before`
-        return User.destroyOne({name: userAdmin1.name});
+        return User.destroyOne({ name: userAdmin1.name });
     });
     describe('assign permissions as expected', function () {
         it('assignPermissions with no viewers or editors', function (done) {

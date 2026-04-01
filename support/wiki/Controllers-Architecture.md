@@ -1,6 +1,6 @@
 # Controllers Architecture
 
-ReDBox controllers now live in `@researchdatabox/redbox-core-types` and are surfaced to Sails.js through generated shims. This keeps request handling logic centralized with services and models while preserving the existing route naming.
+ReDBox controllers now live in `@researchdatabox/redbox-core` and are surfaced to Sails.js through generated shims. This keeps request handling logic centralized with services and models while preserving the existing route naming.
 
 ## Locations and Naming
 
@@ -8,8 +8,8 @@ Controllers are organized into two groups:
 
 | Location | Purpose | Shim Directory |
 |---|---|---|
-| `packages/redbox-core-types/src/controllers/` | API controllers | `api/controllers/` |
-| `packages/redbox-core-types/src/controllers/webservice/` | Webservice controllers | `api/controllers/webservice/` |
+| `packages/redbox-core/src/controllers/` | API controllers | `api/controllers/` |
+| `packages/redbox-core/src/controllers/webservice/` | Webservice controllers | `api/controllers/webservice/` |
 
 Route configuration uses controller names exactly as defined in the shims:
 - API controllers: `RecordController.getMeta`
@@ -40,7 +40,7 @@ Key rules:
 Example:
 
 ```typescript
-import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers } from '@researchdatabox/redbox-core';
 
 export module Controllers {
   export class Example extends controllers.Core.Controller {
@@ -115,7 +115,7 @@ Hooks can provide or override controllers by declaring `hasControllers` in `pack
 ```
 
 ```typescript
-import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers } from '@researchdatabox/redbox-core';
 
 export module Controllers {
   export class MyController extends controllers.Core.Controller {
@@ -148,12 +148,12 @@ Hook controllers take precedence over core controllers during shim generation.
 ## Testing
 
 Controller unit tests live in:
-- `packages/redbox-core-types/test/controllers/`
-- `packages/redbox-core-types/test/controllers/webservice/`
+- `packages/redbox-core/test/controllers/`
+- `packages/redbox-core/test/controllers/webservice/`
 
 Run them with:
 
 ```bash
-cd packages/redbox-core-types
+cd packages/redbox-core
 npm test
 ```

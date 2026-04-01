@@ -16,22 +16,17 @@ We will achieve this by enhancing the base `FormFieldModel` to support the `disa
 
 ### Configuration Package (`sails-ng-common`)
 
-#### [MODIFY] [field-model.outline.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/sails-ng-common/src/config/field-model.outline.ts)
+#### [MODIFY] [field-model.outline.ts](../../../packages/sails-ng-common/src/config/field-model.outline.ts)
 
 - Add `disabled?: boolean;` property to `FieldModelConfigFrame` interface.
 
-#### [MODIFY] [field-model.model.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/sails-ng-common/src/config/field-model.model.ts)
+#### [MODIFY] [field-model.model.ts](../../../packages/sails-ng-common/src/config/field-model.model.ts)
 
 - Add `disabled?: boolean;` property to `FieldModelConfig` class.
 
-### Angular Project (`researchdatabox`)
 
-#### [MODIFY] [base.model.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/angular/projects/researchdatabox/portal-ng-common/src/lib/form/base.model.ts)
 
-- Update `FormFieldModel.postCreate()` to check for `this.fieldConfig.config.disabled`.
-- If `disabled` is true, call `this.formControl.disable()` to ensure the control is excluded from the parent form's value.
-
-#### [MODIFY] [migrate-config-v4-v5.visitor.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/packages/sails-ng-common/src/config/visitor/migrate-config-v4-v5.visitor.ts)
+#### [MODIFY] [migrate-config-v4-v5.visitor.ts](../../../packages/sails-ng-common/src/config/visitor/migrate-config-v4-v5.visitor.ts)
 
 - Update `visitGroupFieldComponentDefinition`:
   - Check if `field.class` or `field.compClass` is `ButtonBarContainer`.
@@ -43,7 +38,7 @@ We will achieve this by enhancing the base `FormFieldModel` to support the `disa
 
 ### Angular Project (`researchdatabox`)
 
-#### [MODIFY] [base.model.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal/angular/projects/researchdatabox/portal-ng-common/src/lib/form/base.model.ts)
+#### [MODIFY] [base.model.ts](../../../angular/projects/researchdatabox/portal-ng-common/src/lib/form/base.model.ts)
 
 - Update `FormFieldModel.postCreate()` to check for `this.fieldConfig.config.disabled`.
 - If `disabled` is true, call `this.formControl.disable()` to ensure the control is excluded from the parent form's value.

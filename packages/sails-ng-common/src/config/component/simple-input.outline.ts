@@ -29,9 +29,11 @@ export type SimpleInputFieldComponentConfigType = typeof SimpleInputFieldCompone
 
 export interface SimpleInputFieldComponentConfigFrame extends FieldComponentConfigFrame {
     type?: SimpleInputFieldComponentConfigType;
+    placeholder?: string;
 }
 
 export interface SimpleInputFieldComponentConfigOutline extends SimpleInputFieldComponentConfigFrame, FieldComponentConfigOutline {
+    placeholder?: string;
 }
 
 export interface SimpleInputFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {

@@ -54,7 +54,7 @@ The component listens for the **record-saved** event to update its internal atta
 
 ### sails-ng-common: Component Contract
 
-#### [MODIFY] [file-upload.outline.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/config/component/file-upload.outline.ts)
+#### [MODIFY] [file-upload.outline.ts](../../../-2/packages/sails-ng-common/src/config/component/file-upload.outline.ts)
 
 Constants, types, and interfaces (refined per user implementation):
 
@@ -69,7 +69,7 @@ Constants, types, and interfaces (refined per user implementation):
 
 The outline now uses the full `Frame` vs `Outline` interface pattern standard to the `sails-ng-common` package, and includes `kind` mapping for all types.
 
-#### [NEW] [file-upload.model.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/config/component/file-upload.model.ts)
+#### [NEW] [file-upload.model.ts](../../../-2/packages/sails-ng-common/src/config/component/file-upload.model.ts)
 
 Config/definition classes implementing the refined interfaces with `accept(visitor)` methods + `FileUploadMap` / `FileUploadDefaults`.
 
@@ -77,15 +77,15 @@ Config/definition classes implementing the refined interfaces with `accept(visit
 
 ### sails-ng-common: Dictionary & Export Registration
 
-#### [MODIFY] [dictionary.outline.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/config/dictionary.outline.ts)
+#### [MODIFY] [dictionary.outline.ts](../../../-2/packages/sails-ng-common/src/config/dictionary.outline.ts)
 
 Add `FileUploadTypes` to `AllTypes` union.
 
-#### [MODIFY] [dictionary.model.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/config/dictionary.model.ts)
+#### [MODIFY] [dictionary.model.ts](../../../-2/packages/sails-ng-common/src/config/dictionary.model.ts)
 
 Add `FileUploadMap`/`FileUploadDefaults` to aggregation arrays.
 
-#### [MODIFY] [index.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/index.ts)
+#### [MODIFY] [index.ts](../../../-2/packages/sails-ng-common/src/index.ts)
 
 Export new outline + model modules.
 
@@ -97,16 +97,16 @@ Add 3 methods each (`visitFileUploadFieldComponentDefinition`, `visitFileUploadF
 
 | Visitor File                                                                                                                                                 | Notes                              |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
-| [base.outline.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/config/visitor/base.outline.ts)                   | Interface signatures               |
-| [base.model.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/config/visitor/base.model.ts)                       | Default stubs                      |
-| [construct.visitor.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/config/visitor/construct.visitor.ts)         | `setPropOverride` for config props |
-| [client.visitor.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/config/visitor/client.visitor.ts)               | Pass-through                       |
-| [data-value.visitor.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/config/visitor/data-value.visitor.ts)       | Pass-through                       |
-| [json-type-def.visitor.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/config/visitor/json-type-def.visitor.ts) | Pass-through                       |
-| [validator.visitor.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/config/visitor/validator.visitor.ts)         | Pass-through                       |
-| [template.visitor.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/config/visitor/template.visitor.ts)           | Pass-through                       |
+| [base.outline.ts](../../../-2/packages/sails-ng-common/src/config/visitor/base.outline.ts)                   | Interface signatures               |
+| [base.model.ts](../../../-2/packages/sails-ng-common/src/config/visitor/base.model.ts)                       | Default stubs                      |
+| [construct.visitor.ts](../../../-2/packages/sails-ng-common/src/config/visitor/construct.visitor.ts)         | `setPropOverride` for config props |
+| [client.visitor.ts](../../../-2/packages/sails-ng-common/src/config/visitor/client.visitor.ts)               | Pass-through                       |
+| [data-value.visitor.ts](../../../-2/packages/sails-ng-common/src/config/visitor/data-value.visitor.ts)       | Pass-through                       |
+| [json-type-def.visitor.ts](../../../-2/packages/sails-ng-common/src/config/visitor/json-type-def.visitor.ts) | Pass-through                       |
+| [validator.visitor.ts](../../../-2/packages/sails-ng-common/src/config/visitor/validator.visitor.ts)         | Pass-through                       |
+| [template.visitor.ts](../../../-2/packages/sails-ng-common/src/config/visitor/template.visitor.ts)           | Pass-through                       |
 
-#### [MODIFY] [migrate-config-v4-v5.visitor.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/packages/sails-ng-common/src/config/visitor/migrate-config-v4-v5.visitor.ts)
+#### [MODIFY] [migrate-config-v4-v5.visitor.ts](../../../-2/packages/sails-ng-common/src/config/visitor/migrate-config-v4-v5.visitor.ts)
 
 Add `RelatedFileUpload` / `DataLocation` → `FileUploadComponent` mapping + migration visitor methods.
 
@@ -114,7 +114,7 @@ Add `RelatedFileUpload` / `DataLocation` → `FileUploadComponent` mapping + mig
 
 ### Angular: Dependencies
 
-#### [MODIFY] [package.json](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/angular/package.json)
+#### [MODIFY] [package.json](../../../-2/angular/package.json)
 
 Install (client-side only):
 
@@ -128,7 +128,7 @@ No `@uppy/angular` — using programmatic API for full control.
 
 ### Angular: Component
 
-#### [NEW] [file-upload.component.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts)
+#### [NEW] [file-upload.component.ts](../../../-2/angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts)
 
 Key behaviors:
 
@@ -144,11 +144,11 @@ Key behaviors:
 
 ### Angular: Registration
 
-#### [MODIFY] [form.module.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/angular/projects/researchdatabox/form/src/app/form.module.ts)
+#### [MODIFY] [form.module.ts](../../../-2/angular/projects/researchdatabox/form/src/app/form.module.ts)
 
 Declare `FileUploadComponent`.
 
-#### [MODIFY] [static-comp-field.dictionary.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/angular/projects/researchdatabox/form/src/app/static-comp-field.dictionary.ts)
+#### [MODIFY] [static-comp-field.dictionary.ts](../../../-2/angular/projects/researchdatabox/form/src/app/static-comp-field.dictionary.ts)
 
 Map `FileUploadComponentName` → `FileUploadComponent` and `FileUploadModelName` → `FileUploadModel`.
 
@@ -158,7 +158,7 @@ Map `FileUploadComponentName` → `FileUploadComponent` and `FileUploadModelName
 
 ### Automated Tests
 
-**[NEW] [file-upload.component.spec.ts](file:///Users/andrewbrazzatti/source/github/redbox-portal-2/angular/projects/researchdatabox/form/src/app/component/file-upload.component.spec.ts)**
+**[NEW] [file-upload.component.spec.ts](../../../-2/angular/projects/researchdatabox/form/src/app/component/file-upload.component.spec.ts)**
 
 1. Component creates successfully
 2. Respects `enabledSources` config

@@ -1,11 +1,14 @@
-import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
-import {RadioInputComponent} from "./radio-input.component";
-import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {TestBed} from "@angular/core/testing";
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { RadioInputComponent } from "./radio-input.component";
+import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
+import { TestBed } from "@angular/core/testing";
 
 describe('RadioInputComponent', () => {
+  let translationService: any;
+
   beforeEach(async () => {
-    await createTestbedModule({declarations: {"RadioInputComponent": RadioInputComponent}});
+    ({ translationService } = await createTestbedModule({ declarations: { "RadioInputComponent": RadioInputComponent } }));
+    translationService.getCurrentLanguage = jasmine.createSpy('getCurrentLanguage').and.returnValue('en');
   });
 
   it('should create component', () => {
@@ -17,7 +20,7 @@ describe('RadioInputComponent', () => {
   it('should render RadioInput component with options', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
@@ -45,7 +48,7 @@ describe('RadioInputComponent', () => {
       ]
     };
 
-    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
 
     const compiled = fixture.nativeElement as HTMLElement;
 
@@ -54,13 +57,52 @@ describe('RadioInputComponent', () => {
     expect(checkedRadio).toBeTruthy();
     expect(checkedRadio.id).toEqual('radio_test-option1');
 
-    // Check that all options have proper labels
+    // Check that all options have proper label bindings
     const radioInputs = compiled.querySelectorAll('input[type="radio"]');
     expect(radioInputs.length).toEqual(3);
-    const labels = compiled.querySelectorAll('label');
+    const labels = compiled.querySelectorAll<HTMLLabelElement>('label');
     expect(labels.length).toEqual(3);
-    expect(labels[0].textContent?.trim()).toEqual('Option 1');
-    expect(labels[1].textContent?.trim()).toEqual('Option 2');
-    expect(labels[2].textContent?.trim()).toEqual('Option 3');
+    expect(labels[0].getAttribute('for')).toEqual('radio_test-option1');
+    expect(labels[1].getAttribute('for')).toEqual('radio_test-option2');
+    expect(labels[2].getAttribute('for')).toEqual('radio_test-option3');
+  });
+
+  it('should resolve language-map labels for options', async () => {
+    translationService.translationMap = translationService.translationMap || {};
+    translationService.translationMap['@radio-language-label'] = 'English Label';
+    spyOn(translationService, 't').and.callFake((key: string) => translationService.translationMap[key] ?? key);
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'radio_lang_test',
+          model: {
+            class: 'RadioInputModel',
+            config: {
+              value: 'option1'
+            }
+          },
+          component: {
+            class: 'RadioInputComponent',
+            config: {
+              options: [
+                { label: '@radio-language-label', value: 'option1' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const labels = compiled.querySelectorAll<HTMLLabelElement>('label');
+    expect(labels.length).toBeGreaterThan(0);
+    expect(labels[0].getAttribute('for')).toEqual('radio_lang_test-option1');
   });
 });

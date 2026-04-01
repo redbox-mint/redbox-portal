@@ -237,7 +237,7 @@ R15.15 The facade SHALL re-export minimal event type helpers to keep component i
 
 R15.16 The system SHALL document canonical event naming scheme: `namespace.domain.action` (dot-delimited, lower-case).  
 
-R15.17 The bus SHALL support at least these initial event types: `field.value.changed`, `field.meta.changed`, `field.dependency.trigger`, `field.request.focus`, `form.validation.broadcast`.  
+R15.17 The bus SHALL support at least these initial event types: `field.value.changed`, `field.ui-attribute.changed`, `field.dependency.trigger`, `field.request.focus`, `form.validation.broadcast`.  
 R15.17.1 Additionally, the bus SHALL support `form.save.requested` (published by UI) and `form.save.execute` (published by effects to command the component to run save).  
 
 R15.18 The bus SHALL allow synchronous consumption in components (Signals) and asynchronous (Observable) in effects for flexibility.  

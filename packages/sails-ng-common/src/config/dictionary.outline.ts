@@ -5,9 +5,14 @@ import {
 } from './component/repeatable.outline';
 import { GroupTypes } from './component/group.outline';
 import { SaveButtonTypes } from './component/save-button.outline';
+import { SaveStatusTypes } from './component/save-status.outline';
 import { TextAreaTypes } from './component/text-area.outline';
 import { ContentTypes } from './component/content.outline';
-import { SimpleInputTypes } from './component/simple-input.outline';
+import {
+  SimpleInputFormComponentDefinitionFrame,
+  SimpleInputFormComponentDefinitionOutline,
+  SimpleInputTypes,
+} from './component/simple-input.outline';
 import { ValidationSummaryTypes } from './component/validation-summary.outline';
 import {
   TabContentFormComponentDefinitionOutline,
@@ -15,8 +20,10 @@ import {
   TabContentTypes,
 } from './component/tab-content.outline';
 import { TabTypes } from './component/tab.outline';
+import { AccordionTypes } from './component/accordion.outline';
 import { DefaultLayoutTypes } from './component/default-layout.outline';
 import { InlineLayoutTypes } from './component/inline-layout.outline';
+import { ActionRowLayoutTypes } from './component/action-row-layout.outline';
 
 import {
   FieldLayoutDefinitionFrameKindType,
@@ -24,18 +31,38 @@ import {
   FormComponentDefinitionFrameKindType,
   FormComponentDefinitionKindType,
 } from './shared.outline';
-import { CheckboxInputTypes } from './component/checkbox-input.outline';
+import {
+  CheckboxInputFormComponentDefinitionFrame,
+  CheckboxInputFormComponentDefinitionOutline,
+  CheckboxInputTypes,
+} from './component/checkbox-input.outline';
 import { DropdownInputTypes } from './component/dropdown-input.outline';
-import { RadioInputTypes } from './component/radio-input.outline';
+import {
+  RadioInputFormComponentDefinitionFrame,
+  RadioInputFormComponentDefinitionOutline,
+  RadioInputTypes,
+} from './component/radio-input.outline';
 import { DateInputTypes } from './component/date-input.outline';
-import { ReusableTypes } from './component/reusable.outline';
+import {
+  ReusableFormComponentDefinitionFrame,
+  ReusableFormComponentDefinitionOutline,
+  ReusableTypes,
+} from './component/reusable.outline';
+import { QuestionTreeTypes } from './component/question-tree.outline';
 import { CheckboxTreeTypes } from './component/checkbox-tree.outline';
+import { RecordSelectorTypes } from './component/record-selector.outline';
 import { TypeaheadInputTypes } from './component/typeahead-input.outline';
 import { RichTextEditorTypes } from './component/rich-text-editor.outline';
 import { MapTypes } from './component/map.outline';
 import { FileUploadTypes } from './component/file-upload.outline';
+import { PDFListTypes } from './component/pdf-list.outline';
+import { RecordMetadataRetrieverTypes } from './component/record-metadata-retriever.outline';
+import { DataLocationTypes } from './component/data-location.outline';
+import { PublishDataLocationRefreshTypes } from './component/publish-data-location-refresh.outline';
+import { PublishDataLocationSelectorTypes } from './component/publish-data-location-selector.outline';
 import { CancelButtonTypes } from './component/cancel-button.outline';
 import { TabNavButtonTypes } from './component/tab-nav-button.outline';
+import { DeleteButtonTypes } from './component/delete-button.outline';
 
 /**
  * The static type union of all available interfaces that provides typing for the object literal and schema.
@@ -44,10 +71,13 @@ import { TabNavButtonTypes } from './component/tab-nav-button.outline';
 export type AllTypes =
   | DefaultLayoutTypes
   | InlineLayoutTypes
+  | ActionRowLayoutTypes
   | RepeatableTypes
   | GroupTypes
   | SaveButtonTypes
+  | SaveStatusTypes
   | CancelButtonTypes
+  | DeleteButtonTypes
   | TabNavButtonTypes
   | TextAreaTypes
   | ContentTypes
@@ -55,16 +85,26 @@ export type AllTypes =
   | ValidationSummaryTypes
   | TabContentTypes
   | TabTypes
+  | AccordionTypes
   | CheckboxInputTypes
   | DropdownInputTypes
   | RadioInputTypes
   | DateInputTypes
   | ReusableTypes
+  | QuestionTreeTypes
   | CheckboxTreeTypes
+  | RecordSelectorTypes
   | TypeaheadInputTypes
   | RichTextEditorTypes
   | MapTypes
-  | FileUploadTypes;
+  | FileUploadTypes
+  | PDFListTypes
+  | RecordMetadataRetrieverTypes
+  | DataLocationTypes
+  // Refresh trigger participates in the shared config unions so all visitors can
+  // reason about it like any other first-class component.
+  | PublishDataLocationRefreshTypes
+  | PublishDataLocationSelectorTypes;
 
 /*
  * The variables below here are conveniences that provide access to the various groups

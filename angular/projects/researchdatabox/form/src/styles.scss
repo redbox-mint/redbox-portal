@@ -2,3 +2,94 @@
 
 @import "@uppy/core/css/style.css";
 @import "@uppy/dashboard/css/style.css";
+
+:root {
+  --rb-form-color-danger: #be3b2f;
+  --rb-form-color-danger-strong: #7f1a13;
+  --rb-form-color-danger-soft: #fff5f3;
+}
+
+/* Global action-row safety rules for migrated legacy inline/button groups in view mode. */
+.rb-form-host .rb-form-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rb-form-gap-2, 0.75rem);
+}
+
+.rb-form-host .rb-form-action-row .rb-form-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--rb-form-gap-2, 0.75rem);
+  width: fit-content;
+  max-width: 100%;
+  justify-content: flex-start;
+}
+
+.rb-form-host .rb-form-action-row .rb-form-group > * {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: fit-content !important;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.rb-form-host .rb-form-action-row > * {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.rb-form-host .rb-form-action-row .rb-form-action-slot {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.rb-form-host .rb-form-action-row .rb-form-action-slot .rb-form-inline-layout,
+.rb-form-host .rb-form-action-row .rb-form-action-slot .rb-form-field-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rb-form-gap-1, 0.5rem);
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 0;
+}
+
+.rb-form-host .rb-form-action-row .rb-form-inline-layout__control {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.rb-form-host .rb-form-action-row a.btn,
+.rb-form-host .rb-form-action-row button.btn {
+  display: inline-flex;
+  width: fit-content;
+}
+
+.rb-form-host .rb-form-action-row .container {
+  width: auto;
+  max-width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.rb-form-host .rb-form-action-row.rb-form-action-row--legacy-inline {
+  justify-content: flex-start !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: 0 !important;
+}
+
+.rb-form-host .rb-form-action-row.rb-form-action-row--legacy-inline .rb-form-group {
+  justify-content: flex-start !important;
+  width: auto !important;
+}
+
+.rb-form-host .rb-form-action-row.rb-form-action-row--legacy-inline .btn.margin-15 {
+  margin-top: 0 !important;
+  margin-right: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 15px !important;
+}

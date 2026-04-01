@@ -260,6 +260,65 @@ input[type="submit"]:hover, button[type=submit]:hover {background-color: $submit
     margin-bottom: 30px;
 }
 
+.rb-view-repeatable-table-wrapper {
+    overflow-x: auto;
+}
+
+.rb-view-repeatable {
+    margin-bottom: 0.75rem;
+}
+
+.rb-view-repeatable-table {
+    margin-bottom: 1rem;
+}
+
+.rb-view-repeatable-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.rb-view-repeatable-card {
+    border: 1px solid #d9d9d9;
+    border-radius: 0.25rem;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    background-color: #fff;
+}
+
+.rb-view-repeatable-card--leaf {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    margin-bottom: 0;
+    background-color: transparent;
+}
+
+.rb-view-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.rb-view-group {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.rb-view-label {
+    font-weight: 600;
+}
+
+.rb-view-value {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.rb-view-file-upload {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
 .col2-set {
     margin-left: -30px;
     overflow: hidden;
@@ -523,6 +582,24 @@ tree-internal > ul.rootless > li > tree-internal > ul {
 .h3-header {
   font-size: 24px;
   font-weight: bold;
+}
+
+.rb-people-section-divider {
+  margin: 2rem 0 1.5rem;
+  border: 0;
+  border-top: 1px solid #8e8e8e;
+}
+
+.rb-form-field-label > .h3-header {
+  display: inline-block;
+  margin-bottom: 0;
+}
+
+#people-tab-content .rb-form-field-label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.9rem;
+  margin-bottom: 0 !important;
 }
 
 .h4-header {
@@ -4474,6 +4551,31 @@ tbody.collapse.in {
     background-color: #337ab7
 }
 
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link {
+    color: $rdmp-tab-link-color;
+    background-color: transparent;
+}
+
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link:hover:not(.active),
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link:focus-visible:not(.active) {
+    color: $rdmp-tab-link-hover-color;
+    background-color: $rdmp-tab-link-hover-background-color;
+    border-color: $rdmp-tab-link-hover-border-color;
+}
+
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 .2rem $rdmp-tab-link-focus-shadow-color;
+}
+
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link.active,
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link.active:hover,
+.rb-form-host.rb-form-edit .rb-form-tab-nav .nav-link.active:focus-visible {
+    color: $rdmp-tab-link-active-color;
+    background-color: $rdmp-tab-link-active-background-color;
+    border-color: $rdmp-tab-link-active-border-color;
+}
+
 .nav-stacked>li {
     float: none
 }
@@ -6127,6 +6229,14 @@ a.list-group-item-danger.active,a.list-group-item-danger.active:focus,a.list-gro
     border-color: $panel-branding-border-color;
 }
 
+.panel-default > .panel-heading .btn,
+.panel-default > .panel-heading .btn:hover,
+.panel-default > .panel-heading .btn:focus,
+.panel-default > .panel-heading .btn:active,
+.panel-default > .panel-heading .btn.active {
+    color: $panel-branding-color;
+}
+
 .panel-default>.panel-heading+.panel-collapse>.panel-body {
     border-top-color: $panel-branding-border-color;
 }
@@ -6743,6 +6853,13 @@ button.close {
     display: block;
     margin-right: auto;
     margin-left: auto
+}
+
+/* Keep the Angular form loader consistent with the server-rendered loading.svg size. */
+.rb-form-loading__spinner {
+    width: 120px !important;
+    height: 120px !important;
+    max-width: none !important;
 }
 
 .pull-right {

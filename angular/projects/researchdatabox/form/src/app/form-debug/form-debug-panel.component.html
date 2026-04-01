@@ -1,0 +1,74 @@
+@if (debugState.panelCollapsed() && !debugState.isDebugPopoutWindow()) {
+  <button
+    type="button"
+    class="rb-form-debug-launch rb-form-debug-launch--side btn btn-sm btn-primary"
+    (click)="toggleCollapsed()">
+    Debug
+  </button>
+} @else {
+  @if (!debugState.isDebugPopoutWindow()) {
+    <button
+      type="button"
+      class="rb-form-debug-backdrop"
+      aria-label="Close form debug panel"
+      (click)="closePanelFromBackdrop()"></button>
+  }
+
+  <div
+    class="rb-form-debug-shell"
+    [class.rb-form-debug-shell--dock]="mode() === 'dock'"
+    [class.rb-form-debug-shell--overlay]="mode() === 'overlay'"
+    [class.rb-form-debug-shell--sheet]="mode() === 'sheet'"
+    [class.rb-form-debug-shell--popout]="debugState.isDebugPopoutWindow()"
+    [style.width.px]="getPanelWidthPx()">
+    @if (mode() !== 'sheet' && !debugState.isDebugPopoutWindow()) {
+      <button
+        type="button"
+        class="rb-form-debug-resize-handle"
+        title="Drag to resize"
+        aria-label="Resize debug panel"
+        (mousedown)="startResize($event)">
+        <span aria-hidden="true">⋮</span>
+      </button>
+    }
+
+    <section class="rb-form-debug-panel alert alert-secondary" role="complementary" aria-label="Form debug panel">
+      <header class="rb-form-debug-header">
+        <div class="rb-form-debug-header-top">
+          <h4 class="mb-0">Form Debug</h4>
+          @if (!debugState.isDebugPopoutWindow()) {
+            <button
+              type="button"
+              class="rb-form-debug-popout btn btn-sm btn-outline-secondary"
+              (click)="openPopoutWindow()">
+              Pop out
+            </button>
+          }
+          <button
+            type="button"
+            class="rb-form-debug-close btn btn-sm btn-outline-secondary"
+            (click)="closePanel()">
+            Close
+          </button>
+        </div>
+        <nav class="rb-form-debug-tabs" aria-label="Debug tabs">
+          <button type="button" class="btn btn-sm" [class.btn-primary]="debugState.activeTab() === 'model'" [class.btn-outline-primary]="debugState.activeTab() !== 'model'" (click)="setTab('model')">Model</button>
+          <button type="button" class="btn btn-sm" [class.btn-primary]="debugState.activeTab() === 'config'" [class.btn-outline-primary]="debugState.activeTab() !== 'config'" (click)="setTab('config')">Config</button>
+          <button type="button" class="btn btn-sm" [class.btn-primary]="debugState.activeTab() === 'events'" [class.btn-outline-primary]="debugState.activeTab() !== 'events'" (click)="setTab('events')">Events</button>
+        </nav>
+      </header>
+
+      <div class="rb-form-debug-content">
+        @if (debugState.activeTab() === 'model') {
+          <redbox-form-debug-model-tab></redbox-form-debug-model-tab>
+        }
+        @if (debugState.activeTab() === 'config') {
+          <redbox-form-debug-config-tab></redbox-form-debug-config-tab>
+        }
+        @if (debugState.activeTab() === 'events') {
+          <redbox-form-debug-events-tab></redbox-form-debug-events-tab>
+        }
+      </div>
+    </section>
+  </div>
+}

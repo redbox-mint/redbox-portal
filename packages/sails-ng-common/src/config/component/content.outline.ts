@@ -27,6 +27,14 @@ export interface ContentFieldComponentConfigFrame extends FieldComponentConfigFr
      * Set 'content' to static content, with no template, to just show the static content.
      */
     content?: unknown;
+    /**
+     * Optional auxiliary template context used by view-mode transforms.
+     */
+    outputFormat?: string;
+    /**
+     * Whether the `content` value should be treated as a translation key.
+     */
+    contentIsTranslationCode?: boolean;
 }
 
 export interface ContentFieldComponentConfigOutline extends ContentFieldComponentConfigFrame, FieldComponentConfigOutline {

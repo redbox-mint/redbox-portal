@@ -15,10 +15,10 @@ Deprecate legacy `VocabService`/`VocabController`, add form-framework AJAX endpo
 
 No new models are needed. The existing models are sufficient:
 
-| Model | File | Purpose |
-|---|---|---|
-| `Vocabulary` | [packages/redbox-core-types/src/waterline-models/Vocabulary.ts](packages/redbox-core-types/src/waterline-models/Vocabulary.ts) | Vocabulary metadata (name, type, source, slug, branding) |
-| `VocabularyEntry` | [packages/redbox-core-types/src/waterline-models/VocabularyEntry.ts](packages/redbox-core-types/src/waterline-models/VocabularyEntry.ts) | Individual vocab entries (label, value, parent, order) |
+| Model             | File                                                                                                                         | Purpose                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `Vocabulary`      | [packages/redbox-core/src/waterline-models/Vocabulary.ts](packages/redbox-core/src/waterline-models/Vocabulary.ts)           | Vocabulary metadata (name, type, source, slug, branding) |
+| `VocabularyEntry` | [packages/redbox-core/src/waterline-models/VocabularyEntry.ts](packages/redbox-core/src/waterline-models/VocabularyEntry.ts) | Individual vocab entries (label, value, parent, order)   |
 
 The `Vocabulary.slug` field enables human-readable lookups (e.g. `"access-rights"` instead of a UUID). This is used by the new service methods.
 
@@ -28,15 +28,17 @@ The `Vocabulary.slug` field enables human-readable lookups (e.g. `"access-rights
 
 ### New Methods on VocabularyService
 
-#### [MODIFY] [packages/redbox-core-types/src/services/VocabularyService.ts](packages/redbox-core-types/src/services/VocabularyService.ts)
+#### [MODIFY] [packages/redbox-core/src/services/VocabularyService.ts](packages/redbox-core/src/services/VocabularyService.ts)
 
 Add two new public methods and register them in `_exportedMethods`:
 
 **`getByIdOrSlug(branding: string, idOrSlug: string): Promise<VocabularyAttributes | null>`**
+
 - Normalises input, tries `Vocabulary.findOne({ id, branding })`, falls back to `Vocabulary.findOne({ slug, branding })`
 - Returns `null` if not found
 
 **`getEntries(branding: string, vocabIdOrSlug: string, options?): Promise<{ entries, meta } | null>`**
+
 - Resolves vocab via `getByIdOrSlug()`
 - Builds a `where` clause: `{ vocabulary: vocab.id }`, adds `{ labelLower: { contains: search.toLowerCase() } }` if `search` is provided
 - Returns `{ entries, meta: { total, limit, offset, vocabularyId } }`, or `null` if vocab not found
@@ -44,21 +46,21 @@ Add two new public methods and register them in `_exportedMethods`:
 
 ### Deprecation on VocabService
 
-#### [MODIFY] [packages/redbox-core-types/src/services/VocabService.ts](packages/redbox-core-types/src/services/VocabService.ts)
+#### [MODIFY] [packages/redbox-core/src/services/VocabService.ts](packages/redbox-core/src/services/VocabService.ts)
 
 Mark **all** public methods as `@deprecated`:
 
-| Method | Deprecation Note |
-|---|---|
-| `bootstrap()` | Legacy bootstrap flow for deprecated vocab API |
-| `getVocab()` | Use `VocabularyService.getEntries()` or `FormVocabularyController` |
-| `loadCollection()` | Managed via Vocabulary admin |
-| `findCollection()` | Managed via Vocabulary admin |
-| `findInMint()` | Legacy Mint integration |
-| `findInExternalService()` | Legacy external service proxy |
-| `findRecords()` | Legacy record query |
-| `rvaGetResourceDetails()` | Legacy ANDS/RVA lookup |
-| `findInMintTriggerWrapper()` | Legacy Mint trigger |
+| Method                       | Deprecation Note                                                   |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `bootstrap()`                | Legacy bootstrap flow for deprecated vocab API                     |
+| `getVocab()`                 | Use `VocabularyService.getEntries()` or `FormVocabularyController` |
+| `loadCollection()`           | Managed via Vocabulary admin                                       |
+| `findCollection()`           | Managed via Vocabulary admin                                       |
+| `findInMint()`               | Legacy Mint integration                                            |
+| `findInExternalService()`    | Legacy external service proxy                                      |
+| `findRecords()`              | Legacy record query                                                |
+| `rvaGetResourceDetails()`    | Legacy ANDS/RVA lookup                                             |
+| `findInMintTriggerWrapper()` | Legacy Mint trigger                                                |
 
 Keep `getManagedVocabulary()` intact (private helper used by `getVocab()` fallback chain).
 
@@ -66,7 +68,7 @@ Keep `getManagedVocabulary()` intact (private helper used by `getVocab()` fallba
 
 ## 3. Webservice Controllers (REST API)
 
-No changes to the existing [packages/redbox-core-types/src/controllers/webservice/VocabularyController.ts](packages/redbox-core-types/src/controllers/webservice/VocabularyController.ts). The `/api/vocabulary/*` REST endpoints remain as-is for admin use.
+No changes to the existing [packages/redbox-core/src/controllers/webservice/VocabularyController.ts](packages/redbox-core/src/controllers/webservice/VocabularyController.ts). The `/api/vocabulary/*` REST endpoints remain as-is for admin use.
 
 ---
 
@@ -74,13 +76,14 @@ No changes to the existing [packages/redbox-core-types/src/controllers/webservic
 
 ### New: FormVocabularyController
 
-#### [NEW] [packages/redbox-core-types/src/controllers/FormVocabularyController.ts](packages/redbox-core-types/src/controllers/FormVocabularyController.ts)
+#### [NEW] [packages/redbox-core/src/controllers/FormVocabularyController.ts](packages/redbox-core/src/controllers/FormVocabularyController.ts)
 
 Extends `Controllers.Core.Controller`. Provides vocabulary data to Angular form components at runtime.
 
-Scaffold using `redbox-hook-kit` CLI generator:
+Scaffold using `redbox-dev-tools` CLI generator:
+
 ```bash
-redbox-hook-kit generate_controller FormVocabulary --actions get,entries,getRecords --routes "get:get:/:branding/:portal/vocab/:vocabIdOrSlug:Researcher:Librarians:Admin,entries:get:/:branding/:portal/vocab/:vocabIdOrSlug/entries:Researcher:Librarians:Admin,getRecords:get:/:branding/:portal/query/vocab/:queryId:Researcher:Librarians:Admin"
+redbox-dev-tools generate_controller FormVocabulary --actions get,entries,getRecords --routes "get:get:/:branding/:portal/vocab/:vocabIdOrSlug:Researcher:Librarians:Admin,entries:get:/:branding/:portal/vocab/:vocabIdOrSlug/entries:Researcher:Librarians:Admin,getRecords:get:/:branding/:portal/query/vocab/:queryId:Researcher:Librarians:Admin"
 ```
 
 > [!NOTE]
@@ -89,13 +92,14 @@ redbox-hook-kit generate_controller FormVocabulary --actions get,entries,getReco
 #### `getRecords` Migration Contract
 
 `FormVocabularyController.getRecords()` is a parity migration of `VocabController.getRecords()`:
+
 - Keep request params and response shape unchanged
 - Delegate to existing legacy record-query path (`VocabService.findRecords(...)`) for this feature phase
 - Do not introduce new filtering, pagination, or auth behavior beyond route/controller move
 
 #### Route Configuration
 
-#### [MODIFY] [packages/redbox-core-types/src/config/routes.config.ts](packages/redbox-core-types/src/config/routes.config.ts)
+#### [MODIFY] [packages/redbox-core/src/config/routes.config.ts](packages/redbox-core/src/config/routes.config.ts)
 
 **Delete** conflicting legacy `VocabController` routes (the deprecated functions remain in the controller but conflicting routes are removed to avoid conflicts). This is an **intentional breaking change** to force migration and expose hidden dependencies quickly; regressions are expected and will be triaged after rollout.
 
@@ -126,7 +130,7 @@ redbox-hook-kit generate_controller FormVocabulary --actions get,entries,getReco
 
 #### Auth Configuration
 
-#### [MODIFY] [packages/redbox-core-types/src/config/auth.config.ts](packages/redbox-core-types/src/config/auth.config.ts)
+#### [MODIFY] [packages/redbox-core/src/config/auth.config.ts](packages/redbox-core/src/config/auth.config.ts)
 
 The existing rule `{ path: '/:branding/:portal/vocab(/*)', role: 'Researcher', can_read: true }` already grants read access to Researchers. Add rules for other roles so all authenticated users can access:
 
@@ -141,20 +145,20 @@ The existing rule `{ path: '/:branding/:portal/vocab(/*)', role: 'Researcher', c
 
 ### Deprecation on VocabController
 
-#### [MODIFY] [packages/redbox-core-types/src/controllers/VocabController.ts](packages/redbox-core-types/src/controllers/VocabController.ts)
+#### [MODIFY] [packages/redbox-core/src/controllers/VocabController.ts](packages/redbox-core/src/controllers/VocabController.ts)
 
 Mark **all** endpoints as `@deprecated`:
 
-| Endpoint | Deprecation Note |
-|---|---|
-| `get()` | Replaced by `FormVocabularyController.get()` |
-| `getCollection()` | Managed via Vocabulary admin |
-| `loadCollection()` | Managed via Vocabulary admin |
-| `getMint()` | Legacy Mint integration |
-| `searchExternalService()` | Legacy external service proxy |
-| `searchPeople()` | Legacy people search |
-| `rvaGetResourceDetails()` | Legacy ANDS/RVA lookup |
-| `getRecords()` | Replaced by `FormVocabularyController.getRecords()` |
+| Endpoint                  | Deprecation Note                                    |
+| ------------------------- | --------------------------------------------------- |
+| `get()`                   | Replaced by `FormVocabularyController.get()`        |
+| `getCollection()`         | Managed via Vocabulary admin                        |
+| `loadCollection()`        | Managed via Vocabulary admin                        |
+| `getMint()`               | Legacy Mint integration                             |
+| `searchExternalService()` | Legacy external service proxy                       |
+| `searchPeople()`          | Legacy people search                                |
+| `rvaGetResourceDetails()` | Legacy ANDS/RVA lookup                              |
+| `getRecords()`            | Replaced by `FormVocabularyController.getRecords()` |
 
 ---
 
@@ -167,6 +171,7 @@ Mark **all** endpoints as `@deprecated`:
 A form config visitor that optionally inlines vocabulary entries into form component configs at build time.
 
 **Behaviour:**
+
 1. Walks all form component definitions (DropdownInput, RadioInput, CheckboxInput)
 2. Checks for `vocabRef` property on the field component config (a string: vocab id or slug)
 3. If component config also has `inlineVocab: true`, fetches all entries via `VocabularyService.getEntries()` and writes them as `options` on the component config
@@ -185,7 +190,7 @@ inlineVocab?: boolean;  // if true, entries are inlined at form build time
 
 **Integration with FormsService:**
 
-#### [MODIFY] [packages/redbox-core-types/src/services/FormsService.ts](packages/redbox-core-types/src/services/FormsService.ts)
+#### [MODIFY] [packages/redbox-core/src/services/FormsService.ts](packages/redbox-core/src/services/FormsService.ts)
 
 Update `buildClientFormConfig()` to optionally run the `VocabInlineFormConfigVisitor` between the construct and client visitors. Since this visitor needs async DB access, `buildClientFormConfig()` must become `async`:
 
@@ -204,9 +209,10 @@ Update `buildClientFormConfig()` to optionally run the `VocabInlineFormConfigVis
 ```
 
 **Impacted call sites (must be explicitly updated):**
-- `packages/redbox-core-types/src/controllers/RecordController.ts` — update `renderInternal()` to `await FormsService.buildClientFormConfig(...)`
-- `packages/redbox-core-types/src/services/FormRecordConsistencyService.ts` — update `mergeRecord()` to `await FormsService.buildClientFormConfig(...)`
-- `packages/redbox-core-types/src/services/FormRecordConsistencyService.ts` — update `extractRawTemplates()` signature to `async` and `await FormsService.buildClientFormConfig(...)`; then update all its callers
+
+- `packages/redbox-core/src/controllers/RecordController.ts` — update `renderInternal()` to `await FormsService.buildClientFormConfig(...)`
+- `packages/redbox-core/src/services/FormRecordConsistencyService.ts` — update `mergeRecord()` to `await FormsService.buildClientFormConfig(...)`
+- `packages/redbox-core/src/services/FormRecordConsistencyService.ts` — update `extractRawTemplates()` signature to `async` and `await FormsService.buildClientFormConfig(...)`; then update all its callers
 
 ---
 
@@ -229,6 +235,7 @@ Define stable response contracts to lock down controller parity and improve test
 ### `GET /:branding/:portal/vocab/:vocabIdOrSlug`
 
 - `200 OK` (found):
+
 ```json
 {
   "data": {
@@ -238,13 +245,17 @@ Define stable response contracts to lock down controller parity and improve test
   }
 }
 ```
+
 - `404 Not Found`:
+
 ```json
 {
   "errors": [{ "code": "vocabulary-not-found" }]
 }
 ```
+
 - `400 Bad Request` (invalid/missing idOrSlug):
+
 ```json
 {
   "errors": [{ "code": "invalid-vocabulary-id-or-slug" }]
@@ -254,19 +265,24 @@ Define stable response contracts to lock down controller parity and improve test
 ### `GET /:branding/:portal/vocab/:vocabIdOrSlug/entries`
 
 - `200 OK`:
+
 ```json
 {
   "data": [{ "id": "entry-id", "label": "Open", "value": "open" }],
   "meta": { "total": 1, "limit": 200, "offset": 0, "vocabularyId": "vocab-id" }
 }
 ```
+
 - `404 Not Found`:
+
 ```json
 {
   "errors": [{ "code": "vocabulary-not-found" }]
 }
 ```
+
 - `400 Bad Request` (invalid paging/search params):
+
 ```json
 {
   "errors": [{ "code": "invalid-query-params" }]
@@ -277,12 +293,15 @@ Define stable response contracts to lock down controller parity and improve test
 
 - `200 OK`: Same payload shape as current `VocabController.getRecords()` behavior (parity contract)
 - `400 Bad Request`: Invalid query parameters
+
 ```json
 {
   "errors": [{ "code": "invalid-query-params" }]
 }
 ```
+
 - `500 Internal Server Error`: Upstream/query execution failure
+
 ```json
 {
   "errors": [{ "code": "query-vocab-failed" }]
@@ -295,14 +314,14 @@ Define stable response contracts to lock down controller parity and improve test
 
 ## Cross-checks
 
-| Layer | Artifact | Status |
-|---|---|---|
-| Model → Service | `VocabularyService.getEntries()` queries `Vocabulary` + `VocabularyEntry` | ✅ Consistent |
-| Service → Controller | `FormVocabularyController` calls `VocabularyService.getByIdOrSlug(branding, ...)` + `getEntries(branding, ...)` and proxies `getRecords()` | ✅ Consistent |
-| Controller → Routes | `routes.config.ts` maps `vocab/:vocabIdOrSlug` → `FormVocabularyController` | ✅ Consistent |
-| Routes → Auth | `auth.config.ts` grants `can_read` on `vocab(/*)` and `query/vocab(/*)` to all roles | ✅ Consistent |
-| Visitor → Service | `VocabInlineFormConfigVisitor` calls `VocabularyService.getEntries()` | ✅ Consistent |
-| Visitor → FormsService | Visitor runs inside `buildClientFormConfig()` (now async) | ⚠️ Breaking change — callers must be updated |
+| Layer                  | Artifact                                                                                                                                   | Status                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| Model → Service        | `VocabularyService.getEntries()` queries `Vocabulary` + `VocabularyEntry`                                                                  | ✅ Consistent                                |
+| Service → Controller   | `FormVocabularyController` calls `VocabularyService.getByIdOrSlug(branding, ...)` + `getEntries(branding, ...)` and proxies `getRecords()` | ✅ Consistent                                |
+| Controller → Routes    | `routes.config.ts` maps `vocab/:vocabIdOrSlug` → `FormVocabularyController`                                                                | ✅ Consistent                                |
+| Routes → Auth          | `auth.config.ts` grants `can_read` on `vocab(/*)` and `query/vocab(/*)` to all roles                                                       | ✅ Consistent                                |
+| Visitor → Service      | `VocabInlineFormConfigVisitor` calls `VocabularyService.getEntries()`                                                                      | ✅ Consistent                                |
+| Visitor → FormsService | Visitor runs inside `buildClientFormConfig()` (now async)                                                                                  | ⚠️ Breaking change — callers must be updated |
 
 ## Assumptions
 
@@ -314,7 +333,7 @@ Define stable response contracts to lock down controller parity and improve test
 1. **Route conflict**: Delete conflicting legacy `VocabController` routes, including `get /:branding/:portal/query/vocab/:queryId`, and remap that endpoint to `FormVocabularyController.getRecords`.
 2. **Async migration**: Explicitly update these call sites: `RecordController.renderInternal()`, `FormRecordConsistencyService.mergeRecord()`, and `FormRecordConsistencyService.extractRawTemplates()` (including downstream callers after it becomes async).
 3. **Visitor sails dependency**: Access `VocabularyService` as a sails global (standard pattern).
-4. **Controller scaffolding**: `redbox-hook-kit` generator handles controller index registration automatically.
+4. **Controller scaffolding**: `redbox-dev-tools` generator handles controller index registration automatically.
 
 ## Risks
 
@@ -327,23 +346,23 @@ Define stable response contracts to lock down controller parity and improve test
 
 Ordered steps with file-level granularity:
 
-1. **Add `VocabularyService` methods** — `getByIdOrSlug(branding, idOrSlug)` and `getEntries(branding, vocabIdOrSlug, options)` in `VocabularyService.ts`, add to `_exportedMethods` *(Skill: Redbox Services)*
-2. **Write unit tests** for new service methods in `packages/redbox-core-types/test/services/VocabularyService.test.ts` *(Skill: Redbox Testing)*
-3. **Scaffold `FormVocabularyController`** using `redbox-hook-kit generate_controller` with `get`, `entries`, `getRecords` actions *(Skill: Redbox Controllers)*
-4. **Implement controller actions** — `get()` and `entries()` calling `VocabularyService` with `branding` from route params, and `getRecords()` migrated from `VocabController` *(Skill: Redbox Controllers)*
-5. **Delete conflicting legacy `VocabController` routes** (including `query/vocab/:queryId`) and add new `FormVocabularyController` routes in `routes.config.ts` *(Skill: Redbox Controllers)*
-6. **Update auth config** — add `can_read` rules for Librarians and Admin on `vocab(/*)` and add role rules on `query/vocab(/*)` in `auth.config.ts` *(Skill: Redbox Controllers)*
-7. **Write controller unit tests** in `packages/redbox-core-types/test/controllers/FormVocabularyController.test.ts` (including `getRecords` parity) *(Skill: Redbox Testing)*
-8. **Code review** using redbox-feature-implementation-review *(Skill: Redbox Feature Implementation Review)*
-9. **Create Bruno integration tests** in `test/bruno/` for the new endpoints and status-code/error contract checks *(Skill: Redbox Testing)*
-10. **Run integration tests** — `npm run test:mocha:mount` + `npm run test:bruno:general:mount` *(Skill: Redbox Testing)*
-11. **Add vocab config properties** — add `vocabRef` and `inlineVocab` to DropdownInput, RadioInput, CheckboxInput field component configs in `sails-ng-common` *(Skill: Redbox Form Config)*
-12. **Create `VocabInlineFormConfigVisitor`** in `sails-ng-common/src/config/visitor/vocab-inline.visitor.ts` *(Skill: Redbox Form Config)*
-13. **Update `FormsService.buildClientFormConfig()`** — make async, integrate visitor *(Skill: Redbox Services)*
-14. **Update explicit async call sites** — `RecordController.renderInternal()`, `FormRecordConsistencyService.mergeRecord()`, `FormRecordConsistencyService.extractRawTemplates()` and downstream callers *(Skill: Redbox Services)*
-15. **Write visitor unit tests** in `sails-ng-common` test directory *(Skill: Redbox Testing)*
-16. **Deprecate legacy methods** — add `@deprecated` JSDoc to all `VocabService` (including `bootstrap`) and `VocabController` methods *(Skill: Redbox Services, Redbox Controllers)*
-17. **Final integration test run** *(Skill: Redbox Testing)*
+1. **Add `VocabularyService` methods** — `getByIdOrSlug(branding, idOrSlug)` and `getEntries(branding, vocabIdOrSlug, options)` in `VocabularyService.ts`, add to `_exportedMethods` _(Skill: Redbox Services)_
+2. **Write unit tests** for new service methods in `packages/redbox-core/test/services/VocabularyService.test.ts` _(Skill: Redbox Testing)_
+3. **Scaffold `FormVocabularyController`** using `redbox-dev-tools generate_controller` with `get`, `entries`, `getRecords` actions _(Skill: Redbox Controllers)_
+4. **Implement controller actions** — `get()` and `entries()` calling `VocabularyService` with `branding` from route params, and `getRecords()` migrated from `VocabController` _(Skill: Redbox Controllers)_
+5. **Delete conflicting legacy `VocabController` routes** (including `query/vocab/:queryId`) and add new `FormVocabularyController` routes in `routes.config.ts` _(Skill: Redbox Controllers)_
+6. **Update auth config** — add `can_read` rules for Librarians and Admin on `vocab(/*)` and add role rules on `query/vocab(/*)` in `auth.config.ts` _(Skill: Redbox Controllers)_
+7. **Write controller unit tests** in `packages/redbox-core/test/controllers/FormVocabularyController.test.ts` (including `getRecords` parity) _(Skill: Redbox Testing)_
+8. **Code review** using redbox-feature-implementation-review _(Skill: Redbox Feature Implementation Review)_
+9. **Create Bruno integration tests** in `test/bruno/` for the new endpoints and status-code/error contract checks _(Skill: Redbox Testing)_
+10. **Run integration tests** — `npm run test:mocha:mount` + `npm run test:bruno:general:mount` _(Skill: Redbox Testing)_
+11. **Add vocab config properties** — add `vocabRef` and `inlineVocab` to DropdownInput, RadioInput, CheckboxInput field component configs in `sails-ng-common` _(Skill: Redbox Form Config)_
+12. **Create `VocabInlineFormConfigVisitor`** in `sails-ng-common/src/config/visitor/vocab-inline.visitor.ts` _(Skill: Redbox Form Config)_
+13. **Update `FormsService.buildClientFormConfig()`** — make async, integrate visitor _(Skill: Redbox Services)_
+14. **Update explicit async call sites** — `RecordController.renderInternal()`, `FormRecordConsistencyService.mergeRecord()`, `FormRecordConsistencyService.extractRawTemplates()` and downstream callers _(Skill: Redbox Services)_
+15. **Write visitor unit tests** in `sails-ng-common` test directory _(Skill: Redbox Testing)_
+16. **Deprecate legacy methods** — add `@deprecated` JSDoc to all `VocabService` (including `bootstrap`) and `VocabController` methods _(Skill: Redbox Services, Redbox Controllers)_
+17. **Final integration test run** _(Skill: Redbox Testing)_
 
 ---
 
@@ -351,58 +370,58 @@ Ordered steps with file-level granularity:
 
 ## Data Model + Services
 
-- [ ] Add `getByIdOrSlug(branding, idOrSlug)` to `VocabularyService.ts` *(Redbox Services)*
-- [ ] Add `getEntries(branding, vocabIdOrSlug, options)` to `VocabularyService.ts` *(Redbox Services)*
-- [ ] Register both methods in `_exportedMethods` *(Redbox Services)*
-- [ ] Write unit tests for `getByIdOrSlug()` — found by id+branding, found by slug+branding, not found *(Redbox Testing)*
-- [ ] Write unit tests for `getEntries()` — by id, by slug, branding mismatch, search filter, pagination, not found *(Redbox Testing)*
-- [ ] **Integration gate**: run `npm run test:mocha:mount` — do not continue until passing *(Redbox Testing)*
+- [ ] Add `getByIdOrSlug(branding, idOrSlug)` to `VocabularyService.ts` _(Redbox Services)_
+- [ ] Add `getEntries(branding, vocabIdOrSlug, options)` to `VocabularyService.ts` _(Redbox Services)_
+- [ ] Register both methods in `_exportedMethods` _(Redbox Services)_
+- [ ] Write unit tests for `getByIdOrSlug()` — found by id+branding, found by slug+branding, not found _(Redbox Testing)_
+- [ ] Write unit tests for `getEntries()` — by id, by slug, branding mismatch, search filter, pagination, not found _(Redbox Testing)_
+- [ ] **Integration gate**: run `npm run test:mocha:mount` — do not continue until passing _(Redbox Testing)_
 
 ---
 
 ## Ajax Controller
 
-- [ ] Scaffold `FormVocabularyController` using `redbox-hook-kit generate_controller FormVocabulary --actions get,entries,getRecords --routes ...` *(Redbox Controllers)*
-- [ ] Implement `get`, `entries`, and `getRecords` actions in the generated controller *(Redbox Controllers)*
-- [ ] Delete conflicting legacy `VocabController` routes from `routes.config.ts` (including `get /:branding/:portal/query/vocab/:queryId`) *(Redbox Controllers)*
-- [ ] Add new `FormVocabularyController` routes to `routes.config.ts` *(Redbox Controllers)*
-- [ ] Update `auth.config.ts` — add `can_read` rules for all roles on `vocab(/*)` and `query/vocab(/*)` *(Redbox Controllers)*
-- [ ] Write unit tests for `FormVocabularyController` — `get` (success, not found), `entries` (success, search, pagination, not found), `getRecords` parity with prior behavior *(Redbox Testing)*
-- [ ] Add controller tests for `400/404/500` response contracts on all migrated endpoints *(Redbox Testing)*
+- [ ] Scaffold `FormVocabularyController` using `redbox-dev-tools generate_controller FormVocabulary --actions get,entries,getRecords --routes ...` _(Redbox Controllers)_
+- [ ] Implement `get`, `entries`, and `getRecords` actions in the generated controller _(Redbox Controllers)_
+- [ ] Delete conflicting legacy `VocabController` routes from `routes.config.ts` (including `get /:branding/:portal/query/vocab/:queryId`) _(Redbox Controllers)_
+- [ ] Add new `FormVocabularyController` routes to `routes.config.ts` _(Redbox Controllers)_
+- [ ] Update `auth.config.ts` — add `can_read` rules for all roles on `vocab(/*)` and `query/vocab(/*)` _(Redbox Controllers)_
+- [ ] Write unit tests for `FormVocabularyController` — `get` (success, not found), `entries` (success, search, pagination, not found), `getRecords` parity with prior behavior _(Redbox Testing)_
+- [ ] Add controller tests for `400/404/500` response contracts on all migrated endpoints _(Redbox Testing)_
 - [ ] **Code review** using redbox-feature-implementation-review
   - If issues found: write to `issues.json`, fix, re-review
-- [ ] Create Bruno integration tests for `GET /:branding/:portal/vocab/:id`, `GET /:branding/:portal/vocab/:slug/entries`, and `GET /:branding/:portal/query/vocab/:queryId` *(Redbox Testing)*
-- [ ] Add Bruno assertions for API contract status codes and error codes (`vocabulary-not-found`, `invalid-query-params`, `query-vocab-failed`) *(Redbox Testing)*
-- [ ] **Integration gate**: run Bruno tests — do not continue until passing *(Redbox Testing)*
+- [ ] Create Bruno integration tests for `GET /:branding/:portal/vocab/:id`, `GET /:branding/:portal/vocab/:slug/entries`, and `GET /:branding/:portal/query/vocab/:queryId` _(Redbox Testing)_
+- [ ] Add Bruno assertions for API contract status codes and error codes (`vocabulary-not-found`, `invalid-query-params`, `query-vocab-failed`) _(Redbox Testing)_
+- [ ] **Integration gate**: run Bruno tests — do not continue until passing _(Redbox Testing)_
 
 ---
 
 ## Form Config Visitor
 
-- [ ] Add `vocabRef?: string` and `inlineVocab?: boolean` to `DropdownInputFieldComponentConfig` *(Redbox Form Config)*
-- [ ] Add same properties to `RadioInputFieldComponentConfig` and `CheckboxInputFieldComponentConfig` *(Redbox Form Config)*
-- [ ] Create `VocabInlineFormConfigVisitor` in `sails-ng-common/src/config/visitor/vocab-inline.visitor.ts` *(Redbox Form Config)*
-- [ ] Update `FormsService.buildClientFormConfig()` to async, integrate vocab visitor *(Redbox Services)*
-- [ ] Update explicit callers of `buildClientFormConfig()` for async: `RecordController.renderInternal()`, `FormRecordConsistencyService.mergeRecord()`, `FormRecordConsistencyService.extractRawTemplates()` *(Redbox Services)*
-- [ ] Audit and update downstream callers impacted by `extractRawTemplates()` becoming async *(Redbox Services)*
-- [ ] Write unit tests for visitor — inlines when `inlineVocab: true`, skips when false/absent, handles missing vocab *(Redbox Testing)*
-- [ ] Write unit test with sample form config JSON — verify visitor output *(Redbox Testing)*
-- [ ] **Integration gate**: run `npm run test:mocha:mount` *(Redbox Testing)*
+- [ ] Add `vocabRef?: string` and `inlineVocab?: boolean` to `DropdownInputFieldComponentConfig` _(Redbox Form Config)_
+- [ ] Add same properties to `RadioInputFieldComponentConfig` and `CheckboxInputFieldComponentConfig` _(Redbox Form Config)_
+- [ ] Create `VocabInlineFormConfigVisitor` in `sails-ng-common/src/config/visitor/vocab-inline.visitor.ts` _(Redbox Form Config)_
+- [ ] Update `FormsService.buildClientFormConfig()` to async, integrate vocab visitor _(Redbox Services)_
+- [ ] Update explicit callers of `buildClientFormConfig()` for async: `RecordController.renderInternal()`, `FormRecordConsistencyService.mergeRecord()`, `FormRecordConsistencyService.extractRawTemplates()` _(Redbox Services)_
+- [ ] Audit and update downstream callers impacted by `extractRawTemplates()` becoming async _(Redbox Services)_
+- [ ] Write unit tests for visitor — inlines when `inlineVocab: true`, skips when false/absent, handles missing vocab _(Redbox Testing)_
+- [ ] Write unit test with sample form config JSON — verify visitor output _(Redbox Testing)_
+- [ ] **Integration gate**: run `npm run test:mocha:mount` _(Redbox Testing)_
 
 ---
 
 ## Deprecation
 
-- [ ] Add `@deprecated` JSDoc to all `VocabService` public methods (including `bootstrap`) *(Redbox Services)*
-- [ ] Add `@deprecated` JSDoc to all `VocabController` endpoints *(Redbox Controllers)*
+- [ ] Add `@deprecated` JSDoc to all `VocabService` public methods (including `bootstrap`) _(Redbox Services)_
+- [ ] Add `@deprecated` JSDoc to all `VocabController` endpoints _(Redbox Controllers)_
 
 ---
 
 ## Final Verification
 
 - [ ] **Code review** using redbox-feature-implementation-review
-- [ ] Run full Mocha test suite: `npm run test:mocha:mount` *(Redbox Testing)*
-- [ ] Run full Bruno test suite: `npm run test:bruno:general:mount` *(Redbox Testing)*
+- [ ] Run full Mocha test suite: `npm run test:mocha:mount` _(Redbox Testing)_
+- [ ] Run full Bruno test suite: `npm run test:bruno:general:mount` _(Redbox Testing)_
 - [ ] Post-rollout observability check (first 24-48h) — monitor 404/5xx rates for `/vocab/*` and `/query/vocab/*`
 - [ ] Post-rollout observability check (first 24-48h) — track top failing clients/hooks from logs
 - [ ] Post-rollout observability check (first 24-48h) — open triage issues for regressions caused by removed legacy routes

@@ -25,17 +25,19 @@ import {
 /* Typeahead Input Component */
 
 export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig implements TypeaheadInputFieldComponentConfigOutline {
-    sourceType: "static" | "vocabulary" | "namedQuery" = "static";
+    sourceType: "static" | "vocabulary" | "namedQuery" | "external" = "static";
     staticOptions: TypeaheadOption[] = [];
     vocabRef?: string;
     queryId?: string;
+    provider?: string;
+    resultArrayProperty?: string;
     labelField?: string;
     labelTemplate?: string;
     valueField?: string;
     minChars = 2;
     debounceMs = 250;
     maxResults = 25;
-    allowFreeText = false;
+    requireSelection = false;
     valueMode: "value" | "optionObject" = "value";
     cacheResults = true;
     multiSelect = false;

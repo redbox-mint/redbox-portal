@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{host}}/companion/dropbox/list/root
+  url: {{host}}/companion/drive/list/root
   body: none
   auth: none
 }
 
 tests {
-  test("Companion Dropbox API route is reachable", function () {
+  test("Companion Drive API route is reachable", function () {
     expect(res.getStatus()).to.not.equal(404);
   });
 

@@ -28,8 +28,10 @@ tests {
   
   test("User view permission added", function () {
       var jsonData = res.getBody();
+      var permissions = jsonData
+      var viewUsers = permissions && permissions.view ? permissions.view : [];
       //TODO: This is because of the save trigger
       expect(true).to.eql(true);
-      expect(jsonData.view).to.include("user");
+      expect(viewUsers).to.include("user");
   });
 }

@@ -24,7 +24,7 @@ describe('GroupFieldComponent', () => {
     // arrange
     const formConfig: FormConfigFrame = {
       name: 'testing',
-      debugValue: true,
+      debugValue: false,
       domElementType: 'form',
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
@@ -158,8 +158,10 @@ describe('GroupFieldComponent', () => {
     expect(group2?.formFieldCompMapEntries[0]?.lineagePaths).toEqual({
       angularComponents: ["group_1_component", "group_2_component", "text_5"],
       angularComponentsJsonPointer: "/group_1_component/group_2_component/text_5",
+      layout: ["group_1_component-layout", "group_2_component-layout", "text_5-layout"],
+      layoutJsonPointer: "/group_1_component-layout/group_2_component-layout/text_5-layout",
       dataModel: ["group_1_component", "group_2_component", "text_5"],
-      formConfig: ["componentDefinitions", 0, "component", "config", "componentDefinitions", 2],
+      formConfig: ["componentDefinitions", 0, "component", "config", "componentDefinitions", 2, "component", "config", "componentDefinitions", 0],
     });
   });
 
@@ -249,5 +251,32 @@ describe('GroupFieldComponent', () => {
 
     const groupModel = fixture.componentInstance.componentDefArr[0].model;
     expect(groupModel?.formControl?.get('disabled_child_text')).toBeNull();
+  });
+
+  it('should render rb-form-group container for child layout spacing', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_group_css',
+      componentDefinitions: [
+        {
+          name: 'parent_group',
+          model: {
+            class: 'GroupModel',
+            config: {
+              value: {},
+            }
+          },
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: []
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const groupContainer = fixture.nativeElement.querySelector('.rb-form-group');
+    expect(groupContainer).toBeTruthy();
   });
 });

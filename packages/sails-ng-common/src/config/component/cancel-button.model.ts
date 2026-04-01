@@ -20,6 +20,7 @@ export class CancelButtonFieldComponentConfig
   confirmationTitle?: string;
   cancelButtonMessage?: string;
   confirmButtonMessage?: string;
+  buttonCssClasses?: string;
 
   constructor() {
     super();

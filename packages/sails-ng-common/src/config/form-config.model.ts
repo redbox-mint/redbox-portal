@@ -1,37 +1,42 @@
-import { FormValidationGroups, FormValidatorConfig } from "../validation/form.model";
-import { AvailableFormComponentDefinitionOutlines } from "./dictionary.outline";
-import { FormConfigOutline } from "./form-config.outline";
-import { FormConfigVisitorOutline } from "./visitor/base.outline";
-import { KeyValueStringNested, KeyValueStringProperty } from "./shared.outline";
-import { FormExpressionsConfigOutline } from "./form-component.outline";
-
+import { FormValidationGroups, FormValidatorConfig } from '../validation/form.model';
+import { AvailableFormComponentDefinitionOutlines } from './dictionary.outline';
+import { FormConfigOutline } from './form-config.outline';
+import { FormConfigVisitorOutline } from './visitor/base.outline';
+import { KeyValueStringNested, KeyValueStringProperty } from './shared.outline';
+import { FormExpressionsConfigOutline } from './form-component.outline';
+import { FormBehaviourConfigFrame } from './form-behaviour.outline';
 
 /**
  * The form definition.
  * */
 export class FormConfig implements FormConfigOutline {
-    public name: string = '';
-    public type?: string;
-    public domElementType?: string;
-    public domId?: string;
-    public viewCssClasses?: KeyValueStringProperty;
-    public editCssClasses?: KeyValueStringProperty;
-    public defaultComponentConfig?: KeyValueStringNested;
-    public defaultLayoutComponent?: string;
-    public enabledValidationGroups?: string[] = ["all"];
-    public validators: FormValidatorConfig[] = [];
-    public validationGroups?: FormValidationGroups = {
-        all: { description: "Validate all fields with validators.", initialMembership: "all" },
-        none: { description: "Validate none of the fields.", initialMembership: "none" },
-    };
-    public componentDefinitions: AvailableFormComponentDefinitionOutlines[] = [];
-    public debugValue: boolean = false;
-    public expressions?: FormExpressionsConfigOutline[];
+  public name: string = '';
+  public type?: string;
+  public domElementType?: string;
+  public domId?: string;
+  public viewCssClasses?: KeyValueStringProperty;
+  public editCssClasses?: KeyValueStringProperty;
+  public defaultComponentConfig?: KeyValueStringNested;
+  public defaultLayoutComponent?: string;
+  public enabledValidationGroups?: string[] = ['all'];
+  public validators: FormValidatorConfig[] = [];
+  public validationGroups?: FormValidationGroups = {
+    all: { description: 'Validate all fields with validators.', initialMembership: 'all' },
+    none: { description: 'Validate none of the fields.', initialMembership: 'none' },
+  };
+  public componentDefinitions: AvailableFormComponentDefinitionOutlines[] = [];
+  public debugValue: boolean = false;
+  public expressions?: FormExpressionsConfigOutline[];
+  /**
+   * Top-level behaviour config copied during construct and then transformed by
+   * the template/client visitors before reaching the Angular runtime.
+   */
+  public behaviours?: FormBehaviourConfigFrame[];
 
-    public attachmentFields?: string[];
+  public attachmentFields?: string[];
+  public contextVariables?: Record<string, unknown>;
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitFormConfig(this);
-    }
+  accept(visitor: FormConfigVisitorOutline): void {
+    visitor.visitFormConfig(this);
+  }
 }
-
