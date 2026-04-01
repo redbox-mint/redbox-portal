@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ManageUsersComponent } from './manage-users.component';
 import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common'; 
@@ -156,6 +156,13 @@ describe('ManageUsersComponent', () => {
     TestBed.inject(UserService);
     await testModule.compileComponents();
   });
+
+  function createComponent(): { fixture: ComponentFixture<ManageUsersComponent>, app: ManageUsersComponent } {
+    const fixture = TestBed.createComponent(ManageUsersComponent);
+    const app = fixture.componentInstance;
+    fixture.autoDetectChanges(true);
+    return { fixture, app };
+  }
 
   it('should create the app and perform testing of basic functions', async () =>  {
     const fixture = TestBed.createComponent(ManageUsersComponent);
@@ -407,6 +414,232 @@ describe('ManageUsersComponent', () => {
     spyOn(app, 'setNewUserMessage');
     await app.newUserSubmit({} as any, false);
     expect(app.setNewUserMessage).toHaveBeenCalled();
+  });
+
+  it('should reset link and audit modal state when hidden', () => {
+    const { app } = createComponent();
+    app.isLinkModalShown = true;
+    app.linkPrimaryUser = usersData[0] as any;
+    app.linkedAccounts = [{ id: 'ALIAS123', username: 'alias' }] as any;
+    app.linkCandidates = [{ id: 'candidate-1', username: 'candidate' }] as any;
+    app.linkSearchQuery = 'candidate';
+    app.selectedLinkCandidate = { id: 'candidate-1', username: 'candidate' } as any;
+    app.setLinkMessage('problem', 'danger');
+    app.onLinkModalHidden();
+
+    expect(app.isLinkModalShown).toBeFalse();
+    expect(app.linkPrimaryUser).toBeNull();
+    expect(app.linkedAccounts).toEqual([]);
+    expect(app.linkCandidates).toEqual([]);
+    expect(app.linkSearchQuery).toBe('');
+    expect(app.selectedLinkCandidate).toBeNull();
+    expect(app.linkMsg).toBe('');
+    expect(app.linkMsgType).toBe('primary');
+
+    app.isAuditModalShown = true;
+    app.auditModalUser = usersData[0] as any;
+    app.auditRecords = [auditRecords[0] as any];
+    app.auditExpandedRows = { 'audit-1': true };
+    app.isAuditLoading = true;
+    app.auditError = 'failed';
+    app.auditSummary = { returnedCount: 2, truncated: true };
+    app.onAuditModalHidden();
+
+    expect(app.isAuditModalShown).toBeFalse();
+    expect(app.auditModalUser).toBeNull();
+    expect(app.auditRecords).toEqual([]);
+    expect(app.auditExpandedRows).toEqual({});
+    expect(app.isAuditLoading).toBeFalse();
+    expect(app.auditError).toBe('');
+    expect(app.auditSummary).toEqual({ returnedCount: 0, truncated: false });
+  });
+
+  it('should search and submit link candidates', async () => {
+    const { app } = createComponent();
+    await app.waitForInit();
+    spyOn(userService, 'getUsers').and.resolveTo(usersData);
+    spyOn(userService, 'getUserLinks').and.resolveTo({
+      primary: usersData[0],
+      linkedAccounts: [{ id: 'ALIAS123', username: 'alias', name: 'Alias User', email: 'alias@example.com', type: 'local' }]
+    });
+    spyOn(userService, 'searchLinkCandidates').and.resolveTo([
+      { id: 'candidate-1', username: 'candidate', name: 'Candidate User', email: 'candidate@example.com', type: 'local' }
+    ]);
+    spyOn(userService, 'linkAccounts').and.resolveTo({
+      primary: usersData[0],
+      linkedAccounts: [{ id: 'candidate-1', username: 'candidate', name: 'Candidate User', email: 'candidate@example.com', type: 'local' }],
+      impact: { rolesMerged: 2, recordsRewritten: 3 }
+    });
+
+    await app.manageLinks('admin');
+    expect(app.isLinkModalShown).toBeTrue();
+    expect(app.linkPrimaryUser?.username).toBe('admin');
+    expect(app.linkedAccounts.length).toBe(1);
+
+    app.linkSearchQuery = 'candidate';
+    await app.searchCandidates();
+    expect(userService.searchLinkCandidates).toHaveBeenCalledWith('ABC123', 'candidate');
+    expect(app.linkCandidates.length).toBe(1);
+
+    app.selectLinkCandidate(app.linkCandidates[0] as any);
+    await app.submitLink();
+    expect(userService.linkAccounts).toHaveBeenCalledWith('ABC123', 'candidate-1');
+    expect(app.linkedAccounts.length).toBe(1);
+    expect(app.linkCandidates).toEqual([]);
+    expect(app.selectedLinkCandidate).toBeNull();
+    expect(app.linkSearchQuery).toBe('');
+    expect(app.linkMsgType).toBe('success');
+    expect(app.linkMsg).toContain('Accounts linked successfully.');
+    expect(app.linkMsg).toContain('2 role(s) merged');
+    expect(app.linkMsg).toContain('3 record(s) rewritten');
+  });
+
+  it('should handle empty and failed account linking flows', async () => {
+    const { app } = createComponent();
+    await app.waitForInit();
+    app.linkPrimaryUser = usersData[0] as any;
+
+    spyOn(userService, 'searchLinkCandidates').and.resolveTo([]);
+    app.linkSearchQuery = '   ';
+    await app.searchCandidates();
+    expect(userService.searchLinkCandidates).not.toHaveBeenCalled();
+    expect(app.linkCandidates).toEqual([]);
+    expect(app.selectedLinkCandidate).toBeNull();
+
+    app.linkSearchQuery = 'nobody';
+    await app.searchCandidates();
+    expect(app.linkMsgType).toBe('warning');
+    expect(app.linkMsg).toBe('No matching accounts found.');
+
+    (userService.searchLinkCandidates as jasmine.Spy).and.rejectWith(new Error('search failed'));
+    await app.searchCandidates();
+    expect(app.linkMsgType).toBe('danger');
+    expect(app.linkMsg).toBe('Failed to search accounts.');
+
+    spyOn(userService, 'getUserLinks').and.rejectWith(new Error('load failed'));
+    await app.refreshLinkModalData();
+    expect(app.linkMsg).toBe('load failed');
+    expect(app.linkedAccounts).toEqual([]);
+
+    await app.submitLink();
+    expect(app.linkMsg).toBe('Select an account to link.');
+
+    spyOn(userService, 'linkAccounts').and.rejectWith(new Error('link failed'));
+    app.selectedLinkCandidate = { id: 'ALIAS123', username: 'alias' } as any;
+    await app.submitLink();
+    expect(app.linkMsg).toBe('link failed');
+  });
+
+  it('should derive audit titles, actors, toggle labels, and raw content', async () => {
+    const { app } = createComponent();
+    await app.waitForInit();
+
+    await app.viewAudit(usersData[0] as any);
+    expect(app.getAuditTitle()).toBe('Audit history for Local Admin');
+    expect(app.getAuditActor(auditRecords[0] as any)).toBe('admin | Local Admin | admin@example.com');
+    expect(app.getAuditActionLabel(auditRecords[0] as any)).toBe('login');
+    expect(app.formatAuditTimestamp(auditRecords[0].timestamp)).not.toBe('');
+    expect(app.getAuditToggleLabel('audit-1')).toBe('manage-users-audit-raw-toggle');
+
+    app.toggleAuditRow('audit-1');
+    expect(app.isAuditRowExpanded('audit-1')).toBeTrue();
+    expect(app.getAuditToggleLabel('audit-1')).toBe('manage-users-audit-raw-hide');
+    expect(app.getAuditRawContent(auditRecords[0] as any)).toContain('"ip": "127.0.0.1"');
+    expect(app.getAuditRawContent(auditRecords[2] as any)).toBe('[REDACTED_UNPARSEABLE_AUDIT_CONTEXT]');
+    expect(app.getAuditRawContent({ parsedAdditionalContext: 'plain text' } as any)).toBe('plain text');
+    expect(app.getAuditRawContent({ parsedAdditionalContext: null, rawAdditionalContext: 'raw' } as any)).toBe('raw');
+    expect(app.formatAuditTimestamp(null)).toBe('');
+  });
+
+  it('should handle audit fetch failures and audit action label fallbacks', async () => {
+    const { app } = createComponent();
+    await app.waitForInit();
+    (userService.getUserAudit as jasmine.Spy).and.rejectWith(new Error('audit failed'));
+
+    await app.viewAudit(usersData[0] as any);
+
+    expect(app.auditError).toBe('audit failed');
+    expect(app.auditRecords).toEqual([]);
+    expect(app.auditSummary).toEqual({ returnedCount: 0, truncated: false });
+    expect(app.isAuditLoading).toBeFalse();
+    expect(app.getAuditDetailsLabel({ action: 'logout', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('fallback');
+    expect(app.getAuditDetailsLabel({ action: 'disable-user', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('fallback');
+    expect(app.getAuditDetailsLabel({ action: 'enable-user', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('fallback');
+    expect(app.getAuditDetailsLabel({ action: 'other', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('fallback');
+  });
+
+  it('should toggle disabled users and handle enable and disable actions', async () => {
+    const { app } = createComponent();
+    await app.waitForInit();
+    spyOn(userService, 'getUsers').and.resolveTo(usersData);
+    spyOn(userService, 'disableUser').and.resolveTo({ status: true, message: 'ok' });
+    spyOn(userService, 'enableUser').and.resolveTo({ status: false, message: 'nope' });
+
+    await app.toggleShowDisabled();
+    expect(app.showDisabledUsers).toBeTrue();
+    expect(userService.getUsers).toHaveBeenCalledWith({ includeDisabled: true });
+
+    await app.disableUser(usersData[0] as any);
+    expect(app.updateDetailsMsgType).toBe('success');
+    expect(app.updateDetailsMsg).toBe('User disabled successfully.');
+
+    await app.enableUser(usersData[0] as any);
+    expect(app.updateDetailsMsgType).toBe('danger');
+    expect(app.updateDetailsMsg).toBe('nope');
+
+    (userService.disableUser as jasmine.Spy).and.rejectWith(new Error('disable crash'));
+    await app.disableUser(usersData[0] as any);
+    expect(app.updateDetailsMsg).toBe('disable crash');
+
+    (userService.enableUser as jasmine.Spy).and.rejectWith(new Error('enable crash'));
+    await app.enableUser(usersData[0] as any);
+    expect(app.updateDetailsMsg).toBe('enable crash');
+  });
+
+  it('should cover password helpers, disabled helpers, and filter reset helpers', async () => {
+    const { app } = createComponent();
+    await app.waitForInit();
+    app.currentUser = {
+      ...usersData[0],
+      effectiveLoginDisabled: true,
+      loginDisabled: false,
+      disabledByPrimaryUsername: 'admin'
+    } as any;
+    app.setupForms(false);
+    app.setupForms(true);
+
+    const updatePasswords = ((app.updateUserForm as any).controls['passwords']);
+    updatePasswords.setErrors({ passwordStrengthDetails: { errors: ['Too short'] } });
+    updatePasswords.controls['confirmPassword'].markAsTouched();
+    const newPasswords = ((app.newUserForm as any).controls['passwords']);
+    newPasswords.setErrors({ passwordStrengthDetails: { errors: ['Need symbol'] } });
+
+    app.searchFilter.name = 'Admin';
+    app.searchFilter.prevName = '';
+    app.searchFilter.users = [
+      { value: null, label: 'Any', checked: false },
+      { value: 'Local Admin', label: 'Local Admin', checked: true }
+    ];
+    app.resetFilter();
+
+    expect(app.isEffectivelyDisabled(app.currentUser as any)).toBeTrue();
+    expect(app.isDirectlyDisabled({ loginDisabled: true } as any)).toBeTrue();
+    expect(app.isDisabledViaPrimary(app.currentUser as any)).toBeTrue();
+    expect(app.canManageLinks(usersData[0] as any)).toBeTrue();
+    expect(app.canManageLinks(usersData[1] as any)).toBeFalse();
+    expect(app.getAccountStatusBadge(app.currentUser as any)).toBe('Disabled via admin');
+    expect(app.getAccountStatusBadge({ effectiveLoginDisabled: true, loginDisabled: true } as any)).toBe('Disabled');
+    expect(app.getAccountStatusBadge({} as any)).toBe('Active');
+    expect(app.getAccountStatusBadgeClass({ effectiveLoginDisabled: true } as any)).toBe('danger');
+    expect(app.getAccountStatusContext({} as any)).toBeNull();
+    expect(app.isUpdateUserFormConfirmPasswordTouched()).toBeTrue();
+    expect(app.getUpdateUserPasswordErrors()).toEqual(['Too short']);
+    expect(app.getNewUserPasswordErrors()).toEqual(['Need symbol']);
+    expect(app.getNewUserPasswordFormControls()['password']).toBeDefined();
+    expect(app.getUpdateUserFormControls().length).toBe(rolesData.length);
+    expect(app.getNewUserFormControls().length).toBe(rolesData.length);
+    expect(app.filteredUsers.length).toBe(usersData.length);
+    expect(app.searchFilter.users[0].checked).toBeTrue();
   });
 
 });
