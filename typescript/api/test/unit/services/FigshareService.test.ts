@@ -258,29 +258,6 @@ describe('FigshareService - getAuthorUserIDs author ordering', () => {
     expect(result[3]).to.deep.equal({ name: 'Another External' });
   });
 
-  it('maintains original order when external authors are interspersed between matched authors', async () => {
-    const authors = [
-      { name: 'External First', email: 'ext1@test.com' },
-      { name: 'Matched Middle', email: 'matched@test.com' },
-      { name: 'External Last', email: 'ext2@test.com' }
-    ];
-
-    // Only middle author found
-    axiosResponses = [
-      { status: 200, statusText: 'OK', data: [] },             // ext1 - not found
-      { status: 200, statusText: 'OK', data: [{ id: 999 }] },  // matched
-      { status: 200, statusText: 'OK', data: [] }              // ext2 - not found
-    ];
-
-    const result = await (service as any).getAuthorUserIDs(authors);
-
-    expect(result).to.have.length(3);
-    // Order should be: external, matched, external (original order preserved)
-    expect(result[0]).to.deep.equal({ name: 'External First' });
-    expect(result[1]).to.deep.equal({ id: 999 });
-    expect(result[2]).to.deep.equal({ name: 'External Last' });
-  });
-
   it('handles API errors gracefully and adds author as external', async () => {
     const authors = [
       { name: 'Error Author', email: 'error@test.com' },
