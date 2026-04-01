@@ -7,6 +7,8 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "develop"
+    cooldown:
+      default-days: 7
 
   # Update docker compose files
   - package-ecosystem: "docker-compose"
@@ -16,6 +18,8 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "develop"
+    cooldown:
+      default-days: 7
 
   # Update github actions files
   - package-ecosystem: "github-actions"
@@ -23,6 +27,8 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "develop"
+    cooldown:
+      default-days: 7
 
   # Update npm files
   - package-ecosystem: "npm"
@@ -34,6 +40,8 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "develop"
+    cooldown:
+      default-days: 7
 
   # Update npm files
   # Update angular dependencies as a group,
@@ -70,3 +78,5 @@ updates:
           - "@ngx-formly/*"
         update-types:
           - "major"
+    cooldown:
+      default-days: 7
