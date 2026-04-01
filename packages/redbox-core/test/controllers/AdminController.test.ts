@@ -133,6 +133,44 @@ describe('AdminController', () => {
         expect(sendRespStub.firstCall.args[2]?.data?.summary?.returnedCount).to.equal(1);
     });
 
+    it('should reject link candidate searches when branding cannot be resolved', async () => {
+        (global as any).BrandingService.getBrand = sinon.stub().returns(null);
+        const param = sinon.stub();
+        param.withArgs('query').returns('candidate');
+        param.withArgs('primaryUserId').returns('primary-1');
+        const req = {
+            session: { branding: 'default' },
+            param
+        } as unknown as Sails.Req;
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.searchLinkCandidates(req, res);
+
+        expect((global as any).UsersService.searchLinkCandidates.called).to.be.false;
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+    });
+
+    it('should reject user audit requests when branding cannot be resolved', async () => {
+        (global as any).BrandingService.getBrand = sinon.stub().returns(null);
+        const param = sinon.stub();
+        param.withArgs('id').returns('user-1');
+        const req = {
+            session: { branding: 'default' },
+            user: { username: 'admin-user' },
+            param
+        } as unknown as Sails.Req;
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.getUserAudit(req, res);
+
+        expect((global as any).UsersService.getUserAudit.called).to.be.false;
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+    });
+
     it('should link accounts through the admin controller', async () => {
         const req = {
             session: { branding: 'default' },
@@ -149,6 +187,22 @@ describe('AdminController', () => {
         expect(sendRespStub.firstCall.args[2]?.data?.impact?.rolesMerged).to.equal(1);
     });
 
+    it('should reject link requests when a user is linked to itself', async () => {
+        const req = {
+            session: { branding: 'default' },
+            user: { username: 'admin-user' },
+            body: { primaryUserId: 'user-1', secondaryUserId: 'user-1' }
+        } as unknown as Sails.Req;
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.linkAccounts(req, res);
+
+        expect((global as any).UsersService.linkAccounts.called).to.be.false;
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+    });
+
     it('should disable a user through the admin controller', async () => {
         const param = sinon.stub();
         param.withArgs('id').returns('user-2');
@@ -163,6 +217,42 @@ describe('AdminController', () => {
         await controller.disableUser(req, res);
 
         expect((global as any).UsersService.disableUser.calledWith('user-2', 'admin-user', 'brand-1')).to.be.true;
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.data?.status).to.equal(true);
+    });
+
+    it('should reject disabling your own admin account', async () => {
+        const param = sinon.stub();
+        param.withArgs('id').returns('admin-1');
+        const req = {
+            session: { branding: 'default' },
+            user: { id: 'admin-1', username: 'admin-user' },
+            param
+        } as unknown as Sails.Req;
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.disableUser(req, res);
+
+        expect((global as any).UsersService.disableUser.called).to.be.false;
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+    });
+
+    it('should enable a user through the admin controller', async () => {
+        const param = sinon.stub();
+        param.withArgs('id').returns('user-2');
+        const req = {
+            session: { branding: 'default' },
+            user: { id: 'admin-1', username: 'admin-user' },
+            param
+        } as unknown as Sails.Req;
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.enableUser(req, res);
+
+        expect((global as any).UsersService.enableUser.calledWith('user-2', 'admin-user', 'brand-1')).to.be.true;
         expect(sendRespStub.calledOnce).to.be.true;
         expect(sendRespStub.firstCall.args[2]?.data?.status).to.equal(true);
     });

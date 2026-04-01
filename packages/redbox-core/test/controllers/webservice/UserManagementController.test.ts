@@ -112,6 +112,24 @@ describe('Webservice UserManagementController', () => {
         expect(sendRespStub.firstCall.args[2]?.data?.primary?.id).to.equal('primary-1');
     });
 
+    it('should reject linked account lookups when branding cannot be resolved', async () => {
+        (global as any).BrandingService.getBrand = sinon.stub().returns(null);
+        const param = sinon.stub();
+        param.withArgs('id').returns('primary-1');
+        const req = {
+            session: { branding: 'default' },
+            param
+        } as unknown as Sails.Req;
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.getUserLinks(req, res);
+
+        expect((global as any).UsersService.getLinkedAccounts.called).to.be.false;
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+    });
+
     describe('getUserAudit', () => {
         it('should return audit data for an admin and sanitize the user payload', async () => {
             const param = sinon.stub();
@@ -166,6 +184,24 @@ describe('Webservice UserManagementController', () => {
             expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
         });
 
+        it('should return 400 when branding cannot be resolved', async () => {
+            (global as any).BrandingService.getBrand = sinon.stub().returns(null);
+            const param = sinon.stub();
+            param.withArgs('id').returns('user-1');
+            const req = {
+                session: { branding: 'default' },
+                user: { username: 'admin-user' },
+                param
+            } as unknown as Sails.Req;
+            const res = {} as unknown as Sails.Res;
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.getUserAudit(req, res);
+
+            expect((global as any).UsersService.getUserAudit.called).to.be.false;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+        });
+
         it('should return 500 when the audit service fails', async () => {
             (global as any).UsersService.getUserAudit = sinon.stub().rejects(new Error('audit exploded'));
             const param = sinon.stub();
@@ -205,6 +241,21 @@ describe('Webservice UserManagementController', () => {
             session: { branding: 'default' },
             user: { username: 'admin-user' },
             body: { primaryUserId: '', secondaryUserId: 'secondary-1' }
+        } as unknown as Sails.Req;
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.linkAccounts(req, res);
+
+        expect((global as any).UsersService.linkAccounts.called).to.be.false;
+        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+    });
+
+    it('should reject link requests where the same user is provided twice', async () => {
+        const req = {
+            session: { branding: 'default' },
+            user: { username: 'admin-user' },
+            body: { primaryUserId: 'user-1', secondaryUserId: 'user-1' }
         } as unknown as Sails.Req;
         const res = {} as unknown as Sails.Res;
         const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -295,6 +346,23 @@ describe('Webservice UserManagementController', () => {
             expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
         });
 
+        it('should reject self-disable attempts', async () => {
+            const param = sinon.stub();
+            param.withArgs('id').returns('admin-1');
+            const req = {
+                session: { branding: 'default' },
+                user: { id: 'admin-1', username: 'admin-user' },
+                param
+            } as unknown as Sails.Req;
+            const res = {} as unknown as Sails.Res;
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.disableUser(req, res);
+
+            expect((global as any).UsersService.disableUser.called).to.be.false;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+        });
+
     });
 
     describe('enableUser', () => {
@@ -328,6 +396,24 @@ describe('Webservice UserManagementController', () => {
 
             await controller.enableUser(req, res);
 
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+        });
+
+        it('should reject enable requests when branding cannot be resolved', async () => {
+            (global as any).BrandingService.getBrand = sinon.stub().returns(null);
+            const param = sinon.stub();
+            param.withArgs('id').returns('user-1');
+            const req = {
+                session: { branding: 'default' },
+                user: { username: 'admin-user' },
+                param
+            } as unknown as Sails.Req;
+            const res = {} as unknown as Sails.Res;
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.enableUser(req, res);
+
+            expect((global as any).UsersService.enableUser.called).to.be.false;
             expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
         });
 
