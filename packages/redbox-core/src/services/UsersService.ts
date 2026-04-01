@@ -695,7 +695,7 @@ export namespace Services {
                 const clientMetadata = (oidcOpts.client ?? {}) as Record<string, unknown>;
                 const clientId = String(clientMetadata.client_id ?? '');
                 let oidcClientConfig;
-                let serverMetadata;
+
                 if (_.isString(oidcOpts.issuer)) {
                   const issuerUrl = String(oidcOpts.issuer).replace(/\/+$/, '');
                   sails.log.verbose(`OIDC, using issuer URL for discovery: ${issuerUrl}`);
@@ -722,7 +722,7 @@ export namespace Services {
                     openIdClient.allowInsecureRequests(oidcClientConfig);
                   }
                 }
-                serverMetadata = oidcClientConfig.serverMetadata();
+                const serverMetadata = oidcClientConfig.serverMetadata();
                 configured = true;
                 sails.log.verbose(`OIDC, Got issuer config, after ${discoverAttemptsCtr} attempt(s).`);
                 sails.log.verbose(serverMetadata);
