@@ -1,7 +1,7 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     resource_class: large
     steps:
       - checkout
@@ -40,7 +40,7 @@ jobs:
             - docker-images/redbox-portal-test.tar
   build-runtime-datastream-cloud:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     resource_class: large
     steps:
       - checkout
@@ -64,7 +64,7 @@ jobs:
             - docker-images/redbox-portal-runtime-datastream-cloud-test.tar
   build-runtime-pdfgen:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     resource_class: large
     steps:
       - checkout
@@ -88,7 +88,7 @@ jobs:
             - docker-images/redbox-portal-runtime-pdfgen-test.tar
   build-runtime-cloud-pdfgen:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     resource_class: large
     steps:
       - checkout
@@ -495,7 +495,7 @@ jobs:
           path: packages/redbox-dev-tools/support/junit
   lint-redbox-core:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     resource_class: medium
     steps:
       - checkout
@@ -571,7 +571,7 @@ jobs:
   #         path: packages/sails-hook-redbox-storage-mongo/support/junit
   deploy:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     steps:
       - checkout
       - setup_remote_docker
@@ -610,7 +610,7 @@ jobs:
             curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
   deploy-runtime-datastream-cloud:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     steps:
       - checkout
       - setup_remote_docker
@@ -636,7 +636,7 @@ jobs:
             docker push "${REPO}:${DEPLOY_TAG}-datastream-cloud-amd64"
   deploy-runtime-pdfgen:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     steps:
       - checkout
       - setup_remote_docker
@@ -662,7 +662,7 @@ jobs:
             docker push "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
   deploy-runtime-cloud-pdfgen:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     steps:
       - checkout
       - setup_remote_docker
@@ -715,7 +715,7 @@ jobs:
             docker push "${REPO}:${DEPLOY_TAG}-arm64"
   publish-manifest:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     steps:
       - checkout
       - setup_remote_docker
