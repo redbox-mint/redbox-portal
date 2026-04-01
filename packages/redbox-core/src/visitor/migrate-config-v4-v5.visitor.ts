@@ -2279,8 +2279,6 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     try {
       this.v4FormPath = [...original, ...(v4FormPath ?? [])];
       this.formPathHelper.acceptFormPath(item, more);
-    } catch (error) {
-      throw error;
     } finally {
       this.v4FormPath = original;
     }
@@ -2315,7 +2313,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   protected constructFormComponent(field: Record<string, unknown>, more?: LineagePath): AllFormComponentDefinitionOutlines {
-    let { componentClassName, modelClassName, layoutClassName } = this.mapV4ToV5(field);
+    const { componentClassName, modelClassName, layoutClassName: mappedLayoutClassName } = this.mapV4ToV5(field);
+    let layoutClassName = mappedLayoutClassName;
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
     const isLegacyInlineContainer = this.isLegacyInlineContainer(field);
 

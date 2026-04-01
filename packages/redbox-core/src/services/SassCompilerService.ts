@@ -75,7 +75,7 @@ export namespace Services {
                 const normKey = key.startsWith('$') ? key.substring(1) : key;
                 const value = this.normaliseHex(rawVal as string);
                 // Sanitize value to prevent SCSS injection
-                if (/[{}();@"'\\\/\n\r!]/.test(value)) {
+                if (/[{}();@"'\\/\n\r!]/.test(value)) {
                     throw new Error(`Invalid characters in variable value: ${normKey}`);
                 }
                 const variableName = normKey.startsWith('$') ? normKey : `$${normKey}`;
@@ -177,7 +177,7 @@ export namespace Services {
             const cssPath = path.join(tmpOut, 'style.css');
             const css = fs.readFileSync(cssPath, 'utf8');
             // Clean up temp directory (best-effort)
-            try { fse.removeSync(tmpBase); } catch (_e) { }
+            try { fse.removeSync(tmpBase); } catch (_e) { /* best-effort cleanup */ }
 
             const hash = crypto.createHash('sha256').update(css).digest('hex').substring(0, 32);
             return { css, hash };
