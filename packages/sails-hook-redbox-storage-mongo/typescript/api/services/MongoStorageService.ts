@@ -32,7 +32,7 @@ declare var sails: Sails;
 declare var _;
 declare var Record: Model, DeletedRecord: Model, RecordTypesService, TranslationService, FormsService, RecordAudit;
 
-export module Services {
+export namespace Services {
   /**
    * Stores ReDBox records in MongoDB.
    *
