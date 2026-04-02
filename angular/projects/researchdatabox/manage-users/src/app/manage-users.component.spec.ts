@@ -222,16 +222,15 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should open the audit modal, fetch records, and render them', async () => {
-    const { fixture, app } = createComponent();
-    await app.waitForInit();
+    const app = createBareComponent();
 
     await app.viewAudit(usersData[0] as any);
-    await fixture.whenStable();
-    fixture.detectChanges();
 
     expect(userService.getUserAudit).toHaveBeenCalledWith('ABC123');
     expect(app.isAuditModalShown).toBeTrue();
-    expect(fixture.nativeElement.textContent).toContain('User logged in');
+    expect(app.auditModalUser?.id).toBe('ABC123');
+    expect(app.auditRecords.length).toBe(auditRecords.length);
+    expect(app.getAuditDetailsLabel(auditRecords[0] as any)).toBe('User logged in');
   });
 
   it('should render loading, empty, truncated, and error audit states', async () => {
