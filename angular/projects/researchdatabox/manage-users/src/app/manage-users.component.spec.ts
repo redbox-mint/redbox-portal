@@ -91,11 +91,16 @@ const auditRecords = [
 ];
 
 export function i18AppInit() {
-  return () => i18next
-  .init({
-    fallbackLng: 'en',
-    debug: true
-  });
+  return () => {
+    if (i18next.isInitialized) {
+      return Promise.resolve(i18next);
+    }
+
+    return i18next.init({
+      fallbackLng: 'en',
+      debug: false
+    });
+  };
 }
 
 describe('ManageUsersComponent', () => {
