@@ -484,7 +484,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         // Default payload handling with safe fallbacks
         const force = !!evt.force;
         const targetStep = evt.targetStep ?? '';
-        const enabledValidationGroups = evt.enabledValidationGroups;
+        const enabledValidationGroups = evt.enabledValidationGroups ?? [];
         await this.saveForm(force, targetStep, enabledValidationGroups);
       });
     this.subMaps['deleteExecuteSub'] = this.eventBus
