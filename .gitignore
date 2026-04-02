@@ -223,8 +223,8 @@ docs/
 test/integration/**/*.test.js
 
 packages/redbox-core/.nyc_output/*
+packages/sails-hook-redbox-storage-mongo/.nyc_output/*
 packages/redbox-core/coverage/*
 
 packages/**/coverage
 packages/**/dist
-

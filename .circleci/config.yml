@@ -12,7 +12,10 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci
+          command: npm ci --ignore-scripts --strict-peer-deps
+      - run:
+          name: Run supply-chain checks
+          command: npm run security:supply-chain
       - run:
           name: Run lint
           command: npm run lint
@@ -133,7 +136,7 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci
+          command: npm ci --ignore-scripts --strict-peer-deps
       - run:
           name: Install codecov
           command: |
@@ -196,7 +199,7 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci
+          command: npm ci --ignore-scripts --strict-peer-deps
       - run:
           name: Install codecov
           command: |
@@ -259,7 +262,7 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci
+          command: npm ci --ignore-scripts --strict-peer-deps
       - run:
           name: Install codecov
           command: |
@@ -312,7 +315,7 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci
+          command: npm ci --ignore-scripts --strict-peer-deps
       - run:
           name: Compile shared Angular packages
           command: >-
@@ -493,6 +496,54 @@ jobs:
           when: always
       - store_test_results:
           path: packages/redbox-dev-tools/support/junit
+  test-storage-mongo:
+    docker:
+      - image: 'cimg/node:24.14.1'
+    resource_class: medium
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci --ignore-scripts --strict-peer-deps
+      - run:
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+      - run:
+          name: Install storage-mongo package dependencies
+          command: |
+            cd ./packages/sails-hook-redbox-storage-mongo
+            npm ci --include=dev --ignore-scripts --strict-peer-deps
+      - run:
+          name: Run storage-mongo package tests with coverage
+          command: |
+            cd ./packages/sails-hook-redbox-storage-mongo
+            npm run test:coverage
+      - run:
+          name: Upload storage-mongo code coverage
+          command: |
+            cd ./packages/sails-hook-redbox-storage-mongo
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-storage-mongo" --file "./coverage/storage-mongo/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
   lint-redbox-core:
     docker:
       - image: 'cimg/node:24.14.1'
@@ -752,7 +803,7 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci
+          command: npm ci --ignore-scripts --strict-peer-deps
       - run:
           name: Generate angular docs
           command: npm run doc-ng2
@@ -840,9 +891,9 @@ workflows:
       - test-redbox-dev-tools-cli:
           requires:
             - build
-      # - test-sails-hook-redbox-storage-mongo:
-      #     requires:
-      #       - build
+      - test-storage-mongo:
+          requires:
+            - build
       - deploy-arm64:
           requires:
             - test-bruno-general
@@ -852,7 +903,7 @@ workflows:
             - test-sails-ng-common
             - test-redbox-core
             - test-redbox-dev-tools-cli
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -865,7 +916,7 @@ workflows:
             - test-sails-ng-common
             - test-redbox-core
             - test-redbox-dev-tools-cli
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -879,7 +930,7 @@ workflows:
             - test-sails-ng-common
             - test-redbox-core
             - test-redbox-dev-tools-cli
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -893,7 +944,7 @@ workflows:
             - test-sails-ng-common
             - test-redbox-core
             - test-redbox-dev-tools-cli
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -907,7 +958,7 @@ workflows:
             - test-sails-ng-common
             - test-redbox-core
             - test-redbox-dev-tools-cli
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -928,7 +979,7 @@ workflows:
             - test-sails-ng-common
             - test-redbox-core
             - test-redbox-dev-tools-cli
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             branches:
               only: 'master'
@@ -961,9 +1012,9 @@ workflows:
       - test-redbox-dev-tools-cli:
           requires:
             - build
-      # - test-sails-hook-redbox-storage-mongo:
-      #     requires:
-      #       - build
+      - test-storage-mongo:
+          requires:
+            - build
       - deploy-arm64:
           requires:
             - test-bruno-general
@@ -973,7 +1024,7 @@ workflows:
             - test-sails-ng-common
             - test-redbox-core
             - test-redbox-dev-tools-cli
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -986,7 +1037,7 @@ workflows:
             - test-sails-ng-common
             - test-redbox-core
             - test-redbox-dev-tools-cli
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -1006,7 +1057,7 @@ workflows:
             - test-sails-ng-common
             - test-redbox-core
             - test-redbox-dev-tools-cli
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             branches:
               only: 'master'
@@ -1090,14 +1141,14 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      # - test-sails-hook-redbox-storage-mongo:
-      #     requires:
-      #       - build
-      #     filters:
-      #       tags:
-      #         only: /^v.*/
-      #       branches:
-      #         ignore: /.*/
+      - test-storage-mongo:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
       - deploy-arm64:
           requires:
             - test-bruno-general
@@ -1106,7 +1157,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             tags:
               only: /^v.*/
@@ -1120,7 +1171,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             tags:
               only: /^v.*/
@@ -1135,7 +1186,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             tags:
               only: /^v.*/
@@ -1150,7 +1201,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             tags:
               only: /^v.*/
@@ -1165,7 +1216,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
-            # - test-sails-hook-redbox-storage-mongo
+            - test-storage-mongo
           filters:
             tags:
               only: /^v.*/

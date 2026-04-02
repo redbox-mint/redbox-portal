@@ -19,5 +19,4 @@ export class RecordAuditClass {
   public action?: string;
 }
 
-// Export the Waterline model definition for runtime use
 export const RecordAuditWLDef = toWaterlineModelDef(RecordAuditClass);
