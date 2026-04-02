@@ -250,9 +250,7 @@ export class ManageUsersComponent extends BaseComponent {
     for (const user of users) {
       this.allUsers.push(user);
     }
-    _.forEach(this.searchFilter.users, () => {
-      this.searchFilter.users.pop();
-    });
+    this.searchFilter.users = [];
     this.filteredUsers = [];
     _.forEach(users, (user) => {
       this.searchFilter.users.push({ value: user.name, label: user.name, checked: false });
