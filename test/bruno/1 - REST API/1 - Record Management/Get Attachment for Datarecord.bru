@@ -21,8 +21,9 @@ tests {
   
   test("Body has attachment content", function () {
     const body = res.getBody();
+    const size = res.getSize();
     expect(body).to.exist;
-    expect(body.length).to.be.greaterThan(0);
+    expect(size.body).to.equal(30148);
     expect(res.headers['content-type']).to.eql('image/png');
   });
 }
