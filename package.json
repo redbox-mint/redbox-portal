@@ -96,6 +96,9 @@
   "license": "GPL2",
   "overrides": {
     "@aws-sdk/xml-builder": "3.972.16",
+    "@sailshq/router": {
+      "path-to-regexp": "0.1.13"
+    },
     "on-headers": "1.1.0",
     "serialize-javascript": "7.0.5",
     "@uppy/companion": {
@@ -116,11 +119,19 @@
     "express-session": {
       "on-headers": "1.1.0"
     },
+    "language-data-commons-vocabs": {
+      "mocha": {
+        "serialize-javascript": "7.0.5"
+      }
+    },
     "mocha": {
       "serialize-javascript": "7.0.5"
     },
     "morgan": {
       "on-headers": "1.1.0"
+    },
+    "sails-mongo": {
+      "qs": "6.14.2"
     },
     "socket.io-parser": "4.2.6",
     "svgo": "4.0.1"
@@ -143,6 +154,7 @@
     "prettier": "^3.8.1",
     "sass": "^1.98.0",
     "sass-loader": "^16.0.7",
+    "serialize-javascript": "7.0.5",
     "supertest": "^7.2.2"
   },
   "nyc": {

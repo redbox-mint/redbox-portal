@@ -85,6 +85,7 @@
   },
   "overrides": {
     "immutable": "5.1.5",
+    "serialize-javascript": "7.0.5",
     "svgo": "4.0.1",
     "@parcel/watcher": {
       "picomatch": "4.0.4"
@@ -126,6 +127,7 @@
     "nyc": "^17.1.0",
     "oxlint": "^1.57.0",
     "prettier": "^3.5.3",
+    "serialize-javascript": "7.0.5",
     "sinon": "^17.0.1",
     "ts-node": "^10.9.2"
   },

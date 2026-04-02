@@ -46,6 +46,7 @@
     "mocha-junit-reporter": "2.2.1",
     "mongodb": "7.1.1",
     "sails": "1.5.17",
+    "serialize-javascript": "7.0.5",
     "stream": "0.0.3",
     "typescript": "6.0.2",
     "util": "0.12.5"
