@@ -897,6 +897,8 @@ export class FormService extends HttpClientService {
     groups?: FormFieldValidationGroup
   ): string[]{
     let enabledNames = [...currentValidationGroups];
+    // Initial is 'current' by default.
+    initial = initial ?? "current";
     switch(initial) {
       case "all":
         enabledNames = Object.keys(validationGroups);
