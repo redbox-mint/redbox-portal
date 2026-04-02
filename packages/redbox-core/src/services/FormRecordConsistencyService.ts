@@ -512,7 +512,7 @@ export namespace Services {
             const visitor = new ValidatorFormConfigVisitor(this.logger);
             return visitor.start({
               form: constructed,
-              enabledValidationGroups: enabledValidationGroups || ["all"],
+              enabledValidationGroups: enabledValidationGroups ?? ["all"],
               validatorDefinitions,
             });
         }
