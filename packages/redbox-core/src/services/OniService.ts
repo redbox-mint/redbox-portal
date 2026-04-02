@@ -50,7 +50,8 @@ export namespace Services {
     }
 
 		protected override _exportedMethods: string[] = [
-			'exportDataset'
+			'exportDataset',
+      'init',
 		];
 
 		datastreamService: DatastreamService | null = null;
@@ -58,11 +59,14 @@ export namespace Services {
 		constructor() {
 			super();
 			this.logHeader = "OniService::";
-			const that = this;
-			this.registerSailsHook('on', 'ready', function () {
-				that.getDatastreamService();
-			});
 		}
+
+    public override init() {
+      const that = this;
+      this.registerSailsHook('on', 'ready', function () {
+        that.getDatastreamService();
+      });
+    }
 
 		protected override async processDynamicImports() {
       	  	wktParserHelper = await import("wkt-parser-helper");

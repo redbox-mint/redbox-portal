@@ -73,16 +73,19 @@ export namespace Services.Core {
     protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean;
     protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean {
       if (typeof sails === 'undefined') {
+        console.warn(`Sails is undefined so did not register hook action ${action} eventName ${eventName} handler ${handler}`);
         return false;
       }
       if (action === 'on') {
         if (typeof sails.on !== 'function') {
+          console.warn(`Sails.on is not a function so did not register hook action ${action} eventName ${eventName} handler ${handler}`);
           return false;
         }
         sails.on(eventName as string, handler);
         return true;
       }
       if (typeof sails.after !== 'function') {
+        console.warn(`Sails.after is not a function so did not register hook action ${action} eventName ${eventName} handler ${handler}`);
         return false;
       }
       sails.after(eventName, handler);

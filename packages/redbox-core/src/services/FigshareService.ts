@@ -114,6 +114,7 @@ export namespace Services {
       'queueDeleteFiles',
       'queuePublishAfterUploadFiles',
       'transitionRecordWorkflowFromFigshareArticlePropertiesJob',
+      'init',
     ];
 
 
@@ -124,6 +125,9 @@ export namespace Services {
       //it's printed only once and it's critical to have logs to ensure this service has loaded correctly during development face until
       //it reaches a certain level of stability/maturity. Then it can be changed to verbose
       super();
+    }
+
+    public override init(): void {
       const that = this;
       this.registerSailsHook('on', 'ready', function () {
         const datastreamServiceName = sails.config.record.datastreamService;
