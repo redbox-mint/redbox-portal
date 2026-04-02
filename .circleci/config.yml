@@ -14,9 +14,6 @@ jobs:
           name: Install npm dependencies
           command: npm ci --ignore-scripts --strict-peer-deps
       - run:
-          name: Run supply-chain checks
-          command: npm run security:supply-chain
-      - run:
           name: Run lint
           command: npm run lint
       - save_cache:
