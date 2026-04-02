@@ -39,6 +39,14 @@ export interface User {
   roles: Role[];
   newRoles: Role[];
   roleStr: string;
+  accountLinkState?: 'active' | 'linked-alias';
+  linkedPrimaryUserId?: string;
+  effectivePrimaryUsername?: string;
+  linkedAccountCount?: number;
+  loginDisabled?: boolean;
+  effectiveLoginDisabled?: boolean;
+  disabledByPrimaryUserId?: string;
+  disabledByPrimaryUsername?: string;
 }
 
 export interface Role {
@@ -58,6 +66,62 @@ export interface UserLoginResult {
 export interface SaveResult {
   status: boolean;
   message: string;
+}
+
+export interface LinkedUserSummary {
+  id: string;
+  username: string;
+  name: string;
+  email: string;
+  type: string;
+  accountLinkState: string;
+  linkedAt?: string;
+}
+
+export interface UserLinkCandidate {
+  id: string;
+  username: string;
+  name: string;
+  email: string;
+  type: string;
+  accountLinkState: string;
+}
+
+export interface UserLinkResponse {
+  primary: LinkedUserSummary;
+  linkedAccounts: LinkedUserSummary[];
+  impact?: {
+    recordsRewritten: number;
+    rolesMerged: number;
+  };
+}
+
+export interface UserAuditActor {
+  username: string;
+  name?: string;
+  email?: string;
+}
+
+export interface UserAuditRecord {
+  id: string;
+  timestamp: string | null;
+  action: string;
+  actor: UserAuditActor;
+  details: string;
+  parsedAdditionalContext: unknown;
+  rawAdditionalContext: string | null;
+  parseError: boolean;
+}
+
+export interface UserAuditSummary {
+  returnedCount: number;
+  truncated: boolean;
+}
+
+export interface UserAuditResponse {
+  user: User;
+  records: UserAuditRecord[];
+  summary: UserAuditSummary;
 }
 
 /**
@@ -128,8 +192,11 @@ export class UserService extends HttpClientService {
   // headersObj['X-Source'] = 'jsclient';
   // headersObj['Content-Type'] = 'application/json;charset=utf-8';
   // headersObj['X-CSRF-Token'] = this.config.csrfToken;
-  public async getUsers() {
+  public async getUsers(options?: { includeDisabled?: boolean }) {
     let url = `${this.brandingAndPortalUrl}/admin/users/get`;
+    if (options?.includeDisabled) {
+      url += '?includeDisabled=true';
+    }
     const result$ = this.http.get(url, this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned User[]
@@ -175,6 +242,70 @@ export class UserService extends HttpClientService {
     const result$ = this.http.post(url, {userid: userid, roles:roleIds},this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned SaveResult[]
+  }
+
+  public async searchLinkCandidates(primaryUserId: string, query: string): Promise<UserLinkCandidate[]> {
+    const url = `${this.brandingAndPortalUrl}/admin/users/link/candidates`;
+    const result$ = this.http.get<UserLinkCandidate[]>(url, {
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext,
+      params: {
+        primaryUserId,
+        query
+      }
+    }).pipe(map(res => res));
+    return await firstValueFrom(result$);
+  }
+
+  public async getUserLinks(primaryUserId: string): Promise<UserLinkResponse> {
+    const url = `${this.brandingAndPortalUrl}/admin/users/${primaryUserId}/links`;
+    const result$ = this.http.get<UserLinkResponse>(url, {
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext
+    }).pipe(map(res => res));
+    return await firstValueFrom(result$);
+  }
+
+  public async getUserAudit(userId: string): Promise<UserAuditResponse> {
+    const url = `${this.brandingAndPortalUrl}/admin/users/${userId}/audit`;
+    const result$ = this.http.get<UserAuditResponse>(url, {
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext
+    }).pipe(map(res => res));
+    return await firstValueFrom(result$);
+  }
+
+  public async disableUser(userId: string): Promise<SaveResult> {
+    const url = `${this.brandingAndPortalUrl}/admin/users/${userId}/disable`;
+    const result$ = this.http.post<SaveResult>(url, {}, {
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext
+    }).pipe(map(res => res));
+    return await firstValueFrom(result$);
+  }
+
+  public async enableUser(userId: string): Promise<SaveResult> {
+    const url = `${this.brandingAndPortalUrl}/admin/users/${userId}/enable`;
+    const result$ = this.http.post<SaveResult>(url, {}, {
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext
+    }).pipe(map(res => res));
+    return await firstValueFrom(result$);
+  }
+
+  public async linkAccounts(primaryUserId: string, secondaryUserId: string): Promise<UserLinkResponse> {
+    const url = `${this.brandingAndPortalUrl}/admin/users/link`;
+    const result$ = this.http.post<UserLinkResponse>(url, { primaryUserId, secondaryUserId }, {
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext
+    }).pipe(map(res => res));
+    return await firstValueFrom(result$);
   }
   
 }

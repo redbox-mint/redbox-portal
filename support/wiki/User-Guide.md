@@ -1,6 +1,7 @@
 Welcome to the RedBox Portal User Guide! This document is your resource for setting up and utilizing the RedBox Portal effectively. Explore the following sections for detailed instructions:
 
 - Start with the **[Initial Configuration Guide](https://github.com/redbox-mint/redbox-portal/wiki/Initial-Configuration-Guide-for-RedBox-Portal)** for basic setup.
+- Manage administrators and service accounts with **[User Management](https://github.com/redbox-mint/redbox-portal/wiki/User-Management)**, including account linking, disabling accounts, and reviewing user audit history.
 - Learn about **[Configuring Record Types](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Types-in-ReDBox)** for data organization.
 - Dive into **[Configuring Record Workflows](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Workflows)** for process management.
 - Understand **[Configuring Record Forms](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms)** for data entry.

@@ -8,20 +8,25 @@ Controllers are organized into two groups:
 
 | Location | Purpose | Shim Directory |
 |---|---|---|
-| `packages/redbox-core/src/controllers/` | API controllers | `api/controllers/` |
-| `packages/redbox-core/src/controllers/webservice/` | Webservice controllers | `api/controllers/webservice/` |
+| `packages/redbox-core/src/controllers/` | View and CSRF-backed AJAX controllers | `api/controllers/` |
+| `packages/redbox-core/src/controllers/webservice/` | Webservice / REST-style controllers, typically mounted under `/:branding/:portal/api/*` with `csrf: false` | `api/controllers/webservice/` |
 
 Route configuration uses controller names exactly as defined in the shims:
-- API controllers: `RecordController.getMeta`
+- AJAX/view controllers: `AdminController.getUsers`
 - Webservice controllers: `webservice/RecordController.getMeta`
+
+In practice, the split is:
+
+- `src/controllers/`: browser-facing routes, rendered pages, and AJAX endpoints that should participate in normal session + CSRF handling
+- `src/controllers/webservice/`: REST-style endpoints intended for non-browser/API use, usually with CSRF explicitly disabled in `routes.config.ts`
 
 ## Controller Exports and Shims
 
 The core package provides two lazy export objects plus name lists:
 
-- `ControllerExports`: API controllers (lazy instantiated)
+- `ControllerExports`: AJAX / view controllers (lazy instantiated)
 - `WebserviceControllerExports`: webservice controllers (lazy instantiated)
-- `ControllerNames`: API controller names without instantiation
+- `ControllerNames`: AJAX / view controller names without instantiation
 - `WebserviceControllerNames`: webservice controller names without instantiation
 
 `redbox-loader.js` uses the name lists to generate controller shims without triggering controller instantiation. The shims expose the exported methods for Sails routes.
@@ -61,7 +66,7 @@ export module Controllers {
 
 ## Current Controllers
 
-### API Controllers
+### AJAX / View Controllers
 
 | Controller |
 |---|
@@ -100,6 +105,18 @@ export module Controllers {
 | `SearchController` |
 | `TranslationController` |
 | `UserManagementController` |
+
+`UserManagementController` still covers user-management webservice behavior, including account-linking, user-audit, and disable/enable API endpoints.
+
+The browser-based Manage Users Angular app now uses CSRF-backed `AdminController` AJAX routes under `/:branding/:portal/admin/users/*` for:
+
+- account-link candidate search
+- linked-account retrieval
+- account linking
+- user audit retrieval
+- disable / enable actions
+
+The corresponding legacy webservice routes remain available under `/:branding/:portal/api/users/*` for non-browser/API consumers. See **[User Management](https://github.com/redbox-mint/redbox-portal/wiki/User-Management)** for the feature-level behavior and route summary.
 
 ## Hook Overrides
 

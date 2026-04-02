@@ -1,7 +1,7 @@
 import { APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, UserModel, UserAPITokenAPIResponse, APIActionResponse, BrandingModel } from '../../index';
 import { UserAttributes } from '../../waterline-models/User';
 import { v4 as uuidv4 } from 'uuid';
-
+import { firstValueFrom } from 'rxjs';
 
 export namespace Controllers {
   /**
@@ -21,9 +21,64 @@ export namespace Controllers {
       'updateUser',
       'generateAPIToken',
       'revokeAPIToken',
+      'searchLinkCandidates',
+      'getUserLinks',
+      'linkAccounts',
+      'getUserAudit',
       'listSystemRoles',
-      'createSystemRole'
+      'createSystemRole',
+      'disableUser',
+      'enableUser'
     ];
+
+    private async enrichUsersWithLinkMetadata(users: UserAttributes[], brandId?: string): Promise<UserAttributes[]> {
+      const links = typeof UserLink !== 'undefined'
+        ? await UserLink.find(_.isEmpty(brandId) ? { status: 'active' } : { brandId: brandId, status: 'active' })
+        : [];
+      const linkCountByPrimary = _.countBy(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? ''));
+      const primaryIds = _.uniq(_.map(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? '')));
+      const primaryUsers = _.isEmpty(primaryIds) || typeof User === 'undefined' ? [] : await User.find({ id: primaryIds });
+      const primaryUsernamesById = _.reduce(primaryUsers as globalThis.Record<string, unknown>[], (acc, user) => {
+        acc[String(user.id ?? '')] = String(user.username ?? '');
+        return acc;
+      }, {} as globalThis.Record<string, string>);
+
+      return _.map(users, (user: UserAttributes) => {
+        const enrichedUser = user as UserAttributes & globalThis.Record<string, unknown>;
+        enrichedUser.accountLinkState = enrichedUser.accountLinkState || 'active';
+        enrichedUser.linkedAccountCount = linkCountByPrimary[String(enrichedUser.id ?? '')] || 0;
+        enrichedUser.effectivePrimaryUsername = _.isEmpty(enrichedUser.linkedPrimaryUserId)
+          ? enrichedUser.username
+          : (primaryUsernamesById[String(enrichedUser.linkedPrimaryUserId ?? '')] || enrichedUser.username);
+        return enrichedUser;
+      });
+    }
+
+    private sanitizeUserForResponse(user: UserAttributes | null): UserAttributes | null {
+      if (user == null) {
+        return null;
+      }
+      const sanitizedUser = { ...(user as UserAttributes & globalThis.Record<string, unknown>) };
+      delete sanitizedUser['password'];
+      delete sanitizedUser['token'];
+      return sanitizedUser as UserAttributes;
+    }
+
+    private async getFilteredUserRecords(queryObject: Record<string, unknown>, brandId: string | undefined, includeDisabled: boolean): Promise<UserAttributes[]> {
+      const dbQuery = includeDisabled
+        ? queryObject
+        : { ...queryObject, loginDisabled: { '!=': true } };
+
+      const users = await User.find({ where: dbQuery });
+      let userRecords = await this.enrichUsersWithLinkMetadata(users as UserAttributes[], brandId);
+      userRecords = await UsersService.enrichUsersWithEffectiveDisabledState(userRecords);
+
+      if (!includeDisabled) {
+        userRecords = _.filter(userRecords, (user: UserAttributes) => user.effectiveLoginDisabled !== true);
+      }
+
+      return userRecords;
+    }
 
     /**
      **************************************************************************************************
@@ -35,8 +90,7 @@ export namespace Controllers {
 
     }
 
-    public listUsers(req: Sails.Req, res: Sails.Res) {
-      const that = this;
+    public async listUsers(req: Sails.Req, res: Sails.Res) {
       const pageParam = req.param('page');
       const pageSizeParam = req.param('pageSize');
       const searchField = req.param('searchBy');
@@ -48,35 +102,35 @@ export namespace Controllers {
       const page: number = pageParam != null ? parseInt(pageParam, 10) : 1;
       const pageSize: number = pageSizeParam != null ? parseInt(pageSizeParam, 10) : 10;
       const skip = (page - 1) * pageSize;
+      const response: ListAPIResponse<UserAttributes> = new ListAPIResponse<UserAttributes>();
 
-      User.count({
-        where: queryObject
-      }).exec(function (err: unknown, count: number) {
-        const response: ListAPIResponse<UserAttributes> = new ListAPIResponse<UserAttributes>();
+      try {
+        const includeDisabled = req.param('includeDisabled') === 'true';
+        const brandId = _.get(BrandingService.getBrand(req.session.branding as string), 'id');
+        const userRecords = await this.getFilteredUserRecords(queryObject, brandId, includeDisabled);
+        const count = userRecords.length;
         response.summary.numFound = count;
         response.summary.page = page;
-
-        if (count == 0) {
-          response["records"] = [];
-          return res.json(response);
-        } else {
-          User.find({
-            where: queryObject,
-            limit: pageSize,
-            skip: skip
-          }).exec(function (err: unknown, users: Sails.QueryResult[]) {
-
-            const userRecords = users as unknown as UserAttributes[];
-            _.each(userRecords, (user: UserAttributes) => {
-              delete user["token"];
-              delete user["password"]
-            });
-            response.records = userRecords;
-
-            return that.apiRespond(req, res, response);
-          });
+        if (count === 0) {
+          response.records = [];
+          return this.apiRespond(req, res, response);
         }
-      });
+
+        const pagedRecords = userRecords.slice(skip, skip + pageSize);
+        _.each(pagedRecords, (user: UserAttributes) => {
+          delete user["token"];
+          delete user["password"];
+        });
+        response.records = pagedRecords;
+        return this.apiRespond(req, res, response);
+      } catch (err) {
+        sails.log.error(err);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
     }
 
     public getUser(req: Sails.Req, res: Sails.Res) {
@@ -330,6 +384,176 @@ export namespace Controllers {
       return;
     }
 
+    public async searchLinkCandidates(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        const candidates = await firstValueFrom(UsersService.searchLinkCandidates(
+          String(req.param('query') ?? ''),
+          String(brand.id),
+          String(req.param('primaryUserId') ?? '')
+        ));
+        return this.sendResp(req, res, {
+          data: candidates,
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        sails.log.error(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async getUserLinks(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        const links = await firstValueFrom(UsersService.getLinkedAccounts(String(req.param('id') ?? '')));
+        return this.sendResp(req, res, {
+          data: links,
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        sails.log.error(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async getUserAudit(req: Sails.Req, res: Sails.Res) {
+      const userId = String(req.param('id') ?? '').trim();
+      if (_.isEmpty(userId)) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'User ID is required' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      try {
+        const user = await firstValueFrom(UsersService.getUserWithId(userId));
+        if (user == null) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: 'User not found' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        const auditResponse = await UsersService.getUserAudit(userId);
+        return this.sendResp(req, res, {
+          data: {
+            user: this.sanitizeUserForResponse(user as UserAttributes),
+            records: auditResponse.records,
+            summary: auditResponse.summary
+          },
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        sails.log.error(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async linkAccounts(req: Sails.Req, res: Sails.Res) {
+      // Input validation
+      const primaryUserId = String(req.body.primaryUserId ?? '').trim();
+      const secondaryUserId = String(req.body.secondaryUserId ?? '').trim();
+
+      if (!primaryUserId || !secondaryUserId) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Both primaryUserId and secondaryUserId are required' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      if (primaryUserId === secondaryUserId) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Cannot link a user account to itself' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      try {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        const response = await firstValueFrom(UsersService.linkAccounts(
+          primaryUserId,
+          secondaryUserId,
+          String(req.user?.username ?? 'system'),
+          String(brand.id)
+        ));
+        return this.sendResp(req, res, {
+          data: response,
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        sails.log.error('Failed to link accounts:');
+        sails.log.error(error);
+
+        const errorMessage = (error as Error)?.message ?? 'An error has occurred';
+        const normalizedMessage = errorMessage.toLowerCase();
+        let statusCode = 500;
+
+        if (normalizedMessage.includes('forbidden') || normalizedMessage.includes('unauthor')) {
+          statusCode = 403;
+        } else if (
+          normalizedMessage.includes('required')
+          || normalizedMessage.includes('invalid')
+          || normalizedMessage.includes('must')
+          || normalizedMessage.includes('cannot link a user account to itself')
+        ) {
+          statusCode = 400;
+        }
+
+        return this.sendResp(req, res, {
+          status: statusCode,
+          displayErrors: [{ detail: errorMessage }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
     public listSystemRoles(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const response: ListAPIResponse<unknown> = new ListAPIResponse<unknown>();
@@ -362,6 +586,73 @@ export namespace Controllers {
       }
     }
 
+
+    public async disableUser(req: Sails.Req, res: Sails.Res) {
+      try {
+        const userId = req.param('id');
+        if (_.isEmpty(userId)) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'User ID is required' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        if (String(req.user?.id ?? '') === String(userId)) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'You cannot disable your own account' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        await UsersService.disableUser(userId, String(req.user?.username ?? 'system'), String(brand.id));
+        return this.apiRespond(req, res, { status: true, message: 'User disabled successfully' });
+      } catch (err) {
+        sails.log.error(err);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async enableUser(req: Sails.Req, res: Sails.Res) {
+      try {
+        const userId = req.param('id');
+        if (_.isEmpty(userId)) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'User ID is required' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        if (!brand || !brand.id) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        await UsersService.enableUser(userId, String(req.user?.username ?? 'system'), String(brand.id));
+        return this.apiRespond(req, res, { status: true, message: 'User enabled successfully' });
+      } catch (err) {
+        sails.log.error(err);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
 
     /**
      **************************************************************************************************

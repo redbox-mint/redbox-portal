@@ -586,6 +586,12 @@ export namespace Services {
       if (editContributorObs.length === 0 && viewContributorObs.length === 0) {
         return of(record);
       }
+      const normalizeResolvedUsers = (resolvedUsers: unknown): unknown[] => {
+        if (_.isNil(resolvedUsers)) {
+          return [];
+        }
+        return _.isArray(resolvedUsers) ? resolvedUsers : [resolvedUsers];
+      };
       let zippedViewContributorUsers: Observable<unknown>;
       if (editContributorObs.length == 0) {
         const newEditList: string[] = [];
@@ -594,43 +600,76 @@ export namespace Services {
             newEditList.push(createdBy as string);
           }
         }
-        auth.edit = newEditList;
+        auth.edit = _.uniq(newEditList);
         auth.editPending = editContributorEmails;
         zippedViewContributorUsers = zip(...viewContributorObs);
       } else {
         zippedViewContributorUsers = zip(...editContributorObs)
-          .pipe(flatMap((editContributorUsers: unknown[]) => {
-            const newEditList: string[] = [];
-            this.filterPending(editContributorUsers, editContributorEmails, newEditList);
-            if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
-              if (createdBy) {
-                newEditList.push(createdBy as string);
+          .pipe(flatMap((editContributorUsers: unknown) => {
+            return from(Promise.all(normalizeResolvedUsers(editContributorUsers).map(async (editContributorUser: unknown) => {
+              if (_.isEmpty(editContributorUser)) {
+                return editContributorUser;
               }
-            }
-            auth.edit = newEditList;
-            auth.editPending = editContributorEmails;
-            if (viewContributorObs.length === 0) {
-              return of(record);
-            } else {
+              try {
+                const effectiveUser = await firstValueFrom(UsersService.getEffectiveUser(editContributorUser));
+                return effectiveUser ?? editContributorUser;
+              } catch (error) {
+                sails.log.verbose(`Failed to resolve effective user for edit contributor, using original:`, error);
+                return editContributorUser;
+              }
+            }))).pipe(flatMap((effectiveEditUsers: unknown[]) => {
+              const newEditList: string[] = [];
+              this.filterPending(effectiveEditUsers, editContributorEmails, newEditList);
+              if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
+                const createdByUsername = createdBy as string | undefined;
+                if (createdByUsername && !newEditList.includes(createdByUsername)) {
+                  newEditList.push(createdByUsername);
+                }
+              }
+              auth.edit = _.uniq(newEditList);
+              auth.editPending = editContributorEmails;
+              if (viewContributorObs.length === 0) {
+                if (!useDefaultViewList) {
+                  auth.view = [];
+                  auth.viewPending = viewContributorEmails;
+                }
+                return of({ __skipViewResolution: true });
+              }
               return zip(...viewContributorObs);
-            }
+            }));
           }));
       }
       return zippedViewContributorUsers.pipe(flatMap((viewContributorUsers: unknown) => {
+        if (_.isPlainObject(viewContributorUsers) && (viewContributorUsers as AnyRecord).__skipViewResolution === true) {
+          return of(record);
+        }
         if (useDefaultViewList) {
           return of(record);
         }
-        const viewUsers = viewContributorUsers as unknown[];
-        const newViewList: string[] = [];
-        this.filterPending(viewUsers, viewContributorEmails, newViewList);
-        if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
-          if (createdBy) {
-            newViewList.push(createdBy as string);
+        return from(Promise.all(normalizeResolvedUsers(viewContributorUsers).map(async (viewContributorUser: unknown) => {
+          if (_.isEmpty(viewContributorUser)) {
+            return viewContributorUser;
           }
-        }
-        auth.view = newViewList;
-        auth.viewPending = viewContributorEmails;
-        return of(record);
+          try {
+            const effectiveUser = await firstValueFrom(UsersService.getEffectiveUser(viewContributorUser));
+            return effectiveUser ?? viewContributorUser;
+          } catch (error) {
+            sails.log.verbose(`Failed to resolve effective user for view contributor, using original:`, error);
+            return viewContributorUser;
+          }
+        }))).pipe(flatMap((viewUsers: unknown[]) => {
+          const newViewList: string[] = [];
+          this.filterPending(viewUsers, viewContributorEmails, newViewList);
+          if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
+            const createdByUsername = createdBy as string | undefined;
+            if (createdByUsername && !newViewList.includes(createdByUsername)) {
+              newViewList.push(createdByUsername);
+            }
+          }
+          auth.view = _.uniq(newViewList);
+          auth.viewPending = viewContributorEmails;
+          return of(record);
+        }));
       }));
     }
 

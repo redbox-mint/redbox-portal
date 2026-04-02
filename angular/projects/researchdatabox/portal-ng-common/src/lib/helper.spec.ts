@@ -134,6 +134,22 @@ export function getStubUserService(username: string = '', password: string = '',
       return { status: 'OK' };
     }, updateUserRoles() {
       return { status: 'OK' };
+    }, genKey() {
+      return { status: true, message: 'generated-token' };
+    }, revokeKey() {
+      return { status: true, message: 'revoked' };
+    }, searchLinkCandidates() {
+      return [];
+    }, getUserLinks() {
+      return { primary: userData[0] || null, linkedAccounts: [] };
+    }, getUserAudit() {
+      return { user: userData[0] || null, records: [], summary: { returnedCount: 0, truncated: false } };
+    }, linkAccounts() {
+      return { primary: userData[0] || null, linkedAccounts: [], impact: { recordsRewritten: 0, rolesMerged: 0 } };
+    }, disableUser() {
+      return { status: true, message: 'disabled' };
+    }, enableUser() {
+      return { status: true, message: 'enabled' };
     }
   };
 }

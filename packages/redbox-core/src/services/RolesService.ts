@@ -51,6 +51,7 @@ export namespace Services {
       'bootstrap',
       'getRole',
       'getAdmin',
+      'getAdminFromBrand',
       'getRoleIds',
       'getRolesWithBrand',
       'getAdminFromRoles',
@@ -76,6 +77,10 @@ export namespace Services {
 
     public getAdmin = (brand: BrandingModel): RoleModel | undefined => {
       return this.getRole(brand, this.getConfigRole('Admin').name);
+    }
+
+    public getAdminFromBrand = (brand: BrandingModel): RoleModel | undefined => {
+      return this.getAdmin(brand);
     }
 
     public getAdminFromRoles = (roles: RoleModel[]): RoleModel | undefined => {

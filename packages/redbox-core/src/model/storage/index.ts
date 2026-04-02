@@ -1,5 +1,6 @@
 export { RecordAuditModel, RecordAuditActionType } from "./RecordAuditModel";
 export { UserModel } from "./UserModel";
+export { UserLinkModel } from "./UserLinkModel";
 export { BrandingModel } from "./BrandingModel";
 export { RoleModel } from "./RoleModel";
 export { RecordTypeModel } from "./RecordTypeModel";
