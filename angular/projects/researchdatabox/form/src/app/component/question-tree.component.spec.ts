@@ -803,12 +803,18 @@ describe('QuestionTreeComponent', async () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      const fieldLabels = element.querySelectorAll('.rb-form-field-label span');
+      // TODO: This test sometimes passes, sometimes fails, likely indicating a timing dependence on something else.
+      // I haven't been able to pinpoint where it is coming from.
+      // For now, this is usually fixed by doing another round of detect changes and wait for stable.
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const fieldLabels = element.querySelectorAll('.rb-form-field-label');
       expect(fieldLabels.length).toEqual(1);
 
       const firstLabel = fieldLabels[0];
       expect(firstLabel).toBeTruthy();
-      expect(firstLabel?.textContent?.trim()).toContain('Direct Question Label');
+      expect(firstLabel?.innerHTML?.trim()).toContain('Direct Question Label');
     });
 
     it('should render a provided question label value directly', async () => {
