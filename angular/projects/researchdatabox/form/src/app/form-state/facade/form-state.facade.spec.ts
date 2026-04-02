@@ -40,6 +40,11 @@ describe('FormStateFacade', () => {
     facade = TestBed.inject(FormStateFacade);
     store = TestBed.inject(MockStore);
 
+    store.overrideSelector(FormSelectors.selectStatus, FormStatus.INIT);
+    store.overrideSelector(FormSelectors.selectIsSaving, false);
+    store.overrideSelector(FormSelectors.selectIsDeleting, false);
+    store.refreshState();
+
     spyOn(store, 'dispatch');
   });
 
@@ -205,6 +210,24 @@ describe('FormStateFacade', () => {
           enabledValidationGroups: ["all"],
         })
       );
+    });
+
+    it('should not dispatch submitForm while form is busy', () => {
+      store.overrideSelector(FormSelectors.selectIsSaving, true);
+      store.refreshState();
+
+      facade.submit({ force: true });
+
+      expect(store.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('should not dispatch deleteRecord while form is busy', () => {
+      store.overrideSelector(FormSelectors.selectIsDeleting, true);
+      store.refreshState();
+
+      facade.deleteRecord({ closeOnDelete: true });
+
+      expect(store.dispatch).not.toHaveBeenCalled();
     });
 
     it('should dispatch markDirty on markDirty() (AC20, R7.1)', () => {

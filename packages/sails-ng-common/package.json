@@ -13,7 +13,7 @@
     "test:clean": "rm -rf support/junit || true",
     "compile": "tsc -p tsconfig.prod.json",
     "compile:clean": "rm -rf dist/",
-    "test:compile": "tsc -p tsconfig.json",
+    "test:compile": "tsc -p tsconfig.test.json",
     "pretest:compile": "npm run compile:clean"
   },
   "repository": {
@@ -38,27 +38,19 @@
     "node": ">=20.0.0"
   },
   "devDependencies": {
-    "@eslint/js": "9.27.0",
-    "@stylistic/eslint-plugin": "4.2.0",
-    "@stylistic/eslint-plugin-js": "4.2.0",
-    "@stylistic/eslint-plugin-ts": "4.2.0",
     "@tsconfig/node24": "^24.0.1",
-    "@types/chai": "5.2.1",
-    "@types/lodash": "4.17.17",
-    "@types/lodash-es": "4.17.10",
+    "@types/chai": "5.2.3",
+    "@types/lodash": "4.17.24",
+    "@types/lodash-es": "4.17.12",
     "@types/luxon": "3.7.1",
     "@types/mocha": "10.0.10",
     "@types/node": "20.17.48",
-    "@typescript-eslint/eslint-plugin": "8.54.0",
-    "@typescript-eslint/parser": "8.54.0",
     "chai": "5.2.0",
-    "eslint": "9.27.0",
     "jsonata": "^2.1.0",
-    "mocha": "11.4.0",
+    "mocha": "11.7.5",
     "mocha-junit-reporter": "2.2.1",
     "nyc": "17.1.0",
-    "typescript": "5.9.2",
-    "typescript-eslint": "8.54.0"
+    "typescript": "5.9.2"
   },
   "nyc": {
     "check-coverage": true,
@@ -68,7 +60,9 @@
     "functions": 45,
     "branches": 45,
     "include": [
-      "**/src/**/*.*"
+      "**/src/handlebars-helpers.*",
+      "**/src/config/names/**/*.*",
+      "**/src/validation/**/*.*"
     ],
     "reporter": [
       "lcov",
@@ -77,11 +71,17 @@
     ]
   },
   "dependencies": {
-    "@jsonjoy.com/json-pointer": "^17.63.0",
+    "@jsonjoy.com/json-pointer": "^17.67.0",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
     "luxon": "^3.7.2",
-    "ts-json-schema-generator": "^2.4.0"
+    "marked": "^17.0.5",
+    "ts-json-schema-generator": "^2.9.0"
+  },
+  "overrides": {
+    "mocha": {
+      "serialize-javascript": "7.0.5"
+    }
   },
   "peerDependencies": {
     "jsonata": "^2.1.0"

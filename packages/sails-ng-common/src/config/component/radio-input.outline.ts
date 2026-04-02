@@ -31,7 +31,9 @@ export interface RadioOption {
 }
 
 export interface RadioInputFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    options: RadioOption[];
+    options?: RadioOption[];
+    vocabRef?: string;
+    inlineVocab?: boolean;
 }
 
 export interface RadioInputFieldComponentConfigOutline extends RadioInputFieldComponentConfigFrame, FieldComponentConfigOutline {
@@ -50,7 +52,7 @@ export interface RadioInputFieldComponentDefinitionOutline extends RadioInputFie
 /* Radio Input Model */
 export const RadioInputModelName = "RadioInputModel" as const;
 export type RadioInputModelNameType = typeof RadioInputModelName;
-export type RadioInputModelValueType = string | null | Array<string>;
+export type RadioInputModelValueType = string | null;
 
 export interface RadioInputFieldModelConfigFrame extends FieldModelConfigFrame<RadioInputModelValueType> {
 }

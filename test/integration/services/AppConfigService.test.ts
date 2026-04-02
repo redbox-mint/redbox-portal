@@ -6,7 +6,7 @@ describe('appConfigService', function () {
 
   beforeEach(() => {
     appConfigService = sails.services.appconfigservice;
-    ConfigModels = sails.config.configmodels || require('@researchdatabox/redbox-core-types').ConfigModels;
+    ConfigModels = sails.config.configmodels || require('@researchdatabox/redbox-core').ConfigModels;
     // Save original state
     originalBrandingAppConfigMap = appConfigService.brandingAppConfigMap;
     // Generate unique suffix for test models to avoid conflicts
@@ -22,12 +22,14 @@ describe('appConfigService', function () {
       'testNonOverrideConfig',
       'testFilterGlobs',
       'testNullMap',
-      'testSingleGlob'
+      'testSingleGlob',
     ];
     const safeSchema = { type: 'object', properties: {} };
     class SafeDummy {
       [key: string]: any;
-      static getFieldOrder() { return []; }
+      static getFieldOrder() {
+        return [];
+      }
     }
 
     polluters.forEach(key => {
@@ -35,7 +37,7 @@ describe('appConfigService', function () {
         key,
         modelName: 'SafeDummy' + key,
         class: SafeDummy,
-        schema: safeSchema
+        schema: safeSchema,
       });
     });
 
@@ -63,9 +65,8 @@ describe('appConfigService', function () {
     const branding = BrandingService.getBrand(brandName);
     const configKey = 'systemMessage';
     const configData = await appConfigService.getAppConfigByBrandAndKey(branding.id, configKey);
-    expect(configData.message).to.eq(undefined)
+    expect(configData.message ?? '').to.eq('');
   });
-
 
   it('should create or update a configuration', async () => {
     const brandName = 'default';
@@ -77,15 +78,14 @@ describe('appConfigService', function () {
     let configData: any = {};
     configData.message = message;
     configData.enabled = enabled;
-    sails.log.error("branding:")
-    sails.log.error(branding)
+    sails.log.error('branding:');
+    sails.log.error(branding);
     const updatedConfigData = await appConfigService.createOrUpdateConfig(branding, configKey, configData);
     const updatedConfig = appConfigService.getAppConfigurationForBrand(brandName);
 
     expect(updatedConfig[configKey].message).to.eq(message);
     expect(updatedConfig[configKey].enabled).to.eq(enabled);
   });
-
 
   it('should get all configurations for a brand from the database', async () => {
     const brandName = 'default';
@@ -100,7 +100,7 @@ describe('appConfigService', function () {
     const branding = BrandingService.getBrand(brandName);
     const configKey = 'systemMessage';
     const configData = await appConfigService.getAppConfigByBrandAndKey(branding.id, configKey);
-    expect(configData.message).to.eq('test message')
+    expect(configData.message).to.eq('test message');
   });
 
   it('should throw an error when key does not exist', async () => {
@@ -109,13 +109,11 @@ describe('appConfigService', function () {
     const configKey = 'fakeConfigKey';
     try {
       const configData = await appConfigService.getAppConfigByBrandAndKey(branding.id, configKey);
-      expect.fail("Should have thrown error");
+      expect.fail('Should have thrown error');
     } catch (err) {
       expect(err).to.be.an('error');
     }
   });
-
-
 
   it('should create a configuration', async () => {
     const brandName = 'default';
@@ -127,7 +125,6 @@ describe('appConfigService', function () {
     expect(createdConfigData.example).to.eq(configData.example);
     const updatedConfig = appConfigService.getAppConfigurationForBrand(brandName);
     expect(updatedConfig[configKey].example).to.eq(configData.example);
-
   });
 
   it('should get the app config form', async () => {
@@ -151,15 +148,15 @@ describe('appConfigService', function () {
     const mockSchema = {
       type: 'object',
       properties: {
-        testProperty: { type: 'string' }
-      }
+        testProperty: { type: 'string' },
+      },
     };
 
     const configInfo = {
       key: 'testConfig',
       modelName: 'TestModel',
       class: mockClass,
-      schema: mockSchema
+      schema: mockSchema,
     };
 
     appConfigService.registerConfigModel(configInfo);
@@ -183,7 +180,7 @@ describe('appConfigService', function () {
       key: 'testConfigWithGlob',
       modelName: 'TestModelWithGlob',
       class: mockClass,
-      tsGlob: '/some/test/path/*.ts'
+      tsGlob: '/some/test/path/*.ts',
     };
 
     // Should not throw an error when registering with tsGlob
@@ -205,7 +202,7 @@ describe('appConfigService', function () {
       key: 'testConfigWithMultipleGlobs',
       modelName: 'TestModelWithMultipleGlobs',
       class: mockClass,
-      tsGlob: ['/path/one/*.ts', '/path/two/*.ts']
+      tsGlob: ['/path/one/*.ts', '/path/two/*.ts'],
     };
 
     appConfigService.registerConfigModel(configInfo);
@@ -214,12 +211,11 @@ describe('appConfigService', function () {
     expect(() => appConfigService.registerConfigModel(configInfo)).to.not.throw();
   });
 
-
   it('should handle config model registration with class instantiation error', () => {
     // Test the error handling by mocking the instantiation process
     const originalWarn = sails.log.warn;
     let warnMessage = '';
-    sails.log.warn = (msg) => {
+    sails.log.warn = msg => {
       warnMessage = msg;
     };
 
@@ -243,7 +239,7 @@ describe('appConfigService', function () {
     const configInfo = {
       key: 'testSafeConfig',
       modelName: 'TestModelErrorHandling',
-      class: mockClass
+      class: mockClass,
     };
 
     // Should work without throwing an error
@@ -269,19 +265,21 @@ describe('appConfigService', function () {
       appConfigService.brandingAppConfigMap = {};
     }
     appConfigService.brandingAppConfigMap['testBrand'] = {
-      testNonOverrideConfig: { nonOverrideProperty: 'existing value' }
+      testNonOverrideConfig: { nonOverrideProperty: 'existing value' },
     };
 
     const configInfo = {
       key: 'testNonOverrideConfig',
       modelName: 'TestModelNonOverride',
-      class: mockClass
+      class: mockClass,
     };
 
     appConfigService.registerConfigModel(configInfo);
 
     // Should not override existing value
-    expect(appConfigService.brandingAppConfigMap['testBrand']['testNonOverrideConfig'].nonOverrideProperty).to.equal('existing value');
+    expect(appConfigService.brandingAppConfigMap['testBrand']['testNonOverrideConfig'].nonOverrideProperty).to.equal(
+      'existing value'
+    );
   });
 
   it('should filter out falsy tsGlob values', () => {
@@ -296,7 +294,7 @@ describe('appConfigService', function () {
       key: 'testFilterGlobs',
       modelName: 'TestModelFilterGlobs',
       class: mockClass,
-      tsGlob: ['/valid/path/*.ts', null, '', '/another/valid/path/*.ts']
+      tsGlob: ['/valid/path/*.ts', null, '', '/another/valid/path/*.ts'],
     };
 
     // Should not throw an error when registering with mixed valid/falsy globs
@@ -321,19 +319,19 @@ describe('appConfigService', function () {
     const prebuiltSchema = {
       type: 'object',
       properties: {
-        prebuiltProperty: { type: 'string' }
-      }
+        prebuiltProperty: { type: 'string' },
+      },
     };
 
     const testModelInfo = {
       modelName: 'TestModelWithPrebuiltSchemaOnly',
       class: mockClass,
-      schema: prebuiltSchema
+      schema: prebuiltSchema,
     };
 
     // Mock ConfigModels to only return our test model
     ConfigModels.getConfigKeys = () => ['testPrebuiltSchemaOnly'];
-    ConfigModels.getModelInfo = (key) => {
+    ConfigModels.getModelInfo = key => {
       if (key === 'testPrebuiltSchemaOnly') {
         return testModelInfo;
       }
@@ -369,8 +367,8 @@ describe('appConfigService', function () {
     const formSchema = {
       type: 'object',
       properties: {
-        formProperty: { type: 'string' }
-      }
+        formProperty: { type: 'string' },
+      },
     };
 
     // Register model with schema
@@ -378,7 +376,7 @@ describe('appConfigService', function () {
       key: 'testFormWithSchema',
       modelName: 'TestFormModelWithSchema',
       class: mockClass,
-      schema: formSchema
+      schema: formSchema,
     });
 
     const branding = BrandingService.getBrand('default');
@@ -407,7 +405,7 @@ describe('appConfigService', function () {
     const configInfo = {
       key: 'testNullMap',
       modelName: 'TestModelNullMap',
-      class: mockClass
+      class: mockClass,
     };
 
     // Should not throw an error when brandingAppConfigMap is null
@@ -432,7 +430,7 @@ describe('appConfigService', function () {
       key: 'testSingleGlob',
       modelName: 'TestModelSingleGlob',
       class: mockClass,
-      tsGlob: '/single/path/*.ts'
+      tsGlob: '/single/path/*.ts',
     };
 
     appConfigService.registerConfigModel(configInfo);

@@ -1,6 +1,6 @@
 import {
     FieldComponentConfigKind, FieldComponentDefinitionKind, FieldLayoutConfigKind, FieldLayoutDefinitionKind,
-    FormComponentDefinitionKind
+    FormComponentDefinitionKind, KeyValueStringProperty
 } from "../shared.outline";
 import {
     ButtonSectionAriaOrientationOptionsType,
@@ -19,6 +19,7 @@ import {TabContentFormComponentDefinitionOutline} from "./tab-content.outline";
 
 export class TabFieldComponentConfig extends FieldComponentConfig implements TabFieldComponentConfigOutline {
     tabs: TabContentFormComponentDefinitionOutline[];
+    hostCssClasses = 'tab-content';
 
     constructor() {
         super();
@@ -44,9 +45,13 @@ export class TabFieldComponentDefinition extends FieldComponentDefinition implem
 
 
 export class TabFieldLayoutConfig extends FieldLayoutConfig implements TabFieldLayoutConfigOutline {
-    buttonSectionCssClass?: string;
-    tabPaneCssClass?: string;
-    tabPaneActiveCssClass?: string;
+    hostCssClasses?: KeyValueStringProperty = 'rb-form-tab-layout';
+    tabShellCssClass?: string = 'rb-form-tab-shell';
+    tabNavWrapperCssClass?: string = 'rb-form-tab-nav-wrapper';
+    tabPanelWrapperCssClass?: string = 'rb-form-tab-panel-wrapper';
+    buttonSectionCssClass?: string = 'rb-form-tab-nav nav flex-column nav-pills';
+    tabPaneCssClass?: string = 'rb-form-tab-pane tab-pane fade';
+    tabPaneActiveCssClass?: string = 'active show';
     buttonSectionAriaOrientation?: ButtonSectionAriaOrientationOptionsType = 'vertical';
 
     constructor() {
@@ -91,3 +96,11 @@ export const TabMap = [
     {kind: FieldLayoutDefinitionKind, def: TabFieldLayoutDefinition, class: TabLayoutName},
     {kind: FormComponentDefinitionKind, def: TabFormComponentDefinition, class:TabComponentName},
 ];
+export const TabDefaults = {
+    [FormComponentDefinitionKind]: {
+        [TabComponentName]: {
+            [FieldComponentDefinitionKind]: TabComponentName,
+            [FieldLayoutDefinitionKind]: TabLayoutName,
+        },
+    },
+};

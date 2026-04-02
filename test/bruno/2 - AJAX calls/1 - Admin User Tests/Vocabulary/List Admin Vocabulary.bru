@@ -1,0 +1,21 @@
+meta {
+  name: List Admin Vocabulary
+  type: http
+  seq: 100
+}
+
+get {
+  url: {{host}}/default/rdmp/admin/vocabulary
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

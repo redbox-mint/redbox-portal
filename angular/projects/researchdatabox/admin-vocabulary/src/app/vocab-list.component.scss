@@ -1,0 +1,120 @@
+.vocab-panel-card {
+  background-color: #fff;
+  border-color: #d6dbe1;
+}
+
+.vocab-panel-card .panel-heading .text-muted {
+  color: inherit !important;
+  opacity: 0.9;
+}
+
+.vocab-filters {
+  margin-bottom: 1rem;
+}
+
+.vocab-filters label {
+  margin-top: 0;
+}
+
+.vocab-filters .form-control-sm {
+  height: calc(1.5em + 0.5rem + 2px);
+}
+
+.vocab-filters .btn-group .btn-light {
+  border-color: #ced4da;
+}
+
+.vocab-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #d6dbe1;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.vocab-data-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.vocab-data-table .vocab-col-name {
+  width: calc((100% - 170px) * 0.472);
+}
+
+.vocab-data-table .vocab-col-slug {
+  width: calc((100% - 170px) * 0.326);
+}
+
+.vocab-data-table .vocab-col-type {
+  width: calc((100% - 170px) * 0.112);
+}
+
+.vocab-data-table .vocab-col-source {
+  width: calc((100% - 170px) * 0.09);
+}
+
+.vocab-data-table .vocab-col-actions {
+  width: 170px;
+}
+
+.vocab-data-table thead {
+  background: #f8f9fa;
+}
+
+.vocab-data-table th,
+.vocab-data-table td {
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid #e5e8eb;
+  vertical-align: middle;
+  color: #2f353a;
+}
+
+.vocab-data-table th {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #59626b;
+}
+
+.vocab-data-table tbody tr:hover {
+  background: #f8fbff;
+}
+
+.vocab-data-table tbody tr.vocab-selected {
+  background: #eef6ff;
+}
+
+.vocab-data-table tbody tr:focus,
+.vocab-data-table tbody tr:focus-visible {
+  background: #e5f1ff;
+  outline: 2px solid #0b5ed7;
+  outline-offset: -2px;
+}
+
+.vocab-data-table tbody tr.vocab-selected:focus,
+.vocab-data-table tbody tr.vocab-selected:focus-visible {
+  background: #dcecff;
+  outline: 2px solid #084298;
+  outline-offset: -2px;
+}
+
+.vocab-data-table code {
+  color: #4b5560;
+  background: transparent;
+  padding: 0;
+}
+
+.vocab-data-table .btn {
+  vertical-align: middle;
+}
+
+.vocab-data-table .action-button + .action-button {
+  margin-left: 0.5rem;
+}
+
+.vocab-pagination .btn[disabled] {
+  cursor: default;
+}

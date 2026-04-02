@@ -20,10 +20,12 @@ export NVM_DIR="${NVM_DIR:-/usr/local/share/nvm}"
 [ -s "$HOME/.nvm/nvm.sh" ] && NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 cd angular
-nvm i < .nvmrc && npm install
+nvm install
+nvm use
+npm install --ignore-scripts --strict-peer-deps
 
 testAngular "portal-ng-common" "frontend-core-lib"
-ng2apps=( $(find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -printf '%f ') )
+ng2apps=( $(find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -exec basename {} \;) )
 for ng2app in "${ng2apps[@]}"
 do
   if [ "$ng2app" != "portal-ng-common" ] && [ "$ng2app" != "portal-ng-form-custom" ]; then

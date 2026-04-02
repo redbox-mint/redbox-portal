@@ -20,6 +20,8 @@ import {
 export class ContentFieldComponentConfig extends FieldComponentConfig implements ContentFieldComponentConfigOutline {
     template?: string;
     content?: unknown;
+    contentIsTranslationCode?: boolean;
+    outputFormat?: string;
 
     constructor() {
         super();
@@ -61,4 +63,10 @@ export const ContentMap = [
     {kind: FieldComponentDefinitionKind, def: ContentFieldComponentDefinition, class: ContentComponentName},
     {kind: FormComponentDefinitionKind, def: ContentFormComponentDefinition, class: ContentComponentName},
 ];
-
+export const ContentDefaults = {
+    [FormComponentDefinitionKind]: {
+        [ContentComponentName]: {
+            [FieldComponentDefinitionKind]: ContentComponentName,
+        },
+    },
+};

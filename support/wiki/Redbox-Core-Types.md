@@ -1,6 +1,6 @@
 # Redbox Core Types Package
 
-The `@researchdatabox/redbox-core-types` package provides shared TypeScript type definitions and core business logic used across the ReDBox Portal system.
+The `@researchdatabox/redbox-core` package provides shared TypeScript type definitions and core business logic used across the ReDBox Portal system.
 
 ## Overview
 
@@ -65,7 +65,7 @@ import {
 
     // Shims
     momentShim
-} from '@researchdatabox/redbox-core-types';
+} from '@researchdatabox/redbox-core';
 ```
 
 ## Controllers
@@ -121,7 +121,7 @@ export module Services {
 | **Configuration** | `ConfigService`, `AppConfigService`, `BrandingService`, `BrandingLogoService` | Runtime configuration |
 | **Templates & I18n** | `TemplateService`, `TranslationService`, `I18nEntriesService` | Templating and internationalization |
 | **Reports** | `ReportsService`, `DashboardTypesService` | Reporting and dashboards |
-| **Utilities** | `ViewUtilsService`, `PathRulesService`, `SvgSanitizerService`, `ContrastService`, `SassCompilerService` | Helper utilities |
+| **Utilities** | `ViewUtilsService`, `PathRulesService`, `DomSanitizerService`, `ContrastService`, `SassCompilerService` | Helper utilities |
 | **Background Jobs** | `AgendaQueueService`, `AsynchsService` | Job queue and async processing |
 | **Navigation** | `NavigationService` | Menu and navigation |
 | **Vocabularies** | `VocabService` | Controlled vocabularies |
@@ -132,7 +132,7 @@ export module Services {
 The `ServiceExports` object provides lazy-instantiated services for the [Redbox Loader](Redbox-Loader) to generate shims:
 
 ```typescript
-import { ServiceExports } from '@researchdatabox/redbox-core-types';
+import { ServiceExports } from '@researchdatabox/redbox-core';
 
 // Access a service (lazy instantiation)
 const recordsService = ServiceExports['RecordsService'];
@@ -172,7 +172,7 @@ Services are instantiated via `new ServiceClass().exports()` which provides meth
 | `RolesService` | User role management |
 | `SassCompilerService` | SASS/SCSS compilation |
 | `SolrSearchService` | Solr search integration |
-| `SvgSanitizerService` | SVG sanitization |
+| `DomSanitizerService` | SVG sanitization |
 | `TemplateService` | EJS template rendering |
 | `TranslationService` | Multi-language support |
 | `TriggerService` | Workflow trigger execution |
@@ -253,7 +253,7 @@ The package provides a custom Sails.js hook for compiling assets using Webpack:
 
 ```typescript
 // Define the hook in a Sails app
-import { defineWebpackHook } from '@researchdatabox/redbox-core-types';
+import { defineWebpackHook } from '@researchdatabox/redbox-core';
 
 export default function(sails) {
     return defineWebpackHook(sails);
@@ -272,7 +272,7 @@ Helper functions for backward compatibility are available in `src/shims/`:
 - **momentShim**: A Luxon-based shim that replicates Moment.js formatting for templates.
 
 ```typescript
-import { momentShim } from '@researchdatabox/redbox-core-types';
+import { momentShim } from '@researchdatabox/redbox-core';
 const formattedDate = momentShim(new Date()).format('YYYY-MM-DD');
 ```
 
@@ -283,12 +283,12 @@ Hooks extending ReDBox can depend on this package:
 ```json
 {
     "dependencies": {
-        "@researchdatabox/redbox-core-types": "^1.5.0"
+        "@researchdatabox/redbox-core": "^1.5.0"
     }
 }
 ```
 
 See also:
 - [Redbox Loader](Redbox-Loader) - Pre-lift shim generation
-- [Redbox Hook Kit](Redbox-Hook-Kit) - Hook development toolkit
+- [Redbox Hook Kit](redbox-dev-tools) - Hook development toolkit
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox)

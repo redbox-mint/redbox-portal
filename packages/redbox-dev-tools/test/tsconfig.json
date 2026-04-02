@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../dist-test",
+    "rootDir": "..",
+    "types": ["node", "mocha", "chai", "sinon"]
+  },
+  "include": ["../src/**/*.ts", "**/*.ts"]
+}

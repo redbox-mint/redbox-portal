@@ -1,10 +1,25 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     resource_class: large
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci
+      - run:
+          name: Run lint
+          command: npm run lint
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
       - setup_remote_docker
       - run:
           name: Build runtime image via Dockerfile
@@ -25,7 +40,7 @@ jobs:
             - docker-images/redbox-portal-test.tar
   build-runtime-datastream-cloud:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     resource_class: large
     steps:
       - checkout
@@ -49,7 +64,7 @@ jobs:
             - docker-images/redbox-portal-runtime-datastream-cloud-test.tar
   build-runtime-pdfgen:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     resource_class: large
     steps:
       - checkout
@@ -73,7 +88,7 @@ jobs:
             - docker-images/redbox-portal-runtime-pdfgen-test.tar
   build-runtime-cloud-pdfgen:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     resource_class: large
     steps:
       - checkout
@@ -140,7 +155,7 @@ jobs:
       - run:
           name: Run Bruno General tests
           no_output_timeout: 30m
-          command: BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:general
+          command: BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:general:ci
       - run:
           name: Clean up Bruno containers
           command: npm run test:bruno:clean || true
@@ -148,9 +163,9 @@ jobs:
       - run:
           name: Upload Bruno General code coverage
           command: |
-             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
-              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-              --flag "backend-bruno-general" --file "./coverage/bruno-general/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-bruno-general" --file "./coverage/bruno-general/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
       - store_test_results:
           path: .tmp/junit
@@ -203,7 +218,7 @@ jobs:
       - run:
           name: Run Bruno OIDC tests
           no_output_timeout: 30m
-          command: BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:oidc
+          command: BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:oidc:ci
       - run:
           name: Clean up Bruno containers
           command: npm run test:bruno:clean || true
@@ -211,9 +226,9 @@ jobs:
       - run:
           name: Upload Bruno OIDC code coverage
           command: |
-             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
-              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-              --flag "backend-bruno-oidc" --file "./coverage/bruno-oidc/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-bruno-oidc" --file "./coverage/bruno-oidc/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
       - store_test_results:
           path: .tmp/junit
@@ -260,7 +275,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
+            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
       - run:
           name: Setup test directories
           command: |
@@ -270,13 +285,13 @@ jobs:
       - run:
           name: Run Mocha tests
           no_output_timeout: 30m
-          command: timeout 1800s npm run test:mocha
+          command: timeout 1800s npm run test:mocha:ci
       - run:
           name: Upload Mocha code coverage
           command: |
-             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
-              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-              --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
       - store_test_results:
           path: .tmp/junit
@@ -377,7 +392,7 @@ jobs:
           when: always
       - store_test_results:
           path: packages/sails-ng-common/support/junit
-  test-redbox-core-types:
+  test-redbox-core:
     machine:
       image: ubuntu-2004:current
     resource_class: large
@@ -400,30 +415,105 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido
+            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva
       - run:
           name: Install packages
           command: |
-            cd ./packages/redbox-core-types
+            cd ./packages/redbox-core
             npm ci --include=dev
       - run:
           name: Run Mocha tests with coverage
           no_output_timeout: 30m
           command: |
-            cd ./packages/redbox-core-types
+            cd ./packages/redbox-core
             mkdir -p support/junit
-            nvm install && npx nyc --no-clean --report-dir ./coverage/redbox-core-types --reporter=lcov --exclude-after-remap=false \
+            nvm install && npx nyc --no-clean --report-dir ./coverage/redbox-core --reporter=lcov --exclude-after-remap=false \
               npx mocha --config .mocharc.js --exit test/**/*.test.ts
       - run:
-          name: Upload redbox-core-types code coverage
+          name: Upload redbox-core code coverage
           command: |
-            cd ./packages/redbox-core-types
+            cd ./packages/redbox-core
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
-             --flag "backend-redbox-core-types" --file "./coverage/redbox-core-types/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+             --flag "backend-redbox-core" --file "./coverage/redbox-core/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
       - store_test_results:
-          path: packages/redbox-core-types/support/junit
+          path: packages/redbox-core/support/junit
+  test-redbox-dev-tools-cli:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+      - run:
+          name: Install root dependencies
+          command: |
+            nvm install
+            npm install --no-save --ignore-scripts
+      - run:
+          name: Compile shared packages
+          command: |
+            nvm install
+            npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:core
+      - run:
+          name: Install redbox-dev-tools dependencies
+          command: |
+            nvm install
+            cd ./packages/redbox-dev-tools
+            npm ci --include=dev
+      - run:
+          name: Run hook-kit CLI tests with coverage
+          no_output_timeout: 30m
+          command: |
+            nvm install
+            cd ./packages/redbox-dev-tools
+            mkdir -p coverage/redbox-dev-tools
+            mkdir -p support/junit
+            TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/nyc --no-clean --report-dir ./coverage/redbox-dev-tools --reporter=lcov --exclude-after-remap=false \
+              ./node_modules/.bin/mocha --config .mocharc.js --exit test/**/*.test.ts
+      - run:
+          name: Upload redbox-dev-tools CLI code coverage
+          command: |
+            cd ./packages/redbox-dev-tools
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-redbox-dev-tools-cli" --file "./coverage/redbox-dev-tools/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - store_test_results:
+          path: packages/redbox-dev-tools/support/junit
+  lint-redbox-core:
+    docker:
+      - image: 'cimg/node:24.14.1'
+    resource_class: medium
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install redbox-core dependencies
+          command: |
+            cd ./packages/redbox-core
+            npm ci --include=dev
+      - run:
+          name: Run lint for redbox-core
+          command: |
+            cd ./packages/redbox-core
+            npm run lint
   # test-sails-hook-redbox-storage-mongo:
   #   machine:
   #     image: ubuntu-2004:current
@@ -481,7 +571,7 @@ jobs:
   #         path: packages/sails-hook-redbox-storage-mongo/support/junit
   deploy:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     steps:
       - checkout
       - setup_remote_docker
@@ -520,7 +610,7 @@ jobs:
             curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
   deploy-runtime-datastream-cloud:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     steps:
       - checkout
       - setup_remote_docker
@@ -546,7 +636,7 @@ jobs:
             docker push "${REPO}:${DEPLOY_TAG}-datastream-cloud-amd64"
   deploy-runtime-pdfgen:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     steps:
       - checkout
       - setup_remote_docker
@@ -572,7 +662,7 @@ jobs:
             docker push "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
   deploy-runtime-cloud-pdfgen:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     steps:
       - checkout
       - setup_remote_docker
@@ -625,7 +715,7 @@ jobs:
             docker push "${REPO}:${DEPLOY_TAG}-arm64"
   publish-manifest:
     docker:
-      - image: 'cimg/node:24.11.1'
+      - image: 'cimg/node:24.14.1'
     steps:
       - checkout
       - setup_remote_docker
@@ -653,7 +743,7 @@ jobs:
     steps:
       - add_ssh_keys:
           fingerprints:
-            - "50:0c:a1:7f:b6:64:84:42:01:61:0f:76:3f:e4:78:ff"
+            - '50:0c:a1:7f:b6:64:84:42:01:61:0f:76:3f:e4:78:ff'
       - checkout
       - restore_cache:
           keys:
@@ -741,7 +831,13 @@ workflows:
       - test-sails-ng-common:
           requires:
             - build
-      - test-redbox-core-types:
+      # - lint-redbox-core:
+      #     requires:
+      #       - build
+      - test-redbox-core:
+          requires:
+            - build
+      - test-redbox-dev-tools-cli:
           requires:
             - build
       # - test-sails-hook-redbox-storage-mongo:
@@ -754,7 +850,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
+            - test-redbox-dev-tools-cli
             # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
@@ -766,7 +863,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
+            - test-redbox-dev-tools-cli
             # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
@@ -779,7 +877,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
+            - test-redbox-dev-tools-cli
             # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
@@ -792,7 +891,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
+            - test-redbox-dev-tools-cli
             # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
@@ -805,7 +905,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
+            - test-redbox-dev-tools-cli
             # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
@@ -825,7 +926,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
+            - test-redbox-dev-tools-cli
             # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
@@ -853,7 +955,10 @@ workflows:
       - test-sails-ng-common:
           requires:
             - build
-      - test-redbox-core-types:
+      - test-redbox-core:
+          requires:
+            - build
+      - test-redbox-dev-tools-cli:
           requires:
             - build
       # - test-sails-hook-redbox-storage-mongo:
@@ -866,7 +971,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
+            - test-redbox-dev-tools-cli
             # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
@@ -878,7 +984,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
+            - test-redbox-dev-tools-cli
             # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
@@ -897,7 +1004,8 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
+            - test-redbox-dev-tools-cli
             # - test-sails-hook-redbox-storage-mongo
           filters:
             branches:
@@ -974,7 +1082,7 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - test-redbox-core-types:
+      - test-redbox-core:
           requires:
             - build
           filters:
@@ -997,7 +1105,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
             # - test-sails-hook-redbox-storage-mongo
           filters:
             tags:
@@ -1011,7 +1119,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
             # - test-sails-hook-redbox-storage-mongo
           filters:
             tags:
@@ -1026,7 +1134,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
             # - test-sails-hook-redbox-storage-mongo
           filters:
             tags:
@@ -1041,7 +1149,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
             # - test-sails-hook-redbox-storage-mongo
           filters:
             tags:
@@ -1056,7 +1164,7 @@ workflows:
             - test-mocha
             - test-angular
             - test-sails-ng-common
-            - test-redbox-core-types
+            - test-redbox-core
             # - test-sails-hook-redbox-storage-mongo
           filters:
             tags:

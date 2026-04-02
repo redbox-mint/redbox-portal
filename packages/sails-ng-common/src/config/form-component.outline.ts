@@ -60,14 +60,12 @@ interface FormExpressionsMixedConfigFrame extends FormExpressionsBaseConfigFrame
     template?: string;
 }
 
-export type FormExpressionsOperationConfigFrame = Omit<FormExpressionsMixedConfigFrame, 'template'> & {
+export type FormExpressionsOperationConfigFrame = FormExpressionsMixedConfigFrame & {
     operation: string;
-    template?: never;
 };
 
-export type FormExpressionsTemplateConfigFrame = Omit<FormExpressionsMixedConfigFrame, 'operation'> & {
+export type FormExpressionsTemplateConfigFrame = FormExpressionsMixedConfigFrame & {
     template: string;
-    operation?: never;
 };
 
 /**
@@ -189,9 +187,6 @@ export interface FormComponentDefinitionFrame {
     layout?: FieldLayoutDefinitionFrame;
     /**
      * A record with string keys and expression template values for defining expressions.
-     *
-     * TODO: 'template' is a lodash template for now, but it should become a function like FormValidatorDefinition.create.
-     *   Expression functions will participate in a similar process as the validation functions to get to the client.
      */
     expressions?: FormExpressionsConfigFrame[];
     /**
@@ -216,4 +211,3 @@ export interface FormComponentDefinitionOutline extends FormComponentDefinitionF
     constraints?: FormConstraintConfigOutline;
     overrides?: FormOverrideConfigOutline;
 }
-

@@ -39,6 +39,21 @@ export const submitFormFailure = createAction(
   props<{ error: string }>()
 );
 
+export const deleteRecord = createAction(
+  '[Form] Delete Record',
+  props<{ closeOnDelete?: boolean; redirectLocation?: string; redirectDelaySeconds?: number }>()
+);
+
+export const deleteRecordSuccess = createAction(
+  '[Form] Delete Record Success',
+  props<{ oid: string; closeOnDelete?: boolean; redirectLocation?: string; redirectDelaySeconds?: number }>()
+);
+
+export const deleteRecordFailure = createAction(
+  '[Form] Delete Record Failure',
+  props<{ error: string }>()
+);
+
 // Reset actions (R3.2, R3.4)
 export const resetAllFields = createAction('[Form] Reset All Fields');
 export const resetAllFieldsComplete = createAction('[Form] Reset All Fields Complete');
@@ -68,4 +83,3 @@ export const dependencyEvaluated = createAction(
   '[Form] Dependency Evaluated',
   props<{ fieldId: string; dependentFields: string[]; reason: string }>()
 );
-

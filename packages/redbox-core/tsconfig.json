@@ -1,0 +1,15 @@
+{
+  "extends": "../redbox-dev-tools/config/tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist",
+    "strict": true,
+    "allowUmdGlobalAccess": true,
+    "types": ["node", "lodash"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "exclude": ["dist/**/*.ts", "dist/**/*.d.ts"]
+}

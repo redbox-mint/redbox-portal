@@ -10,9 +10,12 @@ import {FormComponentDefinition} from "../form-component.model";
 import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 
 
+
 /*  Validation Summary Component */
 
 export class ValidationSummaryFieldComponentConfig extends FieldComponentConfig implements ValidationSummaryFieldComponentConfigOutline {
+    showWhenValid = false;
+
     constructor() {
         super();
     }
@@ -57,6 +60,16 @@ export const ValidationSummaryMap = [
         def: ValidationSummaryFieldComponentDefinition,
         class: ValidationSummaryComponentName
     },
-    {kind: FormComponentDefinitionKind, def: ValidationSummaryFormComponentDefinition, class:ValidationSummaryComponentName},
+    {
+        kind: FormComponentDefinitionKind,
+        def: ValidationSummaryFormComponentDefinition,
+        class: ValidationSummaryComponentName
+    },
 ];
-
+export const ValidationSummaryDefaults = {
+    [FormComponentDefinitionKind]: {
+        [ValidationSummaryComponentName]: {
+            [FieldComponentDefinitionKind]: ValidationSummaryComponentName,
+        },
+    },
+};

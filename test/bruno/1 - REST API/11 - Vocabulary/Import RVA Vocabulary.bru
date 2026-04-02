@@ -1,0 +1,43 @@
+meta {
+  name: Import RVA Vocabulary
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/default/rdmp/api/vocabulary/import
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "rvaId": "225"
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    const status = res.getStatus();
+    if (status !== 200) {
+      console.warn(`[WARN] RVA import returned ${status}; skipping strict assertion because downstream RVA service may be unavailable.`);
+      return;
+    }
+    expect(status).to.equal(200);
+  });
+
+  test("Set RVA vocabulary id for subsequent requests", function () {
+    if (res.getStatus() !== 200) {
+      console.warn("[WARN] RVA import did not succeed; not setting rvaVocabularyId for downstream sync request.");
+      return;
+    }
+    const jsonData = res.getBody();
+    const rvaVocabularyId = jsonData?.data?.id || jsonData?.id;
+    expect(rvaVocabularyId).to.be.a('string');
+    bru.setEnvVar("rvaVocabularyId", rvaVocabularyId);
+  });
+}

@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Injectable } from '@angular/core';
+import { Injectable, isDevMode } from '@angular/core';
 
 /**
  * Check if running in CI environment.
@@ -132,9 +132,14 @@ function summarizeForCI(data: any, maxDepth: number = 2): any {
 export class LoggerService {
 
   private ciMode: boolean;
+  private debugEnabled: boolean;
 
   constructor() {
     this.ciMode = isCI();
+    this.debugEnabled =
+      typeof (globalThis as any).__REDBOX_DEBUG__ !== 'undefined'
+        ? !!(globalThis as any).__REDBOX_DEBUG__
+        : isDevMode();
   }
 
   /**
@@ -156,6 +161,9 @@ export class LoggerService {
   }
 
   debug(textOrData: string | any, data?: any): void {
+    if (!this.debugEnabled) {
+      return;
+    }
     if (typeof textOrData === 'string' && data !== undefined) {
       console.debug(textOrData, this.processData(data));
     } else {

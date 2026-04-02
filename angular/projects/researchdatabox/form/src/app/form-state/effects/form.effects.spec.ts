@@ -14,7 +14,6 @@ import { TestScheduler } from 'rxjs/testing';
 import { FormEffects } from './form.effects';
 import * as FormActions from '../state/form.actions';
 import { provideFormFeature } from '../providers';
-import { provideEffects } from '@ngrx/effects';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
 
@@ -35,7 +34,6 @@ describe('FormEffects', () => {
         FormEffects,
         provideMockActions(() => actions$),
         provideStore(),
-        provideEffects(),
         provideFormFeature(),
         LoggerService
       ]
@@ -49,6 +47,10 @@ describe('FormEffects', () => {
     });
     // Default submit handler is synchronous success
     submitHandler = () => of({});
+  });
+
+  afterEach(() => {
+    TestBed.resetTestingModule();
   });
 
   describe('loadInitialData$ Effect', () => {

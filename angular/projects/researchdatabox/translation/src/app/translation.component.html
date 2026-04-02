@@ -1,4 +1,4 @@
-<div class="container p-3">
+<div class="container p-3 translation-page-container">
   <div class="panel panel-default">
     <div class="panel-heading">Manage Languages</div>
     <div class="panel-body">
@@ -45,8 +45,8 @@
     </div>
   </div>
 </div>
-<div class="container p-3">
-  <div class="panel panel-default">
+<div class="container p-3 translation-page-container">
+  <div class="panel panel-default manage-translations-panel">
     <div class="panel-heading">Manage Translations</div>
     <div class="panel-body">
 
@@ -84,8 +84,14 @@
       <p class="alert-danger text-16 padding-10 mt-2" *ngIf="saveError()">Failed to save translation. Please try again.
       </p>
       <div *ngIf="selectedLang">
-        <div class="table-responsive">
-          <table class="table table-sm table-striped table-hover align-middle">
+        <div class="table-responsive translation-table-scroll">
+          <table class="table table-sm table-striped table-hover align-middle translation-entries-table">
+            <colgroup>
+              <col class="col-category" />
+              <col class="col-key" />
+              <col class="col-value" />
+              <col class="col-actions" />
+            </colgroup>
             <thead>
               <tr>
                 <th>
@@ -115,17 +121,17 @@
                     </span>
                   </a>
                 </th>
-                <th style="width: 100px;">Actions</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let e of viewEntries()">
                 <td>
-                  <span class="text-truncate d-inline-block" style="max-width: 220px;"
+                  <span class="text-truncate d-inline-block category-text"
                     [title]="e.category || 'Uncategorized'">{{ e.category || '—' }}</span>
                 </td>
                 <td>
-                  <span class="text-truncate d-inline-block" style="max-width: 560px;" [title]="e.key">{{ e.key
+                  <span class="text-truncate d-inline-block key-text" [title]="e.key">{{ e.key
                     }}</span>
                   <a href="#" role="button" tabindex="0"
                     class="badge bg-light text-dark rounded-circle border ms-1 key-help"
@@ -136,7 +142,7 @@
                 <td>
                   <span class="text-break" [title]="e.value">{{ e.value }}</span>
                 </td>
-                <td>
+                <td class="actions-cell">
                   <button class="btn btn-large btn-primary" (click)="openEdit(e)">Edit</button>
                 </td>
               </tr>

@@ -143,7 +143,7 @@ describe('I18nEntriesService', function () {
     expect(note).to.have.property('category', 'General');
   });
 
-  it('syncEntriesFromBundle accepts bundle-like objects and defaults empty values', async function () {
+  it('syncEntriesFromBundle accepts bundle-like objects, preserves empty strings, and defaults nullish values', async function () {
     const objectNs = `${ns}-object-sync`;
     const data = { section: { title: 'FromObject', empty: '', nullish: null } };
 
@@ -153,7 +153,7 @@ describe('I18nEntriesService', function () {
     expect(title).to.have.property('value', 'FromObject');
 
     const empty = await I18nEntriesService.getEntry({ _id: branding.id } as any, locale, objectNs, 'section.empty');
-    expect(empty).to.have.property('value', 'section.empty');
+    expect(empty).to.have.property('value', '');
 
     const nullish = await I18nEntriesService.getEntry(branding.id as any, locale, objectNs, 'section.nullish');
     expect(nullish).to.have.property('value', 'section.nullish');

@@ -29,7 +29,17 @@ headers {
 }
 
 script:post-response {
-  bru.setVar("cookie",res.headers['set-cookie']);
+  // Normalise set-cookie header(s) to a single Cookie header value ("name=value; name2=...")
+  let raw = (res.getHeader && res.getHeader('set-cookie')) || res.headers['set-cookie'];
+  if (Array.isArray(raw)) {
+    // keep only name=value portion of each
+    raw = raw.map(c => typeof c === 'string' ? c.split(';')[0] : c).join('; ');
+  } else if (typeof raw === 'string') {
+    raw = raw.split(';')[0];
+  }
+  if (raw) {
+    bru.setVar('cookie', raw);
+  }
 }
 
 tests {

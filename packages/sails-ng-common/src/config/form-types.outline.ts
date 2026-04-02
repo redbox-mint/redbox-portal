@@ -21,11 +21,19 @@ export function isTypeFieldDefinition(item: unknown): item is FieldDefinitionFra
     }
     const i = item as FieldDefinitionFrame;
 
-    const hasExpectedPropClass = 'class' in i && guessType(i?.class) === 'string';
+    const propClassGuessType = guessType(i?.class);
+    const hasExpectedPropClass = 'class' in i && propClassGuessType === 'string';
     // 'config' can be null or object or not set
-    const hasExpectedPropConfig = ('config' in i && ["object", "null"].includes(guessType(i.config))) || i?.config === undefined;
+    const propConfigGuessType =  guessType(i.config);
+    const hasExpectedPropConfig = ('config' in i && ["object", "null"].includes(propConfigGuessType)) || i?.config === undefined;
 
-    return hasExpectedPropClass && hasExpectedPropConfig;
+    const isFieldDefinition = hasExpectedPropClass && hasExpectedPropConfig;
+    if (!isFieldDefinition)
+    {
+        console.log(`isTypeFieldDefinition propClassGuessType ${propClassGuessType} propConfigGuessType ${propConfigGuessType}`);
+    }
+
+    return isFieldDefinition;
 }
 
 /**
@@ -142,12 +150,14 @@ export function isTypeReusableComponent(
         if (!reusableFormNameOnly && !noKeys) {
             throw new Error("Invalid usage of reusable form config. " +
                 `Override for component name '${item.name}' class '${item.component.class}' must contain only 'reusableFormName', ` +
-                `it cannot be combined with other properties '${JSON.stringify(overrides)}'.`);
+                `it cannot be combined with other properties '${JSON.stringify(overrides)}'. ` +
+                `Change the form component name by setting the 'replaceName' property for the relevant componentDefinition. ` +
+                `The 'formModeClasses' can only be changed on subcomponents.`);
         }
         return true;
     }
 
     throw new Error("Invalid usage of reusable form config. " +
         `Component class '${componentClassName}' must be '${ReusableComponentName}' ` +
-        `and reusableFormName '${itemReusableFormName}' must be one of '${reusableFormDefNames.join(', ')}'.`);
+        `and reusableFormName '${itemReusableFormName}' must be one of '${reusableFormDefNames.join(', ') || '(none available)'}'.`);
 }

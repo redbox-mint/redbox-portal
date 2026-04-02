@@ -45,6 +45,11 @@ export interface BaseFieldComponentConfigFrame {
      * The tooltip text translation message id.
      */
     tooltip?: string;
+    /**
+     * Whether to show a visual valid indicator (e.g. Bootstrap is-valid style) when the field has no errors.
+     * Defaults to false.
+     */
+    showValidIndicator?: boolean;
 }
 
 export interface BaseFieldComponentConfigOutline extends BaseFieldComponentConfigFrame {

@@ -3,6 +3,7 @@ import {
     isArray as _isArray,
     isString as _isString,
     isPlainObject as _isPlainObject,
+    isObjectLike as _isObjectLike,
     isFunction as _isFunction,
 } from "lodash";
 import {DateTime} from 'luxon';
@@ -47,6 +48,17 @@ export function guessType(value: unknown): GuessedType {
         return "object";
     }
 
+    // Check for custom Object.
+    try {
+        const valueInfo = valueProtoInfo(value);
+        if (valueInfo.isObjectLike && valueInfo.isValueStringTagObject &&
+            valueInfo.isValueProtoCtorFunc && !valueInfo.isValueProtoCtorFuncObj) {
+            return "object";
+        }
+    } catch (err) {
+        console.debug(`guessType custom object error with value '${value}': ${err}`);
+    }
+
     if (_isFunction(value)) {
         return "function";
     }
@@ -72,5 +84,22 @@ export function guessType(value: unknown): GuessedType {
         return "string";
     }
 
+    console.debug(`guessType unknown type for '${value}' info ${JSON.stringify(valueProtoInfo(value))}`);
+
     return "unknown";
+}
+
+function valueProtoInfo(value: any) {
+    const isObjectLike = _isObjectLike(value);
+    const isValueStringTagObject = Object.prototype.toString.call(value) === '[object Object]';
+    const valuePrototypeCtor = Object.getPrototypeOf(value).constructor;
+    const isValueProtoCtorFunc = typeof valuePrototypeCtor === 'function';
+    const isValueProtoCtorFuncObj = Function.prototype.toString.call(valuePrototypeCtor) === Function.prototype.toString.call(Object);
+    return {
+        isObjectLike,
+        isValueStringTagObject,
+        valuePrototypeCtor,
+        isValueProtoCtorFunc,
+        isValueProtoCtorFuncObj,
+    };
 }

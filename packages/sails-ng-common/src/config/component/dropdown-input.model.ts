@@ -24,6 +24,8 @@ import {
 export class DropdownInputFieldComponentConfig extends FieldComponentConfig implements DropdownInputFieldComponentConfigOutline {
     placeholder?: string;
     options: DropdownOption[] = [];
+    vocabRef?: string;
+    inlineVocab?: boolean;
 
     constructor() {
         super();
@@ -91,4 +93,11 @@ export const DropdownInputMap = [
     {kind: FieldModelDefinitionKind, def: DropdownInputFieldModelDefinition, class: DropdownInputModelName},
     {kind: FormComponentDefinitionKind, def: DropdownInputFormComponentDefinition, class: DropdownInputComponentName},
 ];
-
+export const DropdownInputDefaults = {
+    [FormComponentDefinitionKind]: {
+        [DropdownInputComponentName]: {
+            [FieldComponentDefinitionKind]: DropdownInputComponentName,
+            [FieldModelDefinitionKind]: DropdownInputModelName,
+        },
+    },
+};

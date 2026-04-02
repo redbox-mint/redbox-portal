@@ -18,16 +18,39 @@ function buildAngularApp() {
 export NVM_DIR="${NVM_DIR:-/usr/local/share/nvm}"
 [ -s "$HOME/.nvm/nvm.sh" ] && NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+function installAngularDependencies() {
+  # esbuild provides platform binaries via optional dependencies. Force-include them
+  # to avoid failures when user/global npm config omits optional packages.
+  npm install --include=optional --ignore-scripts --strict-peer-deps
+
+  if ! node -e "require.resolve('esbuild')" >/dev/null 2>&1; then
+    echo "esbuild package missing after npm install; retrying..."
+    npm install --include=optional --ignore-scripts --strict-peer-deps esbuild
+  fi
+
+  PLATFORM_ESBUILD_PACKAGE=""
+  if [[ "$OS" == "Darwin" && "$ARCH" == "arm64" ]]; then
+    PLATFORM_ESBUILD_PACKAGE="@esbuild/darwin-arm64"
+  elif [[ "$OS" == "Darwin" && "$ARCH" == "x86_64" ]]; then
+    PLATFORM_ESBUILD_PACKAGE="@esbuild/darwin-x64"
+  elif [[ "$OS" == "Linux" && ("$ARCH" == "arm64" || "$ARCH" == "aarch64") ]]; then
+    PLATFORM_ESBUILD_PACKAGE="@esbuild/linux-arm64"
+  elif [[ "$OS" == "Linux" && "$ARCH" == "x86_64" ]]; then
+    PLATFORM_ESBUILD_PACKAGE="@esbuild/linux-x64"
+  fi
+
+  if [[ -n "$PLATFORM_ESBUILD_PACKAGE" ]] && ! node -e "require.resolve('${PLATFORM_ESBUILD_PACKAGE}')" >/dev/null 2>&1; then
+    echo "Installing missing platform esbuild package ${PLATFORM_ESBUILD_PACKAGE}"
+    npm install --no-save --ignore-scripts --strict-peer-deps "${PLATFORM_ESBUILD_PACKAGE}"
+  fi
+}
 cd angular
-nvm i < .nvmrc 
+nvm install
+nvm use
+OS=$(uname -s)
 ARCH=$(uname -m)
-if [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
-  echo "Detected ARM64 architecture"
-  npm install --save-dev @esbuild/linux-arm64
-else
-  echo "Detected $ARCH architecture"
-  npm install
-fi
+echo "Detected $ARCH architecture on $OS"
+installAngularDependencies
 
 if [ "$2" == "--watch" ]; then
   WATCH_MODE="true"
@@ -40,12 +63,12 @@ cp ../support/build/angular-i18next-index.d.ts node_modules/angular-i18next/inde
 if [ $# -ne 0 ]
   then
     buildAngularApp "$1"
-else 
+else
   # Check if the custom form components directory is included in this build. Set `BUILD_PORTAL_NG_FORM_CUSTOM` to true if you want to build the custom form components.
   if [ "$BUILD_PORTAL_NG_FORM_CUSTOM" == "true" ]; then
     # Check if the custom form components placeholder is available one directory up from the parent, clone if not...
     PORTAL_NG_FORM_CUSTOM_DIR="../../portal-ng-form-custom"
-    if [[ -d "${PORTAL_NG_FORM_CUSTOM_DIR}" ]]; then 
+    if [[ -d "${PORTAL_NG_FORM_CUSTOM_DIR}" ]]; then
       echo "Custom form component placeholder already available"
     else
       echo "Cloning custom form component placeholder..."
@@ -57,14 +80,14 @@ else
       PORTAL_NG_FORM_CUSTOM_BRANCH="$3"
       CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
       if [ $? -ne 0 ]; then
-        if [ -n "$PORTAL_NG_FORM_CUSTOM_BRANCH" ]; then 
+        if [ -n "$PORTAL_NG_FORM_CUSTOM_BRANCH" ]; then
           echo "Custom form branch specified, using ${PORTAL_NG_FORM_CUSTOM_BRANCH}"
           CURRENT_BRANCH="$PORTAL_NG_FORM_CUSTOM_BRANCH"
         else
           echo "No core branch specified, using default branch for core and custom form repositories"
           CURRENT_BRANCH=""
-        fi 
-      else 
+        fi
+      else
         if [ -z "$PORTAL_NG_FORM_CUSTOM_BRANCH" ]; then
           echo "No custom branch repo specified, checking current core branch '${CURRENT_BRANCH}'"
           if [ "$CURRENT_BRANCH" != "master" ]; then
@@ -83,7 +106,7 @@ else
         git checkout "${PORTAL_NG_FORM_CUSTOM_BRANCH}"
         cd -
       fi
-    fi 
+    fi
   fi
   echo "Building core..."
   buildAngularApp "portal-ng-common" "ignore-ouput"
@@ -97,11 +120,11 @@ else
     cp angular-custom.json angular.json
     buildAngularApp "portal-ng-form-custom" "ignore-ouput"
     mv angular-orig.json angular.json
-  else 
+  else
     echo "Building form-custom placeholder..."
     buildAngularApp "portal-ng-form-custom" "ignore-ouput"
   fi
-  ng2apps=( `find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
+  ng2apps=( $(find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -exec basename {} \;) )
   for ng2app in "${ng2apps[@]}"
   do
     if [ "$ng2app" != "portal-ng-common" ] && [ "$ng2app" != "portal-ng-form-custom" ]; then
@@ -109,6 +132,3 @@ else
     fi
   done
 fi
-
-
-

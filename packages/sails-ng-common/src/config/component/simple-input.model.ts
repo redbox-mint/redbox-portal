@@ -28,6 +28,7 @@ import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
 
 export class SimpleInputFieldComponentConfig extends FieldComponentConfig implements SimpleInputFieldComponentConfigOutline {
     type?: SimpleInputFieldComponentConfigType = "text";
+    placeholder?: string = '';
 
     constructor() {
         super();
@@ -95,3 +96,11 @@ export const SimpleInputMap = [
     {kind: FieldModelDefinitionKind, def: SimpleInputFieldModelDefinition, class: SimpleInputModelName},
     {kind: FormComponentDefinitionKind, def: SimpleInputFormComponentDefinition, class:SimpleInputComponentName},
 ];
+export const SimpleInputDefaults = {
+    [FormComponentDefinitionKind]: {
+        [SimpleInputComponentName]: {
+            [FieldComponentDefinitionKind]: SimpleInputComponentName,
+            [FieldModelDefinitionKind]: SimpleInputModelName,
+        },
+    },
+};

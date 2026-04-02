@@ -1,0 +1,25 @@
+meta {
+  name: Sync Vocabulary (Invalid)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/default/rdmp/api/vocabulary/{{invalidVocabularyId}}/sync
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("Status code is 400 for invalid vocabulary id", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+}

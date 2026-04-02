@@ -1,0 +1,3689 @@
+import { cloneDeep as _cloneDeep, get as _get } from 'lodash';
+import {
+  FormConfig,
+  guessType,
+  QuestionTreeFieldComponentConfig,
+  QuestionTreeFieldComponentConfigFrame, QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFieldModelConfig,
+  QuestionTreeFieldModelDefinitionOutline,
+  QuestionTreeFormComponentDefinitionOutline,
+  QuestionTreeMeta,
+  QuestionTreeOutcome,
+  QuestionTreeQuestion,
+  QuestionTreeQuestionAnswer, QuestionTreeQuestionRuleIn, QuestionTreeQuestionRules
+} from '@researchdatabox/sails-ng-common';
+import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
+import {
+  GroupFieldComponentDefinitionOutline,
+  GroupFieldComponentName,
+  GroupFieldModelDefinitionOutline,
+  GroupFieldModelName,
+  GroupFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
+  RepeatableComponentName,
+  RepeatableElementLayoutName,
+  RepeatableElementFieldLayoutDefinitionOutline,
+  RepeatableFieldComponentDefinitionOutline,
+  RepeatableFieldModelDefinitionOutline,
+  RepeatableFormComponentDefinitionOutline,
+  RepeatableModelName,
+} from '@researchdatabox/sails-ng-common';
+import {
+  RepeatableElementFieldLayoutConfig,
+  RepeatableFieldComponentConfig,
+  RepeatableFieldModelConfig,
+} from '@researchdatabox/sails-ng-common';
+import { GroupFieldComponentConfig, GroupFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  SimpleInputComponentName,
+  SimpleInputFieldComponentDefinitionOutline,
+  SimpleInputFieldModelDefinitionOutline,
+  SimpleInputFormComponentDefinitionOutline,
+  SimpleInputModelName,
+} from '@researchdatabox/sails-ng-common';
+import { SimpleInputFieldComponentConfig, SimpleInputFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import { DefaultFieldLayoutDefinitionOutline, DefaultLayoutName } from '@researchdatabox/sails-ng-common';
+import { DefaultFieldLayoutConfig } from '@researchdatabox/sails-ng-common';
+import { ActionRowFieldLayoutDefinitionOutline, ActionRowLayoutName } from '@researchdatabox/sails-ng-common';
+import { ActionRowFieldLayoutConfig } from '@researchdatabox/sails-ng-common';
+import { InlineLayoutName } from '@researchdatabox/sails-ng-common';
+import { FormComponentDefinitionFrame, FormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import {
+  ContentComponentName,
+  ContentFieldComponentDefinitionOutline,
+  ContentFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
+  TabComponentName,
+  TabFieldComponentDefinitionOutline,
+  TabFieldLayoutDefinitionOutline,
+  TabFormComponentDefinitionOutline,
+  TabLayoutName,
+} from '@researchdatabox/sails-ng-common';
+import { TabFieldComponentConfig, TabFieldLayoutConfig } from '@researchdatabox/sails-ng-common';
+import {
+  TabContentComponentName,
+  TabContentFieldComponentDefinitionOutline,
+  TabContentFieldLayoutDefinitionOutline,
+  TabContentFormComponentDefinitionFrame,
+  TabContentFormComponentDefinitionOutline,
+  TabContentLayoutName,
+} from '@researchdatabox/sails-ng-common';
+import { TabContentFieldComponentConfig, TabContentFieldLayoutConfig } from '@researchdatabox/sails-ng-common';
+import {
+  TextAreaComponentName,
+  TextAreaFieldComponentDefinitionOutline,
+  TextAreaFieldModelDefinitionOutline,
+  TextAreaFormComponentDefinitionOutline,
+  TextAreaModelName,
+} from '@researchdatabox/sails-ng-common';
+import { TextAreaFieldComponentConfig, TextAreaFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  RichTextEditorComponentName,
+  RichTextEditorFieldComponentDefinitionOutline,
+  RichTextEditorFieldModelDefinitionOutline,
+  RichTextEditorFormComponentDefinitionOutline,
+  RichTextEditorModelName,
+} from '@researchdatabox/sails-ng-common';
+import { RichTextEditorFieldComponentConfig, RichTextEditorFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import { ContentFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
+  DropdownInputComponentName,
+  DropdownInputFieldComponentDefinitionOutline,
+  DropdownInputFieldModelDefinitionOutline,
+  DropdownInputFormComponentDefinitionOutline,
+  DropdownInputModelName,
+} from '@researchdatabox/sails-ng-common';
+import { DropdownInputFieldComponentConfig, DropdownInputFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  TypeaheadInputComponentName,
+  TypeaheadInputFieldComponentDefinitionOutline,
+  TypeaheadInputFieldModelDefinitionOutline,
+  TypeaheadInputFormComponentDefinitionOutline,
+  TypeaheadInputModelName,
+} from '@researchdatabox/sails-ng-common';
+import { TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  CheckboxInputFieldComponentDefinitionOutline,
+  CheckboxInputFieldModelDefinitionOutline,
+  CheckboxInputFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { CheckboxInputFieldComponentConfig, CheckboxInputFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  RadioInputFieldComponentDefinitionOutline,
+  RadioInputFieldModelDefinitionOutline,
+  RadioInputFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { RadioInputFieldComponentConfig, RadioInputFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  DateInputComponentName,
+  DateInputFieldComponentDefinitionOutline,
+  DateInputFieldModelDefinitionOutline,
+  DateInputFormComponentDefinitionOutline,
+  DateInputModelName,
+} from '@researchdatabox/sails-ng-common';
+import { DateInputFieldComponentConfig, DateInputFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  SaveButtonComponentName,
+  SaveButtonFieldComponentDefinitionOutline,
+  SaveButtonFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { SaveButtonFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
+  CancelButtonComponentName,
+  CancelButtonFieldComponentDefinitionOutline,
+  CancelButtonFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { CancelButtonFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
+  DeleteButtonComponentName,
+  DeleteButtonFieldComponentDefinitionOutline,
+  DeleteButtonFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { DeleteButtonFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
+  TabNavButtonComponentName,
+  TabNavButtonFieldComponentDefinitionOutline,
+  TabNavButtonFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { TabNavButtonFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
+  ValidationSummaryFieldComponentDefinitionOutline,
+  ValidationSummaryFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { ValidationSummaryFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
+  RecordMetadataRetrieverComponentName,
+  RecordMetadataRetrieverFieldComponentDefinitionOutline,
+  RecordMetadataRetrieverFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { RecordMetadataRetrieverFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
+  PublishDataLocationRefreshComponentName,
+  PublishDataLocationRefreshFieldComponentDefinitionOutline,
+  PublishDataLocationRefreshFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { PublishDataLocationRefreshFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
+  SaveStatusFieldComponentDefinitionOutline,
+  SaveStatusFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { SaveStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
+  CheckboxTreeComponentName,
+  CheckboxTreeFieldComponentDefinitionOutline,
+  CheckboxTreeFieldModelDefinitionOutline,
+  CheckboxTreeFormComponentDefinitionOutline,
+  CheckboxTreeModelName,
+} from '@researchdatabox/sails-ng-common';
+import { CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  RecordSelectorComponentName,
+  RecordSelectorFieldComponentDefinitionOutline,
+  RecordSelectorFieldModelDefinitionOutline,
+  RecordSelectorFormComponentDefinitionOutline,
+  RecordSelectorModelName,
+} from '@researchdatabox/sails-ng-common';
+import { RecordSelectorFieldComponentConfig, RecordSelectorFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  MapComponentName,
+  MapDrawingMode,
+  MapFieldModelConfigOutline,
+  MapFieldComponentDefinitionOutline,
+  MapFieldModelDefinitionOutline,
+  MapFormComponentDefinitionOutline,
+  MapModelName,
+  MapTileLayerConfig,
+} from '@researchdatabox/sails-ng-common';
+import { MapFieldComponentConfig, MapFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  FileUploadComponentName,
+  FileUploadFieldComponentDefinitionOutline,
+  FileUploadFieldModelDefinitionOutline,
+  FileUploadFormComponentDefinitionOutline,
+  FileUploadModelName,
+} from '@researchdatabox/sails-ng-common';
+import { FileUploadFieldComponentConfig, FileUploadFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  PDFListComponentName,
+  PDFListFieldComponentDefinitionOutline,
+  PDFListFieldModelDefinitionOutline,
+  PDFListFormComponentDefinitionOutline,
+  PDFListModelName,
+} from '@researchdatabox/sails-ng-common';
+import { PDFListFieldComponentConfig, PDFListFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  DataLocationComponentName,
+  DataLocationFieldComponentDefinitionOutline,
+  DataLocationFieldModelDefinitionOutline,
+  DataLocationFormComponentDefinitionOutline,
+  DataLocationModelName,
+} from '@researchdatabox/sails-ng-common';
+import { DataLocationFieldComponentConfig, DataLocationFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
+  PublishDataLocationSelectorComponentName,
+  PublishDataLocationSelectorFieldComponentDefinitionOutline,
+  PublishDataLocationSelectorFieldModelDefinitionOutline,
+  PublishDataLocationSelectorFormComponentDefinitionOutline,
+  PublishDataLocationSelectorModelName,
+} from '@researchdatabox/sails-ng-common';
+import {
+  PublishDataLocationSelectorFieldComponentConfig,
+  PublishDataLocationSelectorFieldModelConfig,
+} from '@researchdatabox/sails-ng-common';
+
+import { FieldModelConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FieldLayoutConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
+import { FormPathHelper, PropertiesHelper } from '@researchdatabox/sails-ng-common';
+import { AllFormComponentDefinitionOutlines } from '@researchdatabox/sails-ng-common';
+import { CanVisit } from '@researchdatabox/sails-ng-common';
+import { LineagePath, LineagePathsPartial } from '@researchdatabox/sails-ng-common';
+import { VisitorFormComponentClassDefMapType, FormComponentDefinitionMap } from '@researchdatabox/sails-ng-common';
+import { ComponentClassNamesType } from '@researchdatabox/sails-ng-common';
+import { isTypeFormComponentDefinitionName } from '@researchdatabox/sails-ng-common';
+import { ILogger } from '@researchdatabox/sails-ng-common';
+import { ExpressionsConditionKind, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
+import {
+  ReusableComponentName,
+  ReusableFieldComponentDefinitionOutline,
+  ReusableFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { ReusableFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import { AttachmentFieldsVisitor } from './attachment-fields.visitor';
+
+interface V4ClassNames {
+  v4ClassName: string;
+  v4CompClassName: string;
+}
+
+interface V5ClassNames {
+  componentClassName: string;
+  modelClassName?: string;
+  layoutClassName?: string;
+}
+
+/*
+ * HOW TO ADD OR UPDATE THE MAPPING
+ *
+ * There are a few places to update to properly map from a v4 form config to a v5 form config:
+ * 1. Add the v4 class name and comp class name to formConfigV4ToV5Mapping, along with the matching v5 class names.
+ * 2. Add any component-specific mapping post-processing to postProcessingFormConfigV4ToV5Mapping.
+ * 3. Check the 'visit<Name>[Field|Form]...' methods, and see if there is any special processing needed.
+ *
+ */
+
+/**
+ * Overall mapping from v4 class, v4 compClass to v5 class names.
+ */
+const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: string]: V5ClassNames } } = {
+  Container: {
+    '': {
+      componentClassName: GroupFieldComponentName,
+      modelClassName: GroupFieldModelName,
+    },
+    TextBlockComponent: {
+      componentClassName: ContentComponentName,
+    },
+    GenericGroupComponent: {
+      componentClassName: GroupFieldComponentName,
+      modelClassName: GroupFieldModelName,
+    },
+  },
+  TextArea: {
+    '': {
+      componentClassName: TextAreaComponentName,
+      modelClassName: TextAreaModelName,
+    },
+    TextAreaComponent: {
+      componentClassName: TextAreaComponentName,
+      modelClassName: TextAreaModelName,
+    },
+  },
+  MarkdownTextArea: {
+    '': {
+      componentClassName: RichTextEditorComponentName,
+      modelClassName: RichTextEditorModelName,
+    },
+    MarkdownTextAreaComponent: {
+      componentClassName: RichTextEditorComponentName,
+      modelClassName: RichTextEditorModelName,
+    },
+  },
+  TabOrAccordionContainer: {
+    '': {
+      componentClassName: TabComponentName,
+      layoutClassName: TabLayoutName,
+    },
+    TabOrAccordionContainerComponent: {
+      componentClassName: TabComponentName,
+      layoutClassName: TabLayoutName,
+    },
+  },
+  ButtonBarContainer: {
+    '': {
+      componentClassName: GroupFieldComponentName,
+      modelClassName: GroupFieldModelName,
+      layoutClassName: ActionRowLayoutName,
+    },
+    ButtonBarContainerComponent: {
+      componentClassName: GroupFieldComponentName,
+      modelClassName: GroupFieldModelName,
+      layoutClassName: ActionRowLayoutName,
+    },
+  },
+  TextField: {
+    '': {
+      componentClassName: SimpleInputComponentName,
+      modelClassName: SimpleInputModelName,
+    },
+  },
+  HiddenValue: {
+    HiddenValueComponent: {
+      componentClassName: SimpleInputComponentName,
+      modelClassName: SimpleInputModelName,
+    },
+  },
+  LinkValueComponent: {
+    '': {
+      componentClassName: ContentComponentName,
+    },
+  },
+  HtmlRaw: {
+    HtmlRawComponent: {
+      componentClassName: ContentComponentName,
+    },
+  },
+  RepeatableContainer: {
+    '': {
+      componentClassName: RepeatableComponentName,
+      modelClassName: RepeatableModelName,
+    },
+    RepeatableTextfieldComponent: {
+      componentClassName: RepeatableComponentName,
+      modelClassName: RepeatableModelName,
+    },
+    RepeatableGroupComponent: {
+      componentClassName: RepeatableComponentName,
+      modelClassName: RepeatableModelName,
+    },
+    RepeatableVocabComponent: {
+      componentClassName: RepeatableComponentName,
+      modelClassName: RepeatableModelName,
+    },
+  },
+  RepeatableContributor: {
+    RepeatableContributorComponent: {
+      componentClassName: RepeatableComponentName,
+      modelClassName: RepeatableModelName,
+    },
+  },
+  RepeatableVocab: {
+    '': {
+      componentClassName: RepeatableComponentName,
+      modelClassName: RepeatableModelName,
+    },
+    RepeatableVocabComponent: {
+      componentClassName: RepeatableComponentName,
+      modelClassName: RepeatableModelName,
+    },
+  },
+  SelectionField: {
+    DropdownFieldComponent: {
+      componentClassName: DropdownInputComponentName,
+      modelClassName: DropdownInputModelName,
+    },
+    SelectionFieldComponent: {
+      componentClassName: DropdownInputComponentName,
+      modelClassName: DropdownInputModelName,
+    },
+  },
+  VocabField: {
+    '': {
+      componentClassName: TypeaheadInputComponentName,
+      modelClassName: TypeaheadInputModelName,
+    },
+    VocabFieldComponent: {
+      componentClassName: TypeaheadInputComponentName,
+      modelClassName: TypeaheadInputModelName,
+    },
+  },
+  DateTime: {
+    '': {
+      componentClassName: DateInputComponentName,
+      modelClassName: DateInputModelName,
+    },
+  },
+  SaveButton: {
+    '': {
+      componentClassName: SaveButtonComponentName,
+    },
+  },
+  // TODO: Should tab nav be a different component?
+  TabNavButton: {
+    '': {
+      componentClassName: TabNavButtonComponentName,
+    },
+  },
+  // TODO: Should anchor or button be a different component?
+  AnchorOrButton: {
+    '': {
+      componentClassName: SaveButtonComponentName,
+    },
+    // TODO: what is class: AnchorOrButton, compClass: TextBlockComponent?
+    // "TextBlockComponent": {}
+  },
+  // TODO: Should cancel button be a different component?
+  CancelButton: {
+    '': {
+      componentClassName: CancelButtonComponentName,
+    },
+  },
+  // TabContentContainer is not a real v4 class: it a placeholder to aid mapping to tab content component
+  TabContentContainer: {
+    '': {
+      componentClassName: TabContentComponentName,
+      layoutClassName: TabContentLayoutName,
+    },
+  },
+  ContributorField: {
+    '': {
+      componentClassName: ReusableComponentName,
+    },
+  },
+  ANDSVocab: {
+    '': {
+      componentClassName: CheckboxTreeComponentName,
+      modelClassName: CheckboxTreeModelName,
+    },
+    ANDSVocabComponent: {
+      componentClassName: CheckboxTreeComponentName,
+      modelClassName: CheckboxTreeModelName,
+    },
+  },
+  RelatedObjectSelector: {
+    '': {
+      componentClassName: RecordSelectorComponentName,
+      modelClassName: RecordSelectorModelName,
+    },
+    RelatedObjectSelectorComponent: {
+      componentClassName: RecordSelectorComponentName,
+      modelClassName: RecordSelectorModelName,
+    },
+  },
+  MapField: {
+    '': {
+      componentClassName: MapComponentName,
+      modelClassName: MapModelName,
+    },
+    MapComponent: {
+      componentClassName: MapComponentName,
+      modelClassName: MapModelName,
+    },
+  },
+  RelatedFileUpload: {
+    '': {
+      componentClassName: FileUploadComponentName,
+      modelClassName: FileUploadModelName,
+    },
+    RelatedFileUploadComponent: {
+      componentClassName: FileUploadComponentName,
+      modelClassName: FileUploadModelName,
+    },
+    RelatedFileComponent: {
+      componentClassName: FileUploadComponentName,
+      modelClassName: FileUploadModelName,
+    },
+  },
+  DataLocation: {
+    '': {
+      componentClassName: DataLocationComponentName,
+      modelClassName: DataLocationModelName,
+    },
+    DataLocationComponent: {
+      componentClassName: DataLocationComponentName,
+      modelClassName: DataLocationModelName,
+    },
+  },
+  PDFList: {
+    '': {
+      componentClassName: PDFListComponentName,
+      modelClassName: PDFListModelName,
+    },
+    PDFListComponent: {
+      componentClassName: PDFListComponentName,
+      modelClassName: PDFListModelName,
+    },
+  },
+  PublishDataLocationSelector: {
+    '': {
+      componentClassName: PublishDataLocationSelectorComponentName,
+      modelClassName: PublishDataLocationSelectorModelName,
+    },
+    PublishDataLocationSelectorComponent: {
+      componentClassName: PublishDataLocationSelectorComponentName,
+      modelClassName: PublishDataLocationSelectorModelName,
+    },
+  },
+  RecordMetadataRetriever: {
+    '': {
+      componentClassName: RecordMetadataRetrieverComponentName,
+    },
+    RecordMetadataRetrieverComponent: {
+      componentClassName: RecordMetadataRetrieverComponentName,
+    },
+  },
+  // Map the legacy button-like field to the new explicit V5 component so the
+  // runtime can drive refresh through behaviours instead of embedded fetch code.
+  PublishDataLocationRefresh: {
+    '': {
+      componentClassName: PublishDataLocationRefreshComponentName,
+    },
+    PublishDataLocationRefreshComponent: {
+      componentClassName: PublishDataLocationRefreshComponentName,
+    },
+  },
+};
+
+const andsVocabDefaultLabelTemplate = '{{default (split notation "/" -1) notation}} - {{label}}';
+
+/**
+ * Post-processing after mapping v4 to v5 class names.
+ * @param v4Field The v4 field.
+ * @param v4ClassNames The v4 class names used to match the mapping.
+ * @param v5ClassNames The v5 class names that matched.
+ */
+function postProcessingFormConfigV4ToV5Mapping(
+  v4Field: Record<string, unknown>,
+  v4ClassNames: V4ClassNames,
+  v5ClassNames: V5ClassNames
+): V5ClassNames {
+  const fieldDefinition = (v4Field?.definition ?? {}) as Record<string, unknown>;
+
+  let v5ComponentClassName = v5ClassNames.componentClassName || '';
+  let v5ModelClassName = v5ClassNames.modelClassName || '';
+  const v5LayoutClassName = v5ClassNames.layoutClassName || '';
+
+  // Some components need special processing.
+
+  // Use the CheckboxInputComponent
+  if (fieldDefinition?.controlType === 'checkbox') {
+    v5ComponentClassName = 'CheckboxInputComponent';
+    v5ModelClassName = 'CheckboxInputModel';
+  }
+
+  // Use the RadioInputComponent
+  if (fieldDefinition?.controlType === 'radio') {
+    v5ComponentClassName = 'RadioInputComponent';
+    v5ModelClassName = 'RadioInputModel';
+  }
+
+  // Anchor links should remain navigational links in view mode, not save actions.
+  if (v4ClassNames?.v4ClassName === 'AnchorOrButton' && fieldDefinition?.controlType === 'anchor') {
+    v5ComponentClassName = ContentComponentName;
+    v5ModelClassName = '';
+  }
+
+  if (v5ComponentClassName === SaveButtonComponentName && fieldDefinition?.isDelete === true) {
+    v5ComponentClassName = DeleteButtonComponentName;
+  }
+
+  return {
+    componentClassName: v5ComponentClassName,
+    modelClassName: v5ModelClassName,
+    layoutClassName: v5LayoutClassName,
+  };
+}
+
+/**
+ * A form config visitor for migrating from v4 form config structure to v5 structure.
+ *
+ * Any v4 form config that cannot be automatically mapped will be added as a string value to a property.
+ * If a component cannot be mapped, it will be added as a ContentComponent with a descriptive content.
+ *
+ * The resulting FormConfig is intended to be passed to the construct visitor, as if it was loaded from form config json.
+ */
+export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
+  protected override logName = 'MigrationV4ToV5FormConfigVisitor';
+
+  private formComponentMap: VisitorFormComponentClassDefMapType;
+
+  private v4FormConfig: Record<string, unknown>;
+  private v5FormConfig: FormConfigOutline;
+
+  private mostRecentRepeatableElementTemplatePath: LineagePath | null;
+
+  private v4FormPath: LineagePath;
+  private formPathHelper: FormPathHelper;
+  private sharedProps: PropertiesHelper;
+
+  private isInsideButtonBarContainer: boolean = false;
+  private legacyInlineContainerDepth: number = 0;
+
+  constructor(logger: ILogger) {
+    super(logger);
+    this.formComponentMap = FormComponentDefinitionMap;
+
+    this.v4FormConfig = {
+      attachmentFields: undefined,
+      customAngularApp: { appName: '', appSelector: '' },
+      editCssClasses: '',
+      fields: [],
+      messages: {},
+      name: '',
+      requiredFieldIndicator: '',
+      skipValidationOnSave: false,
+      type: '',
+      viewCssClasses: '',
+      workflowStep: '',
+    };
+    this.v5FormConfig = new FormConfig();
+    this.v4FormPath = [];
+
+    this.mostRecentRepeatableElementTemplatePath = null;
+
+    this.formPathHelper = new FormPathHelper(logger, this);
+    this.sharedProps = new PropertiesHelper();
+  }
+
+  start(options: { data: unknown }): FormConfigOutline {
+    this.v4FormConfig = _cloneDeep(this.normaliseV4FormConfig(options.data));
+    this.v5FormConfig = new FormConfig();
+    this.v5FormConfig.debugValue = true;
+    this.v4FormPath = [];
+
+    this.mostRecentRepeatableElementTemplatePath = null;
+
+    this.formPathHelper.reset();
+
+    this.v5FormConfig.accept(this);
+    this.retargetPublishDataLocationSelectorExpressions(this.v5FormConfig.componentDefinitions);
+
+    const attachmentVisitor = new AttachmentFieldsVisitor(this.logger);
+    attachmentVisitor.start(this.v5FormConfig);
+
+    return this.v5FormConfig;
+  }
+
+  /* Form Config */
+
+  visitFormConfig(item: FormConfigOutline): void {
+    const currentData = this.getV4Data();
+
+    // Set properties that are the same in v4 and v5.
+    this.sharedProps.setPropOverride('name', item, currentData);
+    this.sharedProps.setPropOverride('type', item, currentData);
+    this.sharedProps.setPropOverride('viewCssClasses', item, currentData);
+    this.sharedProps.setPropOverride('editCssClasses', item, currentData);
+    this.applyLegacyFormCssNormalization(item);
+
+    // Convert properties from v4 to v5.
+
+    // TODO: form.customAngularApp?
+    // TODO: form.workflowStep?
+    // TODO: form.requiredFieldIndicator?
+    // TODO: form.messages?
+    // TODO: form.attachmentFields?
+
+    // Convert skipValidationOnSave to enabledValidationGroups.
+    if (Object.hasOwn(currentData, 'skipValidationOnSave')) {
+      switch (currentData.skipValidationOnSave) {
+        case true:
+          item.enabledValidationGroups = ['none'];
+          break;
+        case false:
+        default:
+          item.enabledValidationGroups = ['all'];
+          break;
+      }
+    }
+
+    // Convert fields to components
+    const fields: Record<string, unknown>[] = currentData.fields ?? [];
+    // this.logger.info(`Processing '${item.name}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
+    fields.forEach((field, index) => {
+      const v4FormPathMore = ['fields', index.toString()];
+      if (this.shouldOmitLegacyField(field, v4FormPathMore)) {
+        return;
+      }
+      // Create the instance from the v4 config
+      const formComponent = this.constructFormComponent(field, v4FormPathMore);
+
+      // Visit children
+      const componentIndex = item.componentDefinitions.length;
+      this.acceptV4FormConfigPath(
+        formComponent,
+        this.formPathHelper.lineagePathsForFormConfigComponentDefinition(formComponent, componentIndex),
+        v4FormPathMore
+      );
+
+      // Store the instance on the item
+      item.componentDefinitions.push(formComponent);
+
+      const hiddenBinding = this.constructLegacyNameBindingCompanion(field, v4FormPathMore);
+      if (hiddenBinding) {
+        this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
+        this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
+        const hiddenComponentIndex = item.componentDefinitions.length;
+        this.acceptV4FormConfigPath(
+          hiddenBinding.component,
+          this.formPathHelper.lineagePathsForFormConfigComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
+          hiddenBinding.v4FormPathMore
+        );
+        this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
+        item.componentDefinitions.push(hiddenBinding.component);
+      }
+    });
+
+    this.injectLegacyRecordMetadataRetrieverExpressions(
+      fields,
+      item.componentDefinitions,
+      this.formPathHelper.formPath.angularComponentsJsonPointer ?? ''
+    );
+
+    // Add the validation summary.
+    const validationSummaryFrame = {
+      name: 'validation_summary',
+      component: { class: 'ValidationSummaryComponent' },
+    };
+    const validationSummaryComponent = this.sharedProps.sharedConstructFormComponent(validationSummaryFrame);
+    item.componentDefinitions.push(validationSummaryComponent);
+  }
+
+  /* SimpleInput */
+
+  visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new SimpleInputFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+    this.sharedProps.setPropOverride('type', item.config, field?.definition);
+
+    if (field?.class === 'HiddenValue' || field?.compClass === 'HiddenValueComponent') {
+      item.config.type = 'hidden';
+    }
+  }
+
+  visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new SimpleInputFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+
+    const field = this.getV4Data();
+    if (field?.class === 'HiddenValue' || field?.compClass === 'HiddenValueComponent') {
+      if (item.component?.config) {
+        item.component.config.visible = false;
+      }
+      if (item.layout?.config) {
+        item.layout.config.visible = false;
+      }
+    }
+  }
+
+  /* Content */
+
+  visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    if (!item.config) {
+      item.config = new ContentFieldComponentConfig();
+    }
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    if (this.isLegacyLinkValueControl(field)) {
+      const definition = (field?.definition ?? {}) as Record<string, unknown>;
+      const label = typeof definition.label === 'string' ? definition.label : '';
+      const valuePath = typeof definition.name === 'string' ? definition.name.trim() : '';
+      const labelTemplateToken = this.isLegacyTranslationKey(label) ? '{{t content.label}}' : '{{content.label}}';
+      const target = typeof definition.target === 'string' ? String(definition.target).trim() : '';
+
+      item.config.label = undefined;
+      const content: Record<string, unknown> = { label, valuePath };
+      if (target.length > 0) {
+        content.target = target;
+      }
+      item.config.content = content;
+      item.config.template =
+        `{{#if (get formData content.valuePath "")}}` +
+        `<li class="key-value-pair padding-bottom-10">` +
+        `{{#if content.label}}<span class="key">${labelTemplateToken}</span>{{/if}}` +
+        `<span class="value"><a href="{{get formData content.valuePath ""}}" target="{{default content.target "_blank"}}">` +
+        `{{get formData content.valuePath ""}}</a></span>` +
+        `</li>` +
+        `{{/if}}`;
+      return;
+    }
+
+    if (this.isLegacyAnchorControl(field)) {
+      const definition = (field?.definition ?? {}) as Record<string, unknown>;
+      const href = typeof definition.value === 'string' ? definition.value : '';
+      let cssClasses = this.normalizeLegacyButtonCssClasses(definition.cssClasses ?? definition.cssClass) ?? 'btn btn-primary';
+      cssClasses = this.removeLegacyCssToken(cssClasses, 'margin-15');
+      const label = typeof definition.label === 'string' ? definition.label : '';
+      const showPencil = definition.showPencil === true;
+      const labelTemplateToken = this.isLegacyTranslationKey(label) ? '{{t content.label}}' : '{{content.label}}';
+
+      item.config.label = undefined;
+      item.config.content = { href, cssClasses, label, showPencil };
+      item.config.template = `<a href="${this.buildLegacyAnchorHrefTemplate(href)}" class="{{content.cssClasses}}">${showPencil ? '<i class="fa fa-pencil"></i> ' : ''}${labelTemplateToken}</a>`;
+      return;
+    }
+
+    // TODO: form.customAngularApp?
+    // TODO: form.requiredFieldIndicator?
+    // TODO: form.messages?
+    // TODO: form.attachmentFields?
+    // Content component is used to display info about missing component mappings.
+    // Provide a message for not yet implemented fields.
+    const { componentClassName, modelClassName, layoutClassName } = this.mapV4ToV5(field);
+    if (!componentClassName) {
+      const v4ClassName = field?.class?.toString() ?? '';
+      const v4CompClassName = field?.compClass?.toString() ?? '';
+      const v4Name = field?.definition?.name || field?.definition?.id;
+
+      const msgs = [
+        `Not yet implemented in v5: v4ClassName ${JSON.stringify(v4ClassName)} v4CompClassName ${JSON.stringify(v4CompClassName)} v4Name ${JSON.stringify(v4Name)}.`,
+        `At path '${JSON.stringify(this.v4FormPath)}'.`,
+      ];
+
+      if (modelClassName) {
+        msgs.push(`Model: ${modelClassName}.`);
+      }
+
+      if (layoutClassName) {
+        msgs.push(`Layout: ${layoutClassName}.`);
+      }
+
+      const msg = msgs.join(' ');
+      item.config.content = msg;
+      this.logger.warn(msg);
+    } else {
+      // Map from the v4 config to v5 config.
+
+      /*
+       * The below template is a reference that needs to be taken into account for legacy compatibility
+       *
+       * <span *ngSwitchCase="'h1'" role="heading" aria-level="1" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+       * <span *ngSwitchCase="'h2'" role="heading" aria-level="2" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+       * <span *ngSwitchCase="'h3'" role="heading" aria-level="3" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+       * <span *ngSwitchCase="'h4'" role="heading" aria-level="4" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+       * <span *ngSwitchCase="'h5'" role="heading" aria-level="5" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+       * <span *ngSwitchCase="'h6'" role="heading" aria-level="6" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+       * <hr *ngSwitchCase="'hr'" [ngClass]="field.cssClasses">
+       * <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.label == null? '' : field.label + ': '}}{{field.value == null? '' : field.value}}</span>
+       * <p *ngSwitchDefault [ngClass]="field.cssClasses" [innerHtml]="field.value == null? '' : field.value"></p>
+       */
+
+      const v4Value = field?.definition?.value ?? '';
+      const v4Type = field?.definition?.type;
+      const v4ValueIsTranslationKey = this.isLegacyTranslationKey(v4Value);
+      const v4Name = typeof field?.definition?.name === 'string' ? field.definition.name.trim() : '';
+      const bindContentFromFormData = v4Value === '' && v4Name.length > 0;
+      const contentTemplateToken = v4ValueIsTranslationKey ? '{{t content}}' : '{{content}}';
+      const contentHtmlTemplateToken = v4ValueIsTranslationKey ? '{{{t content}}}' : '{{{content}}}';
+      const contentLabelTemplateToken = '{{t content.label}}';
+      const contentValueTemplateToken = v4ValueIsTranslationKey ? '{{t content.value}}' : '{{content.value}}';
+      const contentBoundTemplateToken = '{{get formData content ""}}';
+      const contentBoundHtmlTemplateToken = '{{{get formData content ""}}}';
+      const contentBoundValueTemplateToken = '{{get formData content.value ""}}';
+      const labelOnlyTemplateToken = this.isLegacyTranslationKey(item.config.label) ? '{{t content}}' : '{{content}}';
+
+      switch (v4Type) {
+        case 'h1':
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<h1>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h1>`;
+          break;
+        case 'h2':
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<h2>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h2>`;
+          break;
+        case 'h3':
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<h3>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h3>`;
+          break;
+        case 'h4':
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<h4>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h4>`;
+          break;
+        case 'h5':
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<h5>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h5>`;
+          break;
+        case 'h6':
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<h6>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h6>`;
+          break;
+        case 'hr':
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<hr>`;
+          break;
+        case 'span':
+          const label = item.config.label;
+          const promoteLegacySpanToLayoutLabel = this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field);
+          if (promoteLegacySpanToLayoutLabel && typeof v4Value === 'string') {
+            item.config.content = '';
+            item.config.template = `<span></span>`;
+          } else if (v4Value && label) {
+            item.config.content = { value: v4Value, label: item.config.label };
+            item.config.template = `<span>${contentLabelTemplateToken}: ${contentValueTemplateToken}</span>`;
+          } else if (bindContentFromFormData && label) {
+            item.config.content = { value: v4Name, label: item.config.label };
+            item.config.template = `<span>${contentLabelTemplateToken}: ${contentBoundValueTemplateToken}</span>`;
+          } else if (bindContentFromFormData && !label) {
+            item.config.content = v4Name;
+            item.config.template = `<span>${contentBoundTemplateToken}</span>`;
+          } else if (v4Value && !label) {
+            item.config.content = v4Value;
+            item.config.template = `<span>${contentTemplateToken}</span>`;
+          } else if (!v4Value && label) {
+            item.config.content = label;
+            item.config.template = `<span>${labelOnlyTemplateToken}:</span>`;
+          } else {
+            item.config.content = '';
+          }
+          break;
+        default:
+          item.config.content = bindContentFromFormData ? v4Name : v4Value;
+          item.config.template = `<div>${bindContentFromFormData ? contentBoundHtmlTemplateToken : contentHtmlTemplateToken}</div>`;
+          break;
+      }
+    }
+  }
+
+  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+    if (this.isLegacyLinkValueControl(this.getV4Data())) {
+      const definition = (this.getV4Data()?.definition ?? {}) as Record<string, unknown>;
+      const valuePath = typeof definition.name === 'string' ? definition.name.trim() : '';
+      if (valuePath) {
+        item.name = `${valuePath}-link-value`;
+      }
+    }
+  }
+
+  /* Repeatable  */
+
+  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new RepeatableFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    this.sharedProps.setPropOverride('addButtonShow', item.config, definition);
+    this.sharedProps.setPropOverride('allowZeroRows', item.config, definition);
+    this.sharedProps.setPropOverride('hideWhenZeroRows', item.config, definition);
+    const currentFormConfigPath = this.formPathHelper.formPath.formConfig;
+
+    const fields = field?.definition?.fields ?? [];
+    // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
+
+    if (fields.length === 1) {
+      const v4Field = fields[0];
+
+      // Track the most recent element template.
+      // - Ensure newEntryValue is used only in elementTemplate definitions.
+      // - Ensure defaultValue is not defined in elementTemplate or any nested components.
+      const previousMostRecentRepeatableElementTemplatePath =
+        this.mostRecentRepeatableElementTemplatePath === null
+          ? null
+          : [...this.mostRecentRepeatableElementTemplatePath];
+      this.mostRecentRepeatableElementTemplatePath = [...currentFormConfigPath, 'config', 'elementTemplate'];
+
+      try {
+        const v4FormPathMore = ['definition', 'fields', '0'];
+        if (this.shouldOmitLegacyField(v4Field, v4FormPathMore)) {
+          return;
+        }
+        // Create the instance from the v4 config
+        const formComponent = this.constructFormComponent(v4Field, v4FormPathMore);
+
+        // The elementTemplate's name must be a falsy value.
+        formComponent.name = '';
+
+        // Visit children
+        this.acceptV4FormConfigPath(
+          formComponent,
+          this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(formComponent),
+          v4FormPathMore
+        );
+
+        // Always use the repeatable element layout so each item renders the remove button.
+        if (formComponent.layout) {
+          formComponent.layout.class = RepeatableElementLayoutName;
+        }
+
+        // TODO: This check & change needs to be expanded to collect the defaultValues for all nested components as well.
+        //       Likely something similar to how the construct visitor does it could be adapted for this.
+        // Overall repeatable default: repeatable.model.config.defaultValue
+        // New item default: elementTemplate.model.config.newEntryValue
+        // The elementTemplate defaultValue must be set in newEntryValue
+        if (formComponent?.model?.config?.defaultValue !== undefined) {
+          formComponent.model.config.newEntryValue = formComponent?.model?.config?.defaultValue;
+          const i = formComponent.model.config;
+          delete i['defaultValue'];
+        }
+
+        // The newEntryValue must have a value.
+        // if (formComponent?.model?.config !== undefined && formComponent.model.config.newEntryValue === undefined) {
+        //     formComponent.model.config.newEntryValue = {};
+        // }
+
+        // Store the instance on the item
+        item.config.elementTemplate = formComponent;
+      } finally {
+        // Restore the previous element template state.
+        this.mostRecentRepeatableElementTemplatePath = previousMostRecentRepeatableElementTemplatePath;
+      }
+    } else {
+      this.logger.error(
+        `${this.logName}: Expected one field in definition for repeatable, but found ${fields.length}: ${JSON.stringify(field)}`
+      );
+    }
+  }
+
+  visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new RepeatableFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new RepeatableElementFieldLayoutConfig();
+    this.sharedPopulateFieldLayoutConfig(item.config, field);
+  }
+
+  visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    this.populateFormComponent(item);
+
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    if (v4ClassName === 'RepeatableContributor') {
+      const definition = (field?.definition ?? {}) as Record<string, unknown>;
+      const hasExplicitLabel = typeof definition.label === 'string';
+      const contributorLabel = hasExplicitLabel
+        ? (definition.label as string)
+        : (typeof definition.name === 'string' ? definition.name : undefined);
+      if (contributorLabel && item.layout?.config && !item.layout.config.label) {
+        item.layout.config.label = contributorLabel;
+      }
+    }
+  }
+
+  /* Validation Summary */
+
+  visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new ValidationSummaryFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+  }
+
+  visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Record Metadata Retriever */
+
+  visitRecordMetadataRetrieverFieldComponentDefinition(item: RecordMetadataRetrieverFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new RecordMetadataRetrieverFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+    item.config.label = undefined;
+    item.config.visible = false;
+  }
+
+  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+    if (item.layout?.config) {
+      item.layout.config.label = undefined;
+      item.layout.config.visible = false;
+    }
+  }
+
+  // Preserve shared label/visibility/readonly config, while intentionally not
+  // inventing any model state during migration.
+  visitPublishDataLocationRefreshFieldComponentDefinition(
+    item: PublishDataLocationRefreshFieldComponentDefinitionOutline
+  ): void {
+    const field = this.getV4Data();
+    item.config = new PublishDataLocationRefreshFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+  }
+
+  visitPublishDataLocationRefreshFormComponentDefinition(
+    item: PublishDataLocationRefreshFormComponentDefinitionOutline
+  ): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Save Status */
+
+  visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new SaveStatusFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+  }
+
+  visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Group */
+
+  visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    const config = new GroupFieldComponentConfig();
+    item.config = config;
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const isButtonBarContainer = field?.class === 'ButtonBarContainer' || field?.compClass === 'ButtonBarContainerComponent';
+    const isLegacyInlineContainer = this.isLegacyInlineContainer(field);
+    if (isButtonBarContainer) {
+      this.isInsideButtonBarContainer = true;
+    }
+    if (isLegacyInlineContainer) {
+      this.legacyInlineContainerDepth += 1;
+    }
+
+    try {
+      this.logger.debug(
+        `${this.logName}: visitGroupFieldComponentDefinition for '${String(field?.definition?.name ?? field?.definition?.id ?? '')}'.`
+      );
+
+      const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
+      // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
+      fields.forEach((childField, index) => {
+        if (childField?.class === 'Spacer' || childField?.compClass === 'SpacerComponent') {
+          return;
+        }
+
+        const v4FormPathMore = ['definition', 'fields', index.toString()];
+        if (this.shouldOmitLegacyField(childField, v4FormPathMore)) {
+          return;
+        }
+        // Create the instance from the v4 config
+        const formComponent = this.constructFormComponent(childField, v4FormPathMore);
+
+        // Visit children
+        const componentIndex = config.componentDefinitions.length;
+        this.acceptV4FormConfigPath(
+          formComponent,
+          this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, componentIndex),
+          v4FormPathMore
+        );
+
+        if (isLegacyInlineContainer && formComponent.layout?.config) {
+          (formComponent.layout.config as Record<string, unknown>).label = undefined;
+        }
+
+        // Store the instance on the item
+        config.componentDefinitions.push(formComponent);
+
+        const hiddenBinding = this.constructLegacyNameBindingCompanion(childField, v4FormPathMore);
+        if (hiddenBinding) {
+          this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
+          this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
+          const hiddenComponentIndex = config.componentDefinitions.length;
+          this.acceptV4FormConfigPath(
+            hiddenBinding.component,
+            this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
+            hiddenBinding.v4FormPathMore
+          );
+          this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
+          config.componentDefinitions.push(hiddenBinding.component);
+        }
+      });
+      this.injectLegacyRecordMetadataRetrieverExpressions(
+        fields,
+        config.componentDefinitions,
+        this.formPathHelper.formPath.angularComponentsJsonPointer ?? ''
+      );
+    } finally {
+      if (isLegacyInlineContainer) {
+        this.legacyInlineContainerDepth = Math.max(0, this.legacyInlineContainerDepth - 1);
+      }
+      if (isButtonBarContainer) {
+        this.isInsideButtonBarContainer = false;
+      }
+    }
+  }
+
+  visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new GroupFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+
+    if (field?.class === 'ButtonBarContainer' || field?.compClass === 'ButtonBarContainerComponent') {
+      item.config.disabled = true;
+    }
+  }
+
+  visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Tab  */
+
+  visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    const config = new TabFieldComponentConfig();
+    item.config = config;
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
+    // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
+    fields.forEach((field, index) => {
+      const v4FormPathMore = ['definition', 'fields', index.toString()];
+      if (this.shouldOmitLegacyField(field, v4FormPathMore)) {
+        return;
+      }
+
+      // TODO: Does this approach to mapping the tab content component lose data?
+      // build tab component from field by setting 'placeholder' v4 class
+      // TabContentContainer is not a real v4 class: it a placeholder to aid mapping to tab content component
+      field.class = 'TabContentContainer';
+
+      // Create the instance from the v4 config
+      const formComponent = this.constructFormComponent(field, v4FormPathMore);
+      if (
+        isTypeFormComponentDefinitionName<TabContentFormComponentDefinitionFrame>(
+          formComponent,
+          TabContentComponentName
+        )
+      ) {
+        // Visit children
+        this.acceptV4FormConfigPath(
+          formComponent,
+          this.formPathHelper.lineagePathsForTabFieldComponentDefinition(formComponent, index),
+          v4FormPathMore
+        );
+
+        // Store the instance on the item
+        config.tabs.push(formComponent);
+      }
+    });
+  }
+
+  visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new TabFieldLayoutConfig();
+    this.sharedPopulateFieldLayoutConfig(item.config, field);
+  }
+
+  visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /*  Tab Content */
+
+  visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    const config = new TabContentFieldComponentConfig();
+    item.config = config;
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
+    // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
+    fields.forEach((field, index) => {
+      const v4FormPathMore = ['definition', 'fields', index.toString()];
+      if (this.shouldOmitLegacyField(field, v4FormPathMore)) {
+        return;
+      }
+      // Create the instance from the v4 config
+      const formComponent = this.constructFormComponent(field, v4FormPathMore);
+
+      // Visit children
+      const componentIndex = config.componentDefinitions.length;
+      this.acceptV4FormConfigPath(
+        formComponent,
+        this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(formComponent, componentIndex),
+        ['definition', 'fields', index.toString()]
+      );
+
+      // Store the instance on the item
+      config.componentDefinitions.push(formComponent);
+
+      const hiddenBinding = this.constructLegacyNameBindingCompanion(field, v4FormPathMore);
+      if (hiddenBinding) {
+        this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
+        this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
+        const hiddenComponentIndex = config.componentDefinitions.length;
+        this.acceptV4FormConfigPath(
+          hiddenBinding.component,
+          this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
+          hiddenBinding.v4FormPathMore
+        );
+        this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
+        config.componentDefinitions.push(hiddenBinding.component);
+      }
+    });
+
+    this.injectLegacyRecordMetadataRetrieverExpressions(
+      fields,
+      config.componentDefinitions,
+      this.formPathHelper.formPath.angularComponentsJsonPointer ?? ''
+    );
+  }
+
+  visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new TabContentFieldLayoutConfig();
+    if (field?.definition?.label) {
+      item.config.buttonLabel = field?.definition?.label;
+    }
+    this.sharedPopulateFieldLayoutConfig(item.config, field);
+  }
+
+  visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Save Button  */
+
+  visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new SaveButtonFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+    this.sharedProps.setPropOverride('targetStep', item.config, field?.definition);
+    this.sharedProps.setPropOverride('forceSave', item.config, field?.definition);
+    this.sharedProps.setPropOverride('enabledValidationGroups', item.config, field?.definition);
+    this.sharedProps.setPropOverride('labelSaving', item.config, field?.definition);
+    this.sharedProps.setPropOverride('buttonCssClasses', item.config, {
+      buttonCssClasses: this.normalizeLegacyButtonCssClasses(
+        field?.definition?.cssClasses ?? field?.definition?.cssClass
+      ),
+    });
+  }
+
+  visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Cancel Button  */
+
+  visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new CancelButtonFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    this.sharedProps.setPropOverride('confirmationMessage', item.config, field?.definition);
+    this.sharedProps.setPropOverride('confirmationTitle', item.config, field?.definition);
+    this.sharedProps.setPropOverride('cancelButtonMessage', item.config, field?.definition);
+    this.sharedProps.setPropOverride('confirmButtonMessage', item.config, field?.definition);
+    this.sharedProps.setPropOverride('buttonCssClasses', item.config, {
+      buttonCssClasses: this.normalizeLegacyButtonCssClasses(
+        field?.definition?.cssClasses ?? field?.definition?.cssClass
+      ),
+    });
+  }
+
+  visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Delete Button  */
+
+  visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new DeleteButtonFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    this.sharedProps.setPropOverride('closeOnDelete', item.config, {
+      closeOnDelete: field?.definition?.closeOnSave,
+    });
+    this.sharedProps.setPropOverride('redirectLocation', item.config, field?.definition);
+    if (typeof item.config.redirectLocation === 'string' && item.config.redirectLocation.trim()) {
+      item.config.redirectLocation = this.buildLegacyUrlTemplate(item.config.redirectLocation);
+    }
+    this.sharedProps.setPropOverride('redirectDelaySeconds', item.config, field?.definition);
+    this.sharedProps.setPropOverride('confirmationMessage', item.config, field?.definition);
+    this.sharedProps.setPropOverride('confirmationTitle', item.config, field?.definition);
+    this.sharedProps.setPropOverride('cancelButtonMessage', item.config, field?.definition);
+    this.sharedProps.setPropOverride('confirmButtonMessage', item.config, field?.definition);
+    this.sharedProps.setPropOverride('buttonCssClasses', item.config, {
+      buttonCssClasses: this.normalizeLegacyButtonCssClasses(
+        field?.definition?.cssClasses ?? field?.definition?.cssClass
+      ),
+    });
+  }
+
+  visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Tab Nav Button  */
+
+  visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new TabNavButtonFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    this.sharedProps.setPropOverride('prevLabel', item.config, field?.definition);
+    this.sharedProps.setPropOverride('nextLabel', item.config, field?.definition);
+    this.sharedProps.setPropOverride('targetTabContainerId', item.config, field?.definition);
+    this.sharedProps.setPropOverride('endDisplayMode', item.config, field?.definition);
+  }
+
+  visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Text Area */
+
+  visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new TextAreaFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const colsRaw = field?.definition?.cols ?? field?.definition?.columns ?? undefined;
+    const colsParsed = colsRaw === undefined ? undefined : Number.parseInt(String(colsRaw), 10);
+    const cols = colsParsed !== undefined && Number.isFinite(colsParsed) ? colsParsed : undefined;
+    this.sharedProps.setPropOverride('cols', item.config, { cols });
+
+    const rowsRaw = field?.definition?.rows ?? undefined;
+    const rowsParsed = rowsRaw === undefined ? undefined : Number.parseInt(String(rowsRaw), 10);
+    const rows = rowsParsed !== undefined && Number.isFinite(rowsParsed) ? rowsParsed : undefined;
+    this.sharedProps.setPropOverride('rows', item.config, { rows });
+  }
+
+  visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new TextAreaFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Rich Text Editor */
+
+  visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new RichTextEditorFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const v4ClassName = field?.class?.toString() ?? '';
+    if (v4ClassName === 'MarkdownTextArea') {
+      item.config.outputFormat = 'markdown';
+    }
+  }
+
+  visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new RichTextEditorFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Map */
+
+  visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new MapFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const rawDefinition = (field?.definition ?? {}) as Record<string, unknown>;
+    const leafletOptions = this.readObject(rawDefinition.leafletOptions);
+    const drawOptions = this.readObject(rawDefinition.drawOptions);
+
+    const center = this.extractLegacyMapCenter(leafletOptions);
+    if (center) {
+      this.sharedProps.setPropOverride('center', item.config, { center });
+    }
+    const zoom = this.extractLegacyMapZoom(leafletOptions);
+    if (zoom !== undefined) {
+      this.sharedProps.setPropOverride('zoom', item.config, { zoom });
+    }
+
+    const tileLayers = this.extractLegacyMapTileLayers(rawDefinition);
+    if (tileLayers.length > 0) {
+      this.sharedProps.setPropOverride('tileLayers', item.config, { tileLayers });
+    }
+
+    const enabledModes = this.extractLegacyMapEnabledModes(drawOptions);
+    if (enabledModes.length > 0) {
+      this.sharedProps.setPropOverride('enabledModes', item.config, { enabledModes });
+    }
+  }
+
+  visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new MapFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+    this.coerceMapFeatureCollection(item.config);
+  }
+
+  visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* File Upload */
+
+  visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new FileUploadFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const restrictions = this.readObject(field?.definition?.restrictions);
+    if (restrictions) {
+      this.sharedProps.setPropOverride('restrictions', item.config, { restrictions });
+    }
+
+    const uppyDashboardNote = field?.definition?.uppyDashboardNote;
+    if (uppyDashboardNote) {
+      this.sharedProps.setPropOverride('uppyDashboardNote', item.config, { uppyDashboardNote });
+    }
+
+    const notesEnabled = field?.definition?.notesEnabled;
+    if (typeof notesEnabled === 'boolean') {
+      const metadataFields = notesEnabled
+        ? [
+          {
+            id: 'notes',
+            name: 'Notes',
+            placeholder: 'Notes about this file.',
+          },
+        ]
+        : [];
+      this.sharedProps.setPropOverride('restrictions', item.config, {
+        restrictions: {
+          ...(item.config.restrictions ?? {}),
+          metadataFields,
+        },
+      });
+    }
+  }
+
+  visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new FileUploadFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* PDF List */
+
+  visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new PDFListFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const mappedProps = [
+      'startsWith',
+      'recentPdfLimit',
+      'showVersionCounter',
+      'showVersionColumn',
+      'versionColumnValueField',
+      'versionColumnLabelKey',
+      'useVersionLabelForFileName',
+      'downloadBtnLabel',
+      'downloadPreviousBtnLabel',
+      'downloadPrefix',
+      'fileNameTemplate',
+    ] as const;
+
+    for (const prop of mappedProps) {
+      if (field?.definition?.[prop] !== undefined) {
+        const value = prop === 'fileNameTemplate'
+          ? this.convertLegacyPdfListFileNameTemplate(field.definition[prop])
+          : field.definition[prop];
+        this.sharedProps.setPropOverride(prop, item.config, { [prop]: value });
+      }
+    }
+  }
+
+  private convertLegacyPdfListFileNameTemplate(value: unknown): unknown {
+    if (typeof value !== 'string') {
+      return value;
+    }
+    return value.replace(/<%=\s*([\s\S]+?)\s*%>/g, '{{$1}}');
+  }
+
+  visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new PDFListFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Data Location */
+
+  visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new DataLocationFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const mappedProps = [
+      'restrictions',
+      'uppyDashboardNote',
+      'notesEnabled',
+      'iscEnabled',
+      'iscHeader',
+      'defaultSelect',
+      'securityClassificationOptions',
+      'locationAddText',
+      'typeHeader',
+      'locationHeader',
+      'columns',
+      'notesHeader',
+      'dataTypes',
+      'dataTypeLookup',
+      'hideNotesForLocationTypes',
+      'allowUploadWithoutSave',
+      'editNotesButtonText',
+      'editNotesTitle',
+      'cancelEditNotesButtonText',
+      'applyEditNotesButtonText',
+      'editNotesCssClasses'
+    ] as const;
+
+    for (const prop of mappedProps) {
+      if (field?.definition?.[prop] !== undefined) {
+        this.sharedProps.setPropOverride(prop, item.config, { [prop]: field.definition[prop] });
+      }
+    }
+  }
+
+  visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new DataLocationFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new PublishDataLocationSelectorFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const mappedProps = [
+      'columns',
+      'editNotesButtonText',
+      'editNotesTitle',
+      'cancelEditNotesButtonText',
+      'applyEditNotesButtonText',
+      'editNotesCssClasses',
+      'typeHeader',
+      'locationHeader',
+      'notesHeader',
+      'iscHeader',
+      'iscEnabled',
+      'notesEnabled',
+      'noLocationSelectedText',
+      'noLocationSelectedHelp',
+      'publicCheck',
+      'selectionCriteria',
+      'dataTypes',
+      'dataTypeLookup',
+    ] as const;
+
+    for (const prop of mappedProps) {
+      if (field?.definition?.[prop] !== undefined) {
+        this.sharedProps.setPropOverride(prop, item.config, { [prop]: field.definition[prop] });
+      }
+    }
+  }
+
+  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new PublishDataLocationSelectorFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+    const field = this.getV4Data();
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const subscribe = (definition.subscribe ?? {}) as Record<string, unknown>;
+    const expressions = item.expressions ?? [];
+
+    for (const [sourceName, sourceConfigUnknown] of Object.entries(subscribe)) {
+      const sourceConfig = (sourceConfigUnknown ?? {}) as Record<string, unknown>;
+      const onValueUpdate = Array.isArray(sourceConfig.onValueUpdate)
+        ? (sourceConfig.onValueUpdate as Record<string, unknown>[])
+        : [];
+      const sourcePointer = this.resolveComponentAngularComponentsJsonPointer(
+        sourceName,
+        this.getCurrentContainerAngularComponentsJsonPointer(item.name)
+      );
+      for (const actionConfig of onValueUpdate) {
+        if (actionConfig?.action !== 'utilityService.getPropertyFromObject') {
+          continue;
+        }
+        const propertyName = String(actionConfig.field ?? '').trim();
+        if (!propertyName) {
+          continue;
+        }
+          expressions.push({
+            name: `${sourceName}-${item.name}-${propertyName}`.replace(/[^a-zA-Z0-9_-]+/g, '-'),
+            description: `Populate ${item.name} from ${sourceName} metadata`,
+            config: {
+              conditionKind: ExpressionsConditionKind.JSONPointer,
+              runOnFormReady: false,
+              condition: `${sourcePointer}::field.value.changed`,
+              target: 'model.value',
+              hasTemplate: true,
+              template: this.buildEventValueTemplate(propertyName),
+            },
+          });
+      }
+    }
+
+    if (expressions.length > 0) {
+      item.expressions = expressions;
+    }
+  }
+
+  /* Default Layout  */
+
+  visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new DefaultFieldLayoutConfig();
+    this.sharedPopulateFieldLayoutConfig(item.config, field);
+
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    if (v4ClassName === 'AnchorOrButton' || this.isInsideLegacyInlineContainer()) {
+      item.config.label = undefined;
+    }
+  }
+
+  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new ActionRowFieldLayoutConfig();
+    this.sharedPopulateFieldLayoutConfig(item.config, field);
+
+    if (this.isLegacyInlineContainer(field)) {
+      item.config.alignment = 'start';
+      item.config.compact = true;
+      item.config.containerCssClass = this.mergeCssClassTokens(
+        item.config.containerCssClass,
+        'rb-form-action-row--legacy-inline'
+      );
+    }
+  }
+
+  /* Checkbox Input */
+
+  visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new CheckboxInputFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const options = this.migrateOptions(field);
+    this.sharedProps.setPropOverride('options', item.config, { options: options });
+  }
+
+  visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new CheckboxInputFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const rawDefaultValue = definition.value ?? definition.defaultValue;
+    const hasOptions = Array.isArray(definition.options) && definition.options.length > 0;
+    if (definition.controlType === 'checkbox' && typeof rawDefaultValue === 'boolean' && !hasOptions) {
+      delete item.config.defaultValue;
+    }
+  }
+
+  visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Checkbox Tree */
+
+  visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new CheckboxTreeFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const rawDefinition = (field?.definition ?? {}) as Record<string, unknown>;
+    const vocabRef = String(rawDefinition.vocabRef ?? rawDefinition.vocabId ?? '').trim();
+    if (!vocabRef) {
+      this.logger.warn(
+        `${this.logName}: CheckboxTree migration missing vocabId/vocabRef at ${JSON.stringify(this.v4FormPath)}.`
+      );
+    } else {
+      this.sharedProps.setPropOverride('vocabRef', item.config, { vocabRef });
+    }
+
+    const inlineVocab = this.parseLegacyBooleanFlag(rawDefinition.inlineVocab, undefined, 'inlineVocab');
+    if (inlineVocab !== undefined) {
+      this.sharedProps.setPropOverride('inlineVocab', item.config, { inlineVocab });
+    }
+    const leafOnly = this.parseLegacyBooleanFlag(rawDefinition.leafOnly, true, 'leafOnly');
+    this.sharedProps.setPropOverride('leafOnly', item.config, { leafOnly });
+
+    const maxDepth = this.parseLegacyPositiveInteger(rawDefinition.maxDepth, 'maxDepth');
+    if (maxDepth !== undefined) {
+      this.sharedProps.setPropOverride('maxDepth', item.config, { maxDepth });
+    }
+
+    if (this.isLegacyAndsVocabField(field)) {
+      this.sharedProps.setPropOverride('labelTemplate', item.config, {
+        labelTemplate: andsVocabDefaultLabelTemplate,
+      });
+    }
+
+    this.warnOnMalformedLegacyRegex(rawDefinition);
+  }
+
+  visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new CheckboxTreeFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+    this.coerceCheckboxTreeDefaultValue(item.config);
+  }
+
+  visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Record Selector */
+
+  visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new RecordSelectorFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    this.sharedProps.setPropOverride('columnTitle', item.config, {
+      columnTitle: String(definition.columnTitle ?? 'Record title'),
+    });
+    this.sharedProps.setPropOverride('recordType', item.config, {
+      recordType: typeof definition.recordType === 'string' ? definition.recordType : undefined,
+    });
+    this.sharedProps.setPropOverride('workflowState', item.config, {
+      workflowState: typeof definition.workflowState === 'string' ? definition.workflowState : '',
+    });
+    const v4FilterMode = typeof definition.filterMode === 'string' ? definition.filterMode : 'default';
+    let filterMode = 'default';
+    switch (String(v4FilterMode).trim().toLowerCase()) {
+      case '':
+      case 'default':
+        filterMode = 'default';
+        break;
+      case 'equal':
+      case 'exact':
+        filterMode = 'equal';
+        break;
+      default:
+        filterMode = 'regex';
+        break;
+    }
+    this.sharedProps.setPropOverride('filterMode', item.config, {
+      filterMode,
+    });
+    this.sharedProps.setPropOverride('filterFields', item.config, {
+      filterFields: Array.isArray(definition.filterFields)
+        ? definition.filterFields.map((fieldName) => String(fieldName))
+        : [],
+    });
+  }
+
+  visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new RecordSelectorFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+
+    const coerceRecordSelectorValue = (value: unknown): { oid: string; title?: string } | null => {
+      if (!value || typeof value !== 'object') {
+        return null;
+      }
+      const oid = typeof (value as Record<string, unknown>).oid === 'string'
+        ? String((value as Record<string, unknown>).oid).trim()
+        : '';
+      if (!oid) {
+        return null;
+      }
+      const title = typeof (value as Record<string, unknown>).title === 'string'
+        ? String((value as Record<string, unknown>).title)
+        : undefined;
+      return title ? { oid, title } : { oid };
+    };
+
+    if (item.config.defaultValue !== undefined) {
+      item.config.defaultValue = coerceRecordSelectorValue(item.config.defaultValue);
+    }
+    if (item.config.value !== undefined) {
+      item.config.value = coerceRecordSelectorValue(item.config.value);
+    }
+  }
+
+  visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Dropdown Input */
+
+  visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new DropdownInputFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const options = this.migrateOptions(field);
+    this.sharedProps.setPropOverride('options', item.config, { options: options });
+  }
+
+  visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new DropdownInputFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Typeahead Input */
+
+  visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new TypeaheadInputFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const sourceType = this.resolveTypeaheadSourceType(definition);
+    this.sharedProps.setPropOverride('sourceType', item.config, { sourceType });
+
+    if (sourceType === 'namedQuery') {
+      const queryId = String(definition.vocabQueryId ?? definition.queryId ?? '').trim();
+      if (queryId) {
+        this.sharedProps.setPropOverride('queryId', item.config, { queryId });
+      } else {
+        this.logger.warn(
+          `${this.logName}: Typeahead migration missing queryId/vocabQueryId at ${JSON.stringify(this.v4FormPath)}.`
+        );
+      }
+      const labelField = this.resolveLegacyLabelField(definition);
+      this.sharedProps.setPropOverride('labelField', item.config, { labelField });
+      const valueField = String(definition.valueFieldName ?? definition.valueField ?? 'value').trim() || 'value';
+      this.sharedProps.setPropOverride('valueField', item.config, { valueField });
+    } else if (sourceType === 'static') {
+      const labelField = this.resolveLegacyLabelField(definition);
+      const valueField = String(definition.valueFieldName ?? definition.valueField ?? 'value').trim() || 'value';
+      const normalizedOptions = this.normalizeLegacyTypeaheadStaticOptions(definition, labelField, valueField);
+      this.sharedProps.setPropOverride('options', item.config, { options: normalizedOptions });
+      this.sharedProps.setPropOverride('staticOptions', item.config, { staticOptions: normalizedOptions });
+    } else if (sourceType === 'vocabulary') {
+      const vocabRef = String(definition.vocabRef ?? definition.vocabId ?? '').trim();
+      if (vocabRef) {
+        this.sharedProps.setPropOverride('vocabRef', item.config, { vocabRef });
+      } else {
+        this.logger.warn(
+          `${this.logName}: Typeahead migration missing vocabRef/vocabId at ${JSON.stringify(this.v4FormPath)}.`
+        );
+      }
+    } else if (sourceType === 'external') {
+      const provider = String(definition.provider ?? '').trim();
+      if (provider) {
+        this.sharedProps.setPropOverride('provider', item.config, { provider });
+      } else {
+        this.logger.warn(
+          `${this.logName}: Typeahead migration missing provider at ${JSON.stringify(this.v4FormPath)}.`
+        );
+      }
+      const resultArrayProperty = String(definition.resultArrayProperty ?? '').trim();
+      if (resultArrayProperty) {
+        this.sharedProps.setPropOverride('resultArrayProperty', item.config, { resultArrayProperty });
+      }
+      const labelField = this.resolveLegacyLabelField(definition);
+      this.sharedProps.setPropOverride('labelField', item.config, { labelField });
+      const valueField = String(definition.valueFieldName ?? definition.valueField ?? labelField).trim() || labelField;
+      this.sharedProps.setPropOverride('valueField', item.config, { valueField });
+    }
+
+    const requireSelection = !this.parseLegacyTypeaheadBoolean(definition.freeText, false, 'freeText');
+    this.sharedProps.setPropOverride('requireSelection', item.config, { requireSelection });
+
+    const storeLabelOnly = this.parseLegacyTypeaheadBoolean(definition.storeLabelOnly, true, 'storeLabelOnly');
+    const valueMode = storeLabelOnly ? 'value' : 'optionObject';
+    this.sharedProps.setPropOverride('valueMode', item.config, { valueMode });
+
+    const readOnlyAfterSelect = this.parseLegacyTypeaheadBoolean(
+      definition.disableEditAfterSelect,
+      false,
+      'disableEditAfterSelect'
+    );
+    if (readOnlyAfterSelect) {
+      this.sharedProps.setPropOverride('readOnlyAfterSelect', item.config, { readOnlyAfterSelect });
+    }
+
+    this.warnOnDroppedLegacyTypeaheadProperties(definition);
+  }
+
+  visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new TypeaheadInputFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const labelField = this.resolveLegacyLabelField(definition);
+    const storeLabelOnly = this.parseLegacyTypeaheadBoolean(definition.storeLabelOnly, true, 'storeLabelOnly');
+    const valueMode = storeLabelOnly ? 'value' : 'optionObject';
+
+    if (item.config.defaultValue !== undefined) {
+      item.config.defaultValue = this.coerceLegacyTypeaheadValue(item.config.defaultValue, valueMode, labelField);
+    }
+    if (item.config.value !== undefined) {
+      item.config.value = this.coerceLegacyTypeaheadValue(item.config.value, valueMode, labelField);
+    }
+  }
+
+  visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Radio Input */
+
+  visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new RadioInputFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    const options = this.migrateOptions(field);
+    this.sharedProps.setPropOverride('options', item.config, { options: options });
+  }
+
+  visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new RadioInputFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Date Input */
+
+  visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new DateInputFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+  }
+
+  visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new DateInputFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Reusable */
+
+  visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new ReusableFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    // Set up the reusable form config for ContributorField in the field component.
+    const v4ClassName = field?.class?.toString() ?? '';
+    if (v4ClassName === 'ContributorField') {
+      const fieldDefinition = (field?.definition ?? {}) as Record<string, unknown>;
+
+      // TODO: use more of the contributor field properties on the new component?
+      const name = fieldDefinition.name?.toString() ?? fieldDefinition.id?.toString() ?? '';
+
+      // The elementTemplate name must be falsy.
+      // If this ContributorField is inside a RepeatableContributor's elementTemplate,
+      // we must provide a falsy replaceName so the ConstructVisitor's validation passes.
+      const replaceName = this.isRepeatableElementTemplateDescendant() ? '' : name;
+      const reusableFormName = this.getLegacyContributorReusableFormName(fieldDefinition);
+      const reusableGroupItemName = this.getLegacyContributorReusableGroupItemName(reusableFormName);
+
+      // Use the same field, so don't change the lineage path.
+      const reusableComponentItemData = {
+        name: reusableGroupItemName,
+        overrides: { replaceName },
+        layout: { class: 'DefaultLayout', config: {} },
+        component: { class: 'GroupComponent', config: {} },
+      };
+      const reusableComponentItem = this.sharedProps.sharedConstructFormComponent(reusableComponentItemData);
+
+      if (reusableComponentItem.component?.config) {
+        this.sharedPopulateFieldComponentConfig(reusableComponentItem.component.config as FieldComponentConfigFrame, field);
+      }
+      if (reusableComponentItem.layout?.config) {
+        this.sharedPopulateFieldLayoutConfig(reusableComponentItem.layout.config as FieldLayoutConfigFrame, field);
+      }
+
+      // Visit children
+      this.acceptV4FormConfigPath(
+        reusableComponentItem,
+        this.formPathHelper.lineagePathsForReusableFieldComponentDefinition(reusableComponentItem, 0)
+      );
+
+      // Store the instance on the item
+      item.config.componentDefinitions.push(reusableComponentItem);
+    }
+  }
+
+  visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    const fieldDefinition = (field?.definition ?? {}) as Record<string, unknown>;
+
+    const v4ClassName = field?.class?.toString() ?? '';
+
+    // Set up the reusable form config for ContributorField in the form component.
+    if (v4ClassName === 'ContributorField') {
+      // Use a reusable form config.
+      item.overrides = { reusableFormName: this.getLegacyContributorReusableFormName(fieldDefinition) };
+
+      // ReusableComponent cannot have a layout.
+      item.layout = undefined;
+    }
+
+        this.populateFormComponent(item);
+    }
+
+    /* Question Tree */
+
+    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new QuestionTreeFieldComponentConfig();
+        this.sharedPopulateFieldComponentConfig(item.config, field);
+    }
+
+    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+        const field = this.getV4Data();
+        item.config = new QuestionTreeFieldModelConfig();
+        this.sharedPopulateFieldModelConfig(item.config, field);
+    }
+
+    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  /* Data classification to Question Tree config migration */
+
+
+  public migrateDataClassificationToQuestionTree(data: any): QuestionTreeFieldComponentConfigFrame {
+
+    const v4Definition = data.createDataClassificationStructure();
+    const v4OrderedOutcomes: string[] = data.orderedOutcomes ?? [];
+
+    // NOTE: The outcome is the 'main' result, which might be displayed, from a Question Tree.
+    //       The outcome meta is additional data that can be included in any outcomes, but is not the 'main' outcome.
+    //       A question tree may have multiple outcomes, and multiple meta properties, each with the same or multiple values.
+    const availableOutcomes: QuestionTreeOutcome[] = v4OrderedOutcomes.map(o => {
+      return {value: o, label: o}
+    });
+    const availableMeta: QuestionTreeMeta = {};
+    const questions: QuestionTreeQuestion[] = [];
+    const defaultOutcomePropName = "classification";
+    for (const [questionId, questionInfo] of Object.entries(v4Definition)) {
+      const qInfo = questionInfo as Record<string, unknown>;
+
+      const rawConditions = qInfo?.conditions as Record<string, string[]>;
+      const rawAnswers = (Array.isArray(qInfo?.answers) ? qInfo?.answers : []) ?? [];
+
+      const rawLabel = qInfo?.label;
+      // const rawHelp = qInfo?.help;
+
+      const rawMinAnswers = qInfo?.minAnswers;
+      const rawMaxAnswers = qInfo?.maxAnswers;
+
+      const questionAnswers: QuestionTreeQuestionAnswer[] = [];
+
+      for (const rawAnswer of rawAnswers) {
+        const answerValue = rawAnswer?.value;
+        const answerLabel = rawAnswer?.label;
+        const answerOutcome = rawAnswer?.outcome;
+        const answerOutcomeGuessedType = guessType(answerOutcome);
+        if (answerOutcomeGuessedType === "string") {
+          questionAnswers.push({
+            value: answerValue,
+            label: answerLabel,
+            outcome: answerOutcome,
+          });
+        } else if (answerOutcomeGuessedType === 'object') {
+          // Use the v4 'classification' property as the v5 outcome,
+          // any other property is outcome meta / additional data.
+          const meta = Object.fromEntries(Object.entries(answerOutcome)
+            .filter(([k, v]) => k !== defaultOutcomePropName && !!v)
+            .map(([k, v]) => [k, v?.toString() ?? ""]));
+          questionAnswers.push({
+            value: answerValue,
+            label: answerLabel,
+            outcome: answerOutcome[defaultOutcomePropName],
+            meta: meta,
+          });
+          Object.entries(meta).forEach(([k, v]) => {
+            if (!(k in availableMeta)){
+              availableMeta[k] = {};
+            }
+            if (!(v in availableMeta[k])){
+              availableMeta[k][v] = v;
+            }
+          });
+        } else if (["undefined", "null"].includes(answerOutcomeGuessedType)) {
+          questionAnswers.push({
+            value: answerValue,
+            label: answerLabel,
+          });
+        } else {
+          throw new Error(JSON.stringify({answerOutcomeGuessedType, rawAnswer}));
+        }
+      }
+
+      const rules: QuestionTreeQuestionRules = {
+        op: "or", args: [
+          ...Object.entries(rawConditions).map(([ruleQuestionId, ruleAnswerValue]) => {
+            return {op: "in", q: ruleQuestionId, a: ruleAnswerValue} as QuestionTreeQuestionRuleIn;
+          })
+        ]
+      };
+
+      questions.push({
+        id: questionId,
+        label: typeof rawLabel === "string" ? rawLabel : undefined,
+        answersMin: parseInt(rawMinAnswers?.toString() ?? "1"),
+        answersMax: parseInt(rawMaxAnswers?.toString() ?? "1"),
+        answers: questionAnswers,
+        rules: rules,
+      });
+    }
+    return {
+      availableOutcomes,
+      availableMeta,
+      questions,
+      componentDefinitions: [],
+    };
+  }
+
+  /* Shared */
+
+  protected acceptV4FormConfigPath(item: CanVisit, more?: LineagePathsPartial, v4FormPath?: string[]): void {
+    // Copy the original lineage paths so they can be restored.
+    const original = [...(this.v4FormPath ?? [])];
+    try {
+      this.v4FormPath = [...original, ...(v4FormPath ?? [])];
+      this.formPathHelper.acceptFormPath(item, more);
+    } finally {
+      this.v4FormPath = original;
+    }
+  }
+
+  protected mapV4ToV5(v4Field: Record<string, unknown>): V5ClassNames {
+    const v4ClassName = v4Field?.class?.toString() ?? '';
+    const v4CompClassName = v4Field?.compClass?.toString() ?? '';
+
+    const matched = formConfigV4ToV5Mapping[v4ClassName]?.[v4CompClassName] ?? {};
+    const v4ClassNames = { v4ClassName, v4CompClassName };
+    return postProcessingFormConfigV4ToV5Mapping(v4Field, v4ClassNames, matched);
+  }
+
+  protected shouldOmitLegacyField(field: Record<string, unknown>, v4FormPathMore?: string[]): boolean {
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    const v4CompClassName = `${field?.compClass ?? ''}`.trim();
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const isLegacyParameterRetriever =
+      v4ClassName === 'ParameterRetriever' || v4CompClassName === 'ParameterRetrieverComponent';
+
+    if (!isLegacyParameterRetriever) {
+      return false;
+    }
+
+    const v4Name = `${definition?.name ?? definition?.id ?? ''}`.trim();
+    const fullPath = [...(this.v4FormPath ?? []), ...(v4FormPathMore ?? [])];
+    this.logger.warn(
+      `${this.logName}: Omitting legacy ParameterRetriever '${v4Name}' at ${JSON.stringify(fullPath)}. URL request params are now available via FormComponent.requestParams/getRequestParam and JSONata requestParams runtime context.`
+    );
+    return true;
+  }
+
+  protected constructFormComponent(field: Record<string, unknown>, more?: LineagePath): AllFormComponentDefinitionOutlines {
+    const { componentClassName, modelClassName, layoutClassName: mappedLayoutClassName } = this.mapV4ToV5(field);
+    let layoutClassName = mappedLayoutClassName;
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const isLegacyInlineContainer = this.isLegacyInlineContainer(field);
+
+    const name = String(definition.name ?? definition.id ?? [componentClassName, ...this.v4FormPath, ...(more ?? [])].join('-'));
+
+    // Build the form component definition frame
+    const currentData: FormComponentDefinitionFrame = {
+      name: name,
+      module: undefined,
+      component: {
+        class: componentClassName,
+        config: {},
+      },
+    };
+    if (modelClassName) {
+      currentData.model = { class: modelClassName, config: {} };
+    }
+    // TODO: Give everything a layout for now.
+    if (!layoutClassName) {
+      layoutClassName = 'DefaultLayout';
+    }
+    if (isLegacyInlineContainer && componentClassName === GroupFieldComponentName) {
+      layoutClassName = ActionRowLayoutName;
+    }
+    if (this.shouldUseInlineLayoutForAnchorButton(field, componentClassName)) {
+      layoutClassName = InlineLayoutName;
+    }
+    if (this.isInsideButtonBarContainer && this.shouldUseInlineLayoutInButtonBar(componentClassName)) {
+      layoutClassName = InlineLayoutName;
+    }
+    if (this.isInsideLegacyInlineContainer() && !isLegacyInlineContainer) {
+      layoutClassName = InlineLayoutName;
+    }
+    currentData.layout = { class: layoutClassName, config: {} };
+
+    // Set the constraints
+    currentData.constraints = {};
+
+    const editOnly = field?.editOnly === true || definition?.editOnly === true;
+    const viewOnly = field?.viewOnly === true || definition?.viewOnly === true;
+    if (editOnly || viewOnly) {
+      currentData.constraints.allowModes = [];
+      if (editOnly) {
+        currentData.constraints.allowModes.push('edit');
+      }
+      if (viewOnly) {
+        currentData.constraints.allowModes.push('view');
+        if (currentData.component.class) {
+          const viewComponentClassName =
+            currentData.component.class === RichTextEditorComponentName
+              ? ContentComponentName
+              : currentData.component.class as ComponentClassNamesType;
+          currentData.overrides = {
+            ...(currentData.overrides ?? {}),
+            formModeClasses: {
+              ...(currentData.overrides?.formModeClasses ?? {}),
+              view: {
+                ...(currentData.overrides?.formModeClasses?.view ?? {}),
+                component: viewComponentClassName,
+              },
+            },
+          };
+        }
+      }
+    }
+
+    if (isLegacyInlineContainer && currentData.component.class === GroupFieldComponentName) {
+      currentData.overrides = {
+        ...(currentData.overrides ?? {}),
+        formModeClasses: {
+          ...(currentData.overrides?.formModeClasses ?? {}),
+          view: {
+            ...(currentData.overrides?.formModeClasses?.view ?? {}),
+            component: GroupFieldComponentName,
+          },
+        },
+      };
+    }
+
+    currentData.constraints.authorization = {};
+    currentData.constraints.authorization.allowRoles = [];
+    const roles = Array.isArray(field?.roles) ? field.roles : [];
+    if (roles.length > 0) {
+      currentData.constraints.authorization.allowRoles.push(...roles as string[]);
+    }
+
+    // TODO: Set the expressions
+
+    // If there is an error message or the form component class is not known,
+    // create a content component instead.
+    // The content is set when visiting the field component.
+
+    const formComponentClass = this.formComponentMap?.get(componentClassName);
+    if (!componentClassName || !formComponentClass) {
+      currentData.component.class = ContentComponentName;
+      currentData.layout = { class: DefaultLayoutName, config: {} };
+      currentData.model = undefined;
+      if (!currentData.component.config) {
+        currentData.component.config = {};
+      }
+      if (this.isInsideLegacyInlineContainer() && !isLegacyInlineContainer) {
+        currentData.layout = { class: InlineLayoutName, config: {} };
+      }
+    }
+
+    // Construct the form component instance from the built form config frame.
+    return this.sharedProps.sharedConstructFormComponent(currentData);
+  }
+
+  protected constructLegacyNameBindingCompanion(
+    field: Record<string, unknown>,
+    v4FormPathMore: LineagePath
+  ): { component: AllFormComponentDefinitionOutlines; sourceName: string; allowRoles: string[]; v4FormPathMore: string[] } | undefined {
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const sourceName = typeof definition.name === 'string' ? definition.name.trim() : '';
+    const sourceType = typeof definition.type === 'string' ? definition.type.trim().toLowerCase() : '';
+    const sourceValue = definition.value;
+    const isLegacyLinkValue =
+      `${field?.class ?? ''}`.trim() === 'LinkValueComponent' &&
+      sourceName.length > 0;
+    const isLegacyHeadingTextBlock =
+      `${field?.class ?? ''}`.trim() === 'Container' &&
+      `${field?.compClass ?? ''}`.trim() === 'TextBlockComponent' &&
+      ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(sourceType) &&
+      sourceName.length > 0 &&
+      (sourceValue === undefined || sourceValue === null || sourceValue === '') &&
+      (field?.viewOnly === true || definition?.viewOnly === true);
+    if (!isLegacyHeadingTextBlock && !isLegacyLinkValue) {
+      return undefined;
+    }
+
+    const hiddenField: Record<string, unknown> = {
+      class: 'HiddenValue',
+      compClass: 'HiddenValueComponent',
+      viewOnly: true,
+      roles: Array.isArray(field?.roles) ? field.roles : [],
+      definition: {
+        name: sourceName,
+        type: 'hidden',
+      },
+    };
+    const hiddenPath = [...(v4FormPathMore ?? [])];
+    const hiddenComponent = this.constructFormComponent(hiddenField, hiddenPath);
+    hiddenComponent.name = sourceName;
+    const allowRoles = Array.isArray(field?.roles) ? (field.roles as string[]) : [];
+    this.enforceLegacyHiddenBindingConfig(hiddenComponent, allowRoles);
+    hiddenComponent.overrides = {
+      ...(hiddenComponent.overrides ?? {}),
+      formModeClasses: {
+        ...(hiddenComponent.overrides?.formModeClasses ?? {}),
+        view: {
+          component: SimpleInputComponentName,
+        },
+      },
+    };
+    return {
+      component: hiddenComponent,
+      sourceName,
+      allowRoles,
+      v4FormPathMore: hiddenPath.map(i => i.toString()),
+    };
+  }
+
+  protected enforceLegacyHiddenBindingConfig(component: AllFormComponentDefinitionOutlines, allowRoles: string[] = []): void {
+    if (component.component?.config) {
+      const hiddenComponentConfig = component.component.config as Record<string, unknown>;
+      hiddenComponentConfig.type = 'hidden';
+      hiddenComponentConfig.visible = false;
+    }
+    if (component.layout?.config) {
+      const hiddenLayoutConfig = component.layout.config as Record<string, unknown>;
+      hiddenLayoutConfig.visible = false;
+    }
+    component.constraints = {
+      authorization: {
+        allowRoles: [...allowRoles],
+      },
+      allowModes: ['view'],
+    };
+  }
+
+  protected retargetLegacyTextBlockBinding(
+    formComponent: AllFormComponentDefinitionOutlines,
+    sourceName: string,
+    bindingName: string
+  ): void {
+    const componentConfig = formComponent?.component?.config as Record<string, unknown> | undefined;
+    if (!componentConfig) {
+      return;
+    }
+    if (componentConfig.content === sourceName) {
+      componentConfig.content = bindingName;
+    }
+  }
+
+  protected ensureLegacyTextBlockComponentNameIsUnique(
+    formComponent: AllFormComponentDefinitionOutlines,
+    sourceName: string,
+    v4FormPathMore: LineagePath
+  ): void {
+    if ((formComponent?.name ?? '') !== sourceName) {
+      return;
+    }
+    const pathSuffix = (v4FormPathMore ?? []).map(i => `${i}`).join('-');
+    const fallback = sourceName.length > 0 ? sourceName : 'content';
+    formComponent.name = `ContentComponent-${pathSuffix || fallback}`;
+  }
+
+  protected populateFormComponent(item: FormComponentDefinitionOutline): void {
+    // Continue visiting
+    this.formPathHelper.acceptFormComponentDefinition(item);
+    // this.acceptV4FormConfigPath(item.component, {formConfig: ['component']});
+    // if (item.model) {
+    //     this.acceptV4FormConfigPath(item.model, {formConfig: ['model']});
+    // }
+    // if (item.layout) {
+    //     this.acceptV4FormConfigPath(item.layout, {formConfig: ['layout']});
+    // }
+  }
+
+  protected sharedPopulateFieldComponentConfig(item: FieldComponentConfigFrame, field?: Record<string, unknown>) {
+    const isLegacyContributor = ['RepeatableContributor', 'ContributorField'].includes(`${field?.class ?? ''}`.trim());
+    const isLegacyDataLocation = this.isLegacyDataLocationField(field);
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const hasExplicitLabel = typeof definition.label === 'string';
+    let fallbackLabel: string | undefined = undefined;
+    if (isLegacyContributor) {
+      const innerFields = definition.fields;
+      if (Array.isArray(innerFields) && innerFields.length > 0) {
+        const firstDefinition = ((innerFields[0] as Record<string, unknown>)?.definition ?? {}) as Record<string, unknown>;
+        fallbackLabel = typeof firstDefinition.label === 'string' ? firstDefinition.label : undefined;
+      }
+      if (!fallbackLabel) {
+        fallbackLabel = typeof definition.name === 'string' ? definition.name : undefined;
+      }
+    }
+
+    const label =
+      hasExplicitLabel
+        ? (definition.label as string)
+        : isLegacyDataLocation
+        ? fallbackLabel
+        : (typeof definition.name === 'string' ? definition.name : undefined) || fallbackLabel;
+
+    const config = {
+      label,
+    };
+    this.sharedProps.sharedPopulateFieldComponentConfig(item, config);
+  }
+
+  protected sharedPopulateFieldModelConfig(item: FieldModelConfigFrame<unknown>, field?: Record<string, unknown>) {
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    if (!item.validators) {
+      item.validators = [];
+    }
+    if (definition.required === true) {
+      item.validators.push({ class: 'required' });
+    }
+    if (definition.maxLength !== undefined) {
+      item.validators.push({ class: 'maxLength', config: { maxLength: definition.maxLength } });
+    }
+    const config = {
+      defaultValue: definition.value ?? definition.defaultValue,
+    };
+    // TODO: Components that are a descendant of a repeatable element template cannot have a default value.
+    //       The default values should be collected and set as the element template newEntryValue.
+    if (this.isRepeatableElementTemplateDescendant()) {
+      delete config['defaultValue'];
+    }
+    this.sharedProps.sharedPopulateFieldModelConfig(item, config);
+  }
+
+  protected sharedPopulateFieldLayoutConfig(item: FieldLayoutConfigFrame, field?: Record<string, unknown>) {
+    const isLegacyContributor = ['RepeatableContributor', 'ContributorField'].includes(`${field?.class ?? ''}`.trim());
+    const isLegacyDataLocation = this.isLegacyDataLocationField(field);
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const hasExplicitLabel = typeof definition.label === 'string';
+    let fallbackLabel: string | undefined = undefined;
+    if (isLegacyContributor) {
+      const innerFields = definition.fields;
+      if (Array.isArray(innerFields) && innerFields.length > 0) {
+        const firstDefinition = ((innerFields[0] as Record<string, unknown>)?.definition ?? {}) as Record<string, unknown>;
+        fallbackLabel = typeof firstDefinition.label === 'string' ? firstDefinition.label : undefined;
+      }
+      if (!fallbackLabel) {
+        fallbackLabel = typeof definition.name === 'string' ? definition.name : undefined;
+      }
+    }
+    const migratedLabel =
+      (this.shouldSuppressLegacyTextBlockLayoutLabel(field) ||
+        this.isLegacyLinkValueControl(field) ||
+        this.isLegacyPDFListControl(field))
+        ? undefined
+        : hasExplicitLabel
+        ? (definition.label as string)
+        : isLegacyDataLocation
+        ? fallbackLabel
+        : // RepeatableContributor often only defines 'name'; preserve a section label on migration.
+        fallbackLabel ||
+          (typeof definition.name === 'string' ? definition.name : undefined) ||
+          (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && typeof definition.value === 'string'
+            ? definition.value
+            : undefined);
+    const legacyCssClasses = typeof definition.cssClasses === 'string' ? definition.cssClasses.trim() : '';
+    const cssClassesMap =
+      this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && legacyCssClasses
+        ? { label: legacyCssClasses }
+        : undefined;
+    const config = {
+      label: (this.isInsideButtonBarContainer || this.isInsideLegacyInlineContainer()) ? undefined : migratedLabel,
+      helpText: typeof definition.help === 'string' ? definition.help : undefined,
+      cssClassesMap,
+    };
+    this.sharedProps.sharedPopulateFieldLayoutConfig(item, config);
+  }
+
+  private isLegacyDataLocationField(field?: Record<string, unknown>): boolean {
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    const v4CompClassName = `${field?.compClass ?? ''}`.trim();
+    return v4ClassName === 'DataLocation' || v4CompClassName === 'DataLocationComponent';
+  }
+
+  private isLegacyPDFListControl(field?: Record<string, unknown>): boolean {
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    const v4CompClassName = `${field?.compClass ?? ''}`.trim();
+    return v4ClassName === 'PDFList' || v4CompClassName === 'PDFListComponent';
+  }
+
+  protected getV4Data() {
+    const data = this.v4FormConfig;
+    const path = this.v4FormPath;
+
+    const result =
+      !path || path.length < 1
+        ? data
+        : _get(
+          data,
+          path.map(i => i.toString())
+        );
+
+    // this.logger.info(JSON.stringify({path, result}));
+    return result;
+  }
+
+  private isLegacyTranslationKey(value: unknown): value is string {
+    return typeof value === 'string' && value.trim().startsWith('@');
+  }
+
+  private isLegacyTextBlockSpanField(field?: Record<string, unknown>): boolean {
+    if (!field) {
+      return false;
+    }
+    const definition = (field.definition ?? {}) as Record<string, unknown>;
+    return (
+      `${field.class ?? ''}`.trim() === 'Container' &&
+      `${field.compClass ?? ''}`.trim() === 'TextBlockComponent' &&
+      `${definition.type ?? ''}`.trim() === 'span'
+    );
+  }
+
+  private shouldPromoteLegacyTextBlockSpanToLayoutLabel(field?: Record<string, unknown>): boolean {
+    if (!this.isLegacyTextBlockSpanField(field)) {
+      return false;
+    }
+    const definition = ((field?.definition ?? {}) as Record<string, unknown>);
+    const hasHelpText = typeof definition.help === 'string' && definition.help.trim().length > 0;
+    const hasLegacyCssClass = typeof definition.cssClasses === 'string' && definition.cssClasses.trim().length > 0;
+    return hasHelpText || hasLegacyCssClass;
+  }
+
+  private shouldSuppressLegacyTextBlockLayoutLabel(field?: Record<string, unknown>): boolean {
+    if (!field) {
+      return false;
+    }
+    const definition = ((field.definition ?? {}) as Record<string, unknown>);
+    const isLegacyTextBlock =
+      `${field.class ?? ''}`.trim() === 'Container' && `${field.compClass ?? ''}`.trim() === 'TextBlockComponent';
+    const hasExplicitLabel = typeof definition.label === 'string' && definition.label.trim().length > 0;
+    const hasLegacyNameBinding = typeof definition.name === 'string' && definition.name.trim().length > 0;
+    return isLegacyTextBlock && hasLegacyNameBinding && !hasExplicitLabel && !this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field);
+  }
+
+  private getLegacyContributorReusableFormName(fieldDefinition: Record<string, unknown>): string {
+    const forceLookupOnly = this.parseLegacyTypeaheadBoolean(
+      fieldDefinition.forceLookupOnly,
+      false,
+      'forceLookupOnly'
+    );
+    return forceLookupOnly ? 'standard-contributor-fields-lookup-only-group' : 'standard-contributor-fields-group';
+  }
+
+  private getLegacyContributorReusableGroupItemName(reusableFormName: string): string {
+    switch (reusableFormName) {
+      case 'standard-contributor-fields-lookup-only-group':
+        return 'standard_contributor_fields_lookup_only_group';
+      case 'standard-contributor-fields-group':
+      default:
+        return 'standard_contributor_fields_group';
+    }
+  }
+
+  private normaliseV4FormConfig(formConfig: unknown): Record<string, unknown> {
+    let normalized: Record<string, unknown>;
+    if (formConfig === undefined || formConfig === null) {
+      normalized = {};
+    } else if (Array.isArray(formConfig)) {
+      normalized = { fields: formConfig };
+    } else if (typeof formConfig === 'object') {
+      normalized = formConfig as Record<string, unknown>;
+    } else {
+      normalized = {};
+    }
+
+    // If the top level has a 'form' property, assume it is an export in the structure form.forms[formId] = formConfig.
+    if (Object.hasOwn(normalized, 'form')) {
+      const formContainer = (normalized.form ?? {}) as Record<string, unknown>;
+      const forms = (formContainer.forms ?? {}) as Record<string, unknown>;
+      const formIds = Object.keys(forms).filter(formId => formId !== '_dontMerge');
+      if (formIds.length === 1) {
+        this.logger.info(`Migrating form id: ${formIds[0]}`);
+        normalized = (forms[formIds[0]] as Record<string, unknown>) ?? {};
+      } else {
+        const topKeys = Object.keys(normalized);
+        const formKeys = Object.keys(formContainer);
+        const formsKeys = Object.keys(forms);
+        this.logger.error(
+          `Cannot migrate due to more or less than one form id: ${JSON.stringify({
+            topKeys,
+            formKeys,
+            formsKeys,
+          })}`
+        );
+        normalized = {};
+      }
+    }
+    // Set the form config name if there isn't one.
+    if (typeof normalized.name !== 'string' || normalized.name.length === 0) {
+      normalized.name = 'v4FormConfig';
+    }
+    return normalized;
+  }
+
+  protected migrateOptions(field: Record<string, unknown>) {
+    return (((field?.definition as Record<string, unknown>)?.options as Array<Record<string, unknown>>) ?? []).map((option) => {
+      return {
+        label: option?.label ?? '',
+        value: option?.value ?? '',
+        disabled: option?.disabled ?? option?.historicalOnly ?? undefined,
+      };
+    });
+  }
+
+  private applyLegacyFormCssNormalization(item: FormConfigOutline): void {
+    const normalizedViewCssClasses = this.normalizeLegacyFormCssClasses(item.viewCssClasses, 'view');
+    if (normalizedViewCssClasses) {
+      item.viewCssClasses = normalizedViewCssClasses;
+    }
+
+    const normalizedEditCssClasses = this.normalizeLegacyFormCssClasses(item.editCssClasses, 'edit');
+    if (normalizedEditCssClasses) {
+      item.editCssClasses = normalizedEditCssClasses;
+    }
+  }
+
+  private normalizeLegacyFormCssClasses(cssClasses: unknown, mode: 'view' | 'edit'): string | undefined {
+    if (typeof cssClasses !== 'string') {
+      return undefined;
+    }
+
+    const normalized = cssClasses.trim().replace(/\s+/g, ' ');
+    if (mode === 'view' && normalized === 'row col-md-offset-1 col-md-10') {
+      return 'redbox-form form rb-form-view';
+    }
+    if (mode === 'edit' && normalized === 'row col-md-12') {
+      return 'redbox-form form rb-form-edit';
+    }
+    return undefined;
+  }
+
+  private normalizeLegacyButtonCssClasses(cssClasses: unknown): string | undefined {
+    if (typeof cssClasses !== 'string') {
+      return undefined;
+    }
+    const normalized = cssClasses.trim().replace(/\s+/g, ' ');
+    if (!normalized) {
+      return undefined;
+    }
+    // Bootstrap 3 -> 5 compatibility for common legacy button class.
+    const migrated = normalized.replace(/\bbtn-default\b/g, 'btn-secondary').trim();
+    const classTokens = migrated.split(/\s+/);
+    return classTokens.includes('btn') ? migrated : `btn ${migrated}`;
+  }
+
+  private shouldUseInlineLayoutInButtonBar(componentClassName: string): boolean {
+    return (
+      componentClassName === SaveButtonComponentName ||
+      componentClassName === CancelButtonComponentName ||
+      componentClassName === DeleteButtonComponentName ||
+      componentClassName === TabNavButtonComponentName
+    );
+  }
+
+  private shouldUseInlineLayoutForAnchorButton(field: Record<string, unknown>, componentClassName: string): boolean {
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    return v4ClassName === 'AnchorOrButton' && (
+      componentClassName === SaveButtonComponentName ||
+      componentClassName === ContentComponentName
+    );
+  }
+
+  private isLegacyAnchorControl(field?: Record<string, unknown>): boolean {
+    if (!field) {
+      return false;
+    }
+    const definition = (field.definition ?? {}) as Record<string, unknown>;
+    return `${field.class ?? ''}`.trim() === 'AnchorOrButton' && `${definition.controlType ?? ''}`.trim() === 'anchor';
+  }
+
+  private isLegacyLinkValueControl(field?: Record<string, unknown>): boolean {
+    if (!field) {
+      return false;
+    }
+    return `${field.class ?? ''}`.trim() === 'LinkValueComponent';
+  }
+
+  private isInsideLegacyInlineContainer(): boolean {
+    return this.legacyInlineContainerDepth > 0;
+  }
+
+  private isLegacyInlineContainer(field?: Record<string, unknown>): boolean {
+    if (!field) {
+      return false;
+    }
+    const v4ClassName = `${field.class ?? ''}`.trim();
+    const v4CompClassName = `${field.compClass ?? ''}`.trim();
+    if (v4ClassName !== 'Container' || v4CompClassName !== 'GenericGroupComponent') {
+      return false;
+    }
+    const definition = (field.definition ?? {}) as Record<string, unknown>;
+    return this.hasLegacyCssClass(definition.cssClasses, 'form-inline') || this.hasLegacyCssClass(definition.cssClass, 'form-inline');
+  }
+
+  private hasLegacyCssClass(value: unknown, token: string): boolean {
+    if (typeof value !== 'string') {
+      return false;
+    }
+    return value
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .includes(token);
+  }
+
+  private mergeCssClassTokens(baseCssClasses: unknown, appendCssClasses: string): string {
+    const classes = `${typeof baseCssClasses === 'string' ? baseCssClasses : ''} ${appendCssClasses}`
+      .split(/\s+/)
+      .map((cssClass) => cssClass.trim())
+      .filter(Boolean);
+    return Array.from(new Set(classes)).join(' ');
+  }
+
+  private removeLegacyCssToken(cssClasses: string, tokenToRemove: string): string {
+    return cssClasses
+      .split(/\s+/)
+      .map((cssClass) => cssClass.trim())
+      .filter((cssClass) => cssClass.length > 0 && cssClass !== tokenToRemove)
+      .join(' ');
+  }
+
+  private buildLegacyAnchorHrefTemplate(href: string): string {
+    const rawHref = String(href ?? '');
+    const templatedHref = this.buildLegacyUrlTemplate(rawHref);
+    if (templatedHref === rawHref) {
+      return '{{content.href}}';
+    }
+    return templatedHref;
+  }
+
+  private buildLegacyUrlTemplate(value: string): string {
+    const rawHref = String(value ?? '');
+    if (!rawHref.includes('@branding') && !rawHref.includes('@portal') && !rawHref.includes('@oid')) {
+      return rawHref;
+    }
+
+    const parts: string[] = [];
+    const tokenRegex = /@branding|@portal|@oid/g;
+    let cursor = 0;
+    let match: RegExpExecArray | null;
+    while ((match = tokenRegex.exec(rawHref)) !== null) {
+      const tokenIndex = match.index;
+      const literalPart = rawHref.slice(cursor, tokenIndex);
+      if (literalPart.length > 0) {
+        parts.push(`"${this.escapeHandlebarsStringLiteral(literalPart)}"`);
+      }
+      const matchedToken = match[0];
+      if (matchedToken === '@branding') {
+        parts.push('branding');
+      } else if (matchedToken === '@portal') {
+        parts.push('portal');
+      } else if (matchedToken === '@oid') {
+        parts.push('oid');
+      } else {
+        parts.push(`"${this.escapeHandlebarsStringLiteral(matchedToken)}"`);
+      }
+      cursor = tokenIndex + matchedToken.length;
+    }
+
+    const trailingPart = rawHref.slice(cursor);
+    if (trailingPart.length > 0) {
+      parts.push(`"${this.escapeHandlebarsStringLiteral(trailingPart)}"`);
+    }
+    if (parts.length === 0) {
+      return rawHref;
+    }
+    return `{{concat ${parts.join(' ')}}}`;
+  }
+
+  private escapeHandlebarsStringLiteral(value: string): string {
+    return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  }
+
+  /**
+   * Check whether the current form config path is a descendant (and not a match)
+   * of the most recent repeatable element template path.
+   * @protected
+   */
+  protected isRepeatableElementTemplateDescendant(): boolean {
+    const mostRecentPath = this.mostRecentRepeatableElementTemplatePath ?? [];
+    const formConfigPath = this.formPathHelper.formPath.formConfig;
+    if (!mostRecentPath || mostRecentPath.length === 0 || !formConfigPath || formConfigPath.length === 0) {
+      return false;
+    }
+    // The formConfig path might have ["[component|model|layout]", "config"] at the end (2 additional items),
+    // but only the path up to ["config", "elementTemplate"] is relevant for this check.
+    if (formConfigPath.length + 2 <= mostRecentPath.length) {
+      return false;
+    }
+    return mostRecentPath.every((value, index) => value === formConfigPath[index]);
+  }
+
+  private parseLegacyBooleanFlag(
+    rawValue: unknown,
+    defaultValue: boolean | undefined,
+    fieldName: string
+  ): boolean | undefined {
+    if (typeof rawValue === 'boolean') {
+      return rawValue;
+    }
+    if (rawValue === undefined || rawValue === null || rawValue === '') {
+      return defaultValue;
+    }
+    if (typeof rawValue === 'number') {
+      return rawValue !== 0;
+    }
+    if (typeof rawValue === 'string') {
+      const normalized = rawValue.trim().toLowerCase();
+      if (['true', '1', 'yes', 'on'].includes(normalized)) {
+        return true;
+      }
+      if (['false', '0', 'no', 'off'].includes(normalized)) {
+        return false;
+      }
+    }
+    this.logger.warn(
+      `${this.logName}: CheckboxTree migration received malformed '${fieldName}' value, using safe default.`
+    );
+    return defaultValue;
+  }
+
+  private parseLegacyPositiveInteger(rawValue: unknown, fieldName: string): number | undefined {
+    if (rawValue === undefined || rawValue === null || rawValue === '') {
+      return undefined;
+    }
+    const parsed = Number.parseInt(String(rawValue), 10);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      return parsed;
+    }
+    this.logger.warn(`${this.logName}: CheckboxTree migration received invalid '${fieldName}' value, ignoring it.`);
+    return undefined;
+  }
+
+  private warnOnMalformedLegacyRegex(definition: Record<string, unknown>): void {
+    for (const key of ['regex', 'pattern', 'leafRegex']) {
+      if (!Object.hasOwn(definition, key)) {
+        continue;
+      }
+      const rawValue = definition[key];
+      if (rawValue === undefined || rawValue === null || rawValue === '') {
+        continue;
+      }
+      if (rawValue instanceof RegExp) {
+        continue;
+      }
+      if (typeof rawValue === 'string') {
+        try {
+          // Validate regex string syntax to avoid carrying malformed values into v5 config.
+          new RegExp(rawValue);
+          continue;
+        } catch {
+          this.logger.warn(
+            `${this.logName}: CheckboxTree migration found malformed regex in '${key}', using defaults.`
+          );
+          continue;
+        }
+      }
+      this.logger.warn(
+        `${this.logName}: CheckboxTree migration found unsupported regex value in '${key}', using defaults.`
+      );
+    }
+  }
+
+  private coerceCheckboxTreeDefaultValue(config: CheckboxTreeFieldModelConfig): void {
+    const rawDefaultValue = config.defaultValue;
+    if (rawDefaultValue === undefined || rawDefaultValue === null) {
+      return;
+    }
+    if (!Array.isArray(rawDefaultValue)) {
+      config.defaultValue = [];
+      this.logger.warn(
+        `${this.logName}: CheckboxTree migration coerced non-array default value to empty selection array.`
+      );
+      return;
+    }
+
+    const coerced = (rawDefaultValue as unknown[]).filter(item => {
+      if (!item || typeof item !== 'object') {
+        return false;
+      }
+      const notation = String((item as { notation?: unknown }).notation ?? '').trim();
+      const label = String((item as { label?: unknown }).label ?? '').trim();
+      const name = String((item as { name?: unknown }).name ?? '').trim();
+      return Boolean(notation && label && name);
+    });
+
+    if (coerced.length !== rawDefaultValue.length) {
+      this.logger.warn(`${this.logName}: CheckboxTree migration dropped malformed default selection entries.`);
+    }
+    config.defaultValue = coerced as CheckboxTreeFieldModelConfig['defaultValue'];
+  }
+
+  private coerceMapFeatureCollection(config: MapFieldModelConfigOutline): void {
+    const emptyCollection = {
+      type: 'FeatureCollection',
+      features: [],
+    } as MapFieldModelConfig['defaultValue'];
+
+    const normalize = (value: unknown): MapFieldModelConfig['defaultValue'] => {
+      if (!value || typeof value !== 'object') {
+        return emptyCollection;
+      }
+      const source = value as Record<string, unknown>;
+      const type = String(source.type ?? '');
+      if (type !== 'FeatureCollection') {
+        return emptyCollection;
+      }
+      const features = Array.isArray(source.features) ? source.features : [];
+      return {
+        type: 'FeatureCollection',
+        features: features as MapFieldModelConfig['defaultValue']['features'],
+      };
+    };
+
+    config.defaultValue = normalize(config.defaultValue);
+    if (config.value !== undefined) {
+      config.value = normalize(config.value);
+    }
+  }
+
+  private extractLegacyMapCenter(leafletOptions: Record<string, unknown>): [number, number] | undefined {
+    const center = leafletOptions.center;
+    if (Array.isArray(center) && center.length >= 2) {
+      const lat = Number(center[0]);
+      const lng = Number(center[1]);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return [lat, lng];
+      }
+    }
+    if (center && typeof center === 'object') {
+      const centerObj = center as Record<string, unknown>;
+      const lat = Number(centerObj.lat);
+      const lng = Number(centerObj.lng ?? centerObj.lon);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return [lat, lng];
+      }
+    }
+    return undefined;
+  }
+
+  private extractLegacyMapZoom(leafletOptions: Record<string, unknown>): number | undefined {
+    const zoom = Number(leafletOptions.zoom);
+    if (Number.isFinite(zoom)) {
+      return zoom;
+    }
+    return undefined;
+  }
+
+  private extractLegacyMapTileLayers(definition: Record<string, unknown>): MapTileLayerConfig[] {
+    const layersControl = this.readObject(definition.layersControl);
+    const baseLayers = this.readObject(layersControl.baseLayers);
+    const tileLayers: MapTileLayerConfig[] = [];
+    for (const [name, layerValue] of Object.entries(baseLayers)) {
+      if (!layerValue || typeof layerValue !== 'object') {
+        continue;
+      }
+      const layer = layerValue as Record<string, unknown>;
+      const url = String(layer._url ?? '');
+      if (!url) {
+        continue;
+      }
+      tileLayers.push({
+        name,
+        url,
+        options: this.readObject(layer.options),
+      });
+    }
+    return tileLayers;
+  }
+
+  private extractLegacyMapEnabledModes(drawOptions: Record<string, unknown>): MapDrawingMode[] {
+    const draw = this.readObject(drawOptions.draw);
+    const enabledModes: MapDrawingMode[] = [];
+
+    const modeMap: Array<{ key: string; mode: MapDrawingMode }> = [
+      { key: 'marker', mode: 'point' },
+      { key: 'polygon', mode: 'polygon' },
+      { key: 'polyline', mode: 'linestring' },
+      { key: 'rectangle', mode: 'rectangle' },
+    ];
+    for (const { key, mode } of modeMap) {
+      const rawModeConfig = draw[key];
+      if (rawModeConfig === false) {
+        continue;
+      }
+      enabledModes.push(mode);
+    }
+
+    const hasLegacyEditConfig = Object.prototype.hasOwnProperty.call(drawOptions, 'edit');
+    if (hasLegacyEditConfig && drawOptions.edit !== false) {
+      enabledModes.push('select');
+    }
+
+    const deduped = [...new Set(enabledModes)];
+    const invalidModes = deduped.filter(
+      mode => !['point', 'polygon', 'linestring', 'rectangle', 'select'].includes(mode)
+    );
+    if (invalidModes.length > 0) {
+      this.logger.warn(
+        `${this.logName}: Map migration dropped unsupported enabledModes values at ${JSON.stringify(this.v4FormPath)}: ${JSON.stringify(invalidModes)}.`
+      );
+    }
+    return deduped.filter(
+      (mode): mode is MapDrawingMode =>
+        mode === 'point' || mode === 'polygon' || mode === 'linestring' || mode === 'rectangle' || mode === 'select'
+    );
+  }
+
+  private readObject(input: unknown): Record<string, unknown> {
+    return input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
+  }
+
+  private resolveTypeaheadSourceType(definition: Record<string, unknown>): 'namedQuery' | 'vocabulary' | 'static' | 'external' {
+    const legacySourceType = String(definition.sourceType ?? '')
+      .trim()
+      .toLowerCase();
+    if (legacySourceType === 'query' || legacySourceType === 'namedquery') {
+      return 'namedQuery';
+    }
+    if (legacySourceType === 'external') {
+      return 'external';
+    }
+    if (legacySourceType === 'vocabulary') {
+      return 'vocabulary';
+    }
+    if (Array.isArray(definition.options) || Array.isArray(definition.staticOptions)) {
+      return 'static';
+    }
+    if (definition.vocabQueryId || definition.queryId) {
+      return 'namedQuery';
+    }
+    if (definition.vocabRef || definition.vocabId) {
+      return 'vocabulary';
+    }
+    if (definition.provider) {
+      return 'external';
+    }
+    return 'namedQuery';
+  }
+
+  private normalizeLegacyTypeaheadStaticOptions(
+    definition: Record<string, unknown>,
+    labelField: string,
+    valueField: string
+  ): Array<{ label: string; value: string }> {
+    const options = this.resolvePreferredLegacyTypeaheadStaticOptions(definition);
+    const normalized = options
+      .map(entry => this.normalizeLegacyTypeaheadStaticOption(entry, labelField, valueField))
+      .filter((entry): entry is { label: string; value: string } => entry !== null);
+
+    if (options.length > 0 && normalized.length !== options.length) {
+      this.logger.warn(
+        `${this.logName}: Typeahead migration dropped malformed static option entries at ${JSON.stringify(this.v4FormPath)}.`
+      );
+    }
+
+    return normalized;
+  }
+
+  private resolvePreferredLegacyTypeaheadStaticOptions(definition: Record<string, unknown>): unknown[] {
+    const options = Array.isArray(definition.options) ? definition.options : [];
+    const staticOptions = Array.isArray(definition.staticOptions) ? definition.staticOptions : [];
+    if (options.length > 0) {
+      return options;
+    }
+    if (staticOptions.length > 0) {
+      return staticOptions;
+    }
+    return options.length > 0 ? options : staticOptions;
+  }
+
+  private normalizeLegacyTypeaheadStaticOption(
+    entry: unknown,
+    labelField: string,
+    valueField: string
+  ): { label: string; value: string } | null {
+    if (entry === undefined || entry === null) {
+      return null;
+    }
+
+    if (typeof entry === 'string' || typeof entry === 'number' || typeof entry === 'boolean') {
+      const normalized = String(entry).trim();
+      return normalized ? { label: normalized, value: normalized } : null;
+    }
+
+    if (typeof entry !== 'object') {
+      return null;
+    }
+
+    const source = entry as Record<string, unknown>;
+    const resolvedLabel = String(
+      source.label ??
+      source.name ??
+      source.title ??
+      source.text ??
+      source[labelField] ??
+      source[valueField] ??
+      source.value ??
+      ''
+    ).trim();
+    const resolvedValue = String(
+      source.value ?? source[valueField] ?? source.name ?? source[labelField] ?? source.title ?? source.label ?? ''
+    ).trim();
+
+    const label = resolvedLabel || resolvedValue;
+    const value = resolvedValue || resolvedLabel;
+    if (!label && !value) {
+      return null;
+    }
+
+    return { label, value };
+  }
+
+  private resolveLegacyLabelField(definition: Record<string, unknown>): string {
+    const titleFieldName = String(definition.titleFieldName ?? '').trim();
+    if (titleFieldName) {
+      return titleFieldName;
+    }
+    const stringLabelToField = String(definition.stringLabelToField ?? '').trim();
+    if (stringLabelToField) {
+      return stringLabelToField;
+    }
+    const titleFieldArr = Array.isArray(definition.titleFieldArr) ? definition.titleFieldArr : [];
+    const firstTitleField = String(titleFieldArr[0] ?? '').trim();
+    if (firstTitleField) {
+      return firstTitleField;
+    }
+    return 'label';
+  }
+
+  private parseLegacyTypeaheadBoolean(rawValue: unknown, defaultValue: boolean, fieldName: string): boolean {
+    if (typeof rawValue === 'boolean') {
+      return rawValue;
+    }
+    if (rawValue === undefined || rawValue === null || rawValue === '') {
+      return defaultValue;
+    }
+    if (typeof rawValue === 'number') {
+      return rawValue !== 0;
+    }
+    if (typeof rawValue === 'string') {
+      const normalized = rawValue.trim().toLowerCase();
+      if (['true', '1', 'yes', 'on'].includes(normalized)) {
+        return true;
+      }
+      if (['false', '0', 'no', 'off'].includes(normalized)) {
+        return false;
+      }
+    }
+    this.logger.warn(
+      `${this.logName}: Typeahead migration received malformed '${fieldName}' value, using safe default.`
+    );
+    return defaultValue;
+  }
+
+  private coerceLegacyTypeaheadValue(
+    rawValue: unknown,
+    valueMode: 'value' | 'optionObject',
+    labelField: string
+  ): TypeaheadInputFieldModelConfig['value'] {
+    if (rawValue === undefined || rawValue === null || rawValue === '') {
+      return null;
+    }
+
+    if (valueMode === 'value') {
+      if (typeof rawValue === 'string') {
+        return rawValue;
+      }
+      if (typeof rawValue === 'object') {
+        const source = rawValue as Record<string, unknown>;
+        const candidate = String(source[labelField] ?? source.title ?? source.label ?? source.value ?? '').trim();
+        if (candidate) {
+          return candidate;
+        }
+      }
+      this.logger.warn(`${this.logName}: Typeahead migration coerced malformed legacy value to null.`);
+      return null;
+    }
+
+    if (typeof rawValue === 'string') {
+      return {
+        label: rawValue,
+        value: rawValue,
+        sourceType: 'freeText',
+      };
+    }
+    if (typeof rawValue === 'object') {
+      const source = rawValue as Record<string, unknown>;
+      const label = String(source.label ?? source[labelField] ?? source.title ?? source.value ?? '').trim();
+      const value = String(source.value ?? source[labelField] ?? source.label ?? source.title ?? '').trim();
+      if (!label && !value) {
+        this.logger.warn(`${this.logName}: Typeahead migration coerced malformed legacy object value to null.`);
+        return null;
+      }
+      const sourceType = String(source.sourceType ?? '').trim();
+      const normalizedSourceType = ['static', 'vocabulary', 'namedQuery', 'freeText'].includes(sourceType)
+        ? (sourceType as 'static' | 'vocabulary' | 'namedQuery' | 'freeText')
+        : undefined;
+      return {
+        label: label || value,
+        value: value || label,
+        sourceType: normalizedSourceType,
+      };
+    }
+
+    this.logger.warn(`${this.logName}: Typeahead migration coerced malformed legacy value to null.`);
+    return null;
+  }
+
+  private injectLegacyRecordMetadataRetrieverExpressions(
+    legacyFields: Record<string, unknown>[],
+    migratedComponents: AllFormComponentDefinitionOutlines[],
+    containerPointer = ''
+  ): void {
+    for (const legacyField of legacyFields) {
+      if (!this.isLegacyRecordMetadataRetrieverField(legacyField)) {
+        continue;
+      }
+
+      const retrieverDefinition = (legacyField.definition ?? {}) as Record<string, unknown>;
+      const retrieverName = String(retrieverDefinition.name ?? retrieverDefinition.id ?? '').trim();
+      if (!retrieverName) {
+        continue;
+      }
+
+      const migratedRetriever = migratedComponents.find((component) => component.name === retrieverName);
+      if (migratedRetriever) {
+        migratedRetriever.expressions = (migratedRetriever.expressions ?? []).concat(
+          this.buildRetrieverExpressions(legacyField, legacyFields, containerPointer)
+        );
+      }
+
+      for (const targetField of legacyFields) {
+        const targetDefinition = (targetField.definition ?? {}) as Record<string, unknown>;
+        const targetName = String(targetDefinition.name ?? targetDefinition.id ?? '').trim();
+        if (!targetName) {
+          continue;
+        }
+
+        const subscribe = (targetDefinition.subscribe ?? {}) as Record<string, unknown>;
+        const retrieverSubscriptions = subscribe[retrieverName] as Record<string, unknown> | undefined;
+        const onValueUpdate = Array.isArray(retrieverSubscriptions?.onValueUpdate)
+          ? (retrieverSubscriptions.onValueUpdate as Record<string, unknown>[])
+          : [];
+        if (onValueUpdate.length === 0) {
+          continue;
+        }
+
+        const migratedTarget = migratedComponents.find((component) => component.name === targetName);
+        if (!migratedTarget?.model) {
+          continue;
+        }
+
+        const expressions = migratedTarget.expressions ?? [];
+        for (const actionConfig of onValueUpdate) {
+          if (actionConfig?.action !== 'utilityService.getPropertyFromObject') {
+            continue;
+          }
+
+          const propertyName = String(actionConfig.field ?? '').trim();
+          if (!propertyName) {
+            continue;
+          }
+
+          expressions.push({
+            name: `${retrieverName}-${targetName}-${propertyName}`.replace(/[^a-zA-Z0-9_-]+/g, '-'),
+            description: `Populate ${targetName} from ${retrieverName} metadata`,
+            config: {
+              conditionKind: ExpressionsConditionKind.JSONPointer,
+              runOnFormReady: false,
+              condition: `${this.buildNestedComponentJsonPointer(containerPointer, retrieverName)}::field.value.changed`,
+              target: 'model.value',
+              hasTemplate: true,
+              template: this.buildEventValueTemplate(propertyName),
+            },
+          });
+        }
+        migratedTarget.expressions = expressions;
+      }
+    }
+  }
+
+  private buildRetrieverExpressions(
+    retrieverField: Record<string, unknown>,
+    siblingFields: Record<string, unknown>[],
+    containerPointer = ''
+  ): FormExpressionsConfigFrame[] {
+    const definition = (retrieverField.definition ?? {}) as Record<string, unknown>;
+    const subscribe = (definition.subscribe ?? {}) as Record<string, unknown>;
+    const expressions: FormExpressionsConfigFrame[] = [];
+
+    for (const [sourceName, sourceConfigUnknown] of Object.entries(subscribe)) {
+      const sourceConfig = (sourceConfigUnknown ?? {}) as Record<string, unknown>;
+      const onValueUpdate = Array.isArray(sourceConfig.onValueUpdate)
+        ? (sourceConfig.onValueUpdate as Record<string, unknown>[])
+        : [];
+      const relatedObjectSelected = Array.isArray(sourceConfig.relatedObjectSelected)
+        ? (sourceConfig.relatedObjectSelected as Record<string, unknown>[])
+        : [];
+
+      if (onValueUpdate.some((action) => action?.action === 'publishMetadata')) {
+        const parameterName = this.resolveLegacyParameterRetrieverName(sourceName, siblingFields);
+        if (parameterName) {
+          expressions.push({
+            name: `fetchOnFormReady-${parameterName}`,
+            description: 'Fetch metadata on form load using request params',
+            config: {
+              runOnFormReady: true,
+              conditionKind: ExpressionsConditionKind.JSONataQuery,
+              condition: `$exists(runtimeContext.requestParams.${parameterName})`,
+              operation: 'fetchMetadata',
+              hasTemplate: true,
+              template: `runtimeContext.requestParams.${parameterName}`,
+            },
+          });
+        }
+      }
+
+      if (relatedObjectSelected.some((action) => action?.action === 'publishMetadata')) {
+        expressions.push({
+          name: `fetchOnRelatedObjectSelected-${sourceName}`,
+          description: `Fetch metadata when ${sourceName} changes`,
+          config: {
+            conditionKind: ExpressionsConditionKind.JSONPointer,
+            runOnFormReady: false,
+            condition: `${this.buildNestedComponentJsonPointer(containerPointer, sourceName)}::field.value.changed`,
+            operation: 'fetchMetadata',
+            hasTemplate: true,
+            template: '$exists(event.value.oid) ? event.value.oid : ($exists(event.value.redboxOid) ? event.value.redboxOid : event.value)',
+          },
+        });
+      }
+    }
+
+    return expressions;
+  }
+
+  private resolveLegacyParameterRetrieverName(sourceName: string, siblingFields: Record<string, unknown>[]): string | undefined {
+    const parameterRetriever = siblingFields.find((field) => {
+      if (!this.isLegacyParameterRetrieverField(field)) {
+        return false;
+      }
+      const definition = (field.definition ?? {}) as Record<string, unknown>;
+      return String(definition.name ?? definition.id ?? '').trim() === sourceName;
+    });
+
+    const parameterDefinition = (parameterRetriever?.definition ?? {}) as Record<string, unknown>;
+    const parameterName = String(parameterDefinition.parameterName ?? '').trim();
+    return parameterName || undefined;
+  }
+
+  private isLegacyParameterRetrieverField(field: Record<string, unknown>): boolean {
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    const v4CompClassName = `${field?.compClass ?? ''}`.trim();
+    return v4ClassName === 'ParameterRetriever' || v4CompClassName === 'ParameterRetrieverComponent';
+  }
+
+  private isLegacyRecordMetadataRetrieverField(field: Record<string, unknown>): boolean {
+    const v4ClassName = `${field?.class ?? ''}`.trim();
+    const v4CompClassName = `${field?.compClass ?? ''}`.trim();
+    return v4ClassName === 'RecordMetadataRetriever' || v4CompClassName === 'RecordMetadataRetrieverComponent';
+  }
+
+  private buildNestedComponentJsonPointer(containerPointer: string, componentName: string): string {
+    const trimmedName = componentName.trim();
+    if (!trimmedName) {
+      return containerPointer || '';
+    }
+
+    const normalizedContainerPointer = containerPointer && containerPointer !== '/'
+      ? containerPointer.replace(/\/+$/, '')
+      : '';
+    return `${normalizedContainerPointer}/${trimmedName}`;
+  }
+
+  private getCurrentContainerAngularComponentsJsonPointer(componentName?: string): string {
+    const currentPointer = this.formPathHelper.formPath.angularComponentsJsonPointer ?? '';
+    const trimmedName = componentName?.trim();
+    if (!currentPointer || !trimmedName) {
+      return currentPointer;
+    }
+
+    const suffix = `/${trimmedName}`;
+    if (currentPointer.endsWith(suffix)) {
+      return currentPointer.slice(0, -suffix.length);
+    }
+
+    return currentPointer;
+  }
+
+  private resolveComponentAngularComponentsJsonPointer(componentName: string, fallbackContainerPointer = ''): string {
+    const trimmedName = componentName.trim();
+    if (!trimmedName) {
+      return fallbackContainerPointer;
+    }
+
+    const globalPointer = this.findComponentAngularComponentsJsonPointer(
+      this.v5FormConfig.componentDefinitions,
+      trimmedName
+    );
+    if (globalPointer) {
+      return globalPointer;
+    }
+
+    return this.buildNestedComponentJsonPointer(fallbackContainerPointer, trimmedName);
+  }
+
+  private findComponentAngularComponentsJsonPointer(
+    components: AllFormComponentDefinitionOutlines[] | undefined,
+    componentName: string,
+    parentPointer = ''
+  ): string | null {
+    for (const component of components ?? []) {
+      const currentName = component?.name?.trim();
+      if (!currentName) {
+        continue;
+      }
+
+      const currentPointer = this.buildNestedComponentJsonPointer(parentPointer, currentName);
+      if (currentName === componentName) {
+        return currentPointer;
+      }
+
+      const childDefinitions = this.getChildComponentDefinitions(component);
+      const found = this.findComponentAngularComponentsJsonPointer(childDefinitions, componentName, currentPointer);
+      if (found) {
+        return found;
+      }
+    }
+
+    return null;
+  }
+
+  private getChildComponentDefinitions(component: AllFormComponentDefinitionOutlines): AllFormComponentDefinitionOutlines[] {
+    const componentConfig = component?.component?.config as Record<string, unknown> | undefined;
+    const nested = [
+      ...(Array.isArray(componentConfig?.componentDefinitions)
+        ? componentConfig.componentDefinitions as AllFormComponentDefinitionOutlines[]
+        : []),
+      ...(Array.isArray(componentConfig?.tabs)
+        ? componentConfig.tabs as AllFormComponentDefinitionOutlines[]
+        : []),
+      ...(Array.isArray(componentConfig?.panels)
+        ? componentConfig.panels as AllFormComponentDefinitionOutlines[]
+        : []),
+    ];
+    return nested;
+  }
+
+  private retargetPublishDataLocationSelectorExpressions(components: AllFormComponentDefinitionOutlines[] | undefined): void {
+    for (const component of components ?? []) {
+      if (component.component?.class === PublishDataLocationSelectorComponentName) {
+        for (const expression of component.expressions ?? []) {
+          const sourceName = this.getExpressionSourceComponentName(expression.config?.condition);
+          if (!sourceName) {
+            continue;
+          }
+          const sourcePointer = this.findComponentAngularComponentsJsonPointer(this.v5FormConfig.componentDefinitions, sourceName);
+          if (sourcePointer) {
+            expression.config.condition = `${sourcePointer}::field.value.changed`;
+          }
+        }
+      }
+
+      this.retargetPublishDataLocationSelectorExpressions(this.getChildComponentDefinitions(component));
+    }
+  }
+
+  private getExpressionSourceComponentName(condition?: string): string | null {
+    const pointer = condition?.split('::')[0]?.trim();
+    if (!pointer) {
+      return null;
+    }
+
+    const segments = pointer.split('/').filter((segment) => segment.length > 0);
+    return segments.length > 0 ? segments[segments.length - 1] : null;
+  }
+
+  private buildEventValueTemplate(propertyName: string): string {
+    const segments = propertyName.split('.').filter((segment) => segment.length > 0);
+    if (segments.length === 0) {
+      return 'event.value';
+    }
+
+    return segments.reduce((path, segment) => {
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(segment)) {
+        return `${path}.${segment}`;
+      }
+      return `${path}[${JSON.stringify(segment)}]`;
+    }, 'event.value');
+  }
+
+  private warnOnDroppedLegacyTypeaheadProperties(definition: Record<string, unknown>): void {
+    const droppedProps = [
+      'forceClone',
+      'completerService',
+      'lookupService',
+      'publish',
+      'subscribe',
+      'disableLookupIcon',
+      'searchFields',
+      'fieldNames',
+      'titleFieldDelim',
+    ];
+    for (const key of droppedProps) {
+      if (
+        Object.hasOwn(definition, key) &&
+        definition[key] !== undefined &&
+        definition[key] !== null &&
+        definition[key] !== ''
+      ) {
+        this.logger.warn(
+          `${this.logName}: Typeahead migration dropped legacy property '${key}' at ${JSON.stringify(this.v4FormPath)}.`
+        );
+      }
+    }
+  }
+
+  private isLegacyAndsVocabField(field: Record<string, unknown>): boolean {
+    const v4Class = String(field?.class ?? '').trim();
+    const v4CompClass = String(field?.compClass ?? '').trim();
+    return v4Class === 'ANDSVocab' || v4CompClass === 'ANDSVocabComponent';
+  }
+}

@@ -1,14 +1,14 @@
 <button type="button" [attr.aria-sort]="sort === 'asc'? 'ascending' : sort === 'desc' ? 'descending' : null" (click)="headerSortClicked()" class="record-table-heading-sort">
   {{title}}
   @if (sort == 'asc') {
-    <i
-    class="fa fa-sort-asc"></i>
+    <span class="record-table-heading-sort-icon">
+      <i class="fa fa-sort-asc"></i>
+    </span>
     }@if (sort == 'desc') {
-    <i
-    class="fa fa-sort-desc"></i>
+    <span class="record-table-heading-sort-icon">
+      <i class="fa fa-sort-desc"></i>
+    </span>
     }@if (!['asc', 'desc'].includes(sort)) {
-    <span
-    >&nbsp;</span>
+    <span class="record-table-heading-sort-icon">&nbsp;</span>
   }
 </button>
-

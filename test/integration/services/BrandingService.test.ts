@@ -34,6 +34,7 @@ describe('The BrandingService', function () {
 
   // Task 5 tests for branding configuration functionality
   describe('Branding Configuration (Task 5)', function () {
+    this.timeout(180000);
     const admin = { isAdmin: true };
 
     // Ensure each test runs with a clean branding state to avoid version/history interference

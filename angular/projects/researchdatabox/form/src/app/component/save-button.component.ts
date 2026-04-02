@@ -2,15 +2,17 @@ import {Component, inject, effect, signal, Injector} from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
 import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
-import { FormComponentEventBus, FormComponentEventType, createFormSaveRequestedEvent } from '../form-state/events';
-import { FormStateFacade } from '../form-state';
+import { FormComponentEventBus, FormComponentEventType, createFormSaveRequestedEvent, FormStateFacade } from '../form-state';
+import {FormService} from "../form.service";
 
 @Component({
   selector: 'redbox-form-save-button',
   template:`
   @if (isVisible) {
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-    <button type="button" class="btn btn-primary" (click)="save()" [innerHtml]="currentLabel()" [disabled]="disabled()"></button>
+    <div class="rb-form-save-button">
+      <button type="button" [class]="buttonCssClasses" (click)="save()" [innerHtml]="translate(currentLabel())" [disabled]="disabled()"></button>
+    </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   }
   `,
@@ -24,7 +26,13 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   public override componentDefinition?: SaveButtonFieldComponentDefinitionOutline;
   protected currentLabel = signal<string | undefined>(this.componentDefinition?.config?.label);
   protected formStateFacade = inject(FormStateFacade);
+  protected formService = inject(FormService);
   private _injector = inject(Injector);
+
+  get buttonCssClasses(): string {
+    const configuredClasses = (this.componentDefinition?.config as Record<string, unknown> | undefined)?.['buttonCssClasses'];
+    return this.resolveButtonCssClasses(typeof configuredClasses === 'string' ? configuredClasses : undefined, 'btn-primary');
+  }
 
   constructor() {
     super();
@@ -50,7 +58,9 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
     });
     effect(() => {
       const isSaving = this.formStateFacade.isSaving();
-      this.currentLabel.set(isSaving ? this.componentDefinition?.config?.labelSaving : this.componentDefinition?.config?.label);
+      const defaultLabel = this.componentDefinition?.config?.label;
+      const savingLabel = this.componentDefinition?.config?.labelSaving ?? defaultLabel;
+      this.currentLabel.set(isSaving ? savingLabel : defaultLabel);
     });
   }
 
@@ -74,4 +84,16 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
     return this._injector.get(FormComponent);
   }
 
+  private resolveButtonCssClasses(configured: string | undefined, fallbackVariantClass: string): string {
+    const normalized = (configured ?? '').trim().replace(/\s+/g, ' ');
+    if (!normalized) {
+      return `btn ${fallbackVariantClass}`;
+    }
+    const classTokens = normalized.split(/\s+/);
+    return classTokens.includes('btn') ? normalized : `btn ${normalized}`;
+  }
+
+  protected translate(value?: string): string {
+    return this.formService.translate(value);
+  }
 }

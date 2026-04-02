@@ -30,6 +30,11 @@ export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfi
      * The label to set to the button while saving.
      */
     labelSaving?: string;
+    /**
+     * CSS classes to apply to the underlying button element.
+     * Example: 'btn-success' or 'btn btn-success'.
+     */
+    buttonCssClasses?: string;
 }
 
 export interface SaveButtonFieldComponentConfigOutline extends SaveButtonFieldComponentConfigFrame, FieldComponentConfigOutline {
@@ -68,4 +73,3 @@ export type SaveButtonTypes =
     | { kind: FieldComponentDefinitionKindType, class: SaveButtonFieldComponentDefinitionOutline }
     | { kind: FormComponentDefinitionKindType, class: SaveButtonFormComponentDefinitionOutline }
     ;
-
