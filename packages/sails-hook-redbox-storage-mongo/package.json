@@ -19,6 +19,7 @@
     "url": "https://github.com/redbox-mint/sails-hook-redbox-storage-mongo.git"
   },
   "scripts": {
+    "compile": "npm run build",
     "build": "tsc -p tsconfig.json",
     "test": "TS_NODE_PROJECT=test/tsconfig.json mocha --require ts-node/register --require test/setup.ts \"test/**/*.test.ts\"",
     "test:coverage": "TS_NODE_PROJECT=test/tsconfig.json nyc --no-clean --report-dir ./coverage/storage-mongo --reporter=lcov --reporter=text --exclude-after-remap=false mocha --require ts-node/register --require test/setup.ts \"test/**/*.test.ts\"",

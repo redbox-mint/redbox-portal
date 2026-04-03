@@ -1,4 +1,4 @@
-import { Observable, of } from 'rxjs';
+import { firstValueFrom, Observable, of } from 'rxjs';
 import { mergeMap } from 'rxjs';
 import { randomUUID } from 'crypto';
 
@@ -21,6 +21,9 @@ import {
   RecordAuditModel,
   RecordAuditParams,
   RecordModel,
+  BrandingModel,
+  UserModel,
+  RoleModel,
 } from '@researchdatabox/redbox-core';
 import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
 
@@ -29,27 +32,16 @@ const { flatten } = transforms;
 declare const sails: Sails.Application;
 declare const _: typeof import('lodash');
 type JsonMap = Record<string, unknown>;
-type StorageRecord = RecordModel & JsonMap;
-type MongoRecordDocument = Document & JsonMap;
-type WaterlineModel = Model & { tableName: string };
+type StorageRecord = RecordModel;
+type MongoRecordDocument = Document;
+type WaterlineModel = Model;
 type AttachmentDescriptor = JsonMap & { type?: string; fileId?: string };
 type DatastreamContent = { readstream?: NodeJS.ReadableStream; body?: Buffer | string } & Record<string, unknown>;
 
 declare const Record: WaterlineModel;
 declare const DeletedRecord: WaterlineModel;
-declare const RecordTypesService: { get: (brand: unknown, recordTypeName: string) => { toPromise: () => Promise<unknown> } };
-declare const TranslationService: { t: (key: string) => string };
-declare const FormsService: { getFormByName: (name: string, includeDisabled: boolean) => Observable<unknown> };
-declare const RecordAudit: {
-  create: (payload: RecordAuditModel) => Promise<unknown>;
-  find: (criteria: Record<string, unknown>) => Promise<unknown> | unknown;
-};
-declare const StorageManagerService: {
-  stagingDisk: () => StorageManagerServiceTypes.Services.IDisk;
-  disk: (name: string) => StorageManagerServiceTypes.Services.IDisk;
-};
+declare const RecordAudit: WaterlineModel;
 
-type QueryOptions = FindOptions<Document> & Record<string, unknown>;
 type RelatedRecordsContext = {
   processedRelationships: string[];
   relatedObjects: Record<string, MongoRecordDocument[]>;
@@ -137,7 +129,7 @@ export namespace Services {
       try {
         const collectionInfo = this.db.collection(
           collectionName,
-          { strict: true } as unknown as mongodb.CollectionOptions
+          { strict: true } as mongodb.CollectionOptions
         );
         sails.log.verbose(`${this.logHeader} Collection '${collectionName}' info:`);
         sails.log.verbose(JSON.stringify(collectionInfo));
@@ -185,7 +177,7 @@ export namespace Services {
     }
 
     public async create(
-      brand: unknown,
+      _brand: BrandingModel,
       record: JsonMap,
       _recordType: unknown,
       _user?: unknown
@@ -212,7 +204,7 @@ export namespace Services {
       return response;
     }
 
-    public async updateMeta(brand: unknown, oid: string, record: JsonMap, user?: unknown): Promise<StorageServiceResponse> {
+    public async updateMeta(brand: BrandingModel, oid: string, record: JsonMap, user?: UserModel): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
       response.oid = oid;
       try {
@@ -313,12 +305,12 @@ export namespace Services {
       batchFn();
     }
 
-    public async getRelatedRecords(oid: string, brand: unknown, recordTypeName: string | null = null, mappingContext: RelatedRecordsContext | null = null) {
+    public async getRelatedRecords(oid: string, brand: BrandingModel, recordTypeName: string | null = null, mappingContext: RelatedRecordsContext | null = null) {
       const record = (await this.getMeta(oid)) as JsonMap;
       if (_.isEmpty(recordTypeName)) {
         recordTypeName = String(_.get(record, 'metaMetadata.type', ''));
       }
-      const recordType = (await RecordTypesService.get(brand, recordTypeName).toPromise()) as JsonMap;
+      const recordType = await firstValueFrom(RecordTypesService.get(brand as never, recordTypeName));
       if (_.isEmpty(mappingContext)) {
         mappingContext = {
           processedRelationships: [recordTypeName],
@@ -443,14 +435,14 @@ export namespace Services {
     }
 
     public async getDeletedRecords(
-      workflowState,
+      workflowState: string,
       recordType = undefined,
-      start,
+      start: number,
       rows = 10,
-      username,
-      roles,
-      brand,
-      editAccessOnly = undefined,
+      username: string,
+      roles: RoleModel[],
+      brand: BrandingModel,
+      _editAccessOnly = undefined,
       packageType = undefined,
       sort = undefined,
       filterFields = undefined,
@@ -544,14 +536,14 @@ export namespace Services {
     }
 
     public async getRecords(
-      workflowState,
-      recordType = undefined,
-      start,
-      rows = 10,
-      username,
-      roles,
-      brand,
-      editAccessOnly = undefined,
+      workflowState: string,
+      recordType: string = undefined,
+      start: number,
+      rows: number = 10,
+      username: string,
+      roles: RoleModel[],
+      brand: BrandingModel,
+      _editAccessOnly = undefined,
       packageType = undefined,
       sort = undefined,
       filterFields = undefined,
@@ -802,7 +794,7 @@ export namespace Services {
       }
       return FormsService.getFormByName(record.metaMetadata.form, true).pipe(
         mergeMap(form => {
-          const formConfig = form as JsonMap;
+          const formConfig = form;
           const attachmentFields = _.get(
             formConfig,
             'configuration.attachmentFields',
@@ -950,7 +942,7 @@ export namespace Services {
     }
 
     private sanitizeRecordAudit(recordAudit: RecordAuditModel): RecordAuditModel {
-      const payload: RecordAuditModel & { user?: unknown; record?: unknown } = {
+      const payload: RecordAuditModel = {
         redboxOid: recordAudit.redboxOid,
         action: recordAudit.action,
         user: this.toJsonSafe(recordAudit.user) as Record<string, unknown> | undefined,
@@ -973,8 +965,7 @@ export namespace Services {
       const payload = this.sanitizeRecordAudit(recordAudit);
       try {
         sails.log.verbose(`${this.logHeader} Saving to DB...`);
-        await RecordAudit.create(payload);
-        const savedRecordAudit = payload as unknown as Record<string, unknown>;
+        const savedRecordAudit = await RecordAudit.create(payload);
         response.oid = String(savedRecordAudit._id ?? '');
         response.success = true;
         sails.log.verbose(`${this.logHeader} Record Audit created...`);
@@ -1020,7 +1011,7 @@ export namespace Services {
       return RecordAudit.find(criteria);
     }
 
-    async restoreRecord(oid: unknown): Promise<StorageServiceResponse> {
+    async restoreRecord(oid: string): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
 
       if (_.isEmpty(oid)) {
@@ -1050,7 +1041,7 @@ export namespace Services {
       }
     }
 
-    async destroyDeletedRecord(oid: unknown): Promise<StorageServiceResponse> {
+    async destroyDeletedRecord(oid: string): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
 
       if (_.isEmpty(oid)) {
@@ -1074,7 +1065,7 @@ export namespace Services {
       }
     }
 
-    protected getFileWithName(fileName: string, options: QueryOptions = { limit: 1 }): FindCursor<GridFSFile> {
+    protected getFileWithName(fileName: string, options: FindOptions = { limit: 1 }): FindCursor<GridFSFile> {
       return this.gridFsBucket.find({ filename: fileName }, options);
     }
 
