@@ -660,7 +660,7 @@ describe('MongoStorageService', function () {
     );
 
     expect(result).to.have.length(1);
-    expect(await firstValueFrom(result[0])).to.deep.equal({ request: 'dummy' });
+    expect(await result[0]).to.deep.equal({ request: 'dummy' });
   });
 
   it('requires a staging disk for addAndRemoveDatastreams', async function () {

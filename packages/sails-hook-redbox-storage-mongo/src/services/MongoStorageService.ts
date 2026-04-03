@@ -2,13 +2,13 @@ import { Observable, of } from 'rxjs';
 import { mergeMap } from 'rxjs';
 import { randomUUID } from 'crypto';
 
-import { Sails, Model } from 'sails';
+import type { Model } from 'sails';
 import { DateTime } from 'luxon';
 
 import mongodb = require('mongodb');
-import util = require('util');
+import type { Collection, Db, Document, FindCursor, FindOptions, GridFSFile } from 'mongodb';
 import stream = require('stream');
-import { Transform } from 'json2csv';
+import { Transform, transforms } from 'json2csv';
 import {
   Services as services,
   StorageManagerService as StorageManagerServiceTypes,
@@ -20,28 +20,50 @@ import {
   Attachment,
   RecordAuditModel,
   RecordAuditParams,
+  RecordModel,
 } from '@researchdatabox/redbox-core';
-const {
-  transforms: { flatten },
-} = require('json2csv');
 import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
 
-declare var sails: Sails;
-declare var _;
-declare var Record: Model, DeletedRecord: Model, RecordTypesService, TranslationService, FormsService, RecordAudit;
-declare var StorageManagerService;
+const { flatten } = transforms;
 
-const pipeline = util.promisify(stream.pipeline);
+declare const sails: Sails.Application;
+declare const _: typeof import('lodash');
+type JsonMap = Record<string, unknown>;
+type StorageRecord = RecordModel & JsonMap;
+type MongoRecordDocument = Document & JsonMap;
+type WaterlineModel = Model & { tableName: string };
+type AttachmentDescriptor = JsonMap & { type?: string; fileId?: string };
+type DatastreamContent = { readstream?: NodeJS.ReadableStream; body?: Buffer | string } & Record<string, unknown>;
+
+declare const Record: WaterlineModel;
+declare const DeletedRecord: WaterlineModel;
+declare const RecordTypesService: { get: (brand: unknown, recordTypeName: string) => { toPromise: () => Promise<unknown> } };
+declare const TranslationService: { t: (key: string) => string };
+declare const FormsService: { getFormByName: (name: string, includeDisabled: boolean) => Observable<unknown> };
+declare const RecordAudit: {
+  create: (payload: RecordAuditModel) => Promise<unknown>;
+  find: (criteria: Record<string, unknown>) => Promise<unknown> | unknown;
+};
+declare const StorageManagerService: {
+  stagingDisk: () => StorageManagerServiceTypes.Services.IDisk;
+  disk: (name: string) => StorageManagerServiceTypes.Services.IDisk;
+};
+
+type QueryOptions = FindOptions<Document> & Record<string, unknown>;
+type RelatedRecordsContext = {
+  processedRelationships: string[];
+  relatedObjects: Record<string, MongoRecordDocument[]>;
+};
 
 export namespace Services {
   export class MongoStorageService extends services.Core.Service implements StorageService, DatastreamService {
-    gridFsBucket: any;
-    db: any;
-    recordCol: any;
-    deletedRecordCol: any;
+    gridFsBucket!: mongodb.GridFSBucket;
+    db!: Db;
+    recordCol!: Collection<MongoRecordDocument>;
+    deletedRecordCol!: Collection<MongoRecordDocument>;
     private _readyHookRegistered = false;
 
-    protected _exportedMethods: any = [
+    protected _exportedMethods: string[] = [
       'init',
       'create',
       'updateMeta',
@@ -78,6 +100,13 @@ export namespace Services {
       return randomUUID().replace(/-/g, '');
     }
 
+    private getErrorMessage(err: unknown): string {
+      if (err instanceof Error) {
+        return err.message;
+      }
+      return String(err);
+    }
+
     public init(): void {
       this.registerReadyHook();
       void this.performInit();
@@ -94,16 +123,36 @@ export namespace Services {
       });
     }
 
+    private async collectionExists(collectionName: string): Promise<boolean> {
+      if (typeof this.db.listCollections === 'function') {
+        const collectionInfo = await this.db.listCollections({ name: collectionName }, { nameOnly: true }).toArray();
+        if (!_.isEmpty(collectionInfo)) {
+          sails.log.verbose(`${this.logHeader} Collection '${collectionName}' info:`);
+          sails.log.verbose(JSON.stringify(collectionInfo));
+          return true;
+        }
+        return false;
+      }
+
+      try {
+        const collectionInfo = this.db.collection(
+          collectionName,
+          { strict: true } as unknown as mongodb.CollectionOptions
+        );
+        sails.log.verbose(`${this.logHeader} Collection '${collectionName}' info:`);
+        sails.log.verbose(JSON.stringify(collectionInfo));
+        return true;
+      } catch (_err) {
+        return false;
+      }
+    }
+
     private async performInit(): Promise<void> {
       if (this.recordCol && this.deletedRecordCol && this.gridFsBucket) {
         return;
       }
-      this.db = Record.getDatastore().manager;
-      try {
-        const collectionInfo = await this.db.collection(Record.tableName, { strict: true });
-        sails.log.verbose(`${this.logHeader} Collection '${Record.tableName}' info:`);
-        sails.log.verbose(JSON.stringify(collectionInfo));
-      } catch (err) {
+      this.db = Record.getDatastore().manager as Db;
+      if (!(await this.collectionExists(Record.tableName))) {
         sails.log.verbose(`Collection doesn't exist, creating: ${Record.tableName}`);
         const uuid = this.getUuid();
         const initRec = { redboxOid: uuid };
@@ -111,22 +160,23 @@ export namespace Services {
         await Record.destroyOne({ redboxOid: uuid });
       }
       this.gridFsBucket = new mongodb.GridFSBucket(this.db);
-      this.recordCol = await this.db.collection(Record.tableName);
-      this.deletedRecordCol = await this.db.collection(DeletedRecord.tableName);
+      this.recordCol = this.db.collection<MongoRecordDocument>(Record.tableName);
+      this.deletedRecordCol = this.db.collection<MongoRecordDocument>(DeletedRecord.tableName);
       await this.createIndices(this.db);
       sails.emit('hook:redbox:storage:ready');
       sails.emit('hook:redbox:datastream:ready');
       sails.log.verbose(`${this.logHeader} Ready!`);
     }
 
-    private async createIndices(db) {
+    private async createIndices(db: Db) {
       sails.log.verbose(`${this.logHeader} Existing indices:`);
-      const currentIndices = await db.collection(Record.tableName).indexes();
+      const currentIndices = await db.collection<MongoRecordDocument>(Record.tableName).indexes();
       sails.log.verbose(JSON.stringify(currentIndices));
       try {
-        const indices = sails.config.storage.mongodb.indices;
+        const storageConfig = sails.config.storage as { mongodb?: { indices?: mongodb.IndexDescription[] } };
+        const indices = storageConfig.mongodb?.indices ?? [];
         if (_.size(indices) > 0) {
-          await db.collection(Record.tableName).createIndexes(indices);
+          await db.collection<MongoRecordDocument>(Record.tableName).createIndexes(indices);
         }
       } catch (err) {
         sails.log.error(`Failed to create indices:`);
@@ -134,11 +184,16 @@ export namespace Services {
       }
     }
 
-    public async create(brand, record, recordType, user?): Promise<any> {
+    public async create(
+      brand: unknown,
+      record: JsonMap,
+      _recordType: unknown,
+      _user?: unknown
+    ): Promise<StorageServiceResponse> {
       sails.log.verbose(`${this.logHeader} create() -> Begin`);
       const response = new StorageServiceResponse();
       record.redboxOid = this.getUuid();
-      response.oid = record.redboxOid;
+      response.oid = String(record.redboxOid);
 
       try {
         sails.log.verbose(`${this.logHeader} Saving to DB...`);
@@ -149,7 +204,7 @@ export namespace Services {
         sails.log.error(`${this.logHeader} Failed to create Record:`);
         sails.log.error(JSON.stringify(err));
         response.success = false;
-        response.message = err.message;
+        response.message = this.getErrorMessage(err);
         return response;
       }
       sails.log.verbose(JSON.stringify(response));
@@ -157,7 +212,7 @@ export namespace Services {
       return response;
     }
 
-    public async updateMeta(brand, oid, record, user?): Promise<any> {
+    public async updateMeta(brand: unknown, oid: string, record: JsonMap, user?: unknown): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
       response.oid = oid;
       try {
@@ -180,12 +235,12 @@ export namespace Services {
           })}`
         );
         response.success = false;
-        response.message = err;
+        response.message = this.getErrorMessage(err);
       }
       return response;
     }
 
-    public async getMeta(oid): Promise<any> {
+    public async getMeta(oid: string): Promise<RecordModel> {
       if (_.isEmpty(oid)) {
         const msg = `${this.logHeader} getMeta() -> refusing to search using an empty OID`;
         sails.log.error(msg);
@@ -194,14 +249,14 @@ export namespace Services {
       const criteria = { redboxOid: oid };
       sails.log.verbose(`${this.logHeader} finding: `);
       sails.log.verbose(JSON.stringify(criteria));
-      return Record.findOne(criteria);
+      return (await Record.findOne(criteria)) as RecordModel;
     }
 
-    public async createBatch(type, data, harvestIdFldName): Promise<any> {
+    public async createBatch(type: string, data: JsonMap[], harvestIdFldName: string): Promise<unknown> {
       const response = new StorageServiceResponse();
       response.message = '';
       let failFlag = false;
-      _.each(data, async dataItem => {
+      _.each(data, async (dataItem: JsonMap) => {
         dataItem.harvestId = _.get(dataItem, harvestIdFldName, '');
         _.set(dataItem, 'metaMetadata.type', type);
         try {
@@ -221,10 +276,10 @@ export namespace Services {
 
     public provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue): void {
       const batchFn = async () => {
-        const metadata = await this.getMeta(oid);
+        const metadata = (await this.getMeta(oid)) as StorageRecord;
 
-        const pendingEditArray: string[] = _.get(metadata, 'authorization.editPending', []);
-        const editArray: string[] = _.get(metadata, 'authorization.edit', []);
+        const pendingEditArray = _.get(metadata, 'authorization.editPending', []) as string[];
+        const editArray = _.get(metadata, 'authorization.edit', []) as string[];
         const pendingEditArrayFiltered = pendingEditArray.filter(value => value !== pendingValue);
         const pendingEditFound = pendingEditArray.length > pendingEditArrayFiltered.length;
 
@@ -235,8 +290,8 @@ export namespace Services {
         _.set(metadata, 'authorization.editPending', pendingEditArrayFiltered);
         _.set(metadata, 'authorization.edit', editArray);
 
-        const pendingViewArray: string[] = _.get(metadata, 'authorization.viewPending', []);
-        const viewArray: string[] = _.get(metadata, 'authorization.view', []);
+        const pendingViewArray = _.get(metadata, 'authorization.viewPending', []) as string[];
+        const viewArray = _.get(metadata, 'authorization.view', []) as string[];
         const pendingViewArrayFiltered = pendingViewArray.filter(value => value !== pendingValue);
         const pendingViewFound = pendingViewArray.length > pendingViewArrayFiltered.length;
 
@@ -258,12 +313,12 @@ export namespace Services {
       batchFn();
     }
 
-    public async getRelatedRecords(oid, brand, recordTypeName: any = null, mappingContext: any = null) {
-      const record = await this.getMeta(oid);
+    public async getRelatedRecords(oid: string, brand: unknown, recordTypeName: string | null = null, mappingContext: RelatedRecordsContext | null = null) {
+      const record = (await this.getMeta(oid)) as JsonMap;
       if (_.isEmpty(recordTypeName)) {
-        recordTypeName = record['metaMetadata']['type'];
+        recordTypeName = String(_.get(record, 'metaMetadata.type', ''));
       }
-      const recordType = await RecordTypesService.get(brand, recordTypeName).toPromise();
+      const recordType = (await RecordTypesService.get(brand, recordTypeName).toPromise()) as JsonMap;
       if (_.isEmpty(mappingContext)) {
         mappingContext = {
           processedRelationships: [recordTypeName],
@@ -277,7 +332,7 @@ export namespace Services {
           sails.log.verbose(`${this.logHeader} Processing relationship:`);
           sails.log.verbose(JSON.stringify(relationship));
           const targetRecordType = relationship['recordType'];
-          const criteria: any = {};
+          const criteria: JsonMap = {};
           criteria['metaMetadata.type'] = targetRecordType;
           criteria[relationship['foreignField']] = oid;
           sails.log.verbose(`${this.logHeader} Finding related records criteria:`);
@@ -294,8 +349,8 @@ export namespace Services {
                 mappingContext.relatedObjects[targetRecordType].concat(relatedRecords);
             }
             for (let j = 0; j < relatedRecords.length; j++) {
-              const recordRelationship = relatedRecords[j];
-              mappingContext = await this.getRelatedRecords(recordRelationship.redboxOid, brand, null, mappingContext);
+              const recordRelationship = relatedRecords[j] as JsonMap;
+              mappingContext = await this.getRelatedRecords(String(recordRelationship.redboxOid), brand, null, mappingContext);
             }
           }
           if (!_.includes(mappingContext.processedRelationships, targetRecordType)) {
@@ -310,26 +365,26 @@ export namespace Services {
       return mappingContext;
     }
 
-    public async delete(oid, permanentlyDelete: boolean = false) {
+    public async delete(oid: string, permanentlyDelete: boolean = false): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
 
       try {
         if (permanentlyDelete) {
           const datastreams = await this.listDatastreams(oid, null);
           if (_.size(datastreams) > 0) {
-            _.each(datastreams, file => {
+            _.each(datastreams, async file => {
               sails.log.verbose(`Deleting:`);
               sails.log.verbose(JSON.stringify(file));
-              this.gridFsBucket.delete(file['_id'], (err, res) => {
-                if (err) {
-                  sails.log.error(`Error deleting: ${file['_id']}`);
-                  sails.log.error(JSON.stringify(err));
-                }
-              });
+              try {
+                await this.gridFsBucket.delete(file['_id'] as mongodb.ObjectId);
+              } catch (err) {
+                sails.log.error(`Error deleting: ${file['_id']}`);
+                sails.log.error(JSON.stringify(err));
+              }
             });
           }
         } else {
-          const record: any = await this.getMeta(oid);
+          const record = (await this.getMeta(oid)) as JsonMap;
           const deletedRecord = {
             redboxOid: record.redboxOid,
             deletedRecordMetadata: record,
@@ -348,7 +403,7 @@ export namespace Services {
       return response;
     }
 
-    public async updateNotificationLog(oid, record, options): Promise<any> {
+    public async updateNotificationLog(oid: string, record: JsonMap, options: JsonMap): Promise<unknown> {
       if (super.metTriggerCondition(oid, record, options) == 'true') {
         sails.log.verbose(`${this.logHeader} Updating notification log for oid: ${oid}`);
         const logName = _.get(options, 'logName', null);
@@ -419,7 +474,7 @@ export namespace Services {
       } else {
         try {
           options['sort'] = JSON.parse(sort);
-        } catch (error) {
+        } catch (_error) {
           options['sort'] = {};
           options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(
             sort.substring(sort.indexOf(':') + 1)
@@ -523,7 +578,7 @@ export namespace Services {
       } else {
         try {
           options['sort'] = JSON.parse(sort);
-        } catch (error) {
+        } catch (_error) {
           options['sort'] = {};
           options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(
             sort.substring(sort.indexOf(':') + 1)
@@ -728,7 +783,13 @@ export namespace Services {
       return response;
     }
 
-    public updateDatastream(oid: string, record, newMetadata, fileRoot, fileIdsAdded): Observable<any> {
+    public updateDatastream(
+      oid: string,
+      record: StorageRecord,
+      newMetadata: JsonMap,
+      fileRoot: string | StorageManagerServiceTypes.Services.IDisk | null,
+      fileIdsAdded: Datastream[]
+    ): Observable<Promise<unknown>[]> {
       let stagingDisk: StorageManagerServiceTypes.Services.IDisk;
       if (typeof fileRoot === 'string') {
         stagingDisk = StorageManagerService.disk(fileRoot);
@@ -741,13 +802,18 @@ export namespace Services {
       }
       return FormsService.getFormByName(record.metaMetadata.form, true).pipe(
         mergeMap(form => {
-          const attachmentFields = _.get(form, 'configuration.attachmentFields', _.get(form, 'attachmentFields', []));
-          const reqs = [];
+          const formConfig = form as JsonMap;
+          const attachmentFields = _.get(
+            formConfig,
+            'configuration.attachmentFields',
+            _.get(formConfig, 'attachmentFields', [])
+          ) as string[];
+          const reqs: Promise<unknown>[] = [];
           record.metaMetadata.attachmentFields = attachmentFields;
           _.each(attachmentFields, async attField => {
-            const oldAttachments = record.metadata[attField];
-            const newAttachments = newMetadata[attField];
-            const removeIds = [];
+            const oldAttachments = record.metadata[attField] as AttachmentDescriptor[] | undefined;
+            const newAttachments = newMetadata[attField] as AttachmentDescriptor[] | undefined;
+            const removeIds: Datastream[] = [];
             if (!_.isUndefined(oldAttachments) && !_.isNull(oldAttachments) && !_.isNull(newAttachments)) {
               const toRemove = _.differenceBy(oldAttachments, newAttachments, 'fileId');
               _.each(toRemove, removeAtt => {
@@ -767,7 +833,7 @@ export namespace Services {
             reqs.push(this.addAndRemoveDatastreams(oid, fileIdsAdded, removeIds, stagingDisk));
           });
           if (_.isEmpty(reqs)) {
-            reqs.push(of({ request: 'dummy' }));
+            reqs.push(Promise.resolve({ request: 'dummy' }));
           }
           return of(reqs);
         })
@@ -782,12 +848,12 @@ export namespace Services {
         const fileDoc = fileRes[0];
         sails.log.verbose(`${this.logHeader} removeDatastream() -> Deleting:`);
         sails.log.verbose(JSON.stringify(fileDoc));
-        this.gridFsBucket.delete(fileDoc['_id'], (err, res) => {
-          if (err) {
-            sails.log.error(`Error deleting: ${fileDoc['_id']}`);
-            sails.log.error(JSON.stringify(err));
-          }
-        });
+        try {
+          await this.gridFsBucket.delete(fileDoc._id);
+        } catch (err) {
+          sails.log.error(`Error deleting: ${fileDoc._id}`);
+          sails.log.error(JSON.stringify(err));
+        }
         sails.log.verbose(`${this.logHeader} removeDatastream() -> Delete successful.`);
       } else {
         sails.log.verbose(`${this.logHeader} removeDatastream() -> File not found: ${fileName}`);
@@ -807,7 +873,7 @@ export namespace Services {
       sails.log.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${fileName}`);
     }
 
-    private streamFileToBucket(readable: NodeJS.ReadableStream, fileName: string, metadata: any) {
+    private streamFileToBucket(readable: NodeJS.ReadableStream, fileName: string, metadata: unknown) {
       const uploadStream = this.gridFsBucket.openUploadStream(fileName, { metadata });
       readable.pipe(uploadStream);
 
@@ -824,8 +890,8 @@ export namespace Services {
 
     public async addAndRemoveDatastreams(
       oid,
-      addIds: any[],
-      removeIds: any[],
+      addIds: Datastream[],
+      removeIds: Datastream[],
       stagingDisk?: StorageManagerServiceTypes.Services.IDisk
     ) {
       if (!stagingDisk) {
@@ -839,33 +905,33 @@ export namespace Services {
       }
     }
 
-    public async getDatastream(oid, fileId): Promise<any> {
+    public async getDatastream(oid: string, fileId: string): Promise<DatastreamContent> {
       return this.getDatastreamAsync(oid, fileId);
     }
 
-    private async getDatastreamAsync(oid, fileId): Promise<any> {
+    private async getDatastreamAsync(oid: string, fileId: string): Promise<DatastreamContent> {
       const fileName = `${oid}/${fileId}`;
       const fileRes = await this.getFileWithName(fileName).toArray();
       if (_.isArray(fileRes) && fileRes.length === 0) {
         throw new Error(TranslationService.t('attachment-not-found'));
       }
-      const response = new Attachment();
+      const response = new Attachment() as Attachment & DatastreamContent;
       response.readstream = this.gridFsBucket.openDownloadStreamByName(fileName);
       return response;
     }
 
-    public async listDatastreams(oid, fileId) {
-      let query: any = { 'metadata.redboxOid': oid };
+    public async listDatastreams(oid: string, fileId?: string | null): Promise<Record<string, unknown>[]> {
+      let query: JsonMap = { 'metadata.redboxOid': oid };
       if (!_.isEmpty(fileId)) {
         const fileName = `${oid}/${fileId}`;
         query = { filename: fileName };
       }
       sails.log.verbose(`${this.logHeader} listDatastreams() -> Listing attachments of oid: ${oid}`);
       sails.log.verbose(JSON.stringify(query));
-      return this.gridFsBucket.find(query, {}).toArray();
+      return (await this.gridFsBucket.find(query, {}).toArray()) as unknown as Record<string, unknown>[];
     }
 
-    private toJsonSafe(value: any) {
+    private toJsonSafe(value: unknown): unknown {
       if (_.isUndefined(value)) {
         return undefined;
       }
@@ -878,45 +944,45 @@ export namespace Services {
           return undefined;
         }
         return JSON.parse(json);
-      } catch (err) {
+      } catch (_err) {
         return undefined;
       }
     }
 
     private sanitizeRecordAudit(recordAudit: RecordAuditModel): RecordAuditModel {
-      const payload: RecordAuditModel = {
+      const payload: RecordAuditModel & { user?: unknown; record?: unknown } = {
         redboxOid: recordAudit.redboxOid,
         action: recordAudit.action,
-        user: this.toJsonSafe(recordAudit.user),
-        record: this.toJsonSafe(recordAudit.record),
-      } as RecordAuditModel;
+        user: this.toJsonSafe(recordAudit.user) as Record<string, unknown> | undefined,
+        record: this.toJsonSafe(recordAudit.record) as Record<string, unknown> | undefined,
+      };
 
       if (_.isUndefined(payload.user)) {
-        delete (payload as any).user;
+        delete payload.user;
       }
 
       if (_.isUndefined(payload.record)) {
-        delete (payload as any).record;
+        delete payload.record;
       }
 
       return payload;
     }
 
-    public async createRecordAudit(recordAudit: RecordAuditModel): Promise<any> {
+    public async createRecordAudit(recordAudit: RecordAuditModel): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
       const payload = this.sanitizeRecordAudit(recordAudit);
       try {
         sails.log.verbose(`${this.logHeader} Saving to DB...`);
         await RecordAudit.create(payload);
-        const savedRecordAudit: any = payload;
-        response.oid = savedRecordAudit._id;
+        const savedRecordAudit = payload as unknown as Record<string, unknown>;
+        response.oid = String(savedRecordAudit._id ?? '');
         response.success = true;
         sails.log.verbose(`${this.logHeader} Record Audit created...`);
       } catch (err) {
         sails.log.error(`${this.logHeader} Failed to create Record Audit:`);
         sails.log.error(JSON.stringify(err));
         response.success = false;
-        response.message = err.message;
+        response.message = this.getErrorMessage(err);
         return response;
       }
       sails.log.verbose(JSON.stringify(response));
@@ -924,7 +990,7 @@ export namespace Services {
       return response;
     }
 
-    public async getRecordAudit(params: RecordAuditParams): Promise<any> {
+    public async getRecordAudit(params: RecordAuditParams): Promise<unknown> {
       const oid = params.oid;
       const dateFrom = params.dateFrom;
       const dateTo = params.dateTo;
@@ -954,7 +1020,7 @@ export namespace Services {
       return RecordAudit.find(criteria);
     }
 
-    async restoreRecord(oid: any): Promise<any> {
+    async restoreRecord(oid: unknown): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
 
       if (_.isEmpty(oid)) {
@@ -979,12 +1045,12 @@ export namespace Services {
         sails.log.error(`${this.logHeader} Failed to create Record:`);
         sails.log.error(JSON.stringify(err));
         response.success = false;
-        response.message = err.message;
+        response.message = this.getErrorMessage(err);
         return response;
       }
     }
 
-    async destroyDeletedRecord(oid: any): Promise<any> {
+    async destroyDeletedRecord(oid: unknown): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
 
       if (_.isEmpty(oid)) {
@@ -1003,12 +1069,12 @@ export namespace Services {
         sails.log.error(`${this.logHeader} Failed to create Record:`);
         sails.log.error(JSON.stringify(err));
         response.success = false;
-        response.message = err.message;
+        response.message = this.getErrorMessage(err);
         return response;
       }
     }
 
-    protected getFileWithName(fileName: string, options: any = { limit: 1 }) {
+    protected getFileWithName(fileName: string, options: QueryOptions = { limit: 1 }): FindCursor<GridFSFile> {
       return this.gridFsBucket.find({ filename: fileName }, options);
     }
 

@@ -4,14 +4,14 @@ import { record } from './config/record';
 import { MongoModels } from './models';
 import { ServiceExports } from './services';
 
-type RedboxStorageMongoHook = ((sails: any) => SailsHook) & {
+type RedboxStorageMongoHook = ((_sails: unknown) => SailsHook) & {
   registerRedboxModels: () => typeof MongoModels;
   registerRedboxServices: () => typeof ServiceExports;
   registerRedboxConfig: () => { storage: typeof storage; record: typeof record };
   ServiceExports: typeof ServiceExports;
 };
 
-const hook = ((sails: any) => ({
+const hook = ((_sails: unknown) => ({
   initialize(cb: (err?: Error) => void) {
     cb();
   },
