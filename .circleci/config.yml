@@ -525,6 +525,10 @@ jobs:
             cd ./packages/sails-hook-redbox-storage-mongo
             npm ci --include=dev --ignore-scripts --strict-peer-deps
       - run:
+          name: Compile redbox-core for storage-mongo tests
+          command: |
+            npm run compile:core
+      - run:
           name: Run storage-mongo package tests with coverage
           command: |
             cd ./packages/sails-hook-redbox-storage-mongo
