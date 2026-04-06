@@ -1,6 +1,6 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ManageUsersComponent } from './manage-users.component';
-import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
+import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, provideAppInitializer, runInInjectionContext } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common'; 
 import { FormsModule, FormBuilder, ReactiveFormsModule } from "@angular/forms";
 import i18next from 'i18next';
@@ -170,18 +170,50 @@ describe('ManageUsersComponent', () => {
     fixtures = [];
   });
 
-  function createComponent(): { fixture: ComponentFixture<ManageUsersComponent>, app: ManageUsersComponent } {
+  function createFixture(): ComponentFixture<ManageUsersComponent> {
     const fixture = TestBed.createComponent(ManageUsersComponent);
     fixtures.push(fixture);
+    return fixture;
+  }
+
+  function createComponent(): { fixture: ComponentFixture<ManageUsersComponent>, app: ManageUsersComponent } {
+    const fixture = createFixture();
     const app = fixture.componentInstance;
     fixture.detectChanges();
     return { fixture, app };
   }
 
   function createBareComponent(): ManageUsersComponent {
-    const fixture = TestBed.createComponent(ManageUsersComponent);
-    fixtures.push(fixture);
-    return fixture.componentInstance;
+    const injector = Injector.create({
+      providers: [
+        {
+          provide: ChangeDetectorRef,
+          useValue: {
+            detectChanges: () => undefined,
+            markForCheck: () => undefined
+          }
+        },
+        {
+          provide: ApplicationRef,
+          useValue: {
+            destroyed: false,
+            tick: () => undefined
+          }
+        },
+        {
+          provide: NgZone,
+          useValue: TestBed.inject(NgZone)
+        }
+      ],
+      parent: TestBed.inject(Injector)
+    });
+
+    return runInInjectionContext(injector, () => new ManageUsersComponent(
+      TestBed.inject(LoggerService),
+      TestBed.inject(TranslationService),
+      TestBed.inject(UserService),
+      TestBed.inject(FormBuilder)
+    ));
   }
 
   it('should create the app and perform testing of basic functions', async () =>  {
@@ -236,7 +268,7 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should render loading, empty, truncated, and error audit states', async () => {
-    const fixture = TestBed.createComponent(ManageUsersComponent);
+    const fixture = createFixture();
     const app = fixture.componentInstance;
 
     app.auditModalUser = usersData[0] as any;
@@ -262,7 +294,7 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should expand raw audit details and show the technical data heading', () => {
-    const fixture = TestBed.createComponent(ManageUsersComponent);
+    const fixture = createFixture();
     const app = fixture.componentInstance;
     app.auditModalUser = usersData[0] as any;
     app.isAuditModalShown = true;
@@ -280,8 +312,7 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should render link event details differently for primary and secondary users and fall back for malformed context', () => {
-    const fixture = TestBed.createComponent(ManageUsersComponent);
-    const app = fixture.componentInstance;
+    const app = createBareComponent();
     const secondaryLinkRecord = {
       ...auditRecords[1],
       details: 'This account was linked as a secondary alias to another account'
@@ -297,8 +328,7 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should derive account status badge and supporting text', () => {
-    const fixture = TestBed.createComponent(ManageUsersComponent);
-    const app = fixture.componentInstance;
+    const app = createBareComponent();
     expect(app.getAccountStatusBadge(usersData[0] as any)).toContain('Primary');
     expect(app.getAccountStatusContext(usersData[0] as any)).toContain('1');
     expect(app.getAccountStatusBadgeClass(usersData[0] as any)).toBe('info');
@@ -313,7 +343,7 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should hide API key controls and suppress role errors for linked aliases until submit', async () => {
-    const fixture = TestBed.createComponent(ManageUsersComponent);
+    const fixture = createFixture();
     const app = fixture.componentInstance;
     app.allRoles = rolesData as any;
     app.currentUser = {
@@ -347,8 +377,7 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should map roles correctly', () => {
-    const fixture = TestBed.createComponent(ManageUsersComponent);
-    const app = fixture.componentInstance;
+    const app = createBareComponent();
     const roles = [
       { key: '123', value: 'Admin', checked: true },
       { key: '456', value: 'User', checked: false }
@@ -364,8 +393,7 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should show and hide modals', async () => {
-    const fixture = TestBed.createComponent(ManageUsersComponent);
-    const app = fixture.componentInstance;
+    const app = createBareComponent();
     app.isDetailsModalShown = false;
     app.showDetailsModal();
     expect(app.isDetailsModalShown).toBeTrue();
@@ -379,8 +407,7 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should set update and new user messages', () => {
-    const fixture = TestBed.createComponent(ManageUsersComponent);
-    const app = fixture.componentInstance;
+    const app = createBareComponent();
     app.setUpdateMessage('msg', 'danger');
     expect(app.updateDetailsMsg).toBe('msg');
     expect(app.updateDetailsMsgType).toBe('danger');
@@ -390,8 +417,7 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should handle invalid user submit', async () => {
-    const fixture = TestBed.createComponent(ManageUsersComponent);
-    const app = fixture.componentInstance;
+    const app = createBareComponent();
     spyOn(app, 'setUpdateMessage');
     await app.updateUserSubmit({} as any, false);
     expect(app.setUpdateMessage).toHaveBeenCalled();
@@ -401,7 +427,7 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should reset link and audit modal state when hidden', () => {
-    const { app } = createComponent();
+    const app = createBareComponent();
     app.isLinkModalShown = true;
     app.linkPrimaryUser = usersData[0] as any;
     app.linkedAccounts = [{ id: 'ALIAS123', username: 'alias' }] as any;

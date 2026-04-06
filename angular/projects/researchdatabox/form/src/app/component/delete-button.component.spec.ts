@@ -46,9 +46,10 @@ describe('DeleteButtonComponent', () => {
     };
   });
 
-  it('should create DeleteButtonComponent', () => {
-    const fixture = TestBed.createComponent(DeleteButtonComponent);
-    expect(fixture.componentInstance).toBeDefined();
+  it('should create DeleteButtonComponent', async () => {
+    const { fixture } = await createFormAndWaitForReady(formConfig, { oid: 'oid-123', editMode: true } as any);
+    const component = fixture.nativeElement.querySelector('redbox-form-delete-button');
+    expect(component).toBeTruthy();
   });
 
   it('publishes form.delete.requested after confirmation', async () => {
