@@ -165,6 +165,15 @@ describe('ManageUsersComponent', () => {
 
   afterEach(() => {
     for (const fixture of fixtures) {
+      const app = fixture.componentInstance;
+      app.hideDetailsModal();
+      app.onDetailsModalHidden();
+      app.hideNewUserModal();
+      app.onNewUserHidden();
+      app.hideLinkModal();
+      app.onLinkModalHidden();
+      app.hideAuditModal();
+      app.onAuditModalHidden();
       fixture.destroy();
     }
     fixtures = [];
