@@ -4,12 +4,11 @@
   "peerDependencies": {
     "@angular/common": "^21.2.6",
     "@angular/core": "^21.2.6",
-    "angular-i18next": "21.0.0-3",
+    "@researchdatabox/sails-ng-common": "../../../../packages/sails-ng-common",
+    "handlebars": "^4.7.8",
     "i18next-browser-languagedetector": "^8.2.1",
     "i18next-http-backend": "^3.0.2",
-    "numeral": "^2.0.6",
-    "handlebars": "^4.7.8",
-    "@researchdatabox/sails-ng-common": "../../../../packages/sails-ng-common"
+    "numeral": "^2.0.6"
   },
   "devDependencies": {
     "@types/numeral": "^2.0.5",

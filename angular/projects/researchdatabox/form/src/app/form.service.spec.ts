@@ -6,12 +6,12 @@ import {
   getStubConfigService,
   getStubTranslationService,
   LoggerService,
+  providePortalI18nTesting,
   TranslationService,
   UtilityService
 } from "@researchdatabox/portal-ng-common";
 import { APP_BASE_HREF } from "@angular/common";
 import { Title } from "@angular/platform-browser";
-import { provideI18Next } from "angular-i18next";
 import { provideHttpClient } from "@angular/common/http";
 import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
 import { FormModesConfig, LineagePaths } from "@researchdatabox/sails-ng-common";
@@ -41,7 +41,7 @@ describe('The FormService', () => {
         },
         Title,
         FormService,
-        provideI18Next(),
+        providePortalI18nTesting(),
         provideHttpClient(),
         provideHttpClientTesting(),
       ]

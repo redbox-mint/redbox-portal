@@ -2,8 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF, Location } from '@angular/common';
 import { RouterTestingModule } from '@angular/router/testing';
-import { I18NextModule } from 'angular-i18next';
-import { UtilityService, LoggerService, ConfigService, TranslationService } from '@researchdatabox/portal-ng-common';
+import { ConfigService, I18NextPipe, LoggerService, TranslationService, UtilityService } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
 import { RecordSearchComponent } from './record-search.component';
 import { RecordSearchRefinerComponent } from './record-search-refiner/record-search-refiner.component';
@@ -60,7 +59,7 @@ describe('RecordSearchComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [RecordSearchComponent, RecordSearchRefinerComponent],
-      imports: [FormsModule, I18NextModule.forRoot(), RouterTestingModule.withRoutes([])],
+      imports: [FormsModule, I18NextPipe, RouterTestingModule.withRoutes([])],
       providers: [
         {
           provide: APP_BASE_HREF,

@@ -2,9 +2,7 @@
 * Series of helper functions to simplify testing.
 */
 import { merge as _merge, isEmpty as _isEmpty } from "lodash-es";
-import {
-  I18NextLoadResult, I18NextModule, ITranslationService
-} from 'angular-i18next';
+import { InitOptions } from 'i18next';
 /**
  * Returns stub for `ConfigService`.
  *
@@ -85,6 +83,7 @@ export function getStubTranslationService(translationMap: any = null) {
   }
   return {
     translationMap: translationMap,
+    translationChanges$: { pipe: () => ({ subscribe: () => ({ unsubscribe() {/* noop */} }) }) },
     waitForInit: function() {
       return true;
     },
@@ -183,18 +182,9 @@ export function getStubRecordService(recordData: any = {}) {
 
 export const localeId = 'cimode';
 
-export function appInit(i18next: ITranslationService) {
+export function appInit(translationService: { waitForInit: () => Promise<any> | any }, _options?: InitOptions) {
   return () => {
-    let promise: Promise<I18NextLoadResult> = i18next.init({
-      lng: 'cimode',
-      // debug: true,
-      // appendNamespaceToCIMode: true,
-      // appendNamespaceToMissingKey: true,
-      interpolation: {
-        format: I18NextModule.interpolationFormat()
-      }
-    });
-    return promise;
+    return translationService.waitForInit();
   };
 }
 

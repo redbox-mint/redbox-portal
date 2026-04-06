@@ -5,7 +5,9 @@ import {
   ConfigService,
   getStubConfigService,
   getStubTranslationService,
+  I18NextPipe,
   LoggerService,
+  providePortalI18nTesting,
   RedboxPortalCoreModule,
   TranslationService,
   UtilityService
@@ -13,7 +15,6 @@ import {
 import { ReactiveFormsModule } from "@angular/forms";
 import { APP_BASE_HREF, CommonModule } from "@angular/common";
 import { BrowserModule, Title } from "@angular/platform-browser";
-import { I18NextPipe, provideI18Next } from "angular-i18next";
 import { FormService } from "./form.service";
 import {
   buildKeyString,
@@ -210,7 +211,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "ConfigService": { provide: ConfigService, useValue: configService },
       "Title": Title,
       "FormService": FormService,
-      "provideI18Next": provideI18Next(),
+      "providePortalI18nTesting": providePortalI18nTesting(),
       "FormComponent": FormComponent,
       "provideHttpClient": provideHttpClient(),
       "provideHttpClientTesting": provideHttpClientTesting(),

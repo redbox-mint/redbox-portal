@@ -1,5 +1,6 @@
 // Import the compiled model definitions
 const { MongoModels } = require('./api/models');
+const { ServiceExports } = require('./dist/services');
 
 module.exports = function (sails) {
   return {
@@ -31,6 +32,10 @@ module.exports.registerRedboxModels = function () {
   return MongoModels;
 };
 
+module.exports.registerRedboxServices = function () {
+  return ServiceExports;
+};
+
 /**
  * Register hook configuration for redbox-loader.
  * This is called at pre-lift time to merge config with core config.
@@ -41,3 +46,5 @@ module.exports.registerRedboxConfig = function () {
     record: require('./config/record').record
   };
 };
+
+module.exports.ServiceExports = ServiceExports;
