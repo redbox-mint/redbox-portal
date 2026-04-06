@@ -30,7 +30,7 @@ import HttpApi from 'i18next-http-backend';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
-import { LoggerService  } from './logger.service';
+import { LoggerService } from './logger.service';
 
 import { InitOptions, TOptions, createInstance, i18n } from 'i18next';
 
@@ -82,15 +82,15 @@ export class TranslationService extends HttpClientService implements Service {
       // cookieDomain: I18NEXT_LANG_COOKIE_DOMAIN
     }
   };
-  
-  constructor (
+
+  constructor(
     @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
     @Inject(UtilityService) protected override utilService: UtilityService,
     @Inject(ConfigService) protected override configService: ConfigService,
     @Inject(LoggerService) private loggerService: LoggerService,
     @Optional() @Inject(PORTAL_I18N_TEST_OPTIONS) private testingOptions?: InitOptions
-    ) {
+  ) {
     super(http, rootContext, utilService, configService);
     this.subjects = {};
     this.subjects['init'] = new Subject<any>();
@@ -199,7 +199,7 @@ export class TranslationService extends HttpClientService implements Service {
 
   public override getInitSubject(): Subject<any> {
     return this.subjects['init'];
-  } 
+  }
 
   override async waitForInit(): Promise<any> {
     if (this.translatorReady) {
@@ -212,7 +212,7 @@ export class TranslationService extends HttpClientService implements Service {
     return !this.translatorReady;
   }
 
-  public override getConfig(appName?:string) {
+  public override getConfig(appName?: string) {
     return this.config;
   }
 
@@ -235,7 +235,7 @@ export class TranslationService extends HttpClientService implements Service {
     return firstValueFrom(req$);
   }
 
-    /** List supported languages for current branding */
+  /** List supported languages for current branding */
   public async listLanguages(): Promise<{ code: string; displayName: string; }[]> {
     await this.waitForInit();
     const url = `${this.brandingAndPortalUrl}/locales`;
@@ -275,18 +275,18 @@ export class TranslationService extends HttpClientService implements Service {
       if (!sourceBundle || !sourceBundle.data) {
         throw new Error(`Source language ${sourceLocale} not found or has no data`);
       }
-      
+
       // Copy the source data to the new language
       const result = await this.setBundle(newLocale, namespace, sourceBundle.data);
-      
+
       // If display name is provided, update the bundle with it
       if (displayName) {
         await this.updateLanguageDisplayName(newLocale, namespace, displayName);
       }
-      
+
       // Now ensure all languages (including the new one) have lang-<langcode> entries for the language selector
       await this.ensureLanguageLabels(newLocale, namespace);
-      
+
       return result;
     } catch (error) {
       console.error(`Failed to create language ${newLocale} from ${sourceLocale}:`, error);
@@ -297,7 +297,7 @@ export class TranslationService extends HttpClientService implements Service {
   /** Update the display name for a language */
   public async updateLanguageDisplayName(locale: string, namespace = 'translation', displayName: string): Promise<any> {
     await this.waitForInit();
-    
+
     try {
       // Get current bundle
       const bundle = await this.getBundle(locale, namespace);
@@ -321,7 +321,7 @@ export class TranslationService extends HttpClientService implements Service {
     try {
       // Get all available languages
       const allLanguages = await this.listLanguages();
-      
+
       // For each language, ensure it has lang-<langcode> entries for all other languages
       for (const currentLang of allLanguages) {
         try {
@@ -337,7 +337,7 @@ export class TranslationService extends HttpClientService implements Service {
           for (const targetLang of allLanguages) {
             const langKey = `lang-${targetLang.code}`;
             if (!bundleData[langKey]) {
-              bundleData[langKey] =langKey;
+              bundleData[langKey] = langKey;
               needsUpdate = true;
             }
           }
