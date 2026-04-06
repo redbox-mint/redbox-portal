@@ -187,7 +187,6 @@ export class TranslationService extends HttpClientService implements Service {
   public async changeLanguage(langCode: string): Promise<void> {
     await this.waitForInit();
     await this.i18NextService.changeLanguage(langCode);
-    this.translationChanges.next();
   }
 
   /** Get the current language */
