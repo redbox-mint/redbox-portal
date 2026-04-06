@@ -179,12 +179,9 @@ describe('ManageUsersComponent', () => {
   }
 
   function createBareComponent(): ManageUsersComponent {
-    return new ManageUsersComponent(
-      TestBed.inject(LoggerService),
-      TestBed.inject(TranslationService),
-      TestBed.inject(UserService),
-      TestBed.inject(FormBuilder)
-    );
+    const fixture = TestBed.createComponent(ManageUsersComponent);
+    fixtures.push(fixture);
+    return fixture.componentInstance;
   }
 
   it('should create the app and perform testing of basic functions', async () =>  {
