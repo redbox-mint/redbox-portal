@@ -29,7 +29,9 @@ export interface HookControllerRegistration extends HookModuleRegistration {
     controller: unknown;
 }
 
-export type HookModelRegistration = Record<string, unknown>;
+export interface HookModelRegistration extends HookModuleRegistration {
+    model: Record<string, unknown>;
+}
 
 export interface HookRegistrations {
     hookModels: Record<string, HookModelRegistration>;
@@ -192,6 +194,10 @@ async function isDirEmpty(dirPath: string): Promise<boolean> {
     }
 }
 
+function sanitizePackageNameForVar(name: string, suffix: string): string {
+    return `${name.replace(/[^a-zA-Z0-9_]/g, '_')}_${suffix}`;
+}
+
 export async function findAndRegisterHooks(appPath: string): Promise<HookRegistrations> {
     const hookModels: Record<string, HookModelRegistration> = {};
     const hookPolicies: Record<string, HookPolicyRegistration> = {};
@@ -224,132 +230,134 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
         ...(packageJson.devDependencies ?? {}),
     };
 
-    await Promise.all(
-        Object.keys(allDependencies).map(async depName => {
+    const dependencies = Object.keys(allDependencies).sort();
+
+    for (const depName of dependencies) {
+        try {
+            let depPackageJsonPath: string;
             try {
-                let depPackageJsonPath: string;
-                try {
-                    depPackageJsonPath = require.resolve(`${depName}/package.json`, { paths: [appPath] });
-                } catch {
-                    return;
-                }
-
-                const depPackageJson = JSON.parse(
-                    await fs.readFile(depPackageJsonPath, 'utf8')
-                ) as {
-                    sails?: {
-                        hasModels?: boolean;
-                        hasPolicies?: boolean;
-                        hasBootstrap?: boolean;
-                        hasServices?: boolean;
-                        hasControllers?: boolean;
-                        hasFormConfigs?: boolean;
-                    };
-                };
-
-                if (depPackageJson.sails?.hasModels === true) {
-                    log.verbose(`Found hook with models: ${depName}`);
-                    const hookModule = require(depName) as {
-                        registerRedboxModels?: () => Record<string, HookModelRegistration>;
-                    };
-                    if (typeof hookModule.registerRedboxModels === 'function') {
-                        const models = hookModule.registerRedboxModels();
-                        Object.assign(hookModels, models);
-                        log.verbose(`Registered ${Object.keys(models).length} models from ${depName}`);
-                    } else {
-                        log.warn(`Hook ${depName} has 'hasModels: true' but no 'registerRedboxModels' function`);
-                    }
-                }
-
-                if (depPackageJson.sails?.hasPolicies === true) {
-                    log.verbose(`Found hook with policies: ${depName}`);
-                    const hookModule = require(depName) as {
-                        registerRedboxPolicies?: () => Record<string, HookPolicyRegistration>;
-                    };
-                    if (typeof hookModule.registerRedboxPolicies === 'function') {
-                        const policies = hookModule.registerRedboxPolicies();
-                        Object.assign(hookPolicies, policies);
-                        log.verbose(`Registered ${Object.keys(policies).length} policies from ${depName}`);
-                    } else {
-                        log.warn(`Hook ${depName} has 'hasPolicies: true' but no 'registerRedboxPolicies' function`);
-                    }
-                }
-
-                if (depPackageJson.sails?.hasBootstrap === true) {
-                    log.verbose(`Found hook with bootstrap: ${depName}`);
-                    const hookModule = require(depName) as {
-                        registerRedboxBootstrap?: () => Promise<void>;
-                    };
-                    if (typeof hookModule.registerRedboxBootstrap === 'function') {
-                        hookBootstraps.push({ name: depName, module: depName });
-                        log.verbose(`Registered bootstrap from ${depName}`);
-                    } else {
-                        log.warn(`Hook ${depName} has 'hasBootstrap: true' but no 'registerRedboxBootstrap' function`);
-                    }
-                }
-
-                if (depPackageJson.sails?.hasServices === true) {
-                    log.verbose(`Found hook with services: ${depName}`);
-                    const hookModule = require(depName) as {
-                        registerRedboxServices?: () => Record<string, unknown>;
-                    };
-                    if (typeof hookModule.registerRedboxServices === 'function') {
-                        const services = hookModule.registerRedboxServices();
-                        for (const serviceName of Object.keys(services)) {
-                            hookServices[serviceName] = { module: depName, service: services[serviceName] };
-                        }
-                        log.verbose(`Registered ${Object.keys(services).length} services from ${depName}`);
-                    } else {
-                        log.warn(`Hook ${depName} has 'hasServices: true' but no 'registerRedboxServices' function`);
-                    }
-                }
-
-                if (depPackageJson.sails?.hasControllers === true) {
-                    log.verbose(`Found hook with controllers: ${depName}`);
-                    const hookModule = require(depName) as {
-                        registerRedboxControllers?: () => Record<string, unknown>;
-                        registerRedboxWebserviceControllers?: () => Record<string, unknown>;
-                    };
-                    if (typeof hookModule.registerRedboxControllers === 'function') {
-                        const controllers = hookModule.registerRedboxControllers();
-                        for (const controllerName of Object.keys(controllers)) {
-                            hookControllers[controllerName] = { module: depName, controller: controllers[controllerName] };
-                        }
-                        log.verbose(`Registered ${Object.keys(controllers).length} controllers from ${depName}`);
-                    }
-                    if (typeof hookModule.registerRedboxWebserviceControllers === 'function') {
-                        const wsControllers = hookModule.registerRedboxWebserviceControllers();
-                        for (const controllerName of Object.keys(wsControllers)) {
-                            hookWebserviceControllers[controllerName] = {
-                                module: depName,
-                                controller: wsControllers[controllerName],
-                            };
-                        }
-                        log.verbose(`Registered ${Object.keys(wsControllers).length} webservice controllers from ${depName}`);
-                    }
-                }
-
-                if (depPackageJson.sails?.hasFormConfigs === true) {
-                    log.verbose(`Found hook with form configs: ${depName}`);
-                    const hookModule = require(depName) as {
-                        registerRedboxFormConfigs?: () => Record<string, unknown>;
-                    };
-                    if (typeof hookModule.registerRedboxFormConfigs === 'function') {
-                        const formConfigs = hookModule.registerRedboxFormConfigs();
-                        for (const formName of Object.keys(formConfigs)) {
-                            hookFormConfigs[formName] = { module: depName };
-                        }
-                        log.verbose(`Registered ${Object.keys(formConfigs).length} form configs from ${depName}`);
-                    } else {
-                        log.warn(`Hook ${depName} has 'hasFormConfigs: true' but no 'registerRedboxFormConfigs' function`);
-                    }
-                }
-            } catch (err) {
-                const message = err instanceof Error ? err.message : String(err);
-                log.verbose(`Could not process dependency ${depName}: ${message}`);
+                depPackageJsonPath = require.resolve(`${depName}/package.json`, { paths: [appPath] });
+            } catch {
+                continue;
             }
-        })
-    );
+
+            const depPackageJson = JSON.parse(
+                await fs.readFile(depPackageJsonPath, 'utf8')
+            ) as {
+                sails?: {
+                    hasModels?: boolean;
+                    hasPolicies?: boolean;
+                    hasBootstrap?: boolean;
+                    hasServices?: boolean;
+                    hasControllers?: boolean;
+                    hasFormConfigs?: boolean;
+                };
+            };
+
+            if (depPackageJson.sails?.hasModels === true) {
+                log.verbose(`Found hook with models: ${depName}`);
+                const hookModule = require(depName) as {
+                    registerRedboxModels?: () => Record<string, Record<string, unknown>>;
+                };
+                if (typeof hookModule.registerRedboxModels === 'function') {
+                    const models = hookModule.registerRedboxModels();
+                    for (const modelName of Object.keys(models)) {
+                        hookModels[modelName] = { module: depName, model: models[modelName] };
+                    }
+                    log.verbose(`Registered ${Object.keys(models).length} models from ${depName}`);
+                } else {
+                    log.warn(`Hook ${depName} has 'hasModels: true' but no 'registerRedboxModels' function`);
+                }
+            }
+
+            if (depPackageJson.sails?.hasPolicies === true) {
+                log.verbose(`Found hook with policies: ${depName}`);
+                const hookModule = require(depName) as {
+                    registerRedboxPolicies?: () => Record<string, HookPolicyRegistration>;
+                };
+                if (typeof hookModule.registerRedboxPolicies === 'function') {
+                    const policies = hookModule.registerRedboxPolicies();
+                    Object.assign(hookPolicies, policies);
+                    log.verbose(`Registered ${Object.keys(policies).length} policies from ${depName}`);
+                } else {
+                    log.warn(`Hook ${depName} has 'hasPolicies: true' but no 'registerRedboxPolicies' function`);
+                }
+            }
+
+            if (depPackageJson.sails?.hasBootstrap === true) {
+                log.verbose(`Found hook with bootstrap: ${depName}`);
+                const hookModule = require(depName) as {
+                    registerRedboxBootstrap?: () => Promise<void>;
+                };
+                if (typeof hookModule.registerRedboxBootstrap === 'function') {
+                    hookBootstraps.push({ name: depName, module: depName });
+                    log.verbose(`Registered bootstrap from ${depName}`);
+                } else {
+                    log.warn(`Hook ${depName} has 'hasBootstrap: true' but no 'registerRedboxBootstrap' function`);
+                }
+            }
+
+            if (depPackageJson.sails?.hasServices === true) {
+                log.verbose(`Found hook with services: ${depName}`);
+                const hookModule = require(depName) as {
+                    registerRedboxServices?: () => Record<string, unknown>;
+                };
+                if (typeof hookModule.registerRedboxServices === 'function') {
+                    const services = hookModule.registerRedboxServices();
+                    for (const serviceName of Object.keys(services)) {
+                        hookServices[serviceName] = { module: depName, service: services[serviceName] };
+                    }
+                    log.verbose(`Registered ${Object.keys(services).length} services from ${depName}`);
+                } else {
+                    log.warn(`Hook ${depName} has 'hasServices: true' but no 'registerRedboxServices' function`);
+                }
+            }
+
+            if (depPackageJson.sails?.hasControllers === true) {
+                log.verbose(`Found hook with controllers: ${depName}`);
+                const hookModule = require(depName) as {
+                    registerRedboxControllers?: () => Record<string, unknown>;
+                    registerRedboxWebserviceControllers?: () => Record<string, unknown>;
+                };
+                if (typeof hookModule.registerRedboxControllers === 'function') {
+                    const controllers = hookModule.registerRedboxControllers();
+                    for (const controllerName of Object.keys(controllers)) {
+                        hookControllers[controllerName] = { module: depName, controller: controllers[controllerName] };
+                    }
+                    log.verbose(`Registered ${Object.keys(controllers).length} controllers from ${depName}`);
+                }
+                if (typeof hookModule.registerRedboxWebserviceControllers === 'function') {
+                    const wsControllers = hookModule.registerRedboxWebserviceControllers();
+                    for (const controllerName of Object.keys(wsControllers)) {
+                        hookWebserviceControllers[controllerName] = {
+                            module: depName,
+                            controller: wsControllers[controllerName],
+                        };
+                    }
+                    log.verbose(`Registered ${Object.keys(wsControllers).length} webservice controllers from ${depName}`);
+                }
+            }
+
+            if (depPackageJson.sails?.hasFormConfigs === true) {
+                log.verbose(`Found hook with form configs: ${depName}`);
+                const hookModule = require(depName) as {
+                    registerRedboxFormConfigs?: () => Record<string, unknown>;
+                };
+                if (typeof hookModule.registerRedboxFormConfigs === 'function') {
+                    const formConfigs = hookModule.registerRedboxFormConfigs();
+                    for (const formName of Object.keys(formConfigs)) {
+                        hookFormConfigs[formName] = { module: depName };
+                    }
+                    log.verbose(`Registered ${Object.keys(formConfigs).length} form configs from ${depName}`);
+                } else {
+                    log.warn(`Hook ${depName} has 'hasFormConfigs: true' but no 'registerRedboxFormConfigs' function`);
+                }
+            }
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            log.verbose(`Could not process dependency ${depName}: ${message}`);
+        }
+    }
 
     return {
         hookModels,
@@ -427,8 +435,8 @@ export async function generateModelShims(
     for (const name of allModelNames) {
         if (hookModels[name]) {
             const filePath = path.join(modelsDir, `${name}.js`);
-            const modelDef = hookModels[name];
-            const content = `'use strict';\n/**\n * ${name} model shim\n * Auto-generated by redbox-loader.js\n * Provided by: hook registration\n * Do not edit manually - regenerated when .regenerate-shims marker exists\n */\nmodule.exports = ${JSON.stringify({ ...modelDef, globalId: name }, null, 2)};\n`;
+            const hookModuleName = hookModels[name].module;
+            const content = `'use strict';\n/**\n * ${name} model shim\n * Auto-generated by redbox-loader.js\n * Provided by: ${hookModuleName}\n * Do not edit manually - regenerated when .regenerate-shims marker exists\n */\nmodule.exports = { ...require('${hookModuleName}').registerRedboxModels()['${name}'], globalId: '${name}' };\n`;
             promises.push(
                 writeFileIfChanged(filePath, content).then(written => {
                     if (written) {
@@ -749,7 +757,7 @@ export async function generateConfigShims(
 
     const hookImports = hookConfigs
         .map(hook => {
-            const varName = hook.name.replace(/[@/-]/g, '_') + '_config';
+            const varName = sanitizePackageNameForVar(hook.name, 'config');
             return `const ${varName} = require('${hook.module}').registerRedboxConfig();`;
         })
         .join('\n');
@@ -762,7 +770,7 @@ export async function generateConfigShims(
             }
 
             const hookMerges = hookConfigs.map(hook => {
-                const varName = hook.name.replace(/[@/-]/g, '_') + '_config';
+                const varName = sanitizePackageNameForVar(hook.name, 'config');
                 return `${varName}['${name}'] || {}`;
             });
 
@@ -858,13 +866,13 @@ export async function generateBootstrapShim(
     const filePath = path.join(configDir, 'bootstrap.js');
 
     const hookImports = hookBootstraps
-        .map(hook => `const ${hook.name.replace(/[@/-]/g, '_')}_bootstrap = require('${hook.module}').registerRedboxBootstrap();`)
+        .map(hook => `const ${sanitizePackageNameForVar(hook.name, 'bootstrap')} = require('${hook.module}').registerRedboxBootstrap();`)
         .join('\n');
 
     const hookCalls = hookBootstraps
         .map(hook => {
-            const varName = hook.name.replace(/[@/-]/g, '_');
-            return `        await ${varName}_bootstrap();\n        sails.log.verbose("Hook bootstrap complete: ${hook.name}");`;
+            const varName = sanitizePackageNameForVar(hook.name, 'bootstrap');
+            return `        await ${varName}();\n        sails.log.verbose("Hook bootstrap complete: ${hook.name}");`;
         })
         .join('\n');
 
