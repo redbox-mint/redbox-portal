@@ -29,7 +29,7 @@ The core package provides two lazy export objects plus name lists:
 - `ControllerNames`: AJAX / view controller names without instantiation
 - `WebserviceControllerNames`: webservice controller names without instantiation
 
-`redbox-loader.js` uses the name lists to generate controller shims without triggering controller instantiation. The shims expose the exported methods for Sails routes.
+The redbox-core loader uses the name lists to generate controller shims without triggering controller instantiation. The shims expose the exported methods for Sails routes.
 
 ## Controller Lifecycle and `init()`
 

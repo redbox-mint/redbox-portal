@@ -87,7 +87,7 @@ export const WebserviceControllerExports: Record<string, unknown> = {
     get VocabularyController() { return getOrCreate('WS_VocabularyController', () => new WSVocabularyControllerModule.Controllers.Vocabulary().exports()); },
 };
 
-// Export controller names without instantiating (used by redbox-loader shim generation)
+// Export controller names without instantiating (used by the redbox-core loader shim generation)
 export const ControllerNames = [
     'ActionController',
     'AdminController',
