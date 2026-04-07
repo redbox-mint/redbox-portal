@@ -4,8 +4,8 @@ import {RadioInputComponent} from "./radio-input.component";
 import {QuestionTreeComponent} from "./question-tree.component";
 import {CheckboxInputComponent} from "./checkbox-input.component";
 import {
-  FormConfigFrame,
-  QuestionTreeFieldComponentConfigFrame,
+  FormConfigFrame, isTypeFieldDefinitionName, QuestionTreeComponentName,
+  QuestionTreeFieldComponentConfigFrame, QuestionTreeFieldComponentDefinitionFrame,
   QuestionTreeModelValueType,
   QuestionTreeOutcomeInfo,
   QuestionTreeOutcomeInfoKey
@@ -795,7 +795,12 @@ describe('QuestionTreeComponent', async () => {
       if (!questionDefs[0]?.layout?.config) {
         fail('Question tree test config missing expected first question layout config');
       }
-      questionDefs[0]!.layout!.config!.label = "Direct Question Label";
+
+      const expectedValue = "Direct Question Label";
+      questionDefs[0]!.layout!.config!.label = expectedValue;
+
+      // ensure the angular form has the expected label
+      expect(questionDefs[0]?.layout?.config?.label).toBe(expectedValue);
 
       const {fixture} = await createFormAndWaitForReady(formConfigWithDirectQuestionLabel);
       const element = fixture.nativeElement as HTMLElement;
@@ -803,46 +808,31 @@ describe('QuestionTreeComponent', async () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      // TODO: This test sometimes passes, sometimes fails, likely indicating a timing dependence on something else.
-      // I haven't been able to pinpoint where it is coming from.
-      // For now, this is usually fixed by doing another round of detect changes and wait for stable.
-      fixture.detectChanges();
-      await fixture.whenStable();
+      const qtElements = element.querySelectorAll('redbox-questiontreefield');
+      expect(qtElements).toHaveSize(1);
+      const qtElement = qtElements[0];
+      expect(qtElement).toBeTruthy();
 
-      const fieldLabels = element.querySelectorAll('.rb-form-field-label');
-      expect(fieldLabels.length).toEqual(1);
+      const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
+      expect(questionTree.formFieldCompMapEntries[0].layout?.label).toEqual(expectedValue);
 
+      const fieldLabels = qtElement.querySelectorAll('label.rb-form-field-label');
+      expect(fieldLabels).toHaveSize(1);
       const firstLabel = fieldLabels[0];
       expect(firstLabel).toBeTruthy();
-      expect(firstLabel?.innerHTML?.trim()).toContain('Direct Question Label');
+
+      expect(firstLabel?.innerHTML?.trim()).toContain(expectedValue);
     });
 
-    it('should render a provided question label value directly', async () => {
-      setUpDynamicAssets({
-        urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
-        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
-          if (keyStr in expressionsResults) {
-            return expressionsResults[keyStr](keyStr, key, context, extra);
-          }
-          throw new Error(`Unknown key: ${keyStr}`);
-        }
-      });
+    const qtComp = clientFormConfig.componentDefinitions[0].component;
+    if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(qtComp, QuestionTreeComponentName)) {
+      throw new Error(`Expected QuestionTreeFieldComponentDefinitionFrame but got ${qtComp}`);
+    }
+    const qtConfig = qtComp.config;
+    if (!qtConfig) {
+      throw new Error(`Expected QuestionTreeFieldComponentConfigFrame but got ${qtConfig}`);
+    }
 
-      const formConfigWithDirectQuestionLabel: FormConfigFrame = JSON.parse(JSON.stringify(clientFormConfig));
-      const questionDefs = ((formConfigWithDirectQuestionLabel.componentDefinitions?.[0]?.component?.config as QuestionTreeFieldComponentConfigFrame)?.componentDefinitions ?? []);
-      if (!questionDefs[0]?.layout?.config) {
-        fail('Question tree test config missing expected first question layout config');
-      }
-      questionDefs[0]!.layout!.config!.label = "Direct Question Label";
-
-      const {fixture} = await createFormAndWaitForReady(formConfigWithDirectQuestionLabel);
-      await fixture.whenStable();
-      fixture.detectChanges();
-      await fixture.whenStable();
-      expect(questionDefs[0]?.layout?.config?.label).toBe('Direct Question Label');
-    });
-
-    const qtConfig = clientFormConfig.componentDefinitions[0].component.config as QuestionTreeFieldComponentConfigFrame;
     const outcomeInfoCases: {
       config: QuestionTreeFieldComponentConfigFrame,
       data: QuestionTreeModelValueType,
