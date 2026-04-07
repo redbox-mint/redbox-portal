@@ -85,7 +85,8 @@ export { Config, SailsConfig } from './config';
 
 // Bootstrap functions
 export { coreBootstrap, preLiftSetup, BootstrapProvider } from './bootstrap';
-export * from './loader';
+export { generateAllShims } from './loader';
+export type { LoaderOptions, GenerateAllShimsResult } from './loader';
 
 // Shims for backward compatibility
 export * from './shims';
