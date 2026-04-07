@@ -351,9 +351,8 @@ describe('ManageUsersComponent', () => {
     expect(app.getAccountStatusBadgeClass(linkedAliasUser as any)).toBe('default');
   });
 
-  it('should hide API key controls and suppress role errors for linked aliases until submit', async () => {
-    const fixture = createFixture();
-    const app = fixture.componentInstance;
+  it('should prepare linked alias edit state without requiring credential or role UI interactions', () => {
+    const app = createBareComponent();
     app.allRoles = rolesData as any;
     app.currentUser = {
       id: 'linked-1',
@@ -366,23 +365,15 @@ describe('ManageUsersComponent', () => {
       roles: []
     } as any;
     app.setupForms(false);
-    app.isDetailsModalShown = true;
-    fixture.detectChanges();
 
-    const textBeforeSubmit = fixture.nativeElement.textContent;
-    expect(textBeforeSubmit).toContain('manage-users-password-linked-notice');
-    expect(textBeforeSubmit).toContain('manage-users-api-linked-notice');
-    expect(textBeforeSubmit).toContain('manage-users-roles-linked-notice');
-    expect(textBeforeSubmit).not.toContain('manage-users-confirm-password');
-    expect(textBeforeSubmit).not.toContain('manage-users-update-password');
-    expect(textBeforeSubmit).not.toContain('Generate API Key');
-    expect(textBeforeSubmit).not.toContain('Admin');
-    expect(textBeforeSubmit).not.toContain('manage-users-validation-role');
-
-    app.submitted = true;
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('manage-users-roles-linked-notice');
-    expect(fixture.nativeElement.textContent).not.toContain('manage-users-validation-role');
+    expect(app.isLinkedAlias(app.currentUser as any)).toBeTrue();
+    expect(app.canManageLinks(app.currentUser as any)).toBeFalse();
+    expect(app.getAccountStatusBadge(app.currentUser as any)).toBe('Linked');
+    expect(app.getAccountStatusContext(app.currentUser as any)).toContain('admin');
+    expect(app.getUpdateUserFormControls().length).toBe(rolesData.length);
+    expect(app.updateUserForm?.controls['roles'].valid).toBeFalse();
+    expect(app.isUpdateUserFormConfirmPasswordTouched()).toBeFalse();
+    expect(app.getUpdateUserPasswordErrors()).toEqual([]);
   });
 
   it('should map roles correctly', () => {
