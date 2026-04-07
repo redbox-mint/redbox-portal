@@ -38,7 +38,7 @@
     "node": ">=20.0.0"
   },
   "devDependencies": {
-    "@tsconfig/node24": "^24.0.4",
+    "@tsconfig/node24": "24.0.4",
     "@types/chai": "5.2.3",
     "@types/lodash": "4.17.24",
     "@types/lodash-es": "4.17.12",
@@ -46,7 +46,7 @@
     "@types/mocha": "10.0.10",
     "@types/node": "24.12.0",
     "chai": "6.2.2",
-    "jsonata": "^2.1.0",
+    "jsonata": "2.1.0",
     "mocha": "11.7.5",
     "mocha-junit-reporter": "2.2.1",
     "nyc": "18.0.0",
@@ -72,12 +72,12 @@
     ]
   },
   "dependencies": {
-    "@jsonjoy.com/json-pointer": "^18.1.0",
-    "lodash": "^4.17.23",
-    "lodash-es": "^4.17.23",
-    "luxon": "^3.7.2",
-    "marked": "^17.0.5",
-    "ts-json-schema-generator": "^2.9.0"
+    "@jsonjoy.com/json-pointer": "18.1.0",
+    "lodash": "4.17.23",
+    "lodash-es": "4.17.23",
+    "luxon": "3.7.2",
+    "marked": "17.0.5",
+    "ts-json-schema-generator": "2.9.0"
   },
   "overrides": {
     "mocha": {
@@ -85,6 +85,6 @@
     }
   },
   "peerDependencies": {
-    "jsonata": "^2.1.0"
+    "jsonata": "2.1.0"
   }
 }
