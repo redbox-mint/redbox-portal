@@ -15,7 +15,7 @@ ReDBox Portal uses a service-oriented architecture where business logic is encap
 │  1. Build Time: TypeScript services compiled to JavaScript          │
 │     └── packages/redbox-core/src/services/*.ts                │
 │                                                                     │
-│  2. Pre-Lift: redbox-loader generates service shims                 │
+│  2. Pre-Lift: the redbox-core loader generates service shims        │
 │     └── ServiceExports → api/services/*.js shims                    │
 │                                                                     │
 │  3. Sails Lift: Services loaded as Sails globals                    │

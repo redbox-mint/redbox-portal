@@ -1,25 +1,11 @@
-
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import * as path from 'path';
 import * as fs from 'fs';
 const fsPromises = fs.promises;
 import * as os from 'os';
 
-// Resolve redbox-loader path dynamically to support running from:
-// 1. TypeScript source: typescript/test/integration/redbox-loader.test.ts (needs ../../../)
-// 2. Compiled JavaScript: test/integration/redbox-loader.test.js (needs ../../)
-const possiblePaths = [
-    path.resolve(__dirname, '../../../redbox-loader.js'),
-    path.resolve(__dirname, '../../redbox-loader.js')
-];
-
-const loaderPath = possiblePaths.find(p => fs.existsSync(p));
-
-if (!loaderPath) {
-    throw new Error(`Could not find redbox-loader.js. Searched in: ${possiblePaths.join(', ')}`);
-}
-
-const redboxLoader = require(loaderPath);
+import * as redboxLoader from '../../src/loader';
 
 describe('redbox-loader', function () {
     this.timeout(10000);
@@ -171,6 +157,9 @@ describe('redbox-loader', function () {
 
             const result = await redboxLoader.generateAllShims(sandboxDir, { forceRegenerate: true });
             expect(result.skipped).to.be.false;
+            if (result.skipped) {
+                throw new Error('Expected shim generation to run');
+            }
             expect(result.stats).to.exist;
         });
 
@@ -200,6 +189,9 @@ describe('redbox-loader', function () {
         it('should include bootstrapStats in result', async function () {
             const result = await redboxLoader.generateAllShims(sandboxDir, { forceRegenerate: true });
             expect(result.skipped).to.be.false;
+            if (result.skipped) {
+                throw new Error('Expected shim generation to run');
+            }
             expect(result.stats.bootstrapStats).to.exist;
             expect(result.stats.bootstrapStats.total).to.equal(1);
             expect(result.stats.bootstrapStats.hookCount).to.be.a('number');

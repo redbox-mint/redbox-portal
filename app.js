@@ -59,10 +59,10 @@ try {
 // ReDBox Loader - Generate shims before Sails lifts
 // This ensures models, policies, middleware, and responses exist before
 // Sails hooks try to load them, eliminating race conditions.
-const redboxLoader = require('./redbox-loader');
+const { generateAllShims } = require('@researchdatabox/redbox-core');
 
 // Generate shims and then lift Sails
-redboxLoader.generateAllShims(__dirname, {
+generateAllShims(__dirname, {
   forceRegenerate: process.env.REGENERATE_SHIMS === 'true',
   verbose: process.env.SHIM_VERBOSE === 'true'
 }).then(() => {
