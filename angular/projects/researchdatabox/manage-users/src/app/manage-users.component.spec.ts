@@ -189,8 +189,6 @@ describe('ManageUsersComponent', () => {
     const fixture = createFixture();
     const app = fixture.componentInstance;
     fixture.detectChanges();
-    await app.waitForInit();
-    fixture.detectChanges();
     return { fixture, app };
   }
 
