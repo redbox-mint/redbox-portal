@@ -78,7 +78,7 @@ export namespace Services {
       const that = this;
       this.registerSailsHook('on', 'ready', function () {
         that.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
-        sails.log.warn(`${that.logHeader}: Assigned queueService`, that.queueService);
+        sails.log.verbose(`${that.logHeader}: Assigned queueService`, that.queueService);
       });
     }
 
