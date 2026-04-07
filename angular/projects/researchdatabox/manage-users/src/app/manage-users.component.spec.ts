@@ -474,8 +474,8 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should search and submit link candidates', async () => {
-    const { app } = createComponent();
-    await app.waitForInit();
+    const app = createBareComponent();
+    app.allUsers = usersData as any;
     spyOn(userService, 'getUsers').and.resolveTo(usersData);
     spyOn(userService, 'getUserLinks').and.resolveTo({
       primary: usersData[0],
@@ -550,8 +550,7 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should derive audit titles, actors, toggle labels, and raw content', async () => {
-    const { app } = createComponent();
-    await app.waitForInit();
+    const app = createBareComponent();
 
     await app.viewAudit(usersData[0] as any);
     expect(app.getAuditTitle()).toBe('Audit history for Local Admin');
