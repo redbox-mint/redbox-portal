@@ -15,15 +15,15 @@
   "author": "QCIF Engineering",
   "license": "GPL-3.0",
   "devDependencies": {
-    "@tsconfig/node24": "^24.0.4",
-    "typescript": "^6.0.2",
-    "@types/node": "^24.12.0"
+    "@tsconfig/node24": "24.0.4",
+    "typescript": "6.0.2",
+    "@types/node": "24.12.0"
   },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
-    "axios": "^1.13.6"
+    "axios": "1.14.0"
   }
 }
