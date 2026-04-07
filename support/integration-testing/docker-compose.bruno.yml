@@ -19,7 +19,7 @@ services:
          - bruno
     entrypoint: >-
       /bin/sh -lc "cd /opt/bruno-tests &&
-      npm install &&
+      npm ci --ignore-scripts &&
       npx @usebruno/cli@1.40.0 run
       --env int-test
       --format junit
