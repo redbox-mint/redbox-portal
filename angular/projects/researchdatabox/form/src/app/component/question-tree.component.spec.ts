@@ -826,6 +826,7 @@ describe('QuestionTreeComponent', async () => {
 
       fixture.detectChanges();
       await fixture.whenStable();
+      await fixture.whenRenderingDone();
 
       expect(firstLabel?.textContent?.trim()).toContain(expectedValue);
     });
