@@ -4,7 +4,7 @@
   "description": "ReDBox 2 Portal",
   "keywords": [],
   "dependencies": {
-    "@fortawesome/fontawesome-free": "6.5.2",
+    "@fortawesome/fontawesome-free": "6.7.2",
     "@researchdatabox/oni-ocfl": "1.4.0",
     "@researchdatabox/raido-openapi-generated-node": "file:packages/raido",
     "@researchdatabox/redbox-core": "./packages/redbox-core",
@@ -20,8 +20,8 @@
     "handlebars": "4.7.9",
     "include-all": "4.0.3",
     "jquery": "4.0.0",
-    "lodash": "4.17.23",
-    "lodash-es": "4.17.23",
+    "lodash": "4.18.1",
+    "lodash-es": "4.18.1",
     "lucene-escape-query": "1.0.1",
     "luxon": "3.7.2",
     "moment": "2.30.1",
@@ -35,7 +35,7 @@
     "sails-hook-sockets": "3.0.2",
     "sails-mongo": "2.1.2",
     "ts-node": "10.9.2",
-    "typescript": "5.9",
+    "typescript": "5.9.3",
     "typescript-require": "0.3.0",
     "zone.js": "0.16.1"
   },
