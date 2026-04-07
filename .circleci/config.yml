@@ -300,6 +300,9 @@ jobs:
           paths:
             - ~/.npm
   test-angular:
+    parameters:
+      angular_app:
+        type: string
     machine:
       image: ubuntu-2004:current
     resource_class: large
@@ -341,7 +344,7 @@ jobs:
           no_output_timeout: 30m
           command: |
             chmod +x support/unit-testing/angular/testAngular.sh
-            source support/unit-testing/angular/testAngular.sh
+            source support/unit-testing/angular/testAngular.sh "<< parameters.angular_app >>"
       - store_test_results:
           path: .tmp/junit
       - save_cache:
@@ -881,6 +884,25 @@ workflows:
           requires:
             - build
       - test-angular:
+          name: test-angular-<< matrix.angular_app >>
+          matrix:
+            alias: test-angular
+            parameters:
+              angular_app:
+                - portal-ng-common
+                - local-auth
+                - export
+                - dashboard
+                - report
+                - manage-users
+                - admin-vocabulary
+                - manage-roles
+                - form
+                - app-config
+                - deleted-records
+                - branding
+                - translation
+                - record-search
           requires:
             - build
       - test-sails-ng-common:
@@ -1005,6 +1027,25 @@ workflows:
           requires:
             - build
       - test-angular:
+          name: test-angular-<< matrix.angular_app >>
+          matrix:
+            alias: test-angular
+            parameters:
+              angular_app:
+                - portal-ng-common
+                - local-auth
+                - export
+                - dashboard
+                - report
+                - manage-users
+                - admin-vocabulary
+                - manage-roles
+                - form
+                - app-config
+                - deleted-records
+                - branding
+                - translation
+                - record-search
           requires:
             - build
       - test-sails-ng-common:
@@ -1122,6 +1163,25 @@ workflows:
             branches:
               ignore: /.*/
       - test-angular:
+          name: test-angular-<< matrix.angular_app >>
+          matrix:
+            alias: test-angular
+            parameters:
+              angular_app:
+                - portal-ng-common
+                - local-auth
+                - export
+                - dashboard
+                - report
+                - manage-users
+                - admin-vocabulary
+                - manage-roles
+                - form
+                - app-config
+                - deleted-records
+                - branding
+                - translation
+                - record-search
           requires:
             - build
           filters:
