@@ -26,7 +26,6 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
 import { getStubConfigService } from './helper.spec';
-import { providePortalI18nTesting } from './portal-i18n.providers';
 
 describe('TranslationService testing', () => {
   let translationService: TranslationService;
@@ -51,8 +50,7 @@ describe('TranslationService testing', () => {
         },
         LoggerService,
         UtilityService,
-        TranslationService,
-        providePortalI18nTesting()
+        TranslationService
       ]
     })
     httpClient = TestBed.inject(HttpClient);

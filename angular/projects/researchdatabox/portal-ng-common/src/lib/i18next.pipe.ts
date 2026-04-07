@@ -36,11 +36,8 @@ export class I18NextPipe implements PipeTransform {
       return;
     }
 
+    const translationChanges$ = this.translationService.translationChanges$;
     this.subscribed = true;
-    const translationChanges$ = (this.translationService as any).translationChanges$;
-    if (!translationChanges$?.pipe) {
-      return;
-    }
 
     translationChanges$
       .pipe(takeUntilDestroyed(this.destroyRef))
