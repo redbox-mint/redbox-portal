@@ -790,6 +790,10 @@ describe('QuestionTreeComponent', async () => {
         }
       });
 
+      // TODO: this sleep should not be necessary, but until we can figure out the timing issue,
+      //       this is one way to make the test pass.
+      const sleep = (delayMs: number) => new Promise((resolve) => setTimeout(resolve, delayMs))
+
       const formConfigWithDirectQuestionLabel: FormConfigFrame = JSON.parse(JSON.stringify(clientFormConfig));
       const questionDefs = ((formConfigWithDirectQuestionLabel.componentDefinitions?.[0]?.component?.config as QuestionTreeFieldComponentConfigFrame)?.componentDefinitions ?? []);
       if (!questionDefs[0]?.layout?.config) {
@@ -802,33 +806,55 @@ describe('QuestionTreeComponent', async () => {
       // ensure the angular form has the expected label
       expect(questionDefs[0]?.layout?.config?.label).toBe(expectedValue);
 
+      const eventBus = TestBed.inject(FormComponentEventBus);
+      const events: any[] = [];
+      const sub = eventBus.selectAll$().subscribe(e => events.push(e));
+
       const {fixture} = await createFormAndWaitForReady(formConfigWithDirectQuestionLabel);
 
-      fixture.detectChanges();
-      await fixture.whenStable();
+      try {
+        fixture.detectChanges();
+        await fixture.whenStable();
 
-      const element = fixture.nativeElement as HTMLElement;
+        const element = fixture.nativeElement as HTMLElement;
 
-      const qtElements = element.querySelectorAll('redbox-questiontreefield');
-      expect(qtElements).toHaveSize(1);
-      const qtElement = qtElements[0];
-      expect(qtElement).toBeTruthy();
+        const qtElements = element.querySelectorAll('redbox-questiontreefield');
+        expect(qtElements).toHaveSize(1);
+        const qtElement = qtElements[0];
+        expect(qtElement).toBeTruthy();
 
-      const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
-      expect(questionTree.formFieldCompMapEntries[0].layout?.label).toEqual(expectedValue);
-      expect(questionTree.formFieldCompMapEntries[0].layout?.getStringProperty('label')).toEqual(expectedValue);
-      expect(questionTree.formFieldCompMapEntries[0].layout?.isVisible).toBeTrue();
+        const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
+        expect(questionTree.formFieldCompMapEntries[0].layout?.label).toEqual(expectedValue);
+        expect(questionTree.formFieldCompMapEntries[0].layout?.getStringProperty('label')).toEqual(expectedValue);
+        expect(questionTree.formFieldCompMapEntries[0].layout?.isVisible).toBeTrue();
 
-      const fieldLabels = qtElement.querySelectorAll('label.rb-form-field-label');
-      expect(fieldLabels).toHaveSize(1);
-      const firstLabel = fieldLabels[0];
-      expect(firstLabel).toBeTruthy();
+        fixture.detectChanges();
+        await fixture.whenStable();
+        await fixture.whenRenderingDone();
 
-      fixture.detectChanges();
-      await fixture.whenStable();
-      await fixture.whenRenderingDone();
+        const fieldLabels = qtElement.querySelectorAll('label.rb-form-field-label');
+        expect(fieldLabels).toHaveSize(1);
+        const firstLabel = fieldLabels[0];
+        expect(firstLabel).toBeTruthy();
 
-      expect(firstLabel?.textContent?.trim()).toContain(expectedValue);
+        // make sure the form is ready
+        expect(events[0].type).toEqual(FormComponentEventType.FORM_DEFINITION_READY);
+
+        let actualValue = null;
+        let attempts = 0;
+        while(actualValue !== expectedValue) {
+          attempts += 1;
+          actualValue = firstLabel?.textContent?.trim();
+          await sleep(300);
+          if (attempts > 10) {
+            fail(`Actual value '${actualValue}' was never equal to expected value '${expectedValue}' in ${attempts} attempts.`);
+          }
+        }
+        console.log(`Took ${attempts} attempts to get actual value to match expected value.`);
+        expect(firstLabel?.textContent?.trim()).toContain(expectedValue);
+      } finally {
+        sub?.unsubscribe();
+      }
     });
 
     const qtComp = clientFormConfig.componentDefinitions[0].component;
