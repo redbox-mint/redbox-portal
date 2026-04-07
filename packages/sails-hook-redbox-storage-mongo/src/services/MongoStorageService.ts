@@ -767,7 +767,9 @@ export namespace Services {
           response.message = _.isEmpty(response.message) ? successMessage : `${response.message}\n${successMessage}`;
         } catch (err) {
           hasFailure = true;
-          const failureMessage = `Failed to upload: ${JSON.stringify(fileId)}, error is:\n${JSON.stringify(err)}`;
+          sails.log.error(`${this.logHeader} Failed to upload datastream for oid '${oid}':`);
+          sails.log.error(err);
+          const failureMessage = `Failed to upload: ${JSON.stringify(fileId)}, error is:\n${this.getErrorMessage(err)}`;
           response.message = _.isEmpty(response.message) ? failureMessage : `${response.message}\n${failureMessage}`;
         }
       }
@@ -875,6 +877,14 @@ export namespace Services {
         });
 
         uploadStream.on('error', err => {
+          sails.log.error(`${this.logHeader} streamFileToBucket() -> Failed uploading '${fileName}':`);
+          sails.log.error(err);
+          reject(err);
+        });
+
+        readable.on('error', err => {
+          sails.log.error(`${this.logHeader} streamFileToBucket() -> Failed reading source for '${fileName}':`);
+          sails.log.error(err);
           reject(err);
         });
       });
