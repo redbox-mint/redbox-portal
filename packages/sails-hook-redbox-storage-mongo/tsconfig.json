@@ -1,22 +1,23 @@
 {
   "extends": "../redbox-dev-tools/config/tsconfig.base.json",
   "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "jsx": "react",
-    "declaration": false,
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "ignoreDeprecations": "6.0",
+    "declaration": true,
     "strict": false,
-    "outDir": "./",
-    "rootDir": "./typescript"
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
   "exclude": [
     "node_modules/**",
     "typings/browser/**",
     "typings/browser.d.ts",
-    "test/integration/**/*.ts"
+    "dist/**",
+    "test/**/*.ts"
   ],
   "include": [
-    "typescript/**/*.ts"
+    "src/**/*.ts"
   ],
   "compileOnSave": true,
   "buildOnSave": false,

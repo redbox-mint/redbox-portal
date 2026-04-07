@@ -93,10 +93,10 @@ describe('TabNavButtonComponent', () => {
     };
   });
 
-  it('should create TabNavButtonComponent', () => {
-    const fixture = TestBed.createComponent(TabNavButtonComponent);
-    const component = fixture.componentInstance;
-    expect(component).toBeDefined();
+  it('should create TabNavButtonComponent', async () => {
+    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true } as any);
+    const component = fixture.nativeElement.querySelector('redbox-form-tab-nav-button');
+    expect(component).toBeTruthy();
   });
 
   it('should move to previous tab when clicking prev', async () => {

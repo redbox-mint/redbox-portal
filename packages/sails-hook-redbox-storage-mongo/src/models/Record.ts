@@ -32,5 +32,4 @@ export class RecordClass {
   public lastSaveDate!: string;
 }
 
-// Export the Waterline model definition for runtime use
 export const RecordWLDef = toWaterlineModelDef(RecordClass);
