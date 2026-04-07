@@ -1,12 +1,12 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
-import { FormComponent } from '../form.component';
 import {
   TabNavButtonComponentName,
   TabNavButtonFieldComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import { TabComponent } from './tab.component';
 import {FormService} from "../form.service";
+import {FormComponent} from "../form.component";
 
 @Component({
   selector: 'redbox-form-tab-nav-button',
@@ -38,7 +38,6 @@ import {FormService} from "../form.service";
 })
 export class TabNavButtonComponent extends FormFieldBaseComponent<undefined> implements OnInit {
   public override logName = TabNavButtonComponentName;
-  protected override formComponent: FormComponent = inject(FormComponent);
   public override componentDefinition?: TabNavButtonFieldComponentDefinitionOutline;
   private readonly formService = inject(FormService);
 
@@ -71,10 +70,10 @@ export class TabNavButtonComponent extends FormFieldBaseComponent<undefined> imp
       this.loggerService.warn(`${this.logName}: No targetTabContainerId configured.`);
       return;
     }
-    const entry = this.formComponent.getComponentDefByName(this.targetTabContainerId);
+    const entry = this.getFormComponent.getComponentDefByName(this.targetTabContainerId);
     if (entry?.component instanceof TabComponent) {
       this.tabComponent = entry.component;
-      this.tabIds = this.tabComponent.tabs.map((tab, index) => tab.name ?? `${index}`);
+      this.tabIds = this.tabComponent?.tabs?.map((tab, index) => tab.name ?? `${index}`) ?? [];
       this.currentTabIndex.set(this.getActiveTabIndex());
     } else {
       this.loggerService.warn(
@@ -142,5 +141,9 @@ export class TabNavButtonComponent extends FormFieldBaseComponent<undefined> imp
 
   private translateLabel(label: string | undefined, fallback: string): string {
     return this.formService.translate(label ?? fallback);
+  }
+
+  protected get getFormComponent(): FormComponent {
+    return this.formComponent;
   }
 }

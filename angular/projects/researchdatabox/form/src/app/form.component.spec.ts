@@ -4,7 +4,12 @@ import { FormComponent } from './form.component';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { GroupFieldComponent } from './component/group.component';
-import { createFormAndWaitForReady, createTestbedModule } from "./helpers.spec";
+import {
+  createFormAndWaitForReady,
+  createTestbedModule,
+  ensureApplicationRefFormComponent,
+  setUpDynamicAssets
+} from "./helpers.spec";
 import { FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { createFieldValueChangedEvent, createFormDefinitionChangedEvent, createFormSaveExecuteEvent, createFormStatusDirtyRequestEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
@@ -719,6 +724,9 @@ describe('FormComponent', () => {
     };
 
     const fixture = TestBed.createComponent(FormComponent);
+
+    ensureApplicationRefFormComponent(fixture.componentRef);
+
     const formComponent = fixture.componentInstance;
     formComponent.downloadAndCreateOnInit.set(false);
     formComponent.oid.set('oid-download-path');
@@ -911,6 +919,9 @@ describe('FormComponent', () => {
     };
 
     const fixture = TestBed.createComponent(FormComponent);
+
+    ensureApplicationRefFormComponent(fixture.componentRef);
+
     const formComponent = fixture.componentInstance;
     formComponent.downloadAndCreateOnInit.set(false);
     fixture.autoDetectChanges();
@@ -1006,6 +1017,91 @@ describe('FormComponent', () => {
     formComponent.ngOnDestroy();
     expect(() => bus.publish(createFieldValueChangedEvent({ fieldId: 'event_sub_cleanup', value: 'v' }))).not.toThrow();
     fixture.destroy();
+  });
+
+  it('changes enabledValidationGroups when requested', async () => {
+    setUpDynamicAssets({
+      urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
+      callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+        switch (keyStr) {
+          case "componentDefinitions__0__expressions__0__config__template":
+            return {"initial": "current", "groups": {"include":["tester"]}};
+          default:
+            throw new Error(`Unknown key: ${keyStr}`);
+        }
+      }
+    });
+    const formConfig: FormConfigFrame = {
+      name: 'validation-groups-change-request-form',
+      debugValue: true,
+      validationGroups: {
+        "none": {description: "", initialMembership:"none"},
+        "tester": {description: ""}
+      },
+      enabledValidationGroups: ["none"],
+      componentDefinitions: [
+        {
+          name: 'text_1',
+          model: {
+            class: 'SimpleInputModel',
+            config: { value: 'value', validators: [
+              {class: "minLength", config: { minLength: 3 }, groups:{include: ["tester"]}}
+              ]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          },
+          expressions: [
+            {
+              name: 'text_1_set_validation_groups',
+              config: {
+                template: '{"initial": "current", "groups": {"include":["tester"]}}',
+                condition: "/text_1::field.value.changed",
+                conditionKind: "jsonpointer",
+                target: 'form.enabledValidationGroups',
+                hasTemplate: true,
+              },
+            },
+          ]
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    const events: any[] = [];
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const sub = eventBus.selectAll$().subscribe(e => events.push(e));
+
+    try {
+      const inputEl = compiled.querySelector<HTMLInputElement>('input');
+      if (!inputEl){
+        throw new Error("could not find inputEl");
+      }
+
+      expect(inputEl.value).toEqual("value");
+
+      inputEl.value = "new-value";
+      inputEl.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(events.length).withContext(JSON.stringify(events)).toEqual(5);
+
+      const event = events[4];
+      expect(event.type).toEqual(FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST);
+      expect(event.initial).toEqual("current");
+      expect(event.groups).toEqual({"include":["tester"]});
+
+      expect(formComponent.enabledValidationGroups).toEqual(["none", "tester"]);
+    } finally {
+      sub?.unsubscribe();
+    }
   });
 
 });

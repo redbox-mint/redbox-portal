@@ -6,6 +6,7 @@
  */
 
 import { FormGroupStatus } from '../../form.component';
+import { FormFieldValidationGroup, formValidationGroupMembership } from "@researchdatabox/sails-ng-common";
 
 /**
  * Base event interface with common properties
@@ -93,6 +94,40 @@ export interface FormValidationBroadcastEvent extends FormComponentEventBase {
   readonly isValid: boolean;
   readonly errors?: Record<string, string[]>;
   readonly status?: FormGroupStatus;
+}
+
+/**
+ * The available approaches for changing the enabled form validation groups.
+ *
+ * Options:
+ * - 'all': Every known / available validation group.
+ * - 'none': An empty array / no validation groups.
+ * - 'current': The existing state, allows for changes relative to the existing situation.
+ */
+export const formValidationGroupsChangeInitial = [...formValidationGroupMembership, "current"] as const;
+/**
+ * The type for the available approaches for changing the enabled form validation groups.
+ */
+export type FormValidationGroupsChangeInitial = typeof formValidationGroupsChangeInitial[number];
+
+/**
+ * Form validation groups change requested event.
+ * Published when a component wants the enabled validation groups to be changed.
+ */
+export interface FormValidationGroupsChangeRequestEvent extends FormComponentEventBase {
+  readonly type: 'form.validation.change.request';
+  /**
+   * Change step 1: The initial validation groups to enable.
+   *
+   * Defaults to "current".
+   */
+  readonly initial?: FormValidationGroupsChangeInitial;
+  /**
+   * Change step 2: The validation groups to include or exclude from the initial set of validation groups.
+   *
+   * No default, must be supplied.
+   */
+  readonly groups: FormFieldValidationGroup;
 }
 
 /**
@@ -190,6 +225,7 @@ export type FormComponentEvent =
   | FieldDependencyTriggerEvent
   | FieldFocusRequestEvent
   | FormValidationBroadcastEvent
+  | FormValidationGroupsChangeRequestEvent
   | FormStatusDirtyRequestEvent
   | FormSaveRequestedEvent
   | FormSaveExecuteEvent
@@ -216,6 +252,7 @@ export const FormComponentEventType = {
   FIELD_DEPENDENCY_TRIGGER: 'field.dependency.trigger' as const,
   FIELD_FOCUS_REQUEST: 'field.request.focus' as const,
   FORM_VALIDATION_BROADCAST: 'form.validation.broadcast' as const,
+  FORM_VALIDATION_CHANGE_REQUEST: 'form.validation.change.request' as const,
   FORM_STATUS_DIRTY_REQUEST: 'form.status.dirty.request' as const,
   FORM_SAVE_REQUESTED: 'form.save.requested' as const,
   FORM_SAVE_EXECUTE: 'form.save.execute' as const,
@@ -245,6 +282,7 @@ export interface FormComponentEventMap {
   'field.dependency.trigger': FieldDependencyTriggerEvent;
   'field.request.focus': FieldFocusRequestEvent;
   'form.validation.broadcast': FormValidationBroadcastEvent;
+  'form.validation.change.request': FormValidationGroupsChangeRequestEvent;
   'form.status.dirty.request': FormStatusDirtyRequestEvent;
   'form.save.requested': FormSaveRequestedEvent;
   'form.save.execute': FormSaveExecuteEvent;
@@ -421,6 +459,12 @@ export function createFormValidationBroadcastEvent(
   options: FormComponentEventOptions<FormValidationBroadcastEvent>
 ): FormComponentEventResult<FormValidationBroadcastEvent> {
   return createEventResult<FormValidationBroadcastEvent>(FormComponentEventType.FORM_VALIDATION_BROADCAST, options);
+}
+/** Helper factory for creating validation change request events */
+export function createFormValidationGroupsChangeRequestEvent(
+  options: FormComponentEventOptions<FormValidationGroupsChangeRequestEvent>
+): FormComponentEventResult<FormValidationGroupsChangeRequestEvent> {
+  return createEventResult<FormValidationGroupsChangeRequestEvent>(FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST, options);
 }
 
 /** Helper factory for creating form dirty status request events */

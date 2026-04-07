@@ -1,5 +1,5 @@
 import { cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith, set as _set } from 'lodash';
-import { FormConfig } from '@researchdatabox/sails-ng-common';
+import {FormConfig, ValidatorsSupport} from '@researchdatabox/sails-ng-common';
 
 import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
 import { FormConfigFrame, FormConfigOutline } from '@researchdatabox/sails-ng-common';
@@ -62,8 +62,6 @@ import { FormExpressionsConfig } from '@researchdatabox/sails-ng-common';
 import {
   FormComponentDefinitionFrame,
   FormComponentDefinitionOutline,
-  FormExpressionsOperationConfigFrame,
-  FormExpressionsTemplateConfigFrame,
 } from '@researchdatabox/sails-ng-common';
 import {
   ContentComponentName,
@@ -374,6 +372,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   private formOverride: FormOverride;
   private formPathHelper: FormPathHelper;
   private sharedProps: PropertiesHelper;
+  private validatorsSupport: ValidatorsSupport;
 
   constructor(logger: ILogger) {
     super(logger);
@@ -393,6 +392,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.formOverride = new FormOverride(logger);
     this.formPathHelper = new FormPathHelper(logger, this);
     this.sharedProps = new PropertiesHelper();
+    this.validatorsSupport = new ValidatorsSupport();
   }
 
   /**
@@ -477,6 +477,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         initialMembership: 'none',
       };
     }
+
+    this.validatorsSupport.checkValidationGroups(item.validationGroups, item.enabledValidationGroups ?? []);
 
     currentData.componentDefinitions = this.formOverride.applyOverridesReusable(
       currentData?.componentDefinitions ?? [],
@@ -1093,7 +1095,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     this.sharedProps.setPropOverride('targetStep', item.config, config);
     this.sharedProps.setPropOverride('forceSave', item.config, config);
-    this.sharedProps.setPropOverride('enabledValidationGroups', item.config, config);
     this.sharedProps.setPropOverride('labelSaving', item.config, config);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
   }
@@ -2076,29 +2077,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       const exprItem = new FormExpressionsConfig();
       exprItem.name = exprData.name;
       exprItem.description = exprData.description;
-      const config = exprData.config;
-      if (!config) {
+      exprItem.config = exprData.config;
+      if (!exprItem.config) {
         throw new Error(`Missing config for expression: ${exprData.name}`);
-      }
-      if ('operation' in config) {
-        const opConfig = config as FormExpressionsOperationConfigFrame;
-        exprItem.config = {
-          operation: opConfig.operation,
-          condition: opConfig.condition,
-          conditionKind: opConfig.conditionKind,
-          target: opConfig.target,
-          ...(opConfig.template !== undefined && { template: opConfig.template }),
-          ...(opConfig.runOnFormReady !== undefined && { runOnFormReady: opConfig.runOnFormReady }),
-        };
-      } else {
-        const tmplConfig = config as FormExpressionsTemplateConfigFrame;
-        exprItem.config = {
-          template: tmplConfig.template,
-          condition: tmplConfig.condition,
-          conditionKind: tmplConfig.conditionKind,
-          target: tmplConfig.target,
-          ...(tmplConfig.runOnFormReady !== undefined && { runOnFormReady: tmplConfig.runOnFormReady }),
-        };
       }
       item.expressions.push(exprItem);
     }

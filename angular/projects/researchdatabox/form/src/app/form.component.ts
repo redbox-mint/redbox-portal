@@ -33,7 +33,7 @@ import {
 import { Subscription } from 'rxjs';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup, FormControlStatus, StatusChangeEvent, PristineChangeEvent, ValueChangeEvent } from '@angular/forms';
-import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, get as _get, trim as _trim } from 'lodash-es';
+import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, get as _get, trim as _trim, set as _set } from 'lodash-es';
 import {
   ConfigService,
   LoggerService,
@@ -66,7 +66,7 @@ import {
   createFormValidationBroadcastEvent,
   FormComponentEvent,
   FormComponentEventType,
-  FormStatusDirtyRequestEvent,
+  FormStatusDirtyRequestEvent, FormValidationGroupsChangeInitial, FormValidationGroupsChangeRequestEvent,
 } from './form-state/events/form-component-event.types';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
@@ -484,7 +484,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         // Default payload handling with safe fallbacks
         const force = !!evt.force;
         const targetStep = evt.targetStep ?? '';
-        const enabledValidationGroups = evt.enabledValidationGroups ?? ['all'];
+        const enabledValidationGroups = evt.enabledValidationGroups ?? [];
         await this.saveForm(force, targetStep, enabledValidationGroups);
       });
     this.subMaps['deleteExecuteSub'] = this.eventBus
@@ -530,6 +530,30 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['debugEventStreamSub'] = this.eventBus.selectAll$().subscribe((event: FormComponentEvent) => {
       this.debugState.captureDebugEvent(event);
     });
+
+    this.subMaps['setValidationGroupsSub']?.unsubscribe();
+    this.subMaps['setValidationGroupsSub'] = this.eventBus.select$(FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST)
+      .subscribe((event: FormValidationGroupsChangeRequestEvent) => {
+        const originalEnabledValidationGroups = [...this.enabledValidationGroups];
+        const initial: FormValidationGroupsChangeInitial = event.initial ?? "current";
+        const groups = event.groups ?? {};
+
+        const enabledNames = this.formService.calculateValidationGroups(
+          originalEnabledValidationGroups,
+          this.validationGroups,
+          initial,
+          groups
+        );
+
+        // Set the enabled validation groups to the form component config.
+        this.enabledValidationGroups = enabledNames;
+        const validationGroups = this.validationGroups;
+        this.componentDefArr?.forEach(mapEntry =>
+          this.formService.updateValidators(mapEntry, enabledNames, validationGroups)
+        );
+
+        this.loggerService.debug(`${this.logName}: Form enabledValidationGroups changed from ${JSON.stringify(originalEnabledValidationGroups)} to ${JSON.stringify(this.enabledValidationGroups)} from event field ${event.fieldId}`);
+      });
 
     if (this.form) {
       // Wire the form events to update the formGroupStatus signal and publish validation events
@@ -588,9 +612,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         }
 
         // set up validators
-        const validatorConfig = this.formDefMap.formConfig.validators;
-        const enabledGroups = this.formDefMap.formConfig.enabledValidationGroups ?? ['all'];
-        this.formService.setValidators(this.form, validatorConfig, enabledGroups);
+        const validatorConfig = this.formValidators;
+        const enabledValidationGroups = this.enabledValidationGroups;
+        const validationGroups = this.validationGroups;
+        this.formService.setValidators(this.form, validatorConfig, enabledValidationGroups, validationGroups);
       } else if (Object.keys(formGroupMap.completeGroupMap ?? {}).length < 1) {
         // Note that a form can be composed of only components that don't have models, and so don't have FormControls.
         // That is ok. But a form must have at least one component.
@@ -691,7 +716,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     siblingIndex: number = 0
   ): DebugInfo {
     const componentEntry = formFieldCompMapEntry;
-    this.loggerService.debug('getComponentDebugInfo', formFieldCompMapEntry);
     const componentConfigClassName = formFieldCompMapEntry?.compConfigJson?.component?.class ?? '';
     const name = this.utilityService.formFieldConfigName(formFieldCompMapEntry);
     const hierarchicalNamePath = [...parentNamePath, name];
@@ -1059,6 +1083,38 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       errors: this.form?.errors || null,
       status: (this.form?.status as FormControlStatus) || 'DISABLED',
     } as FormGroupStatus;
+  }
+
+  /**
+   * Get the available validation group definitions.
+   */
+  public get validationGroups() {
+    return  this.formDefMap?.formConfig?.validationGroups ?? {};
+  }
+
+  /**
+   * Get the form-level validators.
+   */
+  public get formValidators() {
+    return  this.formDefMap?.formConfig?.validators ?? [];
+  }
+
+  /**
+   * Get the currently enabled validation group names.
+   */
+  public get enabledValidationGroups(): string[] {
+    return this.formDefMap?.formConfig.enabledValidationGroups ?? [];
+  }
+
+  /**
+   * Set the enabled validation groups by name.
+   * All other validation groups are disabled.
+   * @param value The validation groups to enable.
+   */
+  public set enabledValidationGroups(value: string[] | null | undefined) {
+    if (this.formDefMap) {
+      _set(this.formDefMap, 'formConfig.enabledValidationGroups', value ?? []);
+    }
   }
 
   ngOnDestroy(): void {

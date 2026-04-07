@@ -454,37 +454,125 @@ describe("Validator", async () => {
         });
     });
 
-    describe("is enabled", async () => {
-        const cases: {
-            title: string;
-            args: { availableGroups: FormValidationGroups, enabledGroups: string[], validator: FormValidatorConfig };
-            expected: boolean;
-        }[] =
-            [
-                {
-                    title: "enable validator with no group when enabledGroups is empty array",
-                    args: {
-                        availableGroups: {
-                            all: {
-                                description: "Validate all fields with validators.",
-                                initialMembership: "all"
-                            },
-                            none: {
-                                description: "Validate none of the fields.",
-                                initialMembership: "none",
-                            },
-                        },
-                        enabledGroups: [],
-                        validator: {class: 'required'},
-                    },
-                    expected: true
-                }
-            ];
-        cases.forEach(({title, args, expected}) => {
-            it(`should ${title}`, async function () {
-                const result = new ValidatorsSupport().isValidatorEnabled(args.availableGroups, args.enabledGroups, args.validator);
-                expect(result).to.eql(expected);
-            });
-        });
+  describe("is enabled", async () => {
+    const defaultGroups: FormValidationGroups = {
+      all: {
+        description: "Validate all fields with validators.",
+        initialMembership: "all"
+      },
+      none: {
+        description: "Validate none of the fields.",
+        initialMembership: "none",
+      },
+    }
+    const cases: {
+      title: string;
+      args: { availableGroups: FormValidationGroups, enabledGroups: string[], validators: FormValidatorConfig[] };
+      expected: boolean[];
+    }[] =
+      [
+        {
+          title: "enable validator with no group when enabledGroups is empty array",
+          args: {
+            availableGroups: {...defaultGroups},
+            enabledGroups: [],
+            validators: [{class: 'required'}],
+          },
+          expected: [true]
+        },
+        {
+          title: "enable validator when enabledGroups is 'all'",
+          args: {
+            availableGroups: {...defaultGroups},
+            enabledGroups: ["all"],
+            validators: [{class: 'required'}],
+          },
+          expected: [true]
+        },
+        {
+          title: "disable validator when enabledGroups is 'none'",
+          args: {
+            availableGroups: {...defaultGroups},
+            enabledGroups: ["none"],
+            validators: [{class: 'required'}],
+          },
+          expected: [false]
+        },
+        {
+          title: "enable validator when one enabled group includes it and one enabled group excludes it",
+          args: {
+            availableGroups: {
+              ...defaultGroups,
+              "include-validator": {description: "", initialMembership: "none"},
+              "exclude-validator": {description: "", initialMembership: "none"},
+            },
+            enabledGroups: ["include-validator", "exclude-validator"],
+            validators: [{class: 'required', groups: {include:["include-validator"], exclude: ["exclude-validator"]}}],
+          },
+          expected: [true]
+        },
+        {
+          title: "complex set of enabled and disabled groups and validator included and excluded groups",
+          args: {
+            availableGroups: {
+              ...defaultGroups,
+              "validator1": {description: "", initialMembership: "none"},
+              "validator2": {description: "", initialMembership: "all"},
+            },
+            enabledGroups: ["none", "validator2"],
+            validators: [
+              {class: 'required', groups: {include:["validator1"]}},
+              {class: 'required', groups: {exclude: ["validator2"]}},
+              ],
+          },
+          expected: [
+            // First validator is included by validator2 initial all
+            true,
+            // Second validator is not included in any group
+            false,
+          ],
+        },
+      ];
+    cases.forEach(({title, args, expected}) => {
+      it(`should ${title}`, async function () {
+        const results = args.validators.map(validator =>
+          new ValidatorsSupport().isValidatorEnabled(args.availableGroups, args.enabledGroups, validator)
+        );
+        expect(results).to.eql(expected);
+      });
     });
+
+    it(`should filter validators to only enabled validators`, async function () {
+      const availableGroups: FormValidationGroups = {
+        "one": {description: "", initialMembership: "all"},
+        "two": {description: "", initialMembership: "all"},
+        "three": {description: "", initialMembership: "none"},
+      };
+      const enabledGroups: string[] = ["one", "three"];
+      const validators: FormValidatorConfig[] = [
+        {class: "required"},
+        {class: "required", groups: {include: ["three"], exclude: ["one", "two"]}},
+        {class: "required", groups: { exclude: ["one"]}},
+        {class: "required", groups: { exclude: ["one", "two"]}},
+      ];
+      const result = new ValidatorsSupport().enabledValidators(availableGroups, enabledGroups, validators);
+      expect(result).to.eql([
+        {class: "required"},
+        {class: "required", groups: {include: ["three"], exclude: ["one", "two"]}},
+      ]);
+    });
+  });
+
+
+  describe("check validation groups", async () => {
+    it(`should error when an enabled group is not in the available groups`, async function () {
+      const func = () => {
+        new ValidatorsSupport().checkValidationGroups({}, ["not-a-group"]);
+      }
+      expect(func).throws(`Unknown enabled validation groups ["not-a-group"].`);
+    });
+    it(`should pass when an enabled group is in the available groups`, async function () {
+      new ValidatorsSupport().checkValidationGroups({"a-group": {description: "", initialMembership: "all"}}, ["a-group"]);
+    });
+  });
 });

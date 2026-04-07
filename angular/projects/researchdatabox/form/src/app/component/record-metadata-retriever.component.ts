@@ -2,6 +2,7 @@ import { Component, inject, Injector, Input, OnDestroy, runInInjectionContext } 
 import { Subscription, take } from 'rxjs';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import {
+  ExpressionsConditionKind,
   FormExpressionsConfigFrame,
   RecordMetadataRetrieverComponentName,
 } from '@researchdatabox/sails-ng-common';
@@ -15,6 +16,7 @@ import {
   FormComponentEventType,
 } from '../form-state/events/form-component-event.types';
 import { RecordService } from '@researchdatabox/portal-ng-common';
+import {getEventJSONPointerCondition} from "../form-state";
 
 class RecordMetadataRetrieverExpressionConsumer extends FormComponentEventBaseConsumer {
   protected override readonly consumedEventType = FormComponentEventType.FIELD_VALUE_CHANGED;
@@ -90,7 +92,7 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
     if (!this.formFieldCompMapEntry) {
       throw new Error(`${this.logName}: formFieldCompMapEntry is required.`);
     }
-    const formComponent = this.getFormComponentFromAppRef()?.instance as FormComponent | undefined;
+    const formComponent = this.formComponent;
     if (!formComponent) {
       throw new Error(`${this.logName}: form component is required.`);
     }
@@ -162,8 +164,8 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
     if (expression.config.runOnFormReady === true && event.fieldId !== this.getEventFieldId()) {
       return;
     }
-    if (expression.config.conditionKind === 'jsonpointer') {
-      const targetFieldId = expression.config.condition?.split('::')[0];
+    if (expression.config.conditionKind === ExpressionsConditionKind.JSONPointer) {
+      const {jsonPointer: targetFieldId} = getEventJSONPointerCondition(expression.config.condition ?? '');
       if (targetFieldId && event.fieldId !== targetFieldId && event.sourceId !== targetFieldId) {
         return;
       }
@@ -230,7 +232,7 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
     if (!match) {
       return undefined;
     }
-    const formComponent = this.getFormComponentFromAppRef()?.instance as FormComponent | undefined;
+    const formComponent = this.formComponent;
     return formComponent?.requestParams?.()?.[match[1]];
   }
 }

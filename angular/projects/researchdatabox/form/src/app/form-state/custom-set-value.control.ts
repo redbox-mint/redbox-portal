@@ -1,4 +1,6 @@
 import { AbstractControl } from '@angular/forms';
+import {FormValidationGroupsChangeRequestEvent} from "./events";
+import {guessType} from "@researchdatabox/sails-ng-common";
 
 export type ControlSetValueOptions = { emitEvent?: boolean; onlySelf?: boolean };
 
@@ -22,4 +24,19 @@ export function setControlValue<ValueType = unknown>(
     return control.setCustomValue(value, options);
   }
   control.setValue(value, options);
+}
+
+export type FormValidationGroupsChangeRequestInfo = Pick<FormValidationGroupsChangeRequestEvent, 'initial' | 'groups'>;
+
+export function isTypeFormValidationGroupsChangeRequestInfo(item: unknown): item is FormValidationGroupsChangeRequestInfo {
+  if (item === undefined || item === null) {
+    return false;
+  }
+
+  const guessedType = guessType(item);
+  if (typeof item === 'object' && guessedType === "object"){
+    return 'groups' in item;
+  }
+
+  return false;
 }

@@ -277,7 +277,6 @@ export class AccordionComponent extends FormFieldBaseComponent<undefined> {
 export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> implements AfterViewChecked {
   protected override logName = AccordionPanelComponentName;
   protected formService = inject(FormService);
-  private injector = inject(Injector);
   private document = inject(DOCUMENT);
   private parentAccordion?: AccordionComponent;
 
@@ -371,8 +370,8 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> i
     return this.formDefMap?.components ?? [];
   }
 
-  protected get formComponentRef(): FormComponent | null {
-    return this.injector.get(FormComponent, null);
+  protected get formComponentRef(): FormComponent {
+    return this.formComponent;
   }
 
   public registerParentAccordion(accordion: AccordionComponent): void {
@@ -423,17 +422,16 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> i
         this.componentInstances = [];
       }
 
-      const formComponentRef = this.formComponentRef;
-      if (!formComponentRef) {
-        throw new Error('AccordionPanelComponent requires FormComponent in the injector hierarchy to initialise children.');
-      }
-
-      const formConfig = formComponentRef.formDefMap?.formConfig;
+      const formConfig = this.formComponentRef.formDefMap?.formConfig;
       const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? '';
       const compFormConfig: FormConfigFrame = {
         name: `form-config-generated-accordion-panel-${formComponentName}`,
         componentDefinitions: this.panel?.component?.config?.componentDefinitions ?? [],
         defaultComponentConfig: formConfig?.defaultComponentConfig,
+        // Use the current enabledValidationGroups for creating the component.
+        // Subsequent updates will use the FormComponent's enabledValidationGroups property.
+        enabledValidationGroups: this.formComponentRef.enabledValidationGroups,
+        validationGroups: this.formComponentRef.validationGroups,
       };
 
       const parentLineagePaths = this.formService.buildLineagePaths(this.formFieldCompMapEntry?.lineagePaths, {

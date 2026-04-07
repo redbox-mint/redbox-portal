@@ -56,13 +56,12 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
    */
   @Input() public override model?: never;
 
-  private injector = inject(Injector);
   private handlebarsTemplateService = inject(HandlebarsTemplateService);
   private translationService = inject(TranslationService);
   private formService = inject(FormService);
 
   private get getFormComponent(): FormComponent {
-    return this.injector.get(FormComponent);
+    return this.formComponent;
   }
 
   protected override async initData(): Promise<void> {

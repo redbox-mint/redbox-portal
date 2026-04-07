@@ -234,7 +234,7 @@ export namespace Services {
         throw new Error('Datastream service is not initialized');
       }
 					const metadata = (record['metadata'] ?? {}) as AnyRecord;
-				const mdOnly = !!metadata['accessRightsToggle'];
+				  const mdOnly = metadata['accessRightsToggle']?.toString() === 'true';
 					const dataLocations = (metadata['dataLocations'] ?? []) as AnyRecord[];
 					const attachments = dataLocations.filter((a: AnyRecord) => (
 						!mdOnly && a['type'] === 'attachment' && a['selected']

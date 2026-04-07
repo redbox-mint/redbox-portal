@@ -27,7 +27,6 @@ import { FormService } from '../form.service';
 })
 export class DeleteButtonComponent extends FormFieldBaseComponent<undefined> {
   public override logName = DeleteButtonComponentName;
-  protected override formComponent: FormComponent = inject(FormComponent);
   public override componentDefinition?: DeleteButtonFieldComponentDefinitionOutline;
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly formStateFacade = inject(FormStateFacade);
@@ -36,9 +35,13 @@ export class DeleteButtonComponent extends FormFieldBaseComponent<undefined> {
   private readonly handlebarsTemplateService = inject(HandlebarsTemplateService);
 
   protected readonly disabled = computed(() => {
-    const hasOid = !!this.formComponent.oid()?.trim();
+    const hasOid = !!this.getFormComponent.oid()?.trim();
     return this.isDisabled || this.formStateFacade.isDeleting() || this.formStateFacade.isSaving() || !hasOid;
   });
+
+  protected get getFormComponent(): FormComponent {
+    return this.formComponent;
+  }
 
   get buttonCssClasses(): string {
     const configuredClasses = (this.componentDefinition?.config as Record<string, unknown> | undefined)?.['buttonCssClasses'];
@@ -79,7 +82,7 @@ export class DeleteButtonComponent extends FormFieldBaseComponent<undefined> {
     ];
 
     try {
-      const compiledItems = await this.formComponent.getRecordCompiledItems();
+      const compiledItems = await this.getFormComponent.getRecordCompiledItems();
       const context = this.getTemplateContext();
       const extra = { libraries: this.handlebarsTemplateService.getLibraries() };
       const rendered = compiledItems.evaluate(templateLineagePath, context, extra);
@@ -92,12 +95,12 @@ export class DeleteButtonComponent extends FormFieldBaseComponent<undefined> {
   }
 
   private getTemplateContext(): { formData: Record<string, unknown>; branding: string; portal: string; oid: string } {
-    const form = this.formComponent.form;
+    const form = this.getFormComponent.form;
     return {
       formData: (form?.getRawValue?.() ?? form?.value ?? {}) as Record<string, unknown>,
-      branding: String(this.formComponent.trimmedParams.branding() ?? '').trim(),
-      portal: String(this.formComponent.trimmedParams.portal() ?? '').trim(),
-      oid: String(this.formComponent.trimmedParams.oid() ?? '').trim(),
+      branding: String(this.getFormComponent.trimmedParams.branding() ?? '').trim(),
+      portal: String(this.getFormComponent.trimmedParams.portal() ?? '').trim(),
+      oid: String(this.getFormComponent.trimmedParams.oid() ?? '').trim(),
     };
   }
 

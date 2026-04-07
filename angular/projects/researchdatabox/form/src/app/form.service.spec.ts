@@ -14,7 +14,13 @@ import { Title } from "@angular/platform-browser";
 import { provideI18Next } from "angular-i18next";
 import { provideHttpClient } from "@angular/common/http";
 import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
-import { FormModesConfig, LineagePaths } from "@researchdatabox/sails-ng-common";
+import {
+  FormFieldValidationGroup,
+  FormModesConfig,
+  FormValidationGroups,
+  LineagePaths
+} from "@researchdatabox/sails-ng-common";
+import {FormValidationGroupsChangeInitial} from "./form-state";
 
 
 describe('The FormService', () => {
@@ -190,4 +196,82 @@ describe('The FormService', () => {
       );
     });
   });
+
+  describe('calculate enabled validation groups', async () => {
+    const cases: {
+      title: string;
+      args: {
+        currentValidationGroups: string[],
+        validationGroups: FormValidationGroups,
+        initial?: FormValidationGroupsChangeInitial,
+        groups?: FormFieldValidationGroup
+      };
+      expected: string[];
+    }[] =[
+      {
+        title: "be empty with empty parameters",
+        args: {currentValidationGroups:[], validationGroups: {} },
+        expected: [],
+      },
+      {
+        title: "add included group to current groups",
+        args: {
+          currentValidationGroups: ["none"],
+          validationGroups: {
+            "none": {description: "", initialMembership:"none"},
+            "tester": {description: ""}
+          },
+          initial: "current",
+          groups:{include: ["tester"]},
+        },
+        expected: ["none", "tester"],
+      },
+      {
+        title: "remove excluded group from current groups",
+        args: {
+          currentValidationGroups: ["none"],
+          validationGroups: {
+            "none": {description: "", initialMembership:"none"},
+            "tester": {description: ""}
+          },
+          initial: "current",
+          groups:{exclude: ["none"]},
+        },
+        expected: [],
+      },
+      {
+        title: "remove excluded group from all groups",
+        args: {
+          currentValidationGroups: [],
+          validationGroups: {
+            "none": {description: "", initialMembership:"none"},
+            "tester": {description: ""}
+          },
+          initial: "all",
+          groups:{exclude: ["tester"]},
+        },
+        expected: ["none"],
+      },
+      {
+        title: "set included group with initial none",
+        args: {
+          currentValidationGroups: ["none"],
+          validationGroups: {
+            "none": {description: "", initialMembership:"none"},
+            "tester": {description: ""}
+          },
+          initial: "none",
+          groups:{include: ["tester"]},
+        },
+        expected: ["tester"],
+      },
+    ];
+    cases.forEach(({title, args, expected}) => {
+      it(`should ${title}`, async function () {
+        const results = service.calculateValidationGroups(args.currentValidationGroups, args.validationGroups, args.initial, args.groups);
+        expect(results).toEqual(expected);
+      });
+    });
+  });
+
 });

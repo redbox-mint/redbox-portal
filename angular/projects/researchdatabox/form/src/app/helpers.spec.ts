@@ -41,6 +41,7 @@ import { FormDebugConfigTabComponent } from "./form-debug/form-debug-config-tab.
 import { FormDebugEventsTabComponent } from "./form-debug/form-debug-events-tab.component";
 import { ConfirmationDialogComponent } from "./component/confirmation-dialog.component";
 import { ConfirmationDialogService } from "./confirmation-dialog.service";
+import {ApplicationRef, ComponentRef} from "@angular/core";
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
@@ -95,6 +96,14 @@ function setFormDebugUrl(opts?: FormDebugUrlOptions): void {
   window.history.replaceState({}, '', url.toString());
 }
 
+export function ensureApplicationRefFormComponent(componentRef: ComponentRef<FormComponent>) {
+  // Add the form component to the ApplicationRef components, if it is not present.
+  const appRef = TestBed.inject(ApplicationRef);
+  if (appRef.components.length === 0) {
+    appRef.components.push(componentRef);
+  }
+}
+
 export async function createFormAndWaitForReady(formConfig: FormConfigFrame, formComponentProps?: FormComponentProps, formDebugUrlOptions?: FormDebugUrlOptions) {
   logFormTestHelper('createFormAndWaitForReady - starting');
   if (formDebugUrlOptions) {
@@ -103,6 +112,8 @@ export async function createFormAndWaitForReady(formConfig: FormConfigFrame, for
   // Set up the basic angular testing requirements.
   const fixture = TestBed.createComponent(FormComponent);
   const formComponent = fixture.componentInstance;
+
+  ensureApplicationRefFormComponent(fixture.componentRef);
 
   // set the attributes on the nativeElement
   // this is necessary to properly initialise the form component

@@ -7,15 +7,14 @@ import {ComponentClassNamesType, LayoutClassNamesType, ModelClassNamesType} from
 
 
 /**
- * 
  * The kinds of conditions available for expressions.
- * 
+ *
  * JSONPointer - Uses JSON Pointer syntax to point to a value in the form data. For wiring events between fields, this is often sufficient. This is simple and fast to evaluate.
- * 
+ *
  * JSONata - Uses the JSONata query and transformation language to evaluate more complex conditions based on data supplied at evaluation time. Template must resolve to a truthy value. This is more powerful but may be slower to evaluate.
- * 
+ *
  * JSONataQuery - Similar to JSONata, but uses the FormComponent.componentDefQuerySource in addition to those supplied at evaluation time. This is useful for conditions that depend on multiple fields or the structure of the form itself.
- * 
+ *
  * @see FormExpressionsConfigFrame.conditionKind
  */
 export const ExpressionsConditionKind = {
@@ -26,7 +25,15 @@ export const ExpressionsConditionKind = {
 
 export type ExpressionsConditionKindType = typeof ExpressionsConditionKind[keyof typeof ExpressionsConditionKind];
 
-export interface FormExpressionsBaseConfigFrame {
+/**
+ * The shared properties for an expression config.
+ *
+ * Notes:
+ * - 'target': Optional property name that will receive the result of the expression.
+ *   If unspecified, the result is not stored. Note that the template or operation might set values directly.
+ * - 'operation' and 'template': Must specify one of these.
+ */
+interface FormExpressionsBaseConfigFrame {
     /**
      * The JSONata template or customised JSONPointer string that resolves to a boolean indicating whether to execute the expression. If unspecified, the expression always executes.
      */
@@ -35,10 +42,6 @@ export interface FormExpressionsBaseConfigFrame {
      * The kind of condition to use.
      */
     conditionKind?: ExpressionsConditionKindType;
-    /**
-     * Optional property name that will receive the result of the expression. If unspecified, the result is not stored. Note that the template or operation might set values directly.
-     */
-    target?: "model.value" | `layout.${string}` | `component.${string}`;
     /**
      * Indicates whether the expression has a template defined. Set when template is stripped prior to sending to client.
      */
@@ -49,31 +52,124 @@ export interface FormExpressionsBaseConfigFrame {
     runOnFormReady?: boolean;
 }
 
-interface FormExpressionsMixedConfigFrame extends FormExpressionsBaseConfigFrame {
-    /**
-     * The name of the entry in the `operations` dictionary to execute.
-     */
-    operation?: string;
-    /**
-     * The JSONata template for the expression. This only is populated in the server-side, the client side will retrieve the template from the pre-compiled dictionary.
-     */
-    template?: string;
+/**
+ * An expression that requires the operation.
+ */
+interface FormExpressionsOperationConfigFrame  {
+  /**
+   * The name of the entry in the `operations` dictionary to execute.
+   * Must be provided.
+   */
+  operation: string;
+  /**
+   * The JSONata template for the expression. This only is populated in the server-side, the client side will retrieve the template from the pre-compiled dictionary.
+   * Optional when operation is provided.
+   */
+  template?: string;
 }
 
-export type FormExpressionsOperationConfigFrame = FormExpressionsMixedConfigFrame & {
-    operation: string;
-};
+/**
+ * An expression that requires the template.
+ */
+interface FormExpressionsTemplateConfigFrame {
+  /**
+   * The JSONata template for the expression. This only is populated in the server-side, the client side will retrieve the template from the pre-compiled dictionary.
+   * Must be provided.
+   */
+  template: string;
+  /**
+   * The name of the entry in the `operations` dictionary to execute.
+   * Optional when template is provided.
+   */
+  operation?: string;
+}
 
-export type FormExpressionsTemplateConfigFrame = FormExpressionsMixedConfigFrame & {
-    template: string;
-};
+export const FormExpressionsTargetModelValue = "model.value" as const;
+type FormExpressionsTargetModelValueType = typeof FormExpressionsTargetModelValue;
+interface FormExpressionsTargetModelValueConfigFrame {
+  /**
+   * The component's model value will receive the result of the expression.
+   */
+  target: FormExpressionsTargetModelValueType;
+}
+
+export const FormExpressionsTargetLayoutPrefix = "layout." as const;
+interface FormExpressionsTargetLayoutConfigFrame {
+  /**
+   * Layout property name that will receive the result of the expression.
+   */
+  target: `layout.${string}`;
+}
+
+export const FormExpressionsTargetComponentPrefix = "component." as const;
+interface FormExpressionsTargetComponentConfigFrame {
+  /**
+   * Component property name that will receive the result of the expression.
+   */
+  target: `component.${string}` ;
+}
+
+export const FormExpressionsTargetValidationGroups = "form.enabledValidationGroups" as const;
+type FormExpressionsTargetValidationGroupsType = typeof FormExpressionsTargetValidationGroups;
+interface FormExpressionsTargetValidationGroupsConfigFrame {
+  /**
+   * Create an event to change the enabled validation groups to be as the result of the expression specifies.
+   */
+  target: FormExpressionsTargetValidationGroupsType;
+}
+
+export interface FormExpressionsOperationNoTargetConfigFrame extends FormExpressionsBaseConfigFrame, FormExpressionsOperationConfigFrame {
+}
+
+export interface FormExpressionsTemplateNoTargetConfigFrame extends FormExpressionsBaseConfigFrame, FormExpressionsTemplateConfigFrame {
+}
+
+export interface FormExpressionsOperationModelValueConfigFrame extends FormExpressionsOperationNoTargetConfigFrame, FormExpressionsTargetModelValueConfigFrame {
+}
+
+export interface FormExpressionsTemplateModelValueConfigFrame extends FormExpressionsTemplateNoTargetConfigFrame, FormExpressionsTargetModelValueConfigFrame {
+}
+
+export interface FormExpressionsOperationLayoutConfigFrame extends FormExpressionsOperationNoTargetConfigFrame, FormExpressionsTargetLayoutConfigFrame {
+}
+
+export interface FormExpressionsTemplateLayoutConfigFrame extends FormExpressionsTemplateNoTargetConfigFrame, FormExpressionsTargetLayoutConfigFrame {
+}
+
+export interface FormExpressionsOperationComponentConfigFrame extends FormExpressionsOperationNoTargetConfigFrame, FormExpressionsTargetComponentConfigFrame {
+}
+
+export interface FormExpressionsTemplateComponentConfigFrame extends FormExpressionsTemplateNoTargetConfigFrame, FormExpressionsTargetComponentConfigFrame {
+}
+
+export interface FormExpressionsOperationValidationGroupsConfigFrame extends FormExpressionsOperationNoTargetConfigFrame, FormExpressionsTargetValidationGroupsConfigFrame {
+}
+
+export interface FormExpressionsTemplateValidationGroupsConfigFrame extends FormExpressionsTemplateNoTargetConfigFrame, FormExpressionsTargetValidationGroupsConfigFrame {
+}
+
+/**
+ * The available form expression configuration structures.
+ */
+export type FormExpressionsOptionsConfigFrame =
+  | FormExpressionsOperationNoTargetConfigFrame
+  | FormExpressionsTemplateNoTargetConfigFrame
+  | FormExpressionsOperationModelValueConfigFrame
+  | FormExpressionsTemplateModelValueConfigFrame
+  | FormExpressionsOperationLayoutConfigFrame
+  | FormExpressionsTemplateLayoutConfigFrame
+  | FormExpressionsOperationComponentConfigFrame
+  | FormExpressionsTemplateComponentConfigFrame
+  | FormExpressionsOperationValidationGroupsConfigFrame
+  | FormExpressionsTemplateValidationGroupsConfigFrame
+;
 
 /**
  * The expressions for a component.
  */
 export interface FormExpressionsConfigFrame {
     /**
-     * The unique short name of the expression. 
+     * The unique short name of the expression.
      */
     name: string;
     /**
@@ -83,7 +179,7 @@ export interface FormExpressionsConfigFrame {
     /**
      * The configuration for the expression.
      */
-    config: FormExpressionsOperationConfigFrame | FormExpressionsTemplateConfigFrame;
+    config: FormExpressionsOptionsConfigFrame;
 }
 
 export interface FormExpressionsConfigOutline extends FormExpressionsConfigFrame {

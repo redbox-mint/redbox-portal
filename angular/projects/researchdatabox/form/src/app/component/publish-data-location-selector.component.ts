@@ -49,10 +49,8 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
   public editingNotesIndex = -1;
   public editingNotesValue = "";
 
-  private readonly injector = inject(Injector);
-
   protected get getFormComponent(): FormComponent {
-    return this.injector.get(FormComponent);
+    return this.formComponent;
   }
 
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {

@@ -2,8 +2,6 @@ import { FormComponentEventBus } from './form-component-event-bus.service';
 import { FormComponentEventType, FieldUIAttributeChangedEvent, FormComponentEventTypeValue } from './form-component-event.types';
 import { FormComponentEventBaseConsumer } from './form-component-base-event-consumer';
 import { FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
-import { startsWith as _startsWith, set as _set } from 'lodash-es';
-import { setControlValue } from '../custom-set-value.control';
 
 /**
  * Consumes `field.ui-attribute.changed` events from the `FormComponentEventBus`
@@ -32,31 +30,10 @@ export class FormComponentUIAttributeChangeEventConsumer extends FormComponentEv
     if (expression.config.hasTemplate) {
       targetValue = await this.evaluateExpressionJSONata(expression, event, 'template');
     }
-
-    /*
-     * model.value     → this.control.setValue
-     * layout.*        → this.options.definition.layout.componentDefinition.config.*
-     * component.*     → this.options.definition.component.componentDefinition.config.*
-     */
-    if (expression.config.target === 'model.value') {
-      if (this.control && this.control.value !== targetValue) {
-        await setControlValue(this.control, targetValue, { emitEvent: false });
-      }
-    } else if (_startsWith(expression.config.target || '', 'layout.')) {
-      const layoutPath = expression.config.target!.substring('layout.'.length);
-      if (this.options?.definition?.layout?.componentDefinition?.config) {
-        _set(this.options.definition.layout.componentDefinition.config, layoutPath, targetValue);
-      }
-    } else if (_startsWith(expression.config.target || '', 'component.')) {
-      const componentPath = expression.config.target!.substring('component.'.length);
-      if (this.options?.definition?.component?.componentDefinition?.config) {
-        _set(this.options.definition.component.componentDefinition.config, componentPath, targetValue);
-      }
-    } else {
-      this.loggerService.warn(
-        `FormComponentUIAttributeChangeEventConsumer: Unknown target '${expression.config.target}' in expression config.`,
-        expression
-      );
+    // Set the target based on the expression config
+    if ('target' in expression.config) {
+      const exprTarget = expression.config.target || '';
+      await this.setTarget(targetValue, exprTarget, event, expression);
     }
   }
 }

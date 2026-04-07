@@ -54,11 +54,13 @@ import {
   queryJSONata,
   getObjectWithJsonPointer,
   FormModesConfig, KindNameDefaultsMap, FieldModelDefinitionKind,
-  FormComponentDefinitionKind, KindNameDefaultsMapType, JSONataQueryRuntimeContext,
+  FormComponentDefinitionKind, KindNameDefaultsMapType, JSONataQueryRuntimeContext, FormValidationGroups,
+  FormFieldValidationGroup,
 } from '@researchdatabox/sails-ng-common';
 import { HttpClient } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
 import { firstValueFrom } from "rxjs";
+import {FormValidationGroupsChangeInitial} from "./form-state";
 
 
 // redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
@@ -87,7 +89,6 @@ export class FormService extends HttpClientService {
 
   private requestOptions: Record<string, unknown> = {};
   private loadedValidatorDefinitions?: Map<string, FormValidatorDefinition>;
-  private loadedFormConfig?: FormConfigFrame;
 
   constructor(
     @Inject(PortalNgFormCustomService) private customModuleFormCmpResolverService: PortalNgFormCustomService,
@@ -178,10 +179,6 @@ export class FormService extends HttpClientService {
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
 
-    if (this.loadedFormConfig === null || this.loadedFormConfig === undefined) {
-      this.loadedFormConfig = formConfig;
-    }
-
     const componentDefinitions = Array.isArray(formConfig?.componentDefinitions) ? formConfig?.componentDefinitions : [];
 
     // The formConfig might be a synthetic one, built only for this method.
@@ -190,7 +187,7 @@ export class FormService extends HttpClientService {
     const components = await this.resolveFormComponentClasses(componentDefinitions, parentLineagePaths);
 
     // Instantiate the field classes, note these are optional, i.e. components may not have a form bound value
-    this.createFormFieldModelInstances(components);
+    this.createFormFieldModelInstances(components, formConfig?.enabledValidationGroups, formConfig?.validationGroups);
     return new FormComponentsMap(components, formConfig);
   }
 
@@ -325,18 +322,21 @@ export class FormService extends HttpClientService {
     return fieldArr;
   }
 
-  public createFormFieldModelInstances(components: FormFieldCompMapEntry[]): void {
+  public createFormFieldModelInstances(
+    components: FormFieldCompMapEntry[], enabledValidationGroups?: string[] | null, validationGroups?: FormValidationGroups | null
+  ): void {
     const names = components?.map(i => i?.compConfigJson?.name) ?? [];
     this.loggerService.debug(`${this.logName}: create form field model instances from ${components?.length ?? 0} components ${names.join(',')}.`);
     for (let compEntry of components) {
-      this.createFormFieldModelInstance(compEntry);
+      this.createFormFieldModelInstance(compEntry, enabledValidationGroups, validationGroups);
     }
   }
 
-  public createFormFieldModelInstance(compMapEntry: FormFieldCompMapEntry): FormFieldModel<unknown> | null {
+  public createFormFieldModelInstance(
+    compMapEntry: FormFieldCompMapEntry, enabledValidationGroups?: string[] | null, validationGroups?: FormValidationGroups | null
+  ): FormFieldModel<unknown> | null {
     const ModelType = compMapEntry.modelClass;
     const modelConfig = compMapEntry.compConfigJson.model;
-    const enabledGroups = this.loadedFormConfig?.enabledValidationGroups ?? ["all"];
 
     const componentClassName = compMapEntry?.compConfigJson?.component?.class;
     const name = compMapEntry?.compConfigJson?.name;
@@ -345,7 +345,9 @@ export class FormService extends HttpClientService {
 
     if (ModelType && modelConfig) {
       compMapEntry.model = new ModelType(modelConfig);
-      this.setValidators(compMapEntry.model.formControl, compMapEntry.model.validators, enabledGroups);
+      const formControl = compMapEntry.model.formControl;
+      const validators = compMapEntry.model.validators;
+      this.setValidators(formControl, validators, enabledValidationGroups, validationGroups);
       return compMapEntry.model;
     }
 
@@ -540,46 +542,75 @@ export class FormService extends HttpClientService {
    * Apply the validators to the form control.
    * @param formControl Apply the enabled validators to this form control.
    * @param validators All validators configured on this component.
-   * @param enabledGroups The validation group names that are currently enabled. No groups means all validators are enabled.
+   * @param enabledValidationGroups The validation group names that are currently enabled. No groups means all validators are enabled.
+   * @param validationGroups The available validation groups.
+   * @param updateValueAndValidityOpts Recalculates the value and validation status of the control.
+   *    By default, it also updates the value and validity of its ancestors.
    */
   public setValidators(
     formControl?: AbstractControl | null,
     validators?: FormValidatorConfig[] | null,
-    enabledGroups?: string[] | null,
+    enabledValidationGroups?: string[] | null,
+    validationGroups?: FormValidationGroups | null,
+    updateValueAndValidityOpts?: { doUpdate?: boolean, onlySelf?: boolean, emitEvent?: boolean },
   ): void {
     if (!formControl) {
-      this.loggerService.warn(`${this.logName}: Cannot set validators because formControl is falsy.`);
+      this.loggerService.warn(`${this.logName}: Cannot set validators because formControl was not provided.`);
       return;
     }
-    if (!validators || validators.length === 0) {
-      this.loggerService.debug(`${this.logName}: Cannot set validators because there are no validator configs.`);
-      return;
+
+    if (!validators) {
+      validators = [];
     }
 
     // Get the form-level configs.
     const defMap = this.loadedValidatorDefinitions ?? new Map<string, FormValidatorDefinition>();
-    const groupDefs = this.loadedFormConfig?.validationGroups ?? {};
+    const availableGroups = validationGroups ?? {};
 
-    if (!enabledGroups) {
-      enabledGroups = [];
+    if (!enabledValidationGroups) {
+      enabledValidationGroups = [];
     }
 
     // Filter the validator configs to the enabled ones.
-    const enabledValidators = this.validatorsSupport.enabledValidators(groupDefs, enabledGroups, validators);
-    const validatorFns = this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators);
-    if (!validatorFns || validatorFns.length === 0) {
-      this.loggerService.debug(`${this.logName}: Cannot set validators because there are no validator functions.`);
-      return;
+    const enabledValidators = this.validatorsSupport.enabledValidators(availableGroups, enabledValidationGroups, validators);
+    const validatorFns = this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators) ?? [];
+
+    // Set validators to the form control.
+    // This may setValidators with an empty array - that is ok, and is necessary to remove existing validators.
+    this.loggerService.debug(`${this.logName}: setting validators to formControl`,
+      {definedValidators: validators, enabledValidators, formControlValue: formControl.value});
+    formControl.setValidators(validatorFns);
+    if (updateValueAndValidityOpts?.doUpdate !== false) {
+      // TODO: Store the first created validator functions per formControl, and use that in .hasValidator.
+      //       This should reduce the amount of churn and events.
+      formControl.updateValueAndValidity({
+        onlySelf: updateValueAndValidityOpts?.onlySelf,
+        emitEvent: updateValueAndValidityOpts?.emitEvent,
+      });
+    }
+  }
+
+  /**
+   * Update the validators for this component and all child components.
+   * @param mapEntry A component's map entry.
+   * @param enabledValidationGroups The validation group names that are currently enabled. No groups means all validators are enabled.
+   * @param validationGroups The available validation groups.
+   */
+  public updateValidators(
+    mapEntry: FormFieldCompMapEntry, enabledValidationGroups?: string[] | null, validationGroups?: FormValidationGroups | null
+  ): void {
+    // Set the validators for the form control.
+    if (mapEntry?.model?.formControl) {
+      const formControl = mapEntry?.model?.formControl;
+      const validators = mapEntry?.model?.validators;
+      const updateValueAndValidityOpts = { doUpdate: true, onlySelf: true, emitEvent: false };
+      this.setValidators(formControl, validators, enabledValidationGroups, validationGroups, updateValueAndValidityOpts);
     }
 
-    // set validators to the form control
-    this.loggerService.debug(`${this.logName}: setting validators to formControl`, {
-      validators: validators,
-      formControl: formControl
-    });
-    formControl?.setValidators(validatorFns);
-    formControl?.updateValueAndValidity();
-
+    // Set the validators for any child controls.
+    for (const childMapEntry of mapEntry?.component?.formFieldCompMapEntries ?? []) {
+      this.updateValidators(childMapEntry, enabledValidationGroups, validationGroups)
+    }
   }
 
   /**
@@ -850,6 +881,57 @@ export class FormService extends HttpClientService {
       return value;
     }
     return translated?.toString() ?? "";
+  }
+
+  /**
+   * Calculate the new validation group names.
+   * @param currentValidationGroups The currently enabled validation groups.
+   * @param validationGroups The available validation groups.
+   * @param initial The initial validation groups to use when calculating the new validation groups.
+   * @param groups The validation group names to include and exclude.
+   */
+  public calculateValidationGroups(
+    currentValidationGroups: string[],
+    validationGroups: FormValidationGroups,
+    initial?: FormValidationGroupsChangeInitial,
+    groups?: FormFieldValidationGroup
+  ): string[]{
+    let enabledNames = [...currentValidationGroups];
+    // Initial is 'current' by default.
+    initial = initial ?? "current";
+    switch(initial) {
+      case "all":
+        enabledNames = Object.keys(validationGroups);
+        break;
+      case "none":
+        enabledNames = [];
+        break;
+      case "current":
+        // No change to the enabled validation groups.
+        break;
+      default:
+        // For an unknown initial state, default to 'current'.
+        this.loggerService.error(`${this.logName}: Unknown set enabled validation group initial state '${initial}'.`);
+    }
+
+    // Add enabled group names.
+    for (const name of groups?.include ?? []) {
+      if (!enabledNames.includes(name)) {
+        enabledNames.push(name);
+      }
+    }
+
+    // Remove disabled group names.
+    for (const name of groups?.exclude ?? []) {
+      const index = enabledNames.indexOf(name);
+      if (index > -1) {
+        enabledNames.splice(index, 1);
+      }
+    }
+
+    this.loggerService.debug(`${this.logName}: Calculated validation groups ${JSON.stringify(enabledNames)} from currentValidationGroups ${JSON.stringify(currentValidationGroups)} validationGroups ${JSON.stringify(validationGroups)} initial ${initial} groups ${JSON.stringify(groups)}`);
+
+    return enabledNames;
   }
 }
 

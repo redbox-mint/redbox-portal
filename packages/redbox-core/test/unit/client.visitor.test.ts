@@ -1,6 +1,5 @@
 import {
-  FormConfigFrame,
-  FormExpressionsTemplateConfigFrame,
+  FormConfigFrame, FormExpressionsTemplateLayoutConfigFrame,
   QuestionTreeFieldComponentDefinitionOutline,
   QuestionTreeFormComponentDefinitionOutline, QuestionTreeMeta, QuestionTreeOutcome, QuestionTreeOutcomeInfoKey,
   QuestionTreeQuestion,
@@ -1424,7 +1423,7 @@ describe("Client Visitor", async () => {
         }
       ]
     };
-    const expressionBase: FormExpressionsTemplateConfigFrame = {
+    const expressionBase: FormExpressionsTemplateLayoutConfigFrame = {
       condition: "/questiontree_1::field.value.changed",
       template: "",
       conditionKind: 'jsonpointer',

@@ -12,7 +12,7 @@ import {
   QuestionTreeOutcomeInfo,
   QuestionTreeOutcome,
 } from "@researchdatabox/sails-ng-common";
-import { Component, inject, Injector, ViewChild, ViewContainerRef } from "@angular/core";
+import { Component, inject, ViewChild, ViewContainerRef } from "@angular/core";
 import { AbstractControl, FormGroup } from "@angular/forms";
 import { FormComponentsMap, FormService } from "../form.service";
 import { FormComponent } from "../form.component";
@@ -29,7 +29,7 @@ export class QuestionTreeModel extends FormFieldModel<QuestionTreeModelValueType
   public override formControl?: QuestionTreeFormControlType;
 
   protected override postCreateGetInitValue(): QuestionTreeModelValueType {
-    return this.fieldConfig.config?.value ?? {};
+    return this.fieldConfig.config?.value ?? QuestionTreeModel.getEmptyModel();
   }
 
   protected override postCreateGetFormControl(): QuestionTreeFormControlType {
@@ -49,6 +49,10 @@ export class QuestionTreeModel extends FormFieldModel<QuestionTreeModelValueType
       throw new Error(`${this.logName}: formControl or name or targetModel are not valid. Cannot add item.`);
     }
   }
+
+  public static getEmptyModel():  QuestionTreeModelValueType {
+    return {[QuestionTreeOutcomeInfoKey]: null}
+  }
 }
 
 @Component({
@@ -65,18 +69,15 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
   public override model?: QuestionTreeModel;
 
   private formService = inject(FormService);
-  private injector = inject(Injector);
   protected formComponentsMap?: FormComponentsMap;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: true })
   private componentContainer!: ViewContainerRef;
 
-  private elementFormConfig?: FormConfigFrame;
-
   private eventBus = inject(FormComponentEventBus);
 
   protected get getFormComponent(): FormComponent {
-    return this.injector.get(FormComponent);
+    return this.formComponent;
   }
 
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
@@ -107,12 +108,16 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     }
 
     const componentDefinitions = componentConfigFormConfig.componentDefinitions;
-    this.elementFormConfig = {
+    const elementFormConfig: FormConfigFrame = {
       name: `form-config-generated-questiontree-${formComponentName}`,
       // Store the child component definitions.
       componentDefinitions: componentDefinitions,
       // Get the default config.
       defaultComponentConfig: formConfig?.defaultComponentConfig,
+      // Use the current enabledValidationGroups for creating the component.
+      // Subsequent updates will use the FormComponent's enabledValidationGroups property.
+      enabledValidationGroups: this.getFormComponent.enabledValidationGroups,
+      validationGroups: this.getFormComponent.validationGroups,
     };
 
     // Construct the components.
@@ -124,7 +129,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
         dataModel: [],
         formConfig: ['component', 'config', 'componentDefinitions'],
       });
-    this.formComponentsMap = await this.formService.createFormComponentsMap(this.elementFormConfig, parentLineagePaths);
+    this.formComponentsMap = await this.formService.createFormComponentsMap(elementFormConfig, parentLineagePaths);
 
     if (_isEmpty(this.formComponentsMap)) {
       throw new Error(`${this.logName}: No components found in the formComponentsMap.`);
@@ -134,12 +139,12 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     }
 
     // Create the form fields from the form components map.
-    const elemVals: QuestionTreeModelValueType = this.model.initValue ?? {};
+    const elemVals: QuestionTreeModelValueType = this.model.initValue ?? QuestionTreeModel.getEmptyModel();
     const formGroupMap = this.formService.groupComponentsByName(this.formComponentsMap);
     for (const key of Object.keys(formGroupMap.withFormControl ?? {})) {
       // Create the wrapper component.
       const wrapperRef = this.componentContainer.createComponent(FormBaseWrapperComponent<unknown>);
-      wrapperRef.instance.defaultComponentConfig = this.elementFormConfig?.defaultComponentConfig;
+      wrapperRef.instance.defaultComponentConfig = elementFormConfig?.defaultComponentConfig;
       const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
       const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
 
@@ -179,7 +184,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
         // When a value in the question tree changes,
         // calculate the outcome and set the data model properties.
         const newValue = this.getOutcomeInfo();
-        const modelValue: QuestionTreeModelValueType = this.model?.getValue() ?? {};
+        const modelValue: QuestionTreeModelValueType = this.model?.getValue() ?? QuestionTreeModel.getEmptyModel();
         const currentValue = modelValue?.[QuestionTreeOutcomeInfoKey];
         const hasChanged = JSON.stringify(newValue) !== JSON.stringify(currentValue);
         if (hasChanged && modelValue) {
@@ -210,7 +215,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     if (!config) {
       throw new Error(`${this.logName}: Could not get Question Tree component config.`);
     }
-    const data = this.model?.getValue() ?? {};
+    const data = this.model?.getValue() ?? QuestionTreeModel.getEmptyModel();
     const outcomeInfo = this.calculateOutcomeInfo(config, data);
     return outcomeInfo;
   }

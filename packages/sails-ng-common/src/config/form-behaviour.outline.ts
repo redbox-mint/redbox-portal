@@ -123,7 +123,10 @@ export type FormBehaviourEmitEventAction = FormBehaviourActionConfigFrame<FormBe
   type: typeof FormBehaviourActionType.EmitEvent;
 };
 
-export type FormBehaviourActionConfig = FormBehaviourSetValueAction | FormBehaviourEmitEventAction;
+export type FormBehaviourActionConfig =
+  | FormBehaviourSetValueAction
+  | FormBehaviourEmitEventAction
+  ;
 
 /**
  * Top-level behaviour definition stored on `FormConfigFrame.behaviours`.

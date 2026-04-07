@@ -121,7 +121,6 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private labelTemplatePath: (string | number)[] = [];
   private compiledItems?: { evaluate: (key: (string | number)[], context: unknown, extra?: unknown) => unknown };
   private readonly destroyRef = inject(DestroyRef);
-  private readonly injector = inject(Injector);
   private readonly handlebarsTemplateService = inject(HandlebarsTemplateService);
   private readonly typeaheadDataService = inject(TypeaheadDataService);
 
@@ -134,7 +133,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   @Input() public override model?: TypeaheadInputModel;
 
   protected get getFormComponent(): FormComponent {
-    return this.injector.get(FormComponent);
+    return this.formComponent;
   }
 
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
