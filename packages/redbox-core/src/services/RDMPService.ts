@@ -65,15 +65,20 @@ export namespace Services {
       'queuedTriggerSubscriptionHandler',
       'queueTriggerCall',
       'checkTotalSizeOfFilesInRecord',
-      'removeWorkspaceFromRecord'
+      'removeWorkspaceFromRecord',
+      'init',
     ];
 
     constructor() {
       super();
       this.logHeader = "TriggerService::";
+    }
+
+    public override init(): void {
       const that = this;
       this.registerSailsHook('on', 'ready', function () {
         that.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
+        sails.log.verbose(`${that.logHeader}: Assigned queueService`, that.queueService);
       });
     }
 
