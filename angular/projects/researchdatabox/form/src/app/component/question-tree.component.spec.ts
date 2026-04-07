@@ -803,10 +803,11 @@ describe('QuestionTreeComponent', async () => {
       expect(questionDefs[0]?.layout?.config?.label).toBe(expectedValue);
 
       const {fixture} = await createFormAndWaitForReady(formConfigWithDirectQuestionLabel);
-      const element = fixture.nativeElement as HTMLElement;
 
       fixture.detectChanges();
       await fixture.whenStable();
+
+      const element = fixture.nativeElement as HTMLElement;
 
       const qtElements = element.querySelectorAll('redbox-questiontreefield');
       expect(qtElements).toHaveSize(1);
@@ -815,13 +816,18 @@ describe('QuestionTreeComponent', async () => {
 
       const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
       expect(questionTree.formFieldCompMapEntries[0].layout?.label).toEqual(expectedValue);
+      expect(questionTree.formFieldCompMapEntries[0].layout?.getStringProperty('label')).toEqual(expectedValue);
+      expect(questionTree.formFieldCompMapEntries[0].layout?.isVisible).toBeTrue();
 
       const fieldLabels = qtElement.querySelectorAll('label.rb-form-field-label');
       expect(fieldLabels).toHaveSize(1);
       const firstLabel = fieldLabels[0];
       expect(firstLabel).toBeTruthy();
 
-      expect(firstLabel?.innerHTML?.trim()).toContain(expectedValue);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(firstLabel?.textContent?.trim()).toContain(expectedValue);
     });
 
     const qtComp = clientFormConfig.componentDefinitions[0].component;
