@@ -570,8 +570,9 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should handle audit fetch failures and audit action label fallbacks', async () => {
-    const { app } = createComponent();
-    await app.waitForInit();
+    const app = createBareComponent();
+    app.allUsers = usersData as any;
+    app.filteredUsers = usersData as any;
     (userService.getUserAudit as jasmine.Spy).and.rejectWith(new Error('audit failed'));
 
     await app.viewAudit(usersData[0] as any);
@@ -587,8 +588,9 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should toggle disabled users and handle enable and disable actions', async () => {
-    const { app } = createComponent();
-    await app.waitForInit();
+    const app = createBareComponent();
+    app.allUsers = usersData as any;
+    app.filteredUsers = usersData as any;
     spyOn(userService, 'getUsers').and.resolveTo(usersData);
     spyOn(userService, 'disableUser').and.resolveTo({ status: true, message: 'ok' });
     spyOn(userService, 'enableUser').and.resolveTo({ status: false, message: 'nope' });
@@ -615,8 +617,10 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should cover password helpers, disabled helpers, and filter reset helpers', async () => {
-    const { app } = createComponent();
-    await app.waitForInit();
+    const app = createBareComponent();
+    app.allRoles = rolesData as any;
+    app.allUsers = usersData as any;
+    app.filteredUsers = usersData as any;
     app.currentUser = {
       ...usersData[0],
       effectiveLoginDisabled: true,
