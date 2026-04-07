@@ -13,5 +13,4 @@ export class DeletedRecordClass {
   public dateDeleted!: string;
 }
 
-// Export the Waterline model definition for runtime use
 export const DeletedRecordWLDef = toWaterlineModelDef(DeletedRecordClass);

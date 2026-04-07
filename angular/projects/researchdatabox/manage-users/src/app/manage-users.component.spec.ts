@@ -1,15 +1,15 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ManageUsersComponent } from './manage-users.component';
 import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, provideAppInitializer, runInInjectionContext } from '@angular/core';
-import { APP_BASE_HREF } from '@angular/common'; 
-import { FormsModule, FormBuilder, ReactiveFormsModule } from "@angular/forms";
+import { APP_BASE_HREF } from '@angular/common';
+import { FormsModule, FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import i18next from 'i18next';
 import { I18NextModule, StrictErrorHandlingStrategy, provideI18Next, withCustomErrorHandlingStrategy } from 'angular-i18next';
 import { UtilityService, LoggerService, TranslationService, ConfigService, UserService } from '@researchdatabox/portal-ng-common';
-import { getStubConfigService, getStubTranslationService, getStubUserService, appInit, localeId } from '@researchdatabox/portal-ng-common';
+import { getStubConfigService, getStubTranslationService, getStubUserService } from '@researchdatabox/portal-ng-common';
 import { ModalModule } from 'ngx-bootstrap/modal';
 
-let configService:any;
+let configService: any;
 let userService: any;
 let translationService: any;
 let fixtures: ComponentFixture<ManageUsersComponent>[] = [];
@@ -17,45 +17,45 @@ const username = 'testUser';
 const password = 'very-scary-password';
 
 let rolesData = [
-        {
-          name: "Admin",
-          id: "123"
-        }
-    ];
+  {
+    name: 'Admin',
+    id: '123'
+  }
+];
 
 let usersData = [
-        {
-          name: "Local Admin",
-          username: "admin",
-          type: "local",
-          userid: "ABC123",
-          id: "ABC123",
-          email: '',
-          accountLinkState: 'active',
-          linkedAccountCount: 1,
-          effectivePrimaryUsername: 'admin',
-          passwords: { password: '', confirmPassword: '' },
-          roles: [ 
-                   {
-                     name: "Admin",
-                     id: "123"
-                   } 
-                ]
-        },
-        {
-          name: "Alias User",
-          username: "alias",
-          type: "local",
-          userid: "ALIAS123",
-          id: "ALIAS123",
-          email: 'alias@example.com',
-          accountLinkState: 'linked-alias',
-          linkedPrimaryUserId: 'ABC123',
-          effectivePrimaryUsername: 'admin',
-          passwords: { password: '', confirmPassword: '' },
-          roles: []
-        }
-   ];
+  {
+    name: 'Local Admin',
+    username: 'admin',
+    type: 'local',
+    userid: 'ABC123',
+    id: 'ABC123',
+    email: '',
+    accountLinkState: 'active',
+    linkedAccountCount: 1,
+    effectivePrimaryUsername: 'admin',
+    passwords: { password: '', confirmPassword: '' },
+    roles: [
+      {
+        name: 'Admin',
+        id: '123'
+      }
+    ]
+  },
+  {
+    name: 'Alias User',
+    username: 'alias',
+    type: 'local',
+    userid: 'ALIAS123',
+    id: 'ALIAS123',
+    email: 'alias@example.com',
+    accountLinkState: 'linked-alias',
+    linkedPrimaryUserId: 'ABC123',
+    effectivePrimaryUsername: 'admin',
+    passwords: { password: '', confirmPassword: '' },
+    roles: []
+  }
+];
 
 const auditRecords = [
   {
@@ -154,10 +154,10 @@ describe('ManageUsersComponent', () => {
         provideAppInitializer(i18AppInit()),
         provideI18Next(
           withCustomErrorHandlingStrategy(StrictErrorHandlingStrategy)
-        ),
+        )
       ]
     });
-    
+
     TestBed.inject(FormBuilder);
     TestBed.inject(UserService);
     await testModule.compileComponents();
@@ -185,9 +185,11 @@ describe('ManageUsersComponent', () => {
     return fixture;
   }
 
-  function createComponent(): { fixture: ComponentFixture<ManageUsersComponent>, app: ManageUsersComponent } {
+  async function createComponent(): Promise<{ fixture: ComponentFixture<ManageUsersComponent>, app: ManageUsersComponent }> {
     const fixture = createFixture();
     const app = fixture.componentInstance;
+    fixture.detectChanges();
+    await app.waitForInit();
     fixture.detectChanges();
     return { fixture, app };
   }
@@ -225,7 +227,7 @@ describe('ManageUsersComponent', () => {
     ));
   }
 
-  it('should create the app and perform testing of basic functions', async () =>  {
+  it('should create the app and perform testing of basic functions', async () => {
     const app = createBareComponent();
     expect(app).toBeTruthy();
     app.allRoles = rolesData as any;
@@ -277,8 +279,7 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should render loading, empty, truncated, and error audit states', async () => {
-    const fixture = createFixture();
-    const app = fixture.componentInstance;
+    const { fixture, app } = await createComponent();
 
     app.auditModalUser = usersData[0] as any;
     app.isAuditModalShown = true;
@@ -302,9 +303,8 @@ describe('ManageUsersComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('failed');
   });
 
-  it('should expand raw audit details and show the technical data heading', () => {
-    const fixture = createFixture();
-    const app = fixture.componentInstance;
+  it('should expand raw audit details and show the technical data heading', async () => {
+    const { fixture, app } = await createComponent();
     app.auditModalUser = usersData[0] as any;
     app.isAuditModalShown = true;
     app.auditRecords = [auditRecords[0] as any];
@@ -320,7 +320,7 @@ describe('ManageUsersComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('127.0.0.1');
   });
 
-  it('should render link event details differently for primary and secondary users and fall back for malformed context', () => {
+  it('should render link event details differently for primary and secondary users and fall back for malformed context', async () => {
     const app = createBareComponent();
     const secondaryLinkRecord = {
       ...auditRecords[1],
@@ -336,7 +336,7 @@ describe('ManageUsersComponent', () => {
     expect(app.getAuditDetailsLabel(auditRecords[2] as any)).toBe('Account linking event');
   });
 
-  it('should derive account status badge and supporting text', () => {
+  it('should derive account status badge and supporting text', async () => {
     const app = createBareComponent();
     expect(app.getAccountStatusBadge(usersData[0] as any)).toContain('Primary');
     expect(app.getAccountStatusContext(usersData[0] as any)).toContain('1');
@@ -351,8 +351,8 @@ describe('ManageUsersComponent', () => {
     expect(app.getAccountStatusBadgeClass(linkedAliasUser as any)).toBe('default');
   });
 
-  it('should prepare linked alias edit state without requiring credential or role UI interactions', () => {
-    const app = createBareComponent();
+  it('should hide API key controls and suppress role errors for linked aliases until submit', async () => {
+    const { fixture, app } = await createComponent();
     app.allRoles = rolesData as any;
     app.currentUser = {
       id: 'linked-1',
@@ -365,18 +365,33 @@ describe('ManageUsersComponent', () => {
       roles: []
     } as any;
     app.setupForms(false);
+    app.isDetailsModalShown = true;
+    fixture.detectChanges();
 
+    const textBeforeSubmit = fixture.nativeElement.textContent;
     expect(app.isLinkedAlias(app.currentUser as any)).toBeTrue();
     expect(app.canManageLinks(app.currentUser as any)).toBeFalse();
     expect(app.getAccountStatusBadge(app.currentUser as any)).toBe('Linked');
     expect(app.getAccountStatusContext(app.currentUser as any)).toContain('admin');
     expect(app.getUpdateUserFormControls().length).toBe(rolesData.length);
     expect(app.updateUserForm?.controls['roles'].valid).toBeFalse();
+    expect(textBeforeSubmit).toContain('manage-users-password-linked-notice');
+    expect(textBeforeSubmit).toContain('manage-users-api-linked-notice');
+    expect(textBeforeSubmit).toContain('manage-users-roles-linked-notice');
+    expect(textBeforeSubmit).not.toContain('manage-users-confirm-password');
+    expect(textBeforeSubmit).not.toContain('manage-users-update-password');
+    expect(textBeforeSubmit).not.toContain('Generate API Key');
+    expect(textBeforeSubmit).not.toContain('manage-users-validation-role');
     expect(app.isUpdateUserFormConfirmPasswordTouched()).toBeFalse();
     expect(app.getUpdateUserPasswordErrors()).toEqual([]);
+
+    app.submitted = true;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('manage-users-roles-linked-notice');
+    expect(fixture.nativeElement.textContent).not.toContain('manage-users-validation-role');
   });
 
-  it('should map roles correctly', () => {
+  it('should map roles correctly', async () => {
     const app = createBareComponent();
     const roles = [
       { key: '123', value: 'Admin', checked: true },
@@ -406,7 +421,7 @@ describe('ManageUsersComponent', () => {
     expect(app.isNewUserModalShown).toBeFalse();
   });
 
-  it('should set update and new user messages', () => {
+  it('should set update and new user messages', async () => {
     const app = createBareComponent();
     app.setUpdateMessage('msg', 'danger');
     expect(app.updateDetailsMsg).toBe('msg');
@@ -426,7 +441,7 @@ describe('ManageUsersComponent', () => {
     expect(app.setNewUserMessage).toHaveBeenCalled();
   });
 
-  it('should reset link and audit modal state when hidden', () => {
+  it('should reset link and audit modal state when hidden', async () => {
     const app = createBareComponent();
     app.isLinkModalShown = true;
     app.linkPrimaryUser = usersData[0] as any;
@@ -654,5 +669,4 @@ describe('ManageUsersComponent', () => {
     expect(app.filteredUsers.length).toBe(usersData.length);
     expect(app.searchFilter.users[0].checked).toBeTrue();
   });
-
 });

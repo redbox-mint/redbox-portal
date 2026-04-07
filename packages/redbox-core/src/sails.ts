@@ -103,6 +103,7 @@ declare global {
     export type Connection = unknown;
 
     export interface Model<T> {
+      tableName: string;
       attributes: object;
 
       create(params: object): WaterlinePromise<T>;

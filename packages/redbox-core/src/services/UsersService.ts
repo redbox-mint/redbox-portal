@@ -611,9 +611,9 @@ export namespace Services {
       const selectedUserRecord = selectedUser as unknown as AnyRecord;
       const selectedUserId = String(selectedUserRecord.id ?? '');
       const adminAuditContextFilters = [
-        `\"userId\":${JSON.stringify(selectedUserId)}`,
-        `\"primaryUserId\":${JSON.stringify(selectedUserId)}`,
-        `\"secondaryUserId\":${JSON.stringify(selectedUserId)}`
+        `"userId":${JSON.stringify(selectedUserId)}`,
+        `"primaryUserId":${JSON.stringify(selectedUserId)}`,
+        `"secondaryUserId":${JSON.stringify(selectedUserId)}`
       ];
 
       const directRows = await this.fetchDirectUserAuditRows(selectedUserRecord);
