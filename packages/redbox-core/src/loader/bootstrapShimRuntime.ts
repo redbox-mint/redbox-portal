@@ -48,10 +48,16 @@ async function exportPostBootstrapSnapshot(): Promise<void> {
         ...(serializeConfig(sails.config) as Record<string, unknown>)
     };
     const debugDir = path.join(process.cwd(), 'support', 'debug-config');
-    await fs.mkdir(debugDir, { recursive: true });
     const snapshotPath = path.join(debugDir, 'post-bootstrap-config.json');
-    await fs.writeFile(snapshotPath, JSON.stringify(configSnapshot, null, 2));
-    sails.log.info('Exported config snapshot to ' + snapshotPath);
+
+    try {
+        await fs.mkdir(debugDir, { recursive: true });
+        await fs.writeFile(snapshotPath, JSON.stringify(configSnapshot, null, 2));
+        sails.log.info('Exported config snapshot to ' + snapshotPath);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        sails.log.warn(`Failed to export config snapshot to ${snapshotPath}: ${message}`);
+    }
 }
 
 export function createGeneratedBootstrap(
@@ -60,7 +66,12 @@ export function createGeneratedBootstrap(
     hookBootstraps: GeneratedHookBootstrap[]
 ): (cb: BootstrapCallback) => void {
     return function bootstrap(cb: BootstrapCallback): void {
-        preLiftSetup();
+        try {
+            preLiftSetup();
+        } catch (error) {
+            cb(error as Error);
+            return;
+        }
 
         (async () => {
             await coreBootstrap();
