@@ -57,6 +57,32 @@ export const smokeRoutes: SmokeRoute[] = [
     ]
   },
   {
+    path: '/default/rdmp/dashboard/rdmp',
+    auth: 'admin',
+    type: 'angular',
+    rootSelector: 'dashboard',
+    requiredSelectors: ['#main-title', 'dashboard'],
+    fallbackSelectors: ['dashboard img[src$="/images/loading.svg"]'],
+    requiredAssetIncludes: [
+      '/angular/dashboard/browser/polyfills',
+      '/angular/dashboard/browser/main',
+      '/angular/dashboard/browser/styles'
+    ]
+  },
+  {
+    path: '/default/rdmp/record/rdmp/edit',
+    auth: 'admin',
+    type: 'angular',
+    rootSelector: 'redbox-form',
+    requiredSelectors: ['redbox-form', 'redbox-form .rb-form-shell'],
+    fallbackSelectors: ['redbox-form img[src$="/images/loading.svg"]'],
+    requiredAssetIncludes: [
+      '/angular/form/browser/polyfills',
+      '/angular/form/browser/main',
+      '/angular/form/browser/styles'
+    ]
+  },
+  {
     path: '/default/rdmp/admin',
     auth: 'admin',
     type: 'ejs',
