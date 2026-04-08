@@ -794,7 +794,7 @@ export class ManageUsersComponent extends BaseComponent {
       }
     } catch (error: unknown) {
       this.loggerService.error('Failed to search link candidates:', error);
-      this.setLinkMessage(this.translationService.t('manage-users-link-failed') || 'Failed to search accounts.', 'danger');
+      this.setLinkMessage(this.translationService.t('manage-users-link-search-failed') || 'Failed to search accounts.', 'danger');
       this.linkCandidates = [];
       this.selectedLinkCandidate = null;
     } finally {

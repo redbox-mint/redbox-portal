@@ -76,11 +76,30 @@ export function getStubConfigService(configBlock: any = null) {
  * @returns
  */
 export function getStubTranslationService(translationMap: any = null) {
-  if (_isEmpty()) {
+  if (_isEmpty(translationMap)) {
     translationMap = {
       "key1": "value1"
     }
   }
+
+  function applyInterpolation(
+    template: string,
+    defaultValueOrOptions?: string | TOptions,
+    options?: TOptions
+  ) {
+    const interpolationOptions = typeof defaultValueOrOptions === 'string' ? options : defaultValueOrOptions;
+    if (_isEmpty(interpolationOptions)) {
+      return template;
+    }
+
+    let value = template;
+    for (const [optionKey, optionValue] of Object.entries(interpolationOptions)) {
+      value = value.replaceAll(`{{${optionKey}}}`, String(optionValue));
+    }
+
+    return value;
+  }
+
   return {
     translationMap: translationMap,
     translationChanges$: { pipe: () => ({ subscribe: () => ({ unsubscribe() {/* noop */ } }) }) },
@@ -94,11 +113,11 @@ export function getStubTranslationService(translationMap: any = null) {
       const translation = this.translationMap[key];
 
       if (translation !== undefined) {
-        return translation;
+        return applyInterpolation(String(translation), defaultValueOrOptions, options);
       }
 
       if (typeof defaultValueOrOptions === 'string') {
-        return defaultValueOrOptions;
+        return applyInterpolation(defaultValueOrOptions, defaultValueOrOptions, options);
       }
 
       return options?.defaultValue ?? defaultValueOrOptions?.defaultValue ?? key;

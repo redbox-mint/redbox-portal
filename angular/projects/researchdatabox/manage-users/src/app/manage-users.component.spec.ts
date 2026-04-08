@@ -98,7 +98,22 @@ describe('ManageUsersComponent', () => {
       'manage-users-audit-event-enable': 'Admin enabled this account',
       'manage-users-audit-event-link-primary': 'This account was chosen as the primary account during account linking',
       'manage-users-audit-event-link-secondary': 'This account was linked as a secondary alias to another account',
-      'manage-users-audit-event-link-generic': 'Account linking event'
+      'manage-users-audit-event-link-generic': 'Account linking event',
+      'manage-users-account-status-active': 'Active',
+      'manage-users-account-status-primary': 'Primary',
+      'manage-users-account-status-linked-alias': 'Linked',
+      'manage-users-account-status-primary-user': 'Primary: {{primaryUsername}}',
+      'manage-users-account-status-disabled-via-primary': 'Disabled via {{primaryUsername}}',
+      'manage-users-account-status-disabled': 'Disabled',
+      'manage-users-link-no-results': 'No matching accounts found.',
+      'manage-users-link-failed': 'Failed to link accounts.',
+      'manage-users-link-search-failed': 'Failed to search accounts.',
+      'manage-users-link-select-candidate': 'Select an account to link.',
+      'manage-users-link-success': 'Accounts linked successfully.',
+      'manage-users-link-success-roles-merged': '{{count}} role(s) merged',
+      'manage-users-link-success-records-rewritten': '{{count}} record(s) rewritten',
+      'manage-users-disable-success': 'User disabled successfully.',
+      'manage-users-enable-success': 'User enabled successfully.'
     });
     userService = getStubUserService(username, password, {}, usersData, rolesData);
     userService.getUserAudit = jasmine.createSpy('getUserAudit').and.callFake((userId: string) => Promise.resolve({
@@ -566,9 +581,9 @@ describe('ManageUsersComponent', () => {
     expect(app.auditRecords).toEqual([]);
     expect(app.auditSummary).toEqual({ returnedCount: 0, truncated: false });
     expect(app.isAuditLoading).toBeFalse();
-    expect(app.getAuditDetailsLabel({ action: 'logout', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('fallback');
-    expect(app.getAuditDetailsLabel({ action: 'disable-user', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('fallback');
-    expect(app.getAuditDetailsLabel({ action: 'enable-user', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('fallback');
+    expect(app.getAuditDetailsLabel({ action: 'logout', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('User logged out');
+    expect(app.getAuditDetailsLabel({ action: 'disable-user', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('Admin disabled this account');
+    expect(app.getAuditDetailsLabel({ action: 'enable-user', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('Admin enabled this account');
     expect(app.getAuditDetailsLabel({ action: 'other', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('fallback');
   });
 
