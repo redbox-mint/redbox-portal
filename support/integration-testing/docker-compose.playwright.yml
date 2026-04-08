@@ -9,6 +9,7 @@ x-playwright-service: &playwright-service
   environment:
     PLAYWRIGHT_BASE_URL: http://redboxportal:1500
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
     CI: 'true'
   volumes:
     - '../../:/opt/redbox-portal:delegated'
@@ -119,7 +120,7 @@ services:
       interval: '10s'
       timeout: '5s'
       retries: 30
-      start_period: '600s'
+      start_period: '60s'
   mongodb:
     image: mongo:latest
     pull_policy: missing
