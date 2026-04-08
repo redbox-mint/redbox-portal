@@ -1,5 +1,4 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
 import * as path from 'path';
 import * as fs from 'fs';
 import * as vm from 'vm';
@@ -16,6 +15,7 @@ describe('redbox-loader', function () {
     let originalEnv: NodeJS.ProcessEnv;
 
     before(async function () {
+        ({ expect } = await import('chai'));
         // Ensure we can load the module and it doesn't crash
         expect(redboxLoader).to.be.an('object');
     });

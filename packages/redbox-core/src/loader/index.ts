@@ -22,17 +22,11 @@ export interface HookPolicyRegistration extends HookModuleRegistration {
     exportName?: string;
 }
 
-export interface HookServiceRegistration extends HookModuleRegistration {
-    service: unknown;
-}
+export interface HookServiceRegistration extends HookModuleRegistration { }
 
-export interface HookControllerRegistration extends HookModuleRegistration {
-    controller: unknown;
-}
+export interface HookControllerRegistration extends HookModuleRegistration { }
 
-export interface HookModelRegistration extends HookModuleRegistration {
-    model: Record<string, unknown>;
-}
+export interface HookModelRegistration extends HookModuleRegistration { }
 
 export interface HookRegistrations {
     hookModels: Record<string, HookModelRegistration>;
@@ -282,7 +276,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
                 if (typeof hookModule.registerRedboxModels === 'function') {
                     const models = hookModule.registerRedboxModels();
                     for (const modelName of Object.keys(models)) {
-                        hookModels[modelName] = { module: depName, model: models[modelName] };
+                        hookModels[modelName] = { module: depName };
                     }
                     log.verbose(`Registered ${Object.keys(models).length} models from ${depName}`);
                 } else {
@@ -325,7 +319,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
                 if (typeof hookModule.registerRedboxServices === 'function') {
                     const services = hookModule.registerRedboxServices();
                     for (const serviceName of Object.keys(services)) {
-                        hookServices[serviceName] = { module: depName, service: services[serviceName] };
+                        hookServices[serviceName] = { module: depName };
                     }
                     log.verbose(`Registered ${Object.keys(services).length} services from ${depName}`);
                 } else {
@@ -342,17 +336,14 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
                 if (typeof hookModule.registerRedboxControllers === 'function') {
                     const controllers = hookModule.registerRedboxControllers();
                     for (const controllerName of Object.keys(controllers)) {
-                        hookControllers[controllerName] = { module: depName, controller: controllers[controllerName] };
+                        hookControllers[controllerName] = { module: depName };
                     }
                     log.verbose(`Registered ${Object.keys(controllers).length} controllers from ${depName}`);
                 }
                 if (typeof hookModule.registerRedboxWebserviceControllers === 'function') {
                     const wsControllers = hookModule.registerRedboxWebserviceControllers();
                     for (const controllerName of Object.keys(wsControllers)) {
-                        hookWebserviceControllers[controllerName] = {
-                            module: depName,
-                            controller: wsControllers[controllerName],
-                        };
+                        hookWebserviceControllers[controllerName] = { module: depName };
                     }
                     log.verbose(`Registered ${Object.keys(wsControllers).length} webservice controllers from ${depName}`);
                 }
