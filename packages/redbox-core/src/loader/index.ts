@@ -897,13 +897,13 @@ export async function generateBootstrapShim(
     const hookCalls = hookBootstraps
         .map(hook => {
             const varName = sanitizePackageNameForVar(hook.name, 'bootstrap');
-            return `        await ${varName}();\n        sails.log.verbose("Hook bootstrap complete: ${hook.name}");`;
+            return `    { name: ${JSON.stringify(hook.name)}, bootstrap: ${varName} },`;
         })
         .join('\n');
 
     const content = await renderLoaderTemplate('bootstrap-shim.js.hbs', {
         hookImports: hookImports ? `${hookImports}\n\n` : '',
-        hookCalls: hookCalls ? `${hookCalls}\n` : '        await Promise.resolve();\n',
+        hookCalls: hookCalls ? `${hookCalls}\n` : '',
     });
 
     const written = await writeFileIfChanged(filePath, content);
