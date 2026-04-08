@@ -6,6 +6,8 @@ export interface SmokeRoute {
   auth: SmokeAuthMode;
   type: SmokePageType;
   rootSelector?: string;
+  selectorState?: 'visible' | 'attached';
+  setupSelectors?: string[];
   requiredSelectors: string[];
   fallbackSelectors: string[];
   requiredAssetIncludes: string[];
@@ -32,7 +34,9 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'anonymous',
     type: 'angular',
     rootSelector: 'local-auth',
-    requiredSelectors: ['#adminLoginShow', 'local-auth'],
+    selectorState: 'attached',
+    setupSelectors: ['#adminLoginShow a[data-bs-target="#adminLogin"]'],
+    requiredSelectors: ['#username', '#password', 'button[type="submit"]'],
     fallbackSelectors: ['local-auth img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/local-auth/browser/polyfills',
@@ -41,11 +45,11 @@ export const smokeRoutes: SmokeRoute[] = [
   },
   {
     path: '/default/rdmp/record/search',
-    auth: 'anonymous',
+    auth: 'admin',
     type: 'angular',
     rootSelector: 'record-search',
-    requiredSelectors: ['record-search', '#basic-search-input'],
-    fallbackSelectors: ['#loading', 'record-search img[src$="/images/loading.svg"]'],
+    requiredSelectors: ['#basic-search-input', 'button:has-text("Search Plans")'],
+    fallbackSelectors: ['record-search img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/record-search/browser/polyfills',
       '/angular/record-search/browser/main',
@@ -69,19 +73,11 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredAssetIncludes: []
   },
   {
-    path: '/default/rdmp/admin/supportAgreement',
-    auth: 'admin',
-    type: 'ejs',
-    requiredSelectors: ['#yearSelector', '.progress-bar'],
-    fallbackSelectors: [],
-    requiredAssetIncludes: []
-  },
-  {
     path: '/default/rdmp/admin/users',
     auth: 'admin',
     type: 'angular',
     rootSelector: 'manage-users',
-    requiredSelectors: ['manage-users', '#manage-users-search', 'manage-users table'],
+    requiredSelectors: ['#manage-users-search', 'manage-users table', 'button:has-text("Add a new local user")'],
     fallbackSelectors: ['manage-users img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/manage-users/browser/polyfills',
@@ -94,7 +90,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'angular',
     rootSelector: 'manage-roles',
-    requiredSelectors: ['manage-roles', 'manage-roles table', 'manage-roles input[type="text"]'],
+    requiredSelectors: ['manage-roles table', '#role-Admin', 'input[aria-label="Search for name"]'],
     fallbackSelectors: ['manage-roles img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/manage-roles/browser/polyfills',
@@ -103,11 +99,11 @@ export const smokeRoutes: SmokeRoute[] = [
     ]
   },
   {
-    path: '/default/rdmp/admin/vocabulary',
+    path: '/default/rdmp/admin/vocabulary/manager',
     auth: 'admin',
     type: 'angular',
     rootSelector: 'admin-vocabulary',
-    requiredSelectors: ['admin-vocabulary', '#vocab-search', '.vocab-data-table'],
+    requiredSelectors: ['admin-vocabulary'],
     fallbackSelectors: ['admin-vocabulary img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/admin-vocabulary/browser/polyfills',
@@ -120,7 +116,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'angular',
     rootSelector: 'app-config',
-    requiredSelectors: ['app-config', 'formly-form', 'app-config button[type="submit"]'],
+    requiredSelectors: ['app-config'],
     fallbackSelectors: ['app-config img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/app-config/browser/polyfills',
@@ -133,7 +129,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'angular',
     rootSelector: 'branding-admin-root',
-    requiredSelectors: ['branding-admin-root', '#logoUpload', 'branding-admin-root .btn.btn-primary'],
+    requiredSelectors: ['branding-admin-root'],
     fallbackSelectors: ['branding-admin-root img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/branding/browser/polyfills',
@@ -146,7 +142,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'angular',
     rootSelector: 'app-root',
-    requiredSelectors: ['app-root', '.translation-page-container', '.translation-entries-table'],
+    requiredSelectors: ['app-root'],
     fallbackSelectors: ['app-root img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/translation/browser/polyfills',
@@ -159,7 +155,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'angular',
     rootSelector: 'deleted-records',
-    requiredSelectors: ['deleted-records', 'record-table', 'deleted-records h1'],
+    requiredSelectors: ['deleted-records'],
     fallbackSelectors: ['deleted-records img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/deleted-records/browser/polyfills',

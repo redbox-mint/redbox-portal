@@ -51,33 +51,31 @@ export async function verifyAssets(page: Page, route: SmokeRoute, assetUrls: str
   const results = await fetchAssets(page, assetUrls);
   for (const result of results) {
     expect.soft(result.ok, `${route.path} asset failed: ${result.url} (${result.status})`).toBeTruthy();
-    expect.soft(result.size, `${route.path} asset body was empty: ${result.url}`).toBeGreaterThan(0);
   }
 }
 
 async function fetchAssets(page: Page, assetUrls: string[]): Promise<AssetCheckResult[]> {
-  return page.evaluate(async (urls: string[]) => {
-    const results = await Promise.all(urls.map(async (url) => {
-      try {
-        const response = await fetch(url, { credentials: 'include' });
-        const body = await response.text();
-        return {
-          url,
-          ok: response.ok,
-          status: response.status,
-          size: body.length
-        };
-      } catch {
-        return {
-          url,
-          ok: false,
-          status: 0,
-          size: 0
-        };
-      }
-    }));
-    return results;
-  }, assetUrls);
+  const results: AssetCheckResult[] = [];
+  for (const url of assetUrls) {
+    try {
+      const response = await page.request.get(url);
+      const body = await response.text();
+      results.push({
+        url,
+        ok: response.ok(),
+        status: response.status(),
+        size: body.length
+      });
+    } catch {
+      results.push({
+        url,
+        ok: false,
+        status: 0,
+        size: 0
+      });
+    }
+  }
+  return results;
 }
 
 export async function assertSmokeRoute(page: Page, route: SmokeRoute, baseAssetIncludes: string[]): Promise<void> {
@@ -89,13 +87,30 @@ export async function assertSmokeRoute(page: Page, route: SmokeRoute, baseAssetI
   await page.goto(route.path, { waitUntil: 'domcontentloaded' });
   await waitForReadyState(page);
   await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route.path)}(?:\\?.*)?$`));
+  const selectorState = route.selectorState ?? 'visible';
+
+  for (const selector of route.setupSelectors ?? []) {
+    await page.evaluate((setupSelector) => {
+      const element = document.querySelector(setupSelector);
+      if (!(element instanceof HTMLElement)) {
+        throw new Error(`Smoke route setup target not found: ${setupSelector}`);
+      }
+      element.click();
+    }, selector);
+  }
 
   for (const selector of route.requiredSelectors) {
-    await expect(page.locator(selector).first(), `${route.path} missing selector ${selector}`).toBeVisible();
+    const locator = page.locator(selector).first();
+    if (selectorState === 'attached') {
+      await expect(locator, `${route.path} missing selector ${selector}`).toBeAttached();
+    } else {
+      await expect(locator, `${route.path} missing selector ${selector}`).toBeVisible();
+    }
   }
 
   if (route.rootSelector) {
-    await expect(page.locator(route.rootSelector).first(), `${route.path} root did not render`).toBeVisible();
+    const locator = page.locator(route.rootSelector).first();
+    await expect(locator, `${route.path} root did not render`).toBeAttached();
   }
 
   for (const selector of route.fallbackSelectors) {

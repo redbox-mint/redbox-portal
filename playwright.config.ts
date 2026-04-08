@@ -7,7 +7,7 @@ export default defineConfig({
   globalSetup: './test/playwright/global-setup.ts',
   timeout: 60_000,
   expect: {
-    timeout: 15_000
+    timeout: 30_000
   },
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,

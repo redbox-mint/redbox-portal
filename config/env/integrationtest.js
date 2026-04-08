@@ -103,6 +103,13 @@ module.exports = {
   http:{
     rootContext: ''
   },
+  csp: {
+    // The Playwright integration stack runs over plain HTTP inside Docker.
+    // Leaving upgrade-insecure-requests enabled causes Chromium to rewrite
+    // same-origin asset URLs to https://redboxportal:1500/... and the
+    // embedded Angular apps never hydrate.
+    extras: []
+  },
   /***************************************************************************
    * Set the default database connection for models in the development       *
    * environment (see config/connections.js and config/models.js )           *

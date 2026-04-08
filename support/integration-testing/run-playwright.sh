@@ -7,7 +7,9 @@ cd /opt/redbox-portal
 
 export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
-npm ci --ignore-scripts --strict-peer-deps
+if [ ! -x node_modules/.bin/playwright ]; then
+  npm ci --ignore-scripts --strict-peer-deps
+fi
 
 mkdir -p /opt/redbox-portal/.tmp/junit/backend-playwright
 mkdir -p /opt/redbox-portal/.tmp/playwright/report

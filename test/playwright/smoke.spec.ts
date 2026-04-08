@@ -2,8 +2,9 @@ import { test } from '@playwright/test';
 import { adminStorageStatePath, assertSmokeRoute } from './helpers';
 import { baseAssetIncludes, smokeRoutes } from './routes';
 
-const anonymousRoutes = smokeRoutes.filter((route) => route.auth === 'anonymous');
-const adminRoutes = smokeRoutes.filter((route) => route.auth === 'admin');
+const recordSearchPath = '/default/rdmp/record/search';
+const anonymousRoutes = smokeRoutes.filter((route) => route.auth === 'anonymous' && route.path !== recordSearchPath);
+const adminRoutes = smokeRoutes.filter((route) => route.auth === 'admin' || route.path === recordSearchPath);
 
 test.describe('anonymous smoke routes', () => {
   for (const route of anonymousRoutes) {
