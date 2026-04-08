@@ -169,8 +169,9 @@ describe('ManageUsersComponent', () => {
     await testModule.compileComponents();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     for (const fixture of fixtures) {
+      await fixture.whenStable();
       const app = fixture.componentInstance;
       app.hideDetailsModal();
       app.onDetailsModalHidden();
@@ -180,6 +181,7 @@ describe('ManageUsersComponent', () => {
       app.onLinkModalHidden();
       app.hideAuditModal();
       app.onAuditModalHidden();
+      await fixture.whenStable();
       fixture.destroy();
     }
     fixtures = [];
@@ -194,6 +196,9 @@ describe('ManageUsersComponent', () => {
   async function createComponent(): Promise<{ fixture: ComponentFixture<ManageUsersComponent>, app: ManageUsersComponent }> {
     const fixture = createFixture();
     const app = fixture.componentInstance;
+    fixture.detectChanges();
+    await app.waitForInit();
+    await fixture.whenStable();
     fixture.detectChanges();
     return { fixture, app };
   }

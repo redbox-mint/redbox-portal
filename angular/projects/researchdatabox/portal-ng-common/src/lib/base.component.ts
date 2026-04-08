@@ -176,6 +176,10 @@ export abstract class BaseComponent implements Initable {
   }
 
   private flushRender() {
+    if (this.destroyed || this.appRef.destroyed) {
+      return;
+    }
+
     // Angular 21 embedded apps can miss async state updates in this legacy bootstrapping setup.
     // A local detectChanges() matches the behaviour of window.ng.applyChanges(component), and the
     // follow-up appRef.tick() keeps nested/animated views in sync across the app tree.
