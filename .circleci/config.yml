@@ -236,6 +236,53 @@ jobs:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
+  test-playwright:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Load Docker image
+          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+      - run:
+          name: Point compose at tested image
+          command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci --ignore-scripts --strict-peer-deps
+      - run:
+          name: Setup test directories
+          command: |
+            sudo mkdir -p .tmp/junit/backend-playwright
+            sudo mkdir -p .tmp/playwright
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+      - run:
+          name: Run Playwright browser smoke tests
+          no_output_timeout: 30m
+          command: timeout 1800s npm run test:playwright:ci
+      - run:
+          name: Clean up Playwright containers
+          command: npm run test:playwright:clean || true
+          when: always
+      - store_test_results:
+          path: .tmp/junit
+      - store_artifacts:
+          path: .tmp/playwright
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
   test-mocha:
     machine:
       image: ubuntu-2004:current
@@ -880,6 +927,9 @@ workflows:
       - test-bruno-oidc:
           requires:
             - build
+      - test-playwright:
+          requires:
+            - build
       - test-mocha:
           requires:
             - build
@@ -1021,6 +1071,9 @@ workflows:
           requires:
             - build
       - test-bruno-oidc:
+          requires:
+            - build
+      - test-playwright:
           requires:
             - build
       - test-mocha:
