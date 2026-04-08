@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Injectable, Inject, InjectionToken, Optional } from '@angular/core';
+import { Injectable, Inject } from '@angular/core';
 import { Subject, firstValueFrom, map } from 'rxjs';
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -32,10 +32,10 @@ import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
 
-import { InitOptions, TOptions, createInstance, i18n } from 'i18next';
+import { TOptions, createInstance, i18n } from 'i18next';
 
-export type ITranslationOptions = TOptions;
-export const PORTAL_I18N_TEST_OPTIONS = new InjectionToken<InitOptions>('PORTAL_I18N_TEST_OPTIONS');
+export type ITranslationOptions = Omit<TOptions, 'context'> & { context?: string };
+type TranslationResult = ReturnType<i18n['t']>;
 
 /**
  * Translation related functions. Uses i18next library to support translation source for both frontend and backend.
@@ -88,8 +88,7 @@ export class TranslationService extends HttpClientService implements Service {
     @Inject(APP_BASE_HREF) public override rootContext: string,
     @Inject(UtilityService) protected override utilService: UtilityService,
     @Inject(ConfigService) protected override configService: ConfigService,
-    @Inject(LoggerService) private loggerService: LoggerService,
-    @Optional() @Inject(PORTAL_I18N_TEST_OPTIONS) private testingOptions?: InitOptions
+    @Inject(LoggerService) private loggerService: LoggerService
   ) {
     super(http, rootContext, utilService, configService);
     this.subjects = {};
@@ -134,10 +133,6 @@ export class TranslationService extends HttpClientService implements Service {
         _set(this.i18NextOpts, 'backend.loadPath', this.loadPath);
       }
 
-      if (!_isEmpty(this.testingOptions)) {
-        this.i18NextOpts = _merge({}, this.i18NextOpts, this.testingOptions);
-      }
-
       this.loggerService.log(`Using language loadpath: ${this.loadPath}`);
 
       const configLang = _get(this.config, 'lang');
@@ -172,15 +167,22 @@ export class TranslationService extends HttpClientService implements Service {
     }
   }
 
-  t<Options extends ITranslationOptions>(
+  t(key: string | string[], options?: ITranslationOptions): TranslationResult;
+  t(key: string | string[], defaultValue: string, options?: ITranslationOptions): TranslationResult;
+  t(
     key: string | string[],
-    defaultValue?: string | Options,
-    options?: Options
-  ): any {
-    if (typeof defaultValue === 'string') {
-      return this.i18NextService.t(key, defaultValue, options);
+    defaultValueOrOptions?: string | ITranslationOptions,
+    options?: ITranslationOptions
+  ): TranslationResult {
+    if (typeof defaultValueOrOptions === 'string') {
+      return this.i18NextService.t(key, defaultValueOrOptions, options);
     }
-    return (this.i18NextService.t as any)(key, defaultValue);
+
+    if (defaultValueOrOptions === undefined) {
+      return this.i18NextService.t(key);
+    }
+
+    return this.i18NextService.t(key, defaultValueOrOptions);
   }
 
   /** Change the current language and reload resources */

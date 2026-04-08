@@ -2,7 +2,7 @@
 * Series of helper functions to simplify testing.
 */
 import { merge as _merge, isEmpty as _isEmpty } from "lodash-es";
-import { InitOptions } from 'i18next';
+import { InitOptions, TOptions } from 'i18next';
 /**
  * Returns stub for `ConfigService`.
  *
@@ -55,11 +55,11 @@ export function getStubConfigService(configBlock: any = null) {
   }
 
   return {
-    waitForInit: function() {
+    waitForInit: function () {
       return configBlock;
     },
 
-    getConfig: function() {
+    getConfig: function () {
       return configBlock;
     },
 
@@ -83,15 +83,25 @@ export function getStubTranslationService(translationMap: any = null) {
   }
   return {
     translationMap: translationMap,
-    translationChanges$: { pipe: () => ({ subscribe: () => ({ unsubscribe() {/* noop */} }) }) },
-    waitForInit: function() {
+    translationChanges$: { pipe: () => ({ subscribe: () => ({ unsubscribe() {/* noop */ } }) }) },
+    waitForInit: function () {
       return true;
     },
-    isInitializing: function() {
+    isInitializing: function () {
       return false;
     },
-    t: function(key: string) {
-      return this.translationMap[key];
+    t: function (key: string, defaultValueOrOptions?: string | TOptions, options?: TOptions) {
+      const translation = this.translationMap[key];
+
+      if (translation !== undefined) {
+        return translation;
+      }
+
+      if (typeof defaultValueOrOptions === 'string') {
+        return defaultValueOrOptions;
+      }
+
+      return options?.defaultValue ?? defaultValueOrOptions?.defaultValue ?? key;
     }
   };
 }
@@ -103,13 +113,13 @@ export function getStubTranslationService(translationMap: any = null) {
  * @param loginResult
  * @returns
  */
-export function getStubUserService(username: string = '', password: string = '', loginResult: any = {url: '#greatsuccess', user: null}, userData: any = {}, rolesData: any = {}) {
+export function getStubUserService(username: string = '', password: string = '', loginResult: any = { url: '#greatsuccess', user: null }, userData: any = {}, rolesData: any = {}) {
 
   return {
-    waitForInit: function() {
+    waitForInit: function () {
       return true;
     },
-    isInitializing: function() {
+    isInitializing: function () {
       return false;
     },
     username: username,
@@ -158,23 +168,23 @@ export function getStubRecordService(recordData: any = {}) {
   return {
     baseUrl: 'base',
     brandingAndPortalUrl: 'base/default/rdmp',
-    waitForInit: function() {
+    waitForInit: function () {
       return this;
     },
-    isInitializing: function() {
+    isInitializing: function () {
       return false;
     },
-    getAllTypes: function() {
+    getAllTypes: function () {
       return recordData['types'];
-    },getDashboardType: function() {
+    }, getDashboardType: function () {
       return recordData['dashboardType'];
-    },getWorkflowSteps: function() {
+    }, getWorkflowSteps: function () {
       return recordData['step'];
-    },getRecords: function() {
+    }, getRecords: function () {
       return recordData['records'];
-    },getRelatedRecords: function() {
+    }, getRelatedRecords: function () {
       return recordData['relatedRecords'];
-    },getDeletedRecords: function() {
+    }, getDeletedRecords: function () {
       return recordData['deletedRecords'];
     }
   }
@@ -193,16 +203,16 @@ export function getStubReportService(reportData: any = {}) {
   return {
     baseUrl: 'base',
     brandingAndPortalUrl: 'base/default/rdmp',
-    waitForInit: function() {
+    waitForInit: function () {
       return this;
     },
-    isInitializing: function() {
+    isInitializing: function () {
       return false;
     },
-    getReportResult: function(name: string, pageNum:number, params:any, rows:number = 10) {
+    getReportResult: function (name: string, pageNum: number, params: any, rows: number = 10) {
       return reportData.reportResult;
     },
-    getReportConfig: function(name: string) {
+    getReportConfig: function (name: string) {
       return reportData.reportConfig;
     }
   };

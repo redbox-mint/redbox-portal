@@ -1,27 +1,11 @@
-import { APP_INITIALIZER, EnvironmentProviders, FactoryProvider, makeEnvironmentProviders } from '@angular/core';
-import { InitOptions } from 'i18next';
+import { EnvironmentProviders, inject, provideAppInitializer } from '@angular/core';
 
-import { PORTAL_I18N_TEST_OPTIONS, TranslationService } from './translation.service';
-
-function createPortalI18nInitializer(): FactoryProvider {
-  return {
-    provide: APP_INITIALIZER,
-    multi: true,
-    deps: [TranslationService],
-    useFactory: (translationService: TranslationService) => () => translationService.waitForInit()
-  };
-}
+import { TranslationService } from './translation.service';
 
 export function providePortalI18n(): EnvironmentProviders {
-  return makeEnvironmentProviders([createPortalI18nInitializer()]);
+  return provideAppInitializer(() => inject(TranslationService).waitForInit());
 }
 
-export function providePortalI18nTesting(options: InitOptions = {}): EnvironmentProviders {
-  return makeEnvironmentProviders([
-    {
-      provide: PORTAL_I18N_TEST_OPTIONS,
-      useValue: options
-    },
-    createPortalI18nInitializer()
-  ]);
+export function providePortalI18nTesting(): EnvironmentProviders {
+  return providePortalI18n();
 }
