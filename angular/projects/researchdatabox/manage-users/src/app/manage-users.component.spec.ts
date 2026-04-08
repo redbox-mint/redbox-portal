@@ -1,11 +1,9 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ManageUsersComponent } from './manage-users.component';
-import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, provideAppInitializer, runInInjectionContext } from '@angular/core';
+import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, runInInjectionContext } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import { FormsModule, FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import i18next from 'i18next';
-import { I18NextModule, StrictErrorHandlingStrategy, provideI18Next, withCustomErrorHandlingStrategy } from 'angular-i18next';
-import { UtilityService, LoggerService, TranslationService, ConfigService, UserService } from '@researchdatabox/portal-ng-common';
+import { UtilityService, LoggerService, TranslationService, ConfigService, UserService, I18NextPipe } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubUserService } from '@researchdatabox/portal-ng-common';
 import { ModalModule } from 'ngx-bootstrap/modal';
 
@@ -90,19 +88,6 @@ const auditRecords = [
   }
 ];
 
-export function i18AppInit() {
-  return () => {
-    if (i18next.isInitialized) {
-      return Promise.resolve(i18next);
-    }
-
-    return i18next.init({
-      fallbackLng: 'en',
-      debug: false
-    });
-  };
-}
-
 describe('ManageUsersComponent', () => {
   beforeEach(async () => {
     configService = getStubConfigService();
@@ -113,7 +98,22 @@ describe('ManageUsersComponent', () => {
       'manage-users-audit-event-enable': 'Admin enabled this account',
       'manage-users-audit-event-link-primary': 'This account was chosen as the primary account during account linking',
       'manage-users-audit-event-link-secondary': 'This account was linked as a secondary alias to another account',
-      'manage-users-audit-event-link-generic': 'Account linking event'
+      'manage-users-audit-event-link-generic': 'Account linking event',
+      'manage-users-account-status-active': 'Active',
+      'manage-users-account-status-primary': 'Primary',
+      'manage-users-account-status-linked-alias': 'Linked',
+      'manage-users-account-status-primary-user': 'Primary: {{primaryUsername}}',
+      'manage-users-account-status-disabled-via-primary': 'Disabled via {{primaryUsername}}',
+      'manage-users-account-status-disabled': 'Disabled',
+      'manage-users-link-no-results': 'No matching accounts found.',
+      'manage-users-link-failed': 'Failed to link accounts.',
+      'manage-users-link-search-failed': 'Failed to search accounts.',
+      'manage-users-link-select-candidate': 'Select an account to link.',
+      'manage-users-link-success': 'Accounts linked successfully.',
+      'manage-users-link-success-roles-merged': '{{count}} role(s) merged',
+      'manage-users-link-success-records-rewritten': '{{count}} record(s) rewritten',
+      'manage-users-disable-success': 'User disabled successfully.',
+      'manage-users-enable-success': 'User enabled successfully.'
     });
     userService = getStubUserService(username, password, {}, usersData, rolesData);
     userService.getUserAudit = jasmine.createSpy('getUserAudit').and.callFake((userId: string) => Promise.resolve({
@@ -128,7 +128,7 @@ describe('ManageUsersComponent', () => {
       imports: [
         FormsModule,
         ReactiveFormsModule,
-        I18NextModule.forRoot(),
+        I18NextPipe,
         ModalModule.forRoot()
       ],
       providers: [
@@ -150,11 +150,7 @@ describe('ManageUsersComponent', () => {
         {
           provide: UserService,
           useValue: userService
-        },
-        provideAppInitializer(i18AppInit()),
-        provideI18Next(
-          withCustomErrorHandlingStrategy(StrictErrorHandlingStrategy)
-        )
+        }
       ]
     });
 
@@ -277,8 +273,7 @@ describe('ManageUsersComponent', () => {
   });
 
   it('should render loading, empty, truncated, and error audit states', async () => {
-    const fixture = createFixture();
-    const app = fixture.componentInstance;
+    const { fixture, app } = await createComponent();
 
     app.auditModalUser = usersData[0] as any;
     app.isAuditModalShown = true;
@@ -302,9 +297,8 @@ describe('ManageUsersComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('failed');
   });
 
-  it('should expand raw audit details and show the technical data heading', () => {
-    const fixture = createFixture();
-    const app = fixture.componentInstance;
+  it('should expand raw audit details and show the technical data heading', async () => {
+    const { fixture, app } = await createComponent();
     app.auditModalUser = usersData[0] as any;
     app.isAuditModalShown = true;
     app.auditRecords = [auditRecords[0] as any];
@@ -351,8 +345,8 @@ describe('ManageUsersComponent', () => {
     expect(app.getAccountStatusBadgeClass(linkedAliasUser as any)).toBe('default');
   });
 
-  it('should prepare linked alias edit state without requiring credential or role UI interactions', () => {
-    const app = createBareComponent();
+  it('should hide API key controls and suppress role errors for linked aliases until submit', async () => {
+    const { fixture, app } = await createComponent();
     app.allRoles = rolesData as any;
     app.currentUser = {
       id: 'linked-1',
@@ -365,6 +359,8 @@ describe('ManageUsersComponent', () => {
       roles: []
     } as any;
     app.setupForms(false);
+    app.isDetailsModalShown = true;
+    fixture.detectChanges();
 
     const textBeforeSubmit = fixture.nativeElement.textContent;
     expect(app.isLinkedAlias(app.currentUser as any)).toBeTrue();
@@ -585,9 +581,9 @@ describe('ManageUsersComponent', () => {
     expect(app.auditRecords).toEqual([]);
     expect(app.auditSummary).toEqual({ returnedCount: 0, truncated: false });
     expect(app.isAuditLoading).toBeFalse();
-    expect(app.getAuditDetailsLabel({ action: 'logout', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('fallback');
-    expect(app.getAuditDetailsLabel({ action: 'disable-user', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('fallback');
-    expect(app.getAuditDetailsLabel({ action: 'enable-user', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('fallback');
+    expect(app.getAuditDetailsLabel({ action: 'logout', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('User logged out');
+    expect(app.getAuditDetailsLabel({ action: 'disable-user', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('Admin disabled this account');
+    expect(app.getAuditDetailsLabel({ action: 'enable-user', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('Admin enabled this account');
     expect(app.getAuditDetailsLabel({ action: 'other', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('fallback');
   });
 

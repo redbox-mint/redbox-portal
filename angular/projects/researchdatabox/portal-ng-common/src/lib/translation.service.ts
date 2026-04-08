@@ -21,19 +21,21 @@ import { Injectable, Inject } from '@angular/core';
 import { Subject, firstValueFrom, map } from 'rxjs';
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set } from 'lodash-es';
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge, set as _set } from 'lodash-es';
 
 import { Service } from './service.interface';
 import { HttpClientService } from './httpClient.service';
 
-import { I18NEXT_SERVICE, ITranslationService, defaultInterpolationFormat, I18NextModule, ITranslationOptions } from 'angular-i18next';
 import HttpApi from 'i18next-http-backend';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
-import { LoggerService  } from './logger.service';
+import { LoggerService } from './logger.service';
 
-import {Namespace, TFunctionReturn} from "i18next";
+import { TOptions, createInstance, i18n } from 'i18next';
+
+export type ITranslationOptions = Omit<TOptions, 'context'> & { context?: string };
+type TranslationResult = ReturnType<i18n['t']>;
 
 /**
  * Translation related functions. Uses i18next library to support translation source for both frontend and backend.
@@ -47,10 +49,14 @@ export class TranslationService extends HttpClientService implements Service {
   protected override config: any;
   protected subjects: any;
   protected translatorReady: boolean = false;
+  private initPromise?: Promise<this>;
   public loadPath: string = '';
   public ts: any;
   protected i18NextOpts: any;
   private requestOptions: any = null as any;
+  private readonly i18NextService: i18n;
+  private readonly translationChanges = new Subject<void>();
+  public readonly translationChanges$ = this.translationChanges.asObservable();
   protected i18NextOptsDefault = {
     load: 'languageOnly',
     supportedLngs: ['en'],
@@ -63,9 +69,6 @@ export class TranslationService extends HttpClientService implements Service {
     ns: [
       'translation'
     ],
-    interpolation: {
-      format: I18NextModule.interpolationFormat(defaultInterpolationFormat)
-    },
     // lang detection plugin options
     detection: {
       // order and from where user language should be detected
@@ -79,100 +82,113 @@ export class TranslationService extends HttpClientService implements Service {
       // cookieDomain: I18NEXT_LANG_COOKIE_DOMAIN
     }
   };
-  
-  constructor (
+
+  constructor(
     @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
-    @Inject(I18NEXT_SERVICE) private i18NextService: ITranslationService,
     @Inject(UtilityService) protected override utilService: UtilityService,
     @Inject(ConfigService) protected override configService: ConfigService,
     @Inject(LoggerService) private loggerService: LoggerService
-    ) {
+  ) {
     super(http, rootContext, utilService, configService);
     this.subjects = {};
     this.subjects['init'] = new Subject<any>();
     this.ts = new Date().getTime();
+    this.i18NextService = createInstance();
     // default loadPath
     this.loadPath = `${this.rootContext}/default/rdmp/locales/{{lng}}/{{ns}}.json`;
+    this.i18NextService.on('initialized', () => this.translationChanges.next());
+    this.i18NextService.on('loaded', () => this.translationChanges.next());
+    this.i18NextService.on('languageChanged', () => this.translationChanges.next());
   }
 
-  async initTranslator(): Promise<any> {
-    await super.waitForInit();
-    this.config = this.getConfig();
-    // enable CSRF for admin calls and prepare default request options
-    this.requestOptions = this.reqOptsJsonBodyOnly;
-    this.enableCsrfHeader();
-    // attach context for interceptor
-    (this.requestOptions as any).context = this["httpContext"];
-    this.loadPath = `${this.rootContext}/${this.config.branding}/${this.config.portal}/locales/{{lng}}/{{ns}}.json`;
-    if (!_isEmpty(_get(this.config, 'i18NextOpts'))) {
-      this.i18NextOpts = _get(this.config, 'i18NextOpts');
-      if (_isUndefined(_get(this.i18NextOpts, 'backend.loadPath'))) {
+  async initTranslator(): Promise<this> {
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = (async () => {
+      await super.waitForInit();
+      this.config = this.getConfig();
+      // enable CSRF for admin calls and prepare default request options
+      this.requestOptions = this.reqOptsJsonBodyOnly;
+      this.enableCsrfHeader();
+      // attach context for interceptor
+      (this.requestOptions as any).context = this["httpContext"];
+      this.loadPath = `${this.rootContext}/${this.config.branding}/${this.config.portal}/locales/{{lng}}/{{ns}}.json`;
+      if (!_isEmpty(_get(this.config, 'i18NextOpts'))) {
+        this.i18NextOpts = _merge({}, _get(this.config, 'i18NextOpts'));
+        if (_isUndefined(_get(this.i18NextOpts, 'backend.loadPath'))) {
+          _set(this.i18NextOpts, 'backend.loadPath', this.loadPath);
+        }
+        // Preserve explicit empty-string translations across the portal.
+        // Some legacy bundles intentionally use "" to suppress a label.
+        _set(this.i18NextOpts, 'returnEmptyString', this.i18NextOptsDefault.returnEmptyString);
+        if (_isUndefined(_get(this.i18NextOpts, 'nsSeparator'))) {
+          _set(this.i18NextOpts, 'nsSeparator', this.i18NextOptsDefault.nsSeparator);
+        }
+      } else {
+        this.loggerService.info(`Language service using default config`);
+        this.i18NextOpts = _merge({}, this.i18NextOptsDefault);
         _set(this.i18NextOpts, 'backend.loadPath', this.loadPath);
       }
-      if (_isUndefined(_get(this.i18NextOpts, 'interpolation'))) {
-        _set(this.i18NextOpts, 'interpolation', this.i18NextOptsDefault.interpolation);
+
+      this.loggerService.log(`Using language loadpath: ${this.loadPath}`);
+
+      const configLang = _get(this.config, 'lang');
+      if (configLang && configLang !== 'en') {
+        this.loggerService.info(`Language service using server-configured language: ${configLang}`);
+        _set(this.i18NextOpts, 'lng', configLang);
       }
-      // Preserve explicit empty-string translations across the portal.
-      // Some legacy bundles intentionally use "" to suppress a label.
-      _set(this.i18NextOpts, 'returnEmptyString', this.i18NextOptsDefault.returnEmptyString);
-      if (_isUndefined(_get(this.i18NextOpts, 'nsSeparator'))) {
-        _set(this.i18NextOpts, 'nsSeparator', this.i18NextOptsDefault.nsSeparator);
+
+      try {
+        this.i18NextService.use(HttpApi).use(LanguageDetector);
+        await this.i18NextService.init(this.i18NextOpts);
+        this.loggerService.info(`Language service ready`);
+        this.translatorReady = true;
+        this.translatorLoaded();
+      } catch (error) {
+        this.loggerService.error(`Failed to initialise language service:`);
+        this.loggerService.error(JSON.stringify(error));
+        this.initPromise = undefined;
+        throw error;
       }
-    } else {
-      // default value...
-      this.loggerService.info(`Language service using default config`);
-      this.i18NextOpts = this.i18NextOptsDefault;
-      _set(this.i18NextOpts, 'backend.loadPath', this.loadPath);
-    }
-    this.loggerService.log(`Using language loadpath: ${this.loadPath}`);
-    
-    // Check if a specific language is configured from the server
-    const configLang = _get(this.config, 'lang');
-    if (configLang && configLang !== 'en') {
-      this.loggerService.info(`Language service using server-configured language: ${configLang}`);
-      // Override the language detection to use the server-specified language
-      _set(this.i18NextOpts, 'lng', configLang);
-    }
-    
-    try {
-    	await this.i18NextService
-	              .use(HttpApi)
-                .use(LanguageDetector)
-	              .init(this.i18NextOpts);
-      this.loggerService.info(`Language service ready`);
-	    this.translatorReady = true;
-	    this.translatorLoaded();
-    } catch (error) {
-      this.loggerService.error(`Failed to initialise language service:`) ;
-      this.loggerService.error(JSON.stringify(error));
-      throw error;
-    }
-    return this;
+
+      return this;
+    })();
+
+    return this.initPromise;
   }
 
   translatorLoaded() {
     if (this.translatorReady) {
       this.subjects['init'].next(this);
+      this.translationChanges.next();
     }
   }
 
-  t<Options extends ITranslationOptions>(
+  t(key: string | string[], options?: ITranslationOptions): TranslationResult;
+  t(key: string | string[], defaultValue: string, options?: ITranslationOptions): TranslationResult;
+  t(
     key: string | string[],
-    defaultValue?: string,
-    options?: Options
-  ): TFunctionReturn<Namespace, string | string[], Options> {
-    if (defaultValue) {
-      return this.i18NextService.t(key, defaultValue, options);
-    } else {
-      return this.i18NextService.t(key, options);
+    defaultValueOrOptions?: string | ITranslationOptions,
+    options?: ITranslationOptions
+  ): TranslationResult {
+    if (typeof defaultValueOrOptions === 'string') {
+      return this.i18NextService.t(key, defaultValueOrOptions, options);
     }
+
+    if (defaultValueOrOptions === undefined) {
+      return this.i18NextService.t(key);
+    }
+
+    return this.i18NextService.t(key, defaultValueOrOptions);
   }
 
   /** Change the current language and reload resources */
   public async changeLanguage(langCode: string): Promise<void> {
     await this.waitForInit();
-    return this.i18NextService.changeLanguage(langCode);
+    await this.i18NextService.changeLanguage(langCode);
   }
 
   /** Get the current language */
@@ -185,23 +201,20 @@ export class TranslationService extends HttpClientService implements Service {
 
   public override getInitSubject(): Subject<any> {
     return this.subjects['init'];
-  } 
+  }
 
   override async waitForInit(): Promise<any> {
     if (this.translatorReady) {
       return this;
-    } 
-    if (_isUndefined(this.i18NextOpts)) {
-      this.initTranslator();
     }
-    return firstValueFrom(this.getInitSubject());
+    return this.initTranslator();
   }
 
   public override isInitializing(): boolean {
     return !this.translatorReady;
   }
 
-  public override getConfig(appName?:string) {
+  public override getConfig(appName?: string) {
     return this.config;
   }
 
@@ -224,7 +237,7 @@ export class TranslationService extends HttpClientService implements Service {
     return firstValueFrom(req$);
   }
 
-    /** List supported languages for current branding */
+  /** List supported languages for current branding */
   public async listLanguages(): Promise<{ code: string; displayName: string; }[]> {
     await this.waitForInit();
     const url = `${this.brandingAndPortalUrl}/locales`;
@@ -264,18 +277,18 @@ export class TranslationService extends HttpClientService implements Service {
       if (!sourceBundle || !sourceBundle.data) {
         throw new Error(`Source language ${sourceLocale} not found or has no data`);
       }
-      
+
       // Copy the source data to the new language
       const result = await this.setBundle(newLocale, namespace, sourceBundle.data);
-      
+
       // If display name is provided, update the bundle with it
       if (displayName) {
         await this.updateLanguageDisplayName(newLocale, namespace, displayName);
       }
-      
+
       // Now ensure all languages (including the new one) have lang-<langcode> entries for the language selector
       await this.ensureLanguageLabels(newLocale, namespace);
-      
+
       return result;
     } catch (error) {
       console.error(`Failed to create language ${newLocale} from ${sourceLocale}:`, error);
@@ -286,7 +299,7 @@ export class TranslationService extends HttpClientService implements Service {
   /** Update the display name for a language */
   public async updateLanguageDisplayName(locale: string, namespace = 'translation', displayName: string): Promise<any> {
     await this.waitForInit();
-    
+
     try {
       // Get current bundle
       const bundle = await this.getBundle(locale, namespace);
@@ -310,7 +323,7 @@ export class TranslationService extends HttpClientService implements Service {
     try {
       // Get all available languages
       const allLanguages = await this.listLanguages();
-      
+
       // For each language, ensure it has lang-<langcode> entries for all other languages
       for (const currentLang of allLanguages) {
         try {
@@ -326,7 +339,7 @@ export class TranslationService extends HttpClientService implements Service {
           for (const targetLang of allLanguages) {
             const langKey = `lang-${targetLang.code}`;
             if (!bundleData[langKey]) {
-              bundleData[langKey] =langKey;
+              bundleData[langKey] = langKey;
               needsUpdate = true;
             }
           }

@@ -2,9 +2,7 @@
 * Series of helper functions to simplify testing.
 */
 import { merge as _merge, isEmpty as _isEmpty } from "lodash-es";
-import {
-  I18NextLoadResult, I18NextModule, ITranslationService
-} from 'angular-i18next';
+import { InitOptions, TOptions } from 'i18next';
 /**
  * Returns stub for `ConfigService`.
  *
@@ -57,11 +55,11 @@ export function getStubConfigService(configBlock: any = null) {
   }
 
   return {
-    waitForInit: function() {
+    waitForInit: function () {
       return configBlock;
     },
 
-    getConfig: function() {
+    getConfig: function () {
       return configBlock;
     },
 
@@ -78,21 +76,51 @@ export function getStubConfigService(configBlock: any = null) {
  * @returns
  */
 export function getStubTranslationService(translationMap: any = null) {
-  if (_isEmpty()) {
+  if (_isEmpty(translationMap)) {
     translationMap = {
       "key1": "value1"
     }
   }
+
+  function applyInterpolation(
+    template: string,
+    defaultValueOrOptions?: string | TOptions,
+    options?: TOptions
+  ) {
+    const interpolationOptions = typeof defaultValueOrOptions === 'string' ? options : defaultValueOrOptions;
+    if (_isEmpty(interpolationOptions)) {
+      return template;
+    }
+
+    let value = template;
+    for (const [optionKey, optionValue] of Object.entries(interpolationOptions)) {
+      value = value.replaceAll(`{{${optionKey}}}`, String(optionValue));
+    }
+
+    return value;
+  }
+
   return {
     translationMap: translationMap,
-    waitForInit: function() {
+    translationChanges$: { pipe: () => ({ subscribe: () => ({ unsubscribe() {/* noop */ } }) }) },
+    waitForInit: function () {
       return true;
     },
-    isInitializing: function() {
+    isInitializing: function () {
       return false;
     },
-    t: function(key: string) {
-      return this.translationMap[key];
+    t: function (key: string, defaultValueOrOptions?: string | TOptions, options?: TOptions) {
+      const translation = this.translationMap[key];
+
+      if (translation !== undefined) {
+        return applyInterpolation(String(translation), defaultValueOrOptions, options);
+      }
+
+      if (typeof defaultValueOrOptions === 'string') {
+        return applyInterpolation(defaultValueOrOptions, defaultValueOrOptions, options);
+      }
+
+      return options?.defaultValue ?? defaultValueOrOptions?.defaultValue ?? key;
     }
   };
 }
@@ -104,13 +132,13 @@ export function getStubTranslationService(translationMap: any = null) {
  * @param loginResult
  * @returns
  */
-export function getStubUserService(username: string = '', password: string = '', loginResult: any = {url: '#greatsuccess', user: null}, userData: any = {}, rolesData: any = {}) {
+export function getStubUserService(username: string = '', password: string = '', loginResult: any = { url: '#greatsuccess', user: null }, userData: any = {}, rolesData: any = {}) {
 
   return {
-    waitForInit: function() {
+    waitForInit: function () {
       return true;
     },
-    isInitializing: function() {
+    isInitializing: function () {
       return false;
     },
     username: username,
@@ -159,23 +187,23 @@ export function getStubRecordService(recordData: any = {}) {
   return {
     baseUrl: 'base',
     brandingAndPortalUrl: 'base/default/rdmp',
-    waitForInit: function() {
+    waitForInit: function () {
       return this;
     },
-    isInitializing: function() {
+    isInitializing: function () {
       return false;
     },
-    getAllTypes: function() {
+    getAllTypes: function () {
       return recordData['types'];
-    },getDashboardType: function() {
+    }, getDashboardType: function () {
       return recordData['dashboardType'];
-    },getWorkflowSteps: function() {
+    }, getWorkflowSteps: function () {
       return recordData['step'];
-    },getRecords: function() {
+    }, getRecords: function () {
       return recordData['records'];
-    },getRelatedRecords: function() {
+    }, getRelatedRecords: function () {
       return recordData['relatedRecords'];
-    },getDeletedRecords: function() {
+    }, getDeletedRecords: function () {
       return recordData['deletedRecords'];
     }
   }
@@ -183,18 +211,9 @@ export function getStubRecordService(recordData: any = {}) {
 
 export const localeId = 'cimode';
 
-export function appInit(i18next: ITranslationService) {
+export function appInit(translationService: { waitForInit: () => Promise<any> | any }, _options?: InitOptions) {
   return () => {
-    let promise: Promise<I18NextLoadResult> = i18next.init({
-      lng: 'cimode',
-      // debug: true,
-      // appendNamespaceToCIMode: true,
-      // appendNamespaceToMissingKey: true,
-      interpolation: {
-        format: I18NextModule.interpolationFormat()
-      }
-    });
-    return promise;
+    return translationService.waitForInit();
   };
 }
 
@@ -203,16 +222,16 @@ export function getStubReportService(reportData: any = {}) {
   return {
     baseUrl: 'base',
     brandingAndPortalUrl: 'base/default/rdmp',
-    waitForInit: function() {
+    waitForInit: function () {
       return this;
     },
-    isInitializing: function() {
+    isInitializing: function () {
       return false;
     },
-    getReportResult: function(name: string, pageNum:number, params:any, rows:number = 10) {
+    getReportResult: function (name: string, pageNum: number, params: any, rows: number = 10) {
       return reportData.reportResult;
     },
-    getReportConfig: function(name: string) {
+    getReportConfig: function (name: string) {
       return reportData.reportConfig;
     }
   };
