@@ -34,7 +34,6 @@
     "@ngx-formly/core": "7.1.0",
     "@researchdatabox/sails-ng-common": "../packages/sails-ng-common",
     "@tmcw/togeojson": "7.1.2",
-    "angular-i18next": "21.0.0-3",
     "@tiptap/core": "3.22.2",
     "@tiptap/extension-link": "3.22.2",
     "@tiptap/extension-table": "3.22.2",

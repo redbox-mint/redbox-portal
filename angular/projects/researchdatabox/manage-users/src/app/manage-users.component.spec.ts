@@ -1,11 +1,9 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ManageUsersComponent } from './manage-users.component';
-import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, provideAppInitializer, runInInjectionContext } from '@angular/core';
+import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, runInInjectionContext } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import { FormsModule, FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import i18next from 'i18next';
-import { I18NextModule, StrictErrorHandlingStrategy, provideI18Next, withCustomErrorHandlingStrategy } from 'angular-i18next';
-import { UtilityService, LoggerService, TranslationService, ConfigService, UserService } from '@researchdatabox/portal-ng-common';
+import { UtilityService, LoggerService, TranslationService, ConfigService, UserService, I18NextPipe } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubUserService } from '@researchdatabox/portal-ng-common';
 import { ModalModule } from 'ngx-bootstrap/modal';
 
@@ -90,19 +88,6 @@ const auditRecords = [
   }
 ];
 
-export function i18AppInit() {
-  return () => {
-    if (i18next.isInitialized) {
-      return Promise.resolve(i18next);
-    }
-
-    return i18next.init({
-      fallbackLng: 'en',
-      debug: false
-    });
-  };
-}
-
 describe('ManageUsersComponent', () => {
   beforeEach(async () => {
     configService = getStubConfigService();
@@ -128,7 +113,7 @@ describe('ManageUsersComponent', () => {
       imports: [
         FormsModule,
         ReactiveFormsModule,
-        I18NextModule.forRoot(),
+        I18NextPipe,
         ModalModule.forRoot()
       ],
       providers: [
@@ -150,11 +135,7 @@ describe('ManageUsersComponent', () => {
         {
           provide: UserService,
           useValue: userService
-        },
-        provideAppInitializer(i18AppInit()),
-        provideI18Next(
-          withCustomErrorHandlingStrategy(StrictErrorHandlingStrategy)
-        )
+        }
       ]
     });
 
