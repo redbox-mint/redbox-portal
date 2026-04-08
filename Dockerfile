@@ -167,7 +167,7 @@ ENV PUPPETEER_SKIP_DOWNLOAD=1
 USER node
 
 FROM runtime_puppeteer_base AS runtime_pdfgen
-RUN npm install --omit=dev --no-save --package-lock=false \
+RUN npm install --omit=dev --save --package-lock=true \
     @researchdatabox/sails-hook-redbox-pdfgen
 USER root
 RUN apt-get purge -y --auto-remove git \
