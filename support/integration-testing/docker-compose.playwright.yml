@@ -68,7 +68,7 @@ x-rbportal-service: &rbportal-service
     - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
   stop_grace_period: 30m
   healthcheck:
-    test: ['CMD-SHELL', 'curl http://localhost:1500/default/rdmp/home']
+    test: ['CMD-SHELL', 'curl -fsS http://localhost:1500/default/rdmp/home']
     interval: '10s'
     timeout: '5s'
     retries: 10
@@ -116,7 +116,7 @@ services:
       - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
       - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     healthcheck:
-      test: ['CMD-SHELL', 'curl http://localhost:1500/default/rdmp/home']
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:1500/default/rdmp/home']
       interval: '10s'
       timeout: '5s'
       retries: 30

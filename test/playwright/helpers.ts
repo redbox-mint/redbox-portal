@@ -7,8 +7,9 @@ type AssetCheckResult = {
   url: string;
   ok: boolean;
   status: number;
-  size: number;
 };
+
+const assetFetchConcurrency = 4;
 
 export function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -56,24 +57,25 @@ export async function verifyAssets(page: Page, route: SmokeRoute, assetUrls: str
 
 async function fetchAssets(page: Page, assetUrls: string[]): Promise<AssetCheckResult[]> {
   const results: AssetCheckResult[] = [];
-  for (const url of assetUrls) {
-    try {
-      const response = await page.request.get(url);
-      const body = await response.text();
-      results.push({
-        url,
-        ok: response.ok(),
-        status: response.status(),
-        size: body.length
-      });
-    } catch {
-      results.push({
-        url,
-        ok: false,
-        status: 0,
-        size: 0
-      });
-    }
+  for (let index = 0; index < assetUrls.length; index += assetFetchConcurrency) {
+    const batch = assetUrls.slice(index, index + assetFetchConcurrency);
+    const batchResults = await Promise.all(batch.map(async (url): Promise<AssetCheckResult> => {
+      try {
+        const response = await page.request.get(url);
+        return {
+          url,
+          ok: response.ok(),
+          status: response.status()
+        };
+      } catch {
+        return {
+          url,
+          ok: false,
+          status: 0
+        };
+      }
+    }));
+    results.push(...batchResults);
   }
   return results;
 }
@@ -90,13 +92,9 @@ export async function assertSmokeRoute(page: Page, route: SmokeRoute, baseAssetI
   const selectorState = route.selectorState ?? 'visible';
 
   for (const selector of route.setupSelectors ?? []) {
-    await page.evaluate((setupSelector) => {
-      const element = document.querySelector(setupSelector);
-      if (!(element instanceof HTMLElement)) {
-        throw new Error(`Smoke route setup target not found: ${setupSelector}`);
-      }
-      element.click();
-    }, selector);
+    const locator = page.locator(selector).first();
+    await locator.waitFor({ state: 'attached' });
+    await locator.click();
   }
 
   for (const selector of route.requiredSelectors) {
