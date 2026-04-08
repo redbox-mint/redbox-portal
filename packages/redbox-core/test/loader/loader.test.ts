@@ -2,6 +2,7 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as path from 'path';
 import * as fs from 'fs';
+import * as vm from 'vm';
 const fsPromises = fs.promises;
 import * as os from 'os';
 
@@ -224,6 +225,8 @@ describe('redbox-loader', function () {
             const content = await fsPromises.readFile(path.join(formConfigDir, 'index.js'), 'utf8');
             expect(content).to.include("'hook-form'");
             expect(content).to.not.include("default-1.0-draft");
+            expect(content).to.not.include('{{{');
+            expect(() => new vm.Script(content)).to.not.throw();
         });
 
         it('should treat missing LOAD_DEFAULT_FORMS as hook-only', async function () {
@@ -330,6 +333,8 @@ describe('redbox-loader', function () {
             expect(content).to.include('coreBootstrap');
             expect(content).to.include('preLiftSetup');
             expect(content).to.include('module.exports.bootstrap');
+            expect(content).to.not.include('{{{');
+            expect(() => new vm.Script(content)).to.not.throw();
         });
 
         it('should generate bootstrap.js with hook bootstraps', async function () {
@@ -350,6 +355,8 @@ describe('redbox-loader', function () {
             expect(content).to.include("require('@org/another-hook')");
             expect(content).to.include("require('@org/dotted.hook')");
             expect(content).to.include('Hook bootstrap complete: test-hook');
+            expect(content).to.not.include('{{{');
+            expect(() => new vm.Script(content)).to.not.throw();
         });
 
         it('should not rewrite if content unchanged', async function () {
