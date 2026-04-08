@@ -647,7 +647,7 @@ export namespace Services {
 
       for (const rawEntry of entries) {
         const entry = this.normalizeEntry(rawEntry);
-        if (!entry.label || entry.value === null || entry.value === undefined) {
+        if (!entry.label || (!entry && entry !== '')) {
           skipped++;
           continue;
         }

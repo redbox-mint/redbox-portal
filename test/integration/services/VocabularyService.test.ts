@@ -84,7 +84,7 @@ describe('VocabularyService integration', function () {
         order: 1
       }).fetch();
 
-      try {
+      const invalidEntryValue = async function () {
         // value cannot be null or undefined on entry create
         await VocabularyEntry.create({
           vocabulary: vocabulary.id,
@@ -92,10 +92,9 @@ describe('VocabularyService integration', function () {
           value: undefined,
           parent: parent.id,
           order: 2
-        }).fetch();
-      } catch (error) {
-        expect(error.message).to.contain('VocabularyEntry.value is required');
-      }
+        })
+      };
+      expect(invalidEntryValue).to.throw('VocabularyEntry.value is required');
 
       const tree = await VocabularyService.getTree(vocabulary.id);
       expect(tree).to.have.length(1);
