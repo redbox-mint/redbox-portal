@@ -13,7 +13,7 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
   if ((isCreate || hasLabel) && !label) {
     throw new Error('VocabularyEntry.label is required');
   }
-  if ((isCreate || hasValue) && !value) {
+  if ((isCreate || hasValue) && !value && value !== '') {
     throw new Error('VocabularyEntry.value is required');
   }
 
@@ -155,13 +155,13 @@ export class VocabularyEntryClass {
   @Attr({ type: 'string', required: true })
   public label!: string;
 
-  @Attr({ type: 'string', defaultsTo: '__AUTO__' })
+  @Attr({ type: 'string' })
   public labelLower!: string;
 
-  @Attr({ type: 'string', required: true })
+  @Attr({ type: 'string' })
   public value!: string;
 
-  @Attr({ type: 'string', defaultsTo: '__AUTO__' })
+  @Attr({ type: 'string' })
   public valueLower!: string;
 
   @BelongsTo('vocabularyentry')
