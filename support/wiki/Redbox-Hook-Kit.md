@@ -1,11 +1,11 @@
-# Redbox Hook Kit
+# Redbox Dev Tools
 
-The `@researchdatabox/redbox-dev-tools` package provides TypeScript tooling and shared configuration for developing ReDBox customisation hooks.
+The `@researchdatabox/redbox-dev-tools` package provides shared configuration, generators, and migration tooling for developing ReDBox customisation hooks.
 
 ## Overview
 
 This package provides:
-- **TypeScript tooling** - Pre-configured TypeScript, ts-node, and type definitions
+- **Shared TypeScript configuration** - Pre-configured TypeScript settings and type definitions
 - **Shared configuration** - Base `tsconfig.json` following ReDBox conventions
 - **CLI scaffolding** - Quick project initialization with `npx`
 - **Version alignment** - Versioned to match ReDBox core releases
@@ -51,14 +51,14 @@ Your hook's `tsconfig.json` should extend the shared configuration:
 }
 ```
 
-> **Note:** The `typeRoots` configuration allows TypeScript to find type definitions from the hook-kit's dependencies.
+> **Note:** The `typeRoots` configuration allows TypeScript to find type definitions from the dev tools package dependencies.
 
 ## Compiling TypeScript
 
-Use the provided `redbox-tsc` wrapper:
+Compile hooks with plain `tsc` while extending the shared base configuration:
 
 ```bash
-npx redbox-tsc
+npx tsc -p tsconfig.json
 ```
 
 Or add to your `package.json` scripts:
@@ -66,8 +66,8 @@ Or add to your `package.json` scripts:
 ```json
 {
     "scripts": {
-        "build": "redbox-tsc",
-        "watch": "redbox-tsc --watch"
+        "build": "tsc -p tsconfig.json",
+        "watch": "tsc -p tsconfig.json --watch"
     }
 }
 ```
@@ -102,7 +102,7 @@ For webservice controllers, export `registerRedboxWebserviceControllers()` inste
 
 ## Included Dependencies
 
-The hook-kit includes these development dependencies:
+The dev tools package includes these development dependencies:
 - `typescript` - TypeScript compiler
 - `ts-node` - TypeScript execution environment
 - `@tsconfig/node24` - Base TypeScript configuration for Node.js 24

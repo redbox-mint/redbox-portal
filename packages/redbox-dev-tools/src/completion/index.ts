@@ -8,14 +8,16 @@ type CompletionSpec = {
 
 function getCompletionSpec(): CompletionSpec {
   const globalOptions = ['--root', '--core-types-root', '--angular-root', '--dry-run', '-h', '--help', '-V', '--version'];
-  const topLevelCommands = ['init', 'generate', 'g', 'install-skills', 'skills', 'migrate-form-config', 'completion', 'help'];
+  const topLevelCommands = ['init', 'check', 'migrate-hook-dependencies', 'generate', 'g', 'install-skills', 'skills', 'migrate-form-config', 'completion', 'help'];
   const generateCommands = ['controller', 'service', 'method', 'angular-app', 'angular-service', 'form-component', 'form-field', 'model'];
 
   const commandOptions: Record<string, string[]> = {
     'migrate-form-config': ['-i', '--input', '-o', '--output'],
+    'check': [],
     'completion': [],
     'init': [],
     'install-skills': [],
+    'migrate-hook-dependencies': [],
     'skills': [],
     'generate controller': ['--actions', '--webservice', '--class-name', '--route', '--routes', '--nav', '--lang', '--auth'],
     'generate service': ['--methods'],
@@ -81,9 +83,11 @@ _redbox_hook_kit_completion() {
   local opts=""
   case "\${words[1]}" in
     "migrate-form-config") opts="-i --input -o --output" ;;
+    "check") opts="" ;;
     "completion") opts="" ;;
     "init") opts="" ;;
     "install-skills") opts="" ;;
+    "migrate-hook-dependencies") opts="" ;;
     "skills") opts="" ;;
     *) opts="" ;;
   esac
@@ -165,7 +169,7 @@ Register-ArgumentCompleter -Native -CommandName redbox-dev-tools -ScriptBlock {
   param($wordToComplete, $commandAst, $cursorPosition)
   $tokens = $commandAst.CommandElements | ForEach-Object { $_.Extent.Text }
   $global = @('--root','--core-types-root','--angular-root','--dry-run','-h','--help','-V','--version')
-  $top = @('init','generate','g','install-skills','skills','migrate-form-config','completion','help')
+  $top = @('init','check','migrate-hook-dependencies','generate','g','install-skills','skills','migrate-form-config','completion','help')
   $generateSub = @('controller','service','method','angular-app','angular-service','form-field','model')
 
   if ($tokens.Count -le 2) {

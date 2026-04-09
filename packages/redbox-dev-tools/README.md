@@ -1,14 +1,14 @@
-# ReDBox Hook Kit
+# ReDBox Dev Tools
 
-A development toolkit for creating ReDBox customisation hooks with TypeScript support.
+A development toolkit for creating and maintaining ReDBox customisation hooks.
 
 ## Overview
 
-The `@researchdatabox/redbox-dev-tools` package provides all the necessary TypeScript tooling and shared configuration for developing ReDBox hook projects. It ensures consistency across hook implementations and simplifies dependency management.
+The `@researchdatabox/redbox-dev-tools` package provides shared configuration, generators, and migration tooling for developing ReDBox hook projects. It ensures consistency across hook implementations and simplifies dependency management.
 
 ## Features
 
-- **TypeScript tooling**: Pre-configured TypeScript, ts-node, and type definitions
+- **Shared TypeScript configuration**: Pre-configured TypeScript settings and type definitions
 - **Shared configuration**: Base `tsconfig.json` that follows ReDBox conventions
 - **CLI scaffolding**: Quick project initialization with `npx`
 - **Type safety**: Includes ReDBox core types as peer dependency
@@ -18,7 +18,6 @@ The `@researchdatabox/redbox-dev-tools` package provides all the necessary TypeS
 
 ```bash
 npm install --save-dev @researchdatabox/redbox-dev-tools
-npm install @researchdatabox/redbox-core
 ```
 
 ## Quick Start
@@ -31,8 +30,9 @@ npx @researchdatabox/redbox-dev-tools init
 
 This will:
 
-- Create the `typescript/api/controllers/` directory structure
+- Create the `src/api/controllers/` directory structure
 - Generate a `tsconfig.json` that extends the shared base configuration
+- Update `package.json` to the minimal hook dependency contract
 - Create a sample controller to get you started
 
 ## TypeScript Configuration
@@ -43,22 +43,21 @@ Your hook project's `tsconfig.json` should extend the shared configuration:
 {
   "extends": "@researchdatabox/redbox-dev-tools/config/tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./",
-    "rootDir": "./typescript",
+    "outDir": "./dist",
     "typeRoots": ["node_modules/@types", "node_modules/@researchdatabox/redbox-dev-tools/node_modules/@types"]
   },
-  "include": ["typescript/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts"]
 }
 ```
 
-**Note:** The `typeRoots` configuration is necessary to allow TypeScript to find type definitions from the hook-kit's dependencies.
+**Note:** The `typeRoots` configuration is necessary to allow TypeScript to find type definitions from the dev tools package's dependencies.
 
 ## Compiling TypeScript
 
-Compile your TypeScript code using the provided `redbox-tsc` wrapper:
+Compile your TypeScript code using the toolchain provided by dev tools:
 
 ```bash
-npx redbox-tsc
+node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json
 ```
 
 Or add it to your `package.json` scripts:
@@ -66,8 +65,7 @@ Or add it to your `package.json` scripts:
 ```json
 {
   "scripts": {
-    "build": "redbox-tsc",
-    "watch": "redbox-tsc --watch"
+    "compile": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json"
   }
 }
 ```
@@ -75,7 +73,7 @@ Or add it to your `package.json` scripts:
 Then run:
 
 ```bash
-npm run build
+npm run compile
 ```
 
 ## Example Controller
@@ -98,21 +96,30 @@ export module Controllers {
 module.exports = new Controllers.MyController().exports();
 ```
 
-## Dependencies Included
+## Shared Dependency Contract
 
-This package includes the following development dependencies:
+Hooks should declare only:
 
-- `typescript` - TypeScript compiler
-- `ts-node` - TypeScript execution environment
-- `@tsconfig/node24` - Base TypeScript configuration for Node.js 24
-- `@types/node` - Node.js type definitions
-- `@types/lodash` - Lodash type definitions
-- `lodash` - Utility library
-- `rxjs` - Reactive extensions
+- `peerDependencies.@researchdatabox/redbox-core`
+- `devDependencies.@researchdatabox/redbox-dev-tools`
+- direct `dependencies` for hook-owned runtime libraries only
 
-## Peer Dependencies
+Do not directly declare shared Redbox runtime or toolchain packages in a hook if they are already supplied by the core or dev-tools contract. That includes `axios`, `rxjs`, `lodash`, `mocha`, `chai`, `ts-node`, and `typescript`.
 
-- `@researchdatabox/redbox-core` - ReDBox core type definitions (required)
+`redbox-dev-tools` directly provides the shared hook authoring toolchain:
+
+- `typescript`
+- `ts-node`
+- `mocha`
+- `chai`
+- `@types/node`
+- `@types/mocha`
+- `@types/chai`
+- `@types/lodash`
+
+For hook tests and authoring utilities, `redbox-dev-tools` also exposes shared resolution helpers via `@researchdatabox/redbox-dev-tools/testing` and `@researchdatabox/redbox-dev-tools/runtime-resolver`. These are for development-time use only. Hook runtime code should continue to import normal runtime packages such as `axios` and `rxjs` directly and rely on the Redbox host contract to provide them. The shared TypeScript config prefers resolving those runtime modules from the installed `@researchdatabox/redbox-core` dependency tree, and only falls back to the `redbox-dev-tools` install when package manager flattening hoists them there.
+
+`@researchdatabox/redbox-core` is the runtime compatibility contract for hooks. It supplies the approved shared runtime dependency surface that hook authors may rely on implicitly, including `axios`, `rxjs`, and `lodash`.
 
 ## Versioning
 
@@ -126,6 +133,22 @@ Initialize a new ReDBox hook project with TypeScript setup.
 
 ```bash
 npx @researchdatabox/redbox-dev-tools init
+```
+
+### `check`
+
+Validate that the current hook package does not directly pin shared Redbox runtime or toolchain dependencies.
+
+```bash
+npx @researchdatabox/redbox-dev-tools check
+```
+
+### `migrate-hook-dependencies`
+
+Rewrite the current hook `package.json` to the minimal shared dependency contract.
+
+```bash
+npx @researchdatabox/redbox-dev-tools migrate-hook-dependencies
 ```
 
 ### `install-skills`
