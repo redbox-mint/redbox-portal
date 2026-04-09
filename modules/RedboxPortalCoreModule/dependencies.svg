@@ -26,177 +26,177 @@
 </g>
 <g id="clust6" class="cluster">
 <title>cluster_RedboxPortalCoreModule_exports</title>
-<polygon fill="none" stroke="black" points="692,-208 692,-260 1032,-260 1032,-208 692,-208"/>
-</g>
-<g id="clust2" class="cluster">
-<title>cluster_RedboxPortalCoreModule_declarations</title>
-<polygon fill="none" stroke="black" points="1442,-78 1442,-130 1775,-130 1775,-78 1442,-78"/>
+<polygon fill="none" stroke="black" points="727,-208 727,-260 1067,-260 1067,-208 727,-208"/>
 </g>
 <g id="clust8" class="cluster">
 <title>cluster_RedboxPortalCoreModule_providers</title>
-<polygon fill="none" stroke="black" points="16,-78 16,-130 1434,-130 1434,-78 16,-78"/>
+<polygon fill="none" stroke="black" points="357,-78 357,-130 1775,-130 1775,-78 357,-78"/>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_RedboxPortalCoreModule_declarations</title>
+<polygon fill="none" stroke="black" points="16,-78 16,-130 349,-130 349,-78 16,-78"/>
 </g>
 <!-- HeaderSortComponent -->
 <g id="node1" class="node">
 <title>HeaderSortComponent</title>
-<polygon fill="#ffffb3" stroke="black" points="1766.58,-122 1621.42,-122 1621.42,-86 1766.58,-86 1766.58,-122"/>
-<text text-anchor="middle" x="1694" y="-99.8" font-family="Times,serif" font-size="14.00">HeaderSortComponent</text>
+<polygon fill="#ffffb3" stroke="black" points="340.58,-122 195.42,-122 195.42,-86 340.58,-86 340.58,-122"/>
+<text text-anchor="middle" x="268" y="-99.8" font-family="Times,serif" font-size="14.00">HeaderSortComponent</text>
 </g>
 <!-- RedboxPortalCoreModule -->
 <g id="node3" class="node">
 <title>RedboxPortalCoreModule</title>
-<polygon fill="#8dd3c7" stroke="black" points="945.75,-187 942.75,-191 921.75,-191 918.75,-187 782.25,-187 782.25,-151 945.75,-151 945.75,-187"/>
-<text text-anchor="middle" x="864" y="-164.8" font-family="Times,serif" font-size="14.00">RedboxPortalCoreModule</text>
+<polygon fill="#8dd3c7" stroke="black" points="980.75,-187 977.75,-191 956.75,-191 953.75,-187 817.25,-187 817.25,-151 980.75,-151 980.75,-187"/>
+<text text-anchor="middle" x="899" y="-164.8" font-family="Times,serif" font-size="14.00">RedboxPortalCoreModule</text>
 </g>
 <!-- HeaderSortComponent&#45;&gt;RedboxPortalCoreModule -->
 <g id="edge1" class="edge">
 <title>HeaderSortComponent&#45;&gt;RedboxPortalCoreModule</title>
-<path fill="none" stroke="black" d="M1694,-122.01C1694,-144.49 1694,-180 1694,-180 1694,-180 955.86,-180 955.86,-180"/>
-<polygon fill="black" stroke="black" points="955.86,-176.5 945.86,-180 955.86,-183.5 955.86,-176.5"/>
+<path fill="none" stroke="black" d="M268,-122.13C268,-142.57 268,-173 268,-173 268,-173 807.15,-173 807.15,-173"/>
+<polygon fill="black" stroke="black" points="807.15,-176.5 817.15,-173 807.15,-169.5 807.15,-176.5"/>
 </g>
 <!-- RecordTableComponent -->
 <g id="node2" class="node">
 <title>RecordTableComponent</title>
-<polygon fill="#ffffb3" stroke="black" points="1603.63,-122 1450.37,-122 1450.37,-86 1603.63,-86 1603.63,-122"/>
-<text text-anchor="middle" x="1527" y="-99.8" font-family="Times,serif" font-size="14.00">RecordTableComponent</text>
+<polygon fill="#ffffb3" stroke="black" points="177.63,-122 24.37,-122 24.37,-86 177.63,-86 177.63,-122"/>
+<text text-anchor="middle" x="101" y="-99.8" font-family="Times,serif" font-size="14.00">RecordTableComponent</text>
 </g>
 <!-- RecordTableComponent&#45;&gt;RedboxPortalCoreModule -->
 <g id="edge2" class="edge">
 <title>RecordTableComponent&#45;&gt;RedboxPortalCoreModule</title>
-<path fill="none" stroke="black" d="M1527,-122.13C1527,-142.57 1527,-173 1527,-173 1527,-173 955.96,-173 955.96,-173"/>
-<polygon fill="black" stroke="black" points="955.96,-169.5 945.96,-173 955.96,-176.5 955.96,-169.5"/>
+<path fill="none" stroke="black" d="M101,-122.01C101,-144.49 101,-180 101,-180 101,-180 806.98,-180 806.98,-180"/>
+<polygon fill="black" stroke="black" points="806.98,-183.5 816.98,-180 806.98,-176.5 806.98,-183.5"/>
 </g>
 <!-- HeaderSortComponent  -->
 <g id="node4" class="node">
 <title>HeaderSortComponent </title>
-<polygon fill="#fb8072" stroke="black" points="1024.08,-252 875.92,-252 875.92,-216 1024.08,-216 1024.08,-252"/>
-<text text-anchor="middle" x="950" y="-229.8" font-family="Times,serif" font-size="14.00">HeaderSortComponent </text>
+<polygon fill="#fb8072" stroke="black" points="1059.08,-252 910.92,-252 910.92,-216 1059.08,-216 1059.08,-252"/>
+<text text-anchor="middle" x="985" y="-229.8" font-family="Times,serif" font-size="14.00">HeaderSortComponent </text>
 </g>
 <!-- RedboxPortalCoreModule&#45;&gt;HeaderSortComponent  -->
 <g id="edge3" class="edge">
 <title>RedboxPortalCoreModule&#45;&gt;HeaderSortComponent </title>
-<path fill="none" stroke="black" stroke-dasharray="5,2" d="M910.79,-187.11C910.79,-187.11 910.79,-205.99 910.79,-205.99"/>
-<polygon fill="black" stroke="black" points="907.29,-205.99 910.79,-215.99 914.29,-205.99 907.29,-205.99"/>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M945.79,-187.11C945.79,-187.11 945.79,-205.99 945.79,-205.99"/>
+<polygon fill="black" stroke="black" points="942.29,-205.99 945.79,-215.99 949.29,-205.99 942.29,-205.99"/>
 </g>
 <!-- RecordTableComponent  -->
 <g id="node5" class="node">
 <title>RecordTableComponent </title>
-<polygon fill="#fb8072" stroke="black" points="857.63,-252 700.37,-252 700.37,-216 857.63,-216 857.63,-252"/>
-<text text-anchor="middle" x="779" y="-229.8" font-family="Times,serif" font-size="14.00">RecordTableComponent </text>
+<polygon fill="#fb8072" stroke="black" points="892.63,-252 735.37,-252 735.37,-216 892.63,-216 892.63,-252"/>
+<text text-anchor="middle" x="814" y="-229.8" font-family="Times,serif" font-size="14.00">RecordTableComponent </text>
 </g>
 <!-- RedboxPortalCoreModule&#45;&gt;RecordTableComponent  -->
 <g id="edge4" class="edge">
 <title>RedboxPortalCoreModule&#45;&gt;RecordTableComponent </title>
-<path fill="none" stroke="black" stroke-dasharray="5,2" d="M819.84,-187.11C819.84,-187.11 819.84,-205.99 819.84,-205.99"/>
-<polygon fill="black" stroke="black" points="816.34,-205.99 819.84,-215.99 823.34,-205.99 816.34,-205.99"/>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M854.84,-187.11C854.84,-187.11 854.84,-205.99 854.84,-205.99"/>
+<polygon fill="black" stroke="black" points="851.34,-205.99 854.84,-215.99 858.34,-205.99 851.34,-205.99"/>
 </g>
 <!-- AppConfigService -->
 <g id="node6" class="node">
 <title>AppConfigService</title>
-<ellipse fill="#fdb462" stroke="black" cx="1343" cy="-104" rx="83.39" ry="18"/>
-<text text-anchor="middle" x="1343" y="-99.8" font-family="Times,serif" font-size="14.00">AppConfigService</text>
+<ellipse fill="#fdb462" stroke="black" cx="1684" cy="-104" rx="83.39" ry="18"/>
+<text text-anchor="middle" x="1684" y="-99.8" font-family="Times,serif" font-size="14.00">AppConfigService</text>
 </g>
 <!-- AppConfigService&#45;&gt;RedboxPortalCoreModule -->
 <g id="edge5" class="edge">
 <title>AppConfigService&#45;&gt;RedboxPortalCoreModule</title>
-<path fill="none" stroke="black" d="M1343,-122.27C1343,-140.56 1343,-166 1343,-166 1343,-166 955.8,-166 955.8,-166"/>
-<polygon fill="black" stroke="black" points="955.8,-162.5 945.8,-166 955.8,-169.5 955.8,-162.5"/>
+<path fill="none" stroke="black" d="M1684,-122.01C1684,-144.49 1684,-180 1684,-180 1684,-180 990.79,-180 990.79,-180"/>
+<polygon fill="black" stroke="black" points="990.79,-176.5 980.79,-180 990.79,-183.5 990.79,-176.5"/>
 </g>
 <!-- ConfigService -->
 <g id="node7" class="node">
 <title>ConfigService</title>
-<ellipse fill="#fdb462" stroke="black" cx="1175" cy="-104" rx="66.63" ry="18"/>
-<text text-anchor="middle" x="1175" y="-99.8" font-family="Times,serif" font-size="14.00">ConfigService</text>
+<ellipse fill="#fdb462" stroke="black" cx="1516" cy="-104" rx="66.63" ry="18"/>
+<text text-anchor="middle" x="1516" y="-99.8" font-family="Times,serif" font-size="14.00">ConfigService</text>
 </g>
 <!-- ConfigService&#45;&gt;RedboxPortalCoreModule -->
 <g id="edge6" class="edge">
 <title>ConfigService&#45;&gt;RedboxPortalCoreModule</title>
-<path fill="none" stroke="black" d="M1175,-122.01C1175,-138.05 1175,-159 1175,-159 1175,-159 956.12,-159 956.12,-159"/>
-<polygon fill="black" stroke="black" points="956.12,-155.5 946.12,-159 956.12,-162.5 956.12,-155.5"/>
+<path fill="none" stroke="black" d="M1516,-122.13C1516,-142.57 1516,-173 1516,-173 1516,-173 990.93,-173 990.93,-173"/>
+<polygon fill="black" stroke="black" points="990.93,-169.5 980.93,-173 990.93,-176.5 990.93,-169.5"/>
 </g>
 <!-- CsrfInterceptor -->
 <g id="node8" class="node">
 <title>CsrfInterceptor</title>
-<ellipse fill="#fdb462" stroke="black" cx="1020" cy="-104" rx="70.04" ry="18"/>
-<text text-anchor="middle" x="1020" y="-99.8" font-family="Times,serif" font-size="14.00">CsrfInterceptor</text>
+<ellipse fill="#fdb462" stroke="black" cx="1361" cy="-104" rx="70.04" ry="18"/>
+<text text-anchor="middle" x="1361" y="-99.8" font-family="Times,serif" font-size="14.00">CsrfInterceptor</text>
 </g>
 <!-- CsrfInterceptor&#45;&gt;RedboxPortalCoreModule -->
 <g id="edge7" class="edge">
 <title>CsrfInterceptor&#45;&gt;RedboxPortalCoreModule</title>
-<path fill="none" stroke="black" d="M949.82,-104C943.19,-104 938.88,-104 938.88,-104 938.88,-104 938.88,-140.89 938.88,-140.89"/>
-<polygon fill="black" stroke="black" points="935.38,-140.89 938.88,-150.89 942.38,-140.89 935.38,-140.89"/>
+<path fill="none" stroke="black" d="M1361,-122.27C1361,-140.56 1361,-166 1361,-166 1361,-166 990.8,-166 990.8,-166"/>
+<polygon fill="black" stroke="black" points="990.8,-162.5 980.8,-166 990.8,-169.5 990.8,-162.5"/>
 </g>
 <!-- LoggerService -->
 <g id="node9" class="node">
 <title>LoggerService</title>
-<ellipse fill="#fdb462" stroke="black" cx="864" cy="-104" rx="67.76" ry="18"/>
-<text text-anchor="middle" x="864" y="-99.8" font-family="Times,serif" font-size="14.00">LoggerService</text>
+<ellipse fill="#fdb462" stroke="black" cx="1205" cy="-104" rx="67.76" ry="18"/>
+<text text-anchor="middle" x="1205" y="-99.8" font-family="Times,serif" font-size="14.00">LoggerService</text>
 </g>
 <!-- LoggerService&#45;&gt;RedboxPortalCoreModule -->
 <g id="edge8" class="edge">
 <title>LoggerService&#45;&gt;RedboxPortalCoreModule</title>
-<path fill="none" stroke="black" d="M864,-122.11C864,-122.11 864,-140.99 864,-140.99"/>
-<polygon fill="black" stroke="black" points="860.5,-140.99 864,-150.99 867.5,-140.99 860.5,-140.99"/>
+<path fill="none" stroke="black" d="M1205,-122.01C1205,-138.05 1205,-159 1205,-159 1205,-159 991,-159 991,-159"/>
+<polygon fill="black" stroke="black" points="991,-155.5 981,-159 991,-162.5 991,-155.5"/>
 </g>
 <!-- RecordService -->
 <g id="node10" class="node">
 <title>RecordService</title>
-<ellipse fill="#fdb462" stroke="black" cx="710" cy="-104" rx="67.75" ry="18"/>
-<text text-anchor="middle" x="710" y="-99.8" font-family="Times,serif" font-size="14.00">RecordService</text>
+<ellipse fill="#fdb462" stroke="black" cx="1051" cy="-104" rx="67.75" ry="18"/>
+<text text-anchor="middle" x="1051" y="-99.8" font-family="Times,serif" font-size="14.00">RecordService</text>
 </g>
 <!-- RecordService&#45;&gt;RedboxPortalCoreModule -->
 <g id="edge9" class="edge">
 <title>RecordService&#45;&gt;RedboxPortalCoreModule</title>
-<path fill="none" stroke="black" d="M778.12,-104C784.78,-104 789.12,-104 789.12,-104 789.12,-104 789.12,-140.89 789.12,-140.89"/>
-<polygon fill="black" stroke="black" points="785.62,-140.89 789.12,-150.89 792.62,-140.89 785.62,-140.89"/>
+<path fill="none" stroke="black" d="M982.94,-104C976.94,-104 973.08,-104 973.08,-104 973.08,-104 973.08,-140.89 973.08,-140.89"/>
+<polygon fill="black" stroke="black" points="969.58,-140.89 973.08,-150.89 976.58,-140.89 969.58,-140.89"/>
 </g>
 <!-- ReportService -->
 <g id="node11" class="node">
 <title>ReportService</title>
-<ellipse fill="#fdb462" stroke="black" cx="558" cy="-104" rx="66.05" ry="18"/>
-<text text-anchor="middle" x="558" y="-99.8" font-family="Times,serif" font-size="14.00">ReportService</text>
+<ellipse fill="#fdb462" stroke="black" cx="899" cy="-104" rx="66.05" ry="18"/>
+<text text-anchor="middle" x="899" y="-99.8" font-family="Times,serif" font-size="14.00">ReportService</text>
 </g>
 <!-- ReportService&#45;&gt;RedboxPortalCoreModule -->
 <g id="edge10" class="edge">
 <title>ReportService&#45;&gt;RedboxPortalCoreModule</title>
-<path fill="none" stroke="black" d="M558,-122.01C558,-138.05 558,-159 558,-159 558,-159 772,-159 772,-159"/>
-<polygon fill="black" stroke="black" points="772,-162.5 782,-159 772,-155.5 772,-162.5"/>
+<path fill="none" stroke="black" d="M899,-122.11C899,-122.11 899,-140.99 899,-140.99"/>
+<polygon fill="black" stroke="black" points="895.5,-140.99 899,-150.99 902.5,-140.99 895.5,-140.99"/>
 </g>
 <!-- TranslationService -->
 <g id="node12" class="node">
 <title>TranslationService</title>
-<ellipse fill="#fdb462" stroke="black" cx="390" cy="-104" rx="83.94" ry="18"/>
-<text text-anchor="middle" x="390" y="-99.8" font-family="Times,serif" font-size="14.00">TranslationService</text>
+<ellipse fill="#fdb462" stroke="black" cx="731" cy="-104" rx="83.94" ry="18"/>
+<text text-anchor="middle" x="731" y="-99.8" font-family="Times,serif" font-size="14.00">TranslationService</text>
 </g>
 <!-- TranslationService&#45;&gt;RedboxPortalCoreModule -->
 <g id="edge11" class="edge">
 <title>TranslationService&#45;&gt;RedboxPortalCoreModule</title>
-<path fill="none" stroke="black" d="M390,-122.27C390,-140.56 390,-166 390,-166 390,-166 772.25,-166 772.25,-166"/>
-<polygon fill="black" stroke="black" points="772.25,-169.5 782.25,-166 772.25,-162.5 772.25,-169.5"/>
+<path fill="none" stroke="black" d="M815.23,-104C821.2,-104 824.92,-104 824.92,-104 824.92,-104 824.92,-140.89 824.92,-140.89"/>
+<polygon fill="black" stroke="black" points="821.43,-140.89 824.92,-150.89 828.43,-140.89 821.43,-140.89"/>
 </g>
 <!-- UserService -->
 <g id="node13" class="node">
 <title>UserService</title>
-<ellipse fill="#fdb462" stroke="black" cx="230" cy="-104" rx="58.44" ry="18"/>
-<text text-anchor="middle" x="230" y="-99.8" font-family="Times,serif" font-size="14.00">UserService</text>
+<ellipse fill="#fdb462" stroke="black" cx="571" cy="-104" rx="58.44" ry="18"/>
+<text text-anchor="middle" x="571" y="-99.8" font-family="Times,serif" font-size="14.00">UserService</text>
 </g>
 <!-- UserService&#45;&gt;RedboxPortalCoreModule -->
 <g id="edge12" class="edge">
 <title>UserService&#45;&gt;RedboxPortalCoreModule</title>
-<path fill="none" stroke="black" d="M230,-122.13C230,-142.57 230,-173 230,-173 230,-173 772.09,-173 772.09,-173"/>
-<polygon fill="black" stroke="black" points="772.09,-176.5 782.09,-173 772.09,-169.5 772.09,-176.5"/>
+<path fill="none" stroke="black" d="M571,-122.01C571,-138.05 571,-159 571,-159 571,-159 807.08,-159 807.08,-159"/>
+<polygon fill="black" stroke="black" points="807.08,-162.5 817.08,-159 807.08,-155.5 807.08,-162.5"/>
 </g>
 <!-- UtilityService -->
 <g id="node14" class="node">
 <title>UtilityService</title>
-<ellipse fill="#fdb462" stroke="black" cx="89" cy="-104" rx="65.42" ry="18"/>
-<text text-anchor="middle" x="89" y="-99.8" font-family="Times,serif" font-size="14.00">UtilityService</text>
+<ellipse fill="#fdb462" stroke="black" cx="430" cy="-104" rx="65.42" ry="18"/>
+<text text-anchor="middle" x="430" y="-99.8" font-family="Times,serif" font-size="14.00">UtilityService</text>
 </g>
 <!-- UtilityService&#45;&gt;RedboxPortalCoreModule -->
 <g id="edge13" class="edge">
 <title>UtilityService&#45;&gt;RedboxPortalCoreModule</title>
-<path fill="none" stroke="black" d="M89,-122.01C89,-144.49 89,-180 89,-180 89,-180 772.16,-180 772.16,-180"/>
-<polygon fill="black" stroke="black" points="772.16,-183.5 782.16,-180 772.16,-176.5 772.16,-183.5"/>
+<path fill="none" stroke="black" d="M430,-122.27C430,-140.56 430,-166 430,-166 430,-166 807.04,-166 807.04,-166"/>
+<polygon fill="black" stroke="black" points="807.04,-169.5 817.04,-166 807.04,-162.5 807.04,-169.5"/>
 </g>
 </g>
 </svg>
