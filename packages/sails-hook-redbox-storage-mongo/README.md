@@ -16,7 +16,7 @@ This package provides the MongoDB-backed storage service, models, and config reg
 ## Runtime integration
 
 - The package builds from `src/` to `dist/`
-- `redbox-loader` consumes `registerRedboxModels()`, `registerRedboxServices()`, and `registerRedboxConfig()` from the built entrypoint
+- The `@researchdatabox/redbox-core` loader consumes `registerRedboxModels()`, `registerRedboxServices()`, and `registerRedboxConfig()` from the built entrypoint
 - Service/model names remain `MongoStorageService`, `Record`, `DeletedRecord`, and `RecordAudit`
 
 ## Configuration

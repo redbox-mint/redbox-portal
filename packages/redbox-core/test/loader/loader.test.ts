@@ -1,25 +1,11 @@
-
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
 import * as path from 'path';
 import * as fs from 'fs';
+import * as vm from 'vm';
 const fsPromises = fs.promises;
 import * as os from 'os';
 
-// Resolve redbox-loader path dynamically to support running from:
-// 1. TypeScript source: typescript/test/integration/redbox-loader.test.ts (needs ../../../)
-// 2. Compiled JavaScript: test/integration/redbox-loader.test.js (needs ../../)
-const possiblePaths = [
-    path.resolve(__dirname, '../../../redbox-loader.js'),
-    path.resolve(__dirname, '../../redbox-loader.js')
-];
-
-const loaderPath = possiblePaths.find(p => fs.existsSync(p));
-
-if (!loaderPath) {
-    throw new Error(`Could not find redbox-loader.js. Searched in: ${possiblePaths.join(', ')}`);
-}
-
-const redboxLoader = require(loaderPath);
+import * as redboxLoader from '../../src/loader';
 
 describe('redbox-loader', function () {
     this.timeout(10000);
@@ -29,6 +15,7 @@ describe('redbox-loader', function () {
     let originalEnv: NodeJS.ProcessEnv;
 
     before(async function () {
+        ({ expect } = await import('chai'));
         // Ensure we can load the module and it doesn't crash
         expect(redboxLoader).to.be.an('object');
     });
@@ -171,6 +158,9 @@ describe('redbox-loader', function () {
 
             const result = await redboxLoader.generateAllShims(sandboxDir, { forceRegenerate: true });
             expect(result.skipped).to.be.false;
+            if (result.skipped) {
+                throw new Error('Expected shim generation to run');
+            }
             expect(result.stats).to.exist;
         });
 
@@ -200,6 +190,9 @@ describe('redbox-loader', function () {
         it('should include bootstrapStats in result', async function () {
             const result = await redboxLoader.generateAllShims(sandboxDir, { forceRegenerate: true });
             expect(result.skipped).to.be.false;
+            if (result.skipped) {
+                throw new Error('Expected shim generation to run');
+            }
             expect(result.stats.bootstrapStats).to.exist;
             expect(result.stats.bootstrapStats.total).to.equal(1);
             expect(result.stats.bootstrapStats.hookCount).to.be.a('number');
@@ -232,6 +225,8 @@ describe('redbox-loader', function () {
             const content = await fsPromises.readFile(path.join(formConfigDir, 'index.js'), 'utf8');
             expect(content).to.include("'hook-form'");
             expect(content).to.not.include("default-1.0-draft");
+            expect(content).to.not.include('{{{');
+            expect(() => new vm.Script(content)).to.not.throw();
         });
 
         it('should treat missing LOAD_DEFAULT_FORMS as hook-only', async function () {
@@ -259,6 +254,66 @@ describe('redbox-loader', function () {
         });
     });
 
+    describe('generateModelShims', function () {
+        let modelsDir: string;
+
+        beforeEach(async function () {
+            modelsDir = path.join(sandboxDir, 'api', 'models');
+            await fsPromises.mkdir(modelsDir, { recursive: true });
+        });
+
+        it('should generate hook model shims using runtime require access', async function () {
+            const hookModels = {
+                HookModel: {
+                    module: 'test-hook',
+                    model: {
+                        attributes: {
+                            title: { type: 'string' }
+                        }
+                    }
+                }
+            };
+
+            const result = await redboxLoader.generateModelShims(modelsDir, hookModels);
+            expect(result.fromHooks).to.equal(1);
+
+            const content = await fsPromises.readFile(path.join(modelsDir, 'HookModel.js'), 'utf8');
+            expect(content).to.include("Provided by: test-hook");
+            expect(content).to.include("require('test-hook').registerRedboxModels()['HookModel']");
+            expect(content).to.include("globalId: 'HookModel'");
+            expect(content).to.not.include('JSON.stringify');
+        });
+    });
+
+    describe('generateConfigShims', function () {
+        let configDir: string;
+
+        beforeEach(async function () {
+            configDir = path.join(sandboxDir, 'config');
+            await fsPromises.mkdir(configDir, { recursive: true });
+        });
+
+        it('should sanitize package names with dots when generating config shims', async function () {
+            const hookConfigs = [
+                { name: '@org/test.hook', module: '@org/test.hook' }
+            ];
+
+            await redboxLoader.generateConfigShims(configDir, hookConfigs);
+
+            const generatedFiles = await fsPromises.readdir(configDir);
+            const shimContents = await Promise.all(
+                generatedFiles
+                    .filter(name => name.endsWith('.js') && name !== 'datastores.js')
+                    .map(name => fsPromises.readFile(path.join(configDir, name), 'utf8'))
+            );
+
+            expect(shimContents.some(content =>
+                content.includes("const _org_test_hook_config = require('@org/test.hook').registerRedboxConfig();")
+            )).to.be.true;
+            expect(shimContents.some(content => content.includes('test.hook_config'))).to.be.false;
+        });
+    });
+
     describe('generateBootstrapShim', function () {
         let configDir: string;
 
@@ -274,27 +329,35 @@ describe('redbox-loader', function () {
             expect(result.hookCount).to.equal(0);
 
             const content = await fsPromises.readFile(path.join(configDir, 'bootstrap.js'), 'utf8');
-            expect(content).to.include('Auto-generated by redbox-loader.js');
+            expect(content).to.include('Auto-generated by @researchdatabox/redbox-core loader');
             expect(content).to.include('coreBootstrap');
             expect(content).to.include('preLiftSetup');
+            expect(content).to.include('createGeneratedBootstrap');
             expect(content).to.include('module.exports.bootstrap');
+            expect(content).to.not.include('{{{');
+            expect(() => new vm.Script(content)).to.not.throw();
         });
 
         it('should generate bootstrap.js with hook bootstraps', async function () {
             const hookBootstraps = [
                 { name: 'test-hook', module: 'test-hook' },
-                { name: '@org/another-hook', module: '@org/another-hook' }
+                { name: '@org/another-hook', module: '@org/another-hook' },
+                { name: '@org/dotted.hook', module: '@org/dotted.hook' }
             ];
 
             const result = await redboxLoader.generateBootstrapShim(configDir, hookBootstraps);
-            expect(result.hookCount).to.equal(2);
+            expect(result.hookCount).to.equal(3);
 
             const content = await fsPromises.readFile(path.join(configDir, 'bootstrap.js'), 'utf8');
             expect(content).to.include('test_hook_bootstrap');
             expect(content).to.include('_org_another_hook_bootstrap');
+            expect(content).to.include('_org_dotted_hook_bootstrap');
             expect(content).to.include("require('test-hook')");
             expect(content).to.include("require('@org/another-hook')");
-            expect(content).to.include('Hook bootstrap complete: test-hook');
+            expect(content).to.include("require('@org/dotted.hook')");
+            expect(content).to.include("{ name: \"test-hook\", bootstrap: test_hook_bootstrap }");
+            expect(content).to.not.include('{{{');
+            expect(() => new vm.Script(content)).to.not.throw();
         });
 
         it('should not rewrite if content unchanged', async function () {

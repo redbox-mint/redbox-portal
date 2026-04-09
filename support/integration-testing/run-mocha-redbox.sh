@@ -26,12 +26,12 @@ export NYC_OUTPUT=${NYC_OUTPUT:-/tmp/nyc_output}
 mkdir -p "$NYC_OUTPUT"
 chmod 777 "$NYC_OUTPUT" || true
 
-# Run redbox-loader to generate shims before tests start
+# Run the redbox-core loader to generate shims before tests start
 # This is crucial because test files require services/models at top-level
-echo "Generating shims via redbox-loader..."
+echo "Generating shims via redbox-core loader..."
 node -e "
-  const redboxLoader = require('./redbox-loader');
-  redboxLoader.generateAllShims(process.cwd(), {
+  const { generateAllShims } = require('@researchdatabox/redbox-core');
+  generateAllShims(process.cwd(), {
     forceRegenerate: true,
     verbose: true
   }).catch(err => {

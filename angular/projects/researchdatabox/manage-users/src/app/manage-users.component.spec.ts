@@ -14,14 +14,14 @@ let fixtures: ComponentFixture<ManageUsersComponent>[] = [];
 const username = 'testUser';
 const password = 'very-scary-password';
 
-let rolesData = [
+const baseRolesData = [
   {
     name: 'Admin',
     id: '123'
   }
 ];
 
-let usersData = [
+const baseUsersData = [
   {
     name: 'Local Admin',
     username: 'admin',
@@ -55,7 +55,7 @@ let usersData = [
   }
 ];
 
-const auditRecords = [
+const baseAuditRecords = [
   {
     id: 'audit-1',
     timestamp: '2026-03-27T10:00:00.000Z',
@@ -88,8 +88,18 @@ const auditRecords = [
   }
 ];
 
+let rolesData: any[];
+let usersData: any[];
+let auditRecords: any[];
+
+function cloneTestData<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value));
+}
 describe('ManageUsersComponent', () => {
   beforeEach(async () => {
+    rolesData = cloneTestData(baseRolesData);
+    usersData = cloneTestData(baseUsersData);
+    auditRecords = cloneTestData(baseAuditRecords);
     configService = getStubConfigService();
     translationService = getStubTranslationService({
       'manage-users-audit-event-login': 'User logged in',
@@ -159,8 +169,9 @@ describe('ManageUsersComponent', () => {
     await testModule.compileComponents();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     for (const fixture of fixtures) {
+      await fixture.whenStable();
       const app = fixture.componentInstance;
       app.hideDetailsModal();
       app.onDetailsModalHidden();
@@ -170,6 +181,7 @@ describe('ManageUsersComponent', () => {
       app.onLinkModalHidden();
       app.hideAuditModal();
       app.onAuditModalHidden();
+      await fixture.whenStable();
       fixture.destroy();
     }
     fixtures = [];
@@ -184,6 +196,9 @@ describe('ManageUsersComponent', () => {
   async function createComponent(): Promise<{ fixture: ComponentFixture<ManageUsersComponent>, app: ManageUsersComponent }> {
     const fixture = createFixture();
     const app = fixture.componentInstance;
+    fixture.detectChanges();
+    await app.waitForInit();
+    await fixture.whenStable();
     fixture.detectChanges();
     return { fixture, app };
   }
@@ -616,17 +631,10 @@ describe('ManageUsersComponent', () => {
     expect(app.updateDetailsMsg).toBe('enable crash');
   });
 
-  it('should cover password helpers, disabled helpers, and filter reset helpers', async () => {
+  it('should report password helper state for update and new user forms', async () => {
     const app = createBareComponent();
     app.allRoles = rolesData as any;
-    app.allUsers = usersData as any;
-    app.filteredUsers = usersData as any;
-    app.currentUser = {
-      ...usersData[0],
-      effectiveLoginDisabled: true,
-      loginDisabled: false,
-      disabledByPrimaryUsername: 'admin'
-    } as any;
+    app.currentUser = usersData[0] as any;
     app.setupForms(false);
     app.setupForms(true);
 
@@ -635,31 +643,48 @@ describe('ManageUsersComponent', () => {
     updatePasswords.controls['confirmPassword'].markAsTouched();
     const newPasswords = ((app.newUserForm as any).controls['passwords']);
     newPasswords.setErrors({ passwordStrengthDetails: { errors: ['Need symbol'] } });
-
-    app.searchFilter.name = 'Admin';
-    app.searchFilter.prevName = '';
-    app.searchFilter.users = [
-      { value: null, label: 'Any', checked: false },
-      { value: 'Local Admin', label: 'Local Admin', checked: true }
-    ];
-    app.resetFilter();
-
-    expect(app.isEffectivelyDisabled(app.currentUser as any)).toBeTrue();
-    expect(app.isDirectlyDisabled({ loginDisabled: true } as any)).toBeTrue();
-    expect(app.isDisabledViaPrimary(app.currentUser as any)).toBeTrue();
-    expect(app.canManageLinks(usersData[0] as any)).toBeTrue();
-    expect(app.canManageLinks(usersData[1] as any)).toBeFalse();
-    expect(app.getAccountStatusBadge(app.currentUser as any)).toBe('Disabled via admin');
-    expect(app.getAccountStatusBadge({ effectiveLoginDisabled: true, loginDisabled: true } as any)).toBe('Disabled');
-    expect(app.getAccountStatusBadge({} as any)).toBe('Active');
-    expect(app.getAccountStatusBadgeClass({ effectiveLoginDisabled: true } as any)).toBe('danger');
-    expect(app.getAccountStatusContext({} as any)).toBeNull();
     expect(app.isUpdateUserFormConfirmPasswordTouched()).toBeTrue();
     expect(app.getUpdateUserPasswordErrors()).toEqual(['Too short']);
     expect(app.getNewUserPasswordErrors()).toEqual(['Need symbol']);
     expect(app.getNewUserPasswordFormControls()['password']).toBeDefined();
     expect(app.getUpdateUserFormControls().length).toBe(rolesData.length);
     expect(app.getNewUserFormControls().length).toBe(rolesData.length);
+  });
+
+  it('should report disabled-account helper state without shared fixture mutations', async () => {
+    const app = createBareComponent();
+    const disabledViaPrimaryUser = {
+      ...cloneTestData(baseUsersData[0]),
+      effectiveLoginDisabled: true,
+      loginDisabled: false,
+      disabledByPrimaryUsername: 'admin'
+    } as any;
+
+    expect(app.isEffectivelyDisabled(disabledViaPrimaryUser)).toBeTrue();
+    expect(app.isDirectlyDisabled({ loginDisabled: true } as any)).toBeTrue();
+    expect(app.isDisabledViaPrimary(disabledViaPrimaryUser)).toBeTrue();
+    expect(app.canManageLinks(usersData[0] as any)).toBeTrue();
+    expect(app.canManageLinks(usersData[1] as any)).toBeFalse();
+    expect(app.getAccountStatusBadge(disabledViaPrimaryUser)).toBe('Disabled via admin');
+    expect(app.getAccountStatusBadge({ effectiveLoginDisabled: true, loginDisabled: true } as any)).toBe('Disabled');
+    expect(app.getAccountStatusBadge({} as any)).toBe('Active');
+    expect(app.getAccountStatusBadgeClass({ effectiveLoginDisabled: true } as any)).toBe('danger');
+    expect(app.getAccountStatusContext({} as any)).toBeNull();
+  });
+
+  it('should reset filters back to the full user list', async () => {
+    const app = createBareComponent();
+    app.allUsers = cloneTestData(usersData) as any;
+    app.filteredUsers = [usersData[0]] as any;
+    app.searchFilter.name = 'Admin';
+    app.searchFilter.prevName = 'Admin';
+    app.searchFilter.users = [
+      { value: null, label: 'Any', checked: false },
+      { value: 'Local Admin', label: 'Local Admin', checked: true }
+    ];
+
+    app.resetFilter();
+
     expect(app.filteredUsers.length).toBe(usersData.length);
     expect(app.searchFilter.users[0].checked).toBeTrue();
   });

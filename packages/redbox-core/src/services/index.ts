@@ -1,6 +1,6 @@
 /**
  * Services index - exports all service classes and creates ServiceExports object
- * for consumption by redbox-loader.js shim generation
+ * for consumption by the redbox-core loader shim generation
  */
 
 // Import all service modules and re-export
@@ -94,7 +94,7 @@ export { StorageManagerServiceModule as StorageManagerService };
 export { StandardDatastreamServiceModule as StandardDatastreamService };
 
 /**
- * ServiceExports - Object containing lazy-instantiated service exports for use by redbox-loader.js
+ * ServiceExports - Object containing lazy-instantiated service exports for use by the redbox-core loader
  * This follows the same pattern as WaterlineModels, Policies, etc.
  *
  * Each service is instantiated via `new ServiceClass().exports()` which provides
