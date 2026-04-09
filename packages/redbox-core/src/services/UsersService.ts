@@ -29,6 +29,7 @@ import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails
 import { RoleModel } from '../model/storage/RoleModel';
 import { SearchService } from '../SearchService';
 import { UserModel } from '../model/storage/UserModel';
+import { UserAttributes } from '../waterline-models/User';
 import { Services as services } from '../CoreService';
 
 import * as crypto from 'crypto';
@@ -86,6 +87,68 @@ export namespace Services {
     userInfoSource?: string;
   }
 
+  interface LinkedUserSummary {
+    id: string;
+    username: string;
+    name: string;
+    email: string;
+    type: string;
+    accountLinkState: string;
+    linkedAt?: string | Date;
+  }
+
+  interface UserLinkResponse {
+    primary: LinkedUserSummary;
+    linkedAccounts: LinkedUserSummary[];
+    impact?: {
+      recordsRewritten: number;
+      rolesMerged: number;
+    };
+  }
+
+  interface UserAuditActor {
+    username: string;
+    name?: string;
+    email?: string;
+  }
+
+  interface UserAuditRecord {
+    id: string;
+    timestamp: string | null;
+    action: string;
+    actor: UserAuditActor;
+    details: string;
+    parsedAdditionalContext: unknown;
+    rawAdditionalContext: string | null;
+    parseError: boolean;
+  }
+
+  interface UserAuditSummary {
+    returnedCount: number;
+    truncated: boolean;
+  }
+
+  interface ParsedUserAuditContext {
+    parsedAdditionalContext: unknown;
+    rawAdditionalContext: string | null;
+    parseError: boolean;
+  }
+
+  interface UserAuditResponse {
+    records: UserAuditRecord[];
+    summary: UserAuditSummary;
+  }
+
+  interface UserAuditRow extends AnyRecord {
+    id?: string;
+    action?: string;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+    user?: AnyRecord;
+    additionalContext?: unknown;
+    auditContext?: ParsedUserAuditContext;
+  }
+
   /**
    * Use services...
    *
@@ -110,14 +173,488 @@ export namespace Services {
       'findAndAssignAccessToRecords',
       'getUsers',
       'getUsersForBrand',
+      'getEffectiveUser',
+      'getLinkedAccounts',
+      'searchLinkCandidates',
+      'linkAccounts',
       'addUserAuditEvent',
       'checkAuthorizedEmail',
+      'enrichUsersWithEffectiveDisabledState',
+      'disableUser',
+      'enableUser',
+      'getUserAudit',
     ];
 
     searchService!: SearchService;
 
     private getAuthConfig(brandName: string): AuthBrandConfig {
       return (ConfigService.getBrand(brandName, 'auth') as AuthBrandConfig) ?? {};
+    }
+
+    private normalizeAccountLinkState(user: UserAttributes | null | undefined): void {
+      if (user != null && _.isEmpty(user.accountLinkState)) {
+        user.accountLinkState = 'active';
+      }
+    }
+
+    private hasRoleInBrand(user: UserAttributes | null | undefined, brandId: string): boolean {
+      if (user == null || _.isEmpty(brandId)) {
+        return false;
+      }
+      return _.some(user.roles as AnyRecord[] ?? [], (role: unknown) => {
+        const roleObj = role as AnyRecord;
+        const branding = roleObj.branding as string | AnyRecord | undefined;
+        const roleBrandId = _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');
+        return roleBrandId === brandId;
+      });
+    }
+
+    private getRolesForBrand(user: UserAttributes | null | undefined, brandId: string): AnyRecord[] {
+      if (user == null || _.isEmpty(brandId)) {
+        return [];
+      }
+      return _.filter(user.roles as AnyRecord[] ?? [], (role: unknown) => {
+        const roleObj = role as AnyRecord;
+        const branding = roleObj.branding as string | AnyRecord | undefined;
+        const roleBrandId = _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');
+        return roleBrandId === brandId;
+      }) as AnyRecord[];
+    }
+
+    private toLinkedUserSummary(user: UserAttributes, linkedAt?: string | Date): LinkedUserSummary {
+      this.normalizeAccountLinkState(user);
+      return {
+        id: String(user.id ?? ''),
+        username: String(user.username ?? ''),
+        name: String(user.name ?? ''),
+        email: String(user.email ?? ''),
+        type: String(user.type ?? ''),
+        accountLinkState: String(user.accountLinkState ?? 'active'),
+        linkedAt,
+      };
+    }
+
+    private async resolveLinkedUserCandidate(user: unknown): Promise<AnyRecord | null> {
+      if (_.isEmpty(user)) {
+        return null;
+      }
+      const resolved = await firstValueFrom(this.getEffectiveUser(user));
+      return (resolved as AnyRecord | null) ?? (user as AnyRecord);
+    }
+
+    private async rewriteLinkedRecordAuthorizations(
+      primaryUser: AnyRecord,
+      secondaryUser: AnyRecord,
+      actor: string,
+      defaultBrandId: string
+    ): Promise<number> {
+      const secondaryUsername = String(secondaryUser.username ?? '');
+      const secondaryEmail = String(secondaryUser.email ?? '').toLowerCase();
+      const records = await Record.find({
+        or: [
+          { 'authorization.edit': secondaryUsername },
+          { 'authorization.view': secondaryUsername },
+          { 'authorization.editPending': secondaryEmail },
+          { 'authorization.viewPending': secondaryEmail }
+        ]
+      }).meta({
+        enableExperimentalDeepTargets: true
+      });
+
+      let rewrittenCount = 0;
+      for (const record of records as unknown[]) {
+        const recordObj = _.cloneDeep(record) as AnyRecord;
+        const authorization = (recordObj.authorization ?? {}) as AnyRecord;
+        authorization.edit = _.uniq((authorization.edit ?? []) as string[]);
+        authorization.view = _.uniq((authorization.view ?? []) as string[]);
+        authorization.editPending = ((authorization.editPending ?? []) as string[]).map(email => String(email).toLowerCase());
+        authorization.viewPending = ((authorization.viewPending ?? []) as string[]).map(email => String(email).toLowerCase());
+        recordObj.authorization = authorization;
+
+        let changed = false;
+        const nextEdit = _.map(authorization.edit as string[], username => username === secondaryUsername ? String(primaryUser.username ?? '') : username);
+        const nextView = _.map(authorization.view as string[], username => username === secondaryUsername ? String(primaryUser.username ?? '') : username);
+        if (!_.isEqual(nextEdit, authorization.edit)) {
+          authorization.edit = _.uniq(nextEdit);
+          changed = true;
+        }
+        if (!_.isEqual(nextView, authorization.view)) {
+          authorization.view = _.uniq(nextView);
+          changed = true;
+        }
+
+        if (_.includes(authorization.editPending as string[], secondaryEmail)) {
+          authorization.editPending = _.without(authorization.editPending as string[], secondaryEmail);
+          authorization.edit = _.uniq([...(authorization.edit as string[]), String(primaryUser.username ?? '')]);
+          RecordsService.provideUserAccessAndRemovePendingAccess(String(recordObj.redboxOid ?? ''), primaryUser.username, secondaryEmail);
+          changed = true;
+        }
+        if (_.includes(authorization.viewPending as string[], secondaryEmail)) {
+          authorization.viewPending = _.without(authorization.viewPending as string[], secondaryEmail);
+          authorization.view = _.uniq([...(authorization.view as string[]), String(primaryUser.username ?? '')]);
+          RecordsService.provideUserAccessAndRemovePendingAccess(String(recordObj.redboxOid ?? ''), primaryUser.username, secondaryEmail);
+          changed = true;
+        }
+
+        if (changed) {
+          const metaMetadata = (recordObj.metaMetadata ?? {}) as AnyRecord;
+          const brandId = String(metaMetadata.brandId ?? defaultBrandId ?? '');
+          const brand = !_.isEmpty(brandId) ? BrandingService.getBrandById(brandId) : BrandingService.getDefault();
+          await RecordsService.updateMeta(brand, String(recordObj.redboxOid ?? ''), recordObj, { username: actor }, false, false);
+          rewrittenCount++;
+        }
+      }
+
+      return rewrittenCount;
+    }
+
+    private async resolveEffectiveDisabledState(user: UserAttributes): Promise<{ effectiveLoginDisabled: boolean; disabledByPrimaryUserId?: string; disabledByPrimaryUsername?: string }> {
+      if (user.loginDisabled === true) {
+        return { effectiveLoginDisabled: true };
+      }
+      if (!_.isEmpty(user.linkedPrimaryUserId)) {
+        const primaryUser = await firstValueFrom(this.getUserWithId(String(user.linkedPrimaryUserId)));
+        if (primaryUser != null && (primaryUser as AnyRecord).loginDisabled === true) {
+          return {
+            effectiveLoginDisabled: true,
+            disabledByPrimaryUserId: String((primaryUser as AnyRecord).id ?? ''),
+            disabledByPrimaryUsername: String((primaryUser as AnyRecord).username ?? '')
+          };
+        }
+      }
+      return { effectiveLoginDisabled: false };
+    }
+
+    private async assertAuthenticationAllowed(user: UserAttributes): Promise<void> {
+      const state = await this.resolveEffectiveDisabledState(user);
+      if (state.effectiveLoginDisabled) {
+        throw new Error('Account is disabled');
+      }
+    }
+
+    public async enrichUsersWithEffectiveDisabledState<T extends UserAttributes>(users: T[]): Promise<T[]> {
+      const primaryIds = _.uniq(
+        _.compact(_.map(users, (u: T) => !_.isEmpty(u.linkedPrimaryUserId) ? String(u.linkedPrimaryUserId) : null))
+      );
+      const primaryUsers = _.isEmpty(primaryIds) ? [] : await User.find({ id: primaryIds });
+      const primaryUsersById = _.keyBy(primaryUsers as AnyRecord[], (u: AnyRecord) => String(u.id ?? ''));
+
+      return _.map(users, (user: T) => {
+        if (user.loginDisabled === true) {
+          user.effectiveLoginDisabled = true;
+        } else if (!_.isEmpty(user.linkedPrimaryUserId)) {
+          const primary = primaryUsersById[String(user.linkedPrimaryUserId)];
+          if (primary != null && primary.loginDisabled === true) {
+            user.effectiveLoginDisabled = true;
+            user.disabledByPrimaryUserId = String(primary.id ?? '');
+            user.disabledByPrimaryUsername = String(primary.username ?? '');
+          } else {
+            user.effectiveLoginDisabled = false;
+          }
+        } else {
+          user.effectiveLoginDisabled = false;
+        }
+        return user;
+      });
+    }
+
+    public async disableUser(userId: string, actor: string, brandId: string): Promise<void> {
+      const user = await User.findOne({ id: userId });
+      if (user == null) {
+        throw new Error('User not found');
+      }
+      if (String((user as unknown as AnyRecord).accountLinkState ?? 'active') === 'linked-alias') {
+        throw new Error('Cannot disable a linked alias user. Disable the primary account instead.');
+      }
+      await User.update({ id: userId }).set({ loginDisabled: true });
+      await this.addUserAuditEvent({ username: actor }, 'disable-user', { userId, brandId });
+    }
+
+    public async enableUser(userId: string, actor: string, brandId: string): Promise<void> {
+      const user = await User.findOne({ id: userId });
+      if (user == null) {
+        throw new Error('User not found');
+      }
+      if (String((user as unknown as AnyRecord).accountLinkState ?? 'active') === 'linked-alias') {
+        throw new Error('Cannot enable a linked alias user. Enable the primary account instead.');
+      }
+      await User.update({ id: userId }).set({ loginDisabled: false });
+      await this.addUserAuditEvent({ username: actor }, 'enable-user', { userId, brandId });
+    }
+
+    private toAuditActor(user: unknown): UserAuditActor {
+      const userObj = _.isObject(user) ? user as AnyRecord : {};
+      const actor: UserAuditActor = {
+        username: String(userObj.username ?? '')
+      };
+
+      if (!_.isEmpty(userObj.name)) {
+        actor.name = String(userObj.name);
+      }
+      if (!_.isEmpty(userObj.email)) {
+        actor.email = String(userObj.email);
+      }
+
+      return actor;
+    }
+
+    private toAuditContextString(additionalContext: unknown): string | null {
+      if (_.isNil(additionalContext)) {
+        return null;
+      }
+      if (_.isString(additionalContext)) {
+        return additionalContext;
+      }
+
+      const stringified = this.stringifyObject(additionalContext);
+      return _.isString(stringified) ? stringified : null;
+    }
+
+    private shouldRedactAuditKey(key: string): boolean {
+      const normalizedKey = _.toLower(key);
+      return normalizedKey === 'cookie'
+        || normalizedKey === 'authorization'
+        || normalizedKey.startsWith('x-forwarded-')
+        || normalizedKey.includes('password');
+    }
+
+    private redactHeaderPairs(value: unknown[]): unknown[] {
+      const redactedPairs = [...value];
+      for (let index = 0; index < redactedPairs.length - 1; index += 2) {
+        const headerName = redactedPairs[index];
+        if (_.isString(headerName) && this.shouldRedactAuditKey(headerName)) {
+          redactedPairs[index + 1] = '[REDACTED]';
+        }
+      }
+      return redactedPairs;
+    }
+
+    private redactAuditValue(value: unknown, contextKey?: string): unknown {
+      if (_.isArray(value)) {
+        if (_.toLower(contextKey ?? '') === 'rawheaders') {
+          return this.redactHeaderPairs(value);
+        }
+        return _.map(value, (item: unknown) => this.redactAuditValue(item));
+      }
+      if (_.isPlainObject(value)) {
+        if (_.toLower(contextKey ?? '') === 'cookies') {
+          return _.mapValues(value as Record<string, unknown>, () => '[REDACTED]');
+        }
+        return _.reduce(value as Record<string, unknown>, (acc, nestedValue, nestedKey) => {
+          acc[nestedKey] = this.shouldRedactAuditKey(nestedKey) ? '[REDACTED]' : this.redactAuditValue(nestedValue, nestedKey);
+          return acc;
+        }, {} as Record<string, unknown>);
+      }
+      return value;
+    }
+
+    private sanitizeAuditDebugContext(action: string, parsedAdditionalContext: unknown, rawAdditionalContext: string | null, parseError: boolean): {
+      parsedAdditionalContext: unknown;
+      rawAdditionalContext: string | null;
+    } {
+      if (!_.includes(['login', 'logout'], action)) {
+        return { parsedAdditionalContext, rawAdditionalContext };
+      }
+
+      const redactedParsed = this.redactAuditValue(parsedAdditionalContext);
+      if (parseError) {
+        return {
+          parsedAdditionalContext: null,
+          rawAdditionalContext: rawAdditionalContext == null ? null : '[REDACTED_UNPARSEABLE_AUDIT_CONTEXT]'
+        };
+      }
+
+      return {
+        parsedAdditionalContext: redactedParsed,
+        rawAdditionalContext: redactedParsed == null ? null : JSON.stringify(redactedParsed)
+      };
+    }
+
+    private parseUserAuditContext(action: string, additionalContext: unknown): ParsedUserAuditContext {
+      const rawAdditionalContext = this.toAuditContextString(additionalContext);
+      if (_.isNil(rawAdditionalContext)) {
+        return {
+          parsedAdditionalContext: null,
+          rawAdditionalContext: null,
+          parseError: false
+        };
+      }
+
+      try {
+        const parsedAdditionalContext = JSON.parse(rawAdditionalContext);
+        const sanitized = this.sanitizeAuditDebugContext(action, parsedAdditionalContext, rawAdditionalContext, false);
+        return {
+          parsedAdditionalContext: sanitized.parsedAdditionalContext,
+          rawAdditionalContext: sanitized.rawAdditionalContext,
+          parseError: false
+        };
+      } catch (_error) {
+        const sanitized = this.sanitizeAuditDebugContext(action, null, rawAdditionalContext, true);
+        return {
+          parsedAdditionalContext: sanitized.parsedAdditionalContext,
+          rawAdditionalContext: sanitized.rawAdditionalContext,
+          parseError: true
+        };
+      }
+    }
+
+    private normalizeAuditTimestamp(value: unknown): string | null {
+      if (value instanceof Date) {
+        return value.toISOString();
+      }
+      if (_.isString(value)) {
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+      }
+      return null;
+    }
+
+    private timestampSortValue(row: UserAuditRow): number {
+      const timestamp = this.normalizeAuditTimestamp(row.createdAt) ?? this.normalizeAuditTimestamp(row.updatedAt);
+      if (timestamp == null) {
+        return 0;
+      }
+      return new Date(timestamp).getTime();
+    }
+
+    private matchesSelectedUserForDirectAudit(selectedUser: AnyRecord, row: UserAuditRow): boolean {
+      const rowUser = _.isObject(row.user) ? row.user as AnyRecord : {};
+      const selectedUserId = String(selectedUser.id ?? '');
+      const selectedUsername = _.toLower(String(selectedUser.username ?? ''));
+      return String(rowUser.id ?? '') === selectedUserId || _.toLower(String(rowUser.username ?? '')) === selectedUsername;
+    }
+
+    private matchesSelectedUserForAdminAudit(selectedUser: AnyRecord, action: string, parsedAdditionalContext: unknown): boolean {
+      if (!_.isPlainObject(parsedAdditionalContext)) {
+        return false;
+      }
+
+      const context = parsedAdditionalContext as AnyRecord;
+      const selectedUserId = String(selectedUser.id ?? '');
+      if (_.includes(['disable-user', 'enable-user'], action)) {
+        return String(context.userId ?? '') === selectedUserId;
+      }
+      if (action === 'link-accounts') {
+        return String(context.primaryUserId ?? '') === selectedUserId || String(context.secondaryUserId ?? '') === selectedUserId;
+      }
+      return false;
+    }
+
+    private getUserAuditDetails(selectedUser: AnyRecord, action: string, parsedAdditionalContext: unknown): string {
+      switch (action) {
+        case 'login':
+          return 'User logged in';
+        case 'logout':
+          return 'User logged out';
+        case 'disable-user':
+          return 'Admin disabled this account';
+        case 'enable-user':
+          return 'Admin enabled this account';
+        case 'link-accounts': {
+          if (!_.isPlainObject(parsedAdditionalContext)) {
+            return 'Account linking event';
+          }
+          const context = parsedAdditionalContext as AnyRecord;
+          if (String(context.primaryUserId ?? '') === String(selectedUser.id ?? '')) {
+            return 'This account was chosen as the primary account during account linking';
+          }
+          if (String(context.secondaryUserId ?? '') === String(selectedUser.id ?? '')) {
+            return 'This account was linked as a secondary alias to another account';
+          }
+          return 'Account linking event';
+        }
+        default:
+          return String(action ?? '');
+      }
+    }
+
+    private normalizeUserAuditRecord(selectedUser: AnyRecord, row: UserAuditRow): UserAuditRecord {
+      const action = String(row.action ?? '');
+      const parsedContext = row.auditContext ?? this.parseUserAuditContext(action, row.additionalContext);
+      return {
+        id: String(row.id ?? ''),
+        timestamp: this.normalizeAuditTimestamp(row.createdAt) ?? this.normalizeAuditTimestamp(row.updatedAt),
+        action,
+        actor: this.toAuditActor(row.user),
+        details: this.getUserAuditDetails(selectedUser, action, parsedContext.parsedAdditionalContext),
+        parsedAdditionalContext: parsedContext.parsedAdditionalContext,
+        rawAdditionalContext: parsedContext.rawAdditionalContext,
+        parseError: parsedContext.parseError
+      };
+    }
+
+    private async fetchDirectUserAuditRows(selectedUser: AnyRecord): Promise<UserAuditRow[]> {
+      const directAuditActions = ['login', 'logout'];
+      try {
+        const rows = await UserAudit.find({
+          action: directAuditActions,
+          or: [
+            { 'user.id': String(selectedUser.id ?? '') },
+            { 'user.username': String(selectedUser.username ?? '') }
+          ]
+        }).meta({
+          enableExperimentalDeepTargets: true
+        });
+        return rows as unknown as UserAuditRow[];
+      } catch (error) {
+        sails.log.error('Failed to query direct user audit rows with deep targets enabled.');
+        sails.log.error(error);
+        throw new Error(`Unable to fetch direct audit records for user ${String(selectedUser.id ?? '')} without an unbounded fallback query.`);
+      }
+    }
+
+    public async getUserAudit(userId: string): Promise<UserAuditResponse> {
+      const selectedUser = await User.findOne({ id: userId });
+      if (selectedUser == null) {
+        throw new Error('User not found');
+      }
+      const selectedUserRecord = selectedUser as unknown as AnyRecord;
+      const selectedUserId = String(selectedUserRecord.id ?? '');
+      const adminAuditContextFilters = [
+        `"userId":${JSON.stringify(selectedUserId)}`,
+        `"primaryUserId":${JSON.stringify(selectedUserId)}`,
+        `"secondaryUserId":${JSON.stringify(selectedUserId)}`
+      ];
+
+      const directRows = await this.fetchDirectUserAuditRows(selectedUserRecord);
+      const adminRows = await UserAudit.find({
+        action: ['disable-user', 'enable-user', 'link-accounts'],
+        or: _.map(adminAuditContextFilters, (contextFilter: string) => ({
+          additionalContext: { contains: contextFilter }
+        }))
+      }) as unknown as UserAuditRow[];
+
+      const matchingDirectRows = _.filter(directRows, (row: UserAuditRow) => this.matchesSelectedUserForDirectAudit(selectedUserRecord, row));
+      const matchingAdminRows = _.chain(adminRows)
+        .map((row: UserAuditRow) => {
+          const auditContext = this.parseUserAuditContext(String(row.action ?? ''), row.additionalContext);
+          return {
+            ...row,
+            auditContext
+          } as UserAuditRow;
+        })
+        .filter((row: UserAuditRow) => {
+          return this.matchesSelectedUserForAdminAudit(
+            selectedUserRecord,
+            String(row.action ?? ''),
+            row.auditContext?.parsedAdditionalContext
+          );
+        })
+        .value();
+
+      const mergedRows = _.values(_.keyBy([...matchingDirectRows, ...matchingAdminRows], (row: UserAuditRow) => String(row.id ?? '')));
+      const sortedRows = _.orderBy(mergedRows, (row: UserAuditRow) => this.timestampSortValue(row), 'desc');
+      const maxRows = 100;
+      const truncated = sortedRows.length > maxRows;
+      const limitedRows = sortedRows.slice(0, maxRows);
+
+      return {
+        records: _.map(limitedRows, (row: UserAuditRow) => this.normalizeUserAuditRecord(selectedUserRecord, row)),
+        summary: {
+          returnedCount: limitedRows.length,
+          truncated
+        }
+      };
     }
 
     protected localAuthInit() {
@@ -138,6 +675,7 @@ export namespace Services {
         bcrypt = require('bcryptjs') as BcryptLike;
       }
       const passport = sails.config.passport as PassportLike;
+      const that = this;
       passport.serializeUser(function (user: AnyRecord, done: DoneCallback) {
         done(null, user.id);
       });
@@ -145,11 +683,15 @@ export namespace Services {
         User.findOne({
           id: id
         }).populate('roles').exec(function (err: unknown, user: unknown) {
-          done(err, user as AnyRecord);
+          if (err != null || _.isEmpty(user)) {
+            done(err, user as AnyRecord);
+            return;
+          }
+          that.resolveLinkedUserCandidate(user)
+            .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+            .catch((resolveErr: unknown) => done(resolveErr));
         });
       });
-
-      const that = this;
 
       //
       //  Local Strategy
@@ -172,7 +714,7 @@ export namespace Services {
               });
             }
 
-            const foundUserObj = foundUser as AnyRecord;
+            const foundUserObj = foundUser as UserAttributes & AnyRecord;
             const passwordHash = String(foundUserObj.password ?? '');
             bcrypt.compare(password, passwordHash, function (err: unknown, res: boolean) {
 
@@ -182,89 +724,99 @@ export namespace Services {
                 });
               }
 
-              // foundUser.lastLogin = new Date();
+              // Gate disabled users
+              that.assertAuthenticationAllowed(foundUserObj as UserAttributes).then(() => {
 
-              const configLocal = _.get(defAuthConfig, 'local', {});
-              if (that.hasPreSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                that.triggerPreSaveTriggers(foundUserObj, configLocal).then((userAdditionalInfo: AnyRecord) => {
+                // foundUser.lastLogin = new Date();
 
-                  const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                  if (success) {
+                const configLocal = _.get(defAuthConfig, 'local', {});
+                if (that.hasPreSaveTriggerConfigured(configLocal, 'onUpdate')) {
+                  that.triggerPreSaveTriggers(foundUserObj, configLocal).then((userAdditionalInfo: AnyRecord) => {
 
-                    User.update({
-                      username: username
-                    }).set(
-                      {
-                        lastLogin: new Date(),
-                        additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes')
-                      }).exec(function (err: unknown, user: unknown) {
-                        if (err) {
-                          sails.log.error("Error updating user:");
-                          sails.log.error(err);
+                    const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                    if (success) {
+
+                      User.update({
+                        username: username
+                      }).set(
+                        {
+                          lastLogin: new Date(),
+                          additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes')
+                        }).exec(function (err: unknown, user: unknown) {
+                          if (err) {
+                            sails.log.error("Error updating user:");
+                            sails.log.error(err);
+                            return;
+                          }
+                          if (_.isEmpty(user)) {
+                            sails.log.error("No user found");
+                            return;
+                          }
+                          sails.log.verbose("Done, returning updated user:");
+                          sails.log.verbose(user);
                           return;
-                        }
-                        if (_.isEmpty(user)) {
-                          sails.log.error("No user found");
-                          return;
-                        }
-                        sails.log.verbose("Done, returning updated user:");
-                        sails.log.verbose(user);
-                        return;
+                        });
+
+                      if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
+                        that.triggerPostSaveTriggers(foundUserObj, configLocal);
+                      }
+
+                      if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
+                        that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
+                      }
+
+                      return done(null, userAdditionalInfo, {
+                        message: 'Logged In Successfully'
                       });
 
-                    if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                      that.triggerPostSaveTriggers(foundUserObj, configLocal);
+                    } else {
+
+                      return done(null, false, {
+                        message: 'All required conditions for login not met'
+                      });
                     }
 
-                    if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
-                      that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
+                  });
+
+                } else {
+
+                  User.update({
+                    username: username
+                  }).set({ lastLogin: new Date() }).exec(function (err: unknown, user: unknown) {
+                    if (err) {
+                      sails.log.error("Error updating user:");
+                      sails.log.error(err);
+                      return;
+                    }
+                    if (_.isEmpty(user)) {
+                      sails.log.error("No user found");
+                      return;
                     }
 
-                    return done(null, userAdditionalInfo, {
-                      message: 'Logged In Successfully'
-                    });
-
-                  } else {
-
-                    return done(null, false, {
-                      message: 'All required conditions for login not met'
-                    });
-                  }
-
-                });
-
-              } else {
-
-                User.update({
-                  username: username
-                }).set({ lastLogin: new Date() }).exec(function (err: unknown, user: unknown) {
-                  if (err) {
-                    sails.log.error("Error updating user:");
-                    sails.log.error(err);
+                    sails.log.verbose("Done, returning updated user:");
+                    sails.log.verbose(user);
                     return;
-                  }
-                  if (_.isEmpty(user)) {
-                    sails.log.error("No user found");
-                    return;
+                  });
+
+                  if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
+                    that.triggerPostSaveTriggers(foundUserObj, configLocal);
                   }
 
-                  sails.log.verbose("Done, returning updated user:");
-                  sails.log.verbose(user);
-                  return;
-                });
+                  if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
+                    that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
+                  }
 
-                if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                  that.triggerPostSaveTriggers(foundUserObj, configLocal);
+                  return done(null, foundUserObj, {
+                    message: 'Logged In Successfully'
+                  });
                 }
 
-                if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
-                  that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
+              }).catch((err: unknown) => {
+                if (err instanceof Error && err.message === 'Account is disabled') {
+                  return done(null, false, { message: 'Account is disabled' });
                 }
-
-                return done(null, foundUserObj, {
-                  message: 'Logged In Successfully'
-                });
-              }
+                return done(err);
+              }); // end assertAuthenticationAllowed gate
 
             });
           });
@@ -492,94 +1044,108 @@ export namespace Services {
               return done(err, false);
             }
             if (user) {
-              const userObj = user as AnyRecord;
-              const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
-              userObj.lastLogin = new Date();
-              userObj.name = attrs.cn;
-              userObj.email = String(attrs.mail ?? '').toLowerCase();
-              userObj.displayname = attrs.displayname;
-              userObj.cn = attrs.cn;
-              userObj.edupersonscopedaffiliation = attrs.edupersonscopedaffiliation;
-              userObj.edupersontargetedid = attrs.edupersontargetedid;
-              userObj.edupersonprincipalname = attrs.edupersonprincipalname;
-              userObj.givenname = attrs.givenname;
-              userObj.surname = attrs.surname;
+              const userObj = user as UserAttributes & AnyRecord;
+              // Gate disabled users
+              that.assertAuthenticationAllowed(userObj).then(() => {
+                const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
+                userObj.lastLogin = new Date();
+                userObj.name = String(attrs.cn ?? '');
+                userObj.email = String(attrs.mail ?? '').toLowerCase();
+                userObj.displayname = _.isNil(attrs.displayname) ? undefined : String(attrs.displayname);
+                userObj.cn = _.isNil(attrs.cn) ? undefined : String(attrs.cn);
+                userObj.edupersonscopedaffiliation = _.isNil(attrs.edupersonscopedaffiliation) ? undefined : String(attrs.edupersonscopedaffiliation);
+                userObj.edupersontargetedid = _.isNil(attrs.edupersontargetedid) ? undefined : String(attrs.edupersontargetedid);
+                userObj.edupersonprincipalname = _.isNil(attrs.edupersonprincipalname) ? undefined : String(attrs.edupersonprincipalname);
+                userObj.givenname = _.isNil(attrs.givenname) ? undefined : String(attrs.givenname);
+                userObj.surname = _.isNil(attrs.surname) ? undefined : String(attrs.surname);
 
-              const configAAF = _.get(defAuthConfig, 'aaf', {});
-              if (that.hasPreSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                that.triggerPreSaveTriggers(userObj, configAAF).then((userAdditionalInfo: AnyRecord) => {
+                const configAAF = _.get(defAuthConfig, 'aaf', {});
+                if (that.hasPreSaveTriggerConfigured(configAAF, 'onUpdate')) {
+                  that.triggerPreSaveTriggers(userObj, configAAF).then((userAdditionalInfo: AnyRecord) => {
 
-                  const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                  if (success) {
+                    const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                    if (success) {
 
-                    User.update({
-                      username: _.get(userAdditionalInfo, 'username')
-                    }).set(userAdditionalInfo).exec(function (err: unknown, user: unknown) {
-                      if (err) {
-                        sails.log.error("Error updating user:");
-                        sails.log.error(err);
-                        return done(err, false, { message: "Error updating user" });
-                      }
-                      if (_.isEmpty(user)) {
-                        sails.log.error("No user found");
-                        return done("No user found", false, { message: "No user found" });
-                      }
+                      User.update({
+                        username: _.get(userAdditionalInfo, 'username')
+                      }).set(userAdditionalInfo).exec(function (err: unknown, user: unknown) {
+                        if (err) {
+                          sails.log.error("Error updating user:");
+                          sails.log.error(err);
+                          return done(err, false, { message: "Error updating user" });
+                        }
+                        if (_.isEmpty(user)) {
+                          sails.log.error("No user found");
+                          return done("No user found", false, { message: "No user found" });
+                        }
 
-                      if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                        that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
-                      }
+                        if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
+                          that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
+                        }
 
-                      if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
-                        that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
-                      }
+                        if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
+                          that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
+                        }
 
-                      sails.log.verbose("Done, returning updated user:");
-                      sails.log.verbose(user);
-                      const updatedUsers = user as AnyRecord[];
-                      return done(null, updatedUsers[0], {
-                        message: 'Logged In Successfully'
+                        sails.log.verbose("Done, returning updated user:");
+                        sails.log.verbose(user);
+                        const updatedUsers = user as AnyRecord[];
+                        that.resolveLinkedUserCandidate(updatedUsers[0])
+                          .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
+                            message: 'Logged In Successfully'
+                          }))
+                          .catch((resolveErr: unknown) => done(resolveErr, false));
+                        return;
                       });
-                    });
 
-                  } else {
-                    return done('All required conditions for login not met', false, { message: 'All required conditions for login not met' });
-                  }
+                    } else {
+                      return done('All required conditions for login not met', false, { message: 'All required conditions for login not met' });
+                    }
 
-                });
-
-              } else {
-
-                User.update({
-                  username: userObj.username
-                }).set(userObj).exec(function (err: unknown, user: unknown) {
-                  if (err) {
-                    sails.log.error("Error updating user:");
-                    sails.log.error(err);
-                    return done(err, false, { message: "Error updating user" });
-                  }
-                  if (_.isEmpty(user)) {
-                    sails.log.error("No user found");
-                    return done("No user found", false, { message: "No user found" });
-                  }
-
-                  if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                    that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
-                  }
-
-                  if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
-                    that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
-                  }
-
-                  sails.log.verbose("Done, returning updated user:");
-                  sails.log.verbose(user);
-                  const updatedUsers = user as AnyRecord[];
-                  return done(null, updatedUsers[0], {
-                    message: 'Logged In Successfully'
                   });
-                });
 
-              }
+                } else {
 
+                  User.update({
+                    username: userObj.username
+                  }).set(userObj).exec(function (err: unknown, user: unknown) {
+                    if (err) {
+                      sails.log.error("Error updating user:");
+                      sails.log.error(err);
+                      return done(err, false, { message: "Error updating user" });
+                    }
+                    if (_.isEmpty(user)) {
+                      sails.log.error("No user found");
+                      return done("No user found", false, { message: "No user found" });
+                    }
+
+                    if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
+                      that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
+                    }
+
+                    if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
+                      that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
+                    }
+
+                    sails.log.verbose("Done, returning updated user:");
+                    sails.log.verbose(user);
+                    const updatedUsers = user as AnyRecord[];
+                    that.resolveLinkedUserCandidate(updatedUsers[0])
+                      .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
+                        message: 'Logged In Successfully'
+                      }))
+                      .catch((resolveErr: unknown) => done(resolveErr, false));
+                    return;
+                  });
+
+                }
+
+              }).catch((err: unknown) => {
+                if (err instanceof Error && err.message === 'Account is disabled') {
+                  return done(null, false, { message: 'Account is disabled' });
+                }
+                return done(err);
+              }); // end AAF disabled gate
             } else {
               sails.log.verbose("At AAF Strategy verify, creating new user...");
               // first time login, create with default role
@@ -630,7 +1196,10 @@ export namespace Services {
 
                       sails.log.verbose("Done, returning new user:");
                       sails.log.verbose(newUser);
-                      return done(null, newUser);
+                      that.resolveLinkedUserCandidate(newUser)
+                        .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                        .catch((resolveErr: unknown) => done(resolveErr, false));
+                      return;
                     });
                   } else {
                     return done(`All required conditions for login not met ${userAdditionalInfo.email}`, false);
@@ -657,7 +1226,10 @@ export namespace Services {
 
                   sails.log.verbose("Done, returning new user:");
                   sails.log.verbose(newUser);
-                  return done(null, newUser);
+                  that.resolveLinkedUserCandidate(newUser)
+                    .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                    .catch((resolveErr: unknown) => done(resolveErr, false));
+                  return;
                 });
 
               }
@@ -685,46 +1257,94 @@ export namespace Services {
           }
           for (const oidcConfig of oidcConfigArray) {
             const oidcOpts = oidcConfig.opts;
-            const {
-              Issuer,
-              Strategy
-            } = require('openid-client');
+            const openIdClient = require('openid-client');
+            const { Strategy } = require('openid-client/passport');
             let configured = false;
             let discoverAttemptsCtr = 0;
             while (!configured && discoverAttemptsCtr < oidcConfig.discoverAttemptsMax) {
               discoverAttemptsCtr++;
               try {
-                let issuer;
+                const clientMetadata = (oidcOpts.client ?? {}) as Record<string, unknown>;
+                const clientId = String(clientMetadata.client_id ?? '');
+                let oidcClientConfig;
+
                 if (_.isString(oidcOpts.issuer)) {
-                  sails.log.verbose(`OIDC, using issuer URL for discovery: ${oidcOpts.issuer}`);
-                  issuer = await Issuer.discover(oidcOpts.issuer);
+                  const issuerUrl = String(oidcOpts.issuer).replace(/\/+$/, '');
+                  sails.log.verbose(`OIDC, using issuer URL for discovery: ${issuerUrl}`);
+                  const discoveryOptions = issuerUrl.startsWith('http://')
+                    ? { execute: [openIdClient.allowInsecureRequests] }
+                    : undefined;
+                  oidcClientConfig = await openIdClient.discovery(
+                    new URL(issuerUrl),
+                    clientId,
+                    clientMetadata,
+                    undefined,
+                    discoveryOptions
+                  );
                 } else {
                   sails.log.verbose(`OIDC, using issuer hardcoded configuration:`);
                   sails.log.verbose(JSON.stringify(oidcOpts.issuer));
-                  issuer = new Issuer(oidcOpts.issuer);
+                  oidcClientConfig = new openIdClient.Configuration(
+                    oidcOpts.issuer,
+                    clientId,
+                    clientMetadata
+                  );
+                  const configuredIssuer = String((oidcOpts.issuer as Record<string, unknown>)?.issuer ?? '');
+                  if (configuredIssuer.startsWith('http://')) {
+                    openIdClient.allowInsecureRequests(oidcClientConfig);
+                  }
                 }
+                const serverMetadata = oidcClientConfig.serverMetadata();
                 configured = true;
                 sails.log.verbose(`OIDC, Got issuer config, after ${discoverAttemptsCtr} attempt(s).`);
-                sails.log.verbose(issuer);
-                const oidcClient = new issuer.Client(oidcOpts.client);
-                let verifyCallbackFn = (req: AnyRecord, tokenSet: AnyRecord, userinfo: AnyRecord, done: DoneCallback) => {
-                  that.openIdConnectAuthVerifyCallback(oidcConfig as unknown as AnyRecord, issuer as AnyRecord, req, tokenSet, userinfo, done);
+                sails.log.verbose(serverMetadata);
+                const verifyCallbackFn = async (req: AnyRecord, tokenSet: AnyRecord, done: DoneCallback) => {
+                  try {
+                    let userinfo: AnyRecord | undefined;
+                    if (oidcConfig.userInfoSource !== 'tokenset_claims') {
+                      const tokenClaims = typeof tokenSet.claims === 'function' ? tokenSet.claims() : {};
+                      const accessToken = String(tokenSet.access_token ?? '');
+                      const subject = String(_.get(tokenClaims, 'sub', ''));
+                      if (!_.isEmpty(accessToken) && !_.isEmpty(subject)) {
+                        userinfo = await openIdClient.fetchUserInfo(oidcClientConfig, accessToken, subject);
+                      }
+                    }
+                    that.openIdConnectAuthVerifyCallback(oidcConfig as unknown as AnyRecord, serverMetadata as AnyRecord, req, tokenSet, userinfo, done);
+                  } catch (err) {
+                    done(err, false);
+                  }
                 };
-                if (oidcConfig.userInfoSource == 'tokenset_claims') {
-                  verifyCallbackFn = (req: AnyRecord, tokenSet: AnyRecord, _userinfo: AnyRecord, done: DoneCallback) => {
-                    that.openIdConnectAuthVerifyCallback(oidcConfig as unknown as AnyRecord, issuer as AnyRecord, req, tokenSet, undefined, done);
-                  };
-                }
                 let passportIdentifier = 'oidc';
                 if (!_.isEmpty(oidcConfig.identifier)) {
                   passportIdentifier = `oidc-${oidcConfig.identifier}`
                 }
-
-                (sails.config.passport as PassportLike).use(passportIdentifier, new Strategy({
-                  client: oidcClient,
-                  passReqToCallback: true,
-                  params: oidcOpts.params
-                }, verifyCallbackFn));
+                const strategyOptions: AnyRecord = {
+                  config: oidcClientConfig,
+                  passReqToCallback: true
+                };
+                const callbackUrl = _.get(clientMetadata, 'redirect_uris[0]');
+                if (_.isString(callbackUrl) && !_.isEmpty(callbackUrl)) {
+                  strategyOptions.callbackURL = callbackUrl;
+                }
+                const authParams = (oidcOpts.params ?? {}) as Record<string, unknown>;
+                if (_.isString(authParams.scope) && !_.isEmpty(authParams.scope)) {
+                  strategyOptions.scope = authParams.scope;
+                }
+                const strategy = new Strategy(strategyOptions, verifyCallbackFn);
+                const additionalAuthParams = _.omit(authParams, ['scope']);
+                if (!_.isEmpty(additionalAuthParams)) {
+                  strategy.authorizationRequestParams = () => {
+                    const params = new URLSearchParams();
+                    for (const [key, value] of Object.entries(additionalAuthParams)) {
+                      if (_.isNil(value)) {
+                        continue;
+                      }
+                      params.set(key, _.isString(value) ? value : JSON.stringify(value));
+                    }
+                    return params;
+                  };
+                }
+                (sails.config.passport as PassportLike).use(passportIdentifier, strategy);
                 sails.log.info(`OIDC is active, client ${passportIdentifier} configured and ready.`);
 
 
@@ -830,91 +1450,109 @@ export namespace Services {
           return done(err, false);
         }
         if (user) {
-          const userObj = user as AnyRecord;
-          sails.log.error("At OIDC Strategy verify, updating new user...");
-          userObj.lastLogin = new Date();
-          const additionalAttributesMapping = claimsMappings['additionalAttributes'];
-          userObj.additionalAttributes = that.mapAdditionalAttributes(
-            userinfo,
-            (typeof additionalAttributesMapping === 'object' && additionalAttributesMapping != null
-              ? additionalAttributesMapping
-              : {}) as Record<string, string>
-          );
-          userObj.name = _.get(userinfo, claimsMappings['name'] as string ?? '');
-          userObj.email = String(_.get(userinfo, claimsMappings['email'] as string ?? '', '')).toLowerCase();
-          userObj.displayname = _.get(userinfo, claimsMappings['displayName'] as string ?? '');
-          userObj.cn = _.get(userinfo, claimsMappings['cn'] as string ?? '');
-          userObj.givenname = _.get(userinfo, claimsMappings['givenname'] as string ?? '');
-          userObj.surname = _.get(userinfo, claimsMappings['surname'] as string ?? '');
+          const userObj = user as UserAttributes & AnyRecord;
+          // Gate disabled users
+          that.assertAuthenticationAllowed(userObj).then(() => {
+            sails.log.error("At OIDC Strategy verify, updating new user...");
+            userObj.lastLogin = new Date();
+            const additionalAttributesMapping = claimsMappings['additionalAttributes'];
+            userObj.additionalAttributes = that.mapAdditionalAttributes(
+              userinfo,
+              (typeof additionalAttributesMapping === 'object' && additionalAttributesMapping != null
+                ? additionalAttributesMapping
+                : {}) as Record<string, string>
+            );
+            userObj.name = String(_.get(userinfo, claimsMappings['name'] as string ?? '', ''));
+            userObj.email = String(_.get(userinfo, claimsMappings['email'] as string ?? '', '')).toLowerCase();
+            const displayName = _.get(userinfo, claimsMappings['displayName'] as string ?? '');
+            const commonName = _.get(userinfo, claimsMappings['cn'] as string ?? '');
+            const givenName = _.get(userinfo, claimsMappings['givenname'] as string ?? '');
+            const surname = _.get(userinfo, claimsMappings['surname'] as string ?? '');
+            userObj.displayname = _.isNil(displayName) ? undefined : String(displayName);
+            userObj.cn = _.isNil(commonName) ? undefined : String(commonName);
+            userObj.givenname = _.isNil(givenName) ? undefined : String(givenName);
+            userObj.surname = _.isNil(surname) ? undefined : String(surname);
 
-          if (that.hasPreSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-            that.triggerPreSaveTriggers(userObj, oidcConfig as AnyRecord).then((userAdditionalInfo: AnyRecord) => {
+            if (that.hasPreSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
+              that.triggerPreSaveTriggers(userObj, oidcConfig as AnyRecord).then((userAdditionalInfo: AnyRecord) => {
 
-              const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-              if (success) {
-                User.update({
-                  username: _.get(userAdditionalInfo, 'username')
-                }).set(userAdditionalInfo).exec(function (err: unknown, user: unknown) {
-                  if (err) {
-                    sails.log.error("Error updating user:");
-                    sails.log.error(err);
-                    return done(err, false);
-                  }
-                  if (_.isEmpty(user)) {
-                    sails.log.error("No user found");
-                    return done("No user found", false);
-                  }
+                const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                if (success) {
+                  User.update({
+                    username: _.get(userAdditionalInfo, 'username')
+                  }).set(userAdditionalInfo).exec(function (err: unknown, user: unknown) {
+                    if (err) {
+                      sails.log.error("Error updating user:");
+                      sails.log.error(err);
+                      return done(err, false);
+                    }
+                    if (_.isEmpty(user)) {
+                      sails.log.error("No user found");
+                      return done("No user found", false);
+                    }
 
-                  if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-                    that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                  }
+                    if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
+                      that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
+                    }
 
-                  if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
-                    that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                  }
+                    if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
+                      that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
+                    }
 
-                  sails.log.verbose("Done, returning updated user:");
-                  sails.log.verbose(user);
-                  const updatedUsers = user as AnyRecord[];
-                  return done(null, updatedUsers[0]);
-                });
-              } else {
-                return done('All required conditions for login not met', false);
-              }
+                    sails.log.verbose("Done, returning updated user:");
+                    sails.log.verbose(user);
+                    const updatedUsers = user as AnyRecord[];
+                    that.resolveLinkedUserCandidate(updatedUsers[0])
+                      .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                      .catch((resolveErr: unknown) => done(resolveErr, false));
+                    return;
+                  });
+                } else {
+                  return done('All required conditions for login not met', false);
+                }
 
-            });
+              });
 
-          } else {
+            } else {
 
-            User.update({
-              username: userObj.username
-            }).set(userObj).exec(function (err: unknown, user: unknown) {
-              if (err) {
-                sails.log.error("Error updating user:");
-                sails.log.error(err);
-                return done(err, false);
-              }
-              if (_.isEmpty(user)) {
-                sails.log.error("No user found");
-                return done("No user found", false);
-              }
+              User.update({
+                username: userObj.username
+              }).set(userObj).exec(function (err: unknown, user: unknown) {
+                if (err) {
+                  sails.log.error("Error updating user:");
+                  sails.log.error(err);
+                  return done(err, false);
+                }
+                if (_.isEmpty(user)) {
+                  sails.log.error("No user found");
+                  return done("No user found", false);
+                }
 
-              if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-                that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-              }
+                if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
+                  that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
+                }
 
-              if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
-                that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-              }
+                if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
+                  that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
+                }
 
-              sails.log.verbose("Done, returning updated user:");
-              sails.log.verbose(user);
-              const updatedUsers = user as AnyRecord[];
-              return done(null, updatedUsers[0]);
-            });
+                sails.log.verbose("Done, returning updated user:");
+                sails.log.verbose(user);
+                const updatedUsers = user as AnyRecord[];
+                that.resolveLinkedUserCandidate(updatedUsers[0])
+                  .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                  .catch((resolveErr: unknown) => done(resolveErr, false));
+                return;
+              });
 
-          }
+            }
 
+          }).catch((err: unknown) => {
+            if (err instanceof Error && err.message === 'Account is disabled') {
+              return done(null, false, { message: 'Account is disabled' });
+            }
+            return done(err);
+          }); // end OIDC disabled gate
         } else {
           sails.log.verbose("At OIDC Strategy verify, creating new user...");
           let userToCreate: AnyRecord;
@@ -976,7 +1614,10 @@ export namespace Services {
 
                   sails.log.verbose("Done, returning new user:");
                   sails.log.verbose(newUser);
-                  return done(null, newUser);
+                  that.resolveLinkedUserCandidate(newUser)
+                    .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                    .catch((resolveErr: unknown) => done(resolveErr, false));
+                  return;
                 });
 
               } else {
@@ -1003,7 +1644,10 @@ export namespace Services {
 
               sails.log.verbose("Done, returning new user:");
               sails.log.verbose(newUser);
-              return done(null, newUser);
+              that.resolveLinkedUserCandidate(newUser)
+                .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
+                .catch((resolveErr: unknown) => done(resolveErr, false));
+              return;
             });
 
           }
@@ -1015,6 +1659,7 @@ export namespace Services {
 
     protected bearerTokenAuthInit = () => {
       const BearerStrategy = require('passport-http-bearer').Strategy;
+      const that = this;
       (sails.config.passport as PassportLike).use('bearer', new BearerStrategy(
         function (token: string, done: DoneCallback) {
           if (!_.isEmpty(token) && !_.isUndefined(token)) {
@@ -1029,9 +1674,20 @@ export namespace Services {
 
                 return done(null, false);
               }
-              return done(null, user, {
-                scope: 'all'
+              // Gate disabled users
+              that.assertAuthenticationAllowed(user as UserAttributes).then(() => {
+                that.resolveLinkedUserCandidate(user)
+                  .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
+                    scope: 'all'
+                  }))
+                  .catch((resolveErr: unknown) => done(resolveErr));
+              }).catch((err: unknown) => {
+                if (err instanceof Error && err.message === 'Account is disabled') {
+                  return done(null, false);
+                }
+                return done(err);
               });
+              return;
             });
           } else {
             // empty token, deny
@@ -1229,12 +1885,264 @@ export namespace Services {
       }
 
       return super.getObservable<UserModel[]>(User.find({}).populate('roles'))
-        .pipe(map(users => {
-          return _.filter(users, (user: unknown) => {
-            const userObj = user as AnyRecord;
-            return _.some(userObj.roles as AnyRecord[], (role: unknown) => (role as AnyRecord).branding == brandId);
+        .pipe(flatMap(async (users: UserModel[]) => {
+          const activeLinks = typeof UserLink !== 'undefined'
+            ? await UserLink.find({ brandId: brandId, status: 'active' })
+            : [];
+          const linkedSecondaryIds = new Set(_.map(activeLinks as AnyRecord[], (link: unknown) => String((link as AnyRecord).secondaryUserId ?? '')));
+          return _.filter(users, (user: UserModel) => {
+            return this.hasRoleInBrand(user, String(brandId)) || linkedSecondaryIds.has(String(user.id ?? ''));
           });
         }));
+    }
+
+    public getEffectiveUser = (userOrId: unknown): Observable<UserModel | null> => {
+      if (_.isEmpty(userOrId)) {
+        return of(null);
+      }
+
+      if (_.isString(userOrId) || _.isNumber(userOrId)) {
+        return this.getUserWithId(String(userOrId)).pipe(flatMap(user => {
+          if (user != null) {
+            return this.getEffectiveUser(user);
+          }
+          return this.getUserWithUsername(String(userOrId)).pipe(flatMap(userByUsername => {
+            if (userByUsername != null) {
+              return this.getEffectiveUser(userByUsername);
+            }
+            return of(null);
+          }));
+        }));
+      }
+
+      const userObj = userOrId as UserModel;
+      this.normalizeAccountLinkState(userObj);
+      if (_.isEmpty(userObj.linkedPrimaryUserId)) {
+        return of(userObj as UserModel);
+      }
+
+      return this.getUserWithId(String(userObj.linkedPrimaryUserId)).pipe(map(primaryUser => {
+        if (primaryUser == null) {
+          return userObj as UserModel;
+        }
+        return primaryUser;
+      }));
+    }
+
+    public getLinkedAccounts = (primaryUserId: string | UserModel): Observable<UserLinkResponse> => {
+      return from((async () => {
+        const primaryUser = await firstValueFrom(this.getEffectiveUser(primaryUserId));
+        if (_.isEmpty(primaryUser)) {
+          throw new Error(`No such user with id:${primaryUserId}`);
+        }
+
+        const primaryUserObj = primaryUser as UserModel;
+        const links = typeof UserLink !== 'undefined'
+          ? await UserLink.find({ primaryUserId: String(primaryUserObj.id ?? ''), status: 'active' })
+          : [];
+        const secondaryIds = _.map(links as AnyRecord[], (link: unknown) => String((link as AnyRecord).secondaryUserId ?? ''));
+        const secondaryUsers = _.isEmpty(secondaryIds)
+          ? []
+          : await User.find({ id: secondaryIds }).populate('roles');
+        const secondaryUsersById = _.keyBy(secondaryUsers as UserModel[], (user: UserModel) => String(user.id ?? ''));
+        const linkedAccounts = _.compact(_.map(links as AnyRecord[], (link: unknown) => {
+          const linkObj = link as AnyRecord;
+          const secondary = secondaryUsersById[String(linkObj.secondaryUserId ?? '')];
+          if (_.isEmpty(secondary)) {
+            return null;
+          }
+          this.normalizeAccountLinkState(secondary);
+          return this.toLinkedUserSummary(secondary, linkObj.createdAt as string | Date | undefined);
+        }));
+
+        return {
+          primary: this.toLinkedUserSummary(primaryUserObj),
+          linkedAccounts: linkedAccounts
+        };
+      })());
+    }
+
+    public searchLinkCandidates = (query: string, brandId: string, excludeUserId?: string): Observable<LinkedUserSummary[]> => {
+      const queryText = _.trim(query);
+      return from((async () => {
+        const userWhere: AnyRecord = {
+          accountLinkState: 'active',
+          loginDisabled: { '!=': true }
+        };
+
+        if (!_.isEmpty(excludeUserId)) {
+          userWhere.id = { '!=': String(excludeUserId) };
+        }
+
+        if (!_.isEmpty(queryText)) {
+          userWhere.or = [
+            { username: { contains: queryText } },
+            { name: { contains: queryText } },
+            { email: { contains: queryText } }
+          ];
+        }
+
+        const users = await User.find(userWhere).populate('roles');
+        const enrichedUsers = await this.enrichUsersWithEffectiveDisabledState(users as UserAttributes[]);
+        let primaryUserIdsWithLinkedAccounts = new Set<string>();
+        if (typeof UserLink !== 'undefined' && !_.isEmpty(enrichedUsers)) {
+          const candidateUserIds = _.map(enrichedUsers, (user: UserAttributes) => String(user.id ?? ''));
+          const activeLinks = await UserLink.find({
+            status: 'active',
+            primaryUserId: candidateUserIds
+          });
+          primaryUserIdsWithLinkedAccounts = new Set(
+            _.map(activeLinks as AnyRecord[], (link: unknown) => String((link as AnyRecord).primaryUserId ?? ''))
+          );
+        }
+
+        return _.chain(enrichedUsers)
+          .map(user => {
+            this.normalizeAccountLinkState(user);
+            return user;
+          })
+          .filter(user => {
+            if (user.effectiveLoginDisabled === true) {
+              return false;
+            }
+            if (String(user.id ?? '') === String(excludeUserId ?? '')) {
+              return false;
+            }
+            if (String(user.accountLinkState ?? 'active') !== 'active') {
+              return false;
+            }
+            if (primaryUserIdsWithLinkedAccounts.has(String(user.id ?? ''))) {
+              return false;
+            }
+            const hasBrandRole = this.hasRoleInBrand(user, brandId);
+            const hasNoRoles = _.isEmpty(user.roles);
+            if (!hasBrandRole && !hasNoRoles) {
+              return false;
+            }
+            return true;
+          })
+          .map(user => this.toLinkedUserSummary(user))
+          .sortBy(['name', 'username'])
+          .value();
+      })());
+    }
+
+    public linkAccounts = (primaryUserId: string, secondaryUserId: string, actor: string, brandId: string): Observable<UserLinkResponse> => {
+      return from((async () => {
+        if (_.isEmpty(primaryUserId) || _.isEmpty(secondaryUserId)) {
+          throw new Error('Both primary and secondary users are required');
+        }
+
+        const primaryEffective = await firstValueFrom(this.getEffectiveUser(primaryUserId));
+        const secondaryUser = await firstValueFrom(this.getUserWithId(secondaryUserId));
+        if (_.isEmpty(primaryEffective) || _.isEmpty(secondaryUser)) {
+          throw new Error('Both users must exist before linking');
+        }
+
+        const primaryUser = primaryEffective as UserModel;
+        const secondaryUserObj = secondaryUser as UserModel;
+        this.normalizeAccountLinkState(primaryUser);
+        this.normalizeAccountLinkState(secondaryUserObj);
+
+        const primaryDisabledState = await this.resolveEffectiveDisabledState(primaryUser);
+        if (primaryDisabledState.effectiveLoginDisabled) {
+          throw new Error('Cannot link accounts: primary user is disabled');
+        }
+
+        if (String(primaryUser.id ?? '') === String(secondaryUserObj.id ?? '')) {
+          throw new Error('Cannot link a user to itself');
+        }
+        if (String(primaryUser.accountLinkState ?? 'active') === 'linked-alias') {
+          throw new Error('Primary user cannot be a linked alias');
+        }
+        if (!_.isEmpty(secondaryUserObj.linkedPrimaryUserId) && String(secondaryUserObj.linkedPrimaryUserId) !== String(primaryUser.id ?? '')) {
+          throw new Error('Secondary user is already linked to another primary account');
+        }
+        if (!this.hasRoleInBrand(primaryUser, brandId)) {
+          throw new Error('Primary user must already belong to the current brand');
+        }
+
+        const secondaryBrandRoles = this.getRolesForBrand(secondaryUserObj, brandId);
+        const secondaryForeignRoles = _.filter(secondaryUserObj.roles as unknown[] ?? [], (role: unknown) => {
+          const roleObj = role as AnyRecord;
+          const branding = roleObj.branding as string | AnyRecord | undefined;
+          const roleBrandId = _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');
+          return roleBrandId !== brandId;
+        });
+        if (!_.isEmpty(secondaryForeignRoles)) {
+          throw new Error('Secondary user belongs to a different brand and cannot be linked here');
+        }
+
+        const existingLink = typeof UserLink !== 'undefined'
+          ? await UserLink.findOne({ secondaryUserId: String(secondaryUserObj.id ?? ''), status: 'active' })
+          : null;
+        if (!_.isEmpty(existingLink)) {
+          throw new Error('Secondary user is already linked');
+        }
+
+        const secondaryOwnLinks = typeof UserLink !== 'undefined'
+          ? await UserLink.findOne({ primaryUserId: String(secondaryUserObj.id ?? ''), status: 'active' })
+          : null;
+        if (!_.isEmpty(secondaryOwnLinks)) {
+          throw new Error('Secondary user already has linked accounts');
+        }
+
+        if (typeof UserLink !== 'undefined') {
+          await UserLink.create({
+            primaryUserId: String(primaryUser.id ?? ''),
+            primaryUsername: String(primaryUser.username ?? ''),
+            secondaryUserId: String(secondaryUserObj.id ?? ''),
+            secondaryUsername: String(secondaryUserObj.username ?? ''),
+            brandId: brandId,
+            status: 'active',
+            createdBy: actor
+          });
+        }
+
+        const primaryBrandRoleIds = new Set(_.map(this.getRolesForBrand(primaryUser, brandId), (role: unknown) => String((role as AnyRecord).id ?? '')));
+        const secondaryBrandRoleIds = _.map(secondaryBrandRoles, (role: unknown) => String((role as AnyRecord).id ?? ''));
+        const roleIdsToMerge = _.filter(secondaryBrandRoleIds, roleId => !primaryBrandRoleIds.has(roleId));
+        if (!_.isEmpty(roleIdsToMerge)) {
+          const addRoleQuery = User.addToCollection(String(primaryUser.id ?? ''), 'roles').members(roleIdsToMerge);
+          await firstValueFrom(this.getObservable(addRoleQuery, 'exec', 'simplecb'));
+        }
+
+        const retainedSecondaryRoleIds = _.map(_.filter(secondaryUserObj.roles as unknown[] ?? [], (role: unknown) => {
+          const roleObj = role as AnyRecord;
+          const branding = roleObj.branding as string | AnyRecord | undefined;
+          const roleBrandId = _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');
+          return roleBrandId !== brandId;
+        }), (role: unknown) => String((role as AnyRecord).id ?? ''));
+        const replaceRoleQuery = User.replaceCollection(String(secondaryUserObj.id ?? ''), 'roles').members(retainedSecondaryRoleIds);
+        await firstValueFrom(this.getObservable(replaceRoleQuery, 'exec', 'simplecb'));
+
+        await User.update({ id: String(secondaryUserObj.id ?? '') }).set({
+          token: '',
+          accountLinkState: 'linked-alias',
+          linkedPrimaryUserId: String(primaryUser.id ?? '')
+        });
+
+        const recordsRewritten = await this.rewriteLinkedRecordAuthorizations(primaryUser, secondaryUserObj, actor, brandId);
+
+        await this.addUserAuditEvent({ username: actor }, 'link-accounts', {
+          primaryUserId: primaryUser.id,
+          primaryUsername: primaryUser.username,
+          secondaryUserId: secondaryUserObj.id,
+          secondaryUsername: secondaryUserObj.username,
+          brandId: brandId,
+          rolesMerged: roleIdsToMerge.length,
+          recordsRewritten: recordsRewritten
+        });
+
+        const linkedAccounts = await firstValueFrom(this.getLinkedAccounts(primaryUser as UserModel));
+        return {
+          ...linkedAccounts,
+          impact: {
+            recordsRewritten: recordsRewritten,
+            rolesMerged: roleIdsToMerge.length
+          }
+        };
+      })());
     }
 
     public setUserKey = (userid: string | number, uuid: string | null): Observable<UserModel> => {
@@ -1380,29 +2288,31 @@ export namespace Services {
      *
      **/
     public findAndAssignAccessToRecords(pendingValue: string, userid: string): void {
-
-      Record.find({
-        'or': [{
-          'authorization.editPending': pendingValue
-        }, {
-          'authorization.viewPending': pendingValue
-        }]
-      }).meta({
-        enableExperimentalDeepTargets: true
-      }).then((records) => {
-        const recordsArr = records as unknown[];
-        if (_.isEmpty(recordsArr)) {
-          sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> No pending records: ${pendingValue}`);
-          return;
-        }
-        sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> Found ${recordsArr.length} records to assign permissions`);
-        for (const record of recordsArr) {
-          const recordObj = record as AnyRecord;
-          RecordsService.provideUserAccessAndRemovePendingAccess(recordObj.redboxOid as string, userid, pendingValue);
-        }
-      }).catch((error: unknown) => {
-        sails.log.warn(`Failed to assign access for user: ${pendingValue}`);
-        sails.log.warn(error);
+      this.getEffectiveUser(userid).subscribe((effectiveUser: UserModel | null) => {
+        const effectiveUsername = _.get(effectiveUser, 'username', userid) as string;
+        Record.find({
+          'or': [{
+            'authorization.editPending': pendingValue
+          }, {
+            'authorization.viewPending': pendingValue
+          }]
+        }).meta({
+          enableExperimentalDeepTargets: true
+        }).then((records) => {
+          const recordsArr = records as unknown[];
+          if (_.isEmpty(recordsArr)) {
+            sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> No pending records: ${pendingValue}`);
+            return;
+          }
+          sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> Found ${recordsArr.length} records to assign permissions`);
+          for (const record of recordsArr) {
+            const recordObj = record as AnyRecord;
+            RecordsService.provideUserAccessAndRemovePendingAccess(recordObj.redboxOid as string, effectiveUsername, pendingValue);
+          }
+        }).catch((error: unknown) => {
+          sails.log.warn(`Failed to assign access for user: ${pendingValue}`);
+          sails.log.warn(error);
+        });
       });
     }
 

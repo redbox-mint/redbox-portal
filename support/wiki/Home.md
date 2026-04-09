@@ -8,6 +8,7 @@ If you're new to RedBox Portal, here's where you can get started:
 
 - **[Installation Guide](https://github.com/redbox-mint/redbox-portal/wiki/Installation-Guide)**: Follow our step-by-step guide to get RedBox Portal up and running in your environment.
 - **[User Guide](https://github.com/redbox-mint/redbox-portal/wiki/User-Guide)**: Learn how to navigate the platform, manage your data, and utilize advanced features.
+- **[User Management](https://github.com/redbox-mint/redbox-portal/wiki/User-Management)**: Admin guide for linked accounts, disabled users, and user audit history.
 - **[Development Guide](https://github.com/redbox-mint/redbox-portal/wiki/Development-Guide)**: Get started with development on the platform.
 
 ## Developer Reference
@@ -22,6 +23,7 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Form Event Bus Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Form-Event-Bus-Architecture)**: Technical documentation of the event bus system for developers.
 - **[ReDBox Automated Tests](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Automated-Tests)**: Test suites, commands, and CI notes.
 - **[REST API Documentation](https://github.com/redbox-mint/redbox-portal/wiki/REST-API-Documentation)**: Link to the REST API reference.
+- **[User Management](https://github.com/redbox-mint/redbox-portal/wiki/User-Management)**: Feature-specific notes for the Manage Users UI, related models, and admin user-management endpoints.
 
 ## Core Packages
 

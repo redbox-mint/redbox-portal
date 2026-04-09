@@ -1,0 +1,37 @@
+meta {
+  name: Search Link Candidates
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{host}}/default/rdmp/api/users/link/candidates
+  body: none
+  auth: none
+}
+
+query {
+  query: apilinksecondary34
+  primaryUserId: {{apiUserId}}
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Secondary user is returned as a link candidate", function () {
+      var jsonData = res.getBody();
+      expect(jsonData.length).to.be.greaterThan(0);
+      var candidate = jsonData.find(function(user) {
+          return user.id === bru.getEnvVar("secondaryApiUserId");
+      });
+      expect(candidate).to.not.equal(undefined);
+      expect(candidate.username).to.eql('apilinksecondary34');
+  });
+}

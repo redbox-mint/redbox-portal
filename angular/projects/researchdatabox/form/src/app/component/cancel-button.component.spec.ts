@@ -54,10 +54,10 @@ describe('CancelButtonComponent', () => {
     };
   });
 
-  it('should create CancelButtonComponent', () => {
-    const fixture = TestBed.createComponent(CancelButtonComponent);
-    const component = fixture.componentInstance;
-    expect(component).toBeDefined();
+  it('should create CancelButtonComponent', async () => {
+    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true } as any);
+    const component = fixture.nativeElement.querySelector('redbox-form-cancel-button');
+    expect(component).toBeTruthy();
   });
 
   it('should show confirmation dialog only when dirty', async () => {

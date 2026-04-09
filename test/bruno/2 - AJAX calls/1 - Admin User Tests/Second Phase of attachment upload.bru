@@ -6,8 +6,12 @@ meta {
 
 patch {
   url: http:{{attachmentLocation}}
-  body: none
+  body: file
   auth: none
+}
+
+body:file {
+  file: @file(attachment.png) @contentType(application/offset+octet-stream)
 }
 
 headers {
@@ -27,16 +31,6 @@ headers {
 }
 
 script:pre-request {
-  const fs = require('fs');
-  const path = require('path');
-
-  const attachmentFilename = "attachment.png";
-  const attachmentPath = path.join(bru.cwd(), attachmentFilename);
-  const attachment = fs.readFileSync(attachmentPath, "base64");
-  const attachmentLength = attachment.length;
-
-  req.setBody(attachment);
-
   const bruHelper = require("./bruno-helpers.js");
   bruHelper.setCookies({bru, req});
 }

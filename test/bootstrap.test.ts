@@ -2,7 +2,7 @@ import sails from "sails";
 import _ from "lodash";
 import { DateTime } from "luxon";
 
-const redboxLoader = require("../redbox-loader");
+import { generateAllShims } from "@researchdatabox/redbox-core";
 
 // Expose Luxon DateTime for tests needing date utilities
 (global as any).DateTime = DateTime;
@@ -17,8 +17,7 @@ before(function (this: Mocha.Context, done) {
 		this.timeout(5 * 60 * 1000);
 
 		// Generate shims before lifting Sails
-		redboxLoader
-			.generateAllShims(process.cwd(), {
+		generateAllShims(process.cwd(), {
 				forceRegenerate: process.env.REGENERATE_SHIMS === "true",
 				verbose: process.env.SHIM_VERBOSE === "true",
 			})

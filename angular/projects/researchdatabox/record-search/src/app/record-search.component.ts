@@ -210,7 +210,8 @@ export class RecordSearchComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  ngOnDestroy(): void {
+  override ngOnDestroy(): void {
+    super.ngOnDestroy();
     this.locationSubscription?.unsubscribe();
     this.locationSubscription = null;
   }

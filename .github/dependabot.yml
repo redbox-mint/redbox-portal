@@ -7,15 +7,20 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "develop"
+    cooldown:
+      default-days: 7
 
   # Update docker compose files
   - package-ecosystem: "docker-compose"
     directories:
       - "/support/development"
       - "/support/integration-testing"
+      - "/packages/sails-hook-redbox-storage-mongo/support"
     schedule:
       interval: "daily"
     target-branch: "develop"
+    cooldown:
+      default-days: 7
 
   # Update github actions files
   - package-ecosystem: "github-actions"
@@ -23,19 +28,37 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "develop"
+    cooldown:
+      default-days: 7
 
-  # Update npm files
+  # Update package npm files
   - package-ecosystem: "npm"
     directories:
       - "/"
-      - "/core"
-      - "/support/build/api-descriptors"
-      - "/support/raido"
+      - "/packages/raido"
+      - "/packages/redbox-core"
+      - "/packages/redbox-dev-tools"
+      - "/packages/rva-registry"
+      - "/packages/sails-hook-redbox-storage-mongo"
+      - "/packages/sails-ng-common"
     schedule:
       interval: "daily"
     target-branch: "develop"
+    cooldown:
+      default-days: 7
 
-  # Update npm files
+  # Update support npm files
+  - package-ecosystem: "npm"
+    directories:
+      - "/support/build/api-descriptors"
+      - "/test/bruno"
+    schedule:
+      interval: "daily"
+    target-branch: "develop"
+    cooldown:
+      default-days: 7
+
+  # Update angular npm files
   # Update angular dependencies as a group,
   #  with one PR having minor & patch changes,
   #  and separate PR for major version changes
@@ -43,6 +66,7 @@ updates:
     directories:
       - "/angular"
       - "/angular/projects/researchdatabox/portal-ng-common"
+      - "/angular/projects/researchdatabox/portal-ng-form-custom"
     schedule:
       interval: "daily"
     target-branch: "develop"
@@ -70,3 +94,5 @@ updates:
           - "@ngx-formly/*"
         update-types:
           - "major"
+    cooldown:
+      default-days: 7

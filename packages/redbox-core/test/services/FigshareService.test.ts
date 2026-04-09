@@ -758,6 +758,122 @@ describe('FigshareService', function() {
     });
   });
 
+  describe('getAuthorUserIDs author ordering', function() {
+    beforeEach(function() {
+      mockSails.config.figshareAPI.mapping.templates.getAuthor = [
+        { template: '<%= field.email %>', email: '' }
+      ];
+      mockSails.config.figshareAPI.mapping.figshareAuthorUserId = 'id';
+      mockSails.config.figshareAPI.mapping.recordAuthorExternalName = 'name';
+      mockSails.config.figshareAPI.mapping.recordAuthorUniqueBy = '';
+    });
+
+    it('should maintain original order when all authors are matched', async function() {
+      const config = service.getRuntimeConfig();
+      const requestStub = sinon.stub(service, 'requestWithRetry');
+      requestStub.onCall(0).resolves({ data: [{ id: 101 }] });
+      requestStub.onCall(1).resolves({ data: [{ id: 102 }] });
+      requestStub.onCall(2).resolves({ data: [{ id: 103 }] });
+
+      const authors = [
+        { name: 'Author One', email: 'author1@test.com' },
+        { name: 'Author Two', email: 'author2@test.com' },
+        { name: 'Author Three', email: 'author3@test.com' }
+      ];
+
+      const result = await service.getAuthorUserIDs(config, authors);
+
+      expect(result).to.deep.equal([{ id: 101 }, { id: 102 }, { id: 103 }]);
+    });
+
+    it('should maintain original order when all authors are external', async function() {
+      const config = service.getRuntimeConfig();
+      const requestStub = sinon.stub(service, 'requestWithRetry');
+      requestStub.onCall(0).resolves({ data: [] });
+      requestStub.onCall(1).resolves({ data: [] });
+      requestStub.onCall(2).resolves({ data: [] });
+
+      const authors = [
+        { name: 'External One', email: 'ext1@test.com' },
+        { name: 'External Two', email: 'ext2@test.com' },
+        { name: 'External Three', email: 'ext3@test.com' }
+      ];
+
+      const result = await service.getAuthorUserIDs(config, authors);
+
+      expect(result).to.deep.equal([
+        { name: 'External One' },
+        { name: 'External Two' },
+        { name: 'External Three' }
+      ]);
+    });
+
+    it('should maintain original order with mixed matched and external authors', async function() {
+      const config = service.getRuntimeConfig();
+      const requestStub = sinon.stub(service, 'requestWithRetry');
+      requestStub.onCall(0).resolves({ data: [{ id: 201 }] });
+      requestStub.onCall(1).resolves({ data: [] });
+      requestStub.onCall(2).resolves({ data: [{ id: 203 }] });
+      requestStub.onCall(3).resolves({ data: [] });
+
+      const authors = [
+        { name: 'Matched Author', email: 'matched1@test.com' },
+        { name: 'External Author', email: 'external@test.com' },
+        { name: 'Another Matched', email: 'matched2@test.com' },
+        { name: 'Another External', email: 'external2@test.com' }
+      ];
+
+      const result = await service.getAuthorUserIDs(config, authors);
+
+      expect(result).to.deep.equal([
+        { id: 201 },
+        { name: 'External Author' },
+        { id: 203 },
+        { name: 'Another External' }
+      ]);
+    });
+
+    it('should add authors as external when a lookup fails', async function() {
+      const config = service.getRuntimeConfig();
+      const requestStub = sinon.stub(service, 'requestWithRetry');
+      requestStub.onCall(0).rejects(new Error('API Error'));
+      requestStub.onCall(1).resolves({ data: [{ id: 500 }] });
+
+      const authors = [
+        { name: 'Error Author', email: 'error@test.com' },
+        { name: 'Success Author', email: 'success@test.com' }
+      ];
+
+      const result = await service.getAuthorUserIDs(config, authors);
+
+      expect(result).to.deep.equal([
+        { name: 'Error Author' },
+        { id: 500 }
+      ]);
+    });
+
+    it('should skip external authors without a name', async function() {
+      const config = service.getRuntimeConfig();
+      const requestStub = sinon.stub(service, 'requestWithRetry');
+      requestStub.onCall(0).resolves({ data: [] });
+      requestStub.onCall(1).resolves({ data: [] });
+      requestStub.onCall(2).resolves({ data: [] });
+
+      const authors = [
+        { name: 'Valid Name', email: 'valid@test.com' },
+        { email: 'noname@test.com' },
+        { name: 'Another Valid', email: 'another@test.com' }
+      ];
+
+      const result = await service.getAuthorUserIDs(config, authors);
+
+      expect(result).to.deep.equal([
+        { name: 'Valid Name' },
+        { name: 'Another Valid' }
+      ]);
+    });
+  });
+
   describe('createUpdateFigshareArticle', function() {
     it('should check trigger condition and call sendDataPublicationToFigshare when met', async function() {
       sinon.stub(service, 'metTriggerCondition').returns('true');

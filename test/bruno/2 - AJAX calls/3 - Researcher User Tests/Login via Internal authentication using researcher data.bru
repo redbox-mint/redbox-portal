@@ -36,7 +36,16 @@ body:json {
 
 
 tests {
-  bru.setVar("cookie",res.getHeader("set-cookie") );
+  // Normalize potential array of Set-Cookie headers (Bruno v2) into single Cookie header string
+  (function() {
+    let cookie = res.headers && res.headers['set-cookie'] ? res.headers['set-cookie'] : res.getHeader("set-cookie");
+    if (Array.isArray(cookie)) {
+      cookie = cookie.map(c => (typeof c === 'string' ? c.split(';')[0] : '')).filter(Boolean).join('; ');
+    }
+    if (cookie && typeof cookie === 'string') {
+      bru.setVar("cookie", cookie);
+    }
+  })();
   
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);

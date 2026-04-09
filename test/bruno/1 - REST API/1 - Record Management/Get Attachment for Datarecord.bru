@@ -15,15 +15,15 @@ headers {
 }
 
 tests {
-  const _ = require('lodash')
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
   });
   
   test("Body has attachment content", function () {
-      let obj = res.getBody();
-    // TODO: It's actually not 28398 bytes but I think bruno garbles it in res.getBody
-    expect(_.size(res.getBody())).to.eql(28398);
+    const body = res.getBody();
+    const size = res.getSize();
+    expect(body).to.exist;
+    expect(size.body).to.equal(30148);
     expect(res.headers['content-type']).to.eql('image/png');
   });
 }

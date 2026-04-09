@@ -487,17 +487,17 @@ export namespace Controllers.Core {
     protected sendResp(req: Sails.Req, res: Sails.Res, buildResponse?: BuildResponseType): Response {
       const apiVersion = this.getApiVersion(req);
       // Destructure build response properties and set defaults.
-      let {
+      const {
         format = "json",
         data = {},
-        // Response status defaults to 200.
-        status = 200,
         headers = {},
         errors = [],
         displayErrors = [],
         meta = {},
         v1 = null,
       } = buildResponse ?? {};
+      // Response status defaults to 200.
+      let { status = 200 } = buildResponse ?? {};
 
       // Collect and process the errors recursively
       const { collectedErrors, collectedDisplayErrors } = this.collectAndLogErrors(errors, displayErrors);

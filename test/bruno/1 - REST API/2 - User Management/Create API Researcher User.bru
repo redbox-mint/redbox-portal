@@ -15,13 +15,22 @@ headers {
   Authorization: Bearer {{token}}
 }
 
+script:pre-request {
+  // Generate unique username/email once per run and store in env vars
+  var suffix = Date.now().toString().slice(-6) + Math.floor(Math.random()*100).toString().padStart(2,'0');
+  var username = 'apiresearcher' + suffix;
+  var email = username + '@redboxresearchdata.com.au';
+  bru.setEnvVar('apiTestUsername', username);
+  bru.setEnvVar('apiTestEmail', email);
+}
+
 body:json {
   {
-      "username": "apiresearcher34",
-      "name": "researcher created via API",
-      "email": "apiresearcher34@redboxresearchdata.com.au",
-      "password": "a12345672A!",
-      "roles": ["Admin","Researcher","Librarian"]
+    "username": "{{apiTestUsername}}",
+    "name": "researcher created via API",
+    "email": "{{apiTestEmail}}",
+    "password": "a12345672A!",
+    "roles": ["Admin","Researcher","Librarian"]
   }
 }
 
