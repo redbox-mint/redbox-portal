@@ -2,7 +2,7 @@
 set -euo pipefail
 
 TARGET="${1:?docker target is required}"
-SUFFIX="${2:?image suffix is required}"
+SUFFIX="${2:-}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/docker-build-vars.sh"
