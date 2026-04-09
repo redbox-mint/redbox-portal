@@ -1,0 +1,201 @@
+networks:
+  main:
+
+x-playwright-service: &playwright-service
+  image: mcr.microsoft.com/playwright:v1.59.1-noble
+  pull_policy: missing
+  working_dir: /opt/redbox-portal
+  stop_grace_period: 30m
+  environment:
+    PLAYWRIGHT_BASE_URL: http://redboxportal:1500
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+    CI: 'true'
+  volumes:
+    - '../../:/opt/redbox-portal:delegated'
+  networks:
+    main:
+      aliases:
+        - playwright
+  init: true
+  entrypoint:
+    - bash
+    - /opt/redbox-portal/support/integration-testing/run-playwright.sh
+
+x-rbportal-env: &rbportal-env
+  - NODE_ENV=integrationtest
+  - PORT=1500
+  - NODE_OPTIONS=--max-old-space-size=1024
+  - 'RBPORTAL_REMOTE_DEBUG=${RBPORTAL_REMOTE_DEBUG:-}'
+  - UPPY_COMPANION_ENABLED=true
+  - UPPY_COMPANION_SECRET=integrationtest-companion-secret
+  - UPPY_COMPANION_FILE_PATH=/tmp/companion
+  - UPPY_COMPANION_HOST=redboxportal:1500
+  - UPPY_COMPANION_PROTOCOL=http
+  - UPPY_COMPANION_PATH=/companion
+  - UPPY_COMPANION_UPLOAD_URLS=http://redboxportal:1500/default/rdmp/companion/record/pending-oid/attach
+  - UPPY_GOOGLE_KEY=integrationtest-google-key
+  - UPPY_GOOGLE_SECRET=integrationtest-google-secret
+  - UPPY_ONEDRIVE_KEY=integrationtest-onedrive-key
+  - UPPY_ONEDRIVE_SECRET=integrationtest-onedrive-secret
+  - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
+  - sails_record__baseUrl_redbox=http://redbox:9000/redbox
+  - sails_record__baseUrl_mint=http://203.101.226.160/mint
+  - LOAD_DEFAULT_FORMS=true
+  - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
+  - sails_security__csrf=false
+
+x-rbportal-depends: &rbportal-depends
+  keycloak:
+    condition: service_healthy
+  mongodb:
+    condition: service_healthy
+  solr:
+    condition: service_healthy
+  email:
+    condition: service_healthy
+
+x-rbportal-service: &rbportal-service
+  image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
+  pull_policy: never
+  user: root
+  volumes:
+    - '../../test:/opt/redbox-portal/test'
+    - '../../support:/opt/redbox-portal/support'
+    - '../../app.integrationtest.js:/opt/redbox-portal/app.integrationtest.js'
+    - '../../.tmp/attachments:/attachments'
+    - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
+    - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
+  stop_grace_period: 30m
+  healthcheck:
+    test: ['CMD-SHELL', 'curl -fsS http://localhost:1500/default/rdmp/home']
+    interval: '10s'
+    timeout: '5s'
+    retries: 10
+    start_period: '60s'
+  depends_on: *rbportal-depends
+  expose:
+    - '1500'
+  environment: *rbportal-env
+  networks:
+    main:
+      aliases:
+        - redboxportal
+  init: true
+  entrypoint:
+    - bash
+    - /opt/redbox-portal/support/integration-testing/run-playwright-redbox.sh
+
+services:
+  playwright:
+    <<: *playwright-service
+    profiles: [ci]
+    depends_on:
+      redboxportal:
+        condition: service_healthy
+  playwright-mount:
+    <<: *playwright-service
+    profiles: [mount]
+    depends_on:
+      redboxportal-mount:
+        condition: service_healthy
+  redboxportal:
+    <<: *rbportal-service
+    profiles: [ci]
+    ports:
+      - '1500:1500'
+  redboxportal-mount:
+    <<: *rbportal-service
+    profiles: [mount]
+    ports:
+      - '1500:1500'
+    image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
+    volumes:
+      - '../../:/opt/redbox-portal:delegated'
+      - '../../.tmp/attachments:/attachments'
+      - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
+      - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:1500/default/rdmp/home']
+      interval: '10s'
+      timeout: '5s'
+      retries: 30
+      start_period: '60s'
+  mongodb:
+    image: mongo:latest
+    pull_policy: missing
+    ports:
+      - '27017:27017'
+    networks:
+      main:
+        aliases:
+          - mongodb
+    healthcheck:
+      test: ['CMD-SHELL', 'echo ''db.runCommand("ping").ok'' | mongosh']
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+  solr:
+    image: solr:latest
+    pull_policy: missing
+    expose:
+      - '8983'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl http://localhost:8983']
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+    networks:
+      main:
+        aliases:
+          - solr
+    entrypoint:
+      - docker-entrypoint.sh
+      - solr-precreate
+      - redbox
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5.6
+    pull_policy: missing
+    expose:
+      - '8080'
+    healthcheck:
+      test: ['CMD-SHELL', "/usr/bin/bash -c 'true </dev/tcp/127.0.0.1/8080'"]
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+    volumes:
+      - './keycloakdb/import:/opt/keycloak/data/import:ro'
+    networks:
+      main:
+        aliases:
+          - keycloak
+    command:
+      - start-dev
+      - --import-realm
+  email:
+    image: axllent/mailpit:latest
+    pull_policy: missing
+    expose:
+      - '1025'
+      - '8025'
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: '/data/mailpit.db'
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      TZ: 'Australia/Brisbane'
+    volumes:
+      - '../../.tmp/email:/data'
+    networks:
+      main:
+        aliases:
+          - email
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --spider -q http://localhost:8025']
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '10s'
