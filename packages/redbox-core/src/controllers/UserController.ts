@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { v4 as uuidv4 } from 'uuid';
+import type { NextFunction } from 'express';
 import {
   BrandingModel,
   Controllers as controllers,
@@ -363,13 +364,13 @@ export namespace Controllers {
       })(req, res);
     }
 
-    public beginOidc(req: Sails.Req, res: Sails.Res) {
+    public beginOidc(req: Sails.Req, res: Sails.Res, next: NextFunction) {
       sails.log.verbose(`At OIDC begin flow, redirecting...`);
       let passportIdentifier = 'oidc'
       if (!_.isEmpty(req.param('id'))) {
         passportIdentifier = `oidc-${req.param('id')}`
       }
-      sails.config.passport.authenticate(passportIdentifier)(req, res);
+      sails.config.passport.authenticate(passportIdentifier)(req, res, next);
     }
 
     private decodeErrorMappings(options: unknown, errorMessage: string) {

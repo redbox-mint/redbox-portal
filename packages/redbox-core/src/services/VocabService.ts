@@ -309,8 +309,8 @@ export namespace Services {
 
     private getTemplateStringFunction(template: string) {
       const sanitized = template
-        .replace(/\$\{([\s]*[^;\s\{]+[\s]*)\}/g, function (_: string, match: string) {
-          return `\$\{map.${match.trim()}\}`;
+        .replace(/\$\{([\s]*[^;\s{]+[\s]*)\}/g, function (_: string, match: string) {
+          return `\${map.${match.trim()}}`;
         })
         // Afterwards, replace anything that's not ${map.expressions}' (etc) with a blank string.
         .replace(/(\$\{(?!map\.)[^}]+\})/g, '');

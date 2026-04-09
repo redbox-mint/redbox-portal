@@ -1,11 +1,8 @@
-import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common'; 
-import { UtilityService, LoggerService, TranslationService, RecordService, ConfigService } from '@researchdatabox/portal-ng-common';
-import { getStubConfigService, getStubTranslationService, getStubRecordService, appInit, localeId } from '@researchdatabox/portal-ng-common';
+import { ConfigService, I18NextPipe, LoggerService, RecordService, TranslationService, UtilityService } from '@researchdatabox/portal-ng-common';
+import { getStubConfigService, getStubTranslationService, getStubRecordService } from '@researchdatabox/portal-ng-common';
 import { ExportComponent } from './export.component';
-import i18next from 'i18next';
-import { I18NextModule, StrictErrorHandlingStrategy, provideI18Next, withCustomErrorHandlingStrategy } from 'angular-i18next';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { FormsModule } from "@angular/forms";
 import { DateTime } from 'luxon';
@@ -28,14 +25,6 @@ function toEndOfDayIso(date: Date): string {
   return normalized.toISOString();
 }
 
-export function i18AppInit() {
-  return () => i18next
-  .init({
-    fallbackLng: 'en',
-    debug: true
-  });
-}
-
 describe('ExportComponent', () => {
   beforeEach(async () => {
     configService = getStubConfigService();
@@ -52,7 +41,7 @@ describe('ExportComponent', () => {
       ],
       imports: [
         FormsModule,
-        I18NextModule.forRoot(),
+        I18NextPipe,
         BsDatepickerModule.forRoot()
       ],
       providers: [
@@ -73,11 +62,7 @@ describe('ExportComponent', () => {
         {
           provide: RecordService,
           useValue: recordService
-        },
-        provideAppInitializer(i18AppInit()),
-        provideI18Next(
-          withCustomErrorHandlingStrategy(StrictErrorHandlingStrategy)
-        )
+        }
       ]
     });
     await testModule.compileComponents();

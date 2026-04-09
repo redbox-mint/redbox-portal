@@ -729,6 +729,10 @@ describe('QuestionTreeComponent', async () => {
       const {fixture, formComponent} = await createFormAndWaitForReady(formConfigWithModelValue);
       const element = fixture.nativeElement as HTMLElement;
 
+      await new Promise(resolve => setTimeout(resolve, 150));
+      fixture.detectChanges();
+      await fixture.whenStable();
+
       const qtElements = element.querySelectorAll('redbox-questiontreefield');
       expect(qtElements).toHaveSize(1);
       const qtElement = qtElements[0];

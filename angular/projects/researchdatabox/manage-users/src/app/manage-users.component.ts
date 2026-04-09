@@ -1,8 +1,19 @@
 import { Component, Inject, ViewChild } from '@angular/core';
 import { ModalDirective } from 'ngx-bootstrap/modal';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
-import { Role, User } from '@researchdatabox/portal-ng-common';
-import { BaseComponent, LoggerService, TranslationService, UserService } from '@researchdatabox/portal-ng-common';
+import {
+  Role,
+  User,
+  LinkedUserSummary,
+  UserLinkCandidate,
+  UserLinkResponse,
+  UserAuditRecord,
+  UserAuditResponse,
+  BaseComponent,
+  LoggerService,
+  TranslationService,
+  UserService
+} from '@researchdatabox/portal-ng-common';
 import { UserForm, matchingValuesValidator, optionalEmailValidator, passwordStrengthValidator } from './forms';
 import * as _ from 'lodash';
 
@@ -10,6 +21,20 @@ type ManageUser = User & {
   roleStr?: string;
   token?: string;
   roles: Role[];
+  accountLinkState?: 'active' | 'linked-alias';
+  linkedPrimaryUserId?: string;
+  effectivePrimaryUsername?: string;
+  linkedAccountCount?: number;
+  loginDisabled?: boolean;
+  effectiveLoginDisabled?: boolean;
+  disabledByPrimaryUserId?: string;
+  disabledByPrimaryUsername?: string;
+};
+
+type AccountStatusUser = {
+  accountLinkState?: string;
+  effectivePrimaryUsername?: string;
+  linkedAccountCount?: number;
 };
 
 type RoleSelection = {
@@ -34,6 +59,17 @@ type UserDetailsPayload = {
 type SaveResponse = {
   status: boolean;
   message: string;
+};
+
+type AuditModalUser = Pick<ManageUser, 'id' | 'username' | 'name' | 'email' | 'type'>;
+
+type LinkingUserService = UserService & {
+  getUserLinks: (primaryUserId: string) => Promise<UserLinkResponse>;
+  searchLinkCandidates: (primaryUserId: string, query: string) => Promise<UserLinkCandidate[]>;
+  linkAccounts: (primaryUserId: string, secondaryUserId: string) => Promise<UserLinkResponse>;
+  getUserAudit: (userId: string) => Promise<UserAuditResponse>;
+  disableUser: (userId: string) => Promise<{ status: boolean; message: string }>;
+  enableUser: (userId: string) => Promise<{ status: boolean; message: string }>;
 };
 
 @Component({
@@ -69,18 +105,38 @@ export class ManageUsersComponent extends BaseComponent {
 
   @ViewChild('userDetailsModal', { static: false }) userDetailsModal?: ModalDirective;
   @ViewChild('userNewModal', { static: false }) userNewModal?: ModalDirective;
+  @ViewChild('userLinkModal', { static: false }) userLinkModal?: ModalDirective;
+  @ViewChild('userAuditModal', { static: false }) userAuditModal?: ModalDirective;
 
   isDetailsModalShown: boolean = false;
   isNewUserModalShown: boolean = false;
+  isLinkModalShown: boolean = false;
+  isAuditModalShown: boolean = false;
   updateUserForm: FormGroup | null = null;
   newUserForm: FormGroup | null = null;
   submitted: boolean = false;
   showToken: boolean = false;
+  linkPrimaryUser: ManageUser | null = null;
+  linkedAccounts: LinkedUserSummary[] = [];
+  linkCandidates: UserLinkCandidate[] = [];
+  linkSearchQuery: string = '';
+  selectedLinkCandidate: UserLinkCandidate | null = null;
+  linkMsg: string = '';
+  linkMsgType: string = 'info';
+  isLinkSearchLoading: boolean = false;
+  isLinkSaving: boolean = false;
+  showDisabledUsers: boolean = false;
+  auditModalUser: AuditModalUser | null = null;
+  auditRecords: UserAuditRecord[] = [];
+  auditExpandedRows: Record<string, boolean> = {};
+  isAuditLoading: boolean = false;
+  auditError: string = '';
+  auditSummary: { returnedCount: number; truncated: boolean } = { returnedCount: 0, truncated: false };
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
-    @Inject(UserService) private userService: UserService,
+    @Inject(UserService) private userService: LinkingUserService,
     @Inject(FormBuilder) private _fb: FormBuilder
   ) {
     super();
@@ -189,14 +245,12 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   async refreshUsers() {
-    const users = await this.userService.getUsers() as unknown as ManageUser[];
+    const users = await this.userService.getUsers({ includeDisabled: this.showDisabledUsers }) as unknown as ManageUser[];
     this.allUsers = [];
     for (const user of users) {
       this.allUsers.push(user);
     }
-    _.forEach(this.searchFilter.users, () => {
-      this.searchFilter.users.pop();
-    });
+    this.searchFilter.users = [];
     this.filteredUsers = [];
     _.forEach(users, (user) => {
       this.searchFilter.users.push({ value: user.name, label: user.name, checked: false });
@@ -252,6 +306,48 @@ export class ManageUsersComponent extends BaseComponent {
 
   onNewUserHidden(): void {
     this.isNewUserModalShown = false;
+  }
+
+  showLinkModal(): void {
+    this.isLinkModalShown = true;
+    this.userLinkModal?.show();
+  }
+
+  hideLinkModal(): void {
+    if (!_.isUndefined(this.userLinkModal)) {
+      this.userLinkModal.hide();
+    }
+  }
+
+  onLinkModalHidden(): void {
+    this.isLinkModalShown = false;
+    this.linkPrimaryUser = null;
+    this.linkedAccounts = [];
+    this.linkCandidates = [];
+    this.linkSearchQuery = '';
+    this.selectedLinkCandidate = null;
+    this.setLinkMessage();
+  }
+
+  showAuditModal(): void {
+    this.isAuditModalShown = true;
+    this.userAuditModal?.show();
+  }
+
+  hideAuditModal(): void {
+    if (!_.isUndefined(this.userAuditModal)) {
+      this.userAuditModal.hide();
+    }
+  }
+
+  onAuditModalHidden(): void {
+    this.isAuditModalShown = false;
+    this.auditModalUser = null;
+    this.auditRecords = [];
+    this.auditExpandedRows = {};
+    this.isAuditLoading = false;
+    this.auditError = '';
+    this.auditSummary = { returnedCount: 0, truncated: false };
   }
 
   genKey(userid: string) {
@@ -344,6 +440,196 @@ export class ManageUsersComponent extends BaseComponent {
     this.newUserMsgType = type;
   }
 
+  setLinkMessage(msg: string = '', type: string = 'primary') {
+    this.linkMsg = msg;
+    this.linkMsgType = type;
+  }
+
+  getAuditTitle(): string {
+    const label = this.auditModalUser?.name || this.auditModalUser?.username || '';
+    return this.translationService.t('manage-users-audit-modal-title', '', { user: label }) || `Audit history for ${label}`;
+  }
+
+  getAuditActor(record: UserAuditRecord): string {
+    const actorParts: string[] = [record.actor.username];
+    if (!_.isEmpty(record.actor.name)) {
+      actorParts.push(String(record.actor.name));
+    }
+    if (!_.isEmpty(record.actor.email)) {
+      actorParts.push(String(record.actor.email));
+    }
+    return actorParts.filter((part) => !_.isEmpty(part)).join(' | ');
+  }
+
+  getAuditActionLabel(record: UserAuditRecord): string {
+    return record.action;
+  }
+
+  getAuditDetailsLabel(record: UserAuditRecord): string {
+    if (record.action === 'login') {
+      return this.translationService.t('manage-users-audit-event-login') || record.details;
+    }
+    if (record.action === 'logout') {
+      return this.translationService.t('manage-users-audit-event-logout') || record.details;
+    }
+    if (record.action === 'disable-user') {
+      return this.translationService.t('manage-users-audit-event-disable') || record.details;
+    }
+    if (record.action === 'enable-user') {
+      return this.translationService.t('manage-users-audit-event-enable') || record.details;
+    }
+    if (record.action === 'link-accounts') {
+      const context = record.parsedAdditionalContext as Record<string, unknown> | null;
+      if (context != null && this.auditModalUser != null) {
+        if (String(context['primaryUserId'] ?? '') === this.auditModalUser.id) {
+          return this.translationService.t('manage-users-audit-event-link-primary') || record.details;
+        }
+        if (String(context['secondaryUserId'] ?? '') === this.auditModalUser.id) {
+          return this.translationService.t('manage-users-audit-event-link-secondary') || record.details;
+        }
+      }
+      return this.translationService.t('manage-users-audit-event-link-generic') || record.details;
+    }
+    return record.details;
+  }
+
+  formatAuditTimestamp(timestamp: string | null): string {
+    if (_.isEmpty(timestamp)) {
+      return '';
+    }
+    return new Date(String(timestamp)).toLocaleString();
+  }
+
+  isAuditRowExpanded(recordId: string): boolean {
+    return this.auditExpandedRows[recordId] === true;
+  }
+
+  toggleAuditRow(recordId: string): void {
+    this.auditExpandedRows[recordId] = !this.isAuditRowExpanded(recordId);
+  }
+
+  getAuditToggleLabel(recordId: string): string {
+    const translationKey = this.isAuditRowExpanded(recordId)
+      ? 'manage-users-audit-raw-hide'
+      : 'manage-users-audit-raw-toggle';
+    return this.translationService.t(translationKey) || translationKey;
+  }
+
+  getAuditRawContent(record: UserAuditRecord): string {
+    if (record.parseError) {
+      return record.rawAdditionalContext || '';
+    }
+
+    if (record.parsedAdditionalContext == null) {
+      return record.rawAdditionalContext || '';
+    }
+
+    if (_.isString(record.parsedAdditionalContext)) {
+      return String(record.parsedAdditionalContext);
+    }
+
+    try {
+      return JSON.stringify(record.parsedAdditionalContext, null, 2);
+    } catch {
+      return record.rawAdditionalContext || '';
+    }
+  }
+
+  async viewAudit(user: ManageUser) {
+    this.auditModalUser = {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      type: user.type
+    };
+    this.auditRecords = [];
+    this.auditExpandedRows = {};
+    this.auditError = '';
+    this.auditSummary = { returnedCount: 0, truncated: false };
+    this.isAuditLoading = true;
+    this.showAuditModal();
+
+    try {
+      const response = await this.userService.getUserAudit(user.id);
+      this.auditModalUser = response.user || this.auditModalUser;
+      this.auditRecords = response.records || [];
+      this.auditSummary = response.summary || { returnedCount: this.auditRecords.length, truncated: false };
+    } catch (error: unknown) {
+      this.loggerService.error('Failed to load user audit:', error);
+      this.auditError = (error as Error)?.message || (this.translationService.t('manage-users-audit-error') || 'Failed to load audit history.');
+      this.auditRecords = [];
+      this.auditSummary = { returnedCount: 0, truncated: false };
+    } finally {
+      this.isAuditLoading = false;
+    }
+  }
+
+  private buildLinkSuccessMessage(response: UserLinkResponse): string {
+    const baseMessage = this.translationService.t('manage-users-link-success') || 'Accounts linked successfully.';
+    const rolesMerged = response.impact?.rolesMerged ?? 0;
+    const recordsRewritten = response.impact?.recordsRewritten ?? 0;
+
+    if (rolesMerged === 0 && recordsRewritten === 0) {
+      return baseMessage;
+    }
+
+    const impactDetails: string[] = [];
+    if (rolesMerged > 0) {
+      impactDetails.push(this.translationService.t('manage-users-link-success-roles-merged', '', { count: rolesMerged }) || `${rolesMerged} role(s) merged`);
+    }
+    if (recordsRewritten > 0) {
+      impactDetails.push(this.translationService.t('manage-users-link-success-records-rewritten', '', { count: recordsRewritten }) || `${recordsRewritten} record(s) rewritten`);
+    }
+
+    return `${baseMessage} — ${impactDetails.join(', ')}`;
+  }
+
+  async toggleShowDisabled() {
+    this.showDisabledUsers = !this.showDisabledUsers;
+    await this.refreshUsers();
+  }
+
+  async disableUser(user: ManageUser) {
+    try {
+      const response = await this.userService.disableUser(user.id);
+      if (response.status) {
+        this.setUpdateMessage(this.translationService.t('manage-users-disable-success') || 'User disabled successfully.', 'success');
+        await this.refreshUsers();
+      } else {
+        this.setUpdateMessage(response.message || 'Failed to disable user.', 'danger');
+      }
+    } catch (error: unknown) {
+      this.setUpdateMessage((error as Error)?.message || 'Failed to disable user.', 'danger');
+    }
+  }
+
+  async enableUser(user: ManageUser) {
+    try {
+      const response = await this.userService.enableUser(user.id);
+      if (response.status) {
+        this.setUpdateMessage(this.translationService.t('manage-users-enable-success') || 'User enabled successfully.', 'success');
+        await this.refreshUsers();
+      } else {
+        this.setUpdateMessage(response.message || 'Failed to enable user.', 'danger');
+      }
+    } catch (error: unknown) {
+      this.setUpdateMessage((error as Error)?.message || 'Failed to enable user.', 'danger');
+    }
+  }
+
+  isEffectivelyDisabled(user: ManageUser): boolean {
+    return user.effectiveLoginDisabled === true;
+  }
+
+  isDirectlyDisabled(user: ManageUser): boolean {
+    return user.loginDisabled === true;
+  }
+
+  isDisabledViaPrimary(user: ManageUser): boolean {
+    return user.effectiveLoginDisabled === true && user.loginDisabled !== true && !_.isEmpty(user.disabledByPrimaryUsername);
+  }
+
   onFilterChange() {
     if (this.searchFilter.name != this.searchFilter.prevName) {
       this.searchFilter.prevName = this.searchFilter.name;
@@ -404,6 +690,139 @@ export class ManageUsersComponent extends BaseComponent {
 
   getNewUserFormControls() {
     return ((this.newUserForm as FormGroup).get('allRoles') as FormArray).controls as FormGroup[];
+  }
+
+  canManageLinks(user: ManageUser): boolean {
+    return user.accountLinkState !== 'linked-alias';
+  }
+
+  isLinkedAlias(user: AccountStatusUser): boolean {
+    return user.accountLinkState === 'linked-alias';
+  }
+
+  getAccountStatusBadge(user: AccountStatusUser & { effectiveLoginDisabled?: boolean; loginDisabled?: boolean; disabledByPrimaryUsername?: string }): string {
+    if (user.effectiveLoginDisabled === true) {
+      if (user.loginDisabled !== true && !_.isEmpty(user.disabledByPrimaryUsername)) {
+        return this.translationService.t('manage-users-account-status-disabled-via-primary', '', { primaryUsername: user.disabledByPrimaryUsername }) || `Disabled via ${user.disabledByPrimaryUsername}`;
+      }
+      return this.translationService.t('manage-users-account-status-disabled') || 'Disabled';
+    }
+    if (this.isLinkedAlias(user)) {
+      return this.translationService.t('manage-users-account-status-linked-alias') || 'Linked';
+    }
+    if ((user.linkedAccountCount || 0) > 0) {
+      return this.translationService.t('manage-users-account-status-primary') || 'Primary';
+    }
+    return this.translationService.t('manage-users-account-status-active') || 'Active';
+  }
+
+  getAccountStatusBadgeClass(user: AccountStatusUser & { effectiveLoginDisabled?: boolean }): string {
+    if (user.effectiveLoginDisabled === true) {
+      return 'danger';
+    }
+    if (this.isLinkedAlias(user)) {
+      return 'default';
+    }
+    if ((user.linkedAccountCount || 0) > 0) {
+      return 'info';
+    }
+    return 'default';
+  }
+
+  getAccountStatusContext(user: AccountStatusUser): string | null {
+    if (user.accountLinkState === 'linked-alias') {
+      return user.effectivePrimaryUsername
+        ? this.translationService.t('manage-users-account-status-primary-user', '', { primaryUsername: user.effectivePrimaryUsername }) || `Primary: ${user.effectivePrimaryUsername}`
+        : null;
+    }
+    if ((user.linkedAccountCount || 0) > 0) {
+      return this.translationService.t('manage-users-account-status-linked-accounts', '', { count: user.linkedAccountCount }) || `${user.linkedAccountCount} linked account(s)`;
+    }
+    return null;
+  }
+
+  async manageLinks(username: string) {
+    const user = _.find(this.allUsers, (existingUser) => existingUser.username === username) || null;
+    if (user == null) {
+      return;
+    }
+    this.linkPrimaryUser = user;
+    this.linkCandidates = [];
+    this.linkSearchQuery = '';
+    this.selectedLinkCandidate = null;
+    this.setLinkMessage();
+    this.showLinkModal();
+    await this.refreshLinkModalData();
+  }
+
+  async refreshLinkModalData() {
+    if (this.linkPrimaryUser == null) {
+      return;
+    }
+    try {
+      const response = await this.userService.getUserLinks(this.linkPrimaryUser.id) as UserLinkResponse;
+      this.linkedAccounts = response.linkedAccounts || [];
+    } catch (error: unknown) {
+      this.loggerService.error('Failed to load linked accounts:', error);
+      this.setLinkMessage((error as Error)?.message || 'Failed to load linked accounts.', 'danger');
+      this.linkedAccounts = [];
+    }
+  }
+
+  selectLinkCandidate(candidate: UserLinkCandidate) {
+    this.selectedLinkCandidate = candidate;
+  }
+
+  async searchCandidates() {
+    if (this.linkPrimaryUser == null) {
+      return;
+    }
+    const query = _.trim(this.linkSearchQuery);
+    if (_.isEmpty(query)) {
+      this.linkCandidates = [];
+      this.selectedLinkCandidate = null;
+      return;
+    }
+    this.isLinkSearchLoading = true;
+    try {
+      this.linkCandidates = await this.userService.searchLinkCandidates(this.linkPrimaryUser.id, query);
+      this.selectedLinkCandidate = null;
+      if (_.isEmpty(this.linkCandidates)) {
+        this.setLinkMessage(this.translationService.t('manage-users-link-no-results') || 'No matching accounts found.', 'warning');
+      } else {
+        this.setLinkMessage();
+      }
+    } catch (error: unknown) {
+      this.loggerService.error('Failed to search link candidates:', error);
+      this.setLinkMessage(this.translationService.t('manage-users-link-search-failed') || 'Failed to search accounts.', 'danger');
+      this.linkCandidates = [];
+      this.selectedLinkCandidate = null;
+    } finally {
+      this.isLinkSearchLoading = false;
+    }
+  }
+
+  async submitLink() {
+    if (this.linkPrimaryUser == null || this.selectedLinkCandidate == null) {
+      this.setLinkMessage(this.translationService.t('manage-users-link-select-candidate') || 'Select an account to link.', 'danger');
+      return;
+    }
+    this.isLinkSaving = true;
+    this.setLinkMessage(this.translationService.t('manage-users-link-linking') || 'Linking accounts...', 'primary');
+    try {
+      const response = await this.userService.linkAccounts(this.linkPrimaryUser.id, this.selectedLinkCandidate.id);
+      await this.refreshUsers();
+      this.linkPrimaryUser = _.find(this.allUsers, (existingUser) => existingUser.id === response.primary.id) || this.linkPrimaryUser;
+      this.linkedAccounts = response.linkedAccounts || [];
+      this.linkCandidates = [];
+      this.linkSearchQuery = '';
+      this.selectedLinkCandidate = null;
+      this.setLinkMessage(this.buildLinkSuccessMessage(response), 'success');
+    } catch (error: unknown) {
+      this.setLinkMessage((error as Error)?.message || (this.translationService.t('manage-users-link-failed') || 'Failed to link accounts.'), 'danger');
+    } finally {
+      this.isLinkSaving = false;
+    }
   }
 
 }

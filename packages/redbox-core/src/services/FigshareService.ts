@@ -574,8 +574,9 @@ export namespace Services {
 
       const uniqueAuthorsControlList = _.clone(uniqueAuthors) as AnyRecord[];
 
-      for (const author of uniqueAuthors) {
+      for (const author of uniqueAuthorsControlList) {
         this.logWithLevel(config.logLevel, author);
+        let authorMatched = false;
 
         for (const requestBodyTemplate of getAuthorTemplateRequests) {
           const template = String(requestBodyTemplate.template ?? '');
@@ -653,7 +654,7 @@ export namespace Services {
                   this.logWithLevel(config.logLevel, figshareAccountUserID);
                 }
                 authorList.push(figshareAccountUserID);
-                _.remove(uniqueAuthorsControlList, author);
+                authorMatched = true;
                 break;
               }
             } catch (error) {
@@ -663,12 +664,12 @@ export namespace Services {
             }
           }
         }
-      }
 
-      for (const externalAuthor of uniqueAuthorsControlList) {
-        const otherContributor = { name: (externalAuthor as AnyRecord)[config.recordAuthorExternalName] };
-        if (!_.isUndefined(otherContributor)) {
-          authorList.push(otherContributor);
+        if (!authorMatched) {
+          const otherContributor = { name: (author as AnyRecord)[config.recordAuthorExternalName] };
+          if (!_.isUndefined(otherContributor.name)) {
+            authorList.push(otherContributor);
+          }
         }
       }
 
@@ -1949,7 +1950,6 @@ export namespace Services {
 
           this.logWithLevel(config.logLevel, 'FigService - processFileUploadToFigshare - file saved to ' + fileFullPath);
           let uploadURL = '';
-          let fileId: number | string | undefined;
           let uploadParts: AnyRecord[] = [];
 
           this.logWithLevel(config.logLevel, 'FigService - processFileUploadToFigshare - articleId ' + articleId);
@@ -2001,7 +2001,7 @@ export namespace Services {
           this.logWithLevel(config.logLevel, `FigService - processFileUploadToFigshare - response step 2 status: ${responseStep2.status} statusText: ${responseStep2.statusText}`);
           const responseStep2Data = (responseStep2.data ?? {}) as AnyRecord;
           uploadURL = (responseStep2Data.upload_url as string) || '';
-          fileId = responseStep2Data.id as number | string;
+          const fileId = responseStep2Data.id as number | string;
 
           //example reply
           /*

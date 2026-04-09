@@ -2,8 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { DashboardComponent } from './dashboard.component';
 import { FormsModule } from "@angular/forms";
 import { APP_BASE_HREF } from '@angular/common';
-import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
-import { UtilityService, LoggerService, ConfigService, TranslationService, RecordService, UserService, HandlebarsTemplateService } from '@researchdatabox/portal-ng-common';
+import { ConfigService, HandlebarsTemplateService, I18NextPipe, LoggerService, RecordService, TranslationService, UserService, UtilityService } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubRecordService, getStubUserService } from '@researchdatabox/portal-ng-common';
 
 const username = 'testUser';
@@ -90,7 +89,7 @@ describe('DashboardComponent standard', () => {
       ],
       imports: [
         FormsModule,
-        I18NextModule.forRoot()
+        I18NextPipe
       ],
       providers: [
         {
@@ -522,7 +521,7 @@ describe('DashboardComponent workspace', () => {
       ],
       imports: [
         FormsModule,
-        I18NextModule.forRoot()
+        I18NextPipe
       ],
       providers: [
         {
@@ -753,7 +752,7 @@ describe('DashboardComponent consolidated group by record type', () => {
       ],
       imports: [
         FormsModule,
-        I18NextModule.forRoot()
+        I18NextPipe
       ],
       providers: [
         {
@@ -1017,7 +1016,7 @@ describe('DashboardComponent consolidated group by relationships', () => {
       ],
       imports: [
         FormsModule,
-        I18NextModule.forRoot()
+        I18NextPipe
       ],
       providers: [
         {

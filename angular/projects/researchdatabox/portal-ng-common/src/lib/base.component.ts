@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Initable } from './initable.interface';
-import { Component } from '@angular/core';
+import { ApplicationRef, ChangeDetectorRef, Component, NgZone, inject } from '@angular/core';
 import { BehaviorSubject, Subject, firstValueFrom, filter } from 'rxjs';
 /**
  * Base component class for ReDBox Portal.
@@ -34,6 +34,12 @@ import { BehaviorSubject, Subject, firstValueFrom, filter } from 'rxjs';
     standalone: false
 })
 export abstract class BaseComponent implements Initable {
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly ngZone = inject(NgZone);
+  private readonly appRef = inject(ApplicationRef);
+  private readonly wrappedAsyncMethods = new Set<string>();
+  private renderScheduled = false;
+  private destroyed = false;
 
   protected isReady: boolean = false;
   protected initSubject: BehaviorSubject<any> = new BehaviorSubject(false);
@@ -49,15 +55,25 @@ export abstract class BaseComponent implements Initable {
    * See https://angular.io/api/core/OnInit
    */
   ngOnInit() {
+    this.wrapAsyncComponentMethodsForRender();
     (async () => {
       // really it is just for dependencies
       await this.waitForDeps();
       // call this to inform child class to begin own init
       await this.initComponent();
-      this.isReady = true;
-      // inform interested parties in RXJS-land
-      this.initSubject.next(this.isReady);
+      this.ngZone.run(() => {
+        this.isReady = true;
+        // inform interested parties in RXJS-land
+        this.initSubject.next(this.isReady);
+        // Some embeds initialise while hidden (for example inside Bootstrap collapses).
+        // Trigger an explicit render after async init so template control flow reflects `isReady`.
+        this.flushRender();
+      });
     })();
+  }
+
+  ngOnDestroy() {
+    this.destroyed = true;
   }
   /** 
    * Called when component specific initialisation can happen, extensions need to override. 
@@ -95,5 +111,80 @@ export abstract class BaseComponent implements Initable {
    */
   isInitializing(): boolean {
     return !this.isReady;
+  }
+
+  protected requestRender() {
+    if (this.destroyed || this.renderScheduled) {
+      return;
+    }
+
+    this.renderScheduled = true;
+    queueMicrotask(() => {
+      this.renderScheduled = false;
+      if (this.destroyed) {
+        return;
+      }
+
+      this.ngZone.run(() => {
+        this.flushRender();
+      });
+    });
+  }
+
+  private wrapAsyncComponentMethodsForRender() {
+    let proto = Object.getPrototypeOf(this);
+    while (proto && proto !== BaseComponent.prototype && proto !== Object.prototype) {
+      for (const methodName of Object.getOwnPropertyNames(proto)) {
+        if (this.wrappedAsyncMethods.has(methodName) || this.shouldSkipMethodWrap(methodName, proto)) {
+          continue;
+        }
+
+        const descriptor = Object.getOwnPropertyDescriptor(proto, methodName);
+        const originalMethod = descriptor?.value;
+        if (typeof originalMethod !== 'function') {
+          continue;
+        }
+
+        Object.defineProperty(this, methodName, {
+          configurable: true,
+          writable: true,
+          value: (...args: any[]) => {
+            const result = originalMethod.apply(this, args);
+            if (!result || typeof result.then !== 'function') {
+              return result;
+            }
+
+            return Promise.resolve(result).finally(() => {
+              this.requestRender();
+            });
+          }
+        });
+        this.wrappedAsyncMethods.add(methodName);
+      }
+
+      proto = Object.getPrototypeOf(proto);
+    }
+  }
+
+  private shouldSkipMethodWrap(methodName: string, proto: object) {
+    if (methodName === 'constructor' || methodName === 'ngOnInit' || methodName === 'ngOnDestroy') {
+      return true;
+    }
+
+    const descriptor = Object.getOwnPropertyDescriptor(proto, methodName);
+    return !descriptor || !!descriptor.get || !!descriptor.set;
+  }
+
+  private flushRender() {
+    if (this.destroyed || this.appRef.destroyed) {
+      return;
+    }
+
+    // Angular 21 embedded apps can miss async state updates in this legacy bootstrapping setup.
+    // A local detectChanges() matches the behaviour of window.ng.applyChanges(component), and the
+    // follow-up appRef.tick() keeps nested/animated views in sync across the app tree.
+    this.changeDetectorRef.detectChanges();
+    this.changeDetectorRef.markForCheck();
+    this.appRef.tick();
   }
 }

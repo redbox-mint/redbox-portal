@@ -1117,7 +1117,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  ngOnDestroy(): void {
+  override ngOnDestroy(): void {
+    super.ngOnDestroy();
     // Clean up subscriptions
     Object.values(this.subMaps).forEach(sub => sub.unsubscribe());
     this.focusRequestCoordinator.destroy();

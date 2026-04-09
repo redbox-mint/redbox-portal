@@ -2,7 +2,7 @@
  * Config Types Index
  * 
  * Exports all config interfaces and default values for sails.config typing.
- * These are used by redbox-loader.js to generate shim files in config/.
+ * These are used by the redbox-core loader to generate shim files in config/.
  */
 
 // Export individual config interfaces and values
@@ -283,7 +283,7 @@ export interface SailsConfig {
 
 /**
  * Config namespace containing all default config values
- * Used by redbox-loader.js for shim generation
+ * Used by the redbox-core loader for shim generation
  */
 export const Config = {
     api,

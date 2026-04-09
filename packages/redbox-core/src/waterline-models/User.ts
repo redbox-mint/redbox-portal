@@ -96,6 +96,15 @@ export class UserClass {
   @Attr({ type: 'json' })
   public additionalAttributes?: Record<string, unknown>;
 
+  @Attr({ type: 'string' })
+  public linkedPrimaryUserId?: string;
+
+  @Attr({ type: 'string', isIn: ['active', 'linked-alias'], defaultsTo: 'active' })
+  public accountLinkState?: 'active' | 'linked-alias';
+
+  @Attr({ type: 'boolean', defaultsTo: false })
+  public loginDisabled!: boolean;
+
   @HasMany('workspaceApp', 'user')
   public workspaceApps?: unknown[];
 
@@ -108,6 +117,7 @@ export const UserWLDef = toWaterlineModelDef(UserClass);
 
 // Type interface for backwards compatibility
 export interface UserAttributes extends Sails.WaterlineAttributes {
+  accountLinkState?: 'active' | 'linked-alias';
   additionalAttributes?: Record<string, unknown>;
   cn?: string;
   displayname?: string;
@@ -117,6 +127,12 @@ export interface UserAttributes extends Sails.WaterlineAttributes {
   email: string;
   givenname?: string;
   lastLogin?: string | Date;
+  linkedAccountCount?: number;
+  linkedPrimaryUserId?: string;
+  loginDisabled?: boolean;
+  effectiveLoginDisabled?: boolean;
+  disabledByPrimaryUserId?: string;
+  disabledByPrimaryUsername?: string;
   name: string;
   password?: string;
   roles?: unknown[];
@@ -124,6 +140,7 @@ export interface UserAttributes extends Sails.WaterlineAttributes {
   token?: string;
   type: string;
   username: string;
+  effectivePrimaryUsername?: string;
   workspaceApps?: unknown[];
 }
 

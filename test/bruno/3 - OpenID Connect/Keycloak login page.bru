@@ -33,11 +33,14 @@ script:post-response {
 }
 
 tests {
-  const cheerio = require('cheerio')
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
-      const $ = cheerio.load(res.getBody());
-  
-      bru.setVar("kc_login_url", $("#kc-form-login").attr('action'));
+      const body = res.getBody();
+      const match = body && body.match(/<form[^>]*id=["']kc-form-login["'][^>]*action=["']([^"']+)["']/i);
+      if (!match) {
+        throw new Error('Could not determine Keycloak login form action');
+      }
+
+      bru.setVar("kc_login_url", match[1]);
   });
 }

@@ -82,7 +82,8 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
     await this.refresh();
   }
 
-  ngOnDestroy(): void {
+  override ngOnDestroy(): void {
+    super.ngOnDestroy();
     this.clearSyncStatusTimer();
     this.syncStatusTimer = null;
   }

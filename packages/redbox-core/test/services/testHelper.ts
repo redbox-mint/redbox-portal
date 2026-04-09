@@ -73,6 +73,7 @@ export function createQueryObject(result: any, error: any = null): any {
     sort: sinon.stub().returnsThis(),
     limit: sinon.stub().returnsThis(),
     skip: sinon.stub().returnsThis(),
+    select: sinon.stub().returnsThis(),
     set: sinon.stub().returnsThis(),
     meta: sinon.stub().returnsThis(),
   };

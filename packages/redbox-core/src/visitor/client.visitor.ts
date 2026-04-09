@@ -1094,8 +1094,6 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       } else {
         this.removePropsAll(item);
       }
-    } catch (error) {
-      throw error;
     } finally {
       this.constraintPath = currentConstraintPath;
     }

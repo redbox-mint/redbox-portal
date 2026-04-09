@@ -1,14 +1,20 @@
 import { TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
+import { getStubTranslationService, I18NextPipe, TranslationService } from '@researchdatabox/portal-ng-common';
 import { RecordSearchRefinerComponent } from './record-search-refiner.component';
 import { RecordSearchRefiner } from '../search-models';
-import { I18NextModule } from 'angular-i18next';
 
 describe('RecordSearchRefinerComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [RecordSearchRefinerComponent],
-      imports: [FormsModule, I18NextModule.forRoot()],
+      imports: [FormsModule, I18NextPipe],
+      providers: [
+        {
+          provide: TranslationService,
+          useValue: getStubTranslationService()
+        }
+      ]
     }).compileComponents();
   });
 

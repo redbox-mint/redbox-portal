@@ -5,6 +5,7 @@
     "moduleResolution": "nodenext",
     "strict": true,
     "outDir": "./dist",
+    "rootDir": "./src",
     "declaration": true
   },
   "include": [

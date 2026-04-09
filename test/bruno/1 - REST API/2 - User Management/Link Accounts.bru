@@ -1,0 +1,38 @@
+meta {
+  name: Link Accounts
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{host}}/default/rdmp/api/users/link
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+      "primaryUserId": "{{apiUserId}}",
+      "secondaryUserId": "{{secondaryApiUserId}}"
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Linked account response includes impact details", function () {
+      var jsonData = res.getBody();
+      expect(jsonData.primary.id).to.eql(bru.getEnvVar("apiUserId"));
+      expect(jsonData.linkedAccounts.length).to.equal(1);
+      expect(jsonData.linkedAccounts[0].id).to.eql(bru.getEnvVar("secondaryApiUserId"));
+      expect(jsonData.impact).to.have.property('rolesMerged');
+      expect(jsonData.impact).to.have.property('recordsRewritten');
+  });
+}
