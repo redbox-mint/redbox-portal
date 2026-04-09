@@ -1,4 +1,4 @@
-import { APP_INITIALIZER, NgModule } from '@angular/core';
+import { NgModule, inject, provideAppInitializer } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
@@ -14,7 +14,7 @@ import { CsrfInterceptor } from './csrf.interceptor';
 import { UserService } from './user.service';
 import { LoggerService } from './logger.service';
 import { RecordService } from './record.service';
-import { TranslationService  } from './translation.service';
+import { TranslationService } from './translation.service';
 import { RecordTableComponent } from './record-table.component';
 import { ReportService } from './report.service';
 import { HeaderSortComponent } from "./header-sort.component";
@@ -51,12 +51,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     UserService,
     RecordService,
     ReportService,
-    {
-      provide: APP_INITIALIZER,
-      multi: true,
-      deps: [TranslationService],
-      useFactory: (translationService: TranslationService) => () => translationService.waitForInit()
-    }
+    provideAppInitializer(() => inject(TranslationService).waitForInit())
   ],
   imports: [
     BrowserModule,

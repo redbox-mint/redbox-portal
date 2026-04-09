@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { TOptions } from 'i18next';
 import { Subject } from 'rxjs';
 
 import { I18NextPipe } from './i18next.pipe';
@@ -26,13 +27,15 @@ class TranslationServiceStub {
     return this.initializing;
   }
 
-  t(key: string, options?: Record<string, unknown>): string {
+  t(key: string, defaultValueOrOptions?: string | TOptions, options?: TOptions): string {
     let value = this.translations[key] ?? key;
-    if (!options) {
+
+    const translationOptions = typeof defaultValueOrOptions === 'string' ? options : defaultValueOrOptions;
+    if (!translationOptions) {
       return value;
     }
 
-    for (const [optionKey, optionValue] of Object.entries(options)) {
+    for (const [optionKey, optionValue] of Object.entries(translationOptions)) {
       value = value.replace(`{{${optionKey}}}`, String(optionValue));
     }
 

@@ -34,7 +34,8 @@ import { LoggerService } from './logger.service';
 
 import { InitOptions, TOptions, createInstance, i18n } from 'i18next';
 
-export type ITranslationOptions = TOptions;
+export type ITranslationOptions = Omit<TOptions, 'context'> & { context?: string };
+type TranslationResult = ReturnType<i18n['t']>;
 export const PORTAL_I18N_TEST_OPTIONS = new InjectionToken<InitOptions>('PORTAL_I18N_TEST_OPTIONS');
 
 /**
@@ -172,15 +173,22 @@ export class TranslationService extends HttpClientService implements Service {
     }
   }
 
-  t<Options extends ITranslationOptions>(
+  t(key: string | string[], options?: ITranslationOptions): TranslationResult;
+  t(key: string | string[], defaultValue: string, options?: ITranslationOptions): TranslationResult;
+  t(
     key: string | string[],
-    defaultValue?: string | Options,
-    options?: Options
-  ): any {
-    if (typeof defaultValue === 'string') {
-      return this.i18NextService.t(key, defaultValue, options);
+    defaultValueOrOptions?: string | ITranslationOptions,
+    options?: ITranslationOptions
+  ): TranslationResult {
+    if (typeof defaultValueOrOptions === 'string') {
+      return this.i18NextService.t(key, defaultValueOrOptions, options);
     }
-    return (this.i18NextService.t as any)(key, defaultValue);
+
+    if (defaultValueOrOptions === undefined) {
+      return this.i18NextService.t(key);
+    }
+
+    return this.i18NextService.t(key, defaultValueOrOptions);
   }
 
   /** Change the current language and reload resources */

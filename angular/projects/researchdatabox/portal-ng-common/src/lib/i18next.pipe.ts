@@ -1,8 +1,7 @@
 import { ChangeDetectorRef, DestroyRef, Pipe, PipeTransform, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { TOptions } from 'i18next';
 
-import { TranslationService } from './translation.service';
+import { ITranslationOptions, TranslationService } from './translation.service';
 
 @Pipe({
   name: 'i18next',
@@ -15,7 +14,7 @@ export class I18NextPipe implements PipeTransform {
   private readonly destroyRef = inject(DestroyRef);
   private subscribed = false;
 
-  transform(key: unknown, options?: TOptions): string {
+  transform(key: unknown, options?: ITranslationOptions): string {
     this.ensureSubscription();
 
     if (key === null || typeof key === 'undefined') {
@@ -27,7 +26,9 @@ export class I18NextPipe implements PipeTransform {
       return translationKey;
     }
 
-    const translated = this.translationService.t(translationKey, options);
+    const translated = options === undefined
+      ? this.translationService.t(translationKey)
+      : this.translationService.t(translationKey, options);
     return typeof translated === 'string' ? translated : String(translated ?? translationKey);
   }
 
