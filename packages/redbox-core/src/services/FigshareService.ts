@@ -570,8 +570,9 @@ export namespace Services {
 
       const uniqueAuthorsControlList = _.clone(uniqueAuthors) as AnyRecord[];
 
-      for (const author of uniqueAuthors) {
+      for (const author of uniqueAuthorsControlList) {
         this.logWithLevel(config.logLevel, author);
+        let authorMatched = false;
 
         for (const requestBodyTemplate of getAuthorTemplateRequests) {
           const template = String(requestBodyTemplate.template ?? '');
@@ -649,7 +650,7 @@ export namespace Services {
                   this.logWithLevel(config.logLevel, figshareAccountUserID);
                 }
                 authorList.push(figshareAccountUserID);
-                _.remove(uniqueAuthorsControlList, author);
+                authorMatched = true;
                 break;
               }
             } catch (error) {
@@ -659,12 +660,12 @@ export namespace Services {
             }
           }
         }
-      }
 
-      for (const externalAuthor of uniqueAuthorsControlList) {
-        const otherContributor = { name: (externalAuthor as AnyRecord)[config.recordAuthorExternalName] };
-        if (!_.isUndefined(otherContributor)) {
-          authorList.push(otherContributor);
+        if (!authorMatched) {
+          const otherContributor = { name: (author as AnyRecord)[config.recordAuthorExternalName] };
+          if (!_.isUndefined(otherContributor.name)) {
+            authorList.push(otherContributor);
+          }
         }
       }
 
