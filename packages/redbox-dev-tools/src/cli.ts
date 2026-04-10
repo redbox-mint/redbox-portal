@@ -3,14 +3,7 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 import { resolvePaths } from './utils/paths';
-import { ControllerGenerator } from './generators/controller';
-import { ServiceGenerator } from './generators/service';
-import { AddMethodGenerator } from './generators/add-method';
-import { AngularAppGenerator } from './generators/angular-app';
-import { AngularServiceGenerator } from './generators/angular-service';
-import { FormComponentGenerator } from './generators/form-component';
-import { FormFieldGenerator } from './generators/form-field';
-import { ModelGenerator } from './generators/model';
+import { generateHookArchetype } from './templates/hook-archetype';
 import {
   registerClientFormConfigCommand,
   registerMigrateDataClassificationCommand,
@@ -110,92 +103,44 @@ registerClientFormConfigCommand(program);
 registerQuestionTreeDiagramCommand(program);
 
 program
-  .command('init')
-  .description('Initialize a new ReDBox hook project with TypeScript setup')
-  .action(() => {
-    console.log('🚀 Initializing ReDBox Hook project...\n');
+  .command('init [name]')
+  .description('Initialize a new ReDBox hook project from the standard archetype')
+  .option('--template <template>', 'Archetype template name', 'standard')
+  .option('--description <description>', 'Project description')
+  .option('--force', 'Overwrite existing archetype files', false)
+  .action((name: string | undefined, options: { template: string; description?: string; force?: boolean }) => {
+    if (options.template !== 'standard') {
+      console.error(`❌ Unsupported template: ${options.template}. Supported templates: standard`);
+      process.exit(1);
+    }
 
     const cwd = process.cwd();
+    const packageName = name || path.basename(cwd);
 
-    const srcDir = path.join(cwd, 'src');
-    const apiDir = path.join(srcDir, 'api');
-    const controllersDir = path.join(apiDir, 'controllers');
+    console.log(`🚀 Initializing ReDBox hook archetype for ${packageName}...\n`);
 
-    if (!fs.existsSync(srcDir)) {
-      fs.mkdirSync(srcDir, { recursive: true });
-    } else {
-      console.log('ℹ️  src/ directory already exists');
+    const result = generateHookArchetype({
+      cwd,
+      packageName,
+      description: options.description,
+      force: options.force,
+      templateName: options.template,
+    });
+
+    for (const createdPath of result.created) {
+      console.log(`✅ Created ${createdPath}`);
     }
 
-    if (!fs.existsSync(controllersDir)) {
-      fs.mkdirSync(controllersDir, { recursive: true });
-      console.log('✅ Created typescript/api/controllers/ directory structure');
+    for (const skippedPath of result.skipped) {
+      console.log(`ℹ️  Skipped existing ${skippedPath}`);
     }
 
-    // Create or update tsconfig.json
-    const tsconfigPath = path.join(cwd, 'tsconfig.json');
-    const tsconfig = {
-      extends: '@researchdatabox/redbox-dev-tools/config/tsconfig.base.json',
-      compilerOptions: {
-        outDir: './dist',
-        typeRoots: ['node_modules/@types', 'node_modules/@researchdatabox/redbox-dev-tools/node_modules/@types'],
-      },
-      include: ['src/**/*.ts', 'src/**/*.d.ts'],
-    };
-
-    if (!fs.existsSync(tsconfigPath)) {
-      fs.writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2) + '\n');
-      console.log('✅ Created tsconfig.json extending redbox-dev-tools');
-    } else {
-      console.log('⚠️  tsconfig.json already exists - skipping');
-      console.log('   You may want to manually extend: @researchdatabox/redbox-dev-tools/config/tsconfig.base.json');
-    }
-
-    // Create a sample controller if none exists
-    const sampleController = path.join(controllersDir, 'ExampleController.ts');
-    if (!fs.existsSync(sampleController) && fs.readdirSync(controllersDir).length === 0) {
-      const sampleCode = `// Example ReDBox Hook Controller
-
-import { Controllers as controllers } from '@researchdatabox/redbox-core';
-
-declare var sails;
-declare var _;
-
-export module Controllers {
-  export class ExampleController extends controllers.Core.Controller {
-    protected _exportedMethods: any = [
-      'example'
-    ];
-
-    public example(req: any, res: any) {
-      return res.json({ message: 'Hello from ExampleController!' });
-    }
-  }
-}
-
-module.exports = new Controllers.ExampleController().exports();
-`;
-      fs.writeFileSync(sampleController, sampleCode);
-      console.log('✅ Created example controller: src/api/controllers/ExampleController.ts');
-    }
-
-    const packageJsonPath = path.join(cwd, 'package.json');
-    if (fs.existsSync(packageJsonPath)) {
-      const pkg = migrateHookDependencyContract(readPackageJson(packageJsonPath));
-      pkg.scripts = {
-        ...(pkg.scripts ?? {}),
-        compile: pkg.scripts?.compile ?? 'node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json',
-        'test:unit': pkg.scripts?.['test:unit'] ?? 'TS_NODE_PROJECT=./test/tsconfig.json node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-mocha.js --config ./test/unit/.mocharc.cjs "./test/unit/**/*.test.ts"',
-      };
-      writePackageJson(packageJsonPath, pkg);
-      console.log('✅ Updated package.json with the minimal hook dependency contract');
-    }
-
-    console.log('\n✨ Setup complete!\n');
+    console.log('\n✨ Archetype ready!\n');
     console.log('Next steps:');
     console.log('  1. Install dependencies: npm install');
     console.log('  2. Compile TypeScript: npm run compile');
-    console.log('  3. Start developing your hook controllers in src/api/controllers/\n');
+    console.log('  3. Run unit tests: npm run test:unit');
+    console.log('  4. Start tailoring the hook in src/, test/, and support/\n');
   });
 
 program
@@ -270,6 +215,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { ControllerGenerator } = require('./generators/controller');
       const generator = new ControllerGenerator({
         name,
         actions: options.actions,
@@ -303,6 +249,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { ServiceGenerator } = require('./generators/service');
       const generator = new ServiceGenerator({
         name,
         methods: options.methods,
@@ -343,6 +290,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { AddMethodGenerator } = require('./generators/add-method');
       const generator = new AddMethodGenerator({
         file: options.file,
         method: options.method,
@@ -375,6 +323,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { AngularAppGenerator } = require('./generators/angular-app');
       const generator = new AngularAppGenerator({
         name,
         ejsView: options.ejsView,
@@ -403,6 +352,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { AngularServiceGenerator } = require('./generators/angular-service');
       const generator = new AngularServiceGenerator({
         name,
         app: options.app,
@@ -431,6 +381,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { FormComponentGenerator } = require('./generators/form-component');
       const generator = new FormComponentGenerator({
         name,
         app: options.app,
@@ -458,6 +409,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { FormFieldGenerator } = require('./generators/form-field');
       const generator = new FormFieldGenerator({
         name,
         type: options.type,
@@ -523,6 +475,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { ModelGenerator } = require('./generators/model');
       const generator = new ModelGenerator({
         name,
         identity: options.identity,

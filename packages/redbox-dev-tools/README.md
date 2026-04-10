@@ -25,15 +25,19 @@ npm install --save-dev @researchdatabox/redbox-dev-tools
 Initialize a new hook project:
 
 ```bash
-npx @researchdatabox/redbox-dev-tools init
+npx @researchdatabox/redbox-dev-tools init redbox-hook-my-client
 ```
 
 This will:
 
-- Create the `src/api/controllers/` directory structure
-- Generate a `tsconfig.json` that extends the shared base configuration
-- Update `package.json` to the minimal hook dependency contract
-- Create a sample controller to get you started
+- Generate the standard hook archetype in the current directory
+- Create `src/`, `test/`, `support/`, `assets/`, `views/`, and `language-defaults/`
+- Create a `package.json` with the shared Redbox dependency contract
+- Generate starter controller, service, form-config, config, Docker, and test files
+
+The standard archetype is based on the current hook structure used for `redbox-hook-jcu`, but stripped back to generic placeholders so a new client hook can start from the same shape without inheriting client-specific logic.
+
+The archetype is now backed by file-based Handlebars templates under [templates/hook-archetype](/Users/andrewbrazzatti/source/bitbucket/jcu-v5/redbox-portal/packages/redbox-dev-tools/templates/hook-archetype), which gives us a clean path for future variants such as branding-heavy hooks, lighter hooks, or alternate TypeScript setups.
 
 ## TypeScript Configuration
 
@@ -44,13 +48,13 @@ Your hook project's `tsconfig.json` should extend the shared configuration:
   "extends": "@researchdatabox/redbox-dev-tools/config/tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "typeRoots": ["node_modules/@types", "node_modules/@researchdatabox/redbox-dev-tools/node_modules/@types"]
+    "typeRoots": ["node_modules/@types"]
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"]
 }
 ```
 
-**Note:** The `typeRoots` configuration is necessary to allow TypeScript to find type definitions from the dev tools package's dependencies.
+**Note:** Shared runtime path injection for packages such as `rxjs`, `axios`, `lodash`, and `@researchdatabox/sails-ng-common` is handled by the `run-hook-tsc` and `run-hook-mocha` entrypoints, not by hard-coded hook-local `paths` blocks.
 
 ## Compiling TypeScript
 
@@ -76,24 +80,21 @@ Then run:
 npm run compile
 ```
 
-## Example Controller
+## Archetype Starter Files
 
 ```typescript
-import { Controllers as controllers } from '@researchdatabox/redbox-core';
+import { defineRedboxHook } from '@researchdatabox/redbox-core';
 
-declare var sails;
-
-export module Controllers {
-  export class MyController extends controllers.Core.Controller {
-    protected _exportedMethods: any = ['myAction'];
-
-    public myAction(req: any, res: any) {
-      return res.json({ message: 'Hello from my hook!' });
-    }
+const hook = defineRedboxHook({
+  registerRedboxControllers() {
+    return require('./api/controllers').ControllerExports;
+  },
+  registerRedboxServices() {
+    return require('./api/services').ServiceExports;
   }
-}
+});
 
-module.exports = new Controllers.MyController().exports();
+module.exports = hook;
 ```
 
 ## Shared Dependency Contract
@@ -129,10 +130,16 @@ This package is versioned to match the ReDBox core release it supports. For exam
 
 ### `init`
 
-Initialize a new ReDBox hook project with TypeScript setup.
+Initialize a new ReDBox hook project from the standard archetype.
 
 ```bash
-npx @researchdatabox/redbox-dev-tools init
+npx @researchdatabox/redbox-dev-tools init redbox-hook-my-client
+```
+
+Template variants are selected with `--template`:
+
+```bash
+npx @researchdatabox/redbox-dev-tools init redbox-hook-my-client --template standard
 ```
 
 ### `check`

@@ -1,0 +1,22 @@
+import { Services as CoreServices } from '@researchdatabox/redbox-core';
+import { of } from 'rxjs';
+
+export namespace Services {
+  export class Example extends CoreServices.Core.Service {
+    protected _exportedMethods: string[] = [
+      'describe'
+    ];
+
+    public describe() {
+      return of({
+        hook: '{{packageName}}',
+        status: 'ready'
+      });
+    }
+  }
+}
+
+export type ExampleService = ReturnType<Services.Example['exports']>;
+export const ExampleService: ExampleService = new Services.Example().exports() as ExampleService;
+
+module.exports = ExampleService;

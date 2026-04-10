@@ -1,0 +1,40 @@
+{
+  "name": "{{packageName}}",
+  "version": "1.0.0",
+  "description": "{{description}}",
+  "main": "dist/index.js",
+  "sails": {
+    "isHook": true,
+    "hookName": "{{packageName}}",
+    "hasControllers": true,
+    "hasServices": true,
+    "hasConfig": true,
+    "hasFormConfigs": true
+  },
+  "scripts": {
+    "compile": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json",
+    "test": "npm run test:unit && npm run test:integration:mocha",
+    "test:unit": "TS_NODE_PROJECT=./test/tsconfig.json node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-mocha.js --config ./test/unit/.mocharc.cjs ./test/unit",
+    "test:integration:mocha": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml up --build --menu=false --abort-on-container-exit --exit-code-from redboxportal",
+    "test:integration:mocha:clean": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml down -v --remove-orphans --timeout 180",
+    "dev:run": "docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal",
+    "dev:run:build": "docker compose -f ./support/development/docker-compose.yml build",
+    "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down -v --remove-orphans --timeout 180",
+    "dev:run:prepare": "mkdir -p ./support/development/.tmp/attachments/staging"
+  },
+  "keywords": [
+    "sails",
+    "hook",
+    "redbox"
+  ],
+  "license": "GPL-3.0",
+  "dependencies": {},
+  "peerDependencies": {
+    "@researchdatabox/redbox-core": "*"
+  },
+  "devDependencies": {
+    "@researchdatabox/redbox-core": "file:{{portalPackagesPath}}/redbox-core",
+    "@researchdatabox/redbox-dev-tools": "file:{{portalPackagesPath}}/redbox-dev-tools",
+    "@types/node": "^24.12.2"
+  }
+}

@@ -1,0 +1,36 @@
+const { expect, firstValueFrom } = require('@researchdatabox/redbox-dev-tools/testing');
+const { clearHookTestGlobals, installHookTestGlobals } = require('../support/globals');
+
+describe('hook entrypoint', function () {
+  beforeEach(() => {
+    installHookTestGlobals();
+  });
+
+  afterEach(() => {
+    clearHookTestGlobals();
+  });
+
+  it('exports the standard hook registrations and aliases', async function () {
+    const hookModule = require('../../dist/index.js');
+
+    expect(hookModule.registerRedboxConfig()).to.deep.equal({});
+    expect(hookModule.registerRedboxServices()).to.have.property('ExampleService');
+    expect(hookModule.registerRedboxControllers()).to.have.property('ExampleController');
+    expect(hookModule.registerRedboxFormConfigs()).to.have.property('generated-view-only');
+    expect(hookModule.registerFormConfig()).to.equal(hookModule.registerRedboxFormConfigs());
+
+    const result = await firstValueFrom(hookModule.registerRedboxServices().ExampleService.describe());
+    expect(result).to.deep.equal({ hook: '{{packageName}}', status: 'ready' });
+  });
+
+  it('applies reusable form definitions and branding defaults during configure', function () {
+    const hookModule = require('../../dist/index.js');
+    const hook = hookModule((global as any).sails);
+
+    hook.configure?.();
+
+    expect((global as any).sails.config.brandingConfigurationDefaults.menu).to.deep.equal({ items: [], showSearch: true });
+    expect((global as any).sails.config.brandingConfigurationDefaults.homePanels).to.deep.equal({ panels: [] });
+    expect((global as any).sails.config.reusableFormDefinitions).to.exist;
+  });
+});

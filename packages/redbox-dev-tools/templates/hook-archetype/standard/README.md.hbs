@@ -1,0 +1,34 @@
+# {{packageName}}
+
+Generated ReDBox hook archetype.
+
+This project keeps its dependency declarations intentionally small:
+
+- `@researchdatabox/redbox-core` is the Redbox runtime compatibility contract
+- `@researchdatabox/redbox-dev-tools` provides the shared compile and unit-test toolchain
+- direct `dependencies` are reserved for hook-owned runtime libraries only
+
+## Development
+
+```bash
+npm install
+npm run compile
+npm run test:unit
+```
+
+For the docker-backed portal harness:
+
+```bash
+npm run dev:run:build
+npm run dev:run
+```
+
+## Structure
+
+- `src/index.ts`: hook entrypoint using `defineRedboxHook()`
+- `src/api/controllers`: hook controllers
+- `src/api/services`: hook services
+- `src/config`: configuration and reusable form definition helpers
+- `src/form-config`: form config exports
+- `test/unit`: fast hook-local TypeScript tests
+- `test/integration`: portal integration tests
