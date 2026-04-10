@@ -16,6 +16,7 @@ import * as DashboardTypesServiceModule from './DashboardTypesService';
 import * as DoiServiceModule from './DoiService';
 import * as EmailServiceModule from './EmailService';
 import * as FigshareServiceModule from './FigshareService';
+import * as FigshareV2ServiceModule from './FigshareV2Service';
 import * as FormRecordConsistencyServiceModule from './FormRecordConsistencyService';
 import * as FormsServiceModule from './FormsService';
 import * as I18nEntriesServiceModule from './I18nEntriesService';
@@ -61,6 +62,7 @@ export { DashboardTypesServiceModule as DashboardTypesService };
 export { DoiServiceModule as DoiService };
 export { EmailServiceModule as EmailService };
 export { FigshareServiceModule as FigshareService };
+export { FigshareV2ServiceModule as FigshareV2Service };
 export { FormRecordConsistencyServiceModule as FormRecordConsistencyService };
 export { FormsServiceModule as FormsService };
 export { I18nEntriesServiceModule as I18nEntriesService };
@@ -154,6 +156,9 @@ export const ServiceExports = {
   },
   get FigshareService() {
     return getOrCreateService('FigshareService', () => new FigshareServiceModule.Services.FigshareService().exports());
+  },
+  get FigshareV2Service() {
+    return getOrCreateService('FigshareV2Service', () => new FigshareV2ServiceModule.Services.FigshareV2Service().exports());
   },
   get FormRecordConsistencyService() {
     return getOrCreateService('FormRecordConsistencyService', () =>

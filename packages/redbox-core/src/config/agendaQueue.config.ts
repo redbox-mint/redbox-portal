@@ -94,7 +94,7 @@ export const agendaQueue: AgendaQueueConfig = {
         },
         {
             name: 'Figshare-PublishAfterUpload-Service',
-            fnName: 'figshareservice.publishAfterUploadFilesJob',
+            fnName: 'figsharev2service.publishAfterUploadFilesJob',
             options: {
                 lockLifetime: 120 * 1000,
                 lockLimit: 1,
@@ -103,7 +103,7 @@ export const agendaQueue: AgendaQueueConfig = {
         },
         {
             name: 'Figshare-UploadedFilesCleanup-Service',
-            fnName: 'figshareservice.deleteFilesFromRedbox',
+            fnName: 'figsharev2service.deleteFilesFromRedbox',
             options: {
                 lockLifetime: 120 * 1000,
                 lockLimit: 1,

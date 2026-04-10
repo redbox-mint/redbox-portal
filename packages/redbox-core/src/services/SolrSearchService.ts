@@ -269,7 +269,11 @@ export namespace Services {
       sails.log.verbose(`${this.logHeader} adding indexing job: ${id} with data:`);
       data.id = id;
       sails.log.verbose(JSON.stringify(data));
-      this.queueService.now(sails.config.solr.createOrUpdateJobName, data);
+      this.enqueueOrRunNow(
+        sails.config.solr.createOrUpdateJobName,
+        data,
+        async (job) => this.solrAddOrUpdate(job as QueueJob<RecordModel>)
+      );
     }
 
     public remove(id: string): void {
@@ -277,7 +281,24 @@ export namespace Services {
       const data = { id: id };
       
       sails.log.verbose(JSON.stringify(data));
-      this.queueService.now(sails.config.solr.deleteJobName, data);
+      this.enqueueOrRunNow(
+        sails.config.solr.deleteJobName,
+        data,
+        async (job) => this.solrDelete(job as QueueJob<RecordModel>, undefined)
+      );
+    }
+
+    private enqueueOrRunNow<T>(jobName: string, data: T, fallback: (job: QueueJob<T>) => Promise<void>): void {
+      if (this.queueService && typeof this.queueService.now === 'function') {
+        this.queueService.now(jobName, data);
+        return;
+      }
+
+      sails.log.warn(`${this.logHeader} queue service unavailable, running job inline: ${jobName}`);
+      fallback({ attrs: { data } }).catch((err: unknown) => {
+        sails.log.error(`${this.logHeader} inline job failed: ${jobName}`);
+        sails.log.error(JSON.stringify(err));
+      });
     }
     
 

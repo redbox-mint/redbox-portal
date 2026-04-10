@@ -14,6 +14,7 @@ import { ModelGenerator } from './generators/model';
 import {
   registerClientFormConfigCommand,
   registerMigrateDataClassificationCommand,
+  registerMigrateFigshareConfigCommand,
   registerMigrateFormConfigCommand, registerQuestionTreeDiagramCommand
 } from './commands/form-config';
 import { generateCompletionScript } from './completion';
@@ -57,6 +58,7 @@ program
 
 registerMigrateFormConfigCommand(program);
 registerMigrateDataClassificationCommand(program);
+registerMigrateFigshareConfigCommand(program);
 registerClientFormConfigCommand(program);
 registerQuestionTreeDiagramCommand(program);
 

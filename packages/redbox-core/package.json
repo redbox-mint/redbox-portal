@@ -20,6 +20,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
     "@researchdatabox/raido-openapi-generated-node": "file:../raido",
     "@researchdatabox/rva-registry-openapi-generated-node": "file:../rva-registry",
     "@researchdatabox/sails-ng-common": "file:../sails-ng-common",
@@ -40,6 +41,7 @@
     "css-minimizer-webpack-plugin": "8.0.0",
     "csv-stringify": "6.7.0",
     "dompurify": "3.3.3",
+    "effect": "^3.21.0",
     "ejs": "5.0.1",
     "express": "4.22.1",
     "flat": "6.0.1",

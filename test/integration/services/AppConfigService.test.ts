@@ -438,4 +438,38 @@ describe('appConfigService', function () {
     // Should not throw an error when registering with single glob
     expect(() => appConfigService.registerConfigModel(configInfo)).to.not.throw();
   });
+
+  it('should preserve masked secret fields when updating figsharePublishing config', async () => {
+    const brandName = 'default';
+    const branding = BrandingService.getBrand(brandName);
+    const configKey = 'figsharePublishing';
+
+    await appConfigService.createOrUpdateConfig(branding, configKey, {
+      enabled: true,
+      connection: {
+        baseUrl: 'https://api.figshare.com',
+        frontEndUrl: 'https://figshare.com',
+        token: 'top-secret',
+        timeoutMs: 1000,
+        operationTimeouts: { metadataMs: 1000, uploadInitMs: 1000, uploadPartMs: 1000, publishMs: 1000 },
+        retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1, retryOnStatusCodes: [] }
+      }
+    });
+
+    const updated = await appConfigService.createOrUpdateConfig(branding, configKey, {
+      enabled: true,
+      connection: {
+        baseUrl: 'https://api.figshare.com',
+        frontEndUrl: 'https://figshare.com',
+        token: '__SECRET_MASK__',
+        timeoutMs: 1000,
+        operationTimeouts: { metadataMs: 1000, uploadInitMs: 1000, uploadPartMs: 1000, publishMs: 1000 },
+        retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1, retryOnStatusCodes: [] }
+      }
+    });
+
+    expect(updated.connection.token).to.equal('__SECRET_MASK__');
+    const loaded = appConfigService.getAppConfigurationForBrand(brandName);
+    expect(loaded.figsharePublishing.connection.token).to.equal('top-secret');
+  });
 });

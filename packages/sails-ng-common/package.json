@@ -8,7 +8,7 @@
     "./dist/src"
   ],
   "scripts": {
-    "test": "nyc --reporter=text mocha --exit --config test/unit/.mocharc.js dist/test/unit/**/*.test.js",
+    "test": "nyc --reporter=text mocha --exit --config test/unit/.mocharc.js dist/test/unit",
     "pretest": "npm run test:compile && mkdir -p support/junit",
     "test:clean": "rm -rf support/junit || true",
     "compile": "tsc -p tsconfig.prod.json",

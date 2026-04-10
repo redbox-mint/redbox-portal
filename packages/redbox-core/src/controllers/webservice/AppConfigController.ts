@@ -46,8 +46,8 @@ export namespace Controllers {
           return res.badRequest('appConfigId is required');
         }
         //TODO: validate post body against key?
-        await AppConfigService.createOrUpdateConfig(brand, appConfigId, appConfig)
-        return this.apiRespond(req, res, appConfig, 200);
+        const savedConfig = await AppConfigService.createOrUpdateConfig(brand, appConfigId, appConfig)
+        return this.apiRespond(req, res, savedConfig, 200);
       } catch (error: unknown) {
         sails.log.error(error);
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));

@@ -3,6 +3,7 @@ import { AuthorizedDomainsEmails } from './AuthorizedDomainsEmails';
 import { MenuConfig, MENU_CONFIG_SCHEMA } from './MenuConfig';
 import { HomePanelConfig, HOME_PANEL_CONFIG_SCHEMA } from './HomePanelConfig';
 import { AdminSidebarConfig, ADMIN_SIDEBAR_CONFIG_SCHEMA } from './AdminSidebarConfig';
+import { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } from './FigsharePublishing';
 import * as path from 'path';
 
 export interface ConfigModelInfo {
@@ -11,6 +12,7 @@ export interface ConfigModelInfo {
     class: new (...args: never[]) => object;
     schema?: unknown;
     tsGlob?: string | string[];
+    secretFields?: string[];
 }
 
 export type ConfigModelKey =
@@ -18,7 +20,8 @@ export type ConfigModelKey =
     | 'authorizedDomainsEmails'
     | 'menu'
     | 'homePanels'
-    | 'adminSidebar';
+    | 'adminSidebar'
+    | 'figsharePublishing';
 
 export class ConfigModels {
     private static modelsMap: Map<string, ConfigModelInfo> = new Map([
@@ -54,6 +57,14 @@ export class ConfigModels {
             class: AdminSidebarConfig,
             schema: ADMIN_SIDEBAR_CONFIG_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/AdminSidebarConfig.ts')
+        }],
+        ['figsharePublishing', {
+            modelName: 'FigsharePublishing',
+            title: 'Figshare Publishing',
+            class: FigsharePublishing,
+            schema: FIGSHARE_PUBLISHING_SCHEMA,
+            tsGlob: path.join(__dirname, '../../src/configmodels/FigsharePublishing.ts'),
+            secretFields: ['connection.token']
         }],
     ]);
 

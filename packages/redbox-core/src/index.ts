@@ -65,6 +65,7 @@ export * from './configmodels/ConfigModels';
 export * from './configmodels/MenuConfig';
 export * from './configmodels/HomePanelConfig';
 export * from './configmodels/AdminSidebarConfig';
+export * from './configmodels/FigsharePublishing';
 export * from './configmodels/AppConfig.interface';
 export * from './configmodels/AuthorizedDomainsEmails';
 export * from './configmodels/SystemMessage';
