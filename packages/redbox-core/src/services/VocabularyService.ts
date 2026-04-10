@@ -646,8 +646,8 @@ export namespace Services {
       const parentAssignments: Array<{ entryId: string; parent: string | null }> = [];
 
       for (const rawEntry of entries) {
-        const entry = this.normalizeEntry(rawEntry);
-        if (!entry.label || (!entry && entry !== '')) {
+        const entry = rawEntry;
+        if (!entry.label || entry.value === null || entry.value === undefined) {
           skipped++;
           continue;
         }

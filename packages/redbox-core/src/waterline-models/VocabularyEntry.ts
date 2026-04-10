@@ -3,31 +3,73 @@ import { Attr, BeforeCreate, BeforeUpdate, BelongsTo, Entity, HasMany, toWaterli
 import type { VocabularyAttributes } from './Vocabulary';
 
 const normalize = (record: Record<string, unknown>, isCreate: boolean): void => {
-  const hasLabel = typeof record.label !== 'undefined';
-  const hasValue = typeof record.value !== 'undefined';
-  const hasHistorical = typeof record.historical !== 'undefined';
+  // prepare the errors
+  const errCode = isCreate ? 'E_INVALID_NEW_RECORD' : 'E_INVALID_VALUES_TO_SET';
+  const errLabel = new Error('VocabularyEntry.label is required');
+  (errLabel as unknown as Record<string, unknown>).code = errCode;
+  const errValue = new Error('VocabularyEntry.value is required');
+  (errValue as unknown as Record<string, unknown>).code = errCode;
 
-  const label = hasLabel ? String(record.label ?? '').trim() : '';
-  const value = hasValue ? String(record.value ?? '').trim() : '';
-
-  if ((isCreate || hasLabel) && !label) {
-    throw new Error('VocabularyEntry.label is required');
-  }
-  if ((isCreate || hasValue) && !value && value !== '') {
-    throw new Error('VocabularyEntry.value is required');
-  }
-
-  if (hasLabel || isCreate) {
+  // On create, the record.label must be present and be a non-empty string.
+  // On update, the record.label may be present and must be a non-empty string if it is present.
+  const label = String(record.label ?? '').trim();
+  const hasLabelProp = Object.hasOwn(record, 'label');
+  const hasLabelVal = !!record.label;
+  console.warn(`VocabularyEntry normalize label ${label} hasLabelProp ${hasLabelProp} hasLabelVal ${hasLabelVal}`);
+  if (isCreate && !hasLabelVal) {
+    throw errLabel;
+  } else if (!isCreate && hasLabelProp && !hasLabelVal) {
+    throw errLabel;
+  } else if ((isCreate && hasLabelVal) || (!isCreate && hasLabelProp && hasLabelVal)) {
     record.label = label;
     record.labelLower = label.toLowerCase();
   }
-  if (hasValue || isCreate) {
+
+  // On create, the record.value must be persent and be a string, which can be a non-empty string.
+  // On update, the record.value may be persent and must be a string, which can be a non-empty string, if it is present.
+  const value = String(record.value ?? '').trim();
+  const hasValueProp = Object.hasOwn(record, 'value');
+  const hasValueVal = record.value !== undefined && record.value !== null;
+  console.warn(`VocabularyEntry normalize value ${value} hasValueProp ${hasValueProp} hasValueVal ${hasValueVal}`);
+  if (isCreate && !hasValueVal) {
+    throw errValue;
+  } else if (!isCreate && hasValueProp && !hasValueVal) {
+    throw errValue;
+  } else if ((isCreate && hasValueVal) || (!isCreate && hasValueProp && hasValueVal)) {
     record.value = value;
     record.valueLower = value.toLowerCase();
   }
-  if (hasHistorical || isCreate) {
+
+  // On either create or update, the record.historical may be present, normalise it to a bool if it is present.
+  if (Object.hasOwn(record, 'historical')) {
     record.historical = toBoolean(record.historical);
   }
+
+  // const hasLabel = typeof record.label !== 'undefined';
+  // const hasValue = typeof record.value !== 'undefined';
+  // const hasHistorical = typeof record.historical !== 'undefined';
+  //
+  // const label = hasLabel ? String(record.label ?? '').trim() : '';
+  // const value = hasValue ? String(record.value ?? '').trim() : '';
+  //
+  // if ((isCreate || hasLabel) && !label) {
+  //   throw new Error('VocabularyEntry.label is required');
+  // }
+  // if (isCreate || hasValue) {
+  //   throw new Error('VocabularyEntry.value is required');
+  // }
+  //
+  // if (hasLabel || isCreate) {
+  //   record.label = label;
+  //   record.labelLower = label.toLowerCase();
+  // }
+  // if (hasValue || isCreate) {
+  //   record.value = value;
+  //   record.valueLower = value.toLowerCase();
+  // }
+  // if (hasHistorical || isCreate) {
+  //   record.historical = toBoolean(record.historical);
+  // }
 };
 
 const toBoolean = (value: unknown): boolean => {
@@ -155,13 +197,13 @@ export class VocabularyEntryClass {
   @Attr({ type: 'string', required: true })
   public label!: string;
 
-  @Attr({ type: 'string' })
+  @Attr({ type: 'string', required: true })
   public labelLower!: string;
 
-  @Attr({ type: 'string' })
+  @Attr({ type: 'string', required: false })
   public value!: string;
 
-  @Attr({ type: 'string' })
+  @Attr({ type: 'string', required: false })
   public valueLower!: string;
 
   @BelongsTo('vocabularyentry')
