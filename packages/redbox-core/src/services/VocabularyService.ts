@@ -720,7 +720,7 @@ export namespace Services {
 
       const oldToNewIds: Record<string, string> = {};
       for (const entry of flatEntries) {
-        const normalized = this.normalizeEntry(entry);
+        const normalized = entry;
         if (!normalized.label || normalized.value === null || normalized.value === undefined) {
           throw new Error('VocabularyEntry.label and VocabularyEntry.value are required');
         }
