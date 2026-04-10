@@ -1,1 +1,481 @@
-/* You can add global styles to this file, and also import other style files */
+/*
+  Manage Users – supplementary styles
+  ---------------------------------------------------------------------------
+  The page-level theme (compiled from assets/styles/style.scss via webpack)
+  provides panel, button, table and form control colours through SCSS branding
+  variables ($panel-branding-*, $anchor-color, $submit-button-*, etc.).
+
+  This stylesheet only adds layout helpers and component-specific polish that
+  the base theme doesn't cover.  Colour references use:
+    • Standard Bootstrap / ReDBox classes (panel-default, btn-primary, …)
+    • Inherited / currentColor where possible
+    • Neutral grays for structural elements that shouldn't change with branding
+*/
+
+/* ─── Toolbar ─── */
+
+.mu-toolbar {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.mu-toolbar-search {
+  display: flex;
+  flex: 1 1 320px;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mu-toolbar-label {
+  color: #4b5563;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.mu-toolbar-search-controls {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.mu-search-input-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+}
+
+.mu-search-icon {
+  color: #9ca3af;
+  font-size: 14px;
+  left: 12px;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.mu-search-input {
+  padding-left: 36px !important;
+}
+
+.mu-toolbar-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 16px;
+}
+
+/* ─── Table enhancements ─── */
+
+.mu-table {
+  thead th {
+    background: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+    color: #4b5563;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 12px 16px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  tbody td {
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+    font-size: 14px;
+    padding: 12px 16px;
+    vertical-align: middle;
+  }
+
+  tbody tr:hover {
+    background: #f9fafb;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+/* ─── Action button group ─── */
+
+.mu-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mu-btn-action {
+  border: 1px solid transparent !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  font-weight: 500;
+  padding: 4px 10px !important;
+  transition: all 150ms ease;
+  white-space: nowrap;
+
+  i {
+    font-size: 11px;
+    margin-right: 3px;
+  }
+}
+
+.mu-btn-action-edit {
+  background: #f3f4f6 !important;
+  color: #374151 !important;
+
+  &:hover {
+    background: #e5e7eb !important;
+    color: #1f2937 !important;
+  }
+}
+
+.mu-btn-action-link {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+
+  &:hover {
+    background: #dbeafe !important;
+    border-color: rgba(37, 99, 235, 0.2) !important;
+  }
+}
+
+.mu-btn-action-enable {
+  background: #f0fdf4 !important;
+  color: #16a34a !important;
+
+  &:hover {
+    background: #dcfce7 !important;
+    border-color: rgba(22, 163, 74, 0.2) !important;
+  }
+}
+
+.mu-btn-action-disable {
+  background: #fffbeb !important;
+  color: #d97706 !important;
+
+  &:hover {
+    background: #fef3c7 !important;
+    border-color: rgba(217, 119, 6, 0.2) !important;
+  }
+}
+
+.mu-btn-action-audit {
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+
+  &:hover {
+    background: #e5e7eb !important;
+    color: #374151 !important;
+  }
+}
+
+/* ─── Status Badges ─── */
+
+.manage-users-status {
+  line-height: 1.4;
+}
+
+.manage-users-status-badge {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 5px 12px;
+}
+
+.manage-users-status-badge-info {
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+}
+
+.manage-users-status-badge-default {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #4b5563;
+}
+
+.manage-users-status-badge-danger {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.manage-users-status .manage-users-status-badge {
+  display: inline-block;
+  margin-bottom: 2px;
+}
+
+.manage-users-status-context {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+/* ─── Toggle Switch ─── */
+/*
+  The "on" colour picks up the panel heading background via a CSS variable
+  that we inject from the .panel-heading's computed style. Fallback is a
+  neutral dark gray so the toggle still looks fine without branding.
+*/
+
+.mu-toggle-label {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 10px;
+  margin: 0;
+  user-select: none;
+}
+
+.mu-toggle-input {
+  height: 0;
+  opacity: 0;
+  position: absolute;
+  width: 0;
+}
+
+.mu-toggle-switch {
+  background: #d1d5db;
+  border-radius: 12px;
+  flex-shrink: 0;
+  height: 22px;
+  position: relative;
+  transition: background 150ms ease;
+  width: 40px;
+
+  &::after {
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    content: '';
+    height: 18px;
+    left: 2px;
+    position: absolute;
+    top: 2px;
+    transition: transform 150ms ease;
+    width: 18px;
+  }
+}
+
+.mu-toggle-input:checked + .mu-toggle-switch {
+  /* Uses the panel heading colour injected by the page theme.
+     Falls back to a neutral dark if the variable isn't set. */
+  background: var(--mu-panel-bg, #374151);
+
+  &::after {
+    transform: translateX(18px);
+  }
+}
+
+.mu-toggle-input:focus-visible + .mu-toggle-switch {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15);
+}
+
+.mu-toggle-text {
+  color: #374151;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* ─── Modal polish ─── */
+
+.mu-modal-header {
+  padding: 16px 20px !important;
+
+  .modal-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+
+    i {
+      margin-right: 8px;
+      opacity: 0.7;
+    }
+  }
+}
+
+.mu-modal-footer {
+  border-top: 1px solid #e5e7eb !important;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 16px 20px !important;
+
+  .btn {
+    font-size: 14px !important;
+    padding: 6px 16px !important;
+    text-transform: none !important;
+  }
+}
+
+.mu-modal-body {
+  padding: 20px !important;
+}
+
+/* ─── Form Sections (replaces table layout in modals) ─── */
+
+.mu-form-sections {
+  display: flex;
+  flex-direction: column;
+}
+
+.mu-form-section {
+  border-bottom: 1px solid #f3f4f6;
+  padding: 20px 0;
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.mu-form-section-title {
+  color: #4b5563;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin: 0 0 16px 0;
+  text-transform: uppercase;
+
+  i {
+    color: var(--mu-panel-bg, #6b7280);
+    font-size: 13px;
+    margin-right: 8px;
+    width: 16px;
+    text-align: center;
+  }
+}
+
+.mu-form-group {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.mu-form-label {
+  color: #4b5563;
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.mu-form-value {
+  color: #1f2937;
+  font-size: 14px;
+  padding: 6px 0;
+}
+
+.mu-form-control-wrap {
+  .form-control {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+}
+
+/* ─── Roles Grid ─── */
+
+.mu-roles-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.mu-role-item {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 10px 14px;
+  transition: border-color 150ms ease, background 150ms ease;
+
+  &:hover {
+    border-color: #d1d5db;
+  }
+
+  .mu-toggle-label {
+    width: 100%;
+  }
+}
+
+/* ─── Token display ─── */
+
+.mu-token-display {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', monospace;
+  font-size: 13px;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+  padding: 10px 14px;
+  word-break: break-all;
+}
+
+/* ─── Audit raw data ─── */
+
+.mu-audit-raw pre {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-top: 10px;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+  padding: 12px 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ─── Empty state ─── */
+
+.mu-empty-state {
+  color: #6b7280;
+  font-size: 14px;
+  padding: 24px 0;
+  text-align: center;
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 991px) {
+  .mu-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mu-toolbar-actions {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 767px) {
+  .mu-toolbar-search-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mu-action-group {
+    flex-direction: column;
+  }
+
+  .mu-roles-grid {
+    grid-template-columns: 1fr;
+  }
+}

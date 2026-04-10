@@ -49,20 +49,23 @@ function initSystemMessage() {
   if (systemMessageArea) {
     const messageKey = systemMessageArea.getAttribute('data-system-message-key') || '';
     const messageScope = systemMessageArea.getAttribute('data-system-message-scope') || 'default';
+    const dismissalHoursRaw = systemMessageArea.getAttribute('data-system-message-dismissal-hours');
+    const parsedDismissalHours = dismissalHoursRaw ? Number(dismissalHoursRaw) : NaN;
+    const dismissalHours = Math.max(0, isFinite(parsedDismissalHours) ? parsedDismissalHours : 8);
     const storageKey = 'systemMessageDismissal:' + messageScope;
     const dismissal = safeStorageGet(storageKey);
     const now = Date.now();
-    const eightHoursInMillis = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+    const dismissalWindowMs = dismissalHours * 60 * 60 * 1000;
     const dismissedAt = dismissal && Number(dismissal.dismissedAt);
     const hasValidDismissal = dismissal && dismissal.key === messageKey && isFinite(dismissedAt);
 
     safeStorageRemove('systemMessageDismissalTime');
 
-    if (hasValidDismissal && now - dismissedAt <= eightHoursInMillis) {
+    if (hasValidDismissal && now - dismissedAt <= dismissalWindowMs) {
       // Remove the system message area as it takes up space even when hidden
       systemMessageArea.remove();
     } else {
-      // Ensure visible on first load, when it was dismissed more than 8 hours ago or when the message changes
+      // Ensure visible on first load, when it was dismissed more than the configured window or when the message changes
       systemMessageArea.style.display = 'block';
     }
   }
@@ -129,4 +132,3 @@ document.addEventListener('DOMContentLoaded', function() {
   initSystemMessage();
   initNavigationHighlight();
 });
-

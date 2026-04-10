@@ -1,30 +1,54 @@
 @if (isReady) {
-  <div class="col-md-offset-2 col-md-8">
+  <div class="col-xs-12">
     <div class="panel panel-default">
       <div class="panel-heading">
         <span class="panel-title">
           {{ 'manage-users-title' | i18next }}
         </span>
-        </div>
-        <div class="panel-body overflow-scroll">
-        <div class="row">
-          <div class="col-sm-9">
-            <div class="input-group">
-              <span class="input-group-addon" id="name-addon">{{ 'manage-users-filter-name' | i18next }}</span>
-              <input type="text" (keyup)="onFilterChange()" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ 'manage-users-filter-name-placeholder' | i18next }}" [attr.aria-label]="'manage-users-filter-name' | i18next">
-              <span (click)="resetFilter()" class="input-group-btn"><button class="btn btn-primary" type='button'>Reset</button></span>
+      </div>
+      <div class="panel-body overflow-scroll">
+        <!-- Toolbar -->
+        <div class="mu-toolbar">
+          <div class="mu-toolbar-search">
+            <label class="mu-toolbar-label" for="manage-users-search">{{ 'manage-users-filter-name' | i18next }}</label>
+            <div class="mu-toolbar-search-controls">
+              <div class="mu-search-input-wrap">
+                <i class="fa fa-search mu-search-icon"></i>
+                <input
+                  id="manage-users-search"
+                  type="text"
+                  (keyup)="onFilterChange()"
+                  [(ngModel)]="searchFilter.name"
+                  class="form-control mu-search-input"
+                  placeholder="{{ 'manage-users-filter-name-placeholder' | i18next }}"
+                  [attr.aria-label]="'manage-users-filter-name' | i18next"
+                />
+              </div>
+              <button class="btn btn-default" type="button" (click)="resetFilter()">
+                <i class="fa fa-refresh"></i>
+                {{ 'manage-users-filter-reset' | i18next }}
+              </button>
             </div>
           </div>
-          <div class="col-sm-3">
-            <span (click)="newUser()"><button class="btn btn-primary" type='button'>{{ 'manage-users-add-local' | i18next }}</button></span>
+          <div class="mu-toolbar-actions">
+            <label class="mu-toggle-label">
+              <input
+                type="checkbox"
+                [checked]="showDisabledUsers"
+                (change)="toggleShowDisabled()"
+                class="mu-toggle-input"
+              />
+              <span class="mu-toggle-switch"></span>
+              <span class="mu-toggle-text">{{ 'manage-users-show-disabled' | i18next }}</span>
+            </label>
+            <button class="btn btn-primary" type="button" (click)="newUser()">
+              <i class="fa fa-plus"></i>
+              {{ 'manage-users-add-local' | i18next }}
+            </button>
           </div>
         </div>
-        <div>
-          <br/>
-        </div>
-        <div>
-          <br/>
-        </div>
+
+        <!-- Users Table -->
         <div class="table-responsive">
           <table class="table table-bordered table-striped table-hover">
             <thead>
@@ -32,6 +56,7 @@
                 <th>{{ 'manage-users-name' | i18next }}</th>
                 <th>{{ 'manage-users-email' | i18next }}</th>
                 <th>{{ 'manage-users-role' | i18next }}</th>
+                <th>{{ 'manage-users-account-status' | i18next }}</th>
                 <th>{{ 'manage-users-api' | i18next }}</th>
                 <th>{{ 'manage-users-action' | i18next }}</th>
               </tr>
@@ -39,16 +64,82 @@
             <tbody>
               @for (user of filteredUsers; track user) {
                 <tr>
-                  <td>{{user.name}}</td>
-                  <td>{{user.email}}</td>
-                  <td>{{user.roleStr}}</td>
+                  <td>{{ user.name }}</td>
+                  <td>{{ user.email }}</td>
+                  <td>{{ user.roleStr }}</td>
+                  <td>
+                    <div class="manage-users-status">
+                      <span
+                        class="manage-users-status-badge"
+                        [class.manage-users-status-badge-info]="getAccountStatusBadgeClass(user) === 'info'"
+                        [class.manage-users-status-badge-default]="getAccountStatusBadgeClass(user) === 'default'"
+                        [class.manage-users-status-badge-danger]="getAccountStatusBadgeClass(user) === 'danger'"
+                      >
+                        {{ getAccountStatusBadge(user) }}
+                      </span>
+                      @if (getAccountStatusContext(user); as statusContext) {
+                        <div class="manage-users-status-context">
+                          <small>{{ statusContext }}</small>
+                        </div>
+                      }
+                    </div>
+                  </td>
                   <td align="center">
                     @if (user.token) {
-                      <i class="fa fa-check" aria-hidden="true"></i>
+                      <i class="fa fa-check" style="color: #16a34a" aria-hidden="true"></i>
                     }
                   </td>
                   <td>
-                    <a style="cursor:pointer" (click)="editUser(user.username)">Edit</a>
+                    <div class="mu-action-group">
+                      <button
+                        type="button"
+                        class="btn btn-xs mu-btn-action mu-btn-action-edit"
+                        (click)="editUser(user.username)"
+                      >
+                        <i class="fa fa-pencil"></i>
+                        {{ 'manage-users-edit-link' | i18next }}
+                      </button>
+                      @if (canManageLinks(user)) {
+                        <button
+                          type="button"
+                          class="btn btn-xs mu-btn-action mu-btn-action-link"
+                          (click)="manageLinks(user.username)"
+                        >
+                          <i class="fa fa-link"></i>
+                          {{ 'manage-users-link-manage' | i18next }}
+                        </button>
+                      }
+                      @if (!isLinkedAlias(user)) {
+                        @if (isEffectivelyDisabled(user) && isDirectlyDisabled(user)) {
+                          <button
+                            type="button"
+                            class="btn btn-xs mu-btn-action mu-btn-action-enable"
+                            (click)="enableUser(user)"
+                          >
+                            <i class="fa fa-check-circle"></i>
+                            {{ 'manage-users-enable-action' | i18next }}
+                          </button>
+                        }
+                        @if (!isEffectivelyDisabled(user)) {
+                          <button
+                            type="button"
+                            class="btn btn-xs mu-btn-action mu-btn-action-disable"
+                            (click)="disableUser(user)"
+                          >
+                            <i class="fa fa-ban"></i>
+                            {{ 'manage-users-disable-action' | i18next }}
+                          </button>
+                        }
+                      }
+                      <button
+                        type="button"
+                        class="btn btn-xs mu-btn-action mu-btn-action-audit"
+                        (click)="viewAudit(user)"
+                      >
+                        <i class="fa fa-history"></i>
+                        {{ 'manage-users-audit-action' | i18next }}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               }
@@ -57,272 +148,678 @@
         </div>
       </div>
     </div>
-</div>
+  </div>
+}
+<!-- Manage Links Modal -->
+@if (isLinkModalShown) {
+  @if (linkPrimaryUser; as linkPrimaryUser) {
+    <div
+      [config]="{ backdrop: 'static', show: true }"
+      (onHidden)="onLinkModalHidden()"
+      bsModal
+      #userLinkModal="bs-modal"
+      class="modal fade"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="userlinkform"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header mu-modal-header">
+            <h4 class="modal-title" id="userlinkform">
+              <i class="fa fa-link"></i>
+              {{ 'manage-users-link-title' | i18next }}
+            </h4>
+          </div>
+          <div class="modal-body mu-modal-body">
+            <p>
+              <strong>{{ linkPrimaryUser.name }}</strong> ({{ linkPrimaryUser.username }})
+            </p>
+            <div class="alert alert-info">
+              <p>
+                <strong>{{ 'manage-users-link-about' | i18next }}</strong>
+              </p>
+              <p>{{ 'manage-users-link-info' | i18next }}</p>
+              <p>
+                <strong>{{ 'manage-users-link-effects-header' | i18next }}</strong>
+              </p>
+              <ul>
+                <li>{{ 'manage-users-link-effects-roles' | i18next }}</li>
+                <li>{{ 'manage-users-link-effects-apikey' | i18next }}</li>
+                <li>{{ 'manage-users-link-effects-records' | i18next }}</li>
+              </ul>
+            </div>
+            <div class="alert alert-warning">
+              <strong>{{ 'manage-users-link-irreversible' | i18next }}</strong>
+            </div>
+
+            <h5>{{ 'manage-users-link-existing' | i18next }}</h5>
+            @if (linkedAccounts.length === 0) {
+              <p class="mu-empty-state">{{ 'manage-users-link-no-linked-accounts' | i18next }}</p>
+            }
+            @if (linkedAccounts.length > 0) {
+              <ul>
+                @for (linkedAccount of linkedAccounts; track linkedAccount.id) {
+                  <li>{{ linkedAccount.name }} ({{ linkedAccount.username }}) - {{ linkedAccount.email }}</li>
+                }
+              </ul>
+            }
+
+            <h5>{{ 'manage-users-link-search-title' | i18next }}</h5>
+            <div class="input-group">
+              <input
+                type="text"
+                [(ngModel)]="linkSearchQuery"
+                class="form-control"
+                placeholder="{{ 'manage-users-link-search-placeholder' | i18next }}"
+                [attr.aria-label]="'manage-users-link-search-placeholder' | i18next"
+              />
+              <span class="input-group-btn">
+                <button type="button" class="btn btn-primary" (click)="searchCandidates()">
+                  {{ 'manage-users-link-search' | i18next }}
+                </button>
+              </span>
+            </div>
+
+            @if (isLinkSearchLoading) {
+              <p>{{ 'manage-users-link-searching' | i18next }}</p>
+            }
+
+            @if (linkCandidates.length > 0) {
+              <div class="table-responsive" style="margin-top: 15px">
+                <table class="table table-bordered table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>{{ 'manage-users-name' | i18next }}</th>
+                      <th>{{ 'manage-users-email' | i18next }}</th>
+                      <th>{{ 'manage-users-account-status' | i18next }}</th>
+                      <th>{{ 'manage-users-action' | i18next }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (candidate of linkCandidates; track candidate.id) {
+                      <tr [class.info]="selectedLinkCandidate?.id === candidate.id">
+                        <td>{{ candidate.name }} ({{ candidate.username }})</td>
+                        <td>{{ candidate.email }}</td>
+                        <td>
+                          <div class="manage-users-status">
+                            <span
+                              class="manage-users-status-badge"
+                              [class.manage-users-status-badge-info]="getAccountStatusBadgeClass(candidate) === 'info'"
+                              [class.manage-users-status-badge-default]="
+                                getAccountStatusBadgeClass(candidate) === 'default'
+                              "
+                            >
+                              {{ getAccountStatusBadge(candidate) }}
+                            </span>
+                            @if (getAccountStatusContext(candidate); as statusContext) {
+                              <div class="manage-users-status-context">
+                                <small>{{ statusContext }}</small>
+                              </div>
+                            }
+                          </div>
+                        </td>
+                        <td>
+                          <button type="button" class="btn btn-default btn-sm" (click)="selectLinkCandidate(candidate)">
+                            {{ 'manage-users-link-select' | i18next }}
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+
+            @if (selectedLinkCandidate; as selectedLinkCandidate) {
+              <div class="alert alert-info" style="margin-top: 15px">
+                {{ 'manage-users-link-selected' | i18next }}: {{ selectedLinkCandidate.name }} ({{
+                  selectedLinkCandidate.username
+                }})
+              </div>
+            }
+
+            <div class="bg-{{ linkMsgType }} center-block">{{ linkMsg }}</div>
+          </div>
+          <div class="modal-footer mu-modal-footer">
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="selectedLinkCandidate == null || isLinkSaving"
+              (click)="submitLink()"
+            >
+              {{ 'manage-users-link-confirm' | i18next }}
+            </button>
+            <button type="button" class="btn btn-default" (click)="hideLinkModal()">
+              {{ 'manage-users-cancel' | i18next }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+}
+<!-- User Audit Modal -->
+@if (isAuditModalShown) {
+  @if (auditModalUser; as auditModalUser) {
+    <div
+      [config]="{ backdrop: 'static', show: true }"
+      (onHidden)="onAuditModalHidden()"
+      bsModal
+      #userAuditModal="bs-modal"
+      class="modal fade"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="userauditform"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header mu-modal-header">
+            <h4 class="modal-title" id="userauditform">
+              <i class="fa fa-history"></i>
+              {{ getAuditTitle() }}
+            </h4>
+          </div>
+          <div class="modal-body mu-modal-body">
+            @if (isAuditLoading) {
+              <p>{{ 'manage-users-audit-loading' | i18next }}</p>
+            } @else {
+              @if (auditError) {
+                <div class="alert alert-danger">{{ auditError }}</div>
+              }
+
+              @if (auditSummary.truncated) {
+                <div class="alert alert-info">{{ 'manage-users-audit-truncated' | i18next }}</div>
+              }
+
+              @if (!auditError && auditRecords.length === 0) {
+                <p class="mu-empty-state">{{ 'manage-users-audit-empty' | i18next }}</p>
+              }
+
+              @if (auditRecords.length > 0) {
+                <div class="table-responsive">
+                  <table class="table table-bordered table-striped table-hover">
+                    <thead>
+                      <tr>
+                        <th>{{ 'manage-users-audit-col-time' | i18next }}</th>
+                        <th>{{ 'manage-users-audit-col-action' | i18next }}</th>
+                        <th>{{ 'manage-users-audit-col-actor' | i18next }}</th>
+                        <th>{{ 'manage-users-audit-col-details' | i18next }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (record of auditRecords; track record.id) {
+                        <tr>
+                          <td>{{ formatAuditTimestamp(record.timestamp) }}</td>
+                          <td>{{ getAuditActionLabel(record) }}</td>
+                          <td>{{ getAuditActor(record) }}</td>
+                          <td>
+                            <div>{{ getAuditDetailsLabel(record) }}</div>
+                            @if (record.rawAdditionalContext) {
+                              <button type="button" class="btn btn-link btn-sm" (click)="toggleAuditRow(record.id)">
+                                {{ getAuditToggleLabel(record.id) }}
+                              </button>
+                            }
+                          </td>
+                        </tr>
+                        @if (isAuditRowExpanded(record.id) && record.rawAdditionalContext) {
+                          <tr>
+                            <td colspan="4" class="mu-audit-raw">
+                              <strong>{{ 'manage-users-audit-raw-label' | i18next }}</strong>
+                              <pre><code>{{ getAuditRawContent(record) }}</code></pre>
+                            </td>
+                          </tr>
+                        }
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            }
+          </div>
+          <div class="modal-footer mu-modal-footer">
+            <button type="button" class="btn btn-default" (click)="hideAuditModal()">
+              {{ 'manage-users-cancel' | i18next }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
 }
 <!-- User Details Modal -->
 @if (isDetailsModalShown) {
   @if (currentUser; as currentUser) {
     @if (updateUserForm; as updateUserForm) {
-      <div [config]="{backdrop: 'static', show: true}" (onHidden)="onDetailsModalHidden()" bsModal #userDetailsModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="detailsform" >
+      <div
+        [config]="{ backdrop: 'static', show: true }"
+        (onHidden)="onDetailsModalHidden()"
+        bsModal
+        #userDetailsModal="bs-modal"
+        class="modal fade"
+        tabindex="-1"
+        role="dialog"
+        aria-labelledby="detailsform"
+      >
         <div class="modal-dialog modal-md">
-          <!-- Modal content-->
           <div class="modal-content">
-            <div class="modal-header">
-              <h4 class="modal-title">{{ 'manage-users-edit' | i18next }}</h4>
+            <div class="modal-header mu-modal-header">
+              <h4 class="modal-title">
+                <i class="fa fa-user"></i>
+                {{ 'manage-users-edit' | i18next }}
+              </h4>
             </div>
-            <div class="modal-body">
-              <form id="detailsform" [formGroup]="updateUserForm" novalidate (ngSubmit)="updateUserSubmit(updateUserForm.value, updateUserForm.valid)">
-                <div class="table-responsive">
-                  <table class="table">
-                    <tbody>
-                      @if (currentUser.type == 'local') {
-                        <tr>
-                          <td>{{ 'manage-users-username' | i18next }}</td>
-                          <td>{{ currentUser.username }}</td>
-                        </tr>
-                      }
-                      <tr>
-                        <td>{{ 'manage-users-name' | i18next }}</td>
-                        @if (currentUser.type == 'local') {
-                          <td>
-                            <input type="text" formControlName="name" class="form-control input-sm chat-input"/>
-                            @if (updateUserForm.controls['name'].touched || submitted) {
-                              <div class='form-text error text-danger'>
-                                @if (updateUserForm.controls['name'].hasError('required')) {
-                                  <div>{{ 'manage-users-validation-name' | i18next }}</div>
-                                }
-                              </div>
-                            }
-                          </td>
-                        }
-                        @if (currentUser.type != 'local') {
-                          <td>{{currentUser.name}}</td>
-                        }
-                      </tr>
-                      <tr>
-                        <td>{{ 'manage-users-email' | i18next }}</td>
-                        @if (currentUser.type == 'local') {
-                          <td>
-                            <input type="email" formControlName="email" class="form-control input-sm chat-input"/>
-                            @if (updateUserForm.controls['email'].touched || submitted) {
-                              <div class='form-text error text-danger'>
-                                @if (updateUserForm.controls['email'].hasError('invalidEmail')) {
-                                  <div>{{ 'manage-users-validation-email' | i18next }}</div>
-                                }
-                              </div>
-                            }
-                          </td>
-                        }
-                        @if (currentUser.type != 'local') {
-                          <td>{{currentUser.email}}</td>
-                        }
-                      </tr>
-                      <tr>
-                        <td>{{ 'manage-users-password' | i18next }}</td>
-                        @if (currentUser.type == 'local') {
-                          <td>
-                            <div formGroupName="passwords">
-                              <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-update-password' | i18next }}"/>
-                            </div>
-                          </td>
-                        }
-                        @if (currentUser.type != 'local') {
-                          <td>{{ 'manage-users-aaf-password' | i18next}}</td>
-                        }
-                      </tr>
-                      @if (currentUser.type == 'local') {
-                        <tr>
-                          <td>{{ 'manage-users-confirm-password' | i18next }}</td>
-                          <td>
-                            <div formGroupName="passwords">
-                              <input type="password" formControlName="confirmPassword" class="form-control input-sm chat-input" placeholder="Confirm Password"/>
-                            </div>
-                            @if (isUpdateUserFormConfirmPasswordTouched() || submitted) {
-                              <div class='form-text error text-danger'>
-                                @if (updateUserForm.controls['passwords'].hasError('mismatched')) {
-                                  <div>{{ 'manage-users-validation-confirmpassword' | i18next }}</div>
-                                }
-                                @if (updateUserForm.controls['passwords'].hasError('passwordStrength')) {
-                                  @for (errorMsg of getUpdateUserPasswordErrors(); track errorMsg) {
-                                    <div >
-                                      {{ errorMsg | i18next }}
-                                    </div>
-                                  }
-                                }
-                              </div>
-                            }
-                          </td>
-                        </tr>
-                      }
-                      <tr>
-                        <td>{{ 'manage-users-api' | i18next }}</td>
-                        @if (!currentUser.token) {
-                          <td>
-                            <button type="button" class="btn btn-primary" (click)="genKey(currentUser.id)">{{ 'manage-users-api-generate' | i18next }}</button>
-                          </td>
-                        }
-                        @if (currentUser.token) {
-                          <td>
-                            @if (showToken) {
-                              <p>{{ 'manage-users-token-message' | i18next }}</p>
-                              <p><strong>{{ currentUser.token }}</strong></p>
-                            }
-                            <button type="button" class="btn btn-primary" (click)="revokeKey(currentUser.id)">{{ 'manage-users-api-revoke' | i18next }}</button>
-                          </td>
-                        }
-                      </tr>
-                      <tr>
-                        <td class="col-md-2">{{ 'manage-roles-role' | i18next }}</td>
-                        <td class="col-md-8">
-                          <div [formArrayName]="'allRoles'">
-                            @for (role of getUpdateUserFormControls(); track role; let i = $index) {
-                              <div [formGroup]="role">
-                                <input type="checkbox" formControlName="checked" id="role_{{ role.controls['key'].value }}">
-                                <label attr.for="role_{{ role.controls['key'].value }}">{{ role.controls['value'].value }}</label>
-                              </div>
-                            }
-                            @if (!updateUserForm.controls['roles'].valid) {
-                              <div class='form-text error text-danger'>
-                                <div>{{ 'manage-users-validation-role' | i18next }}</div>
-                              </div>
-                            }
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+            <div class="modal-body mu-modal-body">
+              @if (isEffectivelyDisabled(currentUser)) {
+                <div class="alert alert-warning" style="margin-bottom: 16px">
+                  @if (isDisabledViaPrimary(currentUser)) {
+                    {{
+                      'manage-users-disable-notice-primary'
+                        | i18next: { primaryUsername: currentUser.disabledByPrimaryUsername }
+                    }}
+                  } @else {
+                    {{ 'manage-users-disable-notice' | i18next }}
+                  }
                 </div>
-              </form>
-              <div class="bg-{{updateDetailsMsgType}} center-block">{{updateDetailsMsg}}</div>
-            </div>
-            <div class="modal-footer">
-              <button type="submit" class="btn btn-primary" form="detailsform">{{ 'manage-users-save' | i18next }}</button>
-              <button type="button" class="btn btn-default" (click)="hideDetailsModal()">{{ 'manage-users-cancel' | i18next }}</button>
-            </div>
-          </div>
-        </div>
-    </div>
-    }
-  }
-}
-<!-- New User Modal -->
-@if (isNewUserModalShown) {
-  @if (newUserForm; as newUserForm) {
-    <div [config]="{ show: true }" (onHidden)="onNewUserHidden()" bsModal #userNewModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
-      <div class="modal-dialog">
-        <!-- Modal content-->
-        <div class="modal-content">
-          <div class="modal-header">
-            <span class="modal-title h4-header">{{ 'manage-users-new' | i18next }}</span>
-          </div>
-          <div class="modal-body">
-            <form id="newform" [formGroup]="newUserForm" novalidate (ngSubmit)="newUserSubmit(newUserForm.value, newUserForm.valid)">
-              <div class="table-responsive">
-                <table class="table">
-                  <tbody>
-                    <tr>
-                      <td>{{ 'manage-users-username' | i18next }}</td>
-                      <td>
-                        <input type="text" formControlName="username" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-username' | i18next }}" [attr.aria-label]="'manage-users-username' | i18next"/>
-                        @if (newUserForm.controls['username'].touched || submitted) {
-                          <div class='form-text error text-danger'>
-                            @if (newUserForm.controls['username'].hasError('required')) {
-                              <div>{{ 'manage-users-validation-username' | i18next }}</div>
-                            }
-                          </div>
-                        }
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>{{ 'manage-users-name' | i18next }}</td>
-                      <td>
-                        <input type="text" formControlName="name" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-name' | i18next }}" [attr.aria-label]="'manage-users-name' | i18next "/>
-                        @if (newUserForm.controls['name'].touched || submitted) {
-                          <div class='form-text error text-danger'>
-                            @if (newUserForm.controls['name'].hasError('required')) {
-                              <div>{{ 'manage-users-validation-name' | i18next }}</div>
-                            }
-                          </div>
-                        }
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>{{ 'manage-users-email' | i18next }}</td>
-                      <td>
-                        <input type="email" formControlName="email" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-email' | i18next }}" [attr.aria-label]="'manage-users-email' | i18next"/>
-                        @if (newUserForm.controls['email'].touched || submitted) {
-                          <div class='form-text error text-danger'>
-                            @if (newUserForm.controls['email'].hasError('invalidEmail')) {
-                              <div>{{ 'manage-users-validation-email' | i18next }}</div>
-                            }
-                          </div>
-                        }
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>{{ 'manage-users-password' | i18next }}</td>
-                      <td>
-                        <div formGroupName="passwords">
-                          <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-password' | i18next }}" [attr.aria-label]="'manage-users-password' | i18next "/>
+              }
+              @if (currentUser.accountLinkState === 'linked-alias') {
+                <div class="alert alert-info" style="margin-bottom: 16px">
+                  {{
+                    'manage-users-edit-linked-notice'
+                      | i18next: { primaryUsername: currentUser.effectivePrimaryUsername || currentUser.username }
+                  }}
+                </div>
+              }
+              <form
+                id="detailsform"
+                [formGroup]="updateUserForm"
+                novalidate
+                (ngSubmit)="updateUserSubmit(updateUserForm.value, updateUserForm.valid)"
+              >
+                <div class="mu-form-sections">
+                  <!-- Account Information -->
+                  <div class="mu-form-section">
+                    <h5 class="mu-form-section-title">
+                      <i class="fa fa-id-card"></i>
+                      {{ 'manage-users-account-information' | i18next }}
+                    </h5>
+                    @if (currentUser.type == 'local') {
+                      <div class="mu-form-group">
+                        <label class="mu-form-label">{{ 'manage-users-username' | i18next }}</label>
+                        <div class="mu-form-value">{{ currentUser.username }}</div>
+                      </div>
+                    }
+                    <div class="mu-form-group">
+                      <label class="mu-form-label">{{ 'manage-users-name' | i18next }}</label>
+                      @if (currentUser.type == 'local') {
+                        <div class="mu-form-control-wrap">
+                          <input type="text" formControlName="name" class="form-control" />
+                          @if (updateUserForm.controls['name'].touched || submitted) {
+                            <div class="form-text error text-danger">
+                              @if (updateUserForm.controls['name'].hasError('required')) {
+                                <div>{{ 'manage-users-validation-name' | i18next }}</div>
+                              }
+                            </div>
+                          }
                         </div>
-                        @if (getNewUserPasswordFormControls()['password'].touched || submitted) {
-                          <div class='form-text error text-danger'>
-                            @if (getNewUserPasswordFormControls()['password'].hasError('required')) {
-                              <div>{{ 'manage-users-validation-password' | i18next }}</div>
-                            }
-                          </div>
-                        }
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>{{ 'manage-users-confirm-password' | i18next }}</td>
-                      <td>
-                        <div formGroupName="passwords">
-                          <input type="password" formControlName="confirmPassword" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-confirm-password' | i18next }}" [attr.aria-label]="'manage-users-confirm-password' | i18next"/>
+                      }
+                      @if (currentUser.type != 'local') {
+                        <div class="mu-form-value">{{ currentUser.name }}</div>
+                      }
+                    </div>
+                    <div class="mu-form-group">
+                      <label class="mu-form-label">{{ 'manage-users-email' | i18next }}</label>
+                      @if (currentUser.type == 'local') {
+                        <div class="mu-form-control-wrap">
+                          <input type="email" formControlName="email" class="form-control" />
+                          @if (updateUserForm.controls['email'].touched || submitted) {
+                            <div class="form-text error text-danger">
+                              @if (updateUserForm.controls['email'].hasError('invalidEmail')) {
+                                <div>{{ 'manage-users-validation-email' | i18next }}</div>
+                              }
+                            </div>
+                          }
                         </div>
-                        @if (getNewUserPasswordFormControls()['confirmPassword'].touched || submitted) {
-                          <div class='form-text error text-danger'>
-                            @if (newUserForm.controls['passwords'].hasError('mismatched')) {
+                      }
+                      @if (currentUser.type != 'local') {
+                        <div class="mu-form-value">{{ currentUser.email }}</div>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Security -->
+                  <div class="mu-form-section">
+                    <h5 class="mu-form-section-title">
+                      <i class="fa fa-lock"></i>
+                      {{ 'manage-users-security' | i18next }}
+                    </h5>
+                    <div class="mu-form-group">
+                      <label class="mu-form-label">{{ 'manage-users-password' | i18next }}</label>
+                      @if (currentUser.accountLinkState === 'linked-alias') {
+                        <div class="mu-form-value">
+                          <em>{{ 'manage-users-password-linked-notice' | i18next }}</em>
+                        </div>
+                      }
+                      @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.type == 'local') {
+                        <div class="mu-form-control-wrap" formGroupName="passwords">
+                          <input
+                            type="password"
+                            formControlName="password"
+                            class="form-control"
+                            placeholder="{{ 'manage-users-update-password' | i18next }}"
+                          />
+                        </div>
+                      }
+                      @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.type != 'local') {
+                        <div class="mu-form-value">{{ 'manage-users-aaf-password' | i18next }}</div>
+                      }
+                    </div>
+                    @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.type == 'local') {
+                      <div class="mu-form-group">
+                        <label class="mu-form-label">{{ 'manage-users-confirm-password' | i18next }}</label>
+                        <div class="mu-form-control-wrap" formGroupName="passwords">
+                          <input
+                            type="password"
+                            formControlName="confirmPassword"
+                            class="form-control"
+                            placeholder="{{ 'manage-users-confirm-password' | i18next }}"
+                          />
+                        </div>
+                        @if (isUpdateUserFormConfirmPasswordTouched() || submitted) {
+                          <div class="form-text error text-danger">
+                            @if (updateUserForm.controls['passwords'].hasError('mismatched')) {
                               <div>{{ 'manage-users-validation-confirmpassword' | i18next }}</div>
                             }
-                            @if (newUserForm.controls['passwords'].hasError('passwordStrength')) {
-                              @for (errorMsg of getNewUserPasswordErrors(); track errorMsg) {
-                                <div >
+                            @if (updateUserForm.controls['passwords'].hasError('passwordStrength')) {
+                              @for (errorMsg of getUpdateUserPasswordErrors(); track errorMsg) {
+                                <div>
                                   {{ errorMsg | i18next }}
                                 </div>
                               }
                             }
                           </div>
                         }
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="col-md-2">{{ 'manage-roles-role' | i18next }}</td>
-                      <td class="col-md-8">
-                        <div [formArrayName]="'allRoles'">
-                          @for (role of getNewUserFormControls(); track role; let i = $index) {
-                            <div [formGroup]="role">
-                              <input type="checkbox" formControlName="checked" id="role_{{ role.controls['key'].value }}">
-                              <label attr.for="role_{{ role.controls['key'].value }}">{{ role.controls['value'].value }}</label>
-                            </div>
+                      </div>
+                    }
+                    <div class="mu-form-group">
+                      <label class="mu-form-label">{{ 'manage-users-api' | i18next }}</label>
+                      @if (currentUser.accountLinkState === 'linked-alias') {
+                        <div class="mu-form-value">
+                          <em>{{ 'manage-users-api-linked-notice' | i18next }}</em>
+                        </div>
+                      }
+                      @if (currentUser.accountLinkState !== 'linked-alias' && !currentUser.token) {
+                        <div>
+                          <button type="button" class="btn btn-primary" (click)="genKey(currentUser.id)">
+                            <i class="fa fa-key"></i>
+                            {{ 'manage-users-api-generate' | i18next }}
+                          </button>
+                        </div>
+                      }
+                      @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.token) {
+                        <div>
+                          @if (showToken) {
+                            <p>{{ 'manage-users-token-message' | i18next }}</p>
+                            <div class="mu-token-display">{{ currentUser.token }}</div>
                           }
-                          @if (!newUserForm.controls['roles'].valid) {
-                            <div class='form-text error text-danger'>
-                              <div>{{ 'manage-users-validation-role' | i18next }}</div>
-                            </div>
+                          <button type="button" class="btn btn-warning" (click)="revokeKey(currentUser.id)">
+                            <i class="fa fa-times-circle"></i>
+                            {{ 'manage-users-api-revoke' | i18next }}
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Roles & Permissions -->
+                  <div class="mu-form-section">
+                    <h5 class="mu-form-section-title">
+                      <i class="fa fa-shield"></i>
+                      {{ 'manage-users-roles-and-permissions' | i18next }}
+                    </h5>
+                    @if (currentUser.accountLinkState === 'linked-alias') {
+                      <em>{{ 'manage-users-roles-linked-notice' | i18next }}</em>
+                    } @else {
+                      <div [formArrayName]="'allRoles'" class="mu-roles-grid">
+                        @for (role of getUpdateUserFormControls(); track role; let i = $index) {
+                          <div [formGroup]="role" class="mu-role-item">
+                            <label class="mu-toggle-label" attr.for="role_{{ role.controls['key'].value }}">
+                              <input
+                                type="checkbox"
+                                formControlName="checked"
+                                id="role_{{ role.controls['key'].value }}"
+                                class="mu-toggle-input"
+                              />
+                              <span class="mu-toggle-switch"></span>
+                              <span class="mu-toggle-text">{{ role.controls['value'].value }}</span>
+                            </label>
+                          </div>
+                        }
+                      </div>
+                      @if (!updateUserForm.controls['roles'].valid && submitted) {
+                        <div class="form-text error text-danger" style="margin-top: 8px">
+                          <div>{{ 'manage-users-validation-role' | i18next }}</div>
+                        </div>
+                      }
+                    }
+                  </div>
+                </div>
+              </form>
+              <div class="bg-{{ updateDetailsMsgType }} center-block">{{ updateDetailsMsg }}</div>
+            </div>
+            <div class="modal-footer mu-modal-footer">
+              @if (!isLinkedAlias(currentUser)) {
+                @if (isEffectivelyDisabled(currentUser) && isDirectlyDisabled(currentUser)) {
+                  <button type="button" class="btn btn-success" (click)="enableUser(currentUser)">
+                    {{ 'manage-users-enable-action' | i18next }}
+                  </button>
+                }
+                @if (!isEffectivelyDisabled(currentUser)) {
+                  <button type="button" class="btn btn-warning" (click)="disableUser(currentUser)">
+                    {{ 'manage-users-disable-action' | i18next }}
+                  </button>
+                }
+              }
+              <button type="submit" class="btn btn-primary" form="detailsform">
+                {{ 'manage-users-save' | i18next }}
+              </button>
+              <button type="button" class="btn btn-default" (click)="hideDetailsModal()">
+                {{ 'manage-users-cancel' | i18next }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  }
+}
+<!-- New User Modal -->
+@if (isNewUserModalShown) {
+  @if (newUserForm; as newUserForm) {
+    <div
+      [config]="{ show: true }"
+      (onHidden)="onNewUserHidden()"
+      bsModal
+      #userNewModal="bs-modal"
+      class="modal fade"
+      tabindex="-1"
+      role="dialog"
+      [attr.aria-hidden]="!isNewUserModalShown"
+      aria-labelledby="newuserform"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header mu-modal-header">
+            <h4 class="modal-title" id="newuserform">
+              <i class="fa fa-user-plus"></i>
+              {{ 'manage-users-new' | i18next }}
+            </h4>
+          </div>
+          <div class="modal-body mu-modal-body">
+            <form
+              id="newform"
+              [formGroup]="newUserForm"
+              novalidate
+              (ngSubmit)="newUserSubmit(newUserForm.value, newUserForm.valid)"
+            >
+              <div class="mu-form-sections">
+                <!-- Account Details -->
+                <div class="mu-form-section">
+                  <h5 class="mu-form-section-title">
+                    <i class="fa fa-id-card"></i>
+                    {{ 'manage-users-account-details' | i18next }}
+                  </h5>
+                  <div class="mu-form-group">
+                    <label class="mu-form-label">{{ 'manage-users-username' | i18next }}</label>
+                    <div class="mu-form-control-wrap">
+                      <input
+                        type="text"
+                        formControlName="username"
+                        class="form-control"
+                        placeholder="{{ 'manage-users-username' | i18next }}"
+                        [attr.aria-label]="'manage-users-username' | i18next"
+                      />
+                      @if (newUserForm.controls['username'].touched || submitted) {
+                        <div class="form-text error text-danger">
+                          @if (newUserForm.controls['username'].hasError('required')) {
+                            <div>{{ 'manage-users-validation-username' | i18next }}</div>
                           }
                         </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                      }
+                    </div>
+                  </div>
+                  <div class="mu-form-group">
+                    <label class="mu-form-label">{{ 'manage-users-name' | i18next }}</label>
+                    <div class="mu-form-control-wrap">
+                      <input
+                        type="text"
+                        formControlName="name"
+                        class="form-control"
+                        placeholder="{{ 'manage-users-name' | i18next }}"
+                        [attr.aria-label]="'manage-users-name' | i18next"
+                      />
+                      @if (newUserForm.controls['name'].touched || submitted) {
+                        <div class="form-text error text-danger">
+                          @if (newUserForm.controls['name'].hasError('required')) {
+                            <div>{{ 'manage-users-validation-name' | i18next }}</div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                  <div class="mu-form-group">
+                    <label class="mu-form-label">{{ 'manage-users-email' | i18next }}</label>
+                    <div class="mu-form-control-wrap">
+                      <input
+                        type="email"
+                        formControlName="email"
+                        class="form-control"
+                        placeholder="{{ 'manage-users-email' | i18next }}"
+                        [attr.aria-label]="'manage-users-email' | i18next"
+                      />
+                      @if (newUserForm.controls['email'].touched || submitted) {
+                        <div class="form-text error text-danger">
+                          @if (newUserForm.controls['email'].hasError('invalidEmail')) {
+                            <div>{{ 'manage-users-validation-email' | i18next }}</div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Security -->
+                <div class="mu-form-section">
+                  <h5 class="mu-form-section-title">
+                    <i class="fa fa-lock"></i>
+                    {{ 'manage-users-security' | i18next }}
+                  </h5>
+                  <div class="mu-form-group">
+                    <label class="mu-form-label">{{ 'manage-users-password' | i18next }}</label>
+                    <div class="mu-form-control-wrap" formGroupName="passwords">
+                      <input
+                        type="password"
+                        formControlName="password"
+                        class="form-control"
+                        placeholder="{{ 'manage-users-password' | i18next }}"
+                        [attr.aria-label]="'manage-users-password' | i18next"
+                      />
+                    </div>
+                    @if (getNewUserPasswordFormControls()['password'].touched || submitted) {
+                      <div class="form-text error text-danger">
+                        @if (getNewUserPasswordFormControls()['password'].hasError('required')) {
+                          <div>{{ 'manage-users-validation-password' | i18next }}</div>
+                        }
+                      </div>
+                    }
+                  </div>
+                  <div class="mu-form-group">
+                    <label class="mu-form-label">{{ 'manage-users-confirm-password' | i18next }}</label>
+                    <div class="mu-form-control-wrap" formGroupName="passwords">
+                      <input
+                        type="password"
+                        formControlName="confirmPassword"
+                        class="form-control"
+                        placeholder="{{ 'manage-users-confirm-password' | i18next }}"
+                        [attr.aria-label]="'manage-users-confirm-password' | i18next"
+                      />
+                    </div>
+                    @if (getNewUserPasswordFormControls()['confirmPassword'].touched || submitted) {
+                      <div class="form-text error text-danger">
+                        @if (newUserForm.controls['passwords'].hasError('mismatched')) {
+                          <div>{{ 'manage-users-validation-confirmpassword' | i18next }}</div>
+                        }
+                        @if (newUserForm.controls['passwords'].hasError('passwordStrength')) {
+                          @for (errorMsg of getNewUserPasswordErrors(); track errorMsg) {
+                            <div>
+                              {{ errorMsg | i18next }}
+                            </div>
+                          }
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- Roles -->
+                <div class="mu-form-section">
+                  <h5 class="mu-form-section-title">
+                    <i class="fa fa-shield"></i>
+                    {{ 'manage-users-roles-and-permissions' | i18next }}
+                  </h5>
+                  <div [formArrayName]="'allRoles'" class="mu-roles-grid">
+                    @for (role of getNewUserFormControls(); track role; let i = $index) {
+                      <div [formGroup]="role" class="mu-role-item">
+                        <label class="mu-toggle-label" attr.for="role_{{ role.controls['key'].value }}">
+                          <input
+                            type="checkbox"
+                            formControlName="checked"
+                            id="role_{{ role.controls['key'].value }}"
+                            class="mu-toggle-input"
+                          />
+                          <span class="mu-toggle-switch"></span>
+                          <span class="mu-toggle-text">{{ role.controls['value'].value }}</span>
+                        </label>
+                      </div>
+                    }
+                  </div>
+                  @if (!newUserForm.controls['roles'].valid && submitted) {
+                    <div class="form-text error text-danger" style="margin-top: 8px">
+                      <div>{{ 'manage-users-validation-role' | i18next }}</div>
+                    </div>
+                  }
+                </div>
               </div>
             </form>
-            <div class="bg-{{newUserMsgType}} center-block">{{ newUserMsg }}</div>
+            <div class="bg-{{ newUserMsgType }} center-block">{{ newUserMsg }}</div>
           </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary" form="newform">{{ 'manage-users-save' | i18next }}</button>
-            <button type="button" class="btn btn-default" (click)="hideNewUserModal()">{{ 'manage-users-cancel' | i18next }}</button>
+          <div class="modal-footer mu-modal-footer">
+            <button type="submit" class="btn btn-primary" form="newform">
+              {{ 'manage-users-save' | i18next }}
+            </button>
+            <button type="button" class="btn btn-default" (click)="hideNewUserModal()">
+              {{ 'manage-users-cancel' | i18next }}
+            </button>
           </div>
         </div>
       </div>

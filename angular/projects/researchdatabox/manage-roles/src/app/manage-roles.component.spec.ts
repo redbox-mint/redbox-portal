@@ -1,12 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { ManageRolesComponent } from './manage-roles.component';
-import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common'; 
 import { FormsModule } from "@angular/forms";
-import i18next from 'i18next';
-import { I18NextModule, StrictErrorHandlingStrategy, provideI18Next, withCustomErrorHandlingStrategy } from 'angular-i18next';
-import { UtilityService, LoggerService, TranslationService, ConfigService, UserService } from '@researchdatabox/portal-ng-common';
-import { getStubConfigService, getStubTranslationService, getStubUserService, appInit, localeId } from '@researchdatabox/portal-ng-common';
+import { ConfigService, I18NextPipe, LoggerService, TranslationService, UserService, UtilityService } from '@researchdatabox/portal-ng-common';
+import { getStubConfigService, getStubTranslationService, getStubUserService } from '@researchdatabox/portal-ng-common';
 
 let configService:any;
 let userService: any;
@@ -52,14 +49,6 @@ let usersData = [
         }
    ];
 
-export function i18AppInit() {
-  return () => i18next
-  .init({
-    fallbackLng: 'en',
-    debug: true
-  });
-}
-
 describe('AppComponent', () => {
   beforeEach(async () => {
     configService = getStubConfigService();
@@ -71,7 +60,7 @@ describe('AppComponent', () => {
       ],
       imports: [
         FormsModule,
-        I18NextModule.forRoot()
+        I18NextPipe
       ],
       providers: [
         {
@@ -91,11 +80,7 @@ describe('AppComponent', () => {
         {
           provide: UserService,
           useValue: userService
-        },
-        provideAppInitializer(i18AppInit()),
-        provideI18Next(
-          withCustomErrorHandlingStrategy(StrictErrorHandlingStrategy)
-        )
+        }
       ]
     });
     

@@ -8,18 +8,20 @@ function testAngular() {
   echo "-------------------------------------------"
   echo "Testing ${1} (${2})"
   echo "-------------------------------------------"
-  # Some test runs happen inside containers (e.g. Codex Web) as root and need the no-sandbox launcher.
-  if [ "$(id -u)" -eq 0 ]; then
-    node_modules/.bin/ng t --browsers=ChromeHeadlessNoSandbox "@researchdatabox/${1}" --no-watch --no-progress --code-coverage
-  else
-    node_modules/.bin/ng t --browsers=ChromeHeadless "@researchdatabox/${1}" --no-watch --no-progress --code-coverage
+  # Some CI-style environments need the no-sandbox launcher even when not running as root.
+  local browser="ChromeHeadless"
+  if [ "$(id -u)" -eq 0 ] || [ "${CI:-}" = "true" ] || [ "${CODEX_CI:-}" = "1" ]; then
+    browser="ChromeHeadlessNoSandbox"
   fi
+  node_modules/.bin/ng t --browsers="${browser}" "@researchdatabox/${1}" --no-watch --no-progress --code-coverage
 }
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
-nvm i < .nvmrc && npm install
+nvm install
+nvm use
+npm install --ignore-scripts --strict-peer-deps
 
 testAngular "portal-ng-common" "frontend-core-lib"
 ng2apps=( $(find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -exec basename {} \;) )

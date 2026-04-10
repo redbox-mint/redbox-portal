@@ -422,24 +422,24 @@ public async syncEntriesFromBundle(bundleOrId: I18nBundleAttributes | string | n
 
         if (existing && !overwrite) continue;
 
-        try {
-          if (val === null || val === undefined) {
-            val = key; // preserve intentional empty strings, but avoid nullish bundle values
-          }
-          await this.setEntry(brandingModel, safeLocale, safeNamespace, key, val, { bundleId: bundleId != null ? String(bundleId) : undefined, category: meta?.[key]?.category, description: meta?.[key]?.description, noReload: true });
-        } catch (e) {
-          throw e;
+        if (val === null || val === undefined) {
+          val = key; // preserve intentional empty strings, but avoid nullish bundle values
         }
+        await this.setEntry(brandingModel, safeLocale, safeNamespace, key, val, { bundleId: bundleId != null ? String(bundleId) : undefined, category: meta?.[key]?.category, description: meta?.[key]?.description, noReload: true });
       }
-  for (const obsoleteKey of existingKeysSet) {
+      for (const obsoleteKey of existingKeysSet) {
         try {
-  await this.deleteEntry(brandingModel, safeLocale, safeNamespace, String(obsoleteKey));
+          await this.deleteEntry(brandingModel, safeLocale, safeNamespace, String(obsoleteKey));
         } catch (e) {
           this.logger.warn('Failed to prune obsolete key', obsoleteKey, (e as Error)?.message || e);
         }
       }
-  // Bulk operation complete; reload once
-  try { (global as { TranslationService?: { reloadResources?: (id: string) => void } }).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
+      // Bulk operation complete; reload once
+      try {
+        (global as { TranslationService?: { reloadResources?: (id: string) => void } }).TranslationService?.reloadResources?.(brandingId);
+      } catch (_e) {
+        // ignore reload failures after the write has completed
+      }
     }
 
 

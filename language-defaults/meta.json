@@ -407,6 +407,10 @@
     "category": "users",
     "description": "Translation for manage-users-filter-name-placeholder"
   },
+  "manage-users-filter-reset": {
+    "category": "users",
+    "description": "Translation for manage-users-filter-reset"
+  },
   "manage-users-username": {
     "category": "users",
     "description": "Translation for manage-users-username"
@@ -419,9 +423,49 @@
     "category": "users",
     "description": "Translation for manage-users-email"
   },
+  "manage-users-account-information": {
+    "category": "users",
+    "description": "Translation for manage-users-account-information"
+  },
+  "manage-users-account-details": {
+    "category": "users",
+    "description": "Translation for manage-users-account-details"
+  },
+  "manage-users-security": {
+    "category": "users",
+    "description": "Translation for manage-users-security"
+  },
   "manage-users-role": {
     "category": "users",
     "description": "Translation for manage-users-role"
+  },
+  "manage-users-roles-and-permissions": {
+    "category": "users",
+    "description": "Translation for manage-users-roles-and-permissions"
+  },
+  "manage-users-account-status": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status"
+  },
+  "manage-users-account-status-active": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-active"
+  },
+  "manage-users-account-status-primary": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-primary"
+  },
+  "manage-users-account-status-linked-alias": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-linked-alias"
+  },
+  "manage-users-account-status-linked-accounts": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-linked-accounts"
+  },
+  "manage-users-account-status-primary-user": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-primary-user"
   },
   "manage-users-action": {
     "category": "users",
@@ -430,6 +474,114 @@
   "manage-users-edit": {
     "category": "users",
     "description": "Translation for manage-users-edit"
+  },
+  "manage-users-edit-link": {
+    "category": "users",
+    "description": "Translation for manage-users-edit-link"
+  },
+  "manage-users-link-manage": {
+    "category": "users",
+    "description": "Translation for manage-users-link-manage"
+  },
+  "manage-users-link-title": {
+    "category": "users",
+    "description": "Translation for manage-users-link-title"
+  },
+  "manage-users-link-about": {
+    "category": "users",
+    "description": "Translation for manage-users-link-about"
+  },
+  "manage-users-link-info": {
+    "category": "users",
+    "description": "Translation for manage-users-link-info"
+  },
+  "manage-users-link-effects-header": {
+    "category": "users",
+    "description": "Translation for manage-users-link-effects-header"
+  },
+  "manage-users-link-effects-roles": {
+    "category": "users",
+    "description": "Translation for manage-users-link-effects-roles"
+  },
+  "manage-users-link-effects-apikey": {
+    "category": "users",
+    "description": "Translation for manage-users-link-effects-apikey"
+  },
+  "manage-users-link-effects-records": {
+    "category": "users",
+    "description": "Translation for manage-users-link-effects-records"
+  },
+  "manage-users-link-irreversible": {
+    "category": "users",
+    "description": "Translation for manage-users-link-irreversible"
+  },
+  "manage-users-link-existing": {
+    "category": "users",
+    "description": "Translation for manage-users-link-existing"
+  },
+  "manage-users-link-no-linked-accounts": {
+    "category": "users",
+    "description": "Translation for manage-users-link-no-linked-accounts"
+  },
+  "manage-users-link-search-title": {
+    "category": "users",
+    "description": "Translation for manage-users-link-search-title"
+  },
+  "manage-users-link-search-placeholder": {
+    "category": "users",
+    "description": "Translation for manage-users-link-search-placeholder"
+  },
+  "manage-users-link-search": {
+    "category": "users",
+    "description": "Translation for manage-users-link-search"
+  },
+  "manage-users-link-searching": {
+    "category": "users",
+    "description": "Translation for manage-users-link-searching"
+  },
+  "manage-users-link-select": {
+    "category": "users",
+    "description": "Translation for manage-users-link-select"
+  },
+  "manage-users-link-selected": {
+    "category": "users",
+    "description": "Translation for manage-users-link-selected"
+  },
+  "manage-users-link-confirm": {
+    "category": "users",
+    "description": "Translation for manage-users-link-confirm"
+  },
+  "manage-users-link-success": {
+    "category": "users",
+    "description": "Translation for manage-users-link-success"
+  },
+  "manage-users-link-success-roles-merged": {
+    "category": "users",
+    "description": "Translation for manage-users-link-success-roles-merged"
+  },
+  "manage-users-link-success-records-rewritten": {
+    "category": "users",
+    "description": "Translation for manage-users-link-success-records-rewritten"
+  },
+  "manage-users-link-failed": {
+    "category": "users",
+    "description": "Translation for manage-users-link-failed"
+  },
+  "manage-users-link-select-candidate": {
+    "category": "users",
+    "description": "Translation for manage-users-link-select-candidate"
+  },
+  "manage-users-link-linking": {
+    "category": "users",
+    "description": "Translation for manage-users-link-linking"
+  },
+  "manage-users-link-no-results": {
+    "category": "users",
+    "description": "Translation for manage-users-link-no-results"
+  },
+  "manage-users-link-search-failed": {
+    "category": "users",
+    "description": "Translation for manage-users-link-search-failed"
   },
   "manage-users-new": {
     "category": "users",
@@ -451,6 +603,14 @@
     "category": "users",
     "description": "Translation for manage-users-api-generate"
   },
+  "manage-users-api-linked-notice": {
+    "category": "users",
+    "description": "Translation for manage-users-api-linked-notice"
+  },
+  "manage-users-roles-linked-notice": {
+    "category": "users",
+    "description": "Translation for manage-users-roles-linked-notice"
+  },
   "manage-users-api-revoke": {
     "category": "users",
     "description": "Translation for manage-users-api-revoke"
@@ -466,6 +626,10 @@
   "manage-users-password": {
     "category": "users",
     "description": "Translation for manage-users-password"
+  },
+  "manage-users-password-linked-notice": {
+    "category": "users",
+    "description": "Translation for manage-users-password-linked-notice"
   },
   "manage-users-aaf-password": {
     "category": "users",
@@ -506,6 +670,10 @@
   "manage-users-update-password": {
     "category": "users",
     "description": "Translation for manage-users-update-password"
+  },
+  "manage-users-edit-linked-notice": {
+    "category": "users",
+    "description": "Translation for manage-users-edit-linked-notice"
   },
   "welcome-title": {
     "category": "welcome",
@@ -2819,6 +2987,50 @@
     "category": "users",
     "description": "Translation for manage-users-token-message"
   },
+  "manage-users-show-disabled": {
+    "category": "users",
+    "description": "Translation for manage-users-show-disabled"
+  },
+  "manage-users-account-status-disabled": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-disabled"
+  },
+  "manage-users-account-status-disabled-via-primary": {
+    "category": "users",
+    "description": "Translation for manage-users-account-status-disabled-via-primary"
+  },
+  "manage-users-disable-action": {
+    "category": "users",
+    "description": "Translation for manage-users-disable-action"
+  },
+  "manage-users-enable-action": {
+    "category": "users",
+    "description": "Translation for manage-users-enable-action"
+  },
+  "manage-users-disable-confirm": {
+    "category": "users",
+    "description": "Translation for manage-users-disable-confirm"
+  },
+  "manage-users-disable-notice": {
+    "category": "users",
+    "description": "Translation for manage-users-disable-notice"
+  },
+  "manage-users-disable-notice-primary": {
+    "category": "users",
+    "description": "Translation for manage-users-disable-notice-primary (with primaryUsername interpolation)"
+  },
+  "manage-users-enable-notice": {
+    "category": "users",
+    "description": "Translation for manage-users-enable-notice"
+  },
+  "manage-users-disable-success": {
+    "category": "users",
+    "description": "Translation for manage-users-disable-success"
+  },
+  "manage-users-enable-success": {
+    "category": "users",
+    "description": "Translation for manage-users-enable-success"
+  },
   "@refresh-attachments-text": {
     "category": "refresh",
     "description": "Translation for refresh-attachments-text"
@@ -3207,9 +3419,21 @@
     "category": "lang",
     "description": "Translation for lang-en"
   },
+  "lang-fr": {
+    "category": "lang",
+    "description": "Translation for lang-fr"
+  },
+  "lang-it": {
+    "category": "lang",
+    "description": "Translation for lang-it"
+  },
   "lang-mri": {
     "category": "lang",
     "description": "Translation for lang-mri"
+  },
+  "lang-zh-cn": {
+    "category": "lang",
+    "description": "Translation for lang-zh-cn"
   },
   "system-message-enabled": {
     "category": "system",
@@ -3786,5 +4010,85 @@
   "@rich-text-editor-toolbar-table-remove-column": {
     "category": "rich-text-editor",
     "description": "Toolbar label for remove column action"
+  },
+  "manage-users-audit-action": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-action"
+  },
+  "manage-users-audit-modal-title": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-modal-title"
+  },
+  "manage-users-audit-loading": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-loading"
+  },
+  "manage-users-audit-empty": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-empty"
+  },
+  "manage-users-audit-error": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-error"
+  },
+  "manage-users-audit-col-time": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-col-time"
+  },
+  "manage-users-audit-col-action": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-col-action"
+  },
+  "manage-users-audit-col-actor": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-col-actor"
+  },
+  "manage-users-audit-col-details": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-col-details"
+  },
+  "manage-users-audit-raw-toggle": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-raw-toggle"
+  },
+  "manage-users-audit-raw-hide": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-raw-hide"
+  },
+  "manage-users-audit-raw-label": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-raw-label"
+  },
+  "manage-users-audit-truncated": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-truncated"
+  },
+  "manage-users-audit-event-login": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-event-login"
+  },
+  "manage-users-audit-event-logout": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-event-logout"
+  },
+  "manage-users-audit-event-disable": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-event-disable"
+  },
+  "manage-users-audit-event-enable": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-event-enable"
+  },
+  "manage-users-audit-event-link-primary": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-event-link-primary"
+  },
+  "manage-users-audit-event-link-secondary": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-event-link-secondary"
+  },
+  "manage-users-audit-event-link-generic": {
+    "category": "users",
+    "description": "Translation for manage-users-audit-event-link-generic"
   }
 }

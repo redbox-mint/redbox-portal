@@ -19,7 +19,6 @@
 import { from } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common'; 
-import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
 import { TranslationService } from './translation.service';
 import { ConfigService } from './config.service';
 import { HttpClient } from '@angular/common/http';
@@ -38,8 +37,7 @@ describe('TranslationService testing', () => {
     configService = getStubConfigService();
     TestBed.configureTestingModule({
       imports: [
-        HttpClientTestingModule,
-        I18NextModule.forRoot()
+        HttpClientTestingModule
       ],
       providers: [
         {
@@ -57,7 +55,6 @@ describe('TranslationService testing', () => {
     })
     httpClient = TestBed.inject(HttpClient);
     httpTestingController = TestBed.inject(HttpTestingController);
-    TestBed.inject(I18NEXT_SERVICE);
     TestBed.inject(LoggerService);
     TestBed.inject(UtilityService);
     translationService = TestBed.inject(TranslationService);

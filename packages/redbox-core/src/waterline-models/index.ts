@@ -15,6 +15,7 @@ export * from './RBReport';
 export * from './Role';
 export * from './ThemeConfig';
 export * from './User';
+export * from './UserLink';
 export * from './UserAudit';
 export * from './Vocabulary';
 export * from './VocabularyEntry';
@@ -41,6 +42,7 @@ import { ReportWLDef } from './RBReport';
 import { RoleWLDef } from './Role';
 import { ThemeConfigWLDef } from './ThemeConfig';
 import { UserWLDef } from './User';
+import { UserLinkWLDef } from './UserLink';
 import { UserAuditWLDef } from './UserAudit';
 import { VocabularyWLDef } from './Vocabulary';
 import { VocabularyEntryWLDef } from './VocabularyEntry';
@@ -70,6 +72,7 @@ export const WaterlineModels = {
   Role: RoleWLDef,
   ThemeConfig: ThemeConfigWLDef,
   User: UserWLDef,
+  UserLink: UserLinkWLDef,
   UserAudit: UserAuditWLDef,
   Vocabulary: VocabularyWLDef,
   VocabularyEntry: VocabularyEntryWLDef,

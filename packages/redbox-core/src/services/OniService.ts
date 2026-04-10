@@ -31,7 +31,16 @@ import * as mime from 'mime-types';
 const { Collector, generateArcpId } = require('oni-ocfl');
 const { languageProfileURI } = require('language-data-commons-vocabs');
 
-let wktParserHelper: unknown = null;
+type WktParserHelperModule = {
+	default?: WktParserHelperApi;
+};
+
+type WktParserHelperApi = {
+	convertToWK?: (input: unknown) => string;
+	geojsonToWkt?: (input: unknown) => string;
+};
+
+let wktParserHelper: WktParserHelperApi | null = null;
 
 const URL_PLACEHOLDER = '{ID_WILL_BE_HERE}'; // config
 type AnyRecord = Record<string, unknown>;
@@ -69,8 +78,9 @@ export namespace Services {
     }
 
 		protected override async processDynamicImports() {
-      	  	wktParserHelper = await import("wkt-parser-helper");
-    	}
+			const importedHelper = await import("wkt-parser-helper") as WktParserHelperApi & WktParserHelperModule;
+			wktParserHelper = importedHelper.default ?? importedHelper;
+		}
 
 		getDatastreamService() {
 			const serviceName = sails.config.record.datastreamService;
@@ -570,7 +580,12 @@ export namespace Services {
 		private convertToWkt(id: string, geoJsonSrc: unknown) {
 			const geoJson = _.cloneDeep(geoJsonSrc);
 			_.unset(geoJson, '@type');
-			const wkt = (wktParserHelper as { convertToWK: (input: unknown) => string }).convertToWK(geoJson);
+			const helper = wktParserHelper;
+			const converter = helper?.geojsonToWkt ?? helper?.convertToWK;
+			if (!converter) {
+				throw new Error('wkt-parser-helper does not expose a GeoJSON to WKT converter');
+			}
+			const wkt = converter(geoJson);
 			sails.log.verbose(`Converted WKT -> ${wkt}`);
 			return {
 				"@id": id,

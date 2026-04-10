@@ -4,10 +4,9 @@ declare var bootstrap: any;
 import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ConfigService, LoggerService, TranslationService, BaseComponent } from '@researchdatabox/portal-ng-common';
+import { BaseComponent, ConfigService, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { BrandingAdminService } from './branding-admin.service';
 import { BrandingPreviewComponent } from './branding-preview.component';
-import { I18NextPipe } from 'angular-i18next';
 
 /**
  * Represents a single colour/styling variable with its metadata

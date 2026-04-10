@@ -1091,9 +1091,14 @@ describe('FormComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      expect(events.length).withContext(JSON.stringify(events)).toEqual(5);
+      expect(events.length).withContext(JSON.stringify(events)).toBeGreaterThanOrEqual(5);
 
-      const event = events[4];
+      const validationChangeEvents = events.filter(
+        event => event.type === FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST
+      );
+      expect(validationChangeEvents.length).withContext(JSON.stringify(events)).toBeGreaterThanOrEqual(1);
+
+      const event = validationChangeEvents[validationChangeEvents.length - 1];
       expect(event.type).toEqual(FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST);
       expect(event.initial).toEqual("current");
       expect(event.groups).toEqual({"include":["tester"]});

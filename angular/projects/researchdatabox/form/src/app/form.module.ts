@@ -20,14 +20,13 @@ import { NgModule, isDevMode } from '@angular/core';
 import { BrowserModule, Title } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { I18NextPipe, RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { FormService } from './form.service';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './component/repeatable.component';
 import { ValidationSummaryFieldComponent } from './component/validation-summary.component';
-import { I18NextPipe, provideI18Next } from 'angular-i18next';
 import { GroupFieldComponent } from './component/group.component';
 import { DefaultLayoutComponent } from './component/default-layout.component';
 import { ActionRowLayoutComponent } from './component/action-row-layout.component';
@@ -151,7 +150,6 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     provideStore(),
     provideEffects(),
     provideFormFeature(),
-    provideI18Next(),
     provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() }),
   ],
   bootstrap: [FormComponent],

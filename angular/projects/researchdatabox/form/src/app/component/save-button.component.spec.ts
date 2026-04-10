@@ -57,10 +57,10 @@ describe('SaveButtonComponent', () => {
   });
 
 
-  it('should create SaveButtonComponent', () => {
-    let fixture = TestBed.createComponent(SaveButtonComponent);
-    let component = fixture.componentInstance;
-    expect(component).toBeDefined();
+  it('should create SaveButtonComponent', async () => {
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const component = fixture.nativeElement.querySelector('redbox-form-save-button');
+    expect(component).toBeTruthy();
   });
 
   it('should disable save button when form status is VALIDATION_PENDING', async () => {

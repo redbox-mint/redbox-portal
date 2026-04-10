@@ -1,6 +1,6 @@
 # Redbox Loader
 
-The `redbox-loader.js` module generates shim files for models, services, policies, middleware, responses, controllers, and configuration BEFORE Sails.js lifts. This eliminates race conditions with hook loading order.
+The loader exported by `@researchdatabox/redbox-core` generates shim files for models, services, policies, middleware, responses, controllers, and configuration BEFORE Sails.js lifts. This eliminates race conditions with hook loading order.
 
 ## Overview
 
@@ -15,7 +15,7 @@ When ReDBox Portal starts, the loader runs **before** `sails.lift()` to:
 ┌─────────────────────────────────────────────────────────────┐
 │                    Application Start                        │
 ├─────────────────────────────────────────────────────────────┤
-│  1. redbox-loader.generateAllShims()                        │
+│  1. generateAllShims() from @researchdatabox/redbox-core    │
 │     ├── Scan package.json dependencies for hooks            │
 │     ├── Generate api/models/*.js shims                      │
 │     ├── Generate api/services/*.js shims                    │
@@ -229,10 +229,10 @@ This helps debug which layer is setting (or overwriting) configuration values.
 The loader is called in `app.js` before Sails lifts:
 
 ```javascript
-const redboxLoader = require('./redbox-loader');
+const { generateAllShims } = require('@researchdatabox/redbox-core');
 
 (async () => {
-    await redboxLoader.generateAllShims(__dirname);
+    await generateAllShims(__dirname);
     sails.lift(rc('sails'));
 })();
 ```
