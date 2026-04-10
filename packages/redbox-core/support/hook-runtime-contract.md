@@ -2,7 +2,7 @@
 
 `@researchdatabox/redbox-core` is the runtime compatibility anchor for ReDBox hooks.
 
-Hook authors may rely on the shared runtime dependency surface supplied by Redbox core instead of declaring those packages directly in each hook. The initial approved shared imports are:
+Hook authors may rely on the shared runtime dependency surface supplied by ReDBox core instead of declaring those packages directly in each hook. The initial approved shared imports are:
 
 - `axios`
 - `rxjs`

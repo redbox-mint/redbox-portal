@@ -170,7 +170,7 @@ Register-ArgumentCompleter -Native -CommandName redbox-dev-tools -ScriptBlock {
   $tokens = $commandAst.CommandElements | ForEach-Object { $_.Extent.Text }
   $global = @('--root','--core-types-root','--angular-root','--dry-run','-h','--help','-V','--version')
   $top = @('init','check','migrate-hook-dependencies','generate','g','install-skills','skills','migrate-form-config','completion','help')
-  $generateSub = @('controller','service','method','angular-app','angular-service','form-field','model')
+  $generateSub = @('controller','service','method','angular-app','angular-service','form-component','form-field','model')
 
   if ($tokens.Count -le 2) {
     @($top + $global) | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {

@@ -11,4 +11,5 @@ else
   export TAG="local"
 fi
 
-export DEPLOY_TAG="${TAG//\//-}"
+sanitized_tag="$(printf '%s' "${TAG}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9_.-]+/-/g; s/-+/-/g; s/^[.-]+//; s/[.-]+$//')"
+export DEPLOY_TAG="${sanitized_tag:-local}"

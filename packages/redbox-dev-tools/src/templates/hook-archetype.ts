@@ -21,7 +21,8 @@ type HookTemplateContext = {
   hookPascalName: string;
   description: string;
   integrationDirName: string;
-  portalPackagesPath: string;
+  redboxCoreVersion: string;
+  redboxDevToolsVersion: string;
 };
 
 function toPascalCase(value: string): string {
@@ -35,25 +36,6 @@ function toPascalCase(value: string): string {
 function normalizePackageName(value: string): string {
   const cleaned = value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
   return cleaned.startsWith('redbox-hook-') ? cleaned : `redbox-hook-${cleaned}`;
-}
-
-function findRedboxPortalPackagesDir(cwd: string): string {
-  let currentDir = cwd;
-
-  while (true) {
-    const candidate = path.join(currentDir, 'redbox-portal', 'packages', 'redbox-core', 'package.json');
-    if (fs.existsSync(candidate)) {
-      return path.join(currentDir, 'redbox-portal', 'packages');
-    }
-
-    const parentDir = path.dirname(currentDir);
-    if (parentDir === currentDir) {
-      break;
-    }
-    currentDir = parentDir;
-  }
-
-  return path.resolve(cwd, '..', 'redbox-portal', 'packages');
 }
 
 function getPackageRoot(): string {
@@ -97,6 +79,17 @@ function shouldMarkExecutable(relativePath: string): boolean {
   return relativePath.endsWith('.sh');
 }
 
+function readPackageVersion(packageRoot: string, packageName: string): string {
+  const packageJsonPath = path.join(packageRoot, '..', packageName, 'package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')) as { version?: string };
+
+  if (!packageJson.version) {
+    throw new Error(`Could not determine version for ${packageName}`);
+  }
+
+  return packageJson.version;
+}
+
 function buildTemplateContext(options: HookArchetypeOptions): HookTemplateContext {
   const packageName = normalizePackageName(options.packageName);
   const hookShortName = packageName.replace(/^redbox-hook-/, '');
@@ -108,7 +101,8 @@ function buildTemplateContext(options: HookArchetypeOptions): HookTemplateContex
     hookPascalName,
     description: options.description ?? `ReDBox hook for ${hookPascalName}`,
     integrationDirName: hookShortName,
-    portalPackagesPath: path.relative(options.cwd, findRedboxPortalPackagesDir(options.cwd)).split(path.sep).join('/'),
+    redboxCoreVersion: readPackageVersion(getPackageRoot(), 'redbox-core'),
+    redboxDevToolsVersion: readPackageVersion(getPackageRoot(), 'redbox-dev-tools'),
   };
 }
 

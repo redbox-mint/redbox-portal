@@ -10,7 +10,7 @@ function getOrCreateService<K extends keyof HookRedboxServices>(
   name: K,
   factory: () => HookRedboxServices[K]
 ): HookRedboxServices[K] {
-  if (!serviceCache[name]) {
+  if (!(name in serviceCache)) {
     serviceCache[name] = factory();
   }
   return serviceCache[name] as HookRedboxServices[K];

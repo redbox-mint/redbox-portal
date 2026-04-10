@@ -11,8 +11,10 @@ echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdi
 
 docker build \
   --progress plain \
+  --platform linux/arm64 \
   --target "${TARGET}" \
   --tag "${REPO}:${DEPLOY_TAG}${SUFFIX}-arm64" \
   .
 
 docker push "${REPO}:${DEPLOY_TAG}${SUFFIX}-arm64"
+
