@@ -37,7 +37,7 @@ This will:
 
 The standard archetype is based on the current hook structure used for `redbox-hook-jcu`, but stripped back to generic placeholders so a new client hook can start from the same shape without inheriting client-specific logic.
 
-The archetype is now backed by file-based Handlebars templates under [templates/hook-archetype](/Users/andrewbrazzatti/source/bitbucket/jcu-v5/redbox-portal/packages/redbox-dev-tools/templates/hook-archetype), which gives us a clean path for future variants such as branding-heavy hooks, lighter hooks, or alternate TypeScript setups.
+The archetype is now backed by file-based Handlebars templates under [templates/hook-archetype](templates/hook-archetype), which gives us a clean path for future variants such as branding-heavy hooks, lighter hooks, or alternate TypeScript setups.
 
 ## TypeScript Configuration
 

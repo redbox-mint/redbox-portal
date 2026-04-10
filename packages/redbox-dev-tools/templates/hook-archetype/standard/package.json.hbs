@@ -1,11 +1,11 @@
 {
-  "name": "{{packageName}}",
+  "name": {{json packageName}},
   "version": "1.0.0",
-  "description": "{{description}}",
+  "description": {{json description}},
   "main": "dist/index.js",
   "sails": {
     "isHook": true,
-    "hookName": "{{packageName}}",
+    "hookName": {{json packageName}},
     "hasControllers": true,
     "hasServices": true,
     "hasConfig": true,
@@ -14,6 +14,7 @@
   "scripts": {
     "compile": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json",
     "test": "npm run test:unit && npm run test:integration:mocha",
+    "pretest:unit": "npm run compile",
     "test:unit": "TS_NODE_PROJECT=./test/tsconfig.json node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-mocha.js --config ./test/unit/.mocharc.cjs ./test/unit",
     "test:integration:mocha": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml up --build --menu=false --abort-on-container-exit --exit-code-from redboxportal",
     "test:integration:mocha:clean": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml down -v --remove-orphans --timeout 180",
@@ -30,11 +31,11 @@
   "license": "GPL-3.0",
   "dependencies": {},
   "peerDependencies": {
-    "@researchdatabox/redbox-core": "^{{redboxCoreVersion}}"
+    "@researchdatabox/redbox-core": {{json redboxCoreVersion}}
   },
   "devDependencies": {
-    "@researchdatabox/redbox-core": "^{{redboxCoreVersion}}",
-    "@researchdatabox/redbox-dev-tools": "^{{redboxDevToolsVersion}}",
-    "@types/node": "^24.12.2"
+    "@researchdatabox/redbox-core": {{json redboxCoreVersion}},
+    "@researchdatabox/redbox-dev-tools": {{json redboxDevToolsVersion}},
+    "@types/node": "24.12.2"
   }
 }

@@ -2,6 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import Handlebars from 'handlebars';
 
+Handlebars.registerHelper('json', (value: unknown) => JSON.stringify(value));
+
 export interface HookArchetypeOptions {
   cwd: string;
   packageName: string;

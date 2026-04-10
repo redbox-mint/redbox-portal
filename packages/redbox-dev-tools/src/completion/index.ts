@@ -44,7 +44,7 @@ function generateBashCompletion(): string {
     .join('\n      ');
 
   return `# bash completion for redbox-dev-tools
-_redbox_hook_kit_completion() {
+_redbox_dev_tools_completion() {
   local cur prev words cword
   _init_completion || return
 
@@ -95,7 +95,7 @@ _redbox_hook_kit_completion() {
   COMPREPLY=($(compgen -W "$opts $global_opts" -- "$cur"))
 }
 
-complete -F _redbox_hook_kit_completion redbox-dev-tools
+complete -F _redbox_dev_tools_completion redbox-dev-tools
 `;
 }
 

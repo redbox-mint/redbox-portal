@@ -48,7 +48,7 @@ services:
       - /opt/redbox-portal/node_modules/{{packageName}}/support/integration-testing/run-mocha-hook.sh
 
   mongodb:
-    image: mongo:latest
+    image: mongo:7
     networks:
       main:
         aliases:
@@ -63,7 +63,7 @@ services:
       start_period: '30s'
 
   solr:
-    image: solr:latest
+    image: solr:8.11.1
     expose:
       - "8983"
     ports:

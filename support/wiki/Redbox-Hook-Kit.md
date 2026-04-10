@@ -55,10 +55,10 @@ Your hook's `tsconfig.json` should extend the shared configuration:
 
 ## Compiling TypeScript
 
-Compile hooks with plain `tsc` while extending the shared base configuration:
+Compile hooks with the dev tools wrapper so shared runtime resolution stays aligned with the Redbox hook contract:
 
 ```bash
-npx tsc -p tsconfig.json
+node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json
 ```
 
 Or add to your `package.json` scripts:
@@ -66,11 +66,13 @@ Or add to your `package.json` scripts:
 ```json
 {
     "scripts": {
-        "build": "tsc -p tsconfig.json",
-        "watch": "tsc -p tsconfig.json --watch"
+        "compile": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json",
+        "watch": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json --watch"
     }
 }
 ```
+
+This avoids hook-local `paths` hacks and ensures shared runtime packages such as `rxjs`, `axios`, and `lodash` resolve through the Redbox runtime/tooling contract.
 
 ## Example Controller
 
