@@ -47,6 +47,7 @@ export * from './jsonld.config';
 export * from './emailnotification.config';
 export * from './agendaQueue.config';
 export * from './crontab.config';
+export * from './figshareDev.config';
 export * from './solr.config';
 export * from './form.config';
 export * from './webpack.config';
@@ -116,6 +117,7 @@ import { jsonld, JsonLdConfig } from './jsonld.config';
 import { emailnotification, EmailNotificationConfig } from './emailnotification.config';
 import { agendaQueue, AgendaQueueConfig } from './agendaQueue.config';
 import { crontab, CrontabConfig } from './crontab.config';
+import { figshareDev, FigshareDevConfig } from './figshareDev.config';
 import { solr, SolrSearchConfig } from './solr.config';
 import { FormConfig } from './form.config';
 import { webpack, WebpackConfig } from './webpack.config';
@@ -221,6 +223,7 @@ export interface SailsConfig {
     emailnotification: EmailNotificationConfig;
     agendaQueue: AgendaQueueConfig;
     crontab: CrontabConfig;
+    figshareDev: FigshareDevConfig;
     solr: SolrSearchConfig;
     form: FormConfig;
     webpack: WebpackConfig;
@@ -318,6 +321,7 @@ export const Config = {
     emailnotification,
     agendaQueue,
     crontab,
+    figshareDev,
     solr,
     // Security configs with default values
     csp,

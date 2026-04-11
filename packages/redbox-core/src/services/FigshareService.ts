@@ -111,7 +111,7 @@ export namespace Services {
 
     public makeClient(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel, jobId?: string, triggerSource: string = 'manual') {
       const runContext = createRunContext(record, config, jobId, triggerSource);
-      return config.testing.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, runContext);
+      return config.runtime.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, runContext);
     }
 
     public preparePublication(record: RecordModel, jobId?: string): FigsharePublicationPlan {

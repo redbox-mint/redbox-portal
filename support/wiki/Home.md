@@ -16,6 +16,7 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Architecture Overview](https://github.com/redbox-mint/redbox-portal/wiki/Architecture-Overview)**: High-level system structure and key components.
 - **[Coding Standards and Conventions](https://github.com/redbox-mint/redbox-portal/wiki/Coding-Standards-and-Conventions)**: Shared language and style expectations.
 - **[Configuration Guide](https://github.com/redbox-mint/redbox-portal/wiki/Configuration-Guide)**: Portal configuration and environment settings.
+- **[Configuring Figshare Publishing](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Figshare-Publishing)**: Admin guide for the Figshare publishing AppConfig screen.
 - **[Configuring Solr](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Solr)**: Solr connection, schema initialisation, and metadata-to-index mapping.
 - **[TUS and Uppy Companion Setup](https://github.com/redbox-mint/redbox-portal/wiki/TUS-and-Uppy-Companion-Setup)**: Configure resumable uploads and cloud-provider imports, including security behavior.
 - **[Uppy and TUS Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Uppy-and-TUS-Architecture)**: End-to-end architecture and orchestration flows for local and provider-backed uploads.
@@ -32,6 +33,7 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Redbox Loader](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader)**: Pre-lift shim generation system that bridges Sails.js to core types, including service shim generation.
 - **[Redbox Hook Kit](https://github.com/redbox-mint/redbox-portal/wiki/redbox-dev-tools)**: TypeScript development toolkit for creating ReDBox hooks.
 - **[Services Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture)**: Deep dive into the service layer architecture and how to extend or override services.
+- **[Figshare Service Technical Guide](https://github.com/redbox-mint/redbox-portal/wiki/Figshare-Service-Technical-Guide)**: Public service surface, orchestration flows, and Figshare-specific config and type reference.
 - **[Controllers Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Controllers-Architecture)**: Controller locations, lifecycle (`init()`), shim generation, and hook overrides.
 
 ## Contributing

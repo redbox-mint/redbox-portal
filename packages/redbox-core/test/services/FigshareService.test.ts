@@ -1,15 +1,18 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { Services } from '../../src/services/FigshareService';
+import { ServiceExports } from '../../src/services';
 import { agendaQueue } from '../../src/config/agendaQueue.config';
 import { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } from '../../src/configmodels/FigsharePublishing';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
+import { resolveFigsharePublishingConfig } from '../../src/services/figshare-v2/config';
 
 function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) {
   const config = new FigsharePublishing() as unknown as Record<string, unknown>;
   return {
     ...config,
     ...overrides,
+    enabled: overrides.enabled ?? true,
     connection: {
       ...config.connection as Record<string, unknown>,
       baseUrl: 'https://api.figshare.com',
@@ -109,17 +112,6 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
       },
       ...(overrides.workflow as Record<string, unknown> | undefined)
     },
-    testing: {
-      ...(config.testing as Record<string, unknown>),
-      mode: 'fixture',
-      fixtures: {
-        article: { id: 'fixture-123' },
-        licenses: [{ value: 1, name: 'CC-BY', url: 'https://license.test/cc-by' }],
-        categories: [{ id: 10, title: 'Category 10' }],
-        articleFiles: []
-      },
-      ...(overrides.testing as Record<string, unknown> | undefined)
-    },
     writeBack: {
       ...(config.writeBack as Record<string, unknown>),
       articleId: 'metadata.figshare_article_id',
@@ -130,9 +122,27 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
   };
 }
 
+function buildFigshareDevConfig(overrides: Record<string, unknown> = {}) {
+  return {
+    enabled: true,
+    mode: 'fixture',
+    fixtures: {
+      article: {
+        id: 'fixture-123',
+        url: 'https://figshare.com/articles/fixture-123'
+      },
+      licenses: [{ value: 1, name: 'CC-BY', url: 'https://license.test/cc-by' }],
+      categories: [{ id: 10, title: 'Category 10' }],
+      articleFiles: []
+    },
+    ...overrides
+  };
+}
+
 describe('FigshareService', function () {
   let service: InstanceType<typeof Services.FigshareService>;
   let getConfigStub: sinon.SinonStub;
+  let appConfigByBrandStub: sinon.SinonStub;
 
   beforeEach(function () {
     const mockSails = createMockSails({
@@ -152,6 +162,7 @@ describe('FigshareService', function () {
       }
     });
     mockSails.config.queue = { serviceName: 'queueservice' };
+    mockSails.config.figshareDev = buildFigshareDevConfig();
     mockSails.services.queueservice = {
       now: sinon.stub(),
       schedule: sinon.stub()
@@ -159,16 +170,17 @@ describe('FigshareService', function () {
 
     setupServiceTestGlobals(mockSails);
 
-    (global as any).AppConfigService = {
-      getAppConfigurationForBrand: sinon.stub().callsFake((brand: string) => ({
-        figsharePublishing: buildFigsharePublishingConfig({
-          queue: {
-            publishAfterUploadDelay: brand === 'brand-immediate' ? 'immediate' : 'in 2 minutes',
-            uploadedFilesCleanupDelay: brand === 'brand-immediate' ? 'immediate' : 'in 5 minutes'
-          }
-        })
-      }))
-    };
+    appConfigByBrandStub = sinon.stub().callsFake((brand: string) => ({
+      figsharePublishing: buildFigsharePublishingConfig({
+        queue: {
+          publishAfterUploadDelay: brand === 'brand-immediate' ? 'immediate' : 'in 2 minutes',
+          uploadedFilesCleanupDelay: brand === 'brand-immediate' ? 'immediate' : 'in 5 minutes'
+        }
+      })
+    }));
+    sinon.stub(ServiceExports, 'AppConfigService').get(() => ({
+      getAppConfigurationForBrand: appConfigByBrandStub
+    }));
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'default-id', name: 'default' })
     };
@@ -192,17 +204,11 @@ describe('FigshareService', function () {
     };
 
     service = new Services.FigshareService();
-    getConfigStub = sinon.stub(service, 'getConfig').callsFake((record?: any) => buildFigsharePublishingConfig({
-      queue: {
-        publishAfterUploadDelay: record?.metaMetadata?.brandId === 'brand-immediate' ? 'immediate' : 'in 2 minutes',
-        uploadedFilesCleanupDelay: record?.metaMetadata?.brandId === 'brand-immediate' ? 'immediate' : 'in 5 minutes'
-      }
-    }) as any);
+    getConfigStub = sinon.stub(service, 'getConfig').callsFake((record?: any) => resolveFigsharePublishingConfig(record));
   });
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as any).AppConfigService;
     delete (global as any).BrandingService;
     delete (global as any).RecordsService;
     delete (global as any).UsersService;
@@ -236,6 +242,64 @@ describe('FigshareService', function () {
     const result = await service.syncRecordWithFigshare(record, 'job-1');
     expect(result.metadata.figshare_article_id).to.equal('fixture-123');
     expect(result.metadata.figshare_article_location).to.equal('https://figshare.com/articles/fixture-123');
+  });
+
+  it('resolves live mode when figshareDev is disabled', function () {
+    (global as any).sails.config.figshareDev = { enabled: false, mode: 'fixture' };
+    const resolved = service.getConfig({
+      metaMetadata: { brandId: 'default' }
+    } as any);
+
+    expect(resolved?.runtime.mode).to.equal('live');
+  });
+
+  it('resolves fixture mode from figshareDev in non-production environments', function () {
+    (global as any).sails.config.environment = 'development';
+    (global as any).sails.config.figshareDev = buildFigshareDevConfig({
+      fixtures: {
+        article: { id: 'fixture-dev' }
+      }
+    });
+
+    const resolved = service.getConfig({
+      metaMetadata: { brandId: 'default' }
+    } as any);
+
+    expect(resolved?.runtime.mode).to.equal('fixture');
+    expect(resolved?.runtime.fixtures?.article?.id).to.equal('fixture-dev');
+  });
+
+  it('ignores figshareDev fixture mode in production', function () {
+    (global as any).sails.config.environment = 'production';
+    (global as any).sails.config.figshareDev = buildFigshareDevConfig();
+
+    const resolved = service.getConfig({
+      metaMetadata: { brandId: 'default' }
+    } as any);
+
+    expect(resolved?.runtime.mode).to.equal('live');
+  });
+
+  it('ignores legacy testing data in stored figsharePublishing config', function () {
+    appConfigByBrandStub.callsFake(() => ({
+      figsharePublishing: {
+        ...buildFigsharePublishingConfig(),
+        testing: {
+          mode: 'fixture',
+          fixtures: {
+            article: { id: 'legacy-fixture' }
+          }
+        }
+      }
+    }));
+    (global as any).sails.config.figshareDev = { enabled: false, mode: 'live' };
+
+    const resolved = service.getConfig({
+      metaMetadata: { brandId: 'default' }
+    } as any);
+
+    expect(resolved?.runtime.mode).to.equal('live');
+    expect(resolved?.runtime.fixtures).to.equal(undefined);
   });
 
   it('agenda queue targets figshareservice jobs', function () {
@@ -366,5 +430,6 @@ describe('FigshareService', function () {
     const schema = FIGSHARE_PUBLISHING_SCHEMA as Record<string, any>;
     expect(schema.properties.queue.properties.publishAfterUploadDelay.default).to.equal('in 2 minutes');
     expect(schema.properties.workflow.properties.transitionJob.properties.username.default).to.equal('');
+    expect(schema.properties.testing).to.equal(undefined);
   });
 });

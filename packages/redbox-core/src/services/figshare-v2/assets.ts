@@ -5,6 +5,7 @@ import _ from 'lodash';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { RBValidationError } from '../../model/RBValidationError';
 import { FigshareClient } from './http';
+import { ResolvedFigsharePublishingConfigData } from './config';
 import {
   RecordModel,
   FigshareArticle,
@@ -215,7 +216,7 @@ function toFixtureFigshareFile(entry: DataLocationEntry, articleId: string, inde
 
 export async function syncAssetsPhase(
   client: FigshareClient,
-  config: FigsharePublishingConfigData,
+  config: ResolvedFigsharePublishingConfigData,
   record: RecordModel,
   article: FigshareArticle,
   syncState: FigshareSyncState
@@ -246,7 +247,7 @@ export async function syncAssetsPhase(
     throw validationError(`Figshare file uploads are already in progress for article '${articleId}'`);
   }
 
-  if (config.testing.mode === 'fixture') {
+  if (config.runtime.mode === 'fixture') {
     syncState.status = attachmentCount > 0 && config.article.publishMode === 'afterUploadsComplete'
       ? 'awaiting_upload_completion'
       : 'syncing';

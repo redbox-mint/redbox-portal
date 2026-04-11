@@ -224,10 +224,6 @@ export interface FigsharePublishingConfigData {
       userType: string;
     };
   };
-  testing: {
-    mode: 'live' | 'fixture';
-    fixtures?: FigshareFixtureConfig;
-  };
   writeBack: {
     articleId: string;
     articleUrls: string[];
@@ -387,11 +383,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
     }
   };
 
-  testing = {
-    mode: 'live' as 'live' | 'fixture',
-    fixtures: undefined as FigshareFixtureConfig | undefined
-  };
-
   writeBack = {
     articleId: 'metadata.figshare_article_id',
     articleUrls: ['metadata.figshare_article_location'],
@@ -412,7 +403,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
       'embargo',
       'queue',
       'workflow',
-      'testing',
       'writeBack'
     ];
   }
@@ -832,30 +822,6 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
             figshareTargetFieldValue: { type: 'string', title: 'Figshare Target Field Value', default: '' },
             username: { type: 'string', title: 'Username', default: '' },
             userType: { type: 'string', title: 'User Type', default: '' }
-          }
-        }
-      }
-    },
-    testing: {
-      type: 'object',
-      title: 'Testing',
-      properties: {
-        mode: {
-          type: 'string',
-          title: 'Mode',
-          enum: ['live', 'fixture'],
-          default: 'live'
-        },
-        fixtures: {
-          type: 'object',
-          title: 'Fixtures',
-          properties: {
-            authors: { type: 'array', title: 'Authors', items: { type: 'object' } },
-            licenses: { type: 'array', title: 'Licenses', items: { type: 'object' } },
-            categories: { type: 'array', title: 'Categories', items: { type: 'object' } },
-            article: { type: 'object', title: 'Article' },
-            articleFiles: { type: 'array', title: 'Article Files', items: { type: 'object' } },
-            publishResult: { type: 'object', title: 'Publish Result' }
           }
         }
       }

@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { Context, Layer } from 'effect';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
+import { ResolvedFigsharePublishingConfigData } from './config';
 import {
   FigshareRunContext,
   FigshareArticle,
@@ -117,8 +118,8 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
   throw new Error(`Figshare request failed for ${method} ${path}`);
 }
 
-export function makeFixtureClient(config: FigsharePublishingConfigData): FigshareClient {
-  const fixtures = config.testing.fixtures;
+export function makeFixtureClient(config: ResolvedFigsharePublishingConfigData): FigshareClient {
+  const fixtures = config.runtime.fixtures;
   return {
     async createArticle(payload: FigshareArticlePayload): Promise<FigshareArticle> {
       return {
@@ -280,7 +281,7 @@ export function makeLiveClient(config: FigsharePublishingConfigData, runContext:
   };
 }
 
-export function makeClientLayer(config: FigsharePublishingConfigData, runContext: FigshareRunContext) {
-  const client = config.testing.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, runContext);
+export function makeClientLayer(config: ResolvedFigsharePublishingConfigData, runContext: FigshareRunContext) {
+  const client = config.runtime.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, runContext);
   return Layer.succeed(FigshareClientTag, client);
 }

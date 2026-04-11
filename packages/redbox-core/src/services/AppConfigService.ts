@@ -26,7 +26,7 @@ import type { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsE
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
 
-export const APP_CONFIG_SECRET_MASK = '__SECRET_MASK__';
+export const APP_CONFIG_SECRET_MASK = '__REDACTED__'
 export const APP_CONFIG_SECRET_CLEAR = '__CLEAR_SECRET__';
 
 type AppConfigData = Record<string, unknown>;

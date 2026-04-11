@@ -3,6 +3,7 @@ import { Context, Effect, Layer } from 'effect';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { RBValidationError } from '../../model/RBValidationError';
 import { syncAssetsPhase } from './assets';
+import { ResolvedFigsharePublishingConfigData } from './config';
 import { syncEmbargoPhase } from './embargo';
 import { makeClientLayer, FigshareClient, FigshareClientTag } from './http';
 import { buildMetadataPayload, syncMetadataPhase } from './metadata';
@@ -10,7 +11,7 @@ import { publishIfNeededPhase } from './publish';
 import { writeBackPhase } from './writeback';
 import { FigshareArticle, FigshareFile, FigsharePublicationPlan, FigshareRunContext, FigshareSyncState, RecordModel, getRecordField } from './types';
 
-export const FigshareConfigTag = Context.GenericTag<FigsharePublishingConfigData>('redbox/FigshareConfig');
+export const FigshareConfigTag = Context.GenericTag<ResolvedFigsharePublishingConfigData>('redbox/FigshareConfig');
 export const FigshareRunContextTag = Context.GenericTag<FigshareRunContext>('redbox/FigshareRunContext');
 
 function isCurationLocked(config: FigsharePublishingConfigData, article: FigshareArticle): boolean {
@@ -56,7 +57,7 @@ async function ensureNoFileUploadInProgress(client: FigshareClient, articleId: s
   }
 }
 
-export function makeRuntimeLayer(config: FigsharePublishingConfigData, runContext: FigshareRunContext) {
+export function makeRuntimeLayer(config: ResolvedFigsharePublishingConfigData, runContext: FigshareRunContext) {
   return Layer.mergeAll(
     Layer.succeed(FigshareConfigTag, config),
     Layer.succeed(FigshareRunContextTag, runContext),
@@ -64,7 +65,7 @@ export function makeRuntimeLayer(config: FigsharePublishingConfigData, runContex
   );
 }
 
-export async function runBuildMetadataPayload(config: FigsharePublishingConfigData, record: RecordModel): Promise<Record<string, unknown>> {
+export async function runBuildMetadataPayload(config: ResolvedFigsharePublishingConfigData, record: RecordModel): Promise<Record<string, unknown>> {
   const runContext: FigshareRunContext = {
     recordOid: record.redboxOid ?? record.id ?? '',
     brandName: record.metaMetadata?.brandId ?? 'default',
@@ -79,7 +80,7 @@ export async function runBuildMetadataPayload(config: FigsharePublishingConfigDa
   return Effect.runPromise(program);
 }
 
-export async function runSyncMetadataProgram(config: FigsharePublishingConfigData, runContext: FigshareRunContext, record: RecordModel, plan: FigsharePublicationPlan): Promise<FigshareArticle> {
+export async function runSyncMetadataProgram(config: ResolvedFigsharePublishingConfigData, runContext: FigshareRunContext, record: RecordModel, plan: FigsharePublicationPlan): Promise<FigshareArticle> {
   const program = Effect.gen(function* () {
     const client = yield* FigshareClientTag;
     if (plan.articleId) {
@@ -95,7 +96,7 @@ export async function runSyncMetadataProgram(config: FigsharePublishingConfigDat
   return Effect.runPromise(program);
 }
 
-export async function runSyncRecordProgram(config: FigsharePublishingConfigData, runContext: FigshareRunContext, record: RecordModel, plan: FigsharePublicationPlan): Promise<RecordModel> {
+export async function runSyncRecordProgram(config: ResolvedFigsharePublishingConfigData, runContext: FigshareRunContext, record: RecordModel, plan: FigsharePublicationPlan): Promise<RecordModel> {
   const rm = record as RecordModel;
   const program = Effect.gen(function* () {
     const client = yield* FigshareClientTag;
