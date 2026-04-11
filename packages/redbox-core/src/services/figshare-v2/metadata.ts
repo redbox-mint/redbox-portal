@@ -46,8 +46,8 @@ function applyAuthorLookupTransform(config: FigsharePublishingConfigData, matchB
     return normalized;
   }
 
-  const prefix = (config.authors.emailTransform.prefix ?? '').trim();
-  const domainOverride = (config.authors.emailTransform.domainOverride ?? '').trim();
+  const prefix = (config.authors.emailTransform?.prefix ?? '').trim();
+  const domainOverride = (config.authors.emailTransform?.domainOverride ?? '').trim();
   const [localPart, domainPart = ''] = normalized.split('@');
   if (prefix !== '' && localPart !== '' && !localPart.startsWith(prefix)) {
     normalized = `${prefix}${localPart}${domainPart ? `@${domainPart}` : ''}`;
@@ -129,7 +129,7 @@ async function resolveLicense(client: FigshareClient, config: FigsharePublishing
     figshareLicenseCache.set(cacheKey, availableLicenses);
   }
   if (!Array.isArray(availableLicenses) || availableLicenses.length === 0) {
-    return licenseValue;
+    throw validationError(`Unable to resolve Figshare license '${licenseValue}' because no licenses were returned by Figshare`);
   }
 
   const matched = availableLicenses.find((license) =>
@@ -223,10 +223,14 @@ export async function buildMetadataPayload(config: FigsharePublishingConfigData,
   }
 
   if (config.metadata.relatedResource) {
-    payload.related_materials = [{
-      title: await evaluateBinding(config.metadata.relatedResource.title, recordData),
-      identifier: await evaluateBinding(config.metadata.relatedResource.doi, recordData)
-    }];
+    const relatedTitle = String(await evaluateBinding(config.metadata.relatedResource.title, recordData) ?? '').trim();
+    const relatedIdentifier = String(await evaluateBinding(config.metadata.relatedResource.doi, recordData) ?? '').trim();
+    if (relatedTitle !== '' && relatedIdentifier !== '') {
+      payload.related_materials = [{
+        title: relatedTitle,
+        identifier: relatedIdentifier
+      }];
+    }
   }
 
   if (config.metadata.customFields.length > 0) {
@@ -246,5 +250,9 @@ export async function syncMetadataPhase(client: FigshareClient, config: Figshare
   if (plan.action === 'create') {
     return client.createArticle(payload);
   }
-  return client.updateArticle(String(plan.articleId ?? ''), payload);
+  const articleId = String(plan.articleId ?? '').trim();
+  if (articleId === '') {
+    throw validationError(`Figshare articleId is required for syncMetadataPhase action '${plan.action}'`);
+  }
+  return client.updateArticle(articleId, payload);
 }

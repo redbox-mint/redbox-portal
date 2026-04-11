@@ -16,6 +16,9 @@ import {
 import { setSyncState } from './config';
 import { getSelectedDataLocations } from './plan';
 
+const UNKNOWN_SIZE_STAGING_BUFFER_BYTES = 50 * 1024 * 1024;
+const LINK_FILE_CREATE_RETRY_COUNT = 3;
+
 function getTempDir(config: FigsharePublishingConfigData): string {
   const configDir = config.assets.staging.tempDir;
   if (configDir) return configDir;
@@ -81,12 +84,26 @@ async function uploadAttachment(client: FigshareClient, config: FigsharePublishi
   }
 
   const tempDir = getTempDir(config);
-  const filePath = path.join(tempDir, fileName);
+  const resolvedTempDir = path.resolve(tempDir);
+  const safeFileName = path.basename(fileName).trim();
+  if (safeFileName === '') {
+    throw validationError(`Attachment '${fileName}' does not contain a valid file name`);
+  }
+  const filePath = path.resolve(resolvedTempDir, safeFileName);
+  if (!filePath.startsWith(`${resolvedTempDir}${path.sep}`) && filePath !== path.join(resolvedTempDir, safeFileName)) {
+    throw validationError(`Attachment '${fileName}' resolves outside the staging directory`);
+  }
   const datastream = await getAttachmentStream(oid, fileId);
   const expectedSize = Number(datastream.size ?? 0);
   if (expectedSize > 0) {
     const diskSpace = await checkDiskSpace(tempDir);
     if (diskSpace.free < expectedSize + config.assets.staging.diskSpaceThresholdBytes) {
+      throw validationError(`Not enough free disk space to upload '${fileName}'`);
+    }
+  } else {
+    const diskSpace = await checkDiskSpace(tempDir);
+    const requiredBytes = config.assets.staging.diskSpaceThresholdBytes + UNKNOWN_SIZE_STAGING_BUFFER_BYTES;
+    if (diskSpace.free < requiredBytes) {
       throw validationError(`Not enough free disk space to upload '${fileName}'`);
     }
   }
@@ -134,21 +151,55 @@ async function uploadAttachment(client: FigshareClient, config: FigsharePublishi
 
 async function syncLinkOnlyFiles(client: FigshareClient, articleId: string, selectedUrls: DataLocationEntry[], currentFiles: FigshareFile[]): Promise<FigshareFile[]> {
   const existingLinkFiles = currentFiles.filter((entry) => entry.is_link_only === true);
-  for (const file of existingLinkFiles) {
-    await client.deleteArticleFile(articleId, String(file.id));
-  }
 
   const uploadedUrls: FigshareFile[] = [];
+  const creationErrors: Error[] = [];
   for (const entry of selectedUrls) {
     if (entry.ignore === true) {
       continue;
     }
-    const response = await client.createArticleFile(articleId, {
-      link: entry.location ?? ''
-    });
-    uploadedUrls.push(response as unknown as FigshareFile);
+    let response: unknown;
+    let attempt = 0;
+    while (attempt < LINK_FILE_CREATE_RETRY_COUNT) {
+      attempt += 1;
+      try {
+        response = await client.createArticleFile(articleId, {
+          link: entry.location ?? ''
+        });
+        break;
+      } catch (error) {
+        if (attempt >= LINK_FILE_CREATE_RETRY_COUNT) {
+          creationErrors.push(error instanceof Error ? error : new Error(String(error)));
+        }
+      }
+    }
+    if (response != null) {
+      uploadedUrls.push(response as FigshareFile);
+    }
+  }
+
+  if (creationErrors.length > 0) {
+    throw validationError(`Failed to create ${creationErrors.length} Figshare link file(s); existing link files were not deleted`);
+  }
+
+  for (const file of existingLinkFiles) {
+    await client.deleteArticleFile(articleId, String(file.id));
   }
   return uploadedUrls;
+}
+
+function toFixtureFigshareFile(entry: DataLocationEntry, articleId: string, index: number, isLinkOnly: boolean): FigshareFile {
+  const derivedName = entry.name ?? entry.originalFileName ?? (isLinkOnly ? `link-${index + 1}` : `attachment-${index + 1}`);
+  return {
+    id: `fixture-${isLinkOnly ? 'url' : 'attachment'}-${index + 1}`,
+    name: derivedName,
+    article_id: articleId,
+    status: 'available',
+    size: 0,
+    is_link_only: isLinkOnly,
+    download_url: isLinkOnly ? String(entry.location ?? '') : String(entry.download_url ?? ''),
+    computed_md5: 'fixture-md5'
+  } as FigshareFile;
 }
 
 export async function syncAssetsPhase(
@@ -202,8 +253,8 @@ export async function syncAssetsPhase(
       attachmentCount,
       urlCount,
       uploadsComplete: true,
-      uploadedAttachments: selectedAttachments as unknown as FigshareFile[],
-      uploadedUrls: selectedUrls as unknown as FigshareFile[],
+      uploadedAttachments: selectedAttachments.map((entry, index) => toFixtureFigshareFile(entry, articleId, index, false)),
+      uploadedUrls: selectedUrls.map((entry, index) => toFixtureFigshareFile(entry, articleId, index, true)),
       dataLocations: selectedDataLocations
     };
   }

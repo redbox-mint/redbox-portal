@@ -35,8 +35,10 @@ export class FigshareCategoryMappingEditorTypeComponent extends FieldType<FieldT
 
   updateRow(index: number, key: keyof CategoryMappingRow, value: string): void {
     const rows = [...this.rows];
-    const safeIndex = index < 0 ? 0 : index > rows.length ? rows.length : index;
-    const current = rows[safeIndex] || { sourceCode: '', figshareCategoryId: null };
+    if (index < 0 || index >= rows.length) {
+      return;
+    }
+    const current = rows[index];
     const nextValue = key === 'figshareCategoryId'
       ? value === ''
         ? null
@@ -45,7 +47,7 @@ export class FigshareCategoryMappingEditorTypeComponent extends FieldType<FieldT
           return Number.isFinite(parsed) && Number.isInteger(parsed) ? parsed : current.figshareCategoryId;
         })()
       : value;
-    rows[safeIndex] = {
+    rows[index] = {
       ...current,
       [key]: nextValue
     };

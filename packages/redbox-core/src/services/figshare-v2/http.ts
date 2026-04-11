@@ -16,6 +16,18 @@ import {
 } from './types';
 import { logEvent, redactObject, withSpan } from './observability';
 
+function sanitizePayloadForLogging(payload: unknown): unknown {
+  return redactObject(payload);
+}
+
+function assertNumericPathId(label: string, value: string): string {
+  const normalized = value.trim();
+  if (!/^\d+$/.test(normalized)) {
+    throw new Error(`Invalid Figshare ${label}: '${value}'`);
+  }
+  return normalized;
+}
+
 export interface FigshareClient {
   createArticle(payload: FigshareArticlePayload): Promise<FigshareArticle>;
   updateArticle(articleId: string, payload: FigshareArticlePayload): Promise<FigshareArticle>;
@@ -67,7 +79,8 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
         'http.method': method,
         'http.url': url
       }, async () => {
-        logEvent('debug', `Figshare V2 request ${method} ${path}`, runContext, { attempt, payload: options.payload });
+        const sanitizedPayload = sanitizePayloadForLogging(options.payload);
+        logEvent('debug', `Figshare V2 request ${method} ${path}`, runContext, { attempt, payload: sanitizedPayload });
         const response = await axios({
           method,
           url,
@@ -197,16 +210,20 @@ export function makeLiveClient(config: FigsharePublishingConfigData, runContext:
       return requestWithRetry<FigshareArticle>(config, runContext, { method: 'post', path: '/account/articles', payload, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
     updateArticle(articleId: string, payload: FigshareArticlePayload) {
-      return requestWithRetry<FigshareArticle>(config, runContext, { method: 'put', path: `/account/articles/${articleId}`, payload, timeoutMs: config.connection.operationTimeouts.metadataMs });
+      const normalizedArticleId = assertNumericPathId('articleId', articleId);
+      return requestWithRetry<FigshareArticle>(config, runContext, { method: 'put', path: `/account/articles/${normalizedArticleId}`, payload, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
     getArticle(articleId: string) {
-      return requestWithRetry<FigshareArticle>(config, runContext, { method: 'get', path: `/account/articles/${articleId}`, timeoutMs: config.connection.operationTimeouts.metadataMs });
+      const normalizedArticleId = assertNumericPathId('articleId', articleId);
+      return requestWithRetry<FigshareArticle>(config, runContext, { method: 'get', path: `/account/articles/${normalizedArticleId}`, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
     listArticleFiles(articleId: string, page: number = 1, pageSize: number = 20) {
-      return requestWithRetry<FigshareFile[]>(config, runContext, { method: 'get', path: `/account/articles/${articleId}/files?page_size=${pageSize}&page=${page}`, timeoutMs: config.connection.operationTimeouts.metadataMs });
+      const normalizedArticleId = assertNumericPathId('articleId', articleId);
+      return requestWithRetry<FigshareFile[]>(config, runContext, { method: 'get', path: `/account/articles/${normalizedArticleId}/files?page_size=${pageSize}&page=${page}`, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
     createArticleFile(articleId: string, payload: FigshareCreateFilePayload) {
-      return requestWithRetry<FigshareUploadInit>(config, runContext, { method: 'post', path: `/account/articles/${articleId}/files`, payload, timeoutMs: config.connection.operationTimeouts.uploadInitMs });
+      const normalizedArticleId = assertNumericPathId('articleId', articleId);
+      return requestWithRetry<FigshareUploadInit>(config, runContext, { method: 'post', path: `/account/articles/${normalizedArticleId}/files`, payload, timeoutMs: config.connection.operationTimeouts.uploadInitMs });
     },
     getLocation(locationUrl: string) {
       return requestWithRetry<FigshareUploadDescriptor>(config, runContext, { method: 'get', url: locationUrl, timeoutMs: config.connection.operationTimeouts.uploadInitMs });
@@ -223,24 +240,31 @@ export function makeLiveClient(config: FigsharePublishingConfigData, runContext:
       });
     },
     completeFileUpload(articleId: string, fileId: string, payload: Record<string, unknown> = {}) {
+      const normalizedArticleId = assertNumericPathId('articleId', articleId);
+      const normalizedFileId = assertNumericPathId('fileId', fileId);
       return requestWithRetry<FigshareFile>(config, runContext, {
         method: 'post',
-        path: `/account/articles/${articleId}/files/${fileId}`,
+        path: `/account/articles/${normalizedArticleId}/files/${normalizedFileId}`,
         payload,
         timeoutMs: config.connection.operationTimeouts.uploadInitMs
       });
     },
     deleteArticleFile(articleId: string, fileId: string) {
-      return requestWithRetry(config, runContext, { method: 'delete', path: `/account/articles/${articleId}/files/${fileId}`, payload: {}, timeoutMs: config.connection.operationTimeouts.metadataMs });
+      const normalizedArticleId = assertNumericPathId('articleId', articleId);
+      const normalizedFileId = assertNumericPathId('fileId', fileId);
+      return requestWithRetry(config, runContext, { method: 'delete', path: `/account/articles/${normalizedArticleId}/files/${normalizedFileId}`, payload: {}, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
     setEmbargo(articleId: string, payload: FigshareEmbargoPayload) {
-      return requestWithRetry(config, runContext, { method: 'put', path: `/account/articles/${articleId}/embargo`, payload, timeoutMs: config.connection.operationTimeouts.metadataMs });
+      const normalizedArticleId = assertNumericPathId('articleId', articleId);
+      return requestWithRetry(config, runContext, { method: 'put', path: `/account/articles/${normalizedArticleId}/embargo`, payload, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
     clearEmbargo(articleId: string) {
-      return requestWithRetry(config, runContext, { method: 'delete', path: `/account/articles/${articleId}/embargo`, payload: {}, timeoutMs: config.connection.operationTimeouts.metadataMs });
+      const normalizedArticleId = assertNumericPathId('articleId', articleId);
+      return requestWithRetry(config, runContext, { method: 'delete', path: `/account/articles/${normalizedArticleId}/embargo`, payload: {}, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
     publishArticle(articleId: string, payload: Record<string, unknown> = {}) {
-      return requestWithRetry<FigsharePublishResult>(config, runContext, { method: 'post', path: `/account/articles/${articleId}/publish`, payload, timeoutMs: config.connection.operationTimeouts.publishMs });
+      const normalizedArticleId = assertNumericPathId('articleId', articleId);
+      return requestWithRetry<FigsharePublishResult>(config, runContext, { method: 'post', path: `/account/articles/${normalizedArticleId}/publish`, payload, timeoutMs: config.connection.operationTimeouts.publishMs });
     },
     listLicenses() {
       return requestWithRetry<FigshareLicense[]>(config, runContext, { method: 'get', path: '/account/licenses', timeoutMs: config.connection.operationTimeouts.metadataMs });

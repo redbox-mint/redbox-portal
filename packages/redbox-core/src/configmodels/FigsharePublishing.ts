@@ -120,6 +120,12 @@ export interface FigshareConnectionConfig {
   };
 }
 
+export interface FigshareLegacyMappingConfig {
+  figshareCurationStatus?: string;
+  figshareCurationStatusTargetValue?: string;
+  figshareDisableUpdateByCurationStatus?: boolean;
+}
+
 export function resolveFigshareConnectionToken(token: string, options: { allowEmpty?: boolean } = {}): string {
   const value = typeof token === 'string' ? token.trim() : '';
   if (value.startsWith('$')) {
@@ -139,6 +145,7 @@ export function resolveFigshareConnectionToken(token: string, options: { allowEm
 export interface FigsharePublishingConfigData {
   enabled: boolean;
   connection: FigshareConnectionConfig;
+  legacyMapping?: FigshareLegacyMappingConfig;
   article: {
     itemType: FigshareArticleItemType;
     groupId?: number;

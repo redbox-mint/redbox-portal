@@ -8,15 +8,14 @@ import { makeClientLayer, FigshareClient, FigshareClientTag } from './http';
 import { buildMetadataPayload, syncMetadataPhase } from './metadata';
 import { publishIfNeededPhase } from './publish';
 import { writeBackPhase } from './writeback';
-import { FigshareArticle, FigshareFile, FigsharePublicationPlan, FigshareRunContext, RecordModel, getRecordField } from './types';
+import { FigshareArticle, FigshareFile, FigsharePublicationPlan, FigshareRunContext, FigshareSyncState, RecordModel, getRecordField } from './types';
 
 export const FigshareConfigTag = Context.GenericTag<FigsharePublishingConfigData>('redbox/FigshareConfig');
 export const FigshareRunContextTag = Context.GenericTag<FigshareRunContext>('redbox/FigshareRunContext');
 
 function isCurationLocked(config: FigsharePublishingConfigData, article: FigshareArticle): boolean {
   const curationLock = config.article.curationLock;
-  const legacyConfig = (sails.config as Record<string, unknown>).figshareAPI as Record<string, unknown> | undefined;
-  const legacyMapping = legacyConfig?.mapping as Record<string, unknown> | undefined;
+  const legacyMapping = config.legacyMapping;
 
   const statusField = curationLock?.statusField || String(legacyMapping?.figshareCurationStatus ?? '');
   const targetValue = curationLock?.targetValue || String(legacyMapping?.figshareCurationStatusTargetValue ?? 'public');
@@ -115,7 +114,7 @@ export async function runSyncRecordProgram(config: FigsharePublishingConfigData,
     } else {
       article = yield* Effect.promise(() => syncMetadataPhase(client, config, rm, plan));
     }
-    const syncState = (getRecordField(rm, config.record.syncStatePath) ?? { status: 'idle' }) as any;
+    const syncState = (getRecordField(rm, config.record.syncStatePath) ?? { status: 'idle' }) as FigshareSyncState;
     const assetSyncResult = yield* Effect.promise(() => syncAssetsPhase(client, config, rm, article, syncState));
     yield* Effect.promise(() => syncEmbargoPhase(client, config, rm, String(article?.id ?? plan.articleId ?? '')));
     const publishResult = yield* Effect.promise(() => publishIfNeededPhase(client, config, rm, String(article?.id ?? plan.articleId ?? ''), syncState));

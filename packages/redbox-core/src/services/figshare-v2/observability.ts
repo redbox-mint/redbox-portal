@@ -1,28 +1,47 @@
 import { trace, SpanStatusCode, type Attributes } from '@opentelemetry/api';
 import { FigshareRunContext } from './types';
 
+const JWT_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+const API_KEY_PATTERN = /^(sk_live_|sk_test_)[A-Za-z0-9]+$/;
+const LONG_SECRET_PATTERN = /^[A-Za-z0-9_\-+/=]{20,}$/;
+
 export function redactSecret(value: unknown): unknown {
   if (typeof value !== 'string') {
     return value;
   }
-  if (value.toLowerCase().includes('token') || value.toLowerCase().includes('authorization')) {
+
+  const trimmed = value.trim();
+  if (
+    /^Bearer\s+/i.test(trimmed) ||
+    JWT_PATTERN.test(trimmed) ||
+    API_KEY_PATTERN.test(trimmed) ||
+    LONG_SECRET_PATTERN.test(trimmed)
+  ) {
     return 'REDACTED';
   }
   return value;
 }
 
-export function redactObject(value: unknown): unknown {
+export function redactObject(value: unknown, visited: WeakSet<object> = new WeakSet<object>()): unknown {
   if (Array.isArray(value)) {
-    return value.map((entry) => redactObject(entry));
+    if (visited.has(value)) {
+      return '[Circular]';
+    }
+    visited.add(value);
+    return value.map((entry) => redactObject(entry, visited));
   }
   if (value != null && typeof value === 'object' && !Array.isArray(value)) {
+    if (visited.has(value)) {
+      return '[Circular]';
+    }
+    visited.add(value);
     const obj = value as Record<string, unknown>;
     const result: Record<string, unknown> = {};
     for (const [key, entry] of Object.entries(obj)) {
       if (key.toLowerCase().includes('token') || key.toLowerCase().includes('authorization') || key.toLowerCase().includes('secret')) {
         result[key] = 'REDACTED';
       } else {
-        result[key] = redactObject(entry);
+        result[key] = redactObject(entry, visited);
       }
     }
     return result;

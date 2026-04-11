@@ -968,8 +968,7 @@ describe('FigshareService', function () {
         throw error;
       });
 
-      service.uploadFilesToFigshareArticle('oid', record, {}, { email: 'test@test.com' });
-      await new Promise((resolve) => setImmediate(resolve));
+      await service.uploadFilesToFigshareArticle('oid', record, {}, { email: 'test@test.com' });
 
       expect((global as any).RecordsService.updateMeta.calledOnce).to.be.true;
       expect((global as any).RecordsService.updateMeta.firstCall.args[1]).to.equal('oid');

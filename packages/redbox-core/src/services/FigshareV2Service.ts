@@ -22,7 +22,6 @@ import {
   FigsharePublishResult,
   FigshareSyncState,
   FigshareJob,
-  FigshareJobData,
   DataLocationEntry,
   WorkflowTransitionJobConfig,
   AssetSyncResult,
@@ -32,6 +31,14 @@ import {
 
 export namespace Services {
   export class FigshareV2Service extends LegacyServices.LegacyFigshareService {
+    private assertV2Config(record: RecordModel, operation: string): NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>> {
+      const config = this.getV2Config(record);
+      if (config == null) {
+        throw new Error(`Figshare V2 config is not enabled for operation '${operation}'`);
+      }
+      return config;
+    }
+
     public getV2Config(record?: RecordModel) {
       return resolveFigsharePublishingConfig(record);
     }
@@ -70,11 +77,8 @@ export namespace Services {
     }
 
     public async syncMetadata(record: RecordModel, plan?: FigsharePublicationPlan): Promise<FigshareArticle> {
-      const config = this.getV2Config(record);
+      const config = this.assertV2Config(record, 'syncMetadata');
       const rm = record as RecordModel;
-      if (config == null) {
-        return {} as FigshareArticle;
-      }
 
       const publicationPlan = plan ?? this.preparePublication(rm);
       const articleId = publicationPlan.articleId;
@@ -91,11 +95,8 @@ export namespace Services {
     }
 
     public async syncAssets(record: RecordModel, article: FigshareArticle): Promise<AssetSyncResult & Record<string, unknown>> {
-      const config = this.getV2Config(record);
+      const config = this.assertV2Config(record, 'syncAssets');
       const rm = record as RecordModel;
-      if (config == null) {
-        return {} as AssetSyncResult;
-      }
 
       const syncState = this.getSyncState(config, rm);
       const client = this.makeClient(config, rm, syncState.correlationId, 'syncAssets');
@@ -103,22 +104,16 @@ export namespace Services {
     }
 
     public async syncEmbargo(record: RecordModel, articleId: string): Promise<Record<string, unknown>> {
-      const config = this.getV2Config(record);
+      const config = this.assertV2Config(record, 'syncEmbargo');
       const rm = record as RecordModel;
-      if (config == null) {
-        return {};
-      }
 
       const client = this.makeClient(config, rm, undefined, 'syncEmbargo');
       return syncEmbargoPhase(client, config, rm, articleId);
     }
 
     public async publishIfNeeded(record: RecordModel, articleId: string): Promise<FigsharePublishResult> {
-      const config = this.getV2Config(record);
+      const config = this.assertV2Config(record, 'publishIfNeeded');
       const rm = record as RecordModel;
-      if (config == null) {
-        return {};
-      }
 
       const client = this.makeClient(config, rm, undefined, 'publishIfNeeded');
       return publishIfNeededPhase(client, config, rm, articleId, this.getSyncState(config, rm));
@@ -205,16 +200,28 @@ export namespace Services {
 
         const removeDatastream = datastreamService?.removeDatastream as ((oid: string, entry: DataLocationEntry) => Promise<unknown>) | undefined;
         if (removeDatastream != null) {
-          await removeDatastream(record.redboxOid ?? record.id ?? '', entry);
+          try {
+            await removeDatastream(record.redboxOid ?? record.id ?? '', entry);
+          } catch (error) {
+            sails.log.warn(`FigService - failed to remove datastream for record '${record.redboxOid ?? record.id ?? ''}'`, {
+              entry,
+              error: error instanceof Error ? error.message : String(error)
+            });
+          }
         }
 
         const idx = dataLocations.indexOf(entry);
         if (idx >= 0) {
           dataLocations.splice(idx, 1);
         }
+        const downloadUrl = typeof uploaded.download_url === 'string' ? uploaded.download_url.trim() : '';
+        if (downloadUrl === '') {
+          sails.log.warn(`FigService - uploaded file '${uploaded.name}' for entry '${String(entry.selected ?? '')}' has no download URL; skipping write-back URL replacement`);
+          continue;
+        }
         dataLocations.push({
           type: 'url',
-          location: uploaded.download_url ?? '',
+          location: downloadUrl,
           notes: `File name: ${uploaded.name}`,
           originalFileName: uploaded.name,
           ignore: true,
@@ -282,8 +289,8 @@ export namespace Services {
         return;
       }
 
-      const brand = BrandingService.getBrand('default');
       const currentRec = await RecordsService.getMeta(oid) as RecordModel;
+      const brand = BrandingService.getBrand(currentRec.metaMetadata?.brandId ?? 'default');
       const userRoles = user.roles ?? [];
       const hasEditAccess = await RecordsService.hasEditAccess(brand, user, userRoles as unknown as Record<string, unknown>[], currentRec as unknown as Record<string, unknown>);
       if (!hasEditAccess) {
@@ -417,6 +424,10 @@ export namespace Services {
       const config = this.getV2Config(record);
       if (config == null) {
         return super.publishAfterUploadFilesJob(job as Record<string, unknown>);
+      }
+      if (!articleId.trim()) {
+        sails.log.error(`FigService - cannot publish uploaded files for record '${oid}' because the Figshare article id is empty`);
+        return;
       }
 
       const client = this.makeClient(config, record, `${oid}:publish-job`, 'publishAfterUploadFilesJob');

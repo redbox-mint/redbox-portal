@@ -1,5 +1,4 @@
-let expect: Chai.ExpectStatic;
-import('chai').then(mod => expect = mod.expect);
+import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { Services } from '../../src/services/FigshareV2Service';
 import { agendaQueue } from '../../src/config/agendaQueue.config';

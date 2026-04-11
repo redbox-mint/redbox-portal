@@ -13,7 +13,11 @@ import { setSyncState } from './config';
 
 export function getWriteBackUrls(config: FigsharePublishingConfigData, articleId: string): string[] {
   const frontEndUrl = config.connection.frontEndUrl.replace(/\/+$/, '');
-  return [`${frontEndUrl}/articles/${articleId}`];
+  const normalizedArticleId = articleId.trim();
+  if (normalizedArticleId === '') {
+    return [];
+  }
+  return [`${frontEndUrl}/articles/${normalizedArticleId}`];
 }
 
 export function writeBackPhase(config: FigsharePublishingConfigData, record: RecordModel, article: FigshareArticle, publishResult?: FigsharePublishResult, assetSyncResult?: AssetSyncResult): RecordModel {
@@ -23,7 +27,10 @@ export function writeBackPhase(config: FigsharePublishingConfigData, record: Rec
   setRecordField(rm, config.writeBack.articleId, articleId);
   const articleUrls = getWriteBackUrls(config, articleId);
   config.writeBack.articleUrls.forEach((targetPath: string, index: number) => {
-    setRecordField(rm, targetPath, articleUrls[index] ?? articleUrls[0]);
+    const articleUrl = articleUrls[index] ?? articleUrls[0] ?? '';
+    if (articleUrl !== '') {
+      setRecordField(rm, targetPath, articleUrl);
+    }
   });
   config.writeBack.extraFields.forEach((binding: WriteBackBinding) => {
     const source = binding.from === 'publishResult' ? publishResult : binding.from === 'assetSyncResult' ? assetSyncResult : article;

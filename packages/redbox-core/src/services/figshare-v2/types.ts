@@ -250,7 +250,13 @@ export function getRecordField(record: RecordModel, path: string): unknown {
 
 /** Type-safe dynamic path setter for record fields driven by config paths. */
 export function setRecordField(record: RecordModel, path: string, value: unknown): void {
+  if (typeof path !== 'string' || path.trim() === '') {
+    throw new Error(`Invalid record field path '${String(path)}'`);
+  }
   const segments = path.split('.');
+  if (segments.some((segment) => segment.trim() === '')) {
+    throw new Error(`Invalid record field path '${path}'`);
+  }
   let current: Record<string, unknown> = record;
   for (let i = 0; i < segments.length - 1; i++) {
     const segment = segments[i];
