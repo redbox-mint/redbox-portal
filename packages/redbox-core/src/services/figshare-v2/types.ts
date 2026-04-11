@@ -84,6 +84,35 @@ export interface FigsharePublishResult {
   [key: string]: unknown;
 }
 
+// ── Figshare API payload types ───────────────────────────────────────
+
+export interface FigshareArticlePayload {
+  title?: unknown;
+  description?: unknown;
+  keywords?: unknown;
+  defined_type?: string;
+  group_id?: number | string;
+  funding?: unknown;
+  categories?: number[];
+  license?: unknown;
+  authors?: Array<{ id?: number | string; name?: string }>;
+  related_materials?: Array<{ title: unknown; identifier: unknown }>;
+  custom_fields?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface FigshareCreateFilePayload {
+  name?: string;
+  size?: number;
+  link?: string;
+}
+
+export interface FigshareEmbargoPayload {
+  access_type: unknown;
+  embargo_date: unknown;
+  embargo_reason: unknown;
+}
+
 // ── ReDBox domain types ──────────────────────────────────────────────
 
 export interface DataLocationEntry {

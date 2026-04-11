@@ -1,20 +1,13 @@
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { FigshareClient } from './http';
-import { RecordModel, FigshareArticle } from './types';
+import { RecordModel, FigshareArticle, FigshareEmbargoPayload } from './types';
 import { evaluateBinding } from './bindings';
 
-interface EmbargoPayload {
-  [key: string]: unknown;
-  access_type: unknown;
-  embargo_date: unknown;
-  embargo_reason: unknown;
-}
-
-function isEmptyEmbargo(payload: EmbargoPayload): boolean {
+function isEmptyEmbargo(payload: FigshareEmbargoPayload): boolean {
   return Object.values(payload).every((value) => value == null || value === '');
 }
 
-function embargoChanged(payload: EmbargoPayload, article: FigshareArticle): boolean {
+function embargoChanged(payload: FigshareEmbargoPayload, article: FigshareArticle): boolean {
   return (
     String(payload.access_type ?? '') !== String(article.access_type ?? '') ||
     String(payload.embargo_date ?? '') !== String(article.embargo_date ?? '') ||
@@ -28,7 +21,7 @@ export async function syncEmbargoPhase(client: FigshareClient, config: FigshareP
   }
 
   const recordData = record as Record<string, unknown>;
-  const embargoPayload: EmbargoPayload = {
+  const embargoPayload: FigshareEmbargoPayload = {
     access_type: await evaluateBinding(config.embargo.accessRights.accessRights, recordData),
     embargo_date: await evaluateBinding(config.embargo.accessRights.fullEmbargoUntil, recordData),
     embargo_reason: await evaluateBinding(config.embargo.accessRights.reason, recordData)
@@ -48,5 +41,5 @@ export async function syncEmbargoPhase(client: FigshareClient, config: FigshareP
     return {};
   }
 
-  return client.setEmbargo(articleId, embargoPayload as Record<string, unknown>);
+  return client.setEmbargo(articleId, embargoPayload);
 }

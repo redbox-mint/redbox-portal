@@ -8,6 +8,7 @@ import {
   FigsharePublicationPlan,
   FigshareLicense,
   FigshareInstitutionAccount,
+  FigshareArticlePayload,
   RecordContributor,
   getRecordField,
 } from './types';
@@ -141,7 +142,7 @@ async function resolveLicense(client: FigshareClient, config: FigsharePublishing
   return matched.value ?? matched.id ?? licenseValue;
 }
 
-function validatePayload(config: FigsharePublishingConfigData, payload: Record<string, unknown>): void {
+function validatePayload(config: FigsharePublishingConfigData, payload: FigshareArticlePayload): void {
   if (String(payload.title ?? '').trim() === '') {
     throw validationError('Figshare title is required');
   }
@@ -151,7 +152,7 @@ function validatePayload(config: FigsharePublishingConfigData, payload: Record<s
   if (config.metadata.license.required && payload.license == null) {
     throw validationError('Figshare license is required');
   }
-  const customFields = payload.custom_fields as Record<string, unknown> | undefined;
+  const customFields = payload.custom_fields;
   for (const customField of config.metadata.customFields) {
     const value = customFields?.[customField.figshareField];
     for (const validation of customField.validations || []) {
@@ -171,9 +172,9 @@ function validatePayload(config: FigsharePublishingConfigData, payload: Record<s
   }
 }
 
-export async function buildMetadataPayload(config: FigsharePublishingConfigData, record: RecordModel, client?: FigshareClient): Promise<Record<string, unknown>> {
+export async function buildMetadataPayload(config: FigsharePublishingConfigData, record: RecordModel, client?: FigshareClient): Promise<FigshareArticlePayload> {
   const recordData = record as Record<string, unknown>;
-  const payload: Record<string, unknown> = {
+  const payload: FigshareArticlePayload = {
     title: await evaluateBinding(config.metadata.title, recordData),
     description: await evaluateBinding(config.metadata.description, recordData),
     keywords: await evaluateBinding(config.metadata.keywords, recordData),
