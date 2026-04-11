@@ -120,12 +120,6 @@ export interface FigshareConnectionConfig {
   };
 }
 
-export interface FigshareLegacyMappingConfig {
-  figshareCurationStatus?: string;
-  figshareCurationStatusTargetValue?: string;
-  figshareDisableUpdateByCurationStatus?: boolean;
-}
-
 export function resolveFigshareConnectionToken(token: string, options: { allowEmpty?: boolean } = {}): string {
   const value = typeof token === 'string' ? token.trim() : '';
   if (value.startsWith('$')) {
@@ -145,7 +139,6 @@ export function resolveFigshareConnectionToken(token: string, options: { allowEm
 export interface FigsharePublishingConfigData {
   enabled: boolean;
   connection: FigshareConnectionConfig;
-  legacyMapping?: FigshareLegacyMappingConfig;
   article: {
     itemType: FigshareArticleItemType;
     groupId?: number;
@@ -165,6 +158,7 @@ export interface FigsharePublishingConfigData {
     statusPath: string;
     errorPath: string;
     syncStatePath: string;
+    allFilesUploadedPath?: string;
   };
   selection: {
     attachmentMode: 'selectedOnly' | 'all';
@@ -213,8 +207,22 @@ export interface FigsharePublishingConfigData {
     forceSync: boolean;
     accessRights: EmbargoBinding;
   };
+  queue: {
+    publishAfterUploadDelay: string;
+    uploadedFilesCleanupDelay: string;
+  };
   workflow: {
     transitionRules: WorkflowTransitionRule[];
+    transitionJob: {
+      enabled: boolean;
+      namedQuery: string;
+      targetStep: string;
+      paramMap: Record<string, unknown>;
+      figshareTargetFieldKey: string;
+      figshareTargetFieldValue: string;
+      username: string;
+      userType: string;
+    };
   };
   testing: {
     mode: 'live' | 'fixture';
@@ -277,7 +285,8 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
     dataLocationsPath: 'metadata.dataLocations',
     statusPath: 'metadata.figshareStatus',
     errorPath: 'metadata.figshareError',
-    syncStatePath: 'metadata.figshareSyncState'
+    syncStatePath: 'metadata.figshareSyncState',
+    allFilesUploadedPath: ''
   };
 
   selection = {
@@ -359,8 +368,23 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
     }
   };
 
+  queue = {
+    publishAfterUploadDelay: 'in 2 minutes',
+    uploadedFilesCleanupDelay: 'in 5 minutes'
+  };
+
   workflow = {
-    transitionRules: [] as WorkflowTransitionRule[]
+    transitionRules: [] as WorkflowTransitionRule[],
+    transitionJob: {
+      enabled: false,
+      namedQuery: '',
+      targetStep: '',
+      paramMap: {} as Record<string, unknown>,
+      figshareTargetFieldKey: '',
+      figshareTargetFieldValue: '',
+      username: '',
+      userType: ''
+    }
   };
 
   testing = {
@@ -386,6 +410,7 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
       'categories',
       'assets',
       'embargo',
+      'queue',
       'workflow',
       'testing',
       'writeBack'
@@ -536,7 +561,8 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
         dataLocationsPath: { type: 'string', title: 'Data Locations Path', default: 'metadata.dataLocations' },
         statusPath: { type: 'string', title: 'Status Path', default: 'metadata.figshareStatus' },
         errorPath: { type: 'string', title: 'Error Path', default: 'metadata.figshareError' },
-        syncStatePath: { type: 'string', title: 'Sync State Path', default: 'metadata.figshareSyncState' }
+        syncStatePath: { type: 'string', title: 'Sync State Path', default: 'metadata.figshareSyncState' },
+        allFilesUploadedPath: { type: 'string', title: 'All Files Uploaded Path', default: '' }
       }
     },
     selection: {
@@ -763,6 +789,14 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
         }
       }
     },
+    queue: {
+      type: 'object',
+      title: 'Queue',
+      properties: {
+        publishAfterUploadDelay: { type: 'string', title: 'Publish After Upload Delay', default: 'in 2 minutes' },
+        uploadedFilesCleanupDelay: { type: 'string', title: 'Uploaded Files Cleanup Delay', default: 'in 5 minutes' }
+      }
+    },
     workflow: {
       type: 'object',
       title: 'Workflow',
@@ -784,6 +818,20 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
               ifArticleField: { type: 'string', title: 'Article Field' },
               equals: { title: 'Equals' }
             }
+          }
+        },
+        transitionJob: {
+          type: 'object',
+          title: 'Transition Job',
+          properties: {
+            enabled: { type: 'boolean', title: 'Enabled', default: false },
+            namedQuery: { type: 'string', title: 'Named Query', default: '' },
+            targetStep: { type: 'string', title: 'Target Step', default: '' },
+            paramMap: { type: 'object', title: 'Parameter Map', default: {} },
+            figshareTargetFieldKey: { type: 'string', title: 'Figshare Target Field Key', default: '' },
+            figshareTargetFieldValue: { type: 'string', title: 'Figshare Target Field Value', default: '' },
+            username: { type: 'string', title: 'Username', default: '' },
+            userType: { type: 'string', title: 'User Type', default: '' }
           }
         }
       }

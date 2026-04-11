@@ -60,8 +60,6 @@ export * from './branding.config';
 export * from './brandingConfigurationDefaults.config';
 export * from './raid.config';
 export * from './report.config';
-export * from './figshareAPI.config';
-export * from './figshareRedboxFORMapping.config';
 export * from './recordtype.config';
 export * from './workflow.config';
 // Miscellaneous configs
@@ -73,7 +71,6 @@ export * from './datapubs.config';
 export * from './workspacetype.config';
 export * from './lognamespace.config';
 export * from './redboxToCkan.config';
-export * from './figshareAPIEnv.config';
 export * from './typescript.config';
 export * from './custom_cache.config';
 export * from './validators.config';
@@ -135,8 +132,6 @@ import { BrandingConfig, branding } from './branding.config';
 import { BrandingConfigurationDefaultsConfig, brandingConfigurationDefaults, BrandAuthConfig, AuthBootstrapConfig } from './brandingConfigurationDefaults.config';
 import { RaidConfig, raid } from './raid.config';
 import { ReportsConfig, reports } from './report.config';
-import { FigshareApiConfig, figshareAPI } from './figshareAPI.config';
-import { FigshareReDBoxFORMappingConfig, figshareReDBoxFORMapping } from './figshareRedboxFORMapping.config';
 import { RecordTypeConfig, recordtype } from './recordtype.config';
 import { WorkflowConfig, workflow } from './workflow.config';
 // Miscellaneous config imports
@@ -148,7 +143,6 @@ import { datapubs, DataPubsConfig } from './datapubs.config';
 import { workspacetype, WorkspaceTypeConfig } from './workspacetype.config';
 import { lognamespace, LogNamespaceConfig } from './lognamespace.config';
 import { redboxToCkan, RedboxToCkanConfig } from './redboxToCkan.config';
-import { figshareAPIEnv, FigshareApiEnvConfig } from './figshareAPIEnv.config';
 import { typescript, TypeScriptHookConfig } from './typescript.config';
 import { custom_cache, CustomCacheConfig } from './custom_cache.config';
 import { validators, ValidatorsConfig } from './validators.config';
@@ -241,8 +235,6 @@ export interface SailsConfig {
     brandingConfigurationDefaults: BrandingConfigurationDefaultsConfig;
     raid: RaidConfig;
     reports: ReportsConfig;
-    figshareAPI: FigshareApiConfig;
-    figshareReDBoxFORMapping: FigshareReDBoxFORMappingConfig;
     recordtype: RecordTypeConfig;
     workflow: WorkflowConfig;
 
@@ -255,7 +247,6 @@ export interface SailsConfig {
     workspacetype: WorkspaceTypeConfig;
     lognamespace: LogNamespaceConfig;
     redboxToCkan: RedboxToCkanConfig;
-    figshareAPIEnv: FigshareApiEnvConfig;
     typescript: TypeScriptHookConfig;
     custom_cache: CustomCacheConfig;
     validators: ValidatorsConfig;
@@ -340,7 +331,6 @@ export const Config = {
     workspacetype,
     lognamespace,
     redboxToCkan,
-    figshareAPIEnv,
     typescript,
     custom_cache,
     redboxSession,
@@ -351,8 +341,6 @@ export const Config = {
     raid,
     recordtype,
     workflow,
-    figshareAPI,
-    figshareReDBoxFORMapping,
     validators,
 } as const;
 

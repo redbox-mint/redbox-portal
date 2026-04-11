@@ -22,8 +22,7 @@ const LINK_FILE_CREATE_RETRY_COUNT = 3;
 function getTempDir(config: FigsharePublishingConfigData): string {
   const configDir = config.assets.staging.tempDir;
   if (configDir) return configDir;
-  const sailsDir = (sails.config as Record<string, unknown>).figshareAPI as Record<string, unknown> | undefined;
-  return String(sailsDir?.attachmentsFigshareTempDir ?? sailsDir?.attachmentsTempDir ?? '/tmp');
+  return '/tmp';
 }
 
 function getRecordOid(record: RecordModel): string {
@@ -158,12 +157,12 @@ async function syncLinkOnlyFiles(client: FigshareClient, articleId: string, sele
     if (entry.ignore === true) {
       continue;
     }
-    let response: unknown;
+    let responseLocation: { location: string } | null = null;
     let attempt = 0;
     while (attempt < LINK_FILE_CREATE_RETRY_COUNT) {
       attempt += 1;
       try {
-        response = await client.createArticleFile(articleId, {
+        responseLocation = await client.createArticleFile(articleId, {
           link: entry.location ?? ''
         });
         break;
@@ -173,8 +172,20 @@ async function syncLinkOnlyFiles(client: FigshareClient, articleId: string, sele
         }
       }
     }
-    if (response != null) {
-      uploadedUrls.push(response as FigshareFile);
+    if (responseLocation != null) {
+      try {
+        const uploadedFile = await client.getLocation(responseLocation.location);
+        uploadedUrls.push({
+          id: uploadedFile.id,
+          article_id: articleId,
+          name: entry.name ?? entry.originalFileName ?? String(entry.location ?? ''),
+          status: uploadedFile.status,
+          download_url: uploadedFile.download_url,
+          is_link_only: true
+        } as FigshareFile);
+      } catch (error) {
+        creationErrors.push(error instanceof Error ? error : new Error(String(error)));
+      }
     }
   }
 

@@ -2,7 +2,6 @@ import _ from 'lodash';
 import {
   FigsharePublishing,
   resolveFigshareConnectionToken,
-  type FigshareLegacyMappingConfig,
   type FigsharePublishingConfigData
 } from '../../configmodels/FigsharePublishing';
 import { FigshareSyncState, getRecordField, setRecordField, RecordModel } from './types';
@@ -25,12 +24,10 @@ export function resolveFigsharePublishingConfig(record?: RecordModel): FigshareP
     : undefined;
   if (figsharePublishingConfig?.enabled === true) {
     const resolvedConfig = _.merge(new FigsharePublishing(), _.cloneDeep(figsharePublishingConfig)) as FigsharePublishingConfigData;
-    const legacyConfig = (sails.config as Record<string, unknown>).figshareAPI as Record<string, unknown> | undefined;
-    const legacyMapping = legacyConfig?.mapping;
-    if (resolvedConfig.legacyMapping == null && legacyMapping != null && typeof legacyMapping === 'object') {
-      resolvedConfig.legacyMapping = legacyMapping as FigshareLegacyMappingConfig;
-    }
-
+    const resolvedConnection = resolvedConfig.connection != null && typeof resolvedConfig.connection === 'object'
+      ? resolvedConfig.connection
+      : { ...new FigsharePublishing().connection };
+    resolvedConfig.connection = resolvedConnection;
     const connectionToken = resolvedConfig.connection?.token;
     const allowEmpty = resolvedConfig.testing?.mode === 'fixture';
     if (typeof connectionToken === 'string' && connectionToken.trim() !== '') {

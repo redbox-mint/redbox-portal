@@ -15,12 +15,9 @@ export const FigshareRunContextTag = Context.GenericTag<FigshareRunContext>('red
 
 function isCurationLocked(config: FigsharePublishingConfigData, article: FigshareArticle): boolean {
   const curationLock = config.article.curationLock;
-  const legacyMapping = config.legacyMapping;
-
-  const statusField = curationLock?.statusField || String(legacyMapping?.figshareCurationStatus ?? '');
-  const targetValue = curationLock?.targetValue || String(legacyMapping?.figshareCurationStatusTargetValue ?? 'public');
-  const updatesDisabled = curationLock?.enabled === true ||
-    legacyMapping?.figshareDisableUpdateByCurationStatus === true;
+  const statusField = curationLock?.statusField ?? '';
+  const targetValue = curationLock?.targetValue ?? 'public';
+  const updatesDisabled = curationLock?.enabled === true;
   if (!updatesDisabled || statusField === '') {
     return false;
   }

@@ -7,7 +7,6 @@ import {
   migrateFormConfigVerify, createClientFormConfig,
   MigrationV4ToV5FormConfigVisitor, createQuestionTreeDiagram
 } from '@researchdatabox/redbox-core';
-import { figshareAPI, figshareAPIEnv, figshareReDBoxFORMapping } from '@researchdatabox/redbox-core';
 
 const migrationLogger: ILogger = {
   silly: (...args: any[]) => console.debug(...args),
@@ -196,19 +195,52 @@ function collectLegacyTemplates(value: unknown, pathPrefix = ''): string[] {
   return [];
 }
 
-function createMigratedFigsharePublishingConfig(brand: string) {
-  const overrideArtifacts = (figshareAPIEnv as any)?.overrideArtifacts ?? {};
+type LegacyConfigModule = Record<string, unknown>;
+
+function loadLegacyModule(modulePath: string): LegacyConfigModule {
+  const resolvedPath = path.resolve(modulePath);
+  const loaded = require(resolvedPath) as LegacyConfigModule;
+  if (loaded == null || typeof loaded !== 'object') {
+    throw new Error(`Legacy config module '${resolvedPath}' did not export an object`);
+  }
+  return loaded;
+}
+
+function pickLegacyExport<T extends Record<string, unknown>>(moduleExports: LegacyConfigModule, exportName: string): T {
+  const named = moduleExports[exportName];
+  if (named != null && typeof named === 'object') {
+    return named as T;
+  }
+  return moduleExports as T;
+}
+
+function toNumericStatusCodes(value: unknown): number[] {
+  if (!Array.isArray(value)) {
+    return [408, 429, 500, 502, 503, 504];
+  }
+  return value
+    .map((entry) => Number(entry))
+    .filter((entry) => Number.isFinite(entry));
+}
+
+function createMigratedFigsharePublishingConfig(
+  brand: string,
+  figshareApi: Record<string, unknown>,
+  figshareApiEnv: Record<string, unknown> = {},
+  figshareForMapping: Record<string, unknown> = {}
+) {
+  const overrideArtifacts = (figshareApiEnv.overrideArtifacts as Record<string, unknown> | undefined) ?? {};
   const mapping = {
-    ...((figshareAPI as any)?.mapping ?? {}),
-    ...((overrideArtifacts?.mapping ?? {}) as Record<string, unknown>)
+    ...((figshareApi.mapping as Record<string, unknown> | undefined) ?? {}),
+    ...((overrideArtifacts.mapping as Record<string, unknown> | undefined) ?? {})
   };
 
   return {
-    enabled: Boolean((figshareAPI as any)?.APIToken && (figshareAPI as any)?.baseURL && (figshareAPI as any)?.frontEndURL),
+    enabled: Boolean(figshareApi.APIToken && figshareApi.baseURL && figshareApi.frontEndURL),
     connection: {
-      baseUrl: overrideArtifacts.baseURL ?? (figshareAPI as any)?.baseURL ?? '',
-      frontEndUrl: overrideArtifacts.frontEndURL ?? (figshareAPI as any)?.frontEndURL ?? '',
-      token: overrideArtifacts.APIToken ?? (figshareAPI as any)?.APIToken ?? '',
+      baseUrl: overrideArtifacts.baseURL ?? figshareApi.baseURL ?? '',
+      frontEndUrl: overrideArtifacts.frontEndURL ?? figshareApi.frontEndURL ?? '',
+      token: overrideArtifacts.APIToken ?? figshareApi.APIToken ?? '',
       timeoutMs: 30000,
       operationTimeouts: {
         metadataMs: 30000,
@@ -217,10 +249,10 @@ function createMigratedFigsharePublishingConfig(brand: string) {
         publishMs: 60000
       },
       retry: {
-        maxAttempts: Number((figshareAPI as any)?.retry?.maxAttempts ?? 3),
-        baseDelayMs: Number((figshareAPI as any)?.retry?.baseDelayMs ?? 500),
-        maxDelayMs: Number((figshareAPI as any)?.retry?.maxDelayMs ?? 4000),
-        retryOnStatusCodes: (figshareAPI as any)?.retry?.retryOnStatusCodes ?? [408, 429, 500, 502, 503, 504]
+        maxAttempts: Number((figshareApi.retry as Record<string, unknown> | undefined)?.maxAttempts ?? 3),
+        baseDelayMs: Number((figshareApi.retry as Record<string, unknown> | undefined)?.baseDelayMs ?? 500),
+        maxDelayMs: Number((figshareApi.retry as Record<string, unknown> | undefined)?.maxDelayMs ?? 4000),
+        retryOnStatusCodes: toNumericStatusCodes((figshareApi.retry as Record<string, unknown> | undefined)?.retryOnStatusCodes)
       }
     },
     article: {
@@ -236,7 +268,8 @@ function createMigratedFigsharePublishingConfig(brand: string) {
       dataLocationsPath: mapping.recordDataLocations ?? 'metadata.dataLocations',
       statusPath: 'metadata.figshareStatus',
       errorPath: 'metadata.figshareError',
-      syncStatePath: 'metadata.figshareSyncState'
+      syncStatePath: 'metadata.figshareSyncState',
+      allFilesUploadedPath: typeof mapping.recordAllFilesUploaded === 'string' ? mapping.recordAllFilesUploaded : ''
     },
     selection: {
       attachmentMode: mapping.figshareOnlyPublishSelectedAttachmentFiles ? 'selectedOnly' : 'all',
@@ -248,6 +281,7 @@ function createMigratedFigsharePublishingConfig(brand: string) {
       uniqueBy: mapping.recordAuthorUniqueBy ?? 'email',
       externalNameField: mapping.recordAuthorExternalName ?? 'text_full_name',
       maxInlineAuthors: 50,
+      contributorPaths: ['metadata.contributor_ci', 'metadata.contributors'],
       lookup: []
     },
     metadata: {
@@ -261,10 +295,10 @@ function createMigratedFigsharePublishingConfig(brand: string) {
     },
     categories: {
       strategy: 'for2020Mapping',
-      mappingTable: ((figshareReDBoxFORMapping as any)?.FORMapping ?? []).map((entry: any) => ({
-        sourceCode: entry.redboxCode ?? entry.sourceCode ?? '',
+      mappingTable: (((figshareForMapping.FORMapping as Record<string, unknown>[] | undefined) ?? []).map((entry) => ({
+        sourceCode: String(entry.redboxCode ?? entry.sourceCode ?? ''),
         figshareCategoryId: Number(entry.figshareCategoryId ?? entry.figCode ?? 0)
-      })).filter((entry: any) => entry.sourceCode),
+      }))).filter((entry) => entry.sourceCode !== ''),
       allowUnmapped: false
     },
     assets: {
@@ -272,7 +306,7 @@ function createMigratedFigsharePublishingConfig(brand: string) {
       enableLinkFiles: true,
       dedupeStrategy: 'sourceId',
       staging: {
-        tempDir: (figshareAPI as any)?.attachmentsFigshareTempDir ?? '',
+        tempDir: String(figshareApi.attachmentsFigshareTempDir ?? ''),
         cleanupPolicy: 'deleteAfterSuccess',
         diskSpaceThresholdBytes: 1073741824
       }
@@ -287,11 +321,25 @@ function createMigratedFigsharePublishingConfig(brand: string) {
         reason: { kind: 'path', path: 'metadata.embargoReason' }
       }
     },
+    queue: {
+      publishAfterUploadDelay: typeof mapping.schedulePublishAfterUploadJob === 'string' ? mapping.schedulePublishAfterUploadJob : 'in 2 minutes',
+      uploadedFilesCleanupDelay: typeof mapping.scheduleUploadedFilesCleanupJob === 'string' ? mapping.scheduleUploadedFilesCleanupJob : 'in 5 minutes'
+    },
     workflow: {
-      transitionRules: []
+      transitionRules: [],
+      transitionJob: {
+        enabled: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.enabled ?? 'false') === 'true',
+        namedQuery: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.namedQuery ?? ''),
+        targetStep: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.targetStep ?? ''),
+        paramMap: ((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.paramMap as Record<string, unknown> | undefined) ?? {},
+        figshareTargetFieldKey: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.figshareTargetFieldKey ?? ''),
+        figshareTargetFieldValue: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.figshareTargetFieldValue ?? ''),
+        username: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.username ?? ''),
+        userType: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.userType ?? '')
+      }
     },
     testing: {
-      mode: (figshareAPI as any)?.testMode ? 'fixture' : 'live'
+      mode: figshareApi.testMode ? 'fixture' : 'live'
     },
     writeBack: {
       articleId: 'metadata.figshare_article_id',
@@ -309,6 +357,9 @@ export function registerMigrateFigshareConfigCommand(program: Command): void {
   program
     .command('migrate-figshare-config')
     .description('Migrate legacy Figshare config into figsharePublishing AppConfig JSON files')
+    .requiredOption('--figshare-api <path>', 'Path to the legacy figshareAPI config module')
+    .option('--figshare-api-env <path>', 'Path to the legacy figshareAPIEnv config module')
+    .option('--figshare-for-mapping <path>', 'Path to the legacy figshareReDBoxFORMapping config module')
     .requiredOption('-o, --output <path>', 'Directory to write migrated figsharePublishing JSON files')
     .option('-b, --brands <brands...>', 'Brands to generate config for', ['default'])
     .action(async (options) => {
@@ -316,13 +367,20 @@ export function registerMigrateFigshareConfigCommand(program: Command): void {
         const globalOptions = program.opts();
         const outputDir = path.resolve(options.output);
         const brands: string[] = options.brands;
+        const figshareApi = pickLegacyExport<Record<string, unknown>>(loadLegacyModule(options.figshareApi), 'figshareAPI');
+        const figshareApiEnv = options.figshareApiEnv
+          ? pickLegacyExport<Record<string, unknown>>(loadLegacyModule(options.figshareApiEnv), 'figshareAPIEnv')
+          : {};
+        const figshareForMapping = options.figshareForMapping
+          ? pickLegacyExport<Record<string, unknown>>(loadLegacyModule(options.figshareForMapping), 'figshareReDBoxFORMapping')
+          : {};
 
         if (!globalOptions.dryRun) {
           fs.mkdirSync(outputDir, { recursive: true });
         }
 
         const report = brands.map((brand) => {
-          const migrated = createMigratedFigsharePublishingConfig(brand);
+          const migrated = createMigratedFigsharePublishingConfig(brand, figshareApi, figshareApiEnv, figshareForMapping);
           const outputPath = path.join(outputDir, `${brand}.figsharePublishing.json`);
           if (!globalOptions.dryRun) {
             fs.writeFileSync(outputPath, JSON.stringify(migrated, null, 2) + '\n', 'utf8');
@@ -344,4 +402,3 @@ export function registerMigrateFigshareConfigCommand(program: Command): void {
       }
     });
 }
-
