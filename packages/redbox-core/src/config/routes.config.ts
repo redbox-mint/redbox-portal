@@ -319,6 +319,7 @@ export const routes: RoutesConfig = {
     'put /:branding/:portal/api/records/objectmetadata/:oid': { controller: 'webservice/RecordController', action: 'updateObjectMeta', csrf: false },
     'get /:branding/:portal/api/records/metadata/:oid': { controller: 'webservice/RecordController', action: 'getMeta', csrf: false },
     'get /:branding/:portal/api/records/audit/:oid': { controller: 'webservice/RecordController', action: 'getRecordAudit', csrf: false },
+    'get /:branding/:portal/api/integration-audit/:oid': { controller: 'webservice/IntegrationAuditController', action: 'getAuditLog', csrf: false },
     'get /:branding/:portal/api/records/list': { controller: 'webservice/RecordController', action: 'listRecords', csrf: false },
     'get /:branding/:portal/api/deletedrecords/list': { controller: 'webservice/RecordController', action: 'listDeletedRecords', csrf: false },
     'put /:branding/:portal/api/deletedrecords/:oid': { controller: 'webservice/RecordController', action: 'restoreRecord', csrf: false },

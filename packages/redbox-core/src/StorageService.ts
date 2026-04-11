@@ -25,6 +25,9 @@ export interface StorageService {
   exportAllPlans(username: unknown, roles: unknown, brand: unknown, format: unknown, modBefore: unknown, modAfter: unknown, recType: unknown): Readable;
 
   createRecordAudit?(record: unknown): Promise<StorageServiceResponse>;
+  createIntegrationAudit?(record: unknown): Promise<StorageServiceResponse>;
   exists(oid: unknown): Promise<boolean>;
   getRecordAudit(params: unknown): Promise<unknown>;
+  getIntegrationAudit(params: unknown): Promise<unknown>;
+  countIntegrationAudit?(params: unknown): Promise<number>;
 }
