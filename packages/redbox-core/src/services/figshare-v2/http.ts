@@ -1,25 +1,33 @@
-import axios from 'axios';
-import _ from 'lodash';
+import axios, { AxiosError } from 'axios';
 import { Context, Layer } from 'effect';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
-import { FigshareRunContext, AnyRecord } from './types';
+import {
+  FigshareRunContext,
+  FigshareArticle,
+  FigshareFile,
+  FigshareUploadInit,
+  FigshareUploadDescriptor,
+  FigshareLicense,
+  FigshareInstitutionAccount,
+  FigsharePublishResult,
+} from './types';
 import { logEvent, redactObject, withSpan } from './observability';
 
 export interface FigshareClient {
-  createArticle(payload: AnyRecord): Promise<AnyRecord>;
-  updateArticle(articleId: string, payload: AnyRecord): Promise<AnyRecord>;
-  getArticle(articleId: string): Promise<AnyRecord>;
-  listArticleFiles(articleId: string, page?: number, pageSize?: number): Promise<AnyRecord[]>;
-  createArticleFile(articleId: string, payload: AnyRecord): Promise<AnyRecord>;
-  getLocation(locationUrl: string): Promise<AnyRecord>;
-  uploadFilePart(uploadUrl: string, partNo: number, data: unknown): Promise<AnyRecord>;
-  completeFileUpload(articleId: string, fileId: string, payload?: AnyRecord): Promise<AnyRecord>;
-  deleteArticleFile(articleId: string, fileId: string): Promise<AnyRecord>;
-  setEmbargo(articleId: string, payload: AnyRecord): Promise<AnyRecord>;
-  clearEmbargo(articleId: string): Promise<AnyRecord>;
-  publishArticle(articleId: string, payload: AnyRecord): Promise<AnyRecord>;
-  listLicenses(): Promise<AnyRecord[]>;
-  searchInstitutionAccounts(payload: AnyRecord): Promise<AnyRecord[]>;
+  createArticle(payload: Record<string, unknown>): Promise<FigshareArticle>;
+  updateArticle(articleId: string, payload: Record<string, unknown>): Promise<FigshareArticle>;
+  getArticle(articleId: string): Promise<FigshareArticle>;
+  listArticleFiles(articleId: string, page?: number, pageSize?: number): Promise<FigshareFile[]>;
+  createArticleFile(articleId: string, payload: Record<string, unknown>): Promise<FigshareUploadInit>;
+  getLocation(locationUrl: string): Promise<FigshareUploadDescriptor>;
+  uploadFilePart(uploadUrl: string, partNo: number, data: unknown): Promise<Record<string, unknown>>;
+  completeFileUpload(articleId: string, fileId: string, payload?: Record<string, unknown>): Promise<FigshareFile>;
+  deleteArticleFile(articleId: string, fileId: string): Promise<Record<string, unknown>>;
+  setEmbargo(articleId: string, payload: Record<string, unknown>): Promise<Record<string, unknown>>;
+  clearEmbargo(articleId: string): Promise<Record<string, unknown>>;
+  publishArticle(articleId: string, payload: Record<string, unknown>): Promise<FigsharePublishResult>;
+  listLicenses(): Promise<FigshareLicense[]>;
+  searchInstitutionAccounts(payload: Record<string, unknown>): Promise<FigshareInstitutionAccount[]>;
 }
 
 export const FigshareClientTag = Context.GenericTag<FigshareClient>('redbox/FigshareClient');
@@ -41,11 +49,11 @@ type RequestOptions = {
   maxBodyLength?: number;
 };
 
-async function requestWithRetry(config: FigsharePublishingConfigData, runContext: FigshareRunContext, options: RequestOptions): Promise<AnyRecord> {
+async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePublishingConfigData, runContext: FigshareRunContext, options: RequestOptions): Promise<T> {
   const retryConfig = config.connection.retry;
   const method = options.method;
   const methodLower = method.toLowerCase();
-  const retryOnMethods = (_.isArray(retryConfig.retryOnMethods) && retryConfig.retryOnMethods.length > 0
+  const retryOnMethods = (Array.isArray(retryConfig.retryOnMethods) && retryConfig.retryOnMethods.length > 0
     ? retryConfig.retryOnMethods
     : ['get', 'put', 'delete']).map((entry: string) => entry.toLowerCase());
   const path = options.path ?? '';
@@ -71,10 +79,11 @@ async function requestWithRetry(config: FigsharePublishingConfigData, runContext
           maxContentLength: options.maxContentLength,
           maxBodyLength: options.maxBodyLength
         });
-        return response.data as AnyRecord;
+        return response.data as T;
       });
     } catch (error) {
-      const status = _.get(error, 'response.status');
+      const axiosErr = error as AxiosError;
+      const status = axiosErr?.response?.status;
       const retryableStatus = status == null || retryConfig.retryOnStatusCodes.includes(Number(status));
       const retryableMethod = retryOnMethods.includes(methodLower);
       const retryable = retryableStatus && retryableMethod;
@@ -93,104 +102,111 @@ async function requestWithRetry(config: FigsharePublishingConfigData, runContext
 }
 
 export function makeFixtureClient(config: FigsharePublishingConfigData): FigshareClient {
+  const fixtures = config.testing.fixtures;
   return {
-    async createArticle(payload: AnyRecord) {
+    async createArticle(payload: Record<string, unknown>): Promise<FigshareArticle> {
       return {
-        id: _.get(config.testing.fixtures, 'article.id', 'fixture-article-id'),
-        ...(_.get(config.testing.fixtures, 'article', {}) as AnyRecord),
+        id: fixtures?.article?.id ?? 'fixture-article-id',
+        ...(fixtures?.article ?? {}),
         ...payload
-      };
+      } as FigshareArticle;
     },
-    async updateArticle(articleId: string, payload: AnyRecord) {
+    async updateArticle(articleId: string, payload: Record<string, unknown>): Promise<FigshareArticle> {
       return {
-        id: articleId || _.get(config.testing.fixtures, 'article.id', 'fixture-article-id'),
-        ...(_.get(config.testing.fixtures, 'article', {}) as AnyRecord),
+        id: articleId || fixtures?.article?.id || 'fixture-article-id',
+        ...(fixtures?.article ?? {}),
         ...payload
-      };
+      } as FigshareArticle;
     },
-    async getArticle(articleId: string) {
+    async getArticle(articleId: string): Promise<FigshareArticle> {
       return {
-        id: articleId || _.get(config.testing.fixtures, 'article.id', 'fixture-article-id'),
-        ...(_.get(config.testing.fixtures, 'article', {}) as AnyRecord)
-      };
+        id: articleId || fixtures?.article?.id || 'fixture-article-id',
+        ...(fixtures?.article ?? {})
+      } as FigshareArticle;
     },
-    async listArticleFiles(_articleId: string, _page: number = 1, _pageSize: number = 20) {
-      return (_.get(config.testing.fixtures, 'articleFiles', []) as AnyRecord[]) || [];
+    async listArticleFiles(_articleId: string, _page: number = 1, _pageSize: number = 20): Promise<FigshareFile[]> {
+      return (fixtures?.articleFiles ?? []) as FigshareFile[];
     },
-    async createArticleFile(_articleId: string, payload: AnyRecord) {
-      if (_.has(payload, 'link')) {
+    async createArticleFile(_articleId: string, payload: Record<string, unknown>): Promise<FigshareUploadInit> {
+      if (payload.link != null) {
         return {
-          id: _.get(config.testing.fixtures, 'linkFile.id', 'fixture-link-id'),
-          location: _.get(payload, 'link', '')
-        };
+          id: (fixtures as Record<string, unknown>)?.linkFile != null
+            ? ((fixtures as Record<string, unknown>).linkFile as Record<string, unknown>).id ?? 'fixture-link-id'
+            : 'fixture-link-id',
+          location: String(payload.link ?? '')
+        } as FigshareUploadInit;
       }
+      const upload = (fixtures as Record<string, unknown>)?.upload as Record<string, unknown> | undefined;
       return {
-        location: _.get(config.testing.fixtures, 'upload.location', 'https://upload-location.example/files/fixture-file-id')
-      };
+        location: upload?.location ?? 'https://upload-location.example/files/fixture-file-id'
+      } as FigshareUploadInit;
     },
-    async getLocation(locationUrl: string) {
+    async getLocation(locationUrl: string): Promise<FigshareUploadDescriptor> {
+      const upload = (fixtures as Record<string, unknown>)?.upload as Record<string, unknown> | undefined;
       if (locationUrl.includes('/upload/')) {
         return {
-          parts: _.get(config.testing.fixtures, 'upload.parts', [{ partNo: 1, startOffset: 0, endOffset: 0 }])
-        };
+          parts: (upload?.parts ?? [{ partNo: 1, startOffset: 0, endOffset: 0 }])
+        } as FigshareUploadDescriptor;
       }
+      const file = upload?.file as Record<string, unknown> | undefined;
       return {
-        id: _.get(config.testing.fixtures, 'upload.file.id', 'fixture-file-id'),
-        upload_url: _.get(config.testing.fixtures, 'upload.file.upload_url', 'https://upload-location.example/upload/fixture-file-id'),
-        download_url: _.get(config.testing.fixtures, 'upload.file.download_url', 'https://download-location.example/files/fixture-file-id'),
+        id: file?.id ?? 'fixture-file-id',
+        upload_url: file?.upload_url ?? 'https://upload-location.example/upload/fixture-file-id',
+        download_url: file?.download_url ?? 'https://download-location.example/files/fixture-file-id',
         status: 'available'
-      };
+      } as FigshareUploadDescriptor;
     },
     async uploadFilePart(_uploadUrl: string, _partNo: number, _data: unknown) {
       return {};
     },
-    async completeFileUpload(articleId: string, fileId: string, _payload?: AnyRecord) {
+    async completeFileUpload(articleId: string, fileId: string, _payload?: Record<string, unknown>): Promise<FigshareFile> {
       return {
         id: fileId,
+        name: '',
         article_id: articleId,
         status: 'available'
-      };
+      } as FigshareFile;
     },
     async deleteArticleFile(_articleId: string, fileId: string) {
       return { id: fileId, deleted: true };
     },
-    async setEmbargo(_articleId: string, payload: AnyRecord) {
+    async setEmbargo(_articleId: string, payload: Record<string, unknown>) {
       return payload;
     },
     async clearEmbargo(articleId: string) {
       return { id: articleId, cleared: true };
     },
-    async publishArticle(articleId: string, _payload: AnyRecord) {
-      return _.get(config.testing.fixtures, 'publishResult', { id: articleId, status: 'published' }) as AnyRecord;
+    async publishArticle(articleId: string, _payload: Record<string, unknown>): Promise<FigsharePublishResult> {
+      return (fixtures?.publishResult ?? { id: articleId, status: 'published' }) as FigsharePublishResult;
     },
-    async listLicenses() {
-      return (_.get(config.testing.fixtures, 'licenses', []) as AnyRecord[]) || [];
+    async listLicenses(): Promise<FigshareLicense[]> {
+      return (fixtures?.licenses ?? []) as FigshareLicense[];
     },
-    async searchInstitutionAccounts(_payload: AnyRecord) {
-      return (_.get(config.testing.fixtures, 'authors', []) as AnyRecord[]) || [];
+    async searchInstitutionAccounts(_payload: Record<string, unknown>): Promise<FigshareInstitutionAccount[]> {
+      return (fixtures?.authors ?? []) as FigshareInstitutionAccount[];
     }
   };
 }
 
 export function makeLiveClient(config: FigsharePublishingConfigData, runContext: FigshareRunContext): FigshareClient {
   return {
-    createArticle(payload: AnyRecord) {
-      return requestWithRetry(config, runContext, { method: 'post', path: '/account/articles', payload, timeoutMs: config.connection.operationTimeouts.metadataMs });
+    createArticle(payload: Record<string, unknown>) {
+      return requestWithRetry<FigshareArticle>(config, runContext, { method: 'post', path: '/account/articles', payload, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
-    updateArticle(articleId: string, payload: AnyRecord) {
-      return requestWithRetry(config, runContext, { method: 'put', path: `/account/articles/${articleId}`, payload, timeoutMs: config.connection.operationTimeouts.metadataMs });
+    updateArticle(articleId: string, payload: Record<string, unknown>) {
+      return requestWithRetry<FigshareArticle>(config, runContext, { method: 'put', path: `/account/articles/${articleId}`, payload, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
     getArticle(articleId: string) {
-      return requestWithRetry(config, runContext, { method: 'get', path: `/account/articles/${articleId}`, timeoutMs: config.connection.operationTimeouts.metadataMs });
+      return requestWithRetry<FigshareArticle>(config, runContext, { method: 'get', path: `/account/articles/${articleId}`, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
     listArticleFiles(articleId: string, page: number = 1, pageSize: number = 20) {
-      return requestWithRetry(config, runContext, { method: 'get', path: `/account/articles/${articleId}/files?page_size=${pageSize}&page=${page}`, timeoutMs: config.connection.operationTimeouts.metadataMs }) as unknown as Promise<AnyRecord[]>;
+      return requestWithRetry<FigshareFile[]>(config, runContext, { method: 'get', path: `/account/articles/${articleId}/files?page_size=${pageSize}&page=${page}`, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
-    createArticleFile(articleId: string, payload: AnyRecord) {
-      return requestWithRetry(config, runContext, { method: 'post', path: `/account/articles/${articleId}/files`, payload, timeoutMs: config.connection.operationTimeouts.uploadInitMs });
+    createArticleFile(articleId: string, payload: Record<string, unknown>) {
+      return requestWithRetry<FigshareUploadInit>(config, runContext, { method: 'post', path: `/account/articles/${articleId}/files`, payload, timeoutMs: config.connection.operationTimeouts.uploadInitMs });
     },
     getLocation(locationUrl: string) {
-      return requestWithRetry(config, runContext, { method: 'get', url: locationUrl, timeoutMs: config.connection.operationTimeouts.uploadInitMs });
+      return requestWithRetry<FigshareUploadDescriptor>(config, runContext, { method: 'get', url: locationUrl, timeoutMs: config.connection.operationTimeouts.uploadInitMs });
     },
     uploadFilePart(uploadUrl: string, partNo: number, data: unknown) {
       return requestWithRetry(config, runContext, {
@@ -203,8 +219,8 @@ export function makeLiveClient(config: FigsharePublishingConfigData, runContext:
         maxBodyLength: Infinity
       });
     },
-    completeFileUpload(articleId: string, fileId: string, payload: AnyRecord = {}) {
-      return requestWithRetry(config, runContext, {
+    completeFileUpload(articleId: string, fileId: string, payload: Record<string, unknown> = {}) {
+      return requestWithRetry<FigshareFile>(config, runContext, {
         method: 'post',
         path: `/account/articles/${articleId}/files/${fileId}`,
         payload,
@@ -214,25 +230,25 @@ export function makeLiveClient(config: FigsharePublishingConfigData, runContext:
     deleteArticleFile(articleId: string, fileId: string) {
       return requestWithRetry(config, runContext, { method: 'delete', path: `/account/articles/${articleId}/files/${fileId}`, payload: {}, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
-    setEmbargo(articleId: string, payload: AnyRecord) {
+    setEmbargo(articleId: string, payload: Record<string, unknown>) {
       return requestWithRetry(config, runContext, { method: 'put', path: `/account/articles/${articleId}/embargo`, payload, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
     clearEmbargo(articleId: string) {
       return requestWithRetry(config, runContext, { method: 'delete', path: `/account/articles/${articleId}/embargo`, payload: {}, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
-    publishArticle(articleId: string, payload: AnyRecord) {
-      return requestWithRetry(config, runContext, { method: 'post', path: `/account/articles/${articleId}/publish`, payload, timeoutMs: config.connection.operationTimeouts.publishMs });
+    publishArticle(articleId: string, payload: Record<string, unknown>) {
+      return requestWithRetry<FigsharePublishResult>(config, runContext, { method: 'post', path: `/account/articles/${articleId}/publish`, payload, timeoutMs: config.connection.operationTimeouts.publishMs });
     },
     listLicenses() {
-      return requestWithRetry(config, runContext, { method: 'get', path: '/account/licenses', timeoutMs: config.connection.operationTimeouts.metadataMs }) as unknown as Promise<AnyRecord[]>;
+      return requestWithRetry<FigshareLicense[]>(config, runContext, { method: 'get', path: '/account/licenses', timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
-    searchInstitutionAccounts(payload: AnyRecord) {
-      return requestWithRetry(config, runContext, {
+    searchInstitutionAccounts(payload: Record<string, unknown>) {
+      return requestWithRetry<FigshareInstitutionAccount[]>(config, runContext, {
         method: 'post',
         path: '/account/institution/accounts/search',
         payload,
         timeoutMs: config.connection.operationTimeouts.metadataMs
-      }) as unknown as Promise<AnyRecord[]>;
+      });
     }
   };
 }

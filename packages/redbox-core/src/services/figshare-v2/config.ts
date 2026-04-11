@@ -1,18 +1,19 @@
 import _ from 'lodash';
 import { resolveFigshareConnectionToken, type FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
-import { AnyRecord, FigshareSyncState, RecordLike } from './types';
+import { FigshareSyncState, getRecordField, setRecordField, RecordModel } from './types';
 
-export function getBrandName(record?: RecordLike): string {
-  return String(_.get(record as AnyRecord, 'metaMetadata.branding', _.get(record as AnyRecord, 'branding', 'default')) || 'default');
+export function getBrandName(record?: RecordModel): string {
+  if (record == null) return 'default';
+  const rm = record as RecordModel;
+  return rm.metaMetadata?.brandId ?? (record as Record<string, unknown>).branding as string ?? 'default';
 }
 
-export function resolveFigsharePublishingConfig(record?: RecordLike): FigsharePublishingConfigData | null {
+export function resolveFigsharePublishingConfig(record?: RecordModel): FigsharePublishingConfigData | null {
   const brandName = getBrandName(record);
   const brandConfig = AppConfigService?.getAppConfigurationForBrand?.(brandName) ?? AppConfigService?.getAppConfigurationForBrand?.('default');
-  const figsharePublishing = _.get(brandConfig, 'figsharePublishing') as Partial<FigsharePublishingConfigData> | undefined;
-  if (figsharePublishing && _.isPlainObject(figsharePublishing) && figsharePublishing.enabled === true) {
-    const resolvedFigsharePublishing = figsharePublishing as FigsharePublishingConfigData;
-    const resolvedConfig = _.cloneDeep(resolvedFigsharePublishing);
+  const figsharePublishing = (brandConfig as unknown as Record<string, unknown>)?.figsharePublishing as Partial<FigsharePublishingConfigData> | undefined;
+  if (figsharePublishing && typeof figsharePublishing === 'object' && figsharePublishing.enabled === true) {
+    const resolvedConfig = _.cloneDeep(figsharePublishing) as FigsharePublishingConfigData;
     resolvedConfig.connection.token = resolveFigshareConnectionToken(resolvedConfig.connection.token, {
       allowEmpty: resolvedConfig.testing.mode === 'fixture'
     });
@@ -21,15 +22,15 @@ export function resolveFigsharePublishingConfig(record?: RecordLike): FigsharePu
   return null;
 }
 
-export function getSyncState(config: FigsharePublishingConfigData, record: AnyRecord) {
-  return (_.get(record, config.record.syncStatePath, { status: 'idle' }) || { status: 'idle' });
+export function getSyncState(config: FigsharePublishingConfigData, record: RecordModel): FigshareSyncState {
+  return (getRecordField(record, config.record.syncStatePath) as FigshareSyncState) ?? { status: 'idle' };
 }
 
-export function setSyncState(config: FigsharePublishingConfigData, record: AnyRecord, syncState: AnyRecord | FigshareSyncState): void {
-  _.set(record, config.record.syncStatePath, {
+export function setSyncState(config: FigsharePublishingConfigData, record: RecordModel, syncState: FigshareSyncState): void {
+  setRecordField(record, config.record.syncStatePath, {
     ...syncState,
     lastSyncAt: syncState.lastSyncAt ?? new Date().toISOString()
   });
-  _.set(record, config.record.statusPath, syncState.status);
-  _.set(record, config.record.errorPath, syncState.lastError ?? '');
+  setRecordField(record, config.record.statusPath, syncState.status);
+  setRecordField(record, config.record.errorPath, syncState.lastError ?? '');
 }

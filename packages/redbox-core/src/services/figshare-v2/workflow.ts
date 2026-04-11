@@ -1,6 +1,5 @@
-import _ from 'lodash';
-import { AnyRecord } from './types';
+import { WorkflowTransitionJobConfig } from './types';
 
-export function shouldRunWorkflowTransitionJob(jobConfig: AnyRecord): boolean {
-  return _.get(jobConfig, 'enabled', '')?.toString() === 'true';
+export function shouldRunWorkflowTransitionJob(jobConfig: WorkflowTransitionJobConfig): boolean {
+  return jobConfig.enabled?.toString() === 'true';
 }

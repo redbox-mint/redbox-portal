@@ -1,35 +1,42 @@
-import _ from 'lodash';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { FigshareClient } from './http';
-import { AnyRecord } from './types';
+import { RecordModel, FigshareArticle } from './types';
 import { evaluateBinding } from './bindings';
 
-function isEmptyEmbargo(payload: AnyRecord): boolean {
-  return _.every(Object.values(payload), (value: unknown) => _.isNil(value) || value === '');
+interface EmbargoPayload {
+  [key: string]: unknown;
+  access_type: unknown;
+  embargo_date: unknown;
+  embargo_reason: unknown;
 }
 
-function embargoChanged(payload: AnyRecord, article: AnyRecord): boolean {
+function isEmptyEmbargo(payload: EmbargoPayload): boolean {
+  return Object.values(payload).every((value) => value == null || value === '');
+}
+
+function embargoChanged(payload: EmbargoPayload, article: FigshareArticle): boolean {
   return (
-    String(_.get(payload, 'access_type', '')) !== String(_.get(article, 'access_type', '')) ||
-    String(_.get(payload, 'embargo_date', '')) !== String(_.get(article, 'embargo_date', '')) ||
-    String(_.get(payload, 'embargo_reason', '')) !== String(_.get(article, 'embargo_reason', ''))
+    String(payload.access_type ?? '') !== String(article.access_type ?? '') ||
+    String(payload.embargo_date ?? '') !== String(article.embargo_date ?? '') ||
+    String(payload.embargo_reason ?? '') !== String(article.embargo_reason ?? '')
   );
 }
 
-export async function syncEmbargoPhase(client: FigshareClient, config: FigsharePublishingConfigData, record: AnyRecord, articleId: string): Promise<AnyRecord> {
+export async function syncEmbargoPhase(client: FigshareClient, config: FigsharePublishingConfigData, record: RecordModel, articleId: string): Promise<Record<string, unknown>> {
   if (config.embargo.mode !== 'recordDriven') {
     return {};
   }
 
-  const embargoPayload = {
-    access_type: await evaluateBinding(config.embargo.accessRights.accessRights, record),
-    embargo_date: await evaluateBinding(config.embargo.accessRights.fullEmbargoUntil, record),
-    embargo_reason: await evaluateBinding(config.embargo.accessRights.reason, record)
+  const recordData = record as Record<string, unknown>;
+  const embargoPayload: EmbargoPayload = {
+    access_type: await evaluateBinding(config.embargo.accessRights.accessRights, recordData),
+    embargo_date: await evaluateBinding(config.embargo.accessRights.fullEmbargoUntil, recordData),
+    embargo_reason: await evaluateBinding(config.embargo.accessRights.reason, recordData)
   };
 
   const article = await client.getArticle(articleId);
   const emptyEmbargo = isEmptyEmbargo(embargoPayload);
-  if (!config.embargo.forceSync && emptyEmbargo && _.get(article, 'is_embargoed', false) !== true) {
+  if (!config.embargo.forceSync && emptyEmbargo && article.is_embargoed !== true) {
     return {};
   }
 
@@ -41,5 +48,5 @@ export async function syncEmbargoPhase(client: FigshareClient, config: FigshareP
     return {};
   }
 
-  return client.setEmbargo(articleId, embargoPayload);
+  return client.setEmbargo(articleId, embargoPayload as Record<string, unknown>);
 }

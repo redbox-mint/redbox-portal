@@ -1,16 +1,15 @@
-import _ from 'lodash';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { FigshareClient } from './http';
-import { AnyRecord, FigshareSyncState } from './types';
+import { RecordModel, FigshareSyncState, FigsharePublishResult } from './types';
 import { setSyncState } from './config';
 
-export async function publishIfNeededPhase(client: FigshareClient, config: FigsharePublishingConfigData, record: AnyRecord, articleId: string, syncState: FigshareSyncState): Promise<AnyRecord> {
+export async function publishIfNeededPhase(client: FigshareClient, config: FigsharePublishingConfigData, record: RecordModel, articleId: string, syncState: FigshareSyncState): Promise<FigsharePublishResult> {
   if (config.article.publishMode === 'manual') {
     return {};
   }
 
-  const attachmentCount = _.toNumber(_.get(syncState, 'partialProgress.attachmentCount', 0));
-  const uploadsComplete = _.get(syncState, 'partialProgress.uploadsComplete', false) === true;
+  const attachmentCount = Number(syncState.partialProgress?.attachmentCount ?? 0);
+  const uploadsComplete = syncState.partialProgress?.uploadsComplete === true;
   if (attachmentCount > 0 && config.article.publishMode === 'afterUploadsComplete') {
     syncState.status = 'awaiting_upload_completion';
     setSyncState(config, record, syncState);

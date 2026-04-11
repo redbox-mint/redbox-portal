@@ -1,6 +1,14 @@
 import _ from 'lodash';
 import { FigsharePublishingConfigData, WriteBackBinding } from '../../configmodels/FigsharePublishing';
-import { AnyRecord, RecordLike } from './types';
+import {
+  RecordModel,
+  FigshareArticle,
+  FigsharePublishResult,
+  AssetSyncResult,
+  FigshareSyncState,
+  getRecordField,
+  setRecordField,
+} from './types';
 import { setSyncState } from './config';
 
 export function getWriteBackUrls(config: FigsharePublishingConfigData, articleId: string): string[] {
@@ -8,28 +16,28 @@ export function getWriteBackUrls(config: FigsharePublishingConfigData, articleId
   return [`${frontEndUrl}/articles/${articleId}`];
 }
 
-export function writeBackPhase(config: FigsharePublishingConfigData, record: RecordLike, article: AnyRecord, publishResult?: AnyRecord, assetSyncResult?: AnyRecord): RecordLike {
-  const recordObj = record as AnyRecord;
-  const articleId = String(article?.id ?? publishResult?.id ?? _.get(recordObj, config.record.articleIdPath, ''));
+export function writeBackPhase(config: FigsharePublishingConfigData, record: RecordModel, article: FigshareArticle, publishResult?: FigsharePublishResult, assetSyncResult?: AssetSyncResult): RecordModel {
+  const rm = record as RecordModel;
+  const articleId = String(article?.id ?? publishResult?.id ?? getRecordField(rm, config.record.articleIdPath) ?? '');
 
-  _.set(recordObj, config.writeBack.articleId, articleId);
+  setRecordField(rm, config.writeBack.articleId, articleId);
   const articleUrls = getWriteBackUrls(config, articleId);
   config.writeBack.articleUrls.forEach((targetPath: string, index: number) => {
-    _.set(recordObj, targetPath, articleUrls[index] ?? articleUrls[0]);
+    setRecordField(rm, targetPath, articleUrls[index] ?? articleUrls[0]);
   });
   config.writeBack.extraFields.forEach((binding: WriteBackBinding) => {
     const source = binding.from === 'publishResult' ? publishResult : binding.from === 'assetSyncResult' ? assetSyncResult : article;
-    _.set(recordObj, binding.targetPath, _.get(source, binding.sourcePath));
+    setRecordField(rm, binding.targetPath, _.get(source, binding.sourcePath));
   });
 
-  const syncState = (_.get(recordObj, config.record.syncStatePath, { status: 'idle' }) || {}) as AnyRecord;
-  const hasPublishResult = _.isPlainObject(publishResult) ? !_.isEmpty(publishResult) : !_.isNil(publishResult);
+  const syncState = (getRecordField(rm, config.record.syncStatePath) ?? { status: 'idle' }) as FigshareSyncState;
+  const hasPublishResult = publishResult != null && typeof publishResult === 'object' && Object.keys(publishResult).length > 0;
   syncState.status = hasPublishResult ? 'published' : syncState.status === 'awaiting_upload_completion' ? 'awaiting_upload_completion' : 'syncing';
   syncState.lastError = '';
   syncState.partialProgress = {
     ...(syncState.partialProgress || {}),
     articleId
   };
-  setSyncState(config, recordObj, syncState);
+  setSyncState(config, rm, syncState);
   return record;
 }

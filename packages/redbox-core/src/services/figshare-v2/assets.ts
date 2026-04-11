@@ -5,21 +5,32 @@ import _ from 'lodash';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { RBValidationError } from '../../model/RBValidationError';
 import { FigshareClient } from './http';
-import { AnyRecord, FigshareSyncState } from './types';
+import {
+  RecordModel,
+  FigshareArticle,
+  FigshareFile,
+  FigshareSyncState,
+  DataLocationEntry,
+  AssetSyncResult,
+} from './types';
 import { setSyncState } from './config';
 import { getSelectedDataLocations } from './plan';
 
 function getTempDir(config: FigsharePublishingConfigData): string {
-  return String(config.assets.staging.tempDir || _.get(sails.config, 'figshareAPI.attachmentsFigshareTempDir', _.get(sails.config, 'figshareAPI.attachmentsTempDir', '/tmp')));
+  const configDir = config.assets.staging.tempDir;
+  if (configDir) return configDir;
+  const sailsDir = (sails.config as Record<string, unknown>).figshareAPI as Record<string, unknown> | undefined;
+  return String(sailsDir?.attachmentsFigshareTempDir ?? sailsDir?.attachmentsTempDir ?? '/tmp');
 }
 
-function getRecordOid(record: AnyRecord): string {
-  return String(_.get(record, 'redboxOid', _.get(record, 'oid', '')));
+function getRecordOid(record: RecordModel): string {
+  return record.redboxOid ?? record.id ?? '';
 }
 
-function getDatastreamService(): AnyRecord {
-  const serviceName = String(_.get(sails.config, 'record.datastreamService', ''));
-  return (sails.services || {})[serviceName] as AnyRecord;
+function getDatastreamService(): Record<string, unknown> | undefined {
+  const recordConfig = (sails.config as Record<string, unknown>).record as Record<string, unknown> | undefined;
+  const serviceName = String(recordConfig?.datastreamService ?? '');
+  return serviceName ? (sails.services as Record<string, unknown>)?.[serviceName] as Record<string, unknown> | undefined : undefined;
 }
 
 function validationError(message: string): RBValidationError {
@@ -29,23 +40,27 @@ function validationError(message: string): RBValidationError {
   });
 }
 
-async function getAttachmentStream(oid: string, fileId: string): Promise<AnyRecord> {
+interface DatastreamResponse {
+  readstream: NodeJS.ReadableStream;
+  size?: number;
+}
+
+async function getAttachmentStream(oid: string, fileId: string): Promise<DatastreamResponse> {
   const datastreamService = getDatastreamService();
   if (datastreamService == null) {
     throw new Error('Datastream service is not configured');
   }
 
-  const response = await (datastreamService.getDatastream as any)(oid, fileId);
-  const readStream = response?.readstream;
-  if (readStream == null) {
+  const response = await (datastreamService.getDatastream as (oid: string, fileId: string) => Promise<DatastreamResponse>)(oid, fileId);
+  if (response?.readstream == null) {
     throw new Error(`Unable to read datastream '${fileId}' for record '${oid}'`);
   }
   return response;
 }
 
-async function stageAttachmentToDisk(response: AnyRecord, filePath: string): Promise<number> {
+async function stageAttachmentToDisk(response: DatastreamResponse, filePath: string): Promise<number> {
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-  const readStream = response.readstream as NodeJS.ReadableStream;
+  const readStream = response.readstream;
   await new Promise<void>((resolve, reject) => {
     const writeStream = fs.createWriteStream(filePath);
     readStream.on('error', reject);
@@ -58,9 +73,9 @@ async function stageAttachmentToDisk(response: AnyRecord, filePath: string): Pro
   return stat.size;
 }
 
-async function uploadAttachment(client: FigshareClient, config: FigsharePublishingConfigData, articleId: string, oid: string, attachment: AnyRecord): Promise<AnyRecord> {
-  const fileId = String(_.get(attachment, 'fileId', ''));
-  const fileName = String(_.get(attachment, 'name', ''));
+async function uploadAttachment(client: FigshareClient, config: FigsharePublishingConfigData, articleId: string, oid: string, attachment: DataLocationEntry): Promise<FigshareFile> {
+  const fileId = attachment.fileId ?? '';
+  const fileName = attachment.name ?? '';
   if (fileId === '' || fileName === '') {
     throw validationError('Attachment entry is missing fileId or name');
   }
@@ -68,7 +83,7 @@ async function uploadAttachment(client: FigshareClient, config: FigsharePublishi
   const tempDir = getTempDir(config);
   const filePath = path.join(tempDir, fileName);
   const datastream = await getAttachmentStream(oid, fileId);
-  const expectedSize = _.toNumber(_.get(datastream, 'size', 0));
+  const expectedSize = Number(datastream.size ?? 0);
   if (expectedSize > 0) {
     const diskSpace = await checkDiskSpace(tempDir);
     if (diskSpace.free < expectedSize + config.assets.staging.diskSpaceThresholdBytes) {
@@ -91,24 +106,24 @@ async function uploadAttachment(client: FigshareClient, config: FigsharePublishi
       name: fileName,
       size: stagedSize
     });
-    const uploadDescriptor = await client.getLocation(String(_.get(uploadInit, 'location', '')));
-    const uploadUrl = String(_.get(uploadDescriptor, 'upload_url', ''));
-    const figshareFileId = String(_.get(uploadDescriptor, 'id', ''));
+    const uploadDescriptor = await client.getLocation(uploadInit.location);
+    const uploadUrl = uploadDescriptor.upload_url;
+    const figshareFileId = String(uploadDescriptor.id);
     const partsDescriptor = await client.getLocation(uploadUrl);
-    const parts = (_.get(partsDescriptor, 'parts', []) as AnyRecord[]) || [];
+    const parts = partsDescriptor.parts ?? [];
 
     for (const part of parts) {
       const readStream = fs.createReadStream(filePath, {
-        start: _.toNumber(_.get(part, 'startOffset', 0)),
-        end: _.toNumber(_.get(part, 'endOffset', 0))
+        start: part.startOffset,
+        end: part.endOffset
       });
-      await client.uploadFilePart(uploadUrl, _.toNumber(_.get(part, 'partNo', 0)), readStream);
+      await client.uploadFilePart(uploadUrl, part.partNo, readStream);
     }
 
     await client.completeFileUpload(articleId, figshareFileId, {});
-    const uploadedFile = await client.getLocation(String(_.get(uploadInit, 'location', '')));
+    const uploadedFile = await client.getLocation(uploadInit.location);
     uploadSucceeded = true;
-    return uploadedFile;
+    return uploadedFile as unknown as FigshareFile;
   } finally {
     const shouldDeleteTempFile = !uploadSucceeded || config.assets.staging.cleanupPolicy === 'deleteAfterSuccess';
     if (shouldDeleteTempFile && fs.existsSync(filePath)) {
@@ -117,21 +132,21 @@ async function uploadAttachment(client: FigshareClient, config: FigsharePublishi
   }
 }
 
-async function syncLinkOnlyFiles(client: FigshareClient, articleId: string, selectedUrls: AnyRecord[], currentFiles: AnyRecord[]): Promise<AnyRecord[]> {
-  const existingLinkFiles = currentFiles.filter((entry: AnyRecord) => _.get(entry, 'is_link_only', false) === true);
+async function syncLinkOnlyFiles(client: FigshareClient, articleId: string, selectedUrls: DataLocationEntry[], currentFiles: FigshareFile[]): Promise<FigshareFile[]> {
+  const existingLinkFiles = currentFiles.filter((entry) => entry.is_link_only === true);
   for (const file of existingLinkFiles) {
-    await client.deleteArticleFile(articleId, String(_.get(file, 'id', '')));
+    await client.deleteArticleFile(articleId, String(file.id));
   }
 
-  const uploadedUrls: AnyRecord[] = [];
+  const uploadedUrls: FigshareFile[] = [];
   for (const entry of selectedUrls) {
-    if (_.get(entry, 'ignore', false) === true) {
+    if (entry.ignore === true) {
       continue;
     }
     const response = await client.createArticleFile(articleId, {
-      link: _.get(entry, 'location', '')
+      link: entry.location ?? ''
     });
-    uploadedUrls.push(response);
+    uploadedUrls.push(response as unknown as FigshareFile);
   }
   return uploadedUrls;
 }
@@ -139,23 +154,23 @@ async function syncLinkOnlyFiles(client: FigshareClient, articleId: string, sele
 export async function syncAssetsPhase(
   client: FigshareClient,
   config: FigsharePublishingConfigData,
-  record: AnyRecord,
-  article: AnyRecord,
+  record: RecordModel,
+  article: FigshareArticle,
   syncState: FigshareSyncState
-): Promise<AnyRecord> {
+): Promise<AssetSyncResult> {
   const selectedDataLocations = getSelectedDataLocations(config, record);
   const selectedAttachments = selectedDataLocations.filter((entry) => entry.type === 'attachment');
   const selectedUrls = selectedDataLocations.filter((entry) => entry.type === 'url');
-  const articleId = String(_.get(article, 'id', ''));
+  const articleId = String(article.id);
 
   const attachmentCount = selectedAttachments.length;
   const urlCount = selectedUrls.length;
-  const currentFiles: AnyRecord[] = [];
+  const currentFiles: FigshareFile[] = [];
   let page = 1;
   const pageSize = 20;
   while (true) {
     const pageResults = await client.listArticleFiles(articleId, page, pageSize);
-    if (!_.isArray(pageResults) || pageResults.length === 0) {
+    if (!Array.isArray(pageResults) || pageResults.length === 0) {
       break;
     }
     currentFiles.push(...pageResults);
@@ -165,7 +180,7 @@ export async function syncAssetsPhase(
     page++;
   }
 
-  if (currentFiles.some((entry: AnyRecord) => String(_.get(entry, 'status', '')).toLowerCase() === 'created')) {
+  if (currentFiles.some((entry) => String(entry.status ?? '').toLowerCase() === 'created')) {
     throw validationError(`Figshare file uploads are already in progress for article '${articleId}'`);
   }
 
@@ -187,18 +202,18 @@ export async function syncAssetsPhase(
       attachmentCount,
       urlCount,
       uploadsComplete: true,
-      uploadedAttachments: selectedAttachments,
-      uploadedUrls: selectedUrls,
+      uploadedAttachments: selectedAttachments as unknown as FigshareFile[],
+      uploadedUrls: selectedUrls as unknown as FigshareFile[],
       dataLocations: selectedDataLocations
     };
   }
 
   const oid = getRecordOid(record);
-  const uploadedAttachments: AnyRecord[] = [];
+  const uploadedAttachments: FigshareFile[] = [];
   if (config.assets.enableHostedFiles) {
     for (const attachment of selectedAttachments) {
-      const fileName = String(_.get(attachment, 'name', ''));
-      const alreadyUploaded = currentFiles.find((entry: AnyRecord) => String(_.get(entry, 'name', '')) === fileName);
+      const fileName = attachment.name ?? '';
+      const alreadyUploaded = currentFiles.find((entry) => entry.name === fileName);
       if (alreadyUploaded != null) {
         uploadedAttachments.push(alreadyUploaded);
         continue;

@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import { Services as LegacyServices } from './LegacyFigshareService';
-import { resolveFigsharePublishingConfig, getSyncState, setSyncState } from './figshare-v2/config';
+import { resolveFigsharePublishingConfig, getSyncState, setSyncState, getBrandName } from './figshare-v2/config';
 import { createRunContext } from './figshare-v2/context';
 import { preparePublication as preparePublicationPlan } from './figshare-v2/plan';
 import { validateHandlebarsTemplate } from './figshare-v2/bindings';
@@ -13,19 +13,34 @@ import { buildDeleteFilesMessage, buildPublishAfterUploadsMessage } from './figs
 import { shouldRunWorkflowTransitionJob } from './figshare-v2/workflow';
 import { FigshareClient, makeFixtureClient, makeLiveClient } from './figshare-v2/http';
 import { RBValidationError } from '../model/RBValidationError';
-import { AnyRecord, FigsharePublicationPlan, FigshareSyncState, RecordLike } from './figshare-v2/types';
+import {
+  RecordModel,
+  UserModel,
+  FigshareArticle,
+  FigshareFile,
+  FigsharePublicationPlan,
+  FigsharePublishResult,
+  FigshareSyncState,
+  FigshareJob,
+  FigshareJobData,
+  DataLocationEntry,
+  WorkflowTransitionJobConfig,
+  AssetSyncResult,
+  getRecordField,
+  setRecordField,
+} from './figshare-v2/types';
 
 export namespace Services {
   export class FigshareV2Service extends LegacyServices.LegacyFigshareService {
-    public getV2Config(record?: RecordLike) {
+    public getV2Config(record?: RecordModel) {
       return resolveFigsharePublishingConfig(record);
     }
 
-    public getSyncState(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: AnyRecord): FigshareSyncState {
-      return getSyncState(config, record) as FigshareSyncState;
+    public getSyncState(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel): FigshareSyncState {
+      return getSyncState(config, record);
     }
 
-    public setSyncState(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: AnyRecord, syncState: FigshareSyncState): void {
+    public setSyncState(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel, syncState: FigshareSyncState): void {
       setSyncState(config, record, syncState);
     }
 
@@ -33,97 +48,97 @@ export namespace Services {
       validateHandlebarsTemplate(template);
     }
 
-    public async buildMetadataPayload(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: AnyRecord): Promise<AnyRecord> {
+    public async buildMetadataPayload(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel): Promise<Record<string, unknown>> {
       return buildV2MetadataPayload(config, record, this.makeClient(config, record, undefined, 'buildMetadataPayload'));
     }
 
-    public makeClient(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordLike, jobId?: string, triggerSource: string = 'manual') {
+    public makeClient(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel, jobId?: string, triggerSource: string = 'manual') {
       const runContext = createRunContext(record, config, jobId, triggerSource);
       return config.testing.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, runContext);
     }
 
-    public preparePublication(record: RecordLike, jobId?: string): FigsharePublicationPlan {
+    public preparePublication(record: RecordModel, jobId?: string): FigsharePublicationPlan {
       const config = this.getV2Config(record);
-      const recordObj = record as AnyRecord;
+      const rm = record as RecordModel;
       if (config == null) {
         return { action: 'skip', sameJob: false, syncState: { status: 'idle' } };
       }
 
       const runContext = createRunContext(record, config, jobId);
-      const existingState = this.getSyncState(config, recordObj);
-      return preparePublicationPlan(config, recordObj, existingState, runContext.correlationId);
+      const existingState = this.getSyncState(config, rm);
+      return preparePublicationPlan(config, rm, existingState, runContext.correlationId);
     }
 
-    public async syncMetadata(record: RecordLike, plan?: FigsharePublicationPlan): Promise<AnyRecord> {
+    public async syncMetadata(record: RecordModel, plan?: FigsharePublicationPlan): Promise<FigshareArticle> {
       const config = this.getV2Config(record);
-      const recordObj = record as AnyRecord;
+      const rm = record as RecordModel;
       if (config == null) {
-        return {};
+        return {} as FigshareArticle;
       }
 
-      const publicationPlan = plan ?? this.preparePublication(recordObj);
+      const publicationPlan = plan ?? this.preparePublication(rm);
       const articleId = publicationPlan.articleId;
       if (articleId) {
-        const currentArticle = await this.makeClient(config, recordObj, publicationPlan.syncState.correlationId, 'syncMetadata').getArticle(articleId);
-        if (this.isCurationLocked(recordObj, currentArticle)) {
+        const currentArticle = await this.makeClient(config, rm, publicationPlan.syncState.correlationId, 'syncMetadata').getArticle(articleId);
+        if (this.isCurationLocked(rm, currentArticle)) {
           return currentArticle;
         }
-        await this.ensureNoFileUploadInProgress(config, recordObj, articleId);
+        await this.ensureNoFileUploadInProgress(config, rm, articleId);
       }
 
-      const client = this.makeClient(config, recordObj, publicationPlan.syncState.correlationId, 'syncMetadata');
-      return syncMetadataPhase(client, config, recordObj, publicationPlan);
+      const client = this.makeClient(config, rm, publicationPlan.syncState.correlationId, 'syncMetadata');
+      return syncMetadataPhase(client, config, rm, publicationPlan);
     }
 
-    public async syncAssets(record: RecordLike, article: AnyRecord): Promise<AnyRecord> {
+    public async syncAssets(record: RecordModel, article: FigshareArticle): Promise<AssetSyncResult & Record<string, unknown>> {
       const config = this.getV2Config(record);
-      const recordObj = record as AnyRecord;
+      const rm = record as RecordModel;
+      if (config == null) {
+        return {} as AssetSyncResult;
+      }
+
+      const syncState = this.getSyncState(config, rm);
+      const client = this.makeClient(config, rm, syncState.correlationId, 'syncAssets');
+      return syncAssetsPhase(client, config, rm, article, syncState);
+    }
+
+    public async syncEmbargo(record: RecordModel, articleId: string): Promise<Record<string, unknown>> {
+      const config = this.getV2Config(record);
+      const rm = record as RecordModel;
       if (config == null) {
         return {};
       }
 
-      const syncState = this.getSyncState(config, recordObj);
-      const client = this.makeClient(config, recordObj, syncState.correlationId, 'syncAssets');
-      return syncAssetsPhase(client, config, recordObj, article, syncState);
+      const client = this.makeClient(config, rm, undefined, 'syncEmbargo');
+      return syncEmbargoPhase(client, config, rm, articleId);
     }
 
-    public async syncEmbargo(record: RecordLike, articleId: string): Promise<AnyRecord> {
+    public async publishIfNeeded(record: RecordModel, articleId: string): Promise<FigsharePublishResult> {
       const config = this.getV2Config(record);
-      const recordObj = record as AnyRecord;
+      const rm = record as RecordModel;
       if (config == null) {
         return {};
       }
 
-      const client = this.makeClient(config, recordObj, undefined, 'syncEmbargo');
-      return syncEmbargoPhase(client, config, recordObj, articleId);
+      const client = this.makeClient(config, rm, undefined, 'publishIfNeeded');
+      return publishIfNeededPhase(client, config, rm, articleId, this.getSyncState(config, rm));
     }
 
-    public async publishIfNeeded(record: RecordLike, articleId: string): Promise<AnyRecord> {
-      const config = this.getV2Config(record);
-      const recordObj = record as AnyRecord;
-      if (config == null) {
-        return {};
-      }
-
-      const client = this.makeClient(config, recordObj, undefined, 'publishIfNeeded');
-      return publishIfNeededPhase(client, config, recordObj, articleId, this.getSyncState(config, recordObj));
-    }
-
-    public writeBack(record: RecordLike, article: AnyRecord, publishResult?: AnyRecord, assetSyncResult?: AnyRecord): RecordLike {
+    public writeBack(record: RecordModel, article: FigshareArticle, publishResult?: FigsharePublishResult, assetSyncResult?: Record<string, unknown>): RecordModel {
       const config = this.getV2Config(record);
       if (config == null) {
         return record;
       }
-      return writeBackPhase(config, record, article, publishResult, assetSyncResult);
+      return writeBackPhase(config, record, article, publishResult, assetSyncResult as AssetSyncResult | undefined);
     }
 
-    private async getArticleFiles(client: FigshareClient, articleId: string): Promise<AnyRecord[]> {
-      const files: AnyRecord[] = [];
+    private async getArticleFiles(client: FigshareClient, articleId: string): Promise<FigshareFile[]> {
+      const files: FigshareFile[] = [];
       let page = 1;
       const pageSize = 20;
       while (true) {
         const pageResults = await client.listArticleFiles(articleId, page, pageSize);
-        if (!_.isArray(pageResults) || pageResults.length === 0) {
+        if (!Array.isArray(pageResults) || pageResults.length === 0) {
           break;
         }
         files.push(...pageResults);
@@ -135,28 +150,25 @@ export namespace Services {
       return files;
     }
 
-    private isCurationLocked(record: AnyRecord, article: AnyRecord): boolean {
+    private isCurationLocked(record: RecordModel, article: FigshareArticle): boolean {
       const config = this.getV2Config(record);
-      const statusField = String(
-        _.get(config, 'article.curationLock.statusField', '') ||
-        _.get(sails.config, 'figshareAPI.mapping.figshareCurationStatus', '')
-      );
-      const targetValue = String(
-        _.get(config, 'article.curationLock.targetValue', 'public') ||
-        _.get(sails.config, 'figshareAPI.mapping.figshareCurationStatusTargetValue', 'public')
-      );
-      const updatesDisabled = _.get(config, 'article.curationLock.enabled') === true ||
-        _.get(sails.config, 'figshareAPI.mapping.figshareDisableUpdateByCurationStatus', false) === true;
+      const legacyConfig = (sails.config as Record<string, unknown>).figshareAPI as Record<string, unknown> | undefined;
+      const legacyMapping = legacyConfig?.mapping as Record<string, unknown> | undefined;
+
+      const statusField = config?.article.curationLock?.statusField || String(legacyMapping?.figshareCurationStatus ?? '');
+      const targetValue = config?.article.curationLock?.targetValue || String(legacyMapping?.figshareCurationStatusTargetValue ?? 'public');
+      const updatesDisabled = config?.article.curationLock?.enabled === true ||
+        legacyMapping?.figshareDisableUpdateByCurationStatus === true;
       if (!updatesDisabled || statusField === '') {
         return false;
       }
-      return String(_.get(article, statusField, '')) === targetValue;
+      return String((article as Record<string, unknown>)[statusField] ?? '') === targetValue;
     }
 
-    private async ensureNoFileUploadInProgress(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: AnyRecord, articleId: string): Promise<void> {
+    private async ensureNoFileUploadInProgress(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel, articleId: string): Promise<void> {
       const client = this.makeClient(config, record, undefined, 'ensureNoFileUploadInProgress');
       const files = await this.getArticleFiles(client, articleId);
-      const inProgress = files.some((entry: AnyRecord) => String(_.get(entry, 'status', '')).toLowerCase() === 'created');
+      const inProgress = files.some((entry) => String(entry.status ?? '').toLowerCase() === 'created');
       if (inProgress) {
         throw new RBValidationError({
           message: `Figshare file uploads are still in progress for article '${articleId}'`,
@@ -168,7 +180,7 @@ export namespace Services {
       }
     }
 
-    private async cleanupUploadedFiles(record: AnyRecord, articleId: string): Promise<RecordLike> {
+    private async cleanupUploadedFiles(record: RecordModel, articleId: string): Promise<RecordModel> {
       const config = this.getV2Config(record);
       if (config == null) {
         return record;
@@ -176,47 +188,53 @@ export namespace Services {
 
       const client = this.makeClient(config, record, undefined, 'cleanupUploadedFiles');
       const articleFiles = await this.getArticleFiles(client, articleId);
-      const dataLocations = (_.get(record, config.record.dataLocationsPath, []) || []) as AnyRecord[];
-      const datastreamServiceName = String(_.get(sails.config, 'record.datastreamService', ''));
-      const datastreamService = ((sails.services || {}) as AnyRecord)[datastreamServiceName];
+      const dataLocations = (getRecordField(record, config.record.dataLocationsPath) ?? []) as DataLocationEntry[];
+      const recordConfig = (sails.config as Record<string, unknown>).record as Record<string, unknown> | undefined;
+      const datastreamServiceName = String(recordConfig?.datastreamService ?? '');
+      const datastreamService = datastreamServiceName ? (sails.services as Record<string, unknown>)?.[datastreamServiceName] as Record<string, unknown> | undefined : undefined;
 
       for (const entry of [...dataLocations]) {
-        if (entry?.type !== 'attachment' || _.isNil(entry?.fileId)) {
+        if (entry.type !== 'attachment' || entry.fileId == null) {
           continue;
         }
 
-        const uploaded = articleFiles.find((file: AnyRecord) => String(_.get(file, 'name', '')) === String(_.get(entry, 'name', '')));
+        const uploaded = articleFiles.find((file) => file.name === (entry.name ?? ''));
         if (uploaded == null) {
           continue;
         }
 
-        const removeDatastream = (datastreamService as any)?.removeDatastream as ((oid: string, entry: AnyRecord) => Promise<unknown>) | undefined;
+        const removeDatastream = datastreamService?.removeDatastream as ((oid: string, entry: DataLocationEntry) => Promise<unknown>) | undefined;
         if (removeDatastream != null) {
-          await removeDatastream(String(_.get(record, 'redboxOid', _.get(record, 'oid', ''))), entry);
+          await removeDatastream(record.redboxOid ?? record.id ?? '', entry);
         }
 
-        _.remove(dataLocations, (location: AnyRecord) => location === entry);
+        const idx = dataLocations.indexOf(entry);
+        if (idx >= 0) {
+          dataLocations.splice(idx, 1);
+        }
         dataLocations.push({
           type: 'url',
-          location: _.get(uploaded, 'download_url', ''),
-          notes: `File name: ${_.get(uploaded, 'name', '')}`,
-          originalFileName: _.get(uploaded, 'name', ''),
+          location: uploaded.download_url ?? '',
+          notes: `File name: ${uploaded.name}`,
+          originalFileName: uploaded.name,
           ignore: true,
-          selected: _.get(entry, 'selected', false)
+          selected: entry.selected ?? false
         });
       }
 
-      _.set(record, config.record.dataLocationsPath, dataLocations);
-      const uploadedFlagPath = _.get(sails.config, 'figshareAPI.mapping.recordAllFilesUploaded');
+      setRecordField(record, config.record.dataLocationsPath, dataLocations);
+      const legacyConfig = (sails.config as Record<string, unknown>).figshareAPI as Record<string, unknown> | undefined;
+      const legacyMapping = legacyConfig?.mapping as Record<string, unknown> | undefined;
+      const uploadedFlagPath = legacyMapping?.recordAllFilesUploaded;
       if (typeof uploadedFlagPath === 'string' && uploadedFlagPath !== '') {
-        _.set(record, uploadedFlagPath, 'yes');
+        setRecordField(record, uploadedFlagPath, 'yes');
       }
       return record;
     }
 
     private async isArticleReadyForWorkflowTransition(
       config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>,
-      record: AnyRecord,
+      record: RecordModel,
       articleId: string,
       figshareTargetFieldKey: string,
       figshareTargetFieldValue: string
@@ -228,14 +246,14 @@ export namespace Services {
 
       const client = this.makeClient(config, record, `${articleId}:workflow-transition`, 'transitionRecordWorkflowFromFigshareArticlePropertiesJob');
       const article = await client.getArticle(articleId);
-      const figshareFieldValue = _.get(article, figshareTargetFieldKey, null);
+      const figshareFieldValue = (article as Record<string, unknown>)[figshareTargetFieldKey] ?? null;
       if (figshareFieldValue == null || figshareFieldValue !== figshareTargetFieldValue) {
         sails.log.warn(`FigService - the article id '${articleId}' item property '${figshareTargetFieldKey}' value '${JSON.stringify(figshareFieldValue)}' is not '${JSON.stringify(figshareTargetFieldValue)}'`);
         return false;
       }
 
       const files = await this.getArticleFiles(client, articleId);
-      const uploadInProgress = files.some((entry: AnyRecord) => String(_.get(entry, 'status', '')).toLowerCase() === 'created');
+      const uploadInProgress = files.some((entry) => String(entry.status ?? '').toLowerCase() === 'created');
       if (uploadInProgress) {
         sails.log.warn(`FigService - the article id '${articleId}' has an upload in progress`);
         return false;
@@ -245,8 +263,8 @@ export namespace Services {
     }
 
     private async transitionWorkflowForRecord(
-      record: AnyRecord,
-      user: AnyRecord,
+      record: RecordModel,
+      user: UserModel,
       oid: string,
       articleId: string,
       targetStep: string,
@@ -265,15 +283,15 @@ export namespace Services {
       }
 
       const brand = BrandingService.getBrand('default');
-      const currentRec = await RecordsService.getMeta(oid) as AnyRecord;
-      const userRoles = (user.roles ?? []) as AnyRecord[];
-      const hasEditAccess = await RecordsService.hasEditAccess(brand, user, userRoles, currentRec as AnyRecord);
+      const currentRec = await RecordsService.getMeta(oid) as RecordModel;
+      const userRoles = user.roles ?? [];
+      const hasEditAccess = await RecordsService.hasEditAccess(brand, user, userRoles as unknown as Record<string, unknown>[], currentRec as unknown as Record<string, unknown>);
       if (!hasEditAccess) {
-        sails.log.warn(`FigService - cannot transition ${msgPartial} because user '${user}' does not have edit permission`);
+        sails.log.warn(`FigService - cannot transition ${msgPartial} because user '${user.username}' does not have edit permission`);
         return;
       }
 
-      const recordTypeName = String(_.get(currentRec, 'metaMetadata.type', ''));
+      const recordTypeName = currentRec.metaMetadata?.type ?? '';
       const recordType = await RecordTypesService.get(brand, recordTypeName).toPromise();
       if (!recordType) {
         sails.log.warn(`FigService - cannot transition ${msgPartial} because record type is missing`);
@@ -282,8 +300,8 @@ export namespace Services {
 
       const nextStepResp = await WorkflowStepsService.get(recordType, targetStep).toPromise();
       const metadata = currentRec.metadata;
-      const recordUpdateResult = await RecordsService.updateMeta(brand, oid, currentRec as AnyRecord, user, true, true, nextStepResp, metadata as AnyRecord);
-      const isSuccessful = _.get(recordUpdateResult, 'success', true)?.toString() === 'true';
+      const recordUpdateResult = await RecordsService.updateMeta(brand, oid, currentRec as Record<string, unknown>, user, true, true, nextStepResp, metadata as Record<string, unknown>);
+      const isSuccessful = recordUpdateResult.isSuccessful();
       if (isSuccessful) {
         sails.log.info(`FigService - updated ${msgPartial}`);
       } else {
@@ -291,66 +309,66 @@ export namespace Services {
       }
     }
 
-    public async syncRecordWithFigshareV2(record: RecordLike, jobId?: string, triggerSource: string = 'manual'): Promise<RecordLike> {
+    public async syncRecordWithFigshareV2(record: RecordModel, jobId?: string, triggerSource: string = 'manual'): Promise<RecordModel> {
       const config = this.getV2Config(record);
-      const recordObj = record as AnyRecord;
+      const rm = record as RecordModel;
       if (config == null) {
         return record;
       }
 
-      const plan = this.preparePublication(recordObj, jobId);
+      const plan = this.preparePublication(rm, jobId);
       if (plan.action === 'skip') {
         return record;
       }
 
       try {
-        let article = await this.syncMetadata(recordObj, plan);
-        const assetSyncResult = await this.syncAssets(recordObj, article);
-        await this.syncEmbargo(recordObj, String(article?.id ?? plan.articleId ?? ''));
-        const publishResult = await this.publishIfNeeded(recordObj, String(article?.id ?? plan.articleId ?? ''));
-        if (!_.isEmpty(publishResult)) {
-          article = await this.makeClient(config, recordObj, plan.syncState.correlationId, triggerSource).getArticle(String(article?.id ?? plan.articleId ?? ''));
+        let article = await this.syncMetadata(rm, plan);
+        const assetSyncResult = await this.syncAssets(rm, article);
+        await this.syncEmbargo(rm, String(article?.id ?? plan.articleId ?? ''));
+        const publishResult = await this.publishIfNeeded(rm, String(article?.id ?? plan.articleId ?? ''));
+        if (Object.keys(publishResult).length > 0) {
+          article = await this.makeClient(config, rm, plan.syncState.correlationId, triggerSource).getArticle(String(article?.id ?? plan.articleId ?? ''));
         }
-        return this.writeBack(recordObj, article, publishResult, assetSyncResult);
+        return this.writeBack(rm, article, publishResult, assetSyncResult);
       } catch (error) {
-        const syncState = this.getSyncState(config, recordObj);
+        const syncState = this.getSyncState(config, rm);
         syncState.status = 'failed';
         syncState.lastError = error instanceof Error ? error.message : String(error);
-        this.setSyncState(config, recordObj, syncState);
+        this.setSyncState(config, rm, syncState);
         throw error;
       }
     }
 
-    public async persistV2SyncRecord(oid: string, record: RecordLike, user: AnyRecord): Promise<void> {
+    public async persistV2SyncRecord(oid: string, record: RecordModel, user: UserModel): Promise<void> {
       try {
-        const recordObj = record as AnyRecord;
-        const brandName = String(_.get(recordObj, 'metaMetadata.branding', _.get(recordObj, 'branding', 'default')) || 'default');
+        const brandName = getBrandName(record);
         const brand = BrandingService.getBrand(brandName);
-        await RecordsService.updateMeta(brand, oid, recordObj, user, false, false);
+        await RecordsService.updateMeta(brand, oid, record as Record<string, unknown>, user, false, false);
       } catch (error) {
         sails.log.error(`FigService - failed to persist V2 sync state for ${oid}`, error);
       }
     }
 
-    public override createUpdateFigshareArticle(oid: string, record: RecordLike, options: AnyRecord, user: AnyRecord) {
+    public override createUpdateFigshareArticle(oid: string, record: RecordModel, options: Record<string, unknown>, user: Record<string, unknown>) {
       if (this.getV2Config(record) != null) {
         return this.syncRecordWithFigshareV2(record, `${oid}:pre`, 'pre-save');
       }
       return super.createUpdateFigshareArticle(oid, record, options, user);
     }
 
-    public override uploadFilesToFigshareArticle(oid: string, record: RecordLike, options: AnyRecord, user: AnyRecord) {
+    public override uploadFilesToFigshareArticle(oid: string, record: RecordModel, options: Record<string, unknown>, user: UserModel) {
       if (this.getV2Config(record) != null) {
         void this.syncRecordWithFigshareV2(record, `${oid}:post`, 'post-save')
-          .then(async (updatedRecord: RecordLike) => {
+          .then(async (updatedRecord: RecordModel) => {
             await this.persistV2SyncRecord(oid, updatedRecord, user);
             const config = this.getV2Config(updatedRecord);
             if (config != null) {
-              const syncState = this.getSyncState(config, updatedRecord as AnyRecord);
-              const articleId = String(_.get(updatedRecord as AnyRecord, config.record.articleIdPath, ''));
-              const brandId = String(_.get(updatedRecord as AnyRecord, 'metaMetadata.brandId', ''));
-              const attachmentCount = _.toNumber(_.get(syncState, 'partialProgress.attachmentCount', 0));
-              const uploadsComplete = _.get(syncState, 'partialProgress.uploadsComplete', false) === true;
+              const rm = updatedRecord as RecordModel;
+              const syncState = this.getSyncState(config, rm);
+              const articleId = String(getRecordField(rm, config.record.articleIdPath) ?? '');
+              const brandId = rm.metaMetadata?.brandId ?? '';
+              const attachmentCount = Number(syncState.partialProgress?.attachmentCount ?? 0);
+              const uploadsComplete = syncState.partialProgress?.uploadsComplete === true;
               if (attachmentCount > 0 && uploadsComplete) {
                 if (config.article.publishMode === 'afterUploadsComplete') {
                   this.queuePublishAfterUploadFiles(oid, articleId, user, brandId);
@@ -369,70 +387,70 @@ export namespace Services {
       return super.uploadFilesToFigshareArticle(oid, record, options, user);
     }
 
-    public override deleteFilesFromRedboxTrigger(oid: string, record: RecordLike, options: AnyRecord, user: AnyRecord) {
+    public override deleteFilesFromRedboxTrigger(oid: string, record: RecordModel, options: Record<string, unknown>, user: Record<string, unknown>) {
       const config = this.getV2Config(record);
-      const recordObj = record as AnyRecord;
+      const rm = record as RecordModel;
       if (config != null) {
-        if (this.metTriggerCondition(oid, recordObj, options, user) === 'true') {
-          const articleId = String(_.get(recordObj, config.record.articleIdPath, ''));
+        if (this.metTriggerCondition(oid, rm as Record<string, unknown>, options, user) === 'true') {
+          const articleId = String(getRecordField(rm, config.record.articleIdPath) ?? '');
           if (articleId === '') {
             return record;
           }
-          return this.cleanupUploadedFiles(recordObj, articleId);
+          return this.cleanupUploadedFiles(rm, articleId);
         }
         return record;
       }
       return super.deleteFilesFromRedboxTrigger(oid, record, options, user);
     }
 
-    public override async publishAfterUploadFilesJob(job: AnyRecord) {
-      const attrs = (job?.attrs ?? {}) as AnyRecord;
-      const data = (attrs.data ?? {}) as AnyRecord;
-      if (_.isEmpty(data)) {
+    public override async publishAfterUploadFilesJob(job: FigshareJob) {
+      const data = job?.attrs?.data;
+      if (data == null || (data.oid == null && data.articleId == null)) {
         return;
       }
 
-      const oid = String(data.oid ?? '');
-      const articleId = String(data.articleId ?? '');
-      const brandId = String(data.brandId ?? '');
-      const user = data.user as AnyRecord;
-      const record = await RecordsService.getMeta(oid) as AnyRecord;
+      const oid = data.oid ?? '';
+      const articleId = data.articleId ?? '';
+      const brandId = data.brandId ?? '';
+      const user = data.user as UserModel;
+      const record = await RecordsService.getMeta(oid) as RecordModel;
       const config = this.getV2Config(record);
       if (config == null) {
-        return super.publishAfterUploadFilesJob(job);
+        return super.publishAfterUploadFilesJob(job as Record<string, unknown>);
       }
 
       const client = this.makeClient(config, record, `${oid}:publish-job`, 'publishAfterUploadFilesJob');
       const publishResult = await client.publishArticle(articleId, {});
       const article = await client.getArticle(articleId);
-      const updatedRecord = this.writeBack(record, article, publishResult, {});
+      const updatedRecord = this.writeBack(record, article, publishResult);
       await this.persistV2SyncRecord(oid, updatedRecord, user);
       this.queueDeleteFiles(oid, user, brandId, articleId);
     }
 
-    public override async deleteFilesFromRedbox(job: AnyRecord) {
-      const attrs = (job?.attrs ?? {}) as AnyRecord;
-      const data = (attrs.data ?? {}) as AnyRecord;
-      if (_.isEmpty(data)) {
+    public override async deleteFilesFromRedbox(job: FigshareJob) {
+      const data = job?.attrs?.data;
+      if (data == null || (data.oid == null && data.articleId == null)) {
         return;
       }
 
-      const oid = String(data.oid ?? '');
-      const articleId = String(data.articleId ?? '');
-      const user = data.user as AnyRecord;
-      let record = await RecordsService.getMeta(oid) as AnyRecord;
+      const oid = data.oid ?? '';
+      const articleId = data.articleId ?? '';
+      const user = data.user as UserModel;
+      let record = await RecordsService.getMeta(oid) as RecordModel;
       const config = this.getV2Config(record);
       if (config == null) {
-        return super.deleteFilesFromRedbox(job);
+        return super.deleteFilesFromRedbox(job as Record<string, unknown>);
       }
-      record = await this.cleanupUploadedFiles(record, articleId) as AnyRecord;
+      record = await this.cleanupUploadedFiles(record, articleId) as RecordModel;
       await this.persistV2SyncRecord(oid, record, user);
     }
 
-    public override queuePublishAfterUploadFiles(oid: string, articleId: string, user: AnyRecord, brandId: string) {
+    public override queuePublishAfterUploadFiles(oid: string, articleId: string, user: UserModel, brandId: string) {
       const queueMessage = buildPublishAfterUploadsMessage(oid, articleId, user, brandId);
       const jobName = 'Figshare-PublishAfterUpload-Service';
-      const scheduleIn = String(_.get(sails.config.figshareAPI.mapping, 'schedulePublishAfterUploadJob', 'in 2 minutes'));
+      const legacyConfig = (sails.config as Record<string, unknown>).figshareAPI as Record<string, unknown> | undefined;
+      const legacyMapping = legacyConfig?.mapping as Record<string, unknown> | undefined;
+      const scheduleIn = String(legacyMapping?.schedulePublishAfterUploadJob ?? 'in 2 minutes');
       if (scheduleIn === 'immediate') {
         this['queueService'].now(jobName, queueMessage);
       } else {
@@ -440,10 +458,12 @@ export namespace Services {
       }
     }
 
-    public override queueDeleteFiles(oid: string, user: AnyRecord, brandId: string, articleId: string) {
+    public override queueDeleteFiles(oid: string, user: UserModel, brandId: string, articleId: string) {
       const queueMessage = buildDeleteFilesMessage(oid, user, brandId, articleId);
       const jobName = 'Figshare-UploadedFilesCleanup-Service';
-      const scheduleIn = String(_.get(sails.config.figshareAPI.mapping, 'scheduleUploadedFilesCleanupJob', 'in 5 minutes'));
+      const legacyConfig = (sails.config as Record<string, unknown>).figshareAPI as Record<string, unknown> | undefined;
+      const legacyMapping = legacyConfig?.mapping as Record<string, unknown> | undefined;
+      const scheduleIn = String(legacyMapping?.scheduleUploadedFilesCleanupJob ?? 'in 5 minutes');
       if (scheduleIn === 'immediate') {
         this['queueService'].now(jobName, queueMessage);
       } else {
@@ -451,8 +471,10 @@ export namespace Services {
       }
     }
 
-    public override async transitionRecordWorkflowFromFigshareArticlePropertiesJob(job: AnyRecord): Promise<void> {
-      const jobConfig = (_.get(sails.config, 'figshareAPI.mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob', {}) ?? {}) as AnyRecord;
+    public override async transitionRecordWorkflowFromFigshareArticlePropertiesJob(job: Record<string, unknown>): Promise<void> {
+      const legacyConfig = (sails.config as Record<string, unknown>).figshareAPI as Record<string, unknown> | undefined;
+      const legacyMapping = legacyConfig?.mapping as Record<string, unknown> | undefined;
+      const jobConfig = (legacyMapping?.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob ?? {}) as WorkflowTransitionJobConfig;
       if (!shouldRunWorkflowTransitionJob(jobConfig)) {
         sails.log.info('FigService - transitionRecordWorkflowFromFigshareArticlePropertiesJob is disabled by config');
         return;
@@ -463,13 +485,13 @@ export namespace Services {
         const start = 0;
         const rows = 30;
         const maxRecords = 100;
-        const namedQuery = String(_.get(jobConfig, 'namedQuery', '') ?? '');
-        const targetStep = String(_.get(jobConfig, 'targetStep', '') ?? '');
-        const paramMap = (_.get(jobConfig, 'paramMap', {}) ?? {}) as Record<string, string>;
-        const figshareTargetFieldKey = String(_.get(jobConfig, 'figshareTargetFieldKey', '') ?? '');
-        const figshareTargetFieldValue = String(_.get(jobConfig, 'figshareTargetFieldValue', '') ?? '');
-        const username = String(_.get(jobConfig, 'username', '') ?? '');
-        const userType = String(_.get(jobConfig, 'userType', '') ?? '');
+        const namedQuery = jobConfig.namedQuery ?? '';
+        const targetStep = jobConfig.targetStep ?? '';
+        const paramMap = jobConfig.paramMap ?? {};
+        const figshareTargetFieldKey = jobConfig.figshareTargetFieldKey ?? '';
+        const figshareTargetFieldValue = jobConfig.figshareTargetFieldValue ?? '';
+        const username = jobConfig.username ?? '';
+        const userType = jobConfig.userType ?? '';
         const user = await UsersService.getUserWithUsername(username).toPromise();
 
         if (!user || !user?.username || user?.type !== userType) {
@@ -481,17 +503,17 @@ export namespace Services {
         const queryResults = await NamedQueryService.performNamedQueryFromConfigResults(namedQueryConfig, paramMap, brand, namedQuery, start, rows, maxRecords, user);
 
         for (const queryResult of queryResults) {
-          const oid = String(_.get(queryResult, 'oid', ''));
+          const oid = String(queryResult.oid ?? '');
           if (oid === '') {
             continue;
           }
           try {
-            const record = await RecordsService.getMeta(oid) as AnyRecord;
+            const record = await RecordsService.getMeta(oid) as RecordModel;
             const config = this.getV2Config(record);
             if (config == null) {
               continue;
             }
-            const articleId = String(_.get(record, config.record.articleIdPath, ''));
+            const articleId = String(getRecordField(record, config.record.articleIdPath) ?? '');
             await this.transitionWorkflowForRecord(record, user, oid, articleId, targetStep, figshareTargetFieldKey, figshareTargetFieldValue);
           } catch (error) {
             sails.log.verbose(`FigService - transitionRecordWorkflowFromFigshareArticlePropertiesJob unable to process oid ${oid}`, error);

@@ -1,5 +1,4 @@
 import { trace, SpanStatusCode, type Attributes } from '@opentelemetry/api';
-import _ from 'lodash';
 import { FigshareRunContext } from './types';
 
 export function redactSecret(value: unknown): unknown {
@@ -13,16 +12,20 @@ export function redactSecret(value: unknown): unknown {
 }
 
 export function redactObject(value: unknown): unknown {
-  if (_.isArray(value)) {
+  if (Array.isArray(value)) {
     return value.map((entry) => redactObject(entry));
   }
-  if (_.isPlainObject(value)) {
-    return _.mapValues(value as Record<string, unknown>, (entry, key) => {
+  if (value != null && typeof value === 'object' && !Array.isArray(value)) {
+    const obj = value as Record<string, unknown>;
+    const result: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(obj)) {
       if (key.toLowerCase().includes('token') || key.toLowerCase().includes('authorization') || key.toLowerCase().includes('secret')) {
-        return 'REDACTED';
+        result[key] = 'REDACTED';
+      } else {
+        result[key] = redactObject(entry);
       }
-      return redactObject(entry);
-    });
+    }
+    return result;
   }
   return redactSecret(value);
 }

@@ -1,16 +1,9 @@
-import { AnyRecord } from './types';
+import { FigshareJobData, UserModel } from './types';
 
-export interface FigshareQueueMessage extends AnyRecord {
-  oid: string;
-  articleId?: string;
-  brandId?: string;
-  user?: AnyRecord;
-}
-
-export function buildPublishAfterUploadsMessage(oid: string, articleId: string, user: AnyRecord, brandId: string): FigshareQueueMessage {
+export function buildPublishAfterUploadsMessage(oid: string, articleId: string, user: UserModel, brandId: string): FigshareJobData {
   return { oid, articleId, user, brandId };
 }
 
-export function buildDeleteFilesMessage(oid: string, user: AnyRecord, brandId: string, articleId: string): FigshareQueueMessage {
+export function buildDeleteFilesMessage(oid: string, user: UserModel, brandId: string, articleId: string): FigshareJobData {
   return { oid, user, brandId, articleId };
 }

@@ -8,35 +8,33 @@ import { makeClientLayer, FigshareClient, FigshareClientTag } from './http';
 import { buildMetadataPayload, syncMetadataPhase } from './metadata';
 import { publishIfNeededPhase } from './publish';
 import { writeBackPhase } from './writeback';
-import { AnyRecord, FigsharePublicationPlan, FigshareRunContext, RecordLike } from './types';
+import { FigshareArticle, FigshareFile, FigsharePublicationPlan, FigshareRunContext, RecordModel, getRecordField } from './types';
 
 export const FigshareConfigTag = Context.GenericTag<FigsharePublishingConfigData>('redbox/FigshareConfig');
 export const FigshareRunContextTag = Context.GenericTag<FigshareRunContext>('redbox/FigshareRunContext');
 
-function isCurationLocked(config: FigsharePublishingConfigData, article: AnyRecord): boolean {
-  const statusField = String(
-    _.get(config, 'article.curationLock.statusField', '') ||
-    _.get(sails.config, 'figshareAPI.mapping.figshareCurationStatus', '')
-  );
-  const targetValue = String(
-    _.get(config, 'article.curationLock.targetValue', 'public') ||
-    _.get(sails.config, 'figshareAPI.mapping.figshareCurationStatusTargetValue', 'public')
-  );
-  const updatesDisabled = _.get(config, 'article.curationLock.enabled') === true ||
-    _.get(sails.config, 'figshareAPI.mapping.figshareDisableUpdateByCurationStatus', false) === true;
+function isCurationLocked(config: FigsharePublishingConfigData, article: FigshareArticle): boolean {
+  const curationLock = config.article.curationLock;
+  const legacyConfig = (sails.config as Record<string, unknown>).figshareAPI as Record<string, unknown> | undefined;
+  const legacyMapping = legacyConfig?.mapping as Record<string, unknown> | undefined;
+
+  const statusField = curationLock?.statusField || String(legacyMapping?.figshareCurationStatus ?? '');
+  const targetValue = curationLock?.targetValue || String(legacyMapping?.figshareCurationStatusTargetValue ?? 'public');
+  const updatesDisabled = curationLock?.enabled === true ||
+    legacyMapping?.figshareDisableUpdateByCurationStatus === true;
   if (!updatesDisabled || statusField === '') {
     return false;
   }
-  return String(_.get(article, statusField, '')) === targetValue;
+  return String((article as Record<string, unknown>)[statusField] ?? '') === targetValue;
 }
 
-async function listArticleFiles(client: FigshareClient, articleId: string): Promise<AnyRecord[]> {
-  const files: AnyRecord[] = [];
+async function listArticleFiles(client: FigshareClient, articleId: string): Promise<FigshareFile[]> {
+  const files: FigshareFile[] = [];
   let page = 1;
   const pageSize = 20;
   while (true) {
     const pageResults = await client.listArticleFiles(articleId, page, pageSize);
-    if (!_.isArray(pageResults) || pageResults.length === 0) {
+    if (!Array.isArray(pageResults) || pageResults.length === 0) {
       break;
     }
     files.push(...pageResults);
@@ -50,7 +48,7 @@ async function listArticleFiles(client: FigshareClient, articleId: string): Prom
 
 async function ensureNoFileUploadInProgress(client: FigshareClient, articleId: string): Promise<void> {
   const files = await listArticleFiles(client, articleId);
-  const inProgress = files.some((entry: AnyRecord) => String(_.get(entry, 'status', '')).toLowerCase() === 'created');
+  const inProgress = files.some((entry) => String(entry.status ?? '').toLowerCase() === 'created');
   if (inProgress) {
     throw new RBValidationError({
       message: `Figshare file uploads are still in progress for article '${articleId}'`,
@@ -70,10 +68,10 @@ export function makeRuntimeLayer(config: FigsharePublishingConfigData, runContex
   );
 }
 
-export async function runBuildMetadataPayload(config: FigsharePublishingConfigData, record: AnyRecord): Promise<AnyRecord> {
+export async function runBuildMetadataPayload(config: FigsharePublishingConfigData, record: RecordModel): Promise<Record<string, unknown>> {
   const runContext: FigshareRunContext = {
-    recordOid: String(_.get(record, 'redboxOid', _.get(record, 'oid', ''))),
-    brandName: String(_.get(record, 'metaMetadata.branding', _.get(record, 'branding', 'default'))),
+    recordOid: record.redboxOid ?? record.id ?? '',
+    brandName: record.metaMetadata?.brandId ?? 'default',
     correlationId: `build-${Date.now()}`,
     triggerSource: 'buildMetadataPayload'
   };
@@ -85,7 +83,7 @@ export async function runBuildMetadataPayload(config: FigsharePublishingConfigDa
   return Effect.runPromise(program);
 }
 
-export async function runSyncMetadataProgram(config: FigsharePublishingConfigData, runContext: FigshareRunContext, record: AnyRecord, plan: FigsharePublicationPlan): Promise<AnyRecord> {
+export async function runSyncMetadataProgram(config: FigsharePublishingConfigData, runContext: FigshareRunContext, record: RecordModel, plan: FigsharePublicationPlan): Promise<FigshareArticle> {
   const program = Effect.gen(function* () {
     const client = yield* FigshareClientTag;
     if (plan.articleId) {
@@ -101,28 +99,28 @@ export async function runSyncMetadataProgram(config: FigsharePublishingConfigDat
   return Effect.runPromise(program);
 }
 
-export async function runSyncRecordProgram(config: FigsharePublishingConfigData, runContext: FigshareRunContext, record: RecordLike, plan: FigsharePublicationPlan): Promise<RecordLike> {
-  const recordObj = record as AnyRecord;
+export async function runSyncRecordProgram(config: FigsharePublishingConfigData, runContext: FigshareRunContext, record: RecordModel, plan: FigsharePublicationPlan): Promise<RecordModel> {
+  const rm = record as RecordModel;
   const program = Effect.gen(function* () {
     const client = yield* FigshareClientTag;
-    let article: AnyRecord;
+    let article: FigshareArticle;
     if (plan.articleId) {
       const currentArticle = yield* Effect.promise(() => client.getArticle(String(plan.articleId)));
       if (isCurationLocked(config, currentArticle)) {
         article = currentArticle;
       } else {
         yield* Effect.promise(() => ensureNoFileUploadInProgress(client, String(plan.articleId)));
-        article = yield* Effect.promise(() => syncMetadataPhase(client, config, recordObj, plan));
+        article = yield* Effect.promise(() => syncMetadataPhase(client, config, rm, plan));
       }
     } else {
-      article = yield* Effect.promise(() => syncMetadataPhase(client, config, recordObj, plan));
+      article = yield* Effect.promise(() => syncMetadataPhase(client, config, rm, plan));
     }
-    const syncState = (_.get(recordObj, config.record.syncStatePath, { status: 'idle' }) || { status: 'idle' }) as any;
-    const assetSyncResult = yield* Effect.promise(() => syncAssetsPhase(client, config, recordObj, article, syncState));
-    yield* Effect.promise(() => syncEmbargoPhase(client, config, recordObj, String(article?.id ?? plan.articleId ?? '')));
-    const publishResult = yield* Effect.promise(() => publishIfNeededPhase(client, config, recordObj, String(article?.id ?? plan.articleId ?? ''), syncState));
-    const writeBackArticle = _.isEmpty(publishResult) ? article : yield* Effect.promise(() => client.getArticle(String(article?.id ?? plan.articleId ?? '')));
-    return writeBackPhase(config, recordObj, writeBackArticle, publishResult, assetSyncResult);
+    const syncState = (getRecordField(rm, config.record.syncStatePath) ?? { status: 'idle' }) as any;
+    const assetSyncResult = yield* Effect.promise(() => syncAssetsPhase(client, config, rm, article, syncState));
+    yield* Effect.promise(() => syncEmbargoPhase(client, config, rm, String(article?.id ?? plan.articleId ?? '')));
+    const publishResult = yield* Effect.promise(() => publishIfNeededPhase(client, config, rm, String(article?.id ?? plan.articleId ?? ''), syncState));
+    const writeBackArticle = Object.keys(publishResult).length === 0 ? article : yield* Effect.promise(() => client.getArticle(String(article?.id ?? plan.articleId ?? '')));
+    return writeBackPhase(config, rm, writeBackArticle, publishResult, assetSyncResult);
   }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
 
   return Effect.runPromise(program);
