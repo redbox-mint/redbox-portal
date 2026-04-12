@@ -461,7 +461,7 @@ describe('appConfigService', function () {
       connection: {
         baseUrl: 'https://api.figshare.com',
         frontEndUrl: 'https://figshare.com',
-        token: '*******',
+        token: '__REDACTED__',
         timeoutMs: 1000,
         operationTimeouts: { metadataMs: 1000, uploadInitMs: 1000, uploadPartMs: 1000, publishMs: 1000 },
         retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1, retryOnStatusCodes: [] }
