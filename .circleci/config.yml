@@ -800,24 +800,27 @@ jobs:
       - run:
           name: Build and push arm64 runtime image
           no_output_timeout: 30m
-          command: |
-            echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-            # Determine the tag
-            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
-              export TAG="$CIRCLE_BRANCH"
-            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
-              export TAG="$CIRCLE_TAG"
-            else
-              export TAG="local"
-            fi
-            export DEPLOY_TAG=${TAG//\//-}
-            export REPO=${REPO:-qcifengineering/redbox-portal}
-            docker build \
-              --progress plain \
-              --target runtime \
-              --tag "${REPO}:${DEPLOY_TAG}-arm64" \
-              .
-            docker push "${REPO}:${DEPLOY_TAG}-arm64"
+          command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime ""
+  deploy-runtime-pdfgen-arm64:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: arm.medium
+    steps:
+      - checkout
+      - run:
+          name: Build and push arm64 pdfgen image
+          no_output_timeout: 30m
+          command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_pdfgen "-pdfgen"
+  deploy-runtime-cloud-pdfgen-arm64:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: arm.medium
+    steps:
+      - checkout
+      - run:
+          name: Build and push arm64 datastream cloud + pdfgen image
+          no_output_timeout: 30m
+          command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_cloud_pdfgen "-cloud-pdfgen"
   publish-manifest:
     docker:
       - image: 'cimg/node:24.14.1'
@@ -826,22 +829,25 @@ jobs:
       - setup_remote_docker
       - run:
           name: Create and push multi-arch manifest
-          command: |
-            echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-            # Determine the tag
-            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
-              export TAG="$CIRCLE_BRANCH"
-            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
-              export TAG="$CIRCLE_TAG"
-            else
-              export TAG="local"
-            fi
-            export DEPLOY_TAG=${TAG//\//-}
-            export REPO=${REPO:-qcifengineering/redbox-portal}
-            docker manifest create "${REPO}:${DEPLOY_TAG}" \
-              "${REPO}:${DEPLOY_TAG}-amd64" \
-              "${REPO}:${DEPLOY_TAG}-arm64"
-            docker manifest push "${REPO}:${DEPLOY_TAG}"
+          command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh
+  publish-runtime-pdfgen-manifest:
+    docker:
+      - image: 'cimg/node:24.14.1'
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Create and push multi-arch pdfgen manifest
+          command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh "-pdfgen"
+  publish-runtime-cloud-pdfgen-manifest:
+    docker:
+      - image: 'cimg/node:24.14.1'
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Create and push multi-arch datastream cloud + pdfgen manifest
+          command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh "-cloud-pdfgen"
   generate-docs:
     machine:
       image: ubuntu-2004:current
@@ -1042,6 +1048,48 @@ workflows:
           requires:
             - deploy
             - deploy-arm64
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - deploy-runtime-pdfgen-arm64:
+          requires:
+            - build-runtime-pdfgen
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
+            - test-sails-ng-common
+            - test-redbox-core
+            - test-redbox-dev-tools-cli
+            - test-storage-mongo
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - publish-runtime-pdfgen-manifest:
+          requires:
+            - deploy-runtime-pdfgen
+            - deploy-runtime-pdfgen-arm64
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - deploy-runtime-cloud-pdfgen-arm64:
+          requires:
+            - build-runtime-cloud-pdfgen
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
+            - test-sails-ng-common
+            - test-redbox-core
+            - test-redbox-dev-tools-cli
+            - test-storage-mongo
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - publish-runtime-cloud-pdfgen-manifest:
+          requires:
+            - deploy-runtime-cloud-pdfgen
+            - deploy-runtime-cloud-pdfgen-arm64
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -1343,6 +1391,54 @@ workflows:
           requires:
             - deploy
             - deploy-arm64
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - deploy-runtime-pdfgen-arm64:
+          requires:
+            - build-runtime-pdfgen
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
+            - test-sails-ng-common
+            - test-redbox-core
+            - test-storage-mongo
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - publish-runtime-pdfgen-manifest:
+          requires:
+            - deploy-runtime-pdfgen
+            - deploy-runtime-pdfgen-arm64
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - deploy-runtime-cloud-pdfgen-arm64:
+          requires:
+            - build-runtime-cloud-pdfgen
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
+            - test-sails-ng-common
+            - test-redbox-core
+            - test-storage-mongo
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - publish-runtime-cloud-pdfgen-manifest:
+          requires:
+            - deploy-runtime-cloud-pdfgen
+            - deploy-runtime-cloud-pdfgen-arm64
           filters:
             tags:
               only: /^v.*/

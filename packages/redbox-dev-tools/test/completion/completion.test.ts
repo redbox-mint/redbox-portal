@@ -4,7 +4,7 @@ import { generateCompletionScript } from '../../src/completion';
 describe('completion scripts', () => {
   it('should generate bash completion script', () => {
     const script = generateCompletionScript('bash');
-    expect(script).to.contain('complete -F _redbox_hook_kit_completion redbox-dev-tools');
+    expect(script).to.contain('complete -F _redbox_dev_tools_completion redbox-dev-tools');
     expect(script).to.contain('migrate-form-config');
     expect(script).to.contain('form-component');
   });

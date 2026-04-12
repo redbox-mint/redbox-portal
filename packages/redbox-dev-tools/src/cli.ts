@@ -3,14 +3,7 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 import { resolvePaths } from './utils/paths';
-import { ControllerGenerator } from './generators/controller';
-import { ServiceGenerator } from './generators/service';
-import { AddMethodGenerator } from './generators/add-method';
-import { AngularAppGenerator } from './generators/angular-app';
-import { AngularServiceGenerator } from './generators/angular-service';
-import { FormComponentGenerator } from './generators/form-component';
-import { FormFieldGenerator } from './generators/form-field';
-import { ModelGenerator } from './generators/model';
+import { generateHookArchetype } from './templates/hook-archetype';
 import {
   registerClientFormConfigCommand,
   registerMigrateDataClassificationCommand,
@@ -28,6 +21,78 @@ import {
 } from './cli-parsers';
 
 const program = new Command();
+// List of dependencies that are common in our legacy hooks but should not be in modern hook packages as they are supplied by redbox-core
+const forbiddenHookDeps = ['axios', 'rxjs', 'lodash', 'mocha', 'chai', 'ts-node', 'typescript'];
+const allowedSharedHookDeps: Record<'dependencies' | 'devDependencies' | 'peerDependencies', Set<string>> = {
+  dependencies: new Set<string>(),
+  devDependencies: new Set(['@researchdatabox/redbox-dev-tools']),
+  peerDependencies: new Set(['@researchdatabox/redbox-core']),
+};
+
+function readPackageJson(pkgPath: string): any {
+  return JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+}
+
+function writePackageJson(pkgPath: string, pkg: any): void {
+  fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+}
+
+function isForbiddenSharedHookDep(section: keyof typeof allowedSharedHookDeps, depName: string): boolean {
+  if (!depName.startsWith('@researchdatabox/')) {
+    return false;
+  }
+
+  return !allowedSharedHookDeps[section].has(depName);
+}
+
+function migrateHookDependencyContract(pkg: any): any {
+  const nextPkg = { ...pkg };
+  nextPkg.dependencies = { ...(pkg.dependencies ?? {}) };
+  nextPkg.devDependencies = { ...(pkg.devDependencies ?? {}) };
+  nextPkg.peerDependencies = { ...(pkg.peerDependencies ?? {}) };
+
+  for (const section of Object.keys(allowedSharedHookDeps) as Array<keyof typeof allowedSharedHookDeps>) {
+    for (const depName of Object.keys(nextPkg[section] ?? {})) {
+      if (isForbiddenSharedHookDep(section, depName)) {
+        delete nextPkg[section][depName];
+      }
+    }
+  }
+
+  for (const depName of forbiddenHookDeps) {
+    delete nextPkg.dependencies[depName];
+    delete nextPkg.devDependencies[depName];
+    delete nextPkg.peerDependencies[depName];
+  }
+
+  nextPkg.peerDependencies['@researchdatabox/redbox-core'] = nextPkg.peerDependencies['@researchdatabox/redbox-core'] ?? '*';
+  nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] = nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] ?? '*';
+
+  return nextPkg;
+}
+
+function findForbiddenHookDeps(pkg: any): string[] {
+  const sections = ['dependencies', 'devDependencies', 'peerDependencies'] as const;
+  const findings: string[] = [];
+
+  for (const section of sections) {
+    const deps = pkg[section] ?? {};
+
+    for (const depName of Object.keys(deps)) {
+      if (isForbiddenSharedHookDep(section, depName)) {
+        findings.push(`${section}.${depName}`);
+      }
+    }
+
+    for (const depName of forbiddenHookDeps) {
+      if (deps[depName] != null) {
+        findings.push(`${section}.${depName}`);
+      }
+    }
+  }
+
+  return findings;
+}
 
 program
   .name('redbox-dev-tools')
@@ -63,82 +128,86 @@ registerClientFormConfigCommand(program);
 registerQuestionTreeDiagramCommand(program);
 
 program
-  .command('init')
-  .description('Initialize a new ReDBox hook project with TypeScript setup')
-  .action(() => {
-    console.log('🚀 Initializing ReDBox Hook project...\n');
+  .command('init [name]')
+  .description('Initialize a new ReDBox hook project from the standard archetype')
+  .option('--template <template>', 'Archetype template name', 'standard')
+  .option('--description <description>', 'Project description')
+  .option('--force', 'Overwrite existing archetype files', false)
+  .action((name: string | undefined, options: { template: string; description?: string; force?: boolean }) => {
+    if (options.template !== 'standard') {
+      console.error(`❌ Unsupported template: ${options.template}. Supported templates: standard`);
+      process.exit(1);
+    }
 
     const cwd = process.cwd();
+    const packageName = name || path.basename(cwd);
 
-    // Create typescript directory structure if it doesn't exist
-    const typescriptDir = path.join(cwd, 'typescript');
-    const apiDir = path.join(typescriptDir, 'api');
-    const controllersDir = path.join(apiDir, 'controllers');
+    console.log(`🚀 Initializing ReDBox hook archetype for ${packageName}...\n`);
 
-    if (!fs.existsSync(typescriptDir)) {
-      fs.mkdirSync(typescriptDir, { recursive: true });
-    } else {
-      console.log('ℹ️  typescript/ directory already exists');
+    const result = generateHookArchetype({
+      cwd,
+      packageName,
+      description: options.description,
+      force: options.force,
+      templateName: options.template,
+    });
+
+    for (const createdPath of result.created) {
+      console.log(`✅ Created ${createdPath}`);
     }
 
-    if (!fs.existsSync(controllersDir)) {
-      fs.mkdirSync(controllersDir, { recursive: true });
-      console.log('✅ Created typescript/api/controllers/ directory structure');
+    for (const skippedPath of result.skipped) {
+      console.log(`ℹ️  Skipped existing ${skippedPath}`);
     }
 
-    // Create or update tsconfig.json
-    const tsconfigPath = path.join(cwd, 'tsconfig.json');
-    const tsconfig = {
-      extends: '@researchdatabox/redbox-dev-tools/config/tsconfig.base.json',
-      compilerOptions: {
-        outDir: './',
-        rootDir: './typescript',
-        typeRoots: ['node_modules/@types', 'node_modules/@researchdatabox/redbox-dev-tools/node_modules/@types'],
-      },
-      include: ['typescript/**/*.ts'],
-    };
-
-    if (!fs.existsSync(tsconfigPath)) {
-      fs.writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2) + '\n');
-      console.log('✅ Created tsconfig.json extending redbox-dev-tools');
-    } else {
-      console.log('⚠️  tsconfig.json already exists - skipping');
-      console.log('   You may want to manually extend: @researchdatabox/redbox-dev-tools/config/tsconfig.base.json');
-    }
-
-    // Create a sample controller if none exists
-    const sampleController = path.join(controllersDir, 'ExampleController.ts');
-    if (!fs.existsSync(sampleController) && fs.readdirSync(controllersDir).length === 0) {
-      const sampleCode = `// Example ReDBox Hook Controller
-
-import { Controllers as controllers } from '@researchdatabox/redbox-core';
-
-declare var sails;
-declare var _;
-
-export module Controllers {
-  export class ExampleController extends controllers.Core.Controller {
-    protected _exportedMethods: any = [
-      'example'
-    ];
-
-    public example(req: any, res: any) {
-      return res.json({ message: 'Hello from ExampleController!' });
-    }
-  }
-}
-
-module.exports = new Controllers.ExampleController().exports();
-`;
-      fs.writeFileSync(sampleController, sampleCode);
-      console.log('✅ Created example controller: typescript/api/controllers/ExampleController.ts');
-    }
-
-    console.log('\n✨ Setup complete!\n');
+    console.log('\n✨ Archetype ready!\n');
     console.log('Next steps:');
     console.log('  1. Install dependencies: npm install');
-    console.log('  2. Compile TypeScript: npx tsc');
-    console.log('  3. Start developing your hook controllers in typescript/api/controllers/\n');
+    console.log('  2. Compile TypeScript: npm run compile');
+    console.log('  3. Run unit tests: npm run test:unit');
+    console.log('  4. Start tailoring the hook in src/, test/, and support/\n');
+  });
+
+program
+  .command('check')
+  .description('Validate that a hook uses the shared Redbox dependency contract')
+  .action(() => {
+    const packageJsonPath = path.join(process.cwd(), 'package.json');
+    if (!fs.existsSync(packageJsonPath)) {
+      console.error('❌ package.json not found in the current directory.');
+      process.exit(1);
+    }
+
+    const pkg = readPackageJson(packageJsonPath);
+    const findings = findForbiddenHookDeps(pkg);
+
+    if (findings.length === 0) {
+      console.log('✅ Hook dependency contract looks good.');
+      return;
+    }
+
+    console.error('❌ Hook dependency contract violations found:');
+    for (const finding of findings) {
+      console.error(`  - ${finding}`);
+    }
+    console.error('Shared runtime dependencies should come from @researchdatabox/redbox-core, and shared toolchain dependencies should come from @researchdatabox/redbox-dev-tools.');
+    process.exit(1);
+  });
+
+program
+  .command('migrate-hook-dependencies')
+  .description('Rewrite the current hook package.json to the minimal shared dependency contract')
+  .action(() => {
+    const packageJsonPath = path.join(process.cwd(), 'package.json');
+    if (!fs.existsSync(packageJsonPath)) {
+      console.error('❌ package.json not found in the current directory.');
+      process.exit(1);
+    }
+
+    const pkg = readPackageJson(packageJsonPath);
+    const migratedPkg = migrateHookDependencyContract(pkg);
+    writePackageJson(packageJsonPath, migratedPkg);
+    console.log('✅ Updated package.json to use the minimal shared hook dependency contract.');
   });
 
 const generate = program.command('generate').alias('g').description('Generate code components');
@@ -171,6 +240,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { ControllerGenerator } = require('./generators/controller');
       const generator = new ControllerGenerator({
         name,
         actions: options.actions,
@@ -204,6 +274,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { ServiceGenerator } = require('./generators/service');
       const generator = new ServiceGenerator({
         name,
         methods: options.methods,
@@ -244,6 +315,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { AddMethodGenerator } = require('./generators/add-method');
       const generator = new AddMethodGenerator({
         file: options.file,
         method: options.method,
@@ -276,6 +348,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { AngularAppGenerator } = require('./generators/angular-app');
       const generator = new AngularAppGenerator({
         name,
         ejsView: options.ejsView,
@@ -304,6 +377,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { AngularServiceGenerator } = require('./generators/angular-service');
       const generator = new AngularServiceGenerator({
         name,
         app: options.app,
@@ -332,6 +406,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { FormComponentGenerator } = require('./generators/form-component');
       const generator = new FormComponentGenerator({
         name,
         app: options.app,
@@ -359,6 +434,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { FormFieldGenerator } = require('./generators/form-field');
       const generator = new FormFieldGenerator({
         name,
         type: options.type,
@@ -424,6 +500,7 @@ generate
       const globalOptions = program.opts();
       const paths = resolvePaths(globalOptions);
 
+      const { ModelGenerator } = require('./generators/model');
       const generator = new ModelGenerator({
         name,
         identity: options.identity,

@@ -35,7 +35,7 @@ The application is modularized using local packages to share code between the ba
 | `redbox-core` | `@researchdatabox/redbox-core` | Shared TypeScript type definitions, core business logic services, Waterline models, policies, config defaults, and bootstrap functions. See [Redbox Core Types](redbox-core). |
 | `sails-ng-common` | `@researchdatabox/sails-ng-common` | Common models and logic shared explicitly between the Sails.js API and the Angular frontend. |
 | `raido` | `@researchdatabox/raido-openapi-generated-node` | Auto-generated Node.js client for communicating with the external Raido API. Generated via OpenAPI tools. |
-| `redbox-dev-tools` | `@researchdatabox/redbox-dev-tools` | TypeScript development toolkit for creating ReDBox hooks. See [Redbox Hook Kit](redbox-dev-tools). |
+| `redbox-dev-tools` | `@researchdatabox/redbox-dev-tools` | Shared hook tooling for generators, migrations, and config conventions. See [Redbox Dev Tools](redbox-dev-tools). |
 
 ## Pre-Lift Shim Generation
 
