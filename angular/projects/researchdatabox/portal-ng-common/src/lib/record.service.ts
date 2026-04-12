@@ -20,7 +20,7 @@
 import { map, firstValueFrom } from 'rxjs';
 import { Injectable, Inject } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
@@ -31,6 +31,67 @@ import { RecordAttachment } from '@researchdatabox/sails-ng-common';
 
 export interface RecordTypeConf {
   name: string;
+}
+
+export interface AuditFieldChange {
+  kind: 'add' | 'delete' | 'change';
+  path: Array<string | number>;
+  pathText: string;
+  displayPath: string;
+  label?: string;
+  displayName: string;
+  original: unknown;
+  changed: unknown;
+}
+
+export interface RecordAuditTabRow {
+  id: string;
+  timestamp: string | null;
+  action: 'created' | 'updated' | 'deleted' | 'destroyed' | 'restored';
+  actionLabelKey: string;
+  workflowStageLabel: string;
+  actor: { username: string; name: string; email: string; displayName: string };
+  changeSummary: { available: boolean; count: number; changes: AuditFieldChange[]; note?: string };
+  rawRecord: Record<string, unknown> | null;
+}
+
+export interface RecordAuditTabResponse {
+  summary: { returnedCount: number };
+  rawAuditUrl: string;
+  records: RecordAuditTabRow[];
+}
+
+export interface RecordPermissionsSummary {
+  edit: Array<{ username: string; name: string; email: string }>;
+  view: Array<{ username: string; name: string; email: string }>;
+  editPending: string[];
+  viewPending: string[];
+  editRoles: string[];
+  viewRoles: string[];
+}
+
+export interface IntegrationAuditTabRecord {
+  id: string;
+  redboxOid: string;
+  startedAt: string;
+  completedAt?: string;
+  durationMs?: number;
+  status: string;
+  integrationAction: string;
+  triggeredBy?: string;
+  message?: string;
+  errorDetail?: string;
+  httpStatusCode?: number;
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string;
+  requestSummary?: Record<string, unknown>;
+  responseSummary?: Record<string, unknown>;
+}
+
+export interface IntegrationAuditTabResponse {
+  summary: { numFound: number; page: number; pageSize: number; totalPages: number };
+  records: IntegrationAuditTabRecord[];
 }
 /**
  * Record Service
@@ -92,6 +153,84 @@ export class RecordService extends HttpClientService {
     const result$ = this.http
       .get<RecordAttachment[] | { data?: RecordAttachment[] }>(url, httpOptions)
       .pipe(map(response => Array.isArray(response) ? response : response?.data ?? []));
+    return await firstValueFrom(result$);
+  }
+
+  public async getRecordAuditTab(oid: string): Promise<RecordAuditTabResponse> {
+    const url = `${this.brandingAndPortalUrl}/record/viewAudit/${oid}/audit`;
+    const requestOptions = this.getHttpOptions();
+    const httpOptions = {
+      context: requestOptions?.context,
+      observe: 'body' as const,
+      responseType: 'json' as const,
+    };
+    const result$ = this.http
+      .get<{ data?: RecordAuditTabResponse } | RecordAuditTabResponse>(url, httpOptions)
+      .pipe(
+        map(response => {
+          const payload = (response as { data?: RecordAuditTabResponse })?.data ?? response as RecordAuditTabResponse | undefined;
+          return payload?.records ? payload : { summary: { returnedCount: 0 }, rawAuditUrl: '', records: [] };
+        })
+      );
+    return await firstValueFrom(result$);
+  }
+
+  public async getRecordPermissionsTab(oid: string): Promise<RecordPermissionsSummary> {
+    const url = `${this.brandingAndPortalUrl}/record/viewAudit/${oid}/permissions`;
+    const requestOptions = this.getHttpOptions();
+    const httpOptions = {
+      context: requestOptions?.context,
+      observe: 'body' as const,
+      responseType: 'json' as const,
+    };
+    const result$ = this.http
+      .get<{ data?: RecordPermissionsSummary } | RecordPermissionsSummary>(url, httpOptions)
+      .pipe(
+        map(response => {
+          const payload = (response as { data?: RecordPermissionsSummary })?.data ?? response as RecordPermissionsSummary | undefined;
+          return payload ?? {
+            edit: [],
+            view: [],
+            editPending: [],
+            viewPending: [],
+            editRoles: [],
+            viewRoles: [],
+          };
+        })
+      );
+    return await firstValueFrom(result$);
+  }
+
+  public async getRecordIntegrationAuditTab(
+    oid: string,
+    opts: { page?: number; pageSize?: number; status?: string } = {}
+  ): Promise<IntegrationAuditTabResponse> {
+    const url = `${this.brandingAndPortalUrl}/record/viewAudit/${oid}/integration-audit`;
+    let params = new HttpParams();
+    if (!_isUndefined(opts.page)) {
+      params = params.set('page', String(opts.page));
+    }
+    if (!_isUndefined(opts.pageSize)) {
+      params = params.set('pageSize', String(opts.pageSize));
+    }
+    if (!_isEmpty(opts.status)) {
+      params = params.set('status', String(opts.status));
+    }
+    const requestOptions = this.getHttpOptions();
+    const httpOptions = {
+      context: requestOptions?.context,
+      observe: 'body' as const,
+      responseType: 'json' as const,
+      params,
+    };
+    const result$ = this.http
+      .get<{ data?: IntegrationAuditTabResponse } | IntegrationAuditTabResponse>(url, httpOptions)
+      .pipe(
+        map(response => {
+          const payload = (response as { data?: IntegrationAuditTabResponse })?.data ?? response as IntegrationAuditTabResponse | undefined;
+          return payload?.records ? payload : { summary: { numFound: 0, page: 1, pageSize: 20, totalPages: 0 }, records: [] };
+        })
+      );
     return await firstValueFrom(result$);
   }
 

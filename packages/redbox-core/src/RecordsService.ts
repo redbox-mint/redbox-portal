@@ -4,6 +4,15 @@ import { RecordModel, UserModel } from "./model";
 type AnyRecord = Record<string, unknown>;
 type RecordInput = RecordModel | Record<string, unknown>;
 type UserInput = UserModel | Record<string, unknown>;
+type ResolvedPermissionUser = { username: string; name: string; email: string };
+type ResolvedRecordPermissions = {
+  edit: ResolvedPermissionUser[];
+  view: ResolvedPermissionUser[];
+  editPending: string[];
+  viewPending: string[];
+  editRoles: string[];
+  viewRoles: string[];
+};
 
 /**
  * Service interface for Records operations.
@@ -29,6 +38,7 @@ export interface RecordsService {
   delete(oid: string, permanentlyDelete: boolean, record: RecordInput, recordType: unknown, user: UserInput): Promise<StorageServiceResponse>;
   destroyDeletedRecord(oid: unknown, user: UserInput): Promise<StorageServiceResponse>;
   getMeta(oid: string): Promise<RecordModel>;
+  getResolvedPermissionsSummary(oid: string): Promise<ResolvedRecordPermissions>;
   restoreRecord(oid: unknown, user: UserInput): Promise<StorageServiceResponse>;
   getRecordAudit(params: unknown): Promise<Record<string, unknown>[]>;
   getRelatedRecords(oid: unknown, brand: unknown): Promise<unknown>;

@@ -180,7 +180,7 @@ export namespace Controllers {
               const brandId = String(record.metaMetadata?.['brandId'] ?? brand.id);
               const formRecord = await firstValueFrom(FormsService.getFormByName(formName, false, brandId));
               const formConfig = formRecord?.configuration;
-              
+
               if (formConfig) {
                 const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[]).map((role: AnyRecord) => String(role['name'] ?? '')).filter((name: string) => !!name);
                 const reusableFormDefs = sails.config.reusableFormDefinitions;
@@ -199,7 +199,7 @@ export namespace Controllers {
                   metaMetadata: record.metaMetadata,
                   metadata: {}
                 } as unknown as Parameters<typeof FormRecordConsistencyService.mergeRecordClientFormConfig>[0];
-                
+
                 const filteredRecord = FormRecordConsistencyService.mergeRecordClientFormConfig(
                   emptyOriginal,
                   record as unknown as Parameters<typeof FormRecordConsistencyService.mergeRecordClientFormConfig>[1],
@@ -1304,55 +1304,33 @@ export namespace Controllers {
     }
 
     public async getPermissionsInternal(req: Sails.Req, _res: Sails.Res) {
-      const oid = req.param('oid');
-      const record = await firstValueFrom(this.getRecord(oid));
-
-      const editUsers = _.get(record, 'authorization.edit', []) as string[]
-      const editUserResponse = [];
-      if (editUsers != null && editUsers != undefined) {
-        for (let i = 0; i < editUsers.length; i++) {
-          const editUsername = editUsers[i];
-          const user = await firstValueFrom(UsersService.getUserWithUsername(editUsername));
-          editUserResponse.push({
-            username: editUsername,
-            name: _.get(user, "name", ""),
-            email: _.get(user, "email", "")
-          });
-        }
+      const oid = String(req.param('oid') ?? '').trim();
+      if (_.isEmpty(oid)) {
+        throw new Error('Record oid is required.');
       }
-      const viewUsers = _.get(record, 'authorization.view', []) as string[]
-      const viewUserResponse = [];
-      if (viewUsers != null && viewUsers != undefined) {
-        for (let i = 0; i < viewUsers.length; i++) {
-          const viewUsername = viewUsers[i];
-          const user = await firstValueFrom(UsersService.getUserWithUsername(viewUsername));
 
-          viewUserResponse.push({
-            username: viewUsername,
-            name: _.get(user, "name", ""),
-            email: _.get(user, "email", "")
-          });
-        }
+      try {
+        return await this.recordsService.getResolvedPermissionsSummary(oid);
+      } catch (error) {
+        sails.log.error(`Failed to resolve permissions for record '${oid}'`, error);
+        throw error;
       }
-      const editPendingUsers = _.get(record, 'authorization.editPending', [])
-      const viewPendingUsers = _.get(record, 'authorization.viewPending', [])
-
-      const editRoles = _.get(record, 'authorization.editRoles', [])
-      const viewRoles = _.get(record, 'authorization.viewRoles', [])
-
-      return {
-        edit: editUserResponse,
-        view: viewUserResponse,
-        editRoles: editRoles,
-        viewRoles: viewRoles,
-        editPending: editPendingUsers,
-        viewPending: viewPendingUsers
-      };
     }
 
     public getPermissions(req: Sails.Req, res: Sails.Res) {
       return this.getPermissionsInternal(req, res).then(response => {
         return this.sendResp(req, res, { data: response });
+      }).catch(error => {
+        const errorMessage = this.getErrorMessage(error);
+        if (errorMessage === 'Record oid is required.') {
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: errorMessage }] });
+        }
+
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [this.asError(error)],
+          displayErrors: [{ detail: 'Failed to load record permissions.' }],
+        });
       });
     }
 
