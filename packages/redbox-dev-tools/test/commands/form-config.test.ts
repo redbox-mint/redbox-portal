@@ -4,8 +4,6 @@ let path: typeof import('path');
 let commander: typeof import('commander');
 let formConfigCommands: typeof import('../../src/commands/form-config');
 
-export { };
-
 describe('form-config commands', () => {
   let tempRoot: string;
   let inputLegacyFormPath: string;
@@ -13,10 +11,10 @@ describe('form-config commands', () => {
 
   before(async () => {
     ({ expect } = await import('chai'));
-    fs = await import('fs');
-    path = await import('path');
-    commander = await import('commander');
-    formConfigCommands = await import('../../src/commands/form-config');
+    fs = require('fs');
+    path = require('path');
+    commander = require('commander');
+    formConfigCommands = require('../../src/commands/form-config');
   });
 
   beforeEach(() => {

@@ -4,17 +4,15 @@ let fs: typeof import('fs');
 let os: typeof import('os');
 let formFieldGeneratorModule: typeof import('../../src/generators/form-field');
 
-export { };
-
 describe('FormFieldGenerator', () => {
   let tempRoot: string;
 
   before(async () => {
     ({ expect } = await import('chai'));
-    path = await import('path');
-    fs = await import('fs');
-    os = await import('os');
-    formFieldGeneratorModule = await import('../../src/generators/form-field');
+    path = require('path');
+    fs = require('fs');
+    os = require('os');
+    formFieldGeneratorModule = require('../../src/generators/form-field');
   });
 
   beforeEach(() => {

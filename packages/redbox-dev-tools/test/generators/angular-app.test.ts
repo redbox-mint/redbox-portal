@@ -5,8 +5,6 @@ let os: typeof import('os');
 let angularAppGeneratorModule: typeof import('../../src/generators/angular-app');
 let pathsModule: typeof import('../../src/utils/paths');
 
-export { };
-
 describe('AngularAppGenerator', () => {
   let tempRoot: string;
   let coreTypesRoot: string;
@@ -14,11 +12,11 @@ describe('AngularAppGenerator', () => {
 
   before(async () => {
     ({ expect } = await import('chai'));
-    path = await import('path');
-    fs = await import('fs');
-    os = await import('os');
-    angularAppGeneratorModule = await import('../../src/generators/angular-app');
-    pathsModule = await import('../../src/utils/paths');
+    path = require('path');
+    fs = require('fs');
+    os = require('os');
+    angularAppGeneratorModule = require('../../src/generators/angular-app');
+    pathsModule = require('../../src/utils/paths');
   });
 
   beforeEach(() => {

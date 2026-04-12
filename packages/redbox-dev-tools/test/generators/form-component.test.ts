@@ -5,18 +5,16 @@ let path: typeof import('path');
 let formComponentGeneratorModule: typeof import('../../src/generators/form-component');
 let pathsModule: typeof import('../../src/utils/paths');
 
-export { };
-
 describe('FormComponentGenerator', () => {
   let tempRoot: string;
 
   before(async () => {
     ({ expect } = await import('chai'));
-    fs = await import('fs');
-    os = await import('os');
-    path = await import('path');
-    formComponentGeneratorModule = await import('../../src/generators/form-component');
-    pathsModule = await import('../../src/utils/paths');
+    fs = require('fs');
+    os = require('os');
+    path = require('path');
+    formComponentGeneratorModule = require('../../src/generators/form-component');
+    pathsModule = require('../../src/utils/paths');
   });
 
   const writeFile = (relativePath: string, content: string) => {

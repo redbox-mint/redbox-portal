@@ -5,18 +5,16 @@ let path: typeof import('path');
 let childProcess: typeof import('child_process');
 let hookArchetypeModule: typeof import('../../src/templates/hook-archetype');
 
-export { };
-
 describe('hook dependency contract commands', () => {
   let tempRoot: string;
 
   before(async () => {
     ({ expect } = await import('chai'));
-    fs = await import('fs');
-    os = await import('os');
-    path = await import('path');
-    childProcess = await import('child_process');
-    hookArchetypeModule = await import('../../src/templates/hook-archetype');
+    fs = require('fs');
+    os = require('os');
+    path = require('path');
+    childProcess = require('child_process');
+    hookArchetypeModule = require('../../src/templates/hook-archetype');
   });
 
   beforeEach(() => {

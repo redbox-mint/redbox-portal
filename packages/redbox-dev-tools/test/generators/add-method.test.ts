@@ -5,19 +5,17 @@ let os: typeof import('os');
 let addMethodGeneratorModule: typeof import('../../src/generators/add-method');
 let pathsModule: typeof import('../../src/utils/paths');
 
-export { };
-
 describe('AddMethodGenerator', () => {
   let tempRoot: string;
   let coreTypesRoot: string;
 
   before(async () => {
     ({ expect } = await import('chai'));
-    path = await import('path');
-    fs = await import('fs');
-    os = await import('os');
-    addMethodGeneratorModule = await import('../../src/generators/add-method');
-    pathsModule = await import('../../src/utils/paths');
+    path = require('path');
+    fs = require('fs');
+    os = require('os');
+    addMethodGeneratorModule = require('../../src/generators/add-method');
+    pathsModule = require('../../src/utils/paths');
   });
 
   beforeEach(() => {

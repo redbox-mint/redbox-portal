@@ -5,19 +5,17 @@ let os: typeof import('os');
 let serviceGeneratorModule: typeof import('../../src/generators/service');
 let pathsModule: typeof import('../../src/utils/paths');
 
-export { };
-
 describe('ServiceGenerator', () => {
   let tempRoot: string;
   let coreTypesRoot: string;
 
   before(async () => {
     ({ expect } = await import('chai'));
-    path = await import('path');
-    fs = await import('fs');
-    os = await import('os');
-    serviceGeneratorModule = await import('../../src/generators/service');
-    pathsModule = await import('../../src/utils/paths');
+    path = require('path');
+    fs = require('fs');
+    os = require('os');
+    serviceGeneratorModule = require('../../src/generators/service');
+    pathsModule = require('../../src/utils/paths');
   });
 
   beforeEach(() => {

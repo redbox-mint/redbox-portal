@@ -5,8 +5,6 @@ let os: typeof import('os');
 let angularServiceGeneratorModule: typeof import('../../src/generators/angular-service');
 let pathsModule: typeof import('../../src/utils/paths');
 
-export { };
-
 describe('AngularServiceGenerator', () => {
   let tempRoot: string;
   let coreTypesRoot: string;
@@ -14,11 +12,11 @@ describe('AngularServiceGenerator', () => {
 
   before(async () => {
     ({ expect } = await import('chai'));
-    path = await import('path');
-    fs = await import('fs');
-    os = await import('os');
-    angularServiceGeneratorModule = await import('../../src/generators/angular-service');
-    pathsModule = await import('../../src/utils/paths');
+    path = require('path');
+    fs = require('fs');
+    os = require('os');
+    angularServiceGeneratorModule = require('../../src/generators/angular-service');
+    pathsModule = require('../../src/utils/paths');
   });
 
   beforeEach(() => {
