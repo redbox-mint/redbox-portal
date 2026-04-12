@@ -1,12 +1,23 @@
-import { expect } from 'chai';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import { spawnSync } from 'child_process';
-import { generateHookArchetype } from '../../src/templates/hook-archetype';
+let expect: typeof import('chai').expect;
+let fs: typeof import('fs');
+let os: typeof import('os');
+let path: typeof import('path');
+let childProcess: typeof import('child_process');
+let hookArchetypeModule: typeof import('../../src/templates/hook-archetype');
+
+export { };
 
 describe('hook dependency contract commands', () => {
   let tempRoot: string;
+
+  before(async () => {
+    ({ expect } = await import('chai'));
+    fs = await import('fs');
+    os = await import('os');
+    path = await import('path');
+    childProcess = await import('child_process');
+    hookArchetypeModule = await import('../../src/templates/hook-archetype');
+  });
 
   beforeEach(() => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-contract-'));
@@ -20,7 +31,7 @@ describe('hook dependency contract commands', () => {
     const packageRoot = path.resolve(__dirname, '..', '..');
     const cliPath = path.join(packageRoot, 'src', 'cli.ts');
     const tsNodeRegisterPath = path.join(packageRoot, 'node_modules', 'ts-node', 'register');
-    return spawnSync('node', ['-r', tsNodeRegisterPath, cliPath, ...args], {
+    return childProcess.spawnSync('node', ['-r', tsNodeRegisterPath, cliPath, ...args], {
       cwd,
       encoding: 'utf8',
       env: {
@@ -35,7 +46,7 @@ describe('hook dependency contract commands', () => {
     fs.mkdirSync(hookRoot, { recursive: true });
 
     const description = 'A "quoted" hook description\nwith a second line';
-    generateHookArchetype({
+    hookArchetypeModule.generateHookArchetype({
       cwd: hookRoot,
       packageName: 'redbox-hook-example',
       description,

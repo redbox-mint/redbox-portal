@@ -1,13 +1,24 @@
-import { expect } from 'chai';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import { ServiceGenerator } from '../../src/generators/service';
-import { resolvePaths } from '../../src/utils/paths';
+let expect: typeof import('chai').expect;
+let path: typeof import('path');
+let fs: typeof import('fs');
+let os: typeof import('os');
+let serviceGeneratorModule: typeof import('../../src/generators/service');
+let pathsModule: typeof import('../../src/utils/paths');
+
+export { };
 
 describe('ServiceGenerator', () => {
   let tempRoot: string;
   let coreTypesRoot: string;
+
+  before(async () => {
+    ({ expect } = await import('chai'));
+    path = await import('path');
+    fs = await import('fs');
+    os = await import('os');
+    serviceGeneratorModule = await import('../../src/generators/service');
+    pathsModule = await import('../../src/utils/paths');
+  });
 
   beforeEach(() => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-test-'));
@@ -44,8 +55,8 @@ export const ServiceExports = {
   });
 
   it('should generate a service and update index', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new ServiceGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new serviceGeneratorModule.ServiceGenerator({
       name: 'Test',
       methods: ['doSomething', 'processData'],
       root: tempRoot,

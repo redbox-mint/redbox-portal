@@ -1,12 +1,23 @@
-import { expect } from 'chai';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import { FormComponentGenerator } from '../../src/generators/form-component';
-import { resolvePaths } from '../../src/utils/paths';
+let expect: typeof import('chai').expect;
+let fs: typeof import('fs');
+let os: typeof import('os');
+let path: typeof import('path');
+let formComponentGeneratorModule: typeof import('../../src/generators/form-component');
+let pathsModule: typeof import('../../src/utils/paths');
+
+export { };
 
 describe('FormComponentGenerator', () => {
   let tempRoot: string;
+
+  before(async () => {
+    ({ expect } = await import('chai'));
+    fs = await import('fs');
+    os = await import('os');
+    path = await import('path');
+    formComponentGeneratorModule = await import('../../src/generators/form-component');
+    pathsModule = await import('../../src/utils/paths');
+  });
 
   const writeFile = (relativePath: string, content: string) => {
     const filePath = path.join(tempRoot, relativePath);
@@ -185,8 +196,8 @@ export class FormModule { }
   });
 
   it('generates component scaffold and updates wiring', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new FormComponentGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new formComponentGeneratorModule.FormComponentGenerator({
       name: 'my-widget',
       root: tempRoot,
       paths,
@@ -232,8 +243,8 @@ export class FormModule { }
   });
 
   it('generates companion service when requested', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new FormComponentGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new formComponentGeneratorModule.FormComponentGenerator({
       name: 'my-widget',
       withService: true,
       root: tempRoot,

@@ -1,14 +1,25 @@
-import { expect } from 'chai';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import { AngularServiceGenerator } from '../../src/generators/angular-service';
-import { resolvePaths } from '../../src/utils/paths';
+let expect: typeof import('chai').expect;
+let path: typeof import('path');
+let fs: typeof import('fs');
+let os: typeof import('os');
+let angularServiceGeneratorModule: typeof import('../../src/generators/angular-service');
+let pathsModule: typeof import('../../src/utils/paths');
+
+export { };
 
 describe('AngularServiceGenerator', () => {
   let tempRoot: string;
   let coreTypesRoot: string;
   let angularRoot: string;
+
+  before(async () => {
+    ({ expect } = await import('chai'));
+    path = await import('path');
+    fs = await import('fs');
+    os = await import('os');
+    angularServiceGeneratorModule = await import('../../src/generators/angular-service');
+    pathsModule = await import('../../src/utils/paths');
+  });
 
   beforeEach(() => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-test-'));
@@ -27,8 +38,8 @@ describe('AngularServiceGenerator', () => {
   });
 
   it('should generate an Angular service extending HttpClientService', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new AngularServiceGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new angularServiceGeneratorModule.AngularServiceGenerator({
       name: 'my-data',
       app: 'test-app',
       methods: ['getData', 'saveData'],

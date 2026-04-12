@@ -1,38 +1,45 @@
-import { expect } from 'chai';
-import { generateCompletionScript } from '../../src/completion';
+let expect: typeof import('chai').expect;
+let completionModule: typeof import('../../src/completion');
+
+export { };
 
 describe('completion scripts', () => {
+  before(async () => {
+    ({ expect } = await import('chai'));
+    completionModule = await import('../../src/completion');
+  });
+
   it('should generate bash completion script', () => {
-    const script = generateCompletionScript('bash');
+    const script = completionModule.generateCompletionScript('bash');
     expect(script).to.contain('complete -F _redbox_dev_tools_completion redbox-dev-tools');
     expect(script).to.contain('migrate-form-config');
     expect(script).to.contain('form-component');
   });
 
   it('should generate zsh completion script', () => {
-    const script = generateCompletionScript('zsh');
+    const script = completionModule.generateCompletionScript('zsh');
     expect(script).to.contain('#compdef redbox-dev-tools');
     expect(script).to.contain('bashcompinit');
   });
 
   it('should generate fish completion script', () => {
-    const script = generateCompletionScript('fish');
+    const script = completionModule.generateCompletionScript('fish');
     expect(script).to.contain('complete -c $__rbhk_cmd');
     expect(script).to.contain('migrate-form-config');
   });
 
   it('should generate powershell completion script', () => {
-    const script = generateCompletionScript('powershell');
+    const script = completionModule.generateCompletionScript('powershell');
     expect(script).to.contain('Register-ArgumentCompleter');
     expect(script).to.contain('redbox-dev-tools');
   });
 
   it('should generate powershell completion script for pwsh alias', () => {
-    const script = generateCompletionScript('pwsh');
+    const script = completionModule.generateCompletionScript('pwsh');
     expect(script).to.contain('Register-ArgumentCompleter');
   });
 
   it('should throw for unsupported shell', () => {
-    expect(() => generateCompletionScript('unknown-shell')).to.throw("Unsupported shell 'unknown-shell'");
+    expect(() => completionModule.generateCompletionScript('unknown-shell')).to.throw("Unsupported shell 'unknown-shell'");
   });
 });

@@ -1,42 +1,48 @@
-import {expect} from 'chai';
-import * as fs from 'fs';
-import * as path from 'path';
-import {Command} from 'commander';
-import {
-  registerClientFormConfigCommand,
-  registerMigrateDataClassificationCommand,
-  registerMigrateFormConfigCommand, registerQuestionTreeDiagramCommand
-} from '../../src/commands/form-config';
+let expect: typeof import('chai').expect;
+let fs: typeof import('fs');
+let path: typeof import('path');
+let commander: typeof import('commander');
+let formConfigCommands: typeof import('../../src/commands/form-config');
+
+export { };
 
 describe('form-config commands', () => {
   let tempRoot: string;
   let inputLegacyFormPath: string;
   let inputLegacyDataClassifyDefFormPath: string;
 
+  before(async () => {
+    ({ expect } = await import('chai'));
+    fs = await import('fs');
+    path = await import('path');
+    commander = await import('commander');
+    formConfigCommands = await import('../../src/commands/form-config');
+  });
+
   beforeEach(() => {
     tempRoot = path.resolve(__dirname, '..', '.tmp', 'migrate-form-config');
-    fs.rmSync(tempRoot, {recursive: true, force: true});
-    fs.mkdirSync(tempRoot, {recursive: true});
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+    fs.mkdirSync(tempRoot, { recursive: true });
     inputLegacyFormPath = path.resolve(__dirname, '..', 'resources', 'migrate-form-config', 'legacy-form.js');
     inputLegacyDataClassifyDefFormPath = path.resolve(__dirname, '..', 'resources', 'migrate-form-config', 'legacy-data-classification-definition.js');
   });
 
   afterEach(() => {
-    fs.rmSync(tempRoot, {recursive: true, force: true});
+    fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
-  function buildProgram(): Command {
-    const program = new Command();
+  function buildProgram() {
+    const program = new commander.Command();
     program
       .name('redbox-dev-tools')
       .option('--root <path>')
       .option('--core-types-root <path>')
       .option('--angular-root <path>')
       .option('--dry-run', 'Print intended changes without writing files', false);
-    registerMigrateFormConfigCommand(program);
-    registerMigrateDataClassificationCommand(program);
-    registerClientFormConfigCommand(program);
-    registerQuestionTreeDiagramCommand(program);
+    formConfigCommands.registerMigrateFormConfigCommand(program);
+    formConfigCommands.registerMigrateDataClassificationCommand(program);
+    formConfigCommands.registerClientFormConfigCommand(program);
+    formConfigCommands.registerQuestionTreeDiagramCommand(program);
     return program;
   }
 
@@ -47,7 +53,7 @@ describe('form-config commands', () => {
 
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'migrate-form-config', '--input', inputLegacyFormPath, '--output', outputPath],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputPath)).to.be.true;
@@ -63,7 +69,7 @@ describe('form-config commands', () => {
 
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'migrate-form-config', '--input', inputLegacyFormPath, '--output', outputPath, '--format', 'cjs'],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputPath)).to.be.true;
@@ -79,7 +85,7 @@ describe('form-config commands', () => {
 
       await program.parseAsync(
         ['node', 'redbox-dev-tools', '--dry-run', 'migrate-form-config', '--input', inputLegacyFormPath, '--output', outputPath],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputPath)).to.be.false;
@@ -93,7 +99,7 @@ describe('form-config commands', () => {
 
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'migrate-data-classification', '--input', inputLegacyDataClassifyDefFormPath, '--output', outputPath],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputPath)).to.be.true;
@@ -109,7 +115,7 @@ describe('form-config commands', () => {
 
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'migrate-data-classification', '--input', inputLegacyDataClassifyDefFormPath, '--output', outputPath, '--format', 'cjs'],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputPath)).to.be.true;
@@ -123,7 +129,7 @@ describe('form-config commands', () => {
 
       await program.parseAsync(
         ['node', 'redbox-dev-tools', '--dry-run', 'migrate-data-classification', '--input', inputLegacyDataClassifyDefFormPath, '--output', outputPath],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputPath)).to.be.false;
@@ -137,7 +143,7 @@ describe('form-config commands', () => {
       const outputFormConfigPath = path.join(tempRoot, 'fixture-server-form-config.ts');
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'migrate-form-config', '--input', inputLegacyFormPath, '--output', outputFormConfigPath],
-        {from: 'node'}
+        { from: 'node' }
       );
       expect(fs.existsSync(outputFormConfigPath)).to.be.true;
 
@@ -145,7 +151,7 @@ describe('form-config commands', () => {
       const outputClientPath = path.join(tempRoot, 'fixture-client-form-config.ts');
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'client-form-config', '--input', outputFormConfigPath, '--output', outputClientPath],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputClientPath)).to.be.true;
@@ -163,7 +169,7 @@ describe('form-config commands', () => {
       const outputQuestionTreeConfigPath = path.join(tempRoot, 'fixture-migrate-question-tree-for-diagram-cjs.ts');
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'migrate-data-classification', '--input', inputLegacyDataClassifyDefFormPath, '--output', outputQuestionTreeConfigPath, '--format', 'cjs'],
-        {from: 'node'}
+        { from: 'node' }
       );
       expect(fs.existsSync(outputQuestionTreeConfigPath)).to.be.true;
 
@@ -171,7 +177,7 @@ describe('form-config commands', () => {
       const outputDiagramPath = path.join(tempRoot, 'fixture-question-tree-diagram.txt');
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'question-tree-diagram', '--input', outputQuestionTreeConfigPath, '--output', outputDiagramPath],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputDiagramPath)).to.be.true;

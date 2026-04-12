@@ -1,13 +1,24 @@
-import { expect } from 'chai';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import { AddMethodGenerator } from '../../src/generators/add-method';
-import { resolvePaths } from '../../src/utils/paths';
+let expect: typeof import('chai').expect;
+let path: typeof import('path');
+let fs: typeof import('fs');
+let os: typeof import('os');
+let addMethodGeneratorModule: typeof import('../../src/generators/add-method');
+let pathsModule: typeof import('../../src/utils/paths');
+
+export { };
 
 describe('AddMethodGenerator', () => {
   let tempRoot: string;
   let coreTypesRoot: string;
+
+  before(async () => {
+    ({ expect } = await import('chai'));
+    path = await import('path');
+    fs = await import('fs');
+    os = await import('os');
+    addMethodGeneratorModule = await import('../../src/generators/add-method');
+    pathsModule = await import('../../src/utils/paths');
+  });
 
   beforeEach(() => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-test-'));
@@ -78,8 +89,8 @@ export namespace Controllers {
 `
     );
 
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new AddMethodGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new addMethodGeneratorModule.AddMethodGenerator({
       file: controllerPath,
       method: 'newMethod',
       route: 'get /new-route',
@@ -121,8 +132,8 @@ export namespace Services {
 `
     );
 
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new AddMethodGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new addMethodGeneratorModule.AddMethodGenerator({
       file: servicePath,
       method: 'newServiceMethod',
       root: tempRoot,
