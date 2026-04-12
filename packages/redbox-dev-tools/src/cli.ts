@@ -20,7 +20,13 @@ import {
 } from './cli-parsers';
 
 const program = new Command();
+// List of dependencies that are common in our legacy hooks but should not be in modern hook packages as they are supplied by redbox-core
 const forbiddenHookDeps = ['axios', 'rxjs', 'lodash', 'mocha', 'chai', 'ts-node', 'typescript'];
+const allowedSharedHookDeps: Record<'dependencies' | 'devDependencies' | 'peerDependencies', Set<string>> = {
+  dependencies: new Set<string>(),
+  devDependencies: new Set(['@researchdatabox/redbox-dev-tools']),
+  peerDependencies: new Set(['@researchdatabox/redbox-core']),
+};
 
 function readPackageJson(pkgPath: string): any {
   return JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
@@ -30,23 +36,33 @@ function writePackageJson(pkgPath: string, pkg: any): void {
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
 }
 
+function isForbiddenSharedHookDep(section: keyof typeof allowedSharedHookDeps, depName: string): boolean {
+  if (!depName.startsWith('@researchdatabox/')) {
+    return false;
+  }
+
+  return !allowedSharedHookDeps[section].has(depName);
+}
+
 function migrateHookDependencyContract(pkg: any): any {
   const nextPkg = { ...pkg };
   nextPkg.dependencies = { ...(pkg.dependencies ?? {}) };
   nextPkg.devDependencies = { ...(pkg.devDependencies ?? {}) };
   nextPkg.peerDependencies = { ...(pkg.peerDependencies ?? {}) };
 
+  for (const section of Object.keys(allowedSharedHookDeps) as Array<keyof typeof allowedSharedHookDeps>) {
+    for (const depName of Object.keys(nextPkg[section] ?? {})) {
+      if (isForbiddenSharedHookDep(section, depName)) {
+        delete nextPkg[section][depName];
+      }
+    }
+  }
+
   for (const depName of forbiddenHookDeps) {
     delete nextPkg.dependencies[depName];
     delete nextPkg.devDependencies[depName];
     delete nextPkg.peerDependencies[depName];
   }
-
-  delete nextPkg.dependencies['@researchdatabox/redbox-core'];
-  delete nextPkg.dependencies['@researchdatabox/redbox-dev-tools'];
-  delete nextPkg.dependencies['@researchdatabox/sails-ng-common'];
-  delete nextPkg.devDependencies['@researchdatabox/sails-ng-common'];
-  delete nextPkg.peerDependencies['@researchdatabox/sails-ng-common'];
 
   nextPkg.peerDependencies['@researchdatabox/redbox-core'] = nextPkg.peerDependencies['@researchdatabox/redbox-core'] ?? '*';
   nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] = nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] ?? '*';
@@ -60,6 +76,13 @@ function findForbiddenHookDeps(pkg: any): string[] {
 
   for (const section of sections) {
     const deps = pkg[section] ?? {};
+
+    for (const depName of Object.keys(deps)) {
+      if (isForbiddenSharedHookDep(section, depName)) {
+        findings.push(`${section}.${depName}`);
+      }
+    }
+
     for (const depName of forbiddenHookDeps) {
       if (deps[depName] != null) {
         findings.push(`${section}.${depName}`);
