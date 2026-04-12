@@ -422,10 +422,10 @@ export namespace Services {
             const brandId = rm.metaMetadata?.brandId ?? '';
             const attachmentCount = Number(syncState.partialProgress?.attachmentCount ?? 0);
             const uploadsComplete = syncState.partialProgress?.uploadsComplete === true;
-            if (attachmentCount > 0 && uploadsComplete) {
+            if (attachmentCount > 0 && articleId !== '') {
               if (config.article.publishMode === 'afterUploadsComplete') {
                 this.queuePublishAfterUploadFiles(oid, articleId, user, brandId);
-              } else if (config.article.publishMode === 'immediate') {
+              } else if (config.article.publishMode === 'immediate' && uploadsComplete) {
                 this.queueDeleteFiles(oid, user, brandId, articleId);
               }
             }
@@ -478,6 +478,13 @@ export namespace Services {
       }
 
       const client = this.makeClient(config, record, `${oid}:publish-job`, 'publishAfterUploadFilesJob');
+      try {
+        await this.ensureNoFileUploadInProgress(config, record, articleId);
+      } catch (error) {
+        sails.log.warn(`FigService - article '${articleId}' still has uploads in progress, rescheduling deferred publish`, error);
+        this.queuePublishAfterUploadFiles(oid, articleId, user, brandId);
+        return;
+      }
       const publishResult = await client.publishArticle(articleId, {});
       const article = await client.getArticle(articleId);
       const updatedRecord = this.writeBack(record, article, publishResult);

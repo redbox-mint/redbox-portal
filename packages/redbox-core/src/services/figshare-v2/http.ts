@@ -17,7 +17,33 @@ import {
 } from './types';
 import { logEvent, redactObject, withSpan } from './observability';
 
-function sanitizePayloadForLogging(payload: unknown): unknown {
+function isReadablePayload(payload: unknown): payload is { pipe: (...args: unknown[]) => unknown } {
+  return payload != null && typeof payload === 'object' && typeof (payload as { pipe?: unknown }).pipe === 'function';
+}
+
+function getContentType(headers?: Record<string, unknown>): string {
+  const contentTypeHeader = headers == null
+    ? undefined
+    : headers['Content-Type'] ?? headers['content-type'];
+  return typeof contentTypeHeader === 'string' ? contentTypeHeader.toLowerCase() : '';
+}
+
+function sanitizePayloadForLogging(payload: unknown, headers?: Record<string, unknown>): unknown {
+  const contentType = getContentType(headers);
+  if (Buffer.isBuffer(payload)) {
+    return {
+      type: 'buffer',
+      byteLength: payload.length,
+      contentType: contentType || undefined
+    };
+  }
+  if (isReadablePayload(payload) || contentType.includes('application/octet-stream')) {
+    return {
+      type: isReadablePayload(payload) ? 'stream' : 'binary',
+      contentType: contentType || undefined,
+      payloadClass: payload != null && typeof payload === 'object' ? payload.constructor?.name : undefined
+    };
+  }
   return redactObject(payload);
 }
 
@@ -80,7 +106,7 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
         'http.method': method,
         'http.url': url
       }, async () => {
-        const sanitizedPayload = sanitizePayloadForLogging(options.payload);
+        const sanitizedPayload = sanitizePayloadForLogging(options.payload, options.headers);
         logEvent('debug', `Figshare V2 request ${method} ${path}`, runContext, { attempt, payload: sanitizedPayload });
         const response = await axios({
           method,

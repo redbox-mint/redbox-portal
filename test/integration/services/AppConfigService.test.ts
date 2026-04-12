@@ -1,3 +1,5 @@
+const { APP_CONFIG_SECRET_MASK } = require('../../../packages/redbox-core/dist/services/AppConfigService');
+
 describe('appConfigService', function () {
   let appConfigService;
   let originalBrandingAppConfigMap;
@@ -461,15 +463,48 @@ describe('appConfigService', function () {
       connection: {
         baseUrl: 'https://api.figshare.com',
         frontEndUrl: 'https://figshare.com',
-        token: '__REDACTED__',
+        token: APP_CONFIG_SECRET_MASK,
         timeoutMs: 1000,
         operationTimeouts: { metadataMs: 1000, uploadInitMs: 1000, uploadPartMs: 1000, publishMs: 1000 },
         retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1, retryOnStatusCodes: [] }
       }
     });
 
-    expect(updated.connection.token).to.equal('*******');
+    expect(updated.connection.token).to.equal(APP_CONFIG_SECRET_MASK);
+    const legacyUpdated = await appConfigService.createOrUpdateConfig(branding, configKey, {
+      enabled: true,
+      connection: {
+        baseUrl: 'https://api.figshare.com',
+        frontEndUrl: 'https://figshare.com',
+        token: '*******',
+        timeoutMs: 1000,
+        operationTimeouts: { metadataMs: 1000, uploadInitMs: 1000, uploadPartMs: 1000, publishMs: 1000 },
+        retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1, retryOnStatusCodes: [] }
+      }
+    });
+
+    expect(legacyUpdated.connection.token).to.equal(APP_CONFIG_SECRET_MASK);
     const loaded = appConfigService.getAppConfigurationForBrand(brandName);
     expect(loaded.figsharePublishing.connection.token).to.equal('top-secret');
+  });
+
+  it('should leave empty secret fields visible as empty', async () => {
+    const brandName = 'default';
+    const branding = BrandingService.getBrand(brandName);
+    const configKey = 'figsharePublishing';
+
+    const updated = await appConfigService.createOrUpdateConfig(branding, configKey, {
+      enabled: true,
+      connection: {
+        baseUrl: 'https://api.figshare.com',
+        frontEndUrl: 'https://figshare.com',
+        token: '',
+        timeoutMs: 1000,
+        operationTimeouts: { metadataMs: 1000, uploadInitMs: 1000, uploadPartMs: 1000, publishMs: 1000 },
+        retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1, retryOnStatusCodes: [] }
+      }
+    });
+
+    expect(updated.connection.token).to.equal('');
   });
 });

@@ -1,7 +1,7 @@
-import {expect} from 'chai';
+import { expect } from 'chai';
 import * as fs from 'fs';
 import * as path from 'path';
-import {Command} from 'commander';
+import { Command } from 'commander';
 import {
   registerClientFormConfigCommand,
   registerMigrateDataClassificationCommand,
@@ -17,14 +17,14 @@ describe('form-config commands', () => {
 
   beforeEach(() => {
     tempRoot = path.resolve(__dirname, '..', '.tmp', 'migrate-form-config');
-    fs.rmSync(tempRoot, {recursive: true, force: true});
-    fs.mkdirSync(tempRoot, {recursive: true});
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+    fs.mkdirSync(tempRoot, { recursive: true });
     inputLegacyFormPath = path.resolve(__dirname, '..', 'resources', 'migrate-form-config', 'legacy-form.js');
     inputLegacyDataClassifyDefFormPath = path.resolve(__dirname, '..', 'resources', 'migrate-form-config', 'legacy-data-classification-definition.js');
   });
 
   afterEach(() => {
-    fs.rmSync(tempRoot, {recursive: true, force: true});
+    fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
   function buildProgram(): Command {
@@ -50,7 +50,7 @@ describe('form-config commands', () => {
 
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'migrate-form-config', '--input', inputLegacyFormPath, '--output', outputPath],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputPath)).to.be.true;
@@ -66,7 +66,7 @@ describe('form-config commands', () => {
 
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'migrate-form-config', '--input', inputLegacyFormPath, '--output', outputPath, '--format', 'cjs'],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputPath)).to.be.true;
@@ -82,7 +82,7 @@ describe('form-config commands', () => {
 
       await program.parseAsync(
         ['node', 'redbox-dev-tools', '--dry-run', 'migrate-form-config', '--input', inputLegacyFormPath, '--output', outputPath],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputPath)).to.be.false;
@@ -96,7 +96,7 @@ describe('form-config commands', () => {
 
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'migrate-data-classification', '--input', inputLegacyDataClassifyDefFormPath, '--output', outputPath],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputPath)).to.be.true;
@@ -112,7 +112,7 @@ describe('form-config commands', () => {
 
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'migrate-data-classification', '--input', inputLegacyDataClassifyDefFormPath, '--output', outputPath, '--format', 'cjs'],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputPath)).to.be.true;
@@ -126,7 +126,7 @@ describe('form-config commands', () => {
 
       await program.parseAsync(
         ['node', 'redbox-dev-tools', '--dry-run', 'migrate-data-classification', '--input', inputLegacyDataClassifyDefFormPath, '--output', outputPath],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputPath)).to.be.false;
@@ -140,7 +140,7 @@ describe('form-config commands', () => {
       const outputFormConfigPath = path.join(tempRoot, 'fixture-server-form-config.ts');
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'migrate-form-config', '--input', inputLegacyFormPath, '--output', outputFormConfigPath],
-        {from: 'node'}
+        { from: 'node' }
       );
       expect(fs.existsSync(outputFormConfigPath)).to.be.true;
 
@@ -148,7 +148,7 @@ describe('form-config commands', () => {
       const outputClientPath = path.join(tempRoot, 'fixture-client-form-config.ts');
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'client-form-config', '--input', outputFormConfigPath, '--output', outputClientPath],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputClientPath)).to.be.true;
@@ -166,7 +166,7 @@ describe('form-config commands', () => {
       const outputQuestionTreeConfigPath = path.join(tempRoot, 'fixture-migrate-question-tree-for-diagram-cjs.ts');
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'migrate-data-classification', '--input', inputLegacyDataClassifyDefFormPath, '--output', outputQuestionTreeConfigPath, '--format', 'cjs'],
-        {from: 'node'}
+        { from: 'node' }
       );
       expect(fs.existsSync(outputQuestionTreeConfigPath)).to.be.true;
 
@@ -174,7 +174,7 @@ describe('form-config commands', () => {
       const outputDiagramPath = path.join(tempRoot, 'fixture-question-tree-diagram.txt');
       await program.parseAsync(
         ['node', 'redbox-dev-tools', 'question-tree-diagram', '--input', outputQuestionTreeConfigPath, '--output', outputDiagramPath],
-        {from: 'node'}
+        { from: 'node' }
       );
 
       expect(fs.existsSync(outputDiagramPath)).to.be.true;
@@ -305,6 +305,48 @@ describe('form-config commands', () => {
       const migrated = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
       expect(migrated.connection.baseUrl).to.equal('https://api.figshare.com');
       expect(migrated.categories.mappingTable).to.deep.equal([]);
+    });
+
+    it('should enable the migrated config when connection values come from figshareAPIEnv overrides', async () => {
+      const program = buildProgram();
+      const outputDir = path.join(tempRoot, 'figshare-output-overrides');
+      const figshareApiPath = path.join(tempRoot, 'figshareAPI-overrides.js');
+      const figshareApiEnvPath = path.join(tempRoot, 'figshareAPIEnv-overrides.js');
+
+      fs.writeFileSync(figshareApiPath, `module.exports.figshareAPI = {
+  APIToken: '',
+  baseURL: '',
+  frontEndURL: '',
+  mapping: {}
+};`, 'utf8');
+
+      fs.writeFileSync(figshareApiEnvPath, `module.exports.figshareAPIEnv = {
+  overrideArtifacts: {
+    APIToken: 'override-token',
+    baseURL: 'https://override.api.figshare.com',
+    frontEndURL: 'https://override.figshare.com'
+  }
+};`, 'utf8');
+
+      await program.parseAsync(
+        [
+          'node',
+          'redbox-dev-tools',
+          'migrate-figshare-config',
+          '--figshare-api',
+          figshareApiPath,
+          '--figshare-api-env',
+          figshareApiEnvPath,
+          '--output',
+          outputDir
+        ],
+        { from: 'node' }
+      );
+
+      const outputPath = path.join(outputDir, 'default.figsharePublishing.json');
+      const migrated = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+      expect(migrated.enabled).to.equal(true);
+      expect(migrated.connection.baseUrl).to.equal('https://override.api.figshare.com');
     });
   });
 });

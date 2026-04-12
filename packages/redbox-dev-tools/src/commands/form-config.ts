@@ -234,13 +234,16 @@ function createMigratedFigsharePublishingConfig(
     ...((figshareApi.mapping as Record<string, unknown> | undefined) ?? {}),
     ...((overrideArtifacts.mapping as Record<string, unknown> | undefined) ?? {})
   };
+  const resolvedBaseUrl = String(overrideArtifacts.baseURL ?? figshareApi.baseURL ?? '');
+  const resolvedFrontEndUrl = String(overrideArtifacts.frontEndURL ?? figshareApi.frontEndURL ?? '');
+  const resolvedToken = String(overrideArtifacts.APIToken ?? figshareApi.APIToken ?? '');
 
   return {
-    enabled: Boolean(figshareApi.APIToken && figshareApi.baseURL && figshareApi.frontEndURL),
+    enabled: Boolean(resolvedToken && resolvedBaseUrl && resolvedFrontEndUrl),
     connection: {
-      baseUrl: overrideArtifacts.baseURL ?? figshareApi.baseURL ?? '',
-      frontEndUrl: overrideArtifacts.frontEndURL ?? figshareApi.frontEndURL ?? '',
-      token: overrideArtifacts.APIToken ?? figshareApi.APIToken ?? '',
+      baseUrl: resolvedBaseUrl,
+      frontEndUrl: resolvedFrontEndUrl,
+      token: resolvedToken,
       timeoutMs: 30000,
       operationTimeouts: {
         metadataMs: 30000,
@@ -252,7 +255,8 @@ function createMigratedFigsharePublishingConfig(
         maxAttempts: Number((figshareApi.retry as Record<string, unknown> | undefined)?.maxAttempts ?? 3),
         baseDelayMs: Number((figshareApi.retry as Record<string, unknown> | undefined)?.baseDelayMs ?? 500),
         maxDelayMs: Number((figshareApi.retry as Record<string, unknown> | undefined)?.maxDelayMs ?? 4000),
-        retryOnStatusCodes: toNumericStatusCodes((figshareApi.retry as Record<string, unknown> | undefined)?.retryOnStatusCodes)
+        retryOnStatusCodes: toNumericStatusCodes((figshareApi.retry as Record<string, unknown> | undefined)?.retryOnStatusCodes),
+        retryOnMethods: ['get', 'put', 'delete']
       }
     },
     article: {

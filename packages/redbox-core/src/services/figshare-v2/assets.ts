@@ -19,6 +19,7 @@ import { getSelectedDataLocations } from './plan';
 
 const UNKNOWN_SIZE_STAGING_BUFFER_BYTES = 50 * 1024 * 1024;
 const LINK_FILE_CREATE_RETRY_COUNT = 3;
+const FIGSHARE_UPLOAD_PENDING_STATUS = 'created';
 
 function getTempDir(config: FigsharePublishingConfigData): string {
   const configDir = config.assets.staging.tempDir;
@@ -76,6 +77,32 @@ async function stageAttachmentToDisk(response: DatastreamResponse, filePath: str
   return stat.size;
 }
 
+function sanitizePathComponent(value: string): string {
+  return value.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'item';
+}
+
+async function listArticleFiles(client: FigshareClient, articleId: string): Promise<FigshareFile[]> {
+  const currentFiles: FigshareFile[] = [];
+  let page = 1;
+  const pageSize = 20;
+  while (true) {
+    const pageResults = await client.listArticleFiles(articleId, page, pageSize);
+    if (!Array.isArray(pageResults) || pageResults.length === 0) {
+      break;
+    }
+    currentFiles.push(...pageResults);
+    if (pageResults.length < pageSize) {
+      break;
+    }
+    page++;
+  }
+  return currentFiles;
+}
+
+function hasPendingUploads(files: FigshareFile[]): boolean {
+  return files.some((entry) => String(entry.status ?? '').toLowerCase() === FIGSHARE_UPLOAD_PENDING_STATUS);
+}
+
 async function uploadAttachment(client: FigshareClient, config: FigsharePublishingConfigData, articleId: string, oid: string, attachment: DataLocationEntry): Promise<FigshareFile> {
   const fileId = attachment.fileId ?? '';
   const fileName = attachment.name ?? '';
@@ -89,8 +116,13 @@ async function uploadAttachment(client: FigshareClient, config: FigsharePublishi
   if (safeFileName === '') {
     throw validationError(`Attachment '${fileName}' does not contain a valid file name`);
   }
-  const filePath = path.resolve(resolvedTempDir, safeFileName);
-  if (!filePath.startsWith(`${resolvedTempDir}${path.sep}`) && filePath !== path.join(resolvedTempDir, safeFileName)) {
+  await fs.promises.mkdir(resolvedTempDir, { recursive: true });
+  const stagingDir = await fs.promises.mkdtemp(path.join(
+    resolvedTempDir,
+    `${sanitizePathComponent(articleId)}-${sanitizePathComponent(oid)}-${sanitizePathComponent(fileId)}-`
+  ));
+  const filePath = path.resolve(stagingDir, safeFileName);
+  if (!filePath.startsWith(`${stagingDir}${path.sep}`) && filePath !== path.join(stagingDir, safeFileName)) {
     throw validationError(`Attachment '${fileName}' resolves outside the staging directory`);
   }
   const datastream = await getAttachmentStream(oid, fileId);
@@ -142,9 +174,9 @@ async function uploadAttachment(client: FigshareClient, config: FigsharePublishi
     uploadSucceeded = true;
     return uploadedFile as unknown as FigshareFile;
   } finally {
-    const shouldDeleteTempFile = !uploadSucceeded || config.assets.staging.cleanupPolicy === 'deleteAfterSuccess';
-    if (shouldDeleteTempFile && fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    const shouldDeleteStagingDir = !uploadSucceeded || config.assets.staging.cleanupPolicy === 'deleteAfterSuccess';
+    if (shouldDeleteStagingDir && fs.existsSync(stagingDir)) {
+      await fs.promises.rm(stagingDir, { recursive: true, force: true });
     }
   }
 }
@@ -228,26 +260,14 @@ export async function syncAssetsPhase(
 
   const attachmentCount = selectedAttachments.length;
   const urlCount = selectedUrls.length;
-  const currentFiles: FigshareFile[] = [];
-  let page = 1;
-  const pageSize = 20;
-  while (true) {
-    const pageResults = await client.listArticleFiles(articleId, page, pageSize);
-    if (!Array.isArray(pageResults) || pageResults.length === 0) {
-      break;
-    }
-    currentFiles.push(...pageResults);
-    if (pageResults.length < pageSize) {
-      break;
-    }
-    page++;
-  }
+  const currentFiles = await listArticleFiles(client, articleId);
 
-  if (currentFiles.some((entry) => String(entry.status ?? '').toLowerCase() === 'created')) {
+  if (hasPendingUploads(currentFiles)) {
     throw validationError(`Figshare file uploads are already in progress for article '${articleId}'`);
   }
 
   if (config.runtime.mode === 'fixture') {
+    const uploadsComplete = !(attachmentCount > 0 && config.article.publishMode === 'afterUploadsComplete');
     syncState.status = attachmentCount > 0 && config.article.publishMode === 'afterUploadsComplete'
       ? 'awaiting_upload_completion'
       : 'syncing';
@@ -255,7 +275,7 @@ export async function syncAssetsPhase(
       articleId,
       attachmentCount,
       urlCount,
-      uploadsComplete: true,
+      uploadsComplete,
       uploadedAttachmentCount: attachmentCount,
       uploadedUrlCount: urlCount
     };
@@ -264,7 +284,7 @@ export async function syncAssetsPhase(
       articleId,
       attachmentCount,
       urlCount,
-      uploadsComplete: true,
+      uploadsComplete,
       uploadedAttachments: selectedAttachments.map((entry, index) => toFixtureFigshareFile(entry, articleId, index, false)),
       uploadedUrls: selectedUrls.map((entry, index) => toFixtureFigshareFile(entry, articleId, index, true)),
       dataLocations: selectedDataLocations
@@ -273,6 +293,7 @@ export async function syncAssetsPhase(
 
   const oid = getRecordOid(record);
   const uploadedAttachments: FigshareFile[] = [];
+  let uploadedAttachmentCountThisRun = 0;
   if (config.assets.enableHostedFiles) {
     for (const attachment of selectedAttachments) {
       const fileName = attachment.name ?? '';
@@ -282,12 +303,20 @@ export async function syncAssetsPhase(
         continue;
       }
       uploadedAttachments.push(await uploadAttachment(client, config, articleId, oid, attachment));
+      uploadedAttachmentCountThisRun += 1;
     }
   }
 
   const uploadedUrls = config.assets.enableLinkFiles
     ? await syncLinkOnlyFiles(client, articleId, selectedUrls, currentFiles)
     : [];
+
+  const refreshedFiles = attachmentCount > 0 ? await listArticleFiles(client, articleId) : currentFiles;
+  const uploadsComplete = attachmentCount === 0
+    ? true
+    : config.article.publishMode === 'afterUploadsComplete' && uploadedAttachmentCountThisRun > 0
+      ? false
+      : !hasPendingUploads(refreshedFiles);
 
   syncState.status = attachmentCount > 0 && config.article.publishMode === 'afterUploadsComplete'
     ? 'awaiting_upload_completion'
@@ -296,7 +325,8 @@ export async function syncAssetsPhase(
     articleId,
     attachmentCount,
     urlCount,
-    uploadsComplete: true,
+    uploadsComplete,
+    uploadedAttachmentCountThisRun,
     uploadedAttachmentCount: uploadedAttachments.length,
     uploadedUrlCount: uploadedUrls.length
   };
@@ -306,7 +336,7 @@ export async function syncAssetsPhase(
     articleId,
     attachmentCount,
     urlCount,
-    uploadsComplete: true,
+    uploadsComplete,
     uploadedAttachments,
     uploadedUrls,
     dataLocations: selectedDataLocations
