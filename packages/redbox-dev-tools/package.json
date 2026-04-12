@@ -2,6 +2,7 @@
   "name": "@researchdatabox/redbox-dev-tools",
   "version": "4.5.1",
   "description": "ReDBox customisation dev tools - shared configuration, generators, and migration tooling",
+  "type": "commonjs",
   "main": "index.js",
   "bin": {
     "redbox-dev-tools": "./bin/cli.js",
