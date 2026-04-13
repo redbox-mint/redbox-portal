@@ -1,19 +1,11 @@
-let expect: typeof import('chai').expect;
-let path: typeof import('path');
-let fs: typeof import('fs');
-let os: typeof import('os');
-let formFieldGeneratorModule: typeof import('../../src/generators/form-field');
+import { expect } from 'chai';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as formFieldGeneratorModule from '../../src/generators/form-field';
 
 describe('FormFieldGenerator', () => {
   let tempRoot: string;
-
-  before(async () => {
-    ({ expect } = await import('chai'));
-    path = require('path');
-    fs = require('fs');
-    os = require('os');
-    formFieldGeneratorModule = require('../../src/generators/form-field');
-  });
 
   beforeEach(() => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-test-'));

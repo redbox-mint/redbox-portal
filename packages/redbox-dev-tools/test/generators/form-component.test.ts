@@ -1,21 +1,12 @@
-let expect: typeof import('chai').expect;
-let fs: typeof import('fs');
-let os: typeof import('os');
-let path: typeof import('path');
-let formComponentGeneratorModule: typeof import('../../src/generators/form-component');
-let pathsModule: typeof import('../../src/utils/paths');
+import { expect } from 'chai';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as formComponentGeneratorModule from '../../src/generators/form-component';
+import * as pathsModule from '../../src/utils/paths';
 
 describe('FormComponentGenerator', () => {
   let tempRoot: string;
-
-  before(async () => {
-    ({ expect } = await import('chai'));
-    fs = require('fs');
-    os = require('os');
-    path = require('path');
-    formComponentGeneratorModule = require('../../src/generators/form-component');
-    pathsModule = require('../../src/utils/paths');
-  });
 
   const writeFile = (relativePath: string, content: string) => {
     const filePath = path.join(tempRoot, relativePath);

@@ -1,12 +1,7 @@
-let expect: typeof import('chai').expect;
-let completionModule: typeof import('../../src/completion');
+import { expect } from 'chai';
+import * as completionModule from '../../src/completion';
 
 describe('completion scripts', () => {
-  before(async () => {
-    ({ expect } = await import('chai'));
-    completionModule = require('../../src/completion');
-  });
-
   it('should generate bash completion script', () => {
     const script = completionModule.generateCompletionScript('bash');
     expect(script).to.contain('complete -F _redbox_dev_tools_completion redbox-dev-tools');

@@ -1,21 +1,13 @@
-let expect: typeof import('chai').expect;
-let fs: typeof import('fs');
-let path: typeof import('path');
-let commander: typeof import('commander');
-let formConfigCommands: typeof import('../../src/commands/form-config');
+import { expect } from 'chai';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as commander from 'commander';
+import * as formConfigCommands from '../../src/commands/form-config';
 
 describe('form-config commands', () => {
   let tempRoot: string;
   let inputLegacyFormPath: string;
   let inputLegacyDataClassifyDefFormPath: string;
-
-  before(async () => {
-    ({ expect } = await import('chai'));
-    fs = require('fs');
-    path = require('path');
-    commander = require('commander');
-    formConfigCommands = require('../../src/commands/form-config');
-  });
 
   beforeEach(() => {
     tempRoot = path.resolve(__dirname, '..', '.tmp', 'migrate-form-config');

@@ -1,22 +1,13 @@
-let expect: typeof import('chai').expect;
-let path: typeof import('path');
-let fs: typeof import('fs');
-let os: typeof import('os');
-let serviceGeneratorModule: typeof import('../../src/generators/service');
-let pathsModule: typeof import('../../src/utils/paths');
+import { expect } from 'chai';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as serviceGeneratorModule from '../../src/generators/service';
+import * as pathsModule from '../../src/utils/paths';
 
 describe('ServiceGenerator', () => {
   let tempRoot: string;
   let coreTypesRoot: string;
-
-  before(async () => {
-    ({ expect } = await import('chai'));
-    path = require('path');
-    fs = require('fs');
-    os = require('os');
-    serviceGeneratorModule = require('../../src/generators/service');
-    pathsModule = require('../../src/utils/paths');
-  });
 
   beforeEach(() => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-test-'));

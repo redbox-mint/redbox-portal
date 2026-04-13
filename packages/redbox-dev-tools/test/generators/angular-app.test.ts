@@ -1,23 +1,14 @@
-let expect: typeof import('chai').expect;
-let path: typeof import('path');
-let fs: typeof import('fs');
-let os: typeof import('os');
-let angularAppGeneratorModule: typeof import('../../src/generators/angular-app');
-let pathsModule: typeof import('../../src/utils/paths');
+import { expect } from 'chai';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as angularAppGeneratorModule from '../../src/generators/angular-app';
+import * as pathsModule from '../../src/utils/paths';
 
 describe('AngularAppGenerator', () => {
   let tempRoot: string;
   let coreTypesRoot: string;
   let angularRoot: string;
-
-  before(async () => {
-    ({ expect } = await import('chai'));
-    path = require('path');
-    fs = require('fs');
-    os = require('os');
-    angularAppGeneratorModule = require('../../src/generators/angular-app');
-    pathsModule = require('../../src/utils/paths');
-  });
 
   beforeEach(() => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-test-'));
