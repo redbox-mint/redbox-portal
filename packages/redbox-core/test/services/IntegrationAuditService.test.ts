@@ -118,6 +118,19 @@ describe('IntegrationAuditService', function () {
     expect((global as any).sails.log.error.called).to.be.true;
   });
 
+  it('swallows invalid queued payloads in storeIntegrationAudit', function () {
+    service.storeIntegrationAudit({
+      attrs: {
+        data: {
+          redboxOid: 'oid-1',
+        },
+      },
+    });
+
+    expect(mockStorageService.createIntegrationAudit.called).to.be.false;
+    expect((global as any).sails.log.error.called).to.be.true;
+  });
+
   it('delegates audit-log retrieval to storage', async function () {
     const result = await service.getAuditLog({ oid: 'oid-1', page: 1, pageSize: 10 } as any);
 

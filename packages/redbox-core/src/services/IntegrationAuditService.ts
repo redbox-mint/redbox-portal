@@ -517,7 +517,13 @@ export namespace Services {
       const jobObj = job as AnyRecord;
       const jobAttrs = (jobObj.attrs ?? {}) as AnyRecord;
       const data = ((jobAttrs.data ?? jobAttrs) as Partial<IntegrationAuditModel>) ?? {};
-      void this.persistEntry(new IntegrationAuditModel(data));
+      try {
+        const entry = new IntegrationAuditModel(data);
+        void this.persistEntry(entry);
+      } catch (error) {
+        sails.log.error(`${this.logHeader} Failed to construct integration audit entry from queued payload.`);
+        sails.log.error(error);
+      }
     }
   }
 }

@@ -142,7 +142,11 @@ describe('RecordAuditComponent', () => {
             '@record-audit-show-technical-data': 'Show',
             '@record-audit-hide-technical-data': 'Hide',
             '@record-audit-note-update-only': 'Field changes are shown for update events only.',
+            '@record-audit-section-field-changes': 'Field Changes',
+            '@record-audit-entries-count': '{{count}} entries',
             '@record-audit-changed-fields-count': '{{count}} field(s) changed',
+            '@record-audit-link-json': 'JSON',
+            '@record-audit-pagination-page-of': 'Page {{page}} of {{totalPages}}',
             '@record-audit-col-updated': 'Updated',
             '@record-audit-col-action': 'Action',
             '@record-audit-col-workflow-state': 'Workflow State',
@@ -226,8 +230,10 @@ describe('RecordAuditComponent', () => {
     await createComponent({ oid: 'oid-1', 'is-admin': 'false' });
 
     expect(fixture.nativeElement.textContent).toContain('1 field(s) changed');
+    expect(fixture.nativeElement.textContent).toContain('2 entries');
     component.toggleDiff('audit-1');
     fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Field Changes');
     expect(fixture.nativeElement.textContent).toContain('Contributor Name');
   });
 
@@ -253,6 +259,7 @@ describe('RecordAuditComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('trace-1');
     expect(fixture.nativeElement.textContent).toContain('syncRecordWithFigshare, publishAfterUploadFilesJob');
     expect(fixture.nativeElement.textContent).toContain('2');
+    expect(fixture.nativeElement.textContent).toContain('Page 1 of 2');
 
     component.toggleIntegrationTrace('trace-1');
     fixture.detectChanges();
@@ -270,6 +277,7 @@ describe('RecordAuditComponent', () => {
     component.toggleIntegrationTechnical('event-2');
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.textContent).toContain('Technical Data');
     expect(fixture.nativeElement.textContent).toContain('Publish completed');
     expect(fixture.nativeElement.textContent).toContain('span-2');
   });

@@ -21,6 +21,11 @@ type RecordAuditTabName = 'audit' | 'permissions' | 'integration';
   standalone: false,
 })
 export class RecordAuditComponent extends BaseComponent {
+  private readonly relativeTimeFormatter =
+    typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function'
+      ? new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'short' })
+      : null;
+
   title = '@researchdatabox/record-audit';
   oid = '';
   branding = '';
@@ -173,8 +178,16 @@ export class RecordAuditComponent extends BaseComponent {
     this.integrationTab.expandedEvents[eventId] = !this.integrationTab.expandedEvents[eventId];
   }
 
+  formatEntriesCount(count: number) {
+    return this.translationService.t('@record-audit-entries-count', { count });
+  }
+
   formatChangedFields(changeSummary: { count: number }) {
     return this.translationService.t('@record-audit-changed-fields-count', { count: changeSummary.count });
+  }
+
+  formatPaginationLabel(page: number, totalPages: number) {
+    return this.translationService.t('@record-audit-pagination-page-of', { page, totalPages });
   }
 
   noteText(noteKey?: string) {
@@ -221,26 +234,30 @@ export class RecordAuditComponent extends BaseComponent {
    * Return a relative time string like "2 hours ago" or "3 days ago".
    */
   formatRelativeTime(isoString: string | null | undefined): string {
-    if (!isoString) return '';
+    if (!isoString || this.relativeTimeFormatter == null) return '';
     try {
       const date = new Date(isoString);
       if (isNaN(date.getTime())) return '';
-      const now = new Date();
-      const diffMs = now.getTime() - date.getTime();
-      if (diffMs < 0) return ''; // Future date
-      const diffSecs = Math.floor(diffMs / 1000);
-      const diffMins = Math.floor(diffSecs / 60);
-      const diffHours = Math.floor(diffMins / 60);
-      const diffDays = Math.floor(diffHours / 24);
-      const diffMonths = Math.floor(diffDays / 30);
-      const diffYears = Math.floor(diffDays / 365);
 
-      if (diffSecs < 60) return 'just now';
-      if (diffMins < 60) return `${diffMins}m ago`;
-      if (diffHours < 24) return `${diffHours}h ago`;
-      if (diffDays < 30) return `${diffDays}d ago`;
-      if (diffMonths < 12) return `${diffMonths}mo ago`;
-      return `${diffYears}y ago`;
+      const diffSeconds = Math.round((date.getTime() - Date.now()) / 1000);
+      const absoluteSeconds = Math.abs(diffSeconds);
+
+      if (absoluteSeconds < 45) {
+        return this.relativeTimeFormatter.format(0, 'second');
+      }
+      if (absoluteSeconds < 60 * 60) {
+        return this.relativeTimeFormatter.format(Math.round(diffSeconds / 60), 'minute');
+      }
+      if (absoluteSeconds < 60 * 60 * 24) {
+        return this.relativeTimeFormatter.format(Math.round(diffSeconds / (60 * 60)), 'hour');
+      }
+      if (absoluteSeconds < 60 * 60 * 24 * 30) {
+        return this.relativeTimeFormatter.format(Math.round(diffSeconds / (60 * 60 * 24)), 'day');
+      }
+      if (absoluteSeconds < 60 * 60 * 24 * 365) {
+        return this.relativeTimeFormatter.format(Math.round(diffSeconds / (60 * 60 * 24 * 30)), 'month');
+      }
+      return this.relativeTimeFormatter.format(Math.round(diffSeconds / (60 * 60 * 24 * 365)), 'year');
     } catch {
       return '';
     }

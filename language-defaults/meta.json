@@ -3391,6 +3391,10 @@
     "category": "view",
     "description": "Translation for record-audit-diff-col-path"
   },
+  "@record-audit-section-field-changes": {
+    "category": "view",
+    "description": "Translation for record-audit-section-field-changes"
+  },
   "@record-audit-note-update-only": {
     "category": "view",
     "description": "Translation for record-audit-note-update-only"
@@ -3399,9 +3403,17 @@
     "category": "view",
     "description": "Translation for record-audit-note-no-previous-snapshot"
   },
+  "@record-audit-entries-count": {
+    "category": "view",
+    "description": "Translation for record-audit-entries-count"
+  },
   "@record-audit-changed-fields-count": {
     "category": "view",
     "description": "Translation for record-audit-changed-fields-count"
+  },
+  "@record-audit-link-json": {
+    "category": "view",
+    "description": "Translation for record-audit-link-json"
   },
   "@record-audit-permissions-heading-edit": {
     "category": "view",
@@ -3462,6 +3474,10 @@
   "@record-audit-integration-trace-events": {
     "category": "view",
     "description": "Translation for record-audit-integration-trace-events"
+  },
+  "@record-audit-pagination-page-of": {
+    "category": "view",
+    "description": "Translation for record-audit-pagination-page-of"
   },
   "@record-audit-show-technical-data": {
     "category": "view",

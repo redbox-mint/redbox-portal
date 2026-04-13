@@ -61,14 +61,14 @@
           {{ '@record-audit-tab-audit-history' | i18next }}
         </span>
         <div class="rb-audit-header-actions">
-          <span class="rb-audit-record-count">{{ auditTab.records.length }} entries</span>
+          <span class="rb-audit-record-count">{{ formatEntriesCount(auditTab.records.length) }}</span>
           <a
             *ngIf="auditTab.rawAuditUrl"
             class="btn btn-default btn-sm"
             [href]="auditTab.rawAuditUrl"
             target="_blank"
             rel="noopener"
-            ><i class="fa-solid fa-code"></i> JSON</a
+            ><i class="fa-solid fa-code"></i> {{ '@record-audit-link-json' | i18next }}</a
           >
         </div>
       </div>
@@ -155,7 +155,7 @@
                   <div class="rb-diff-container">
                     <div class="rb-diff-header">
                       <i class="fa-solid fa-code-compare"></i>
-                      Field Changes
+                      {{ '@record-audit-section-field-changes' | i18next }}
                     </div>
                     <table class="table table-sm rb-audit-diff-table">
                       <thead>
@@ -201,7 +201,7 @@
                   <div class="rb-technical-container">
                     <div class="rb-diff-header">
                       <i class="fa-solid fa-code"></i>
-                      Technical Data
+                      {{ '@record-audit-col-technical-data' | i18next }}
                     </div>
                     <pre class="rb-json-block">{{ row.rawRecord | json }}</pre>
                   </div>
@@ -457,10 +457,7 @@
                           <tr class="rb-trace-event-row">
                             <td>
                               <div class="rb-trace-event-label" [style.padding-left]="getIntegrationEventIndent(event)">
-                                <i
-                                  *ngIf="event.hasChildren"
-                                  class="fa-solid fa-code-branch rb-trace-event-branch"
-                                ></i>
+                                <i *ngIf="event.hasChildren" class="fa-solid fa-code-branch rb-trace-event-branch"></i>
                                 <span>{{ event.integrationAction }}</span>
                                 <code class="rb-trace-event-span">{{ event.spanId }}</code>
                               </div>
@@ -499,7 +496,7 @@
                               <div class="rb-technical-container">
                                 <div class="rb-diff-header">
                                   <i class="fa-solid fa-code"></i>
-                                  Technical Data
+                                  {{ '@record-audit-col-technical-data' | i18next }}
                                 </div>
                                 <pre class="rb-json-block">{{ event | json }}</pre>
                               </div>
@@ -517,7 +514,7 @@
       </div>
       <div class="rb-audit-pagination">
         <span class="rb-pagination-info">
-          Page {{ integrationTab.data.summary.page }} of {{ integrationTab.data.summary.totalPages || 1 }}
+          {{ formatPaginationLabel(integrationTab.data.summary.page, integrationTab.data.summary.totalPages || 1) }}
         </span>
         <div class="rb-pagination-controls">
           <button
