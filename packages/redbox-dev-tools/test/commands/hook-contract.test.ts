@@ -3,12 +3,13 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const childProcess = require('child_process');
+const loadTs = require('../support/load-ts.cjs');
 const packageRoot = fs.existsSync(path.resolve(__dirname, '..', '..', 'package.json'))
   ? path.resolve(__dirname, '..', '..')
   : path.resolve(__dirname, '..', '..', '..');
 const sourceCliPath = path.join(packageRoot, 'src', 'cli.ts');
 const tsNodeRegisterPath = path.join(packageRoot, 'node_modules', 'ts-node', 'register');
-const hookArchetypeModule = require(path.join(packageRoot, 'src', 'templates', 'hook-archetype.ts'));
+const hookArchetypeModule = loadTs(module, '../../src/templates/hook-archetype');
 
 describe('hook dependency contract commands', () => {
   let tempRoot: string;
