@@ -450,17 +450,19 @@ describe('FormsService', function () {
         item,
         'edit',
         [],
-        {},
+        null,
         {},
         'default',
         contextVariablesMap
       );
 
       const contentConfig = form.componentDefinitions?.[0]?.component?.config as { content?: string };
-      const titleConfig = form.componentDefinitions?.[1]?.model?.config as { defaultValue?: string };
+      const titleConfig = form.componentDefinitions?.[1]?.model?.config as { defaultValue?: string, value?: string };
 
       expect(contentConfig.content).to.equal('Welcome Alice');
-      expect(titleConfig.defaultValue).to.equal('Title for Alice');
+      expect(titleConfig.defaultValue).to.be.undefined;
+      expect(titleConfig.value).to.equal('Title for Alice');
+
     });
 
     it('should populate generated view-only metadata display content from the record metadata', async function () {
