@@ -654,10 +654,6 @@ export namespace Services {
         }
       }
 
-      if (contextVariablesMap && Object.keys(contextVariablesMap).length > 0) {
-        result.contextVariables = contextVariablesMap;
-      }
-
       return result;
     }
 

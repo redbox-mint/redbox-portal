@@ -1129,6 +1129,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.componentDefQuerySource;
   }
 
+  public get formConfigMeta(): Record<string,unknown> {
+    return this.formDefMap?.formConfigMeta ?? {};
+  }
+
   private parseRequestParamsFromUrl(rawHref?: string): FormRequestParamsMap {
     const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
     const href = rawHref ?? (typeof window !== 'undefined' ? window.location.href : fallbackOrigin);
