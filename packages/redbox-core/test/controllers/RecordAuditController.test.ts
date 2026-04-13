@@ -233,6 +233,31 @@ describe('RecordAuditController', () => {
     assert.equal(sendResp.firstCall.args[2]?.data?.summary?.pageSize, 10);
   });
 
+  it('preserves the fallback integration audit id when a row id is missing', async () => {
+    (global as any).IntegrationAuditService.getAuditLog.resolves({
+      total: 1,
+      rows: [{ id: undefined, redboxOid: 'oid-1', startedAt: '2026-03-03T00:00:00Z', status: 'success', integrationAction: 'publish', traceId: 'trace-1', spanId: 'span-1' }],
+    });
+
+    const param = sinon.stub();
+    param.withArgs('oid').returns('oid-1');
+    param.withArgs('page').returns('2');
+    param.withArgs('pageSize').returns('10');
+    param.withArgs('status').returns('success');
+    const req = {
+      param,
+      options: { locals: {} },
+      session: { branding: 'default' },
+      user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.getIntegrationAuditData(req, res);
+
+    assert.equal(sendResp.firstCall.args[2]?.data?.records?.[0]?.id, 'oid-1:2:0');
+  });
+
   it('rejects invalid integration audit statuses', async () => {
     const param = sinon.stub();
     param.withArgs('oid').returns('oid-1');

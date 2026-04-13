@@ -107,7 +107,7 @@ export namespace Services {
     }
 
     private isMaskedSecretPlaceholder(value: unknown): boolean {
-      return typeof value === 'string' && [APP_CONFIG_SECRET_MASK].includes(value);
+      return typeof value === 'string' && value === APP_CONFIG_SECRET_MASK;
     }
 
     private shouldMaskSecretValue(value: unknown): boolean {

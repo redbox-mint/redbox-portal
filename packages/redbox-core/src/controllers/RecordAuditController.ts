@@ -475,8 +475,8 @@ export namespace Controllers {
               totalPages: Math.ceil(result.total / pageSize),
             },
             records: result.rows.map((row, index) => ({
-              id: String(row['id'] ?? `${oid}:${page}:${index}`),
               ...row,
+              id: String(row['id'] ?? `${oid}:${page}:${index}`),
             })),
           },
         });

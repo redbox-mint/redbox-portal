@@ -1078,6 +1078,18 @@ export namespace Services {
       return response;
     }
 
+    private buildIntegrationAuditStartedAtCriteria(params: IntegrationAuditParams): Record<string, unknown> | undefined {
+      const criteria: Record<string, unknown> = {};
+      if (_.isDate(params.dateFrom)) {
+        criteria['>='] = params.dateFrom.toISOString();
+      }
+      if (_.isDate(params.dateTo)) {
+        criteria['<='] = params.dateTo.toISOString();
+      }
+
+      return Object.keys(criteria).length > 0 ? criteria : undefined;
+    }
+
     public async getIntegrationAudit(params: IntegrationAuditParams): Promise<unknown> {
       const oid = params.oid;
       if (_.isEmpty(oid)) {
@@ -1090,14 +1102,9 @@ export namespace Services {
       if (!_.isEmpty(params.status)) {
         criteria['status'] = params.status;
       }
-      if (_.isDate(params.dateFrom)) {
-        criteria['startedAt'] = { ['>=']: params.dateFrom };
-      }
-      if (_.isDate(params.dateTo)) {
-        if (_.isUndefined(criteria['startedAt'])) {
-          criteria['startedAt'] = {};
-        }
-        (criteria['startedAt'] as Record<string, unknown>)['<='] = params.dateTo;
+      const startedAtCriteria = this.buildIntegrationAuditStartedAtCriteria(params);
+      if (!_.isUndefined(startedAtCriteria)) {
+        criteria['startedAt'] = startedAtCriteria;
       }
 
       const page = _.toInteger(params.page) > 0 ? _.toInteger(params.page) : 1;
@@ -1126,14 +1133,9 @@ export namespace Services {
       if (!_.isEmpty(params.status)) {
         criteria['status'] = params.status;
       }
-      if (_.isDate(params.dateFrom)) {
-        criteria['startedAt'] = { ['>=']: params.dateFrom };
-      }
-      if (_.isDate(params.dateTo)) {
-        if (_.isUndefined(criteria['startedAt'])) {
-          criteria['startedAt'] = {};
-        }
-        (criteria['startedAt'] as Record<string, unknown>)['<='] = params.dateTo;
+      const startedAtCriteria = this.buildIntegrationAuditStartedAtCriteria(params);
+      if (!_.isUndefined(startedAtCriteria)) {
+        criteria['startedAt'] = startedAtCriteria;
       }
 
       sails.log.verbose(`${this.logHeader} counting Integration Audit: `);

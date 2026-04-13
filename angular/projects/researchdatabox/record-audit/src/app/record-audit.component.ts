@@ -15,7 +15,7 @@ type RecordAuditTabName = 'audit' | 'permissions' | 'integration';
 @Component({
   selector: 'record-audit',
   templateUrl: './record-audit.component.html',
-  styleUrl: './record-audit.component.scss',
+  styleUrls: ['./record-audit.component.scss'],
   standalone: false,
 })
 export class RecordAuditComponent extends BaseComponent {

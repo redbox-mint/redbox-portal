@@ -871,8 +871,8 @@ describe('MongoStorageService', function () {
       redboxOid: 'oid-1',
       status: 'failed',
       startedAt: {
-        '>=': new Date('2025-01-01T00:00:00Z'),
-        '<=': new Date('2025-01-02T00:00:00Z'),
+        '>=': '2025-01-01T00:00:00.000Z',
+        '<=': '2025-01-02T00:00:00.000Z',
       },
     });
     expect(query.sort.calledOnce).to.be.true;
@@ -880,7 +880,7 @@ describe('MongoStorageService', function () {
     expect(query.limit.calledOnceWith(5)).to.be.true;
   });
 
-  it('counts integration-audit queries using Date criteria objects', async function () {
+  it('counts integration-audit queries using ISO string criteria for startedAt', async function () {
     await service.countIntegrationAudit({
       oid: 'oid-1',
       status: 'failed',
@@ -893,8 +893,8 @@ describe('MongoStorageService', function () {
       redboxOid: 'oid-1',
       status: 'failed',
       startedAt: {
-        '>=': new Date('2025-01-01T00:00:00Z'),
-        '<=': new Date('2025-01-02T00:00:00Z'),
+        '>=': '2025-01-01T00:00:00.000Z',
+        '<=': '2025-01-02T00:00:00.000Z',
       },
     });
   });

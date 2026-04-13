@@ -8,19 +8,34 @@
   <!-- Tabs -->
   <ul class="nav nav-tabs rb-audit-tabs" role="tablist">
     <li class="nav-item" role="presentation">
-      <a class="nav-link" [class.active]="activeTab === 'audit'" href="#" (click)="activateTab('audit'); $event.preventDefault()">
+      <a
+        class="nav-link"
+        [class.active]="activeTab === 'audit'"
+        href="#"
+        (click)="activateTab('audit'); $event.preventDefault()"
+      >
         <i class="fa-solid fa-clock-rotate-left rb-tab-icon"></i>
         {{ '@record-audit-tab-audit-history' | i18next }}
       </a>
     </li>
     <li *ngIf="isAdmin" class="nav-item" role="presentation">
-      <a class="nav-link" [class.active]="activeTab === 'permissions'" href="#" (click)="activateTab('permissions'); $event.preventDefault()">
+      <a
+        class="nav-link"
+        [class.active]="activeTab === 'permissions'"
+        href="#"
+        (click)="activateTab('permissions'); $event.preventDefault()"
+      >
         <i class="fa-solid fa-shield-halved rb-tab-icon"></i>
         {{ '@record-audit-tab-permissions' | i18next }}
       </a>
     </li>
     <li *ngIf="isAdmin" class="nav-item" role="presentation">
-      <a class="nav-link" [class.active]="activeTab === 'integration'" href="#" (click)="activateTab('integration'); $event.preventDefault()">
+      <a
+        class="nav-link"
+        [class.active]="activeTab === 'integration'"
+        href="#"
+        (click)="activateTab('integration'); $event.preventDefault()"
+      >
         <i class="fa-solid fa-plug rb-tab-icon"></i>
         {{ '@record-audit-tab-integration-audit' | i18next }}
       </a>
@@ -53,7 +68,8 @@
             [href]="auditTab.rawAuditUrl"
             target="_blank"
             rel="noopener"
-          ><i class="fa-solid fa-code"></i> JSON</a>
+            ><i class="fa-solid fa-code"></i> JSON</a
+          >
         </div>
       </div>
       <div class="table-responsive">
@@ -70,9 +86,11 @@
           </thead>
           <tbody>
             <ng-container *ngFor="let row of auditTab.records; let i = index; let isFirst = first">
-              <tr class="rb-audit-row"
-                  [class.rb-audit-row-expanded]="row.expanded || row.technicalExpanded"
-                  [class.rb-audit-row-created]="row.actionLabelKey.includes('created')">
+              <tr
+                class="rb-audit-row"
+                [class.rb-audit-row-expanded]="row.expanded || row.technicalExpanded"
+                [class.rb-audit-row-created]="row.actionLabelKey.includes('created')"
+              >
                 <td class="rb-col-timestamp">
                   <div class="rb-timestamp-wrapper">
                     <span class="rb-timestamp-main">{{ formatTimestamp(row.timestamp) }}</span>
@@ -104,7 +122,7 @@
                   >
                     <i class="fa-solid fa-chevron-right rb-toggle-chevron" [class.rb-chevron-open]="row.expanded"></i>
                     <span class="rb-changes-count">{{ row.changeSummary.count }}</span>
-                    field(s) changed
+                    {{ formatChangedFields(row.changeSummary) }}
                   </button>
                   <span *ngIf="!row.changeSummary.available" class="text-muted rb-no-changes">
                     {{ noteText(row.changeSummary.note) }}
@@ -117,7 +135,10 @@
                     [class.rb-toggle-active]="row.technicalExpanded"
                     (click)="toggleAuditTechnical(row.id)"
                   >
-                    <i class="fa-solid fa-chevron-right rb-toggle-chevron" [class.rb-chevron-open]="row.technicalExpanded"></i>
+                    <i
+                      class="fa-solid fa-chevron-right rb-toggle-chevron"
+                      [class.rb-chevron-open]="row.technicalExpanded"
+                    ></i>
                     {{
                       (row.technicalExpanded
                         ? '@record-audit-hide-technical-data'
@@ -147,8 +168,10 @@
                         </tr>
                       </thead>
                       <tbody>
-                        <tr *ngFor="let change of row.changeSummary.changes; trackBy: changeTrackBy"
-                            [ngClass]="getChangeKindClass(change)">
+                        <tr
+                          *ngFor="let change of row.changeSummary.changes; trackBy: changeTrackBy"
+                          [ngClass]="getChangeKindClass(change)"
+                        >
                           <td class="rb-diff-field-name">{{ change.displayName }}</td>
                           <td>
                             <span class="rb-diff-kind-badge" [ngClass]="getChangeKindClass(change)">
@@ -233,7 +256,9 @@
                   <td>
                     <ul class="rb-permissions-list" *ngIf="permissionsTab.data.editRoles.length > 0; else noEditRoles">
                       <li *ngFor="let role of permissionsTab.data.editRoles">
-                        <span class="badge text-bg-secondary rb-role-badge"><i class="fa-solid fa-user-tag"></i> {{ role }}</span>
+                        <span class="badge text-bg-secondary rb-role-badge"
+                          ><i class="fa-solid fa-user-tag"></i> {{ role }}</span
+                        >
                       </li>
                     </ul>
                     <ng-template #noEditRoles>
@@ -244,9 +269,14 @@
                 <tr>
                   <th>{{ '@record-audit-permissions-heading-pending' | i18next }}</th>
                   <td>
-                    <ul class="rb-permissions-list" *ngIf="permissionsTab.data.editPending.length > 0; else noEditPending">
+                    <ul
+                      class="rb-permissions-list"
+                      *ngIf="permissionsTab.data.editPending.length > 0; else noEditPending"
+                    >
                       <li *ngFor="let pending of permissionsTab.data.editPending">
-                        <span class="badge text-bg-warning rb-pending-badge"><i class="fa-solid fa-clock"></i> {{ pending }}</span>
+                        <span class="badge text-bg-warning rb-pending-badge"
+                          ><i class="fa-solid fa-clock"></i> {{ pending }}</span
+                        >
                       </li>
                     </ul>
                     <ng-template #noEditPending>
@@ -292,7 +322,9 @@
                   <td>
                     <ul class="rb-permissions-list" *ngIf="permissionsTab.data.viewRoles.length > 0; else noViewRoles">
                       <li *ngFor="let role of permissionsTab.data.viewRoles">
-                        <span class="badge text-bg-secondary rb-role-badge"><i class="fa-solid fa-user-tag"></i> {{ role }}</span>
+                        <span class="badge text-bg-secondary rb-role-badge"
+                          ><i class="fa-solid fa-user-tag"></i> {{ role }}</span
+                        >
                       </li>
                     </ul>
                     <ng-template #noViewRoles>
@@ -303,9 +335,14 @@
                 <tr>
                   <th>{{ '@record-audit-permissions-heading-pending' | i18next }}</th>
                   <td>
-                    <ul class="rb-permissions-list" *ngIf="permissionsTab.data.viewPending.length > 0; else noViewPending">
+                    <ul
+                      class="rb-permissions-list"
+                      *ngIf="permissionsTab.data.viewPending.length > 0; else noViewPending"
+                    >
                       <li *ngFor="let pending of permissionsTab.data.viewPending">
-                        <span class="badge text-bg-warning rb-pending-badge"><i class="fa-solid fa-clock"></i> {{ pending }}</span>
+                        <span class="badge text-bg-warning rb-pending-badge"
+                          ><i class="fa-solid fa-clock"></i> {{ pending }}</span
+                        >
                       </li>
                     </ul>
                     <ng-template #noViewPending>
@@ -388,7 +425,10 @@
                     [class.rb-toggle-active]="integrationTab.expandedRows[row.id]"
                     (click)="toggleIntegrationTechnical(row.id)"
                   >
-                    <i class="fa-solid fa-chevron-right rb-toggle-chevron" [class.rb-chevron-open]="integrationTab.expandedRows[row.id]"></i>
+                    <i
+                      class="fa-solid fa-chevron-right rb-toggle-chevron"
+                      [class.rb-chevron-open]="integrationTab.expandedRows[row.id]"
+                    ></i>
                     {{
                       (integrationTab.expandedRows[row.id]
                         ? '@record-audit-hide-technical-data'
