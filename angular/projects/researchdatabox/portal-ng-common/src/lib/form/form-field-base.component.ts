@@ -174,7 +174,6 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       this.formComponentFromAppRef = formComponent;
     }
     const result = this.formComponentFromAppRef?.instance;
-    this.loggerService.warn(`FormComponent from ApplicationRef ${result}`);
     return result;
   }
 
