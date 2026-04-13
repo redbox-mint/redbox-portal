@@ -135,7 +135,7 @@ export class FormService extends HttpClientService {
     return this;
   }
 
-  /** *
+  /**
    * Download and consequently loads the form config.
    *
    * Fields can use:
