@@ -232,8 +232,6 @@ export namespace Services {
       }
       return super.getObservable<FormAttributes | null>(Form.findOne(query)).pipe(flatMap(form => {
         if (form) {
-          // TODO: setFormEditMode is currently a no-op; legacy 'fields' property has been
-          // replaced by componentDefinitions in FormConfigFrame
           return of(form);
         }
         return of(null);
@@ -295,8 +293,6 @@ export namespace Services {
         }),
         flatMap(form => {
           if (form) {
-            // TODO: setFormEditMode is currently a no-op; legacy 'fields' property has been
-            // replaced by componentDefinitions in FormConfigFrame
             return of(form);
           }
           return of(null);
@@ -569,23 +565,6 @@ export namespace Services {
       const form: FormConfigFrame = formObject as FormConfigFrame;
 
       return form;
-    }
-
-    protected setFormEditMode(_fields: FormFieldLike[], _editMode: boolean): void {
-      // TODO: Form is processed differently now, see buildClientFormConfig
-      // _.remove(fields, field => {
-      //   if (editMode) {
-      //     return field.viewOnly == true;
-      //   } else {
-      //     return field.editOnly == true;
-      //   }
-      // });
-      // _.forEach(fields, field => {
-      //   field.definition.editMode = editMode;
-      //   if (!_.isEmpty(field.definition.fields)) {
-      //     this.setFormEditMode(field.definition.fields, editMode);
-      //   }
-      // });
     }
 
     public filterFieldsHasEditAccess(fields: FormFieldLike[], hasEditAccess: boolean): void {
