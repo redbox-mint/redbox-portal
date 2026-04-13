@@ -3,7 +3,12 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const childProcess = require('child_process');
-const hookArchetypeModule = require('../../src/templates/hook-archetype');
+const packageRoot = fs.existsSync(path.resolve(__dirname, '..', '..', 'package.json'))
+  ? path.resolve(__dirname, '..', '..')
+  : path.resolve(__dirname, '..', '..', '..');
+const sourceCliPath = path.join(packageRoot, 'src', 'cli.ts');
+const tsNodeRegisterPath = path.join(packageRoot, 'node_modules', 'ts-node', 'register');
+const hookArchetypeModule = require(path.join(packageRoot, 'src', 'templates', 'hook-archetype.ts'));
 
 describe('hook dependency contract commands', () => {
   let tempRoot: string;
@@ -17,10 +22,7 @@ describe('hook dependency contract commands', () => {
   });
 
   function runCli(args: string[], cwd: string) {
-    const packageRoot = path.resolve(__dirname, '..', '..');
-    const cliPath = path.join(packageRoot, 'src', 'cli.ts');
-    const tsNodeRegisterPath = path.join(packageRoot, 'node_modules', 'ts-node', 'register');
-    return childProcess.spawnSync('node', ['-r', tsNodeRegisterPath, cliPath, ...args], {
+    return childProcess.spawnSync('node', ['-r', tsNodeRegisterPath, sourceCliPath, ...args], {
       cwd,
       encoding: 'utf8',
       env: {

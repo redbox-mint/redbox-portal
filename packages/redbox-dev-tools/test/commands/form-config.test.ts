@@ -3,6 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const commander = require('commander');
 const formConfigCommands = require('../../src/commands/form-config');
+const packageRoot = fs.existsSync(path.resolve(__dirname, '..', '..', 'package.json'))
+  ? path.resolve(__dirname, '..', '..')
+  : path.resolve(__dirname, '..', '..', '..');
+const testRoot = path.join(packageRoot, 'test');
 
 describe('form-config commands', () => {
   let tempRoot: string;
@@ -10,11 +14,11 @@ describe('form-config commands', () => {
   let inputLegacyDataClassifyDefFormPath: string;
 
   beforeEach(() => {
-    tempRoot = path.resolve(__dirname, '..', '.tmp', 'migrate-form-config');
+    tempRoot = path.join(testRoot, '.tmp', 'migrate-form-config');
     fs.rmSync(tempRoot, { recursive: true, force: true });
     fs.mkdirSync(tempRoot, { recursive: true });
-    inputLegacyFormPath = path.resolve(__dirname, '..', 'resources', 'migrate-form-config', 'legacy-form.js');
-    inputLegacyDataClassifyDefFormPath = path.resolve(__dirname, '..', 'resources', 'migrate-form-config', 'legacy-data-classification-definition.js');
+    inputLegacyFormPath = path.join(testRoot, 'resources', 'migrate-form-config', 'legacy-form.js');
+    inputLegacyDataClassifyDefFormPath = path.join(testRoot, 'resources', 'migrate-form-config', 'legacy-data-classification-definition.js');
   });
 
   afterEach(() => {
