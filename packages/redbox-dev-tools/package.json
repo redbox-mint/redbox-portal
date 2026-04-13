@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "TS_NODE_PROJECT=test/tsconfig.json ./node_modules/.bin/mocha --config .mocharc.js --exit test/**/*.test.ts"
+    "test": "TS_NODE_PROJECT=test/tsconfig.json node -r ts-node/register ./node_modules/mocha/bin/_mocha --config .mocharc.js --exit test/**/*.test.ts"
   },
   "repository": {
     "type": "git",
