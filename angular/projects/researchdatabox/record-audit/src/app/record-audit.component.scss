@@ -225,6 +225,33 @@
   min-width: 220px;
 }
 
+.rb-trace-toggle {
+  font-weight: 600;
+  text-align: left;
+}
+
+.rb-trace-events-container {
+  padding: 12px 16px;
+}
+
+.rb-trace-events-table {
+  margin-bottom: 0;
+}
+
+.rb-trace-event-label {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.rb-trace-event-branch {
+  color: var(--bs-secondary-color, #6c757d);
+}
+
+.rb-trace-event-span {
+  font-size: 0.85em;
+}
+
 // -- Permissions tab --------------------------------------
 .rb-permissions-grid {
   row-gap: 16px;

@@ -125,4 +125,128 @@ describe('IntegrationAuditService', function () {
     expect(mockStorageService.countIntegrationAudit.calledOnce).to.be.true;
     expect(result).to.deep.equal({ rows: [{ redboxOid: 'oid-1' }], total: 7 });
   });
+
+  it('groups audit rows into traces with derived status and ordered events', async function () {
+    mockStorageService.countIntegrationAudit.resolves(5);
+    mockStorageService.getIntegrationAudit.resolves([
+      {
+        id: 'event-5',
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'publishAfterUploadFilesJob',
+        triggeredBy: 'admin',
+        status: 'started',
+        traceId: 'trace-b',
+        spanId: 'span-b1',
+        startedAt: '2026-03-02T00:00:00.000Z',
+      },
+      {
+        id: 'event-4',
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'publishAfterUploadFilesJob',
+        triggeredBy: 'admin',
+        status: 'failed',
+        traceId: 'trace-a',
+        spanId: 'span-a2',
+        parentSpanId: 'span-a1',
+        startedAt: '2026-03-01T00:00:02.000Z',
+        completedAt: '2026-03-01T00:00:04.000Z',
+      },
+      {
+        id: 'event-3',
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        triggeredBy: 'admin',
+        status: 'success',
+        traceId: 'trace-a',
+        spanId: 'span-a1',
+        startedAt: '2026-03-01T00:00:00.000Z',
+        completedAt: '2026-03-01T00:00:01.000Z',
+      },
+      {
+        id: 'event-2',
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'publishAfterUploadFilesJob',
+        triggeredBy: 'admin',
+        status: 'success',
+        traceId: 'trace-c',
+        spanId: 'span-c2',
+        parentSpanId: 'missing-parent',
+        startedAt: '2026-02-28T00:00:03.000Z',
+        completedAt: '2026-02-28T00:00:05.000Z',
+      },
+      {
+        id: 'event-1',
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        triggeredBy: 'admin',
+        status: 'success',
+        traceId: 'trace-c',
+        spanId: 'span-c1',
+        startedAt: '2026-02-28T00:00:01.000Z',
+        completedAt: '2026-02-28T00:00:02.000Z',
+      },
+    ]);
+
+    const result = await service.getTraceAuditLog({ oid: 'oid-1', page: 1, pageSize: 10 } as any);
+
+    expect(mockStorageService.countIntegrationAudit.calledOnce).to.be.true;
+    expect(mockStorageService.getIntegrationAudit.calledOnce).to.be.true;
+    expect(result.total).to.equal(3);
+    expect(result.rows.map(row => row.traceId)).to.deep.equal(['trace-b', 'trace-a', 'trace-c']);
+    expect(result.rows[0].status).to.equal('started');
+    expect(result.rows[1].status).to.equal('failed');
+    expect(result.rows[1].actions).to.deep.equal(['publishAfterUploadFilesJob', 'syncRecordWithFigshare']);
+    expect(result.rows[1].events.map(event => event.spanId)).to.deep.equal(['span-a1', 'span-a2']);
+    expect(result.rows[2].events.map(event => event.spanId)).to.deep.equal(['span-c1', 'span-c2']);
+    expect(result.rows[2].events[1].depth).to.equal(0);
+  });
+
+  it('filters and paginates traces by derived status', async function () {
+    mockStorageService.countIntegrationAudit.resolves(4);
+    mockStorageService.getIntegrationAudit.resolves([
+      {
+        redboxOid: 'oid-1',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'success',
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        startedAt: '2026-03-01T00:00:00.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'failed',
+        traceId: 'trace-2',
+        spanId: 'span-2',
+        startedAt: '2026-03-02T00:00:00.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'success',
+        traceId: 'trace-3',
+        spanId: 'span-3',
+        startedAt: '2026-03-03T00:00:00.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'failed',
+        traceId: 'trace-4',
+        spanId: 'span-4',
+        startedAt: '2026-03-04T00:00:00.000Z',
+      },
+    ]);
+
+    const result = await service.getTraceAuditLog({ oid: 'oid-1', status: 'failed', page: 2, pageSize: 1 } as any);
+
+    expect(result.total).to.equal(2);
+    expect(result.rows).to.have.length(1);
+    expect(result.rows[0].traceId).to.equal('trace-2');
+  });
 });

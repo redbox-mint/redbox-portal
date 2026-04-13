@@ -3435,9 +3435,21 @@
     "category": "view",
     "description": "Translation for record-audit-integration-col-status"
   },
+  "@record-audit-integration-col-trace": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-trace"
+  },
   "@record-audit-integration-col-action": {
     "category": "view",
     "description": "Translation for record-audit-integration-col-action"
+  },
+  "@record-audit-integration-col-actions": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-actions"
+  },
+  "@record-audit-integration-col-event-count": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-event-count"
   },
   "@record-audit-integration-col-triggered-by": {
     "category": "view",
@@ -3446,6 +3458,10 @@
   "@record-audit-integration-col-message": {
     "category": "view",
     "description": "Translation for record-audit-integration-col-message"
+  },
+  "@record-audit-integration-trace-events": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-trace-events"
   },
   "@record-audit-show-technical-data": {
     "category": "view",

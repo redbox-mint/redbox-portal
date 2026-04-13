@@ -84,6 +84,7 @@ export namespace Services {
       'createIntegrationAudit',
       'getRecordAudit',
       'getIntegrationAudit',
+      'countIntegrationAudit',
       'exists',
     ];
 

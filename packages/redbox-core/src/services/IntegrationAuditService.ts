@@ -34,6 +34,37 @@ export type IntegrationAuditLogResult = {
   total: number;
 };
 
+export type IntegrationAuditTraceEvent = Record<string, unknown> & {
+  id: string;
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string;
+  startedAt: string;
+  status: string;
+  depth: number;
+  hasChildren: boolean;
+};
+
+export type IntegrationAuditTraceRecord = {
+  id: string;
+  traceId: string;
+  status: string;
+  startedAt: string;
+  completedAt?: string;
+  durationMs?: number;
+  triggeredBy?: string;
+  integrationName?: string;
+  actions: string[];
+  eventCount: number;
+  rootSpanId?: string;
+  events: IntegrationAuditTraceEvent[];
+};
+
+export type IntegrationAuditTraceLogResult = {
+  rows: IntegrationAuditTraceRecord[];
+  total: number;
+};
+
 type IntegrationAuditOptions = {
   brandId?: string;
   triggeredBy?: string;
@@ -54,6 +85,7 @@ export namespace Services {
       'completeAudit',
       'failAudit',
       'getAuditLog',
+      'getTraceAuditLog',
       'storeIntegrationAudit',
     ];
 
@@ -260,6 +292,225 @@ export namespace Services {
         ? await this.storageService.countIntegrationAudit(params)
         : rows.length;
       return { rows, total };
+    }
+
+    private getString(value: unknown): string | undefined {
+      const text = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+      return _.isEmpty(text) ? undefined : text;
+    }
+
+    private getTimestampValue(row: Record<string, unknown>, ...keys: string[]): number {
+      for (const key of keys) {
+        const value = this.getString(row[key]);
+        if (!_.isEmpty(value)) {
+          const parsed = new Date(value as string).getTime();
+          if (Number.isFinite(parsed)) {
+            return parsed;
+          }
+        }
+      }
+      return 0;
+    }
+
+    private getRowSortTimestamp(row: Record<string, unknown>): number {
+      return this.getTimestampValue(row, 'startedAt', 'completedAt', 'dateCreated', 'updatedAt', 'createdAt');
+    }
+
+    private deriveTraceStatus(rows: Record<string, unknown>[]): string {
+      const statuses = rows.map(row => this.getString(row['status'])?.toLowerCase()).filter(Boolean);
+      if (statuses.some(status => status === IntegrationAuditStatus.failed)) {
+        return IntegrationAuditStatus.failed;
+      }
+      if (statuses.length === 0 || statuses.some(status => status === IntegrationAuditStatus.started)) {
+        return IntegrationAuditStatus.started;
+      }
+      return IntegrationAuditStatus.success;
+    }
+
+    private buildEventId(row: Record<string, unknown>, traceId: string, index: number): string {
+      const persistedId = this.getString(row['id']);
+      if (persistedId) {
+        return persistedId;
+      }
+      const spanId = this.getString(row['spanId']) ?? `event-${index}`;
+      return `${traceId}:${spanId}:${index}`;
+    }
+
+    private buildOrderedTraceEvents(rows: Record<string, unknown>[], traceId: string): IntegrationAuditTraceEvent[] {
+      const sortedRows = [...rows].sort((left, right) => this.getRowSortTimestamp(left) - this.getRowSortTimestamp(right));
+      const childrenByParent = new Map<string, Array<{ row: Record<string, unknown>; index: number }>>();
+      const roots: Array<{ row: Record<string, unknown>; index: number }> = [];
+      const spanIds = new Set(sortedRows.map(row => this.getString(row['spanId'])).filter(Boolean) as string[]);
+
+      sortedRows.forEach((row, index) => {
+        const parentSpanId = this.getString(row['parentSpanId']);
+        if (parentSpanId && spanIds.has(parentSpanId)) {
+          const siblings = childrenByParent.get(parentSpanId) ?? [];
+          siblings.push({ row, index });
+          childrenByParent.set(parentSpanId, siblings);
+        } else {
+          roots.push({ row, index });
+        }
+      });
+
+      const orderedEvents: IntegrationAuditTraceEvent[] = [];
+      const visited = new Set<string>();
+
+      const visitNode = (entry: { row: Record<string, unknown>; index: number }, depth: number) => {
+        const spanId = this.getString(entry.row['spanId']) ?? `${traceId}:unknown-span:${entry.index}`;
+        const visitKey = `${spanId}:${entry.index}`;
+        if (visited.has(visitKey)) {
+          return;
+        }
+        visited.add(visitKey);
+        const children = [...(childrenByParent.get(spanId) ?? [])].sort(
+          (left, right) => this.getRowSortTimestamp(left.row) - this.getRowSortTimestamp(right.row)
+        );
+        orderedEvents.push({
+          ...(entry.row as Record<string, unknown>),
+          id: this.buildEventId(entry.row, traceId, entry.index),
+          traceId,
+          spanId,
+          parentSpanId: this.getString(entry.row['parentSpanId']),
+          startedAt: this.getString(entry.row['startedAt']) ?? '',
+          status: this.getString(entry.row['status']) ?? '',
+          depth,
+          hasChildren: children.length > 0,
+        });
+        children.forEach(child => visitNode(child, depth + 1));
+      };
+
+      roots.forEach(root => visitNode(root, 0));
+      sortedRows.forEach((row, index) => visitNode({ row, index }, 0));
+      return orderedEvents;
+    }
+
+    private buildTraceRecord(traceId: string, rows: Record<string, unknown>[]): IntegrationAuditTraceRecord {
+      const events = this.buildOrderedTraceEvents(rows, traceId);
+      const status = this.deriveTraceStatus(rows);
+      const startedTimes = rows
+        .map(row => this.getString(row['startedAt']))
+        .filter(Boolean)
+        .map(value => ({ raw: value as string, ts: new Date(value as string).getTime() }))
+        .filter(value => Number.isFinite(value.ts))
+        .sort((left, right) => left.ts - right.ts);
+      const completedTimes = rows
+        .map(row => this.getString(row['completedAt']))
+        .filter(Boolean)
+        .map(value => ({ raw: value as string, ts: new Date(value as string).getTime() }))
+        .filter(value => Number.isFinite(value.ts))
+        .sort((left, right) => right.ts - left.ts);
+      const oldestStartedAt = startedTimes[0]?.raw ?? '';
+      const latestCompletedAt = completedTimes[0]?.raw;
+      const startedAtMs = startedTimes[0]?.ts;
+      const completedAtMs = completedTimes[0]?.ts;
+      const traceDuration =
+        Number.isFinite(startedAtMs) && Number.isFinite(completedAtMs) && (completedAtMs as number) >= (startedAtMs as number)
+          ? (completedAtMs as number) - (startedAtMs as number)
+          : undefined;
+      const actions = Array.from(
+        new Set(
+          rows
+            .map(row => this.getString(row['integrationAction']))
+            .filter(Boolean)
+        )
+      ) as string[];
+      const rootSpanId = events.find(event => _.isEmpty(event.parentSpanId))?.spanId;
+      const newestRow = [...rows].sort((left, right) => this.getRowSortTimestamp(right) - this.getRowSortTimestamp(left))[0] ?? {};
+
+      return {
+        id: traceId,
+        traceId,
+        status,
+        startedAt: oldestStartedAt,
+        completedAt: latestCompletedAt,
+        durationMs: traceDuration,
+        triggeredBy: this.getString(newestRow['triggeredBy']) ?? this.getString(rows[0]?.['triggeredBy']),
+        integrationName: this.getString(newestRow['integrationName']) ?? this.getString(rows[0]?.['integrationName']),
+        actions,
+        eventCount: events.length,
+        rootSpanId,
+        events,
+      };
+    }
+
+    private async getAllIntegrationAuditRows(params: IntegrationAuditParams): Promise<Record<string, unknown>[]> {
+      if (typeof this.storageService.countIntegrationAudit === 'function') {
+        const totalRows = await this.storageService.countIntegrationAudit(params);
+        if (totalRows === 0) {
+          return [];
+        }
+
+        const queryParams = new IntegrationAuditParams();
+        queryParams.oid = params.oid;
+        queryParams.dateFrom = params.dateFrom;
+        queryParams.dateTo = params.dateTo;
+        queryParams.page = 1;
+        queryParams.pageSize = totalRows;
+        return (await this.storageService.getIntegrationAudit(queryParams)) as Record<string, unknown>[];
+      }
+
+      const pageSize = 500;
+      const rows: Record<string, unknown>[] = [];
+      let page = 1;
+
+      while (true) {
+        const queryParams = new IntegrationAuditParams();
+        queryParams.oid = params.oid;
+        queryParams.dateFrom = params.dateFrom;
+        queryParams.dateTo = params.dateTo;
+        queryParams.page = page;
+        queryParams.pageSize = pageSize;
+
+        const pageRows = (await this.storageService.getIntegrationAudit(queryParams)) as Record<string, unknown>[];
+        rows.push(...pageRows);
+        if (pageRows.length < pageSize) {
+          break;
+        }
+        page += 1;
+      }
+
+      return rows;
+    }
+
+    public async getTraceAuditLog(params: IntegrationAuditParams): Promise<IntegrationAuditTraceLogResult> {
+      const queryParams = new IntegrationAuditParams();
+      queryParams.oid = params.oid;
+      queryParams.dateFrom = params.dateFrom;
+      queryParams.dateTo = params.dateTo;
+
+      const allRows = await this.getAllIntegrationAuditRows(queryParams);
+      if (allRows.length === 0) {
+        return { rows: [], total: 0 };
+      }
+      const traceRows = new Map<string, Record<string, unknown>[]>();
+      allRows.forEach(row => {
+        const traceId = this.getString(row['traceId']) ?? `${params.oid}:missing-trace`;
+        const existing = traceRows.get(traceId) ?? [];
+        existing.push(row);
+        traceRows.set(traceId, existing);
+      });
+
+      let groupedRows = Array.from(traceRows.entries()).map(([traceId, rows]) => this.buildTraceRecord(traceId, rows));
+      if (!_.isEmpty(params.status)) {
+        groupedRows = groupedRows.filter(row => row.status === params.status);
+      }
+
+      groupedRows.sort((left, right) => {
+        const rightTs = Math.max(...right.events.map(event => this.getRowSortTimestamp(event)), 0);
+        const leftTs = Math.max(...left.events.map(event => this.getRowSortTimestamp(event)), 0);
+        return rightTs - leftTs;
+      });
+
+      const total = groupedRows.length;
+      const page = _.toInteger(params.page) > 0 ? _.toInteger(params.page) : 1;
+      const pageSize = _.toInteger(params.pageSize) > 0 ? _.toInteger(params.pageSize) : 20;
+      const skip = (page - 1) * pageSize;
+
+      return {
+        rows: groupedRows.slice(skip, skip + pageSize),
+        total,
+      };
     }
 
     public storeIntegrationAudit(job: AnyRecord): void {

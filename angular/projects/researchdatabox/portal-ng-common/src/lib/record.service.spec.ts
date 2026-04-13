@@ -174,13 +174,29 @@ describe("RecordService", () => {
     request.flush({
       data: {
         summary: { numFound: 3, page: 2, pageSize: 15, totalPages: 1 },
-        records: [{ id: "integration-1", redboxOid: "oid-654", startedAt: "2026-01-01T00:00:00Z", status: "success", integrationAction: "publish", traceId: "trace-1", spanId: "span-1" }]
+        records: [{
+          id: "trace-1",
+          traceId: "trace-1",
+          startedAt: "2026-01-01T00:00:00Z",
+          status: "success",
+          actions: ["publish"],
+          eventCount: 1,
+          events: [{ id: "integration-1", redboxOid: "oid-654", startedAt: "2026-01-01T00:00:00Z", status: "success", integrationAction: "publish", traceId: "trace-1", spanId: "span-1", depth: 0, hasChildren: false }]
+        }]
       }
     });
 
     await expectAsync(integrationPromise).toBeResolvedTo({
       summary: { numFound: 3, page: 2, pageSize: 15, totalPages: 1 },
-      records: [{ id: "integration-1", redboxOid: "oid-654", startedAt: "2026-01-01T00:00:00Z", status: "success", integrationAction: "publish", traceId: "trace-1", spanId: "span-1" }]
+      records: [{
+        id: "trace-1",
+        traceId: "trace-1",
+        startedAt: "2026-01-01T00:00:00Z",
+        status: "success",
+        actions: ["publish"],
+        eventCount: 1,
+        events: [{ id: "integration-1", redboxOid: "oid-654", startedAt: "2026-01-01T00:00:00Z", status: "success", integrationAction: "publish", traceId: "trace-1", spanId: "span-1", depth: 0, hasChildren: false }]
+      }]
     } as any);
   });
 
@@ -193,12 +209,28 @@ describe("RecordService", () => {
     expect(request.request.method).toBe("GET");
     request.flush({
       summary: { numFound: 1, page: 1, pageSize: 20, totalPages: 1 },
-      records: [{ id: "integration-2", redboxOid: "oid-655", startedAt: "2026-01-01T00:00:00Z", status: "success", integrationAction: "publish", traceId: "trace-2", spanId: "span-2" }]
+      records: [{
+        id: "trace-2",
+        traceId: "trace-2",
+        startedAt: "2026-01-01T00:00:00Z",
+        status: "success",
+        actions: ["publish"],
+        eventCount: 1,
+        events: [{ id: "integration-2", redboxOid: "oid-655", startedAt: "2026-01-01T00:00:00Z", status: "success", integrationAction: "publish", traceId: "trace-2", spanId: "span-2", depth: 0, hasChildren: false }]
+      }]
     });
 
     await expectAsync(integrationPromise).toBeResolvedTo({
       summary: { numFound: 1, page: 1, pageSize: 20, totalPages: 1 },
-      records: [{ id: "integration-2", redboxOid: "oid-655", startedAt: "2026-01-01T00:00:00Z", status: "success", integrationAction: "publish", traceId: "trace-2", spanId: "span-2" }]
+      records: [{
+        id: "trace-2",
+        traceId: "trace-2",
+        startedAt: "2026-01-01T00:00:00Z",
+        status: "success",
+        actions: ["publish"],
+        eventCount: 1,
+        events: [{ id: "integration-2", redboxOid: "oid-655", startedAt: "2026-01-01T00:00:00Z", status: "success", integrationAction: "publish", traceId: "trace-2", spanId: "span-2", depth: 0, hasChildren: false }]
+      }]
     } as any);
   });
 });

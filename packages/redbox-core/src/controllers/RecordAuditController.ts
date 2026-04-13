@@ -16,7 +16,20 @@ type FormRecordConsistencyChange = {
   changed: unknown;
 };
 type IntegrationAuditLogResult = {
-  rows: Record<string, unknown>[];
+  rows: Array<{
+    id: string;
+    traceId: string;
+    status: string;
+    startedAt: string;
+    completedAt?: string;
+    durationMs?: number;
+    triggeredBy?: string;
+    integrationName?: string;
+    actions: string[];
+    eventCount: number;
+    rootSpanId?: string;
+    events: Array<Record<string, unknown>>;
+  }>;
   total: number;
 };
 type AuditFieldChange = FormRecordConsistencyChange & {
@@ -39,7 +52,7 @@ declare const FormRecordConsistencyService: {
   compareRecords(original: unknown, changed: unknown, path?: AuditPath): FormRecordConsistencyChange[];
 };
 declare const IntegrationAuditService: {
-  getAuditLog(params: IntegrationAuditParams): Promise<IntegrationAuditLogResult>;
+  getTraceAuditLog(params: IntegrationAuditParams): Promise<IntegrationAuditLogResult>;
 };
 declare const TranslationService: {
   t(key: string): string;
@@ -465,7 +478,7 @@ export namespace Controllers {
           params.status = status as IntegrationAuditStatus;
         }
 
-        const result = await IntegrationAuditService.getAuditLog(params);
+        const result = await IntegrationAuditService.getTraceAuditLog(params);
         return this.sendResp(req, res, {
           data: {
             summary: {
@@ -474,9 +487,13 @@ export namespace Controllers {
               pageSize,
               totalPages: Math.ceil(result.total / pageSize),
             },
-            records: result.rows.map((row, index) => ({
+            records: result.rows.map((row, traceIndex) => ({
               ...row,
-              id: String(row['id'] ?? `${oid}:${page}:${index}`),
+              id: String(row.id ?? row.traceId ?? `${oid}:trace:${page}:${traceIndex}`),
+              events: (row.events ?? []).map((event, eventIndex) => ({
+                ...event,
+                id: String(event['id'] ?? `${row.traceId ?? oid}:event:${eventIndex}`),
+              })),
             })),
           },
         });

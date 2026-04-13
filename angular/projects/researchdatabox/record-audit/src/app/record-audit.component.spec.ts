@@ -76,15 +76,47 @@ describe('RecordAuditComponent', () => {
     recordService.getRecordIntegrationAuditTab.and.resolveTo({
       summary: { numFound: 2, page: 1, pageSize: 20, totalPages: 2 },
       records: [{
-        id: 'integration-1',
-        redboxOid: 'oid-1',
+        id: 'trace-1',
+        traceId: 'trace-1',
         startedAt: '2026-03-01T10:00:00Z',
         completedAt: '2026-03-01T10:01:00Z',
         durationMs: 60000,
         status: 'success',
-        integrationAction: 'publish',
-        traceId: 'trace-1',
-        spanId: 'span-1',
+        triggeredBy: 'admin',
+        integrationName: 'figshare',
+        actions: ['syncRecordWithFigshare', 'publishAfterUploadFilesJob'],
+        eventCount: 2,
+        rootSpanId: 'span-1',
+        events: [
+          {
+            id: 'event-1',
+            redboxOid: 'oid-1',
+            startedAt: '2026-03-01T10:00:00Z',
+            completedAt: '2026-03-01T10:00:30Z',
+            durationMs: 30000,
+            status: 'success',
+            integrationAction: 'syncRecordWithFigshare',
+            traceId: 'trace-1',
+            spanId: 'span-1',
+            depth: 0,
+            hasChildren: true,
+          },
+          {
+            id: 'event-2',
+            redboxOid: 'oid-1',
+            startedAt: '2026-03-01T10:00:31Z',
+            completedAt: '2026-03-01T10:01:00Z',
+            durationMs: 29000,
+            status: 'success',
+            integrationAction: 'publishAfterUploadFilesJob',
+            traceId: 'trace-1',
+            spanId: 'span-2',
+            parentSpanId: 'span-1',
+            message: 'Publish completed',
+            depth: 1,
+            hasChildren: false,
+          },
+        ],
       }],
     } as any);
 
@@ -130,9 +162,13 @@ describe('RecordAuditComponent', () => {
             '@record-audit-integration-col-completed': 'Completed',
             '@record-audit-integration-col-duration': 'Duration',
             '@record-audit-integration-col-status': 'Status',
+            '@record-audit-integration-col-trace': 'Trace',
             '@record-audit-integration-col-action': 'Action',
+            '@record-audit-integration-col-actions': 'Actions',
+            '@record-audit-integration-col-event-count': 'Events',
             '@record-audit-integration-col-triggered-by': 'Triggered By',
             '@record-audit-integration-col-message': 'Message',
+            '@record-audit-integration-trace-events': 'Trace Events',
             '@tab-nav-previous': 'Previous',
             '@tab-nav-next': 'Next',
           }),
@@ -207,6 +243,35 @@ describe('RecordAuditComponent', () => {
     await component.loadIntegrationTab(2);
 
     expect(recordService.getRecordIntegrationAuditTab).toHaveBeenCalledWith('oid-1', { page: 2, pageSize: 20 });
+  });
+
+  it('renders trace summaries and expands trace events', async () => {
+    await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
+    await component.activateTab('integration');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('trace-1');
+    expect(fixture.nativeElement.textContent).toContain('syncRecordWithFigshare, publishAfterUploadFilesJob');
+    expect(fixture.nativeElement.textContent).toContain('2');
+
+    component.toggleIntegrationTrace('trace-1');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Trace Events');
+    expect(fixture.nativeElement.textContent).toContain('publishAfterUploadFilesJob');
+  });
+
+  it('shows technical details for an expanded integration event', async () => {
+    await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
+    await component.activateTab('integration');
+    component.toggleIntegrationTrace('trace-1');
+    fixture.detectChanges();
+
+    component.toggleIntegrationTechnical('event-2');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Publish completed');
+    expect(fixture.nativeElement.textContent).toContain('span-2');
   });
 
   it('does not issue duplicate integration requests while a tab load is in flight', async () => {

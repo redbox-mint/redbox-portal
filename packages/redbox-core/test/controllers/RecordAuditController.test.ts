@@ -93,9 +93,19 @@ describe('RecordAuditController', () => {
       ]),
     };
     (global as any).IntegrationAuditService = {
-      getAuditLog: sinon.stub().resolves({
+      getTraceAuditLog: sinon.stub().resolves({
         total: 1,
-        rows: [{ id: 'integration-1', redboxOid: 'oid-1', startedAt: '2026-03-03T00:00:00Z', status: 'success', integrationAction: 'publish', traceId: 'trace-1', spanId: 'span-1' }],
+        rows: [{
+          id: 'trace-1',
+          traceId: 'trace-1',
+          startedAt: '2026-03-03T00:00:00Z',
+          completedAt: '2026-03-03T00:01:00Z',
+          durationMs: 60000,
+          status: 'success',
+          actions: ['publish'],
+          eventCount: 1,
+          events: [{ id: 'integration-1', redboxOid: 'oid-1', startedAt: '2026-03-03T00:00:00Z', status: 'success', integrationAction: 'publish', traceId: 'trace-1', spanId: 'span-1', depth: 0, hasChildren: false }],
+        }],
       }),
     };
     (global as any).TranslationService = {
@@ -228,15 +238,23 @@ describe('RecordAuditController', () => {
 
     await controller.getIntegrationAuditData(req, res);
 
-    assert.equal((global as any).IntegrationAuditService.getAuditLog.calledOnce, true);
+    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.calledOnce, true);
     assert.equal(sendResp.firstCall.args[2]?.data?.summary?.page, 2);
     assert.equal(sendResp.firstCall.args[2]?.data?.summary?.pageSize, 10);
   });
 
   it('preserves the fallback integration audit id when a row id is missing', async () => {
-    (global as any).IntegrationAuditService.getAuditLog.resolves({
+    (global as any).IntegrationAuditService.getTraceAuditLog.resolves({
       total: 1,
-      rows: [{ id: undefined, redboxOid: 'oid-1', startedAt: '2026-03-03T00:00:00Z', status: 'success', integrationAction: 'publish', traceId: 'trace-1', spanId: 'span-1' }],
+      rows: [{
+        id: undefined,
+        traceId: 'trace-1',
+        startedAt: '2026-03-03T00:00:00Z',
+        status: 'success',
+        actions: ['publish'],
+        eventCount: 1,
+        events: [{ id: undefined, redboxOid: 'oid-1', startedAt: '2026-03-03T00:00:00Z', status: 'success', integrationAction: 'publish', traceId: 'trace-1', spanId: 'span-1', depth: 0, hasChildren: false }],
+      }],
     });
 
     const param = sinon.stub();
@@ -255,7 +273,8 @@ describe('RecordAuditController', () => {
 
     await controller.getIntegrationAuditData(req, res);
 
-    assert.equal(sendResp.firstCall.args[2]?.data?.records?.[0]?.id, 'oid-1:2:0');
+    assert.equal(sendResp.firstCall.args[2]?.data?.records?.[0]?.id, 'trace-1');
+    assert.equal(sendResp.firstCall.args[2]?.data?.records?.[0]?.events?.[0]?.id, 'trace-1:event:0');
   });
 
   it('rejects invalid integration audit statuses', async () => {
@@ -275,7 +294,7 @@ describe('RecordAuditController', () => {
 
     await controller.getIntegrationAuditData(req, res);
 
-    assert.equal((global as any).IntegrationAuditService.getAuditLog.called, false);
+    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.called, false);
     assert.deepEqual(sendResp.firstCall.args[2], {
       status: 400,
       displayErrors: [{ detail: 'Invalid integration audit status.' }],

@@ -384,68 +384,130 @@
         <table class="table rb-audit-table">
           <thead>
             <tr>
+              <th>{{ '@record-audit-integration-col-trace' | i18next }}</th>
               <th>{{ '@record-audit-integration-col-started' | i18next }}</th>
               <th>{{ '@record-audit-integration-col-completed' | i18next }}</th>
               <th>{{ '@record-audit-integration-col-duration' | i18next }}</th>
               <th>{{ '@record-audit-integration-col-status' | i18next }}</th>
-              <th>{{ '@record-audit-integration-col-action' | i18next }}</th>
+              <th>{{ '@record-audit-integration-col-actions' | i18next }}</th>
+              <th>{{ '@record-audit-integration-col-event-count' | i18next }}</th>
               <th>{{ '@record-audit-integration-col-triggered-by' | i18next }}</th>
-              <th>{{ '@record-audit-integration-col-message' | i18next }}</th>
-              <th>{{ '@record-audit-col-technical-data' | i18next }}</th>
             </tr>
           </thead>
           <tbody>
-            <ng-container *ngFor="let row of integrationTab.data.records">
-              <tr class="rb-audit-row">
-                <td>
-                  <div class="rb-timestamp-wrapper">
-                    <span class="rb-timestamp-main">{{ formatTimestamp(row.startedAt) }}</span>
-                    <span class="rb-timestamp-relative">{{ formatRelativeTime(row.startedAt) }}</span>
-                  </div>
-                </td>
-                <td>{{ formatTimestamp(row.completedAt) }}</td>
-                <td>{{ row.durationMs != null ? row.durationMs + 'ms' : '-' }}</td>
-                <td>
-                  <span class="badge rb-action-badge" [ngClass]="getStatusBadgeClass(row.status)">
-                    {{ row.status }}
-                  </span>
-                </td>
-                <td>{{ row.integrationAction }}</td>
-                <td>
-                  <span *ngIf="row.triggeredBy" class="rb-actor">
-                    <i class="fa-solid fa-user rb-actor-icon"></i> {{ row.triggeredBy }}
-                  </span>
-                  <span *ngIf="!row.triggeredBy" class="text-muted">-</span>
-                </td>
-                <td class="rb-message-cell">{{ row.message || row.errorDetail || '-' }}</td>
+            <ng-container *ngFor="let trace of integrationTab.data.records">
+              <tr class="rb-audit-row rb-trace-row">
                 <td>
                   <button
                     type="button"
-                    class="btn btn-sm rb-toggle-btn rb-technical-toggle"
-                    [class.rb-toggle-active]="integrationTab.expandedRows[row.id]"
-                    (click)="toggleIntegrationTechnical(row.id)"
+                    class="btn btn-sm rb-toggle-btn rb-trace-toggle"
+                    [class.rb-toggle-active]="integrationTab.expandedTraces[trace.id]"
+                    (click)="toggleIntegrationTrace(trace.id)"
                   >
                     <i
                       class="fa-solid fa-chevron-right rb-toggle-chevron"
-                      [class.rb-chevron-open]="integrationTab.expandedRows[row.id]"
+                      [class.rb-chevron-open]="integrationTab.expandedTraces[trace.id]"
                     ></i>
-                    {{
-                      (integrationTab.expandedRows[row.id]
-                        ? '@record-audit-hide-technical-data'
-                        : '@record-audit-show-technical-data'
-                      ) | i18next
-                    }}
+                    {{ getIntegrationTraceLabel(trace) }}
                   </button>
                 </td>
+                <td>
+                  <div class="rb-timestamp-wrapper">
+                    <span class="rb-timestamp-main">{{ formatTimestamp(trace.startedAt) }}</span>
+                    <span class="rb-timestamp-relative">{{ formatRelativeTime(trace.startedAt) }}</span>
+                  </div>
+                </td>
+                <td>{{ formatTimestamp(trace.completedAt) }}</td>
+                <td>{{ formatDuration(trace.durationMs) }}</td>
+                <td>
+                  <span class="badge rb-action-badge" [ngClass]="getStatusBadgeClass(trace.status)">
+                    {{ trace.status }}
+                  </span>
+                </td>
+                <td>{{ formatTraceActions(trace.actions) }}</td>
+                <td>{{ trace.eventCount }}</td>
+                <td>
+                  <span *ngIf="trace.triggeredBy" class="rb-actor">
+                    <i class="fa-solid fa-user rb-actor-icon"></i> {{ trace.triggeredBy }}
+                  </span>
+                  <span *ngIf="!trace.triggeredBy" class="text-muted">-</span>
+                </td>
               </tr>
-              <tr *ngIf="integrationTab.expandedRows[row.id]" class="rb-expanded-row">
+              <tr *ngIf="integrationTab.expandedTraces[trace.id]" class="rb-expanded-row">
                 <td colspan="8" class="rb-audit-expanded-cell">
-                  <div class="rb-technical-container">
+                  <div class="rb-trace-events-container">
                     <div class="rb-diff-header">
-                      <i class="fa-solid fa-code"></i>
-                      Technical Data
+                      <i class="fa-solid fa-diagram-project"></i>
+                      {{ '@record-audit-integration-trace-events' | i18next }}
                     </div>
-                    <pre class="rb-json-block">{{ row | json }}</pre>
+                    <table class="table table-sm rb-trace-events-table">
+                      <thead>
+                        <tr>
+                          <th>{{ '@record-audit-integration-col-action' | i18next }}</th>
+                          <th>{{ '@record-audit-integration-col-started' | i18next }}</th>
+                          <th>{{ '@record-audit-integration-col-completed' | i18next }}</th>
+                          <th>{{ '@record-audit-integration-col-duration' | i18next }}</th>
+                          <th>{{ '@record-audit-integration-col-status' | i18next }}</th>
+                          <th>{{ '@record-audit-integration-col-message' | i18next }}</th>
+                          <th>{{ '@record-audit-col-technical-data' | i18next }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <ng-container *ngFor="let event of trace.events">
+                          <tr class="rb-trace-event-row">
+                            <td>
+                              <div class="rb-trace-event-label" [style.padding-left]="getIntegrationEventIndent(event)">
+                                <i
+                                  *ngIf="event.hasChildren"
+                                  class="fa-solid fa-code-branch rb-trace-event-branch"
+                                ></i>
+                                <span>{{ event.integrationAction }}</span>
+                                <code class="rb-trace-event-span">{{ event.spanId }}</code>
+                              </div>
+                            </td>
+                            <td>{{ formatTimestamp(event.startedAt) }}</td>
+                            <td>{{ formatTimestamp(event.completedAt) }}</td>
+                            <td>{{ formatDuration(event.durationMs) }}</td>
+                            <td>
+                              <span class="badge rb-action-badge" [ngClass]="getStatusBadgeClass(event.status)">
+                                {{ event.status }}
+                              </span>
+                            </td>
+                            <td class="rb-message-cell">{{ event.message || event.errorDetail || '-' }}</td>
+                            <td>
+                              <button
+                                type="button"
+                                class="btn btn-sm rb-toggle-btn rb-technical-toggle"
+                                [class.rb-toggle-active]="integrationTab.expandedEvents[event.id]"
+                                (click)="toggleIntegrationTechnical(event.id)"
+                              >
+                                <i
+                                  class="fa-solid fa-chevron-right rb-toggle-chevron"
+                                  [class.rb-chevron-open]="integrationTab.expandedEvents[event.id]"
+                                ></i>
+                                {{
+                                  (integrationTab.expandedEvents[event.id]
+                                    ? '@record-audit-hide-technical-data'
+                                    : '@record-audit-show-technical-data'
+                                  ) | i18next
+                                }}
+                              </button>
+                            </td>
+                          </tr>
+                          <tr *ngIf="integrationTab.expandedEvents[event.id]" class="rb-expanded-row">
+                            <td colspan="7" class="rb-audit-expanded-cell">
+                              <div class="rb-technical-container">
+                                <div class="rb-diff-header">
+                                  <i class="fa-solid fa-code"></i>
+                                  Technical Data
+                                </div>
+                                <pre class="rb-json-block">{{ event | json }}</pre>
+                              </div>
+                            </td>
+                          </tr>
+                        </ng-container>
+                      </tbody>
+                    </table>
                   </div>
                 </td>
               </tr>

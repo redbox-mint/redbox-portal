@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Mocha Tests" time="3.930" tests="36" failures="0">
+  <testsuite name="Root Suite" timestamp="2026-04-13T03:54:20" tests="0" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="form-config commands" timestamp="2026-04-13T03:54:20" tests="0" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/commands/form-config.test.ts" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="migrate-form-config" timestamp="2026-04-13T03:54:20" tests="3" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/commands/form-config.test.ts" time="0.036" failures="0">
+    <testcase name="form-config commands migrate-form-config should migrate a legacy form config and write TS output" time="0.027" classname="should migrate a legacy form config and write TS output">
+    </testcase>
+    <testcase name="form-config commands migrate-form-config should migrate a legacy form config and write cjs format TS output" time="0.002" classname="should migrate a legacy form config and write cjs format TS output">
+    </testcase>
+    <testcase name="form-config commands migrate-form-config should respect global --dry-run and not write output file" time="0.002" classname="should respect global --dry-run and not write output file">
+    </testcase>
+  </testsuite>
+  <testsuite name="migrate-data-classification" timestamp="2026-04-13T03:54:20" tests="3" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/commands/form-config.test.ts" time="0.010" failures="0">
+    <testcase name="form-config commands migrate-data-classification should migrate a legacy data classification and write question tree config TS output" time="0.006" classname="should migrate a legacy data classification and write question tree config TS output">
+    </testcase>
+    <testcase name="form-config commands migrate-data-classification should migrate a legacy data classification and write question tree config cjs TS output" time="0.002" classname="should migrate a legacy data classification and write question tree config cjs TS output">
+    </testcase>
+    <testcase name="form-config commands migrate-data-classification should respect global --dry-run and not write output file" time="0.001" classname="should respect global --dry-run and not write output file">
+    </testcase>
+  </testsuite>
+  <testsuite name="client-form-config" timestamp="2026-04-13T03:54:20" tests="1" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/commands/form-config.test.ts" time="0.060" failures="0">
+    <testcase name="form-config commands client-form-config should create a client form config from a server form config" time="0.060" classname="should create a client form config from a server form config">
+    </testcase>
+  </testsuite>
+  <testsuite name="question-tree-diagram" timestamp="2026-04-13T03:54:20" tests="1" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/commands/form-config.test.ts" time="0.048" failures="0">
+    <testcase name="form-config commands question-tree-diagram should create a diagram from a question tree config" time="0.047" classname="should create a diagram from a question tree config">
+    </testcase>
+  </testsuite>
+  <testsuite name="hook dependency contract commands" timestamp="2026-04-13T03:54:20" tests="3" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/commands/hook-contract.test.ts" time="3.592" failures="0">
+    <testcase name="hook dependency contract commands renders a valid package.json when archetype descriptions contain quotes and newlines" time="0.012" classname="renders a valid package.json when archetype descriptions contain quotes and newlines">
+    </testcase>
+    <testcase name="hook dependency contract commands flags disallowed shared packages in check output" time="1.875" classname="flags disallowed shared packages in check output">
+    </testcase>
+    <testcase name="hook dependency contract commands removes disallowed shared packages during migrate-hook-dependencies" time="1.701" classname="removes disallowed shared packages during migrate-hook-dependencies">
+    </testcase>
+  </testsuite>
+  <testsuite name="completion scripts" timestamp="2026-04-13T03:54:24" tests="6" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/completion/completion.test.ts" time="0.002" failures="0">
+    <testcase name="completion scripts should generate bash completion script" time="0.001" classname="should generate bash completion script">
+    </testcase>
+    <testcase name="completion scripts should generate zsh completion script" time="0.000" classname="should generate zsh completion script">
+    </testcase>
+    <testcase name="completion scripts should generate fish completion script" time="0.000" classname="should generate fish completion script">
+    </testcase>
+    <testcase name="completion scripts should generate powershell completion script" time="0.000" classname="should generate powershell completion script">
+    </testcase>
+    <testcase name="completion scripts should generate powershell completion script for pwsh alias" time="0.000" classname="should generate powershell completion script for pwsh alias">
+    </testcase>
+    <testcase name="completion scripts should throw for unsupported shell" time="0.000" classname="should throw for unsupported shell">
+    </testcase>
+  </testsuite>
+  <testsuite name="AddMethodGenerator" timestamp="2026-04-13T03:54:24" tests="2" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/generators/add-method.test.ts" time="0.062" failures="0">
+    <testcase name="AddMethodGenerator should add a method to an existing controller" time="0.051" classname="should add a method to an existing controller">
+    </testcase>
+    <testcase name="AddMethodGenerator should add a method to an existing service" time="0.009" classname="should add a method to an existing service">
+    </testcase>
+  </testsuite>
+  <testsuite name="AngularAppGenerator" timestamp="2026-04-13T03:54:24" tests="1" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/generators/angular-app.test.ts" time="0.012" failures="0">
+    <testcase name="AngularAppGenerator should scaffold an Angular app and update configs" time="0.009" classname="should scaffold an Angular app and update configs">
+    </testcase>
+  </testsuite>
+  <testsuite name="AngularServiceGenerator" timestamp="2026-04-13T03:54:24" tests="1" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/generators/angular-service.test.ts" time="0.002" failures="0">
+    <testcase name="AngularServiceGenerator should generate an Angular service extending HttpClientService" time="0.001" classname="should generate an Angular service extending HttpClientService">
+    </testcase>
+  </testsuite>
+  <testsuite name="ControllerGenerator" timestamp="2026-04-13T03:54:24" tests="4" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/generators/controller.test.ts" time="0.065" failures="0">
+    <testcase name="ControllerGenerator should generate a controller and update index" time="0.010" classname="should generate a controller and update index">
+    </testcase>
+    <testcase name="ControllerGenerator should update routes and auth" time="0.013" classname="should update routes and auth">
+    </testcase>
+    <testcase name="ControllerGenerator should handle webservice controllers" time="0.012" classname="should handle webservice controllers">
+    </testcase>
+    <testcase name="ControllerGenerator should support multiple action-to-route mappings" time="0.025" classname="should support multiple action-to-route mappings">
+    </testcase>
+  </testsuite>
+  <testsuite name="FormComponentGenerator" timestamp="2026-04-13T03:54:24" tests="2" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/generators/form-component.test.ts" time="0.017" failures="0">
+    <testcase name="FormComponentGenerator generates component scaffold and updates wiring" time="0.007" classname="generates component scaffold and updates wiring">
+    </testcase>
+    <testcase name="FormComponentGenerator generates companion service when requested" time="0.003" classname="generates companion service when requested">
+    </testcase>
+  </testsuite>
+  <testsuite name="FormFieldGenerator" timestamp="2026-04-13T03:54:24" tests="2" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/generators/form-field.test.ts" time="0.001" failures="0">
+    <testcase name="FormFieldGenerator should generate a form configuration file" time="0.000" classname="should generate a form configuration file">
+    </testcase>
+    <testcase name="FormFieldGenerator should respect dry-run option" time="0.001" classname="should respect dry-run option">
+    </testcase>
+  </testsuite>
+  <testsuite name="ModelGenerator" timestamp="2026-04-13T03:54:24" tests="6" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/generators/model.test.ts" time="0.018" failures="0">
+    <testcase name="ModelGenerator should generate a simple model with attributes" time="0.004" classname="should generate a simple model with attributes">
+    </testcase>
+    <testcase name="ModelGenerator should generate a model with belongsTo association" time="0.002" classname="should generate a model with belongsTo association">
+    </testcase>
+    <testcase name="ModelGenerator should generate a model with hasMany association" time="0.001" classname="should generate a model with hasMany association">
+    </testcase>
+    <testcase name="ModelGenerator should use custom identity when provided" time="0.001" classname="should use custom identity when provided">
+    </testcase>
+    <testcase name="ModelGenerator should update the index file" time="0.002" classname="should update the index file">
+    </testcase>
+    <testcase name="ModelGenerator should generate attributes with column type" time="0.003" classname="should generate attributes with column type">
+    </testcase>
+  </testsuite>
+  <testsuite name="ServiceGenerator" timestamp="2026-04-13T03:54:24" tests="1" file="/Users/andrewbrazzatti/source/github/redbox-portal/packages/redbox-dev-tools/test/generators/service.test.ts" time="0.004" failures="0">
+    <testcase name="ServiceGenerator should generate a service and update index" time="0.002" classname="should generate a service and update index">
+    </testcase>
+  </testsuite>
+</testsuites>

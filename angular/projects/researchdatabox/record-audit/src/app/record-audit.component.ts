@@ -2,6 +2,8 @@ import { Component, ElementRef, Inject } from '@angular/core';
 import {
   AuditFieldChange,
   BaseComponent,
+  IntegrationAuditTraceEvent,
+  IntegrationAuditTraceRecord,
   IntegrationAuditTabResponse,
   LoggerService,
   RecordAuditTabResponse,
@@ -57,13 +59,15 @@ export class RecordAuditComponent extends BaseComponent {
     loading: boolean;
     error: string;
     data: IntegrationAuditTabResponse;
-    expandedRows: Record<string, boolean>;
+    expandedTraces: Record<string, boolean>;
+    expandedEvents: Record<string, boolean>;
   } = {
       loaded: false,
       loading: false,
       error: '',
       data: { summary: { numFound: 0, page: 1, pageSize: 20, totalPages: 0 }, records: [] },
-      expandedRows: {},
+      expandedTraces: {},
+      expandedEvents: {},
     };
 
   constructor(
@@ -137,6 +141,8 @@ export class RecordAuditComponent extends BaseComponent {
         page,
         pageSize: this.integrationTab.data.summary.pageSize || 20,
       });
+      this.integrationTab.expandedTraces = {};
+      this.integrationTab.expandedEvents = {};
       this.integrationTab.loaded = true;
     } catch (_error) {
       this.integrationTab.error = '@record-audit-error';
@@ -159,8 +165,12 @@ export class RecordAuditComponent extends BaseComponent {
     }
   }
 
-  toggleIntegrationTechnical(rowId: string) {
-    this.integrationTab.expandedRows[rowId] = !this.integrationTab.expandedRows[rowId];
+  toggleIntegrationTrace(traceId: string) {
+    this.integrationTab.expandedTraces[traceId] = !this.integrationTab.expandedTraces[traceId];
+  }
+
+  toggleIntegrationTechnical(eventId: string) {
+    this.integrationTab.expandedEvents[eventId] = !this.integrationTab.expandedEvents[eventId];
   }
 
   formatChangedFields(changeSummary: { count: number }) {
@@ -292,9 +302,39 @@ export class RecordAuditComponent extends BaseComponent {
       case 'success': return 'text-bg-success';
       case 'failed':
       case 'error': return 'text-bg-danger';
+      case 'started':
       case 'pending':
       case 'in_progress': return 'text-bg-warning';
       default: return 'text-bg-secondary';
     }
+  }
+
+  formatDuration(durationMs: number | null | undefined): string {
+    if (durationMs == null || Number.isNaN(durationMs)) {
+      return '-';
+    }
+    if (durationMs < 1000) {
+      return `${durationMs}ms`;
+    }
+    const totalSeconds = Math.floor(durationMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (minutes === 0) {
+      return `${seconds}s`;
+    }
+    return `${minutes}m ${seconds}s`;
+  }
+
+  formatTraceActions(actions: string[] | null | undefined): string {
+    return actions != null && actions.length > 0 ? actions.join(', ') : '-';
+  }
+
+  getIntegrationTraceLabel(trace: IntegrationAuditTraceRecord): string {
+    return trace.traceId || trace.id || '-';
+  }
+
+  getIntegrationEventIndent(event: IntegrationAuditTraceEvent): string {
+    const depth = Number.isFinite(event.depth) ? event.depth : 0;
+    return `${Math.max(0, depth) * 20}px`;
   }
 }

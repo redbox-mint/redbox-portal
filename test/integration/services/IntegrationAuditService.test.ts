@@ -176,4 +176,75 @@ describe('The IntegrationAuditService', function () {
     expect(pageOne.rows[0].startedAt >= pageOne.rows[1].startedAt).to.equal(true);
     expect(pageOne.rows[0].startedAt >= pageTwo.rows[0].startedAt).to.equal(true);
   });
+
+  it('groups persisted integration audit entries by trace id for trace-oriented views', async function () {
+    const oid = `integration-audit-service-${Date.now()}-3`;
+    createdOids.push(oid);
+    const traceSuccess = `trace-${Date.now()}-7`;
+    const traceFailed = `trace-${Date.now()}-8`;
+    const traceStarted = `trace-${Date.now()}-9`;
+
+    await IntegrationAudit.create({
+      redboxOid: oid,
+      brandId: 'default',
+      integrationName: 'figshare',
+      integrationAction: 'syncRecordWithFigshare',
+      triggeredBy: 'integration-test',
+      status: 'success',
+      traceId: traceSuccess,
+      spanId: `span-${Date.now()}-7`,
+      startedAt: '2025-01-01T00:00:00.000Z',
+      completedAt: '2025-01-01T00:00:01.000Z',
+      durationMs: 1000,
+    });
+    await IntegrationAudit.create({
+      redboxOid: oid,
+      brandId: 'default',
+      integrationName: 'figshare',
+      integrationAction: 'publishAfterUploadFilesJob',
+      triggeredBy: 'integration-test',
+      status: 'failed',
+      traceId: traceFailed,
+      spanId: 'child-span',
+      parentSpanId: 'root-span',
+      startedAt: '2025-01-01T00:00:04.000Z',
+      completedAt: '2025-01-01T00:00:05.000Z',
+      durationMs: 1000,
+    });
+    await IntegrationAudit.create({
+      redboxOid: oid,
+      brandId: 'default',
+      integrationName: 'figshare',
+      integrationAction: 'syncRecordWithFigshare',
+      triggeredBy: 'integration-test',
+      status: 'success',
+      traceId: traceFailed,
+      spanId: 'root-span',
+      startedAt: '2025-01-01T00:00:03.000Z',
+      completedAt: '2025-01-01T00:00:03.500Z',
+      durationMs: 500,
+    });
+    await IntegrationAudit.create({
+      redboxOid: oid,
+      brandId: 'default',
+      integrationName: 'figshare',
+      integrationAction: 'publishAfterUploadFilesJob',
+      triggeredBy: 'integration-test',
+      status: 'started',
+      traceId: traceStarted,
+      spanId: `span-${Date.now()}-9`,
+      startedAt: '2025-01-01T00:00:06.000Z',
+    });
+
+    const traces = await integrationAuditService.getTraceAuditLog({ oid, page: 1, pageSize: 10 });
+
+    expect(traces.total).to.equal(3);
+    expect(traces.rows).to.have.length(3);
+    expect(traces.rows[0]).to.have.property('status', 'started');
+    expect(traces.rows[1]).to.have.property('status', 'failed');
+    expect(traces.rows[1].events).to.have.length(2);
+    expect(traces.rows[1].events[0]).to.have.property('spanId', 'root-span');
+    expect(traces.rows[1].events[1]).to.have.property('spanId', 'child-span');
+    expect(traces.rows[1].events[1]).to.have.property('depth', 1);
+  });
 });

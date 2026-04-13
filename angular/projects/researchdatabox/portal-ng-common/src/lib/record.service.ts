@@ -70,7 +70,7 @@ export interface RecordPermissionsSummary {
   viewRoles: string[];
 }
 
-export interface IntegrationAuditTabRecord {
+export interface IntegrationAuditTraceEvent {
   id: string;
   redboxOid: string;
   startedAt: string;
@@ -87,11 +87,28 @@ export interface IntegrationAuditTabRecord {
   parentSpanId?: string;
   requestSummary?: Record<string, unknown>;
   responseSummary?: Record<string, unknown>;
+  depth: number;
+  hasChildren: boolean;
+}
+
+export interface IntegrationAuditTraceRecord {
+  id: string;
+  traceId: string;
+  status: string;
+  startedAt: string;
+  completedAt?: string;
+  durationMs?: number;
+  triggeredBy?: string;
+  integrationName?: string;
+  actions: string[];
+  eventCount: number;
+  rootSpanId?: string;
+  events: IntegrationAuditTraceEvent[];
 }
 
 export interface IntegrationAuditTabResponse {
   summary: { numFound: number; page: number; pageSize: number; totalPages: number };
-  records: IntegrationAuditTabRecord[];
+  records: IntegrationAuditTraceRecord[];
 }
 /**
  * Record Service
