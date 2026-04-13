@@ -1,5 +1,5 @@
-import { expect } from 'chai';
-import * as completionModule from '../../src/completion';
+const { expect } = require('chai');
+const completionModule = require('../../src/completion');
 
 describe('completion scripts', () => {
   it('should generate bash completion script', () => {

@@ -1,9 +1,9 @@
-import { expect } from 'chai';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import * as childProcess from 'child_process';
-import * as hookArchetypeModule from '../../src/templates/hook-archetype';
+const { expect } = require('chai');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const childProcess = require('child_process');
+const hookArchetypeModule = require('../../src/templates/hook-archetype');
 
 describe('hook dependency contract commands', () => {
   let tempRoot: string;

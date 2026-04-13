@@ -1,9 +1,9 @@
-import { expect } from 'chai';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import * as formComponentGeneratorModule from '../../src/generators/form-component';
-import * as pathsModule from '../../src/utils/paths';
+const { expect } = require('chai');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const formComponentGeneratorModule = require('../../src/generators/form-component');
+const pathsModule = require('../../src/utils/paths');
 
 describe('FormComponentGenerator', () => {
   let tempRoot: string;

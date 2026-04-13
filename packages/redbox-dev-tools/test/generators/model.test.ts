@@ -1,9 +1,9 @@
-import { expect } from 'chai';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as modelGeneratorModule from '../../src/generators/model';
-import * as pathsModule from '../../src/utils/paths';
+const { expect } = require('chai');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const modelGeneratorModule = require('../../src/generators/model');
+const pathsModule = require('../../src/utils/paths');
 
 describe('ModelGenerator', () => {
   let tempRoot: string;

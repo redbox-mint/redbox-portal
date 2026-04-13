@@ -1,9 +1,9 @@
-import { expect } from 'chai';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as angularAppGeneratorModule from '../../src/generators/angular-app';
-import * as pathsModule from '../../src/utils/paths';
+const { expect } = require('chai');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const angularAppGeneratorModule = require('../../src/generators/angular-app');
+const pathsModule = require('../../src/utils/paths');
 
 describe('AngularAppGenerator', () => {
   let tempRoot: string;

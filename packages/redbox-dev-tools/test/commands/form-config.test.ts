@@ -1,8 +1,8 @@
-import { expect } from 'chai';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as commander from 'commander';
-import * as formConfigCommands from '../../src/commands/form-config';
+const { expect } = require('chai');
+const fs = require('fs');
+const path = require('path');
+const commander = require('commander');
+const formConfigCommands = require('../../src/commands/form-config');
 
 describe('form-config commands', () => {
   let tempRoot: string;
