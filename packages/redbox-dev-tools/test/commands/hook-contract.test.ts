@@ -22,14 +22,30 @@ describe('hook dependency contract commands', () => {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
+  function buildChildEnv() {
+    const childEnv = { ...process.env };
+
+    // nyc injects subprocess coverage hooks via NODE_OPTIONS and NYC_* env vars.
+    // These command tests intentionally execute child CLIs that may exit non-zero,
+    // and we only want to assert on those child statuses inside the test itself.
+    // Stripping the coverage wrapper env keeps those expected child exits from
+    // being reinterpreted as a parent process failure by nyc in CI.
+    delete childEnv.NODE_OPTIONS;
+    delete childEnv.NYC_CONFIG;
+    delete childEnv.NYC_CWD;
+    delete childEnv.NYC_PROCESS_ID;
+    delete childEnv.NYC_PROCESSINFO_EXTERNAL_ID;
+    delete childEnv.NYC_CONFIG_OVERRIDE;
+
+    childEnv.TS_NODE_PROJECT = path.join(packageRoot, 'test', 'tsconfig.json');
+    return childEnv;
+  }
+
   function runCli(args: string[], cwd: string) {
     return childProcess.spawnSync('node', ['-r', tsNodeRegisterPath, sourceCliPath, ...args], {
       cwd,
       encoding: 'utf8',
-      env: {
-        ...process.env,
-        TS_NODE_PROJECT: path.join(packageRoot, 'test', 'tsconfig.json'),
-      },
+      env: buildChildEnv(),
     });
   }
 
