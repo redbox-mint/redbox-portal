@@ -531,8 +531,17 @@ jobs:
             cd ./packages/redbox-dev-tools
             mkdir -p coverage/redbox-dev-tools
             mkdir -p support/junit
+            status=0
             TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/nyc --no-clean --report-dir ./coverage/redbox-dev-tools --reporter=lcov --exclude-after-remap=false \
-              npm test
+              npm test || status=$?
+            if [ "$status" -ne 0 ]; then
+              echo "redbox-dev-tools tests failed with status $status"
+              echo "----- support/junit/mocha.xml -----"
+              cat support/junit/mocha.xml || true
+              echo "----- re-running with spec reporter for diagnostics -----"
+              CI=false TS_NODE_PROJECT=test/tsconfig.json node -r ts-node/register ./node_modules/mocha/bin/_mocha --exit test/**/*.test.ts || true
+            fi
+            exit "$status"
       - run:
           name: Upload redbox-dev-tools CLI code coverage
           command: |
