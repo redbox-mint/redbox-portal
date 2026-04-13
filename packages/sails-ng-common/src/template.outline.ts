@@ -42,3 +42,21 @@ export interface TemplateCompileInput extends TemplateCompileItem {
 export function buildKeyString(key: TemplateCompileKey): TemplateCompileKeyFormatted {
     return (key ?? [])?.map(i => i?.toString()?.normalize("NFKC"))?.join('__');
 }
+
+export type DynamicScriptResponseEvaluateKey = TemplateCompileKey;
+export type DynamicScriptResponseEvaluateContext = unknown;
+export type DynamicScriptResponseEvaluateExtra = { libraries?: Record<string, unknown>, [key: string]: unknown };
+export type DynamicScriptResponseEvaluateResult = unknown;
+
+export type DynamicScriptResponseEvaluate = (
+  key: DynamicScriptResponseEvaluateKey,
+  context: DynamicScriptResponseEvaluateContext,
+  extra?: DynamicScriptResponseEvaluateExtra,
+) => DynamicScriptResponseEvaluateResult;
+
+/**
+ * The type of the dynamic script asset response after import.
+ */
+export interface DynamicScriptResponse {
+  evaluate: DynamicScriptResponseEvaluate,
+}

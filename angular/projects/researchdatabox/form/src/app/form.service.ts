@@ -17,16 +17,22 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Inject, Injectable, WritableSignal } from '@angular/core';
-import { AbstractControl, FormControl } from '@angular/forms';
-import { isEmpty as _isEmpty, merge as _merge, set as _set, toNumber as _toNumber, isFinite as _isFinite } from 'lodash-es';
+import {Inject, Injectable, WritableSignal} from '@angular/core';
+import {AbstractControl, FormControl} from '@angular/forms';
 import {
-  getStaticComponentClassMap,
-  getStaticModelClassMap,
-  getStaticLayoutClassMap,
+  isEmpty as _isEmpty,
+  isFinite as _isFinite,
+  merge as _merge,
+  set as _set,
+  toNumber as _toNumber
+} from 'lodash-es';
+import {
   AllComponentClassMapType,
-  AllModelClassMapType,
   AllLayoutClassMapType,
+  AllModelClassMapType,
+  getStaticComponentClassMap,
+  getStaticLayoutClassMap,
+  getStaticModelClassMap,
 } from './static-comp-field.dictionary';
 import {
   ConfigService,
@@ -34,32 +40,40 @@ import {
   FormFieldCompMapEntry,
   FormFieldModel,
   HttpClientService,
+  JSONataClientQuerySourceProperty,
   LoggerService,
   TranslationService,
-  UtilityService,
-  JSONataClientQuerySourceProperty
+  UtilityService
 } from '@researchdatabox/portal-ng-common';
-import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
+import {PortalNgFormCustomService} from '@researchdatabox/portal-ng-form-custom';
 import {
-  FormFieldComponentStatus,
+  buildLineagePaths as buildLineagePathsHelper, DynamicScriptResponse,
+  FieldModelDefinitionKind,
   FormComponentDefinitionFrame,
+  FormComponentDefinitionKind,
   FormConfigFrame,
-  FormStatus, FormValidatorComponentErrors, FormValidatorConfig, FormValidatorDefinition,
+  FormFieldComponentStatus,
+  FormFieldValidationGroup,
+  FormModesConfig,
+  FormStatus,
+  FormValidationGroups,
+  FormValidatorComponentErrors,
+  FormValidatorConfig,
+  FormValidatorDefinition,
   FormValidatorSummaryErrors,
-  ValidatorsSupport,
-  LineagePaths,
+  getObjectWithJsonPointer,
+  JSONataQueryRuntimeContext,
   JSONataQuerySource,
   JSONataQuerySourceProperty,
-  buildLineagePaths as buildLineagePathsHelper,
+  KindNameDefaultsMap,
+  KindNameDefaultsMapType,
+  LineagePaths,
   queryJSONata,
-  getObjectWithJsonPointer,
-  FormModesConfig, KindNameDefaultsMap, FieldModelDefinitionKind,
-  FormComponentDefinitionKind, KindNameDefaultsMapType, JSONataQueryRuntimeContext, FormValidationGroups,
-  FormFieldValidationGroup,
+  ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
-import { HttpClient } from "@angular/common/http";
-import { APP_BASE_HREF } from "@angular/common";
-import { firstValueFrom } from "rxjs";
+import {HttpClient} from "@angular/common/http";
+import {APP_BASE_HREF} from "@angular/common";
+import {firstValueFrom} from "rxjs";
 import {FormValidationGroupsChangeInitial} from "./form-state";
 
 
@@ -700,16 +714,16 @@ export class FormService extends HttpClientService {
    * @param oid The record id.
    * @param formMode The form mode.
    */
-  public async getDynamicImportFormCompiledItems(recordType: string, oid?: string, formMode?: FormModesConfig) {
+  public async getDynamicImportFormCompiledItems(
+    recordType: string, oid?: string, formMode?: FormModesConfig
+  ): Promise<DynamicScriptResponse> {
     const normalizedRecordType = String(recordType ?? '').trim() || (oid ? 'auto' : '');
     const path = ['dynamicAsset', 'formCompiledItems', normalizedRecordType];
     if (oid) {
       path.push(oid?.toString());
     }
     const params = formMode === "edit" ? { edit: "true" } : undefined;
-    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params);
-    // TODO add a type for the result -  {evaluate: function(key, context, extra)}
-    return result;
+    return await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params);
   }
 
   /**
