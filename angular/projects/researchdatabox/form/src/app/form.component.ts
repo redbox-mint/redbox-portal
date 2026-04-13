@@ -1215,7 +1215,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private resolveRedirectLocation(template: string, oid: string): string {
-    const contextVariables = (this.formDefMap?.formConfig?.contextVariables ?? {}) as Record<string, unknown>;
+    const contextVariables = (this.formConfigMeta["contextVariables"] ?? {}) as Record<string, unknown>;
     return template
       .replaceAll('@oid', oid)
       .replaceAll('@branding', String(contextVariables['@branding'] ?? '@branding'))
