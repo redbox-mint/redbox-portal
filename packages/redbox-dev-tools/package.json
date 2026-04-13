@@ -46,8 +46,8 @@
   "dependencies": {
     "@researchdatabox/redbox-core": "file:../redbox-core",
     "@researchdatabox/sails-ng-common": "file:../sails-ng-common",
-    "@tsconfig/node24": "^24.0.1",
-    "@types/chai": "^4.3.11",
+    "@tsconfig/node24": "24.0.1",
+    "@types/chai": "4.3.11",
     "@types/lodash": "^4.17.20",
     "@types/mocha": "^10.0.6",
     "@types/node": "^24.10.0",
