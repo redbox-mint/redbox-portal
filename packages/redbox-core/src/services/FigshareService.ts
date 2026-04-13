@@ -454,10 +454,10 @@ export namespace Services {
             const brandId = rm.metaMetadata?.brandId ?? '';
             const attachmentCount = Number(syncState.partialProgress?.attachmentCount ?? 0);
             const uploadsComplete = syncState.partialProgress?.uploadsComplete === true;
-            if (attachmentCount > 0 && uploadsComplete) {
+            if (attachmentCount > 0 && articleId !== '') {
               if (config.article.publishMode === 'afterUploadsComplete') {
                 this.queuePublishAfterUploadFiles(oid, articleId, user, brandId);
-              } else if (config.article.publishMode === 'immediate') {
+              } else if (config.article.publishMode === 'immediate' && uploadsComplete) {
                 this.queueDeleteFiles(oid, user, brandId, articleId);
               }
             }
@@ -517,8 +517,39 @@ export namespace Services {
         phase: 'publish',
       });
 
+      const client = this.makeClient(config, record, `${oid}:publish-job`, 'publishAfterUploadFilesJob');
       try {
-        const client = this.makeClient(config, record, `${oid}:publish-job`, 'publishAfterUploadFilesJob');
+        await this.ensureNoFileUploadInProgress(config, record, articleId);
+      } catch (error) {
+        sails.log.warn(`FigService - article '${articleId}' still has uploads in progress, rescheduling deferred publish`, error);
+        try {
+          this.queuePublishAfterUploadFiles(oid, articleId, user, brandId);
+          this.completeIntegrationAudit(auditCtx, {
+            message: 'Figshare publish-after-uploads job rescheduled because file uploads are still in progress.',
+            responseSummary: {
+              articleId,
+              correlationId: `${oid}:publish-job`,
+              phase: 'publish',
+              rescheduled: true,
+            },
+          });
+          return;
+        } catch (queueError) {
+          this.failIntegrationAudit(auditCtx, queueError, {
+            message: 'Figshare publish-after-uploads job could not be rescheduled while uploads were still in progress.',
+            errorDetail: queueError instanceof Error ? queueError.message : String(queueError),
+            responseSummary: {
+              articleId,
+              correlationId: `${oid}:publish-job`,
+              phase: 'publish',
+              rescheduled: false,
+            },
+          });
+          throw queueError;
+        }
+      }
+
+      try {
         const publishResult = await client.publishArticle(articleId, {});
         const article = await client.getArticle(articleId);
         const updatedRecord = this.writeBack(record, article, publishResult);

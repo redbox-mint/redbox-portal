@@ -290,6 +290,7 @@ describe('FigshareService', function () {
       getArticle: sinon.stub().resolves({ id: 'article-1', status: 'public' }),
     };
     sinon.stub(service, 'makeClient').returns(client as any);
+    sinon.stub(service as any, 'ensureNoFileUploadInProgress').resolves();
     sinon.stub(service, 'writeBack').returns({ redboxOid: 'oid-1', metaMetadata: { brandId: 'default' }, metadata: {} } as any);
     sinon.stub(service, 'persistSyncRecord').resolves();
     sinon.stub(service, 'queueDeleteFiles');

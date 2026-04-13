@@ -28,7 +28,6 @@ import { globSync } from 'glob';
 
 export const APP_CONFIG_SECRET_MASK = '__REDACTED__'
 export const APP_CONFIG_SECRET_CLEAR = '__CLEAR_SECRET__';
-const LEGACY_APP_CONFIG_SECRET_MASK = '*******';
 
 type AppConfigData = Record<string, unknown>;
 
@@ -107,6 +106,17 @@ export namespace Services {
       return ConfigModels.getModelInfo(configKey)?.secretFields ?? [];
     }
 
+    private isMaskedSecretPlaceholder(value: unknown): boolean {
+      return typeof value === 'string' && [APP_CONFIG_SECRET_MASK].includes(value);
+    }
+
+    private shouldMaskSecretValue(value: unknown): boolean {
+      if (typeof value === 'string') {
+        return value.trim() !== '';
+      }
+      return value != null;
+    }
+
     private maskSecretFields<T>(configKey: string, configData: T): T {
       const secretFields = this.getSecretFields(configKey);
       if (secretFields.length === 0 || configData == null) {
@@ -114,27 +124,14 @@ export namespace Services {
       }
       const masked = _.cloneDeep(configData);
       secretFields.forEach((fieldPath: string) => {
-        if (_.has(masked, fieldPath)) {
+        if (_.has(masked, fieldPath) && this.shouldMaskSecretValue(_.get(masked, fieldPath))) {
           _.set(masked, fieldPath, APP_CONFIG_SECRET_MASK);
         }
       });
       return masked;
     }
 
-    private applyLegacySecretMaskPreference<T>(configKey: string, incomingConfig: unknown, responseConfig: T): T {
-      const secretFields = this.getSecretFields(configKey);
-      if (secretFields.length === 0 || incomingConfig == null || responseConfig == null) {
-        return responseConfig;
-      }
 
-      const maskedResponse = _.cloneDeep(responseConfig);
-      secretFields.forEach((fieldPath: string) => {
-        if (_.get(incomingConfig, fieldPath) === LEGACY_APP_CONFIG_SECRET_MASK && _.has(maskedResponse, fieldPath)) {
-          _.set(maskedResponse, fieldPath, LEGACY_APP_CONFIG_SECRET_MASK);
-        }
-      });
-      return maskedResponse;
-    }
 
     private mergeSecretFields(configKey: string, incomingConfig: unknown, existingConfig?: unknown): unknown {
       const secretFields = this.getSecretFields(configKey);
@@ -145,7 +142,7 @@ export namespace Services {
       const merged = _.cloneDeep(incomingConfig);
       secretFields.forEach((fieldPath: string) => {
         const incomingValue = _.get(merged, fieldPath);
-        if (incomingValue === APP_CONFIG_SECRET_MASK || incomingValue === LEGACY_APP_CONFIG_SECRET_MASK) {
+        if (this.isMaskedSecretPlaceholder(incomingValue)) {
           if (existingConfig != null && _.has(existingConfig, fieldPath)) {
             _.set(merged, fieldPath, _.get(existingConfig, fieldPath));
           } else {
@@ -224,11 +221,7 @@ export namespace Services {
       }
 
       await this.refreshBrandingAppConfigMap(branding);
-      return this.applyLegacySecretMaskPreference(
-        configKey,
-        configData,
-        this.maskSecretFields(configKey, (record as unknown as AppConfigAttributes).configData)
-      );
+      return this.maskSecretFields(configKey, (record as unknown as AppConfigAttributes).configData);
     }
 
     public async createConfig(brandName: string, configKey: string, configData: AppConfigData): Promise<unknown> {

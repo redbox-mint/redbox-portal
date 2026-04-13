@@ -31,7 +31,7 @@ If you're new to RedBox Portal, here's where you can get started:
 
 - **[Redbox Core Types](https://github.com/redbox-mint/redbox-portal/wiki/redbox-core)**: Core type definitions, **business logic services**, Waterline models, policies, config defaults, and bootstrap functions.
 - **[Redbox Loader](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader)**: Pre-lift shim generation system that bridges Sails.js to core types, including service shim generation.
-- **[Redbox Hook Kit](https://github.com/redbox-mint/redbox-portal/wiki/redbox-dev-tools)**: TypeScript development toolkit for creating ReDBox hooks.
+- **[Redbox Dev Tools](https://github.com/redbox-mint/redbox-portal/wiki/redbox-dev-tools)**: Shared tooling for creating and maintaining ReDBox hooks.
 - **[Services Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture)**: Deep dive into the service layer architecture and how to extend or override services.
 - **[Figshare Service Technical Guide](https://github.com/redbox-mint/redbox-portal/wiki/Figshare-Service-Technical-Guide)**: Public service surface, orchestration flows, and Figshare-specific config and type reference.
 - **[Controllers Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Controllers-Architecture)**: Controller locations, lifecycle (`init()`), shim generation, and hook overrides.

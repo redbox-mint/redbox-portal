@@ -1,0 +1,20 @@
+import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormConfigExports as CoreFormConfigExports } from '@researchdatabox/redbox-core';
+
+function isFormConfigFrame(value: unknown): value is FormConfigFrame {
+	return typeof value === 'object' && value !== null;
+}
+
+if (!('generated-view-only' in CoreFormConfigExports)) {
+	throw new Error("CoreFormConfigExports is missing the 'generated-view-only' form config.");
+}
+
+const generatedViewOnly = CoreFormConfigExports['generated-view-only'];
+
+if (!isFormConfigFrame(generatedViewOnly)) {
+	throw new Error("CoreFormConfigExports['generated-view-only'] is not a valid FormConfigFrame.");
+}
+
+const defaultDraft: FormConfigFrame = generatedViewOnly;
+
+export default defaultDraft;

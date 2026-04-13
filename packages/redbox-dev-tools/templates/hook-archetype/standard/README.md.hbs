@@ -1,0 +1,39 @@
+# {{packageName}}
+
+A generated ReDBox hook archetype.
+
+This project keeps its dependency declarations intentionally small:
+
+- `@researchdatabox/redbox-core` is the ReDBox runtime compatibility contract
+- `@researchdatabox/redbox-dev-tools` provides the shared compile and unit-test toolchain
+- direct `dependencies` are reserved for hook-owned runtime libraries only
+- the generated package versions assume `redbox-core` and `redbox-dev-tools` are installed from npm, not from a sibling `redbox-portal` checkout
+
+## Development
+
+```bash
+npm install
+npm run compile
+npm run test:unit
+```
+
+Local installs intentionally allow lifecycle scripts so native modules and other postinstall hooks can run. Use `npm install --ignore-scripts` only in controlled CI or container contexts where that trade-off is deliberate.
+
+For the docker-backed portal harness:
+
+```bash
+npm run dev:run:build
+npm run dev:run
+```
+
+The development compose stack expects a locally trusted CA certificate at `support/development/certs/dev-ca.pem` and mounts it with `NODE_EXTRA_CA_CERTS`. Generate that certificate with your local CA tooling, for example `mkcert -CAROOT`, before starting the stack.
+
+## Structure
+
+- `src/index.ts`: hook entrypoint using `defineRedboxHook()`
+- `src/api/controllers`: hook controllers
+- `src/api/services`: hook services
+- `src/config`: configuration and reusable form definition helpers
+- `src/form-config`: form config exports
+- `test/unit`: fast hook-local TypeScript tests
+- `test/integration`: portal integration tests
