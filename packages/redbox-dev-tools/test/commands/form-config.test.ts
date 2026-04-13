@@ -1,14 +1,13 @@
-import { expect } from 'chai';
-import * as fs from 'fs';
-import * as path from 'path';
-import { Command } from 'commander';
-import {
-  registerClientFormConfigCommand,
-  registerMigrateDataClassificationCommand,
-  registerMigrateFigshareConfigCommand,
-  registerMigrateFormConfigCommand,
-  registerQuestionTreeDiagramCommand
-} from '../../src/commands/form-config';
+const { expect } = require('chai');
+const fs = require('fs');
+const path = require('path');
+const commander = require('commander');
+const loadTs = require('../support/load-ts.cjs');
+const formConfigCommands = loadTs(module, '../../src/commands/form-config');
+const packageRoot = fs.existsSync(path.resolve(__dirname, '..', '..', 'package.json'))
+  ? path.resolve(__dirname, '..', '..')
+  : path.resolve(__dirname, '..', '..', '..');
+const testRoot = path.join(packageRoot, 'test');
 
 describe('form-config commands', () => {
   let tempRoot: string;
@@ -16,30 +15,30 @@ describe('form-config commands', () => {
   let inputLegacyDataClassifyDefFormPath: string;
 
   beforeEach(() => {
-    tempRoot = path.resolve(__dirname, '..', '.tmp', 'migrate-form-config');
+    tempRoot = path.join(testRoot, '.tmp', 'migrate-form-config');
     fs.rmSync(tempRoot, { recursive: true, force: true });
     fs.mkdirSync(tempRoot, { recursive: true });
-    inputLegacyFormPath = path.resolve(__dirname, '..', 'resources', 'migrate-form-config', 'legacy-form.js');
-    inputLegacyDataClassifyDefFormPath = path.resolve(__dirname, '..', 'resources', 'migrate-form-config', 'legacy-data-classification-definition.js');
+    inputLegacyFormPath = path.join(testRoot, 'resources', 'migrate-form-config', 'legacy-form.js');
+    inputLegacyDataClassifyDefFormPath = path.join(testRoot, 'resources', 'migrate-form-config', 'legacy-data-classification-definition.js');
   });
 
   afterEach(() => {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
-  function buildProgram(): Command {
-    const program = new Command();
+  function buildProgram() {
+    const program = new commander.Command();
     program
       .name('redbox-dev-tools')
       .option('--root <path>')
       .option('--core-types-root <path>')
       .option('--angular-root <path>')
       .option('--dry-run', 'Print intended changes without writing files', false);
-    registerMigrateFormConfigCommand(program);
-    registerMigrateDataClassificationCommand(program);
-    registerMigrateFigshareConfigCommand(program);
-    registerClientFormConfigCommand(program);
-    registerQuestionTreeDiagramCommand(program);
+    formConfigCommands.registerMigrateFormConfigCommand(program);
+    formConfigCommands.registerMigrateDataClassificationCommand(program);
+    formConfigCommands.registerMigrateFigshareConfigCommand(program);
+    formConfigCommands.registerClientFormConfigCommand(program);
+    formConfigCommands.registerQuestionTreeDiagramCommand(program);
     return program;
   }
 

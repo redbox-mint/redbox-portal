@@ -1,8 +1,9 @@
-import { expect } from 'chai';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import { FormFieldGenerator } from '../../src/generators/form-field';
+const { expect } = require('chai');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const loadTs = require('../support/load-ts.cjs');
+const formFieldGeneratorModule = loadTs(module, '../../src/generators/form-field');
 
 describe('FormFieldGenerator', () => {
   let tempRoot: string;
@@ -17,7 +18,7 @@ describe('FormFieldGenerator', () => {
   });
 
   it('should generate a form configuration file', async () => {
-    const generator = new FormFieldGenerator({
+    const generator = new formFieldGeneratorModule.FormFieldGenerator({
       name: 'test-1.0-draft',
       type: 'test',
       root: tempRoot
@@ -27,7 +28,7 @@ describe('FormFieldGenerator', () => {
 
     const formPath = path.join(tempRoot, 'form-config', 'test-1.0-draft.js');
     expect(fs.existsSync(formPath)).to.be.true;
-    
+
     const content = fs.readFileSync(formPath, 'utf-8');
     expect(content).to.contain("name: 'test-1.0-draft'");
     expect(content).to.contain("type: 'test'");
@@ -37,7 +38,7 @@ describe('FormFieldGenerator', () => {
   });
 
   it('should respect dry-run option', async () => {
-    const generator = new FormFieldGenerator({
+    const generator = new formFieldGeneratorModule.FormFieldGenerator({
       name: 'dryrun-1.0-draft',
       type: 'test',
       dryRun: true,
