@@ -346,11 +346,16 @@ describe('VocabularyService', () => {
 
     const result = await service.upsertEntries('v1', [
       { id: 'root-0', label: 'Parent', value: 'parent', identifier: 'p', order: 0 },
-      { id: 'root-0-0', parent: 'root-0', label: 'Child', value: 'child', identifier: 'c', order: 1 }
+      { id: 'root-0-0', parent: 'root-0', label: 'Child', value: '', identifier: 'c', order: 1 },
+      // Skipped due to label being falsy
+      { id: 'root-0-1', parent: 'root-0', label: '', value: 'child1', identifier: 'c1', order: 2 },
+      // Skipped because value can not be null or undefined
+      { id: 'root-0-2', parent: 'root-0', label: 'Child2', value: null as any, identifier: 'c2', order: 3 },
     ]);
 
     expect(result.created).to.equal(2);
     expect(result.updated).to.equal(0);
+    expect(result.skipped).to.equal(2);
     const setPayloads = updateSetStub.getCalls().map((call) => call.args[0]);
     expect(setPayloads.some((payload) => payload?.parent === 'db-parent')).to.equal(true);
   });

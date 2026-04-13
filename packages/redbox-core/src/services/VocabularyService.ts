@@ -646,8 +646,8 @@ export namespace Services {
       const parentAssignments: Array<{ entryId: string; parent: string | null }> = [];
 
       for (const rawEntry of entries) {
-        const entry = this.normalizeEntry(rawEntry);
-        if (!entry.label || !entry.value) {
+        const entry = rawEntry;
+        if (!entry.label || entry.value === null || entry.value === undefined) {
           skipped++;
           continue;
         }
@@ -720,8 +720,8 @@ export namespace Services {
 
       const oldToNewIds: Record<string, string> = {};
       for (const entry of flatEntries) {
-        const normalized = this.normalizeEntry(entry);
-        if (!normalized.label || !normalized.value) {
+        const normalized = entry;
+        if (!normalized.label || normalized.value === null || normalized.value === undefined) {
           throw new Error('VocabularyEntry.label and VocabularyEntry.value are required');
         }
 
