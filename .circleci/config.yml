@@ -532,7 +532,7 @@ jobs:
             mkdir -p coverage/redbox-dev-tools
             mkdir -p support/junit
             TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/nyc --no-clean --report-dir ./coverage/redbox-dev-tools --reporter=lcov --exclude-after-remap=false \
-              node -r ts-node/register ./node_modules/mocha/bin/_mocha --config .mocharc.js --exit test/**/*.test.ts
+              npm test
       - run:
           name: Upload redbox-dev-tools CLI code coverage
           command: |
