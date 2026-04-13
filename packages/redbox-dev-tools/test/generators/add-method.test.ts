@@ -2,8 +2,9 @@ const { expect } = require('chai');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const addMethodGeneratorModule = require('../../src/generators/add-method');
-const pathsModule = require('../../src/utils/paths');
+const loadTs = require('../support/load-ts.cjs');
+const addMethodGeneratorModule = loadTs(module, '../../src/generators/add-method');
+const pathsModule = loadTs(module, '../../src/utils/paths');
 
 describe('AddMethodGenerator', () => {
   let tempRoot: string;

@@ -2,8 +2,9 @@ const { expect } = require('chai');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const serviceGeneratorModule = require('../../src/generators/service');
-const pathsModule = require('../../src/utils/paths');
+const loadTs = require('../support/load-ts.cjs');
+const serviceGeneratorModule = loadTs(module, '../../src/generators/service');
+const pathsModule = loadTs(module, '../../src/utils/paths');
 
 describe('ServiceGenerator', () => {
   let tempRoot: string;

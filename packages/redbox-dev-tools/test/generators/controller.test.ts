@@ -2,8 +2,9 @@ const { expect } = require('chai');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const controllerGeneratorModule = require('../../src/generators/controller');
-const pathsModule = require('../../src/utils/paths');
+const loadTs = require('../support/load-ts.cjs');
+const controllerGeneratorModule = loadTs(module, '../../src/generators/controller');
+const pathsModule = loadTs(module, '../../src/utils/paths');
 
 describe('ControllerGenerator', () => {
   let tempRoot: string;

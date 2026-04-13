@@ -1,5 +1,6 @@
 const { expect } = require('chai');
-const completionModule = require('../../src/completion');
+const loadTs = require('../support/load-ts.cjs');
+const completionModule = loadTs(module, '../../src/completion');
 
 describe('completion scripts', () => {
   it('should generate bash completion script', () => {

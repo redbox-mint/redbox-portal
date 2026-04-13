@@ -2,8 +2,9 @@ const { expect } = require('chai');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const formComponentGeneratorModule = require('../../src/generators/form-component');
-const pathsModule = require('../../src/utils/paths');
+const loadTs = require('../support/load-ts.cjs');
+const formComponentGeneratorModule = loadTs(module, '../../src/generators/form-component');
+const pathsModule = loadTs(module, '../../src/utils/paths');
 
 describe('FormComponentGenerator', () => {
   let tempRoot: string;

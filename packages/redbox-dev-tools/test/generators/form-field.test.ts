@@ -2,7 +2,8 @@ const { expect } = require('chai');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const formFieldGeneratorModule = require('../../src/generators/form-field');
+const loadTs = require('../support/load-ts.cjs');
+const formFieldGeneratorModule = loadTs(module, '../../src/generators/form-field');
 
 describe('FormFieldGenerator', () => {
   let tempRoot: string;

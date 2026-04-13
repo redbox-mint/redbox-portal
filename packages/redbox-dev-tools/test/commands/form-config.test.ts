@@ -2,7 +2,8 @@ const { expect } = require('chai');
 const fs = require('fs');
 const path = require('path');
 const commander = require('commander');
-const formConfigCommands = require('../../src/commands/form-config');
+const loadTs = require('../support/load-ts.cjs');
+const formConfigCommands = loadTs(module, '../../src/commands/form-config');
 const packageRoot = fs.existsSync(path.resolve(__dirname, '..', '..', 'package.json'))
   ? path.resolve(__dirname, '..', '..')
   : path.resolve(__dirname, '..', '..', '..');

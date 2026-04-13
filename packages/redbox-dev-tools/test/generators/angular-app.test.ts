@@ -2,8 +2,9 @@ const { expect } = require('chai');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const angularAppGeneratorModule = require('../../src/generators/angular-app');
-const pathsModule = require('../../src/utils/paths');
+const loadTs = require('../support/load-ts.cjs');
+const angularAppGeneratorModule = loadTs(module, '../../src/generators/angular-app');
+const pathsModule = loadTs(module, '../../src/utils/paths');
 
 describe('AngularAppGenerator', () => {
   let tempRoot: string;

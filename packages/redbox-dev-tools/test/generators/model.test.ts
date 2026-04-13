@@ -2,8 +2,9 @@ const { expect } = require('chai');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const modelGeneratorModule = require('../../src/generators/model');
-const pathsModule = require('../../src/utils/paths');
+const loadTs = require('../support/load-ts.cjs');
+const modelGeneratorModule = loadTs(module, '../../src/generators/model');
+const pathsModule = loadTs(module, '../../src/utils/paths');
 
 describe('ModelGenerator', () => {
   let tempRoot: string;
