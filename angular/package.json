@@ -22,7 +22,7 @@
     "@angular/router": "20.3.18",
     "@floating-ui/dom": "1.7.6",
     "@ngrx/effects": "20.1.0",
-    "@ngrx/store": "20.1.0",
+    "@ngrx/store": "21.1.0",
     "@ngrx/store-devtools": "20.1.0",
     "@uppy/core": "5.2.0",
     "@uppy/dashboard": "5.1.1",
