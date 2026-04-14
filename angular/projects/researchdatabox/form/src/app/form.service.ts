@@ -17,16 +17,22 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Inject, Injectable, WritableSignal } from '@angular/core';
-import { AbstractControl, FormControl } from '@angular/forms';
-import { isEmpty as _isEmpty, merge as _merge, set as _set, toNumber as _toNumber, isFinite as _isFinite } from 'lodash-es';
+import {Inject, Injectable, WritableSignal} from '@angular/core';
+import {AbstractControl, FormControl} from '@angular/forms';
 import {
-  getStaticComponentClassMap,
-  getStaticModelClassMap,
-  getStaticLayoutClassMap,
+  isEmpty as _isEmpty,
+  isFinite as _isFinite,
+  merge as _merge,
+  set as _set,
+  toNumber as _toNumber
+} from 'lodash-es';
+import {
   AllComponentClassMapType,
-  AllModelClassMapType,
   AllLayoutClassMapType,
+  AllModelClassMapType,
+  getStaticComponentClassMap,
+  getStaticLayoutClassMap,
+  getStaticModelClassMap,
 } from './static-comp-field.dictionary';
 import {
   ConfigService,
@@ -34,32 +40,40 @@ import {
   FormFieldCompMapEntry,
   FormFieldModel,
   HttpClientService,
+  JSONataClientQuerySourceProperty,
   LoggerService,
   TranslationService,
-  UtilityService,
-  JSONataClientQuerySourceProperty
+  UtilityService
 } from '@researchdatabox/portal-ng-common';
-import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
+import {PortalNgFormCustomService} from '@researchdatabox/portal-ng-form-custom';
 import {
-  FormFieldComponentStatus,
+  buildLineagePaths as buildLineagePathsHelper, DynamicScriptResponse,
+  FieldModelDefinitionKind,
   FormComponentDefinitionFrame,
+  FormComponentDefinitionKind,
   FormConfigFrame,
-  FormStatus, FormValidatorComponentErrors, FormValidatorConfig, FormValidatorDefinition,
+  FormFieldComponentStatus,
+  FormFieldValidationGroup,
+  FormModesConfig,
+  FormStatus,
+  FormValidationGroups,
+  FormValidatorComponentErrors,
+  FormValidatorConfig,
+  FormValidatorDefinition,
   FormValidatorSummaryErrors,
-  ValidatorsSupport,
-  LineagePaths,
+  getObjectWithJsonPointer,
+  JSONataQueryRuntimeContext,
   JSONataQuerySource,
   JSONataQuerySourceProperty,
-  buildLineagePaths as buildLineagePathsHelper,
+  KindNameDefaultsMap,
+  KindNameDefaultsMapType,
+  LineagePaths,
   queryJSONata,
-  getObjectWithJsonPointer,
-  FormModesConfig, KindNameDefaultsMap, FieldModelDefinitionKind,
-  FormComponentDefinitionKind, KindNameDefaultsMapType, JSONataQueryRuntimeContext, FormValidationGroups,
-  FormFieldValidationGroup,
+  ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
-import { HttpClient } from "@angular/common/http";
-import { APP_BASE_HREF } from "@angular/common";
-import { firstValueFrom } from "rxjs";
+import {HttpClient} from "@angular/common/http";
+import {APP_BASE_HREF} from "@angular/common";
+import {firstValueFrom} from "rxjs";
 import {FormValidationGroupsChangeInitial} from "./form-state";
 
 
@@ -135,7 +149,7 @@ export class FormService extends HttpClientService {
     return this;
   }
 
-  /** *
+  /**
    * Download and consequently loads the form config.
    *
    * Fields can use:
@@ -148,7 +162,9 @@ export class FormService extends HttpClientService {
   public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths: string[]): Promise<FormComponentsMap> {
     // Get the form config from the server.
     // Includes the integrated model data (in componentDefinition.model.config.value) for rendering the form.
-    const formConfig = await this.getFormConfig(oid, recordType, editMode, formName);
+    const formConfigResp = await this.getFormConfig(oid, recordType, editMode, formName);
+    const formConfig = formConfigResp?.data;
+    const formConfigMeta = formConfigResp?.meta ?? {};
     if (!formConfig) {
       throw new Error("Form config from server was empty.");
     }
@@ -162,7 +178,7 @@ export class FormService extends HttpClientService {
     });
 
     // Resolve the field and component pairs
-    return this.createFormComponentsMap(formConfig, parentLineagePaths);
+    return this.createFormComponentsMap(formConfig, parentLineagePaths, formConfigMeta);
   }
 
   /**
@@ -170,9 +186,11 @@ export class FormService extends HttpClientService {
    *
    * @param formConfig The form configuration.
    * @param parentLineagePaths The linage paths of the parent item.
+   * @param meta The metadata from the API request to get the form config.
    * @returns The config and the components built from the config.
    */
-  public async createFormComponentsMap(formConfig: FormConfigFrame, parentLineagePaths: LineagePaths): Promise<FormComponentsMap> {
+  public async createFormComponentsMap(
+    formConfig: FormConfigFrame, parentLineagePaths: LineagePaths, meta?: Record<string, unknown>): Promise<FormComponentsMap> {
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
       this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(redboxClientScript.formValidatorDefinitions);
@@ -188,11 +206,7 @@ export class FormService extends HttpClientService {
 
     // Instantiate the field classes, note these are optional, i.e. components may not have a form bound value
     this.createFormFieldModelInstances(components, formConfig?.enabledValidationGroups, formConfig?.validationGroups);
-    return new FormComponentsMap(components, formConfig);
-  }
-
-  public appendFormFieldType(additionalTypes: AllComponentClassMapType) {
-    _merge(this.compClassMap, additionalTypes);
+    return new FormComponentsMap(components, formConfig, meta);
   }
 
   /**
@@ -632,9 +646,11 @@ export class FormService extends HttpClientService {
       url.searchParams.set('formName', formName?.toString());
     }
 
-    const result = await firstValueFrom(this.http.get<{ data: FormConfigFrame }>(url.href, this.requestOptions));
+    type rawRespType = { data: FormConfigFrame, meta: Record<string, unknown> };
+    const rawResp = this.http.get<rawRespType>(url.href, this.requestOptions);
+    const result = await firstValueFrom(rawResp);
     this.loggerService.info(`Get form fields from url: ${url}`, result);
-    return result?.data;
+    return result;
   }
 
   /**
@@ -698,16 +714,16 @@ export class FormService extends HttpClientService {
    * @param oid The record id.
    * @param formMode The form mode.
    */
-  public async getDynamicImportFormCompiledItems(recordType: string, oid?: string, formMode?: FormModesConfig) {
+  public async getDynamicImportFormCompiledItems(
+    recordType: string, oid?: string, formMode?: FormModesConfig
+  ): Promise<DynamicScriptResponse> {
     const normalizedRecordType = String(recordType ?? '').trim() || (oid ? 'auto' : '');
     const path = ['dynamicAsset', 'formCompiledItems', normalizedRecordType];
     if (oid) {
       path.push(oid?.toString());
     }
     const params = formMode === "edit" ? { edit: "true" } : undefined;
-    const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params);
-    // TODO add a type for the result -  {evaluate: function(key, context, extra)}
-    return result;
+    return await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params);
   }
 
   /**
@@ -812,9 +828,6 @@ export class FormService extends HttpClientService {
 
   /**
    * Reshapes a FormFieldCompMapEntry array into a JSONataQuerySource. Needed to prepare for JSONata queries.
-   *
-   * @param origObject
-   * @returns
    */
   public getJSONataQuerySource(origObject: FormFieldCompMapEntry[], runtimeContext?: JSONataQueryRuntimeContext): JSONataQuerySource {
     let queryDoc: JSONataQuerySourceProperty[] = [];
@@ -956,10 +969,15 @@ export class FormComponentsMap {
    * Mapping of name to angular FormControl. Used to create angular form.
    */
   withFormControl?: { [key: string]: FormControl };
+  /**
+   * Metadata returned with the form config API call.
+   */
+  formConfigMeta?: Record<string, unknown>;
 
-  constructor(components: FormFieldCompMapEntry[], formConfig: FormConfigFrame) {
+  constructor(components: FormFieldCompMapEntry[], formConfig: FormConfigFrame, meta?: Record<string, unknown>) {
     this.components = components;
     this.formConfig = formConfig;
+    this.formConfigMeta = meta;
     this.completeGroupMap = undefined;
     this.withFormControl = undefined;
   }

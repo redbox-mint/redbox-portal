@@ -1,5 +1,6 @@
 import jsonata from 'jsonata';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
+import {DynamicScriptResponse} from "@researchdatabox/sails-ng-common";
 
 /**
  * Minimal shape needed from the dynamically imported compiled-items module.
@@ -7,9 +8,7 @@ import { LoggerService } from '@researchdatabox/portal-ng-common';
  * Behaviours reuse the same compiled asset mechanism as expressions, but with a
  * different key space rooted at `behaviours[]` instead of component lineage.
  */
-export interface BehaviourCompiledItemsModule {
-  evaluate: (key: (string | number)[], context: unknown, extra?: unknown) => unknown;
-}
+export interface BehaviourCompiledItemsModule extends DynamicScriptResponse {}
 
 /**
  * Evaluates compiled JSONata entries for form behaviours.

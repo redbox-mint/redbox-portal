@@ -11,7 +11,7 @@ import {
   ExpressionsConditionKind,
   ExpressionsConditionKindType,
   FormExpressionsTargetModelValue, FormExpressionsTargetLayoutPrefix, FormExpressionsTargetComponentPrefix,
-  FormExpressionsTargetValidationGroups
+  FormExpressionsTargetValidationGroups, DynamicScriptResponse,
 } from '@researchdatabox/sails-ng-common';
 import jsonata from 'jsonata';
 import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
@@ -49,7 +49,7 @@ export interface FormComponentEventJSONataQueryMatchOptions extends FormComponen
 export abstract class FormComponentEventBaseConsumer extends FormComponentEventBaseProducerConsumer {
 
 	/** Cache for the compiled items module */
-	protected compiledItemsCache?: { evaluate: (key: (string | number)[], context: unknown, extra?: unknown) => unknown };
+	protected compiledItemsCache?: DynamicScriptResponse;
 
 	/** The event type this consumer listens to - must be set by subclasses */
 	protected abstract readonly consumedEventType: FormComponentEventTypeValue;
@@ -86,7 +86,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 	/**
 	 * Get the compiled items module, caching the result for subsequent calls.
 	 */
-	protected async getCompiledItems(): Promise<{ evaluate: (key: (string | number)[], context: unknown, extra?: unknown) => unknown } | undefined> {
+	protected async getCompiledItems(): Promise<DynamicScriptResponse | undefined> {
 		if (this.compiledItemsCache) {
 			return this.compiledItemsCache;
 		}

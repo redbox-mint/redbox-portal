@@ -34,7 +34,6 @@ export class FormConfig implements FormConfigOutline {
   public behaviours?: FormBehaviourConfigFrame[];
 
   public attachmentFields?: string[];
-  public contextVariables?: Record<string, unknown>;
 
   accept(visitor: FormConfigVisitorOutline): void {
     visitor.visitFormConfig(this);

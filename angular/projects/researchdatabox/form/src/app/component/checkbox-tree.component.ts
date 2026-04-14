@@ -7,7 +7,7 @@ import {
   CheckboxTreeModelName,
   CheckboxTreeModelValueType,
   CheckboxTreeNode,
-  CheckboxTreeSelectedItem
+  CheckboxTreeSelectedItem, DynamicScriptResponse
 } from "@researchdatabox/sails-ng-common";
 import { FormComponent } from "../form.component";
 import { VocabTreeService, VocabTreeApiNode } from "../service/vocab-tree.service";
@@ -234,7 +234,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   private maxDepth?: number;
   private labelTemplate = "";
   private labelTemplatePath: (string | number)[] = [];
-  private compiledItems?: { evaluate: (key: (string | number)[], context: unknown, extra?: unknown) => unknown };
+  private compiledItems?: DynamicScriptResponse;
 
   @Input() public override model?: CheckboxTreeModel;
   public readonly selectedItem = signal<CheckboxTreeSelectedItem | null>(null);
