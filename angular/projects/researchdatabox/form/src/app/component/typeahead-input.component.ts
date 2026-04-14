@@ -8,6 +8,7 @@ import {
   HandlebarsTemplateService,
 } from '@researchdatabox/portal-ng-common';
 import {
+  DynamicScriptResponse,
   TypeaheadInputComponentName,
   TypeaheadInputFieldComponentConfig,
   TypeaheadInputModelName,
@@ -119,7 +120,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private lastAutoDisplaySyncSignature = '';
   private labelTemplate = '';
   private labelTemplatePath: (string | number)[] = [];
-  private compiledItems?: { evaluate: (key: (string | number)[], context: unknown, extra?: unknown) => unknown };
+  private compiledItems?: DynamicScriptResponse;
   private readonly destroyRef = inject(DestroyRef);
   private readonly handlebarsTemplateService = inject(HandlebarsTemplateService);
   private readonly typeaheadDataService = inject(TypeaheadDataService);

@@ -1,12 +1,13 @@
 import { Component, HostListener, Injector, Input, inject } from "@angular/core";
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
 import {
-    PDFListComponentName,
-    PDFListFieldComponentConfig,
-    PDFListFieldComponentConfigOutline,
-    PDFListModelName,
-    PDFListModelValueType,
-    RecordAttachment
+  DynamicScriptResponse,
+  PDFListComponentName,
+  PDFListFieldComponentConfig,
+  PDFListFieldComponentConfigOutline,
+  PDFListModelName,
+  PDFListModelValueType,
+  RecordAttachment
 } from "@researchdatabox/sails-ng-common";
 import { FormComponent } from "../form.component";
 import { FormService } from "../form.service";
@@ -51,7 +52,7 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
     private readonly injector = inject(Injector);
     private readonly formService = inject(FormService);
     private readonly handlebarsTemplateService = inject(HandlebarsTemplateService);
-    private compiledItems?: { evaluate: (key: Array<string | number>, context: Record<string, unknown>, extra?: Record<string, unknown>) => unknown };
+    private compiledItems?: DynamicScriptResponse;
     private fileNameTemplatePath: Array<string | number> = [];
 
     protected get getFormComponent(): FormComponent {

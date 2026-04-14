@@ -425,7 +425,9 @@ export class UtilityService {
    * @param urlPath The path parts.
    * @param params The query string parts.
    */
-  public async getDynamicImport(brandingAndPortalUrl: string, urlPath: string[], params?: { [key: string]: any }) {
+  public async getDynamicImport(
+    brandingAndPortalUrl: string, urlPath: string[], params?: { [key: string]: any }
+  ): Promise<any> {
     if (!brandingAndPortalUrl) {
       throw new Error("Must provide brandingAndPortalUrl");
     }

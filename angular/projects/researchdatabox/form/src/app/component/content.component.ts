@@ -90,7 +90,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
             workflow: this.formComponent.formConfigMeta['workflow'] ?? {},
           };
           const extra = {libraries: this.handlebarsTemplateService.getLibraries()};
-          this.content = compiledItems.evaluate(templateLineagePath, context, extra);
+          this.content = compiledItems.evaluate(templateLineagePath, context, extra)?.toString() ?? "";
         };
         const initialForm = this.getFormComponent.form;
         renderTemplate(initialForm?.getRawValue?.() ?? initialForm?.value ?? {});
