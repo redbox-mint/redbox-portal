@@ -1,5 +1,13 @@
 <div class="card card-body mb-3">
   <div class="mb-3">
+    <div class="text-uppercase text-muted small">DOI field</div>
+    <div class="fw-semibold">{{ props.label || field.key }}</div>
+    @if (field.key && props.label && props.label !== field.key) {
+    <div class="text-muted small">{{ field.key }}</div>
+    }
+  </div>
+
+  <div class="mb-3">
     <label class="form-label">Binding Type</label>
     <select class="form-select" [value]="kind" (change)="updateField('kind', $any($event.target).value)">
       @for (bindingKind of bindingKinds; track bindingKind) {

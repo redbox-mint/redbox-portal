@@ -1,10 +1,18 @@
 export enum IntegrationAuditName {
   figshare = 'figshare',
+  doi = 'doi',
 }
 
 export enum IntegrationAuditAction {
   syncRecordWithFigshare = 'syncRecordWithFigshare',
   publishAfterUploadFilesJob = 'publishAfterUploadFilesJob',
+  publishDoi = 'publishDoi',
+  updateDoi = 'updateDoi',
+  deleteDoi = 'deleteDoi',
+  changeDoiState = 'changeDoiState',
+  publishDoiTrigger = 'publishDoiTrigger',
+  publishDoiTriggerSync = 'publishDoiTriggerSync',
+  updateDoiTriggerSync = 'updateDoiTriggerSync',
 }
 
 export enum IntegrationAuditStatus {

@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { trace } from '@opentelemetry/api';
 import { Services } from '../../src/services/IntegrationAuditService';
-import { IntegrationAuditAction } from '../../src/model/storage/IntegrationAuditModel';
+import { IntegrationAuditAction, IntegrationAuditName } from '../../src/model/storage/IntegrationAuditModel';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 
 describe('IntegrationAuditService', function () {
@@ -67,6 +67,19 @@ describe('IntegrationAuditService', function () {
     expect(mockQueueService.now.calledOnce).to.be.true;
     expect(mockQueueService.now.firstCall.args[0]).to.equal('IntegrationAuditService-StoreIntegrationAudit');
     expect(mockQueueService.now.firstCall.args[1].requestSummary.authorization).to.equal('REDACTED');
+  });
+
+  it('records DOI integration metadata when requested', function () {
+    sinon.stub(trace, 'getActiveSpan').returns(undefined);
+
+    const ctx = service.startAudit('oid-1', IntegrationAuditAction.publishDoi, {
+      integrationName: IntegrationAuditName.doi,
+      requestSummary: { profile: 'dataPublication' },
+    });
+
+    expect(ctx.integrationName).to.equal(IntegrationAuditName.doi);
+    expect(mockQueueService.now.firstCall.args[1].integrationName).to.equal(IntegrationAuditName.doi);
+    expect(mockQueueService.now.firstCall.args[1].integrationAction).to.equal(IntegrationAuditAction.publishDoi);
   });
 
   it('generates fallback trace ids when there is no active span', function () {

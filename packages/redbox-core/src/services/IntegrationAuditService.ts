@@ -67,6 +67,7 @@ export type IntegrationAuditTraceLogResult = {
 
 type IntegrationAuditOptions = {
   brandId?: string;
+  integrationName?: IntegrationAuditName;
   triggeredBy?: string;
   requestSummary?: Record<string, unknown>;
   message?: string;
@@ -236,7 +237,7 @@ export namespace Services {
       const ctx: IntegrationAuditContext = {
         redboxOid: oid,
         brandId: opts.brandId,
-        integrationName: IntegrationAuditName.figshare,
+        integrationName: opts.integrationName ?? IntegrationAuditName.figshare,
         integrationAction: action,
         triggeredBy: opts.triggeredBy,
         traceId: traceContext.traceId,

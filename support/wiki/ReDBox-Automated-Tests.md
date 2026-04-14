@@ -39,6 +39,7 @@ These tests run the Sails.js backend logic in a Docker container.
     - Spins up a `redboxportal` container defined in `support/integration-testing/docker-compose.mocha.yml`.
     - Always includes the bootstrap test (`test/bootstrap.test.ts` when present, otherwise `test/bootstrap.test.js`).
     - Runs Mocha tests directly from `test/integration` using `ts-node` (no separate test compilation step).
+    - DOI live tests use `datacite_username`, `datacite_password`, `datacite_doiPrefix`, and optional `datacite_baseUrl` when you need to point at a different Datacite host.
     - **Fast Mode**: Use `npm run test:mocha:mount` to mount your local source into the container for dev and avoid image rebuilds.
     - **CI Mode**: `npm run test:mocha` runs against the locally built image (the CircleCI path).
     - **Custom Paths**: Provide additional test globs via CLI args or the `RBPORTAL_MOCHA_TEST_PATHS` env var (space-delimited). Both are combined.
