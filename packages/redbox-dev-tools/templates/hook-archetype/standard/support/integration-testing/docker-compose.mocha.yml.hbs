@@ -1,0 +1,84 @@
+networks:
+  main:
+
+x-rbportal-env: &rbportal-env
+  - NODE_ENV=integrationtest
+  - NODE_PATH=/opt/redbox-portal/node_modules:/opt/redbox-portal/node_modules/@researchdatabox/redbox-core/node_modules
+  - PORT=1500
+  - sails_redbox__mochaTesting=true
+  - sails_security__csrf=false
+  - LOAD_DEFAULT_FORMS=true
+  - CI=${CI:-false}
+  - RBPORTAL_COVERAGE_DIR=/tmp/coverage/mocha
+
+x-rbportal-depends: &rbportal-depends
+  mongodb:
+    condition: service_healthy
+  solr:
+    condition: service_healthy
+
+services:
+  redboxportal:
+    build:
+      context: ../../..
+      dockerfile: {{packageName}}/Dockerfile
+      target: {{packageName}}
+    ports:
+      - "1500:1500"
+    volumes:
+      - "../../:/opt/redbox-portal/node_modules/{{packageName}}:delegated"
+      - "../../../redbox-portal/test:/opt/redbox-portal/test"
+      - "../../../redbox-portal/support/integration-testing:/opt/redbox-portal/support/integration-testing"
+      - "../../../redbox-portal/tsconfig.json:/opt/redbox-portal/tsconfig.json"
+      - "../../test/integration:/opt/redbox-portal/test/integration/{{integrationDirName}}"
+      - "../../../redbox-portal/packages/redbox-core:/opt/redbox-portal/packages/redbox-core"
+      - "../../../redbox-portal/packages/redbox-dev-tools:/opt/redbox-portal/packages/redbox-dev-tools"
+      - "../../../redbox-portal/packages/sails-ng-common:/opt/redbox-portal/packages/sails-ng-common"
+    depends_on: *rbportal-depends
+    expose:
+      - "1500"
+    environment: *rbportal-env
+    networks:
+      main:
+        aliases:
+          - redboxportal
+    init: true
+    entrypoint:
+      - bash
+      - /opt/redbox-portal/node_modules/{{packageName}}/support/integration-testing/run-mocha-hook.sh
+
+  mongodb:
+    image: mongo:7
+    networks:
+      main:
+        aliases:
+          - mongodb
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ['CMD-SHELL', "echo 'db.runCommand(\"ping\").ok' | mongosh"]
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+
+  solr:
+    image: solr:8.11.1
+    expose:
+      - "8983"
+    ports:
+      - "8983:8983"
+    healthcheck:
+      test: ['CMD-SHELL', 'curl http://localhost:8983']
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+    networks:
+      main:
+        aliases:
+          - solr
+    entrypoint:
+      - docker-entrypoint.sh
+      - solr-precreate
+      - redbox

@@ -1,0 +1,28 @@
+ARG REDBOX_BASE_IMAGE=qcifengineering/redbox-portal:feature-ng19-forms-pdfgen
+
+FROM ${REDBOX_BASE_IMAGE} AS builder
+
+USER root
+
+COPY {{packageName}} /opt/{{packageName}}
+COPY redbox-portal/packages/redbox-core /opt/redbox-portal/packages/redbox-core
+COPY redbox-portal/packages/sails-ng-common /opt/redbox-portal/packages/sails-ng-common
+COPY redbox-portal/packages/redbox-dev-tools /opt/redbox-portal/packages/redbox-dev-tools
+
+RUN --mount=type=cache,target=/root/.npm \
+  cd /opt/{{packageName}} \
+  && npm install --include=dev --ignore-scripts --legacy-peer-deps \
+  && npm run compile \
+  && cd /opt/redbox-portal \
+  && npm install --legacy-peer-deps --ignore-scripts /opt/{{packageName}} \
+  && mkdir -p /opt/redbox-portal/views /opt/redbox-portal/assets /opt/redbox-portal/language-defaults \
+  && if [ -d /opt/{{packageName}}/views ]; then cp -a /opt/{{packageName}}/views/. /opt/redbox-portal/views/; fi \
+  && if [ -d /opt/{{packageName}}/assets ]; then cp -a /opt/{{packageName}}/assets/. /opt/redbox-portal/assets/; fi \
+  && if [ -d /opt/{{packageName}}/language-defaults ]; then cp -a /opt/{{packageName}}/language-defaults/. /opt/redbox-portal/language-defaults/; fi
+
+FROM ${REDBOX_BASE_IMAGE} AS {{packageName}}
+USER root
+
+COPY --from=builder --chown=node:node --chmod='u=rwx,g=rx,o=rx' /opt/redbox-portal /opt/redbox-portal
+
+USER node

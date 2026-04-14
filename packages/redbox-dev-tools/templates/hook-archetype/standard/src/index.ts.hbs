@@ -1,0 +1,55 @@
+import '@researchdatabox/redbox-core';
+import { defineRedboxHook, type SailsConfig } from '@researchdatabox/redbox-core';
+import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import type { HookRedboxControllers } from './api/controllers';
+import type { HookRedboxServices } from './api/services';
+import { brandingConfigurationDefaults } from './config/brandingConfigurationDefaults';
+import { reusableFormDefinitions } from './config/reusableFormDefinitions';
+
+export {};
+
+const hook = defineRedboxHook({
+  initialize(_sails, done) {
+    done();
+  },
+  routes() {
+    return {
+      before: {},
+      after: {
+        'GET /hooks/{{hookShortName}}/status': 'ExampleController.index'
+      }
+    };
+  },
+  configure(sails) {
+    const brandingDefaults = (sails.config.brandingConfigurationDefaults || {}) as SailsConfig['brandingConfigurationDefaults'];
+    brandingDefaults.menu = brandingConfigurationDefaults.menu as SailsConfig['brandingConfigurationDefaults']['menu'];
+    brandingDefaults.homePanels = brandingConfigurationDefaults.homePanels as SailsConfig['brandingConfigurationDefaults']['homePanels'];
+    sails.config.brandingConfigurationDefaults = brandingDefaults;
+    sails.config.reusableFormDefinitions = reusableFormDefinitions;
+  },
+  defaults: {
+    __configKey__: {
+      _hookTimeout: 120000
+    },
+    policies: {}
+  },
+  registerRedboxConfig(): Partial<SailsConfig> {
+    return {};
+  },
+  registerRedboxControllers(): HookRedboxControllers {
+    return require('./api/controllers').ControllerExports as HookRedboxControllers;
+  },
+  registerRedboxServices(): HookRedboxServices {
+    return require('./api/services').ServiceExports as HookRedboxServices;
+  },
+  registerRedboxFormConfigs(): Record<string, FormConfigFrame> {
+    return require('./form-config').FormConfigExports as Record<string, FormConfigFrame>;
+  },
+  additionalExports: {
+    ControllerExports: require('./api/controllers').ControllerExports,
+    ServiceExports: require('./api/services').ServiceExports,
+    FormConfigExports: require('./form-config').FormConfigExports
+  }
+});
+
+module.exports = hook;

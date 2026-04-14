@@ -1,23 +1,30 @@
 {
   "name": "@researchdatabox/redbox-dev-tools",
   "version": "4.5.1",
-  "description": "ReDBox customisation hook development kit - provides TypeScript tooling and shared configuration",
+  "description": "ReDBox customisation dev tools - shared configuration, generators, and migration tooling",
+  "type": "commonjs",
   "main": "index.js",
   "bin": {
     "redbox-dev-tools": "./bin/cli.js",
-    "redbox-tsc": "./bin/tsc.js"
+    "redbox-hook-mocha": "./bin/run-hook-mocha.js",
+    "redbox-hook-tsc": "./bin/run-hook-tsc.js"
   },
   "files": [
     "bin/",
     "dist/",
     "config/",
+    "templates/",
     "skills/",
     "index.js",
+    "runtime-resolver.js",
+    "runtime-resolver.d.ts",
+    "testing.js",
+    "testing.d.ts",
     "README.md"
   ],
   "scripts": {
     "build": "tsc",
-    "test": "./node_modules/.bin/mocha --config .mocharc.js --exit test/**/*.test.ts"
+    "test": "TS_NODE_PROJECT=test/tsconfig.json node -r ts-node/register ./node_modules/mocha/bin/_mocha --config .mocharc.js --exit test/**/*.test.ts"
   },
   "repository": {
     "type": "git",
@@ -39,21 +46,26 @@
   "dependencies": {
     "@researchdatabox/redbox-core": "file:../redbox-core",
     "@researchdatabox/sails-ng-common": "file:../sails-ng-common",
-    "@types/lodash": "4.17.24",
-    "@types/node": "24.12.0",
-    "commander": "14.0.3",
-    "ts-morph": "27.0.2",
-    "zod": "4.3.6"
+    "@tsconfig/node24": "24.0.1",
+    "@types/chai": "4.3.11",
+    "@types/lodash": "^4.17.20",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^24.10.0",
+    "axios": "^1.11.0",
+    "chai": "^4.3.10",
+    "commander": "^14.0.0",
+    "handlebars": "^4.7.8",
+    "lodash": "^4.17.21",
+    "mocha": "^10.2.0",
+    "rxjs": "^7.8.1",
+    "ts-node": "^10.9.2",
+    "ts-morph": "^21.0.1",
+    "typescript": "^5.8.3",
+    "zod": "^3.25.28"
   },
   "devDependencies": {
-    "@types/chai": "5.2.3",
-    "@types/mocha": "10.0.10",
-    "@types/sinon": "21.0.0",
-    "chai": "6.2.2",
-    "mocha": "11.7.5",
-    "sinon": "21.0.3",
-    "ts-node": "10.9.2",
-    "typescript": "6.0.2"
+    "@types/sinon": "^17.0.3",
+    "sinon": "^17.0.1"
   },
   "peerDependenciesMeta": {
     "@researchdatabox/redbox-core": {
