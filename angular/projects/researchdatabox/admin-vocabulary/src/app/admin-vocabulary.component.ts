@@ -37,8 +37,12 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
   syncStatusVariant: '' | 'info' | 'success' | 'warning' | 'danger' = '';
   isSyncInProgress = false;
   isSyncConfirmationOpen = false;
+  isDeleteVocabularyModalOpen = false;
   isEditModalOpen = false;
   isImportModalOpen = false;
+  pendingDeleteVocabularyId: string | null = null;
+  pendingDeleteVocabularyName = '';
+  private deleteModalTrigger: HTMLElement | null = null;
   private editModalTrigger: HTMLElement | null = null;
   private syncStatusTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -188,6 +192,31 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
     this.isImportModalOpen = false;
   }
 
+  requestDeleteVocabulary(id: string): void {
+    if (!id) {
+      return;
+    }
+    this.rememberDeleteModalTrigger();
+    this.pendingDeleteVocabularyId = id;
+    this.pendingDeleteVocabularyName = this.resolveVocabularyName(id);
+    this.isDeleteVocabularyModalOpen = true;
+  }
+
+  cancelDeleteVocabulary(): void {
+    this.closeDeleteVocabularyModal();
+  }
+
+  async confirmDeleteVocabulary(): Promise<void> {
+    if (!this.pendingDeleteVocabularyId) {
+      this.closeDeleteVocabularyModal();
+      return;
+    }
+
+    const id = this.pendingDeleteVocabularyId;
+    this.closeDeleteVocabularyModal(false);
+    await this.deleteVocabulary(id);
+  }
+
   async save(): Promise<void> {
     if (!this.canSave) {
       this.error = this.t('admin-vocabulary-error-name-required', 'Vocabulary name is required');
@@ -213,7 +242,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
   }
 
   async deleteVocabulary(id: string): Promise<void> {
-    if (typeof globalThis.confirm === 'function' && !globalThis.confirm(this.t('admin-vocabulary-confirm-delete', 'Delete this vocabulary? This action cannot be undone.'))) {
+    if (!id) {
       return;
     }
 
@@ -432,6 +461,11 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
     this.editModalTrigger = activeElement instanceof HTMLElement ? activeElement : null;
   }
 
+  private rememberDeleteModalTrigger(): void {
+    const activeElement = document.activeElement;
+    this.deleteModalTrigger = activeElement instanceof HTMLElement ? activeElement : null;
+  }
+
   private restoreEditModalTrigger(): void {
     if (!this.editModalTrigger) {
       return;
@@ -439,6 +473,40 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
     const target = this.editModalTrigger;
     this.editModalTrigger = null;
     setTimeout(() => target.focus(), 0);
+  }
+
+  private restoreDeleteModalTrigger(): void {
+    if (!this.deleteModalTrigger) {
+      return;
+    }
+    const target = this.deleteModalTrigger;
+    this.deleteModalTrigger = null;
+    if (!document.contains(target)) {
+      return;
+    }
+    setTimeout(() => target.focus(), 0);
+  }
+
+  private closeDeleteVocabularyModal(restoreFocus: boolean = true): void {
+    this.isDeleteVocabularyModalOpen = false;
+    this.pendingDeleteVocabularyId = null;
+    this.pendingDeleteVocabularyName = '';
+    if (restoreFocus) {
+      this.restoreDeleteModalTrigger();
+      return;
+    }
+    this.deleteModalTrigger = null;
+  }
+
+  private resolveVocabularyName(id: string): string {
+    const matchingVocabulary = this.vocabularies.find((vocabulary: VocabularySummary) => vocabulary.id === id);
+    if (matchingVocabulary?.name) {
+      return matchingVocabulary.name;
+    }
+    if (this.selectedVocabulary?.id === id && this.selectedVocabulary.name) {
+      return this.selectedVocabulary.name;
+    }
+    return '';
   }
 
   private clearSyncStatus(): void {

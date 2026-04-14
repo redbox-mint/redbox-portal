@@ -17,8 +17,10 @@ export class VocabDetailComponent implements OnChanges {
   private tempIdCounter = 0;
   private parentEditorEntryId: string | null = null;
   private collapsedPreviewNodeIds = new Set<string>();
+  private pendingRemoveEntryIndex: number | null = null;
   isTreePreviewVisible = false;
   previewTree: PreviewTreeNode[] = [];
+  isRemoveEntryModalOpen = false;
 
   @Input() draft: VocabularyDetail = {
     name: '',
@@ -32,11 +34,20 @@ export class VocabDetailComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if ('draft' in changes) {
       this.ensureEntryIds();
+      this.syncPendingRemoveEntry();
     }
   }
 
   get hasEntries(): boolean {
     return !!this.draft.entries && this.draft.entries.length > 0;
+  }
+
+  get pendingRemoveEntryDisplay(): string {
+    if (this.pendingRemoveEntryIndex === null || !this.draft.entries) {
+      return '';
+    }
+    const entry = this.draft.entries[this.pendingRemoveEntryIndex];
+    return entry ? this.optionLabel(entry) : '';
   }
 
   addEntry(): void {
@@ -53,8 +64,32 @@ export class VocabDetailComponent implements OnChanges {
     this.refreshTreePreviewIfVisible();
   }
 
+  requestRemoveEntry(index: number): void {
+    if (!this.draft.entries || index < 0 || index >= this.draft.entries.length) {
+      return;
+    }
+    this.pendingRemoveEntryIndex = index;
+    this.isRemoveEntryModalOpen = true;
+  }
+
+  cancelRemoveEntry(): void {
+    this.pendingRemoveEntryIndex = null;
+    this.isRemoveEntryModalOpen = false;
+  }
+
+  confirmRemoveEntry(): void {
+    if (this.pendingRemoveEntryIndex === null) {
+      this.cancelRemoveEntry();
+      return;
+    }
+
+    const index = this.pendingRemoveEntryIndex;
+    this.cancelRemoveEntry();
+    this.removeEntry(index);
+  }
+
   removeEntry(index: number): void {
-    if (!this.draft.entries) {
+    if (!this.draft.entries || index < 0 || index >= this.draft.entries.length) {
       return;
     }
     const removedEntryId = this.entryId(this.draft.entries[index]);
@@ -214,6 +249,15 @@ export class VocabDetailComponent implements OnChanges {
         entry.historical = false;
       }
     });
+  }
+
+  private syncPendingRemoveEntry(): void {
+    if (this.pendingRemoveEntryIndex === null) {
+      return;
+    }
+    if (!this.draft.entries || this.pendingRemoveEntryIndex < 0 || this.pendingRemoveEntryIndex >= this.draft.entries.length) {
+      this.cancelRemoveEntry();
+    }
   }
 
   private refreshTreePreviewIfVisible(): void {

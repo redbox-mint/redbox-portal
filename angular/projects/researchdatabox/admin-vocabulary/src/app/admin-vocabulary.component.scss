@@ -11,6 +11,16 @@
   z-index: 1040;
 }
 
+.delete-vocabulary-modal {
+  position: fixed;
+  z-index: 1060;
+}
+
+.delete-vocabulary-backdrop {
+  position: fixed;
+  z-index: 1055;
+}
+
 .badge-light {
   border: 1px solid #d4d9de;
 }

@@ -76,6 +76,34 @@ describe('VocabDetailComponent', () => {
     expect(component.draft.entries![0].historical).toBeFalse();
   });
 
+  it('opens and cancels the entry removal modal without removing the entry', () => {
+    component.draft.entries = [
+      { id: 'a', label: 'A', value: 'A' }
+    ];
+
+    component.requestRemoveEntry(0);
+
+    expect(component.isRemoveEntryModalOpen).toBeTrue();
+    expect(component.pendingRemoveEntryDisplay).toBe('A - A');
+
+    component.cancelRemoveEntry();
+
+    expect(component.isRemoveEntryModalOpen).toBeFalse();
+    expect(component.draft.entries!.length).toBe(1);
+  });
+
+  it('removes the pending entry when removal is confirmed', () => {
+    component.draft.entries = [
+      { id: 'a', label: 'A', value: 'A' }
+    ];
+
+    component.requestRemoveEntry(0);
+    component.confirmRemoveEntry();
+
+    expect(component.isRemoveEntryModalOpen).toBeFalse();
+    expect(component.draft.entries!.length).toBe(0);
+  });
+
   it('tracks parent editor state per entry', () => {
     component.draft.type = 'tree';
     component.draft.entries = [

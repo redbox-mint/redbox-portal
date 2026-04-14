@@ -163,6 +163,49 @@ describe('AdminVocabularyComponent', () => {
     expect(component.draft.entries?.[1].parent).toBe('parent');
   });
 
+  it('opens and cancels the vocabulary deletion modal without deleting', () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(VocabularyApiService);
+
+    component.vocabularies = [
+      { id: 'v1', name: 'Vocabulary One', slug: 'vocabulary-one', type: 'flat', source: 'local' }
+    ];
+    const deleteSpy = spyOn(api, 'delete').and.callThrough();
+
+    component.requestDeleteVocabulary('v1');
+
+    expect(component.isDeleteVocabularyModalOpen).toBeTrue();
+    expect(component.pendingDeleteVocabularyId).toBe('v1');
+    expect(component.pendingDeleteVocabularyName).toBe('Vocabulary One');
+
+    component.cancelDeleteVocabulary();
+
+    expect(component.isDeleteVocabularyModalOpen).toBeFalse();
+    expect(component.pendingDeleteVocabularyId).toBeNull();
+    expect(component.pendingDeleteVocabularyName).toBe('');
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it('deletes the pending vocabulary when deletion is confirmed', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(VocabularyApiService);
+
+    component.vocabularies = [
+      { id: 'v1', name: 'Vocabulary One', slug: 'vocabulary-one', type: 'flat', source: 'local' }
+    ];
+    const deleteSpy = spyOn(api, 'delete').and.resolveTo();
+    spyOn(api, 'list').and.resolveTo({ data: [], meta: { total: 0, limit: 25, offset: 0 } });
+
+    component.requestDeleteVocabulary('v1');
+    await component.confirmDeleteVocabulary();
+
+    expect(deleteSpy).toHaveBeenCalledWith('v1');
+    expect(component.isDeleteVocabularyModalOpen).toBeFalse();
+    expect(component.message).toBe('Vocabulary deleted');
+  });
+
   it('opens sync confirmation without syncing immediately', async () => {
     const fixture = TestBed.createComponent(AdminVocabularyComponent);
     const component = fixture.componentInstance;
