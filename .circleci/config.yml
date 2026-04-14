@@ -112,7 +112,7 @@ jobs:
             - docker-images/redbox-portal-runtime-cloud-pdfgen-test.tar
   test-bruno-general:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -175,7 +175,7 @@ jobs:
             - ~/.npm
   test-bruno-oidc:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -238,7 +238,7 @@ jobs:
             - ~/.npm
   test-playwright:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -285,7 +285,7 @@ jobs:
             - ~/.npm
   test-mocha:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -351,7 +351,7 @@ jobs:
       angular_app:
         type: string
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: large
     steps:
       - checkout
@@ -400,7 +400,7 @@ jobs:
             - ~/.npm
   test-sails-ng-common:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: large
     steps:
       - checkout
@@ -444,7 +444,7 @@ jobs:
           path: packages/sails-ng-common/support/junit
   test-redbox-core:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: large
     steps:
       - checkout
@@ -491,7 +491,7 @@ jobs:
           path: packages/redbox-core/support/junit
   test-redbox-dev-tools-cli:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: medium
     steps:
       - checkout
@@ -630,7 +630,7 @@ jobs:
             npm run lint
   # test-sails-hook-redbox-storage-mongo:
   #   machine:
-  #     image: ubuntu-2004:current
+  #     image: ubuntu-2204:current
   #   resource_class: medium
   #   environment:
   #     BUILDKIT_PROGRESS: 'plain'
@@ -802,7 +802,7 @@ jobs:
             docker push "${REPO}:${DEPLOY_TAG}-cloud-pdfgen-amd64"
   deploy-arm64:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: arm.medium
     steps:
       - checkout
@@ -859,7 +859,7 @@ jobs:
           command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh "-cloud-pdfgen"
   generate-docs:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     steps:
       - add_ssh_keys:
           fingerprints:

@@ -28,7 +28,7 @@ export interface RecordModel {
 
   export interface RecordWorkflow {
     stage: string;
-    name: string;
+    stageLabel: string;
   }
 
   export interface StoredRecordAuthorization {

@@ -1129,6 +1129,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.componentDefQuerySource;
   }
 
+  public get formConfigMeta(): Record<string,unknown> {
+    return this.formDefMap?.formConfigMeta ?? {};
+  }
+
   private parseRequestParamsFromUrl(rawHref?: string): FormRequestParamsMap {
     const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
     const href = rawHref ?? (typeof window !== 'undefined' ? window.location.href : fallbackOrigin);
@@ -1215,7 +1219,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private resolveRedirectLocation(template: string, oid: string): string {
-    const contextVariables = (this.formDefMap?.formConfig?.contextVariables ?? {}) as Record<string, unknown>;
+    const contextVariables = (this.formConfigMeta["contextVariables"] ?? {}) as Record<string, unknown>;
     return template
       .replaceAll('@oid', oid)
       .replaceAll('@branding', String(contextVariables['@branding'] ?? '@branding'))
