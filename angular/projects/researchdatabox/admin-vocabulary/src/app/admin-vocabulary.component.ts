@@ -44,6 +44,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
   pendingDeleteVocabularyName = '';
   private deleteModalTrigger: HTMLElement | null = null;
   private editModalTrigger: HTMLElement | null = null;
+  private importModalTrigger: HTMLElement | null = null;
   private syncStatusTimer: ReturnType<typeof setTimeout> | null = null;
 
   draft: VocabularyDetail = {
@@ -176,6 +177,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
   showImport(): void {
     this.message = '';
     this.error = '';
+    this.rememberImportModalTrigger();
     this.importStatusMessage = '';
     this.importStatusVariant = '';
     this.isImportInProgress = false;
@@ -190,6 +192,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
 
   closeImportModal(): void {
     this.isImportModalOpen = false;
+    this.restoreImportModalTrigger();
   }
 
   requestDeleteVocabulary(id: string): void {
@@ -214,7 +217,11 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
 
     const id = this.pendingDeleteVocabularyId;
     this.closeDeleteVocabularyModal(false);
-    await this.deleteVocabulary(id);
+    try {
+      await this.deleteVocabulary(id);
+    } finally {
+      this.restoreDeleteModalTrigger();
+    }
   }
 
   async save(): Promise<void> {
@@ -241,7 +248,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
     }
   }
 
-  async deleteVocabulary(id: string): Promise<void> {
+  private async deleteVocabulary(id: string): Promise<void> {
     if (!id) {
       return;
     }
@@ -288,7 +295,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
       this.importStatusMessage = this.t('admin-vocabulary-import-success', 'RVA vocabulary imported successfully.');
       this.importStatusVariant = 'success';
       await this.refresh();
-      this.isImportModalOpen = false;
+      this.closeImportModal();
     } catch (err) {
       this.error = this.t('admin-vocabulary-error-import-rva', 'Failed to import RVA vocabulary: {{error}}', { error: this.asErrorMessage(err) });
       this.importStatusMessage = this.error;
@@ -466,6 +473,11 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
     this.deleteModalTrigger = activeElement instanceof HTMLElement ? activeElement : null;
   }
 
+  private rememberImportModalTrigger(): void {
+    const activeElement = document.activeElement;
+    this.importModalTrigger = activeElement instanceof HTMLElement ? activeElement : null;
+  }
+
   private restoreEditModalTrigger(): void {
     if (!this.editModalTrigger) {
       return;
@@ -487,15 +499,25 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
     setTimeout(() => target.focus(), 0);
   }
 
+  private restoreImportModalTrigger(): void {
+    if (!this.importModalTrigger) {
+      return;
+    }
+    const target = this.importModalTrigger;
+    this.importModalTrigger = null;
+    if (!document.contains(target)) {
+      return;
+    }
+    setTimeout(() => target.focus(), 0);
+  }
+
   private closeDeleteVocabularyModal(restoreFocus: boolean = true): void {
     this.isDeleteVocabularyModalOpen = false;
     this.pendingDeleteVocabularyId = null;
     this.pendingDeleteVocabularyName = '';
     if (restoreFocus) {
       this.restoreDeleteModalTrigger();
-      return;
     }
-    this.deleteModalTrigger = null;
   }
 
   private resolveVocabularyName(id: string): string {

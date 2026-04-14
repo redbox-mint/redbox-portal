@@ -1,4 +1,9 @@
-<div class="container-fluid py-3" *ngIf="isReady">
+<div
+  class="container-fluid py-3"
+  *ngIf="isReady"
+  [attr.aria-hidden]="isDeleteVocabularyModalOpen || isEditModalOpen || isImportModalOpen ? 'true' : null"
+  [attr.inert]="isDeleteVocabularyModalOpen || isEditModalOpen || isImportModalOpen ? '' : null"
+>
   <div class="row align-items-end mb-3">
     <div class="col-md-8"></div>
     <div class="col-md-4 mt-3 mt-md-0">
@@ -54,10 +59,11 @@
 <div
   class="modal fade show d-block delete-vocabulary-modal"
   tabindex="-1"
-  role="dialog"
+  role="alertdialog"
   aria-modal="true"
   aria-labelledby="deleteVocabularyModalTitle"
   aria-describedby="deleteVocabularyModalDescription"
+  (keydown.escape)="cancelDeleteVocabulary()"
   *ngIf="isDeleteVocabularyModalOpen"
 >
   <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
@@ -102,6 +108,7 @@
   role="dialog"
   aria-modal="true"
   aria-labelledby="vocabModalTitle"
+  (keydown.escape)="!isSyncInProgress && closeEditModal()"
   *ngIf="isEditModalOpen"
 >
   <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
@@ -117,6 +124,7 @@
           class="btn-close"
           [attr.aria-label]="'admin-vocabulary-close' | i18next"
           (click)="closeEditModal()"
+          [disabled]="isSyncInProgress"
           cdkFocusInitial
         ></button>
       </div>
@@ -195,6 +203,7 @@
   role="dialog"
   aria-modal="true"
   aria-labelledby="importModalTitle"
+  (keydown.escape)="!isImportInProgress && closeImportModal()"
   *ngIf="isImportModalOpen"
 >
   <div class="modal-dialog modal-lg" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
@@ -208,6 +217,7 @@
           class="btn-close"
           [attr.aria-label]="'admin-vocabulary-close' | i18next"
           (click)="closeImportModal()"
+          [disabled]="isImportInProgress"
           cdkFocusInitial
         ></button>
       </div>

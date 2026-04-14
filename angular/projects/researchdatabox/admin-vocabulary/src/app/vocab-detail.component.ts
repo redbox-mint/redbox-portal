@@ -18,6 +18,7 @@ export class VocabDetailComponent implements OnChanges {
   private parentEditorEntryId: string | null = null;
   private collapsedPreviewNodeIds = new Set<string>();
   private pendingRemoveEntryIndex: number | null = null;
+  private removeEntryModalTrigger: HTMLElement | null = null;
   isTreePreviewVisible = false;
   previewTree: PreviewTreeNode[] = [];
   isRemoveEntryModalOpen = false;
@@ -68,27 +69,31 @@ export class VocabDetailComponent implements OnChanges {
     if (!this.draft.entries || index < 0 || index >= this.draft.entries.length) {
       return;
     }
+    this.rememberRemoveEntryModalTrigger();
     this.pendingRemoveEntryIndex = index;
     this.isRemoveEntryModalOpen = true;
   }
 
   cancelRemoveEntry(): void {
-    this.pendingRemoveEntryIndex = null;
-    this.isRemoveEntryModalOpen = false;
+    this.closeRemoveEntryModal();
   }
 
   confirmRemoveEntry(): void {
     if (this.pendingRemoveEntryIndex === null) {
-      this.cancelRemoveEntry();
+      this.closeRemoveEntryModal();
       return;
     }
 
     const index = this.pendingRemoveEntryIndex;
-    this.cancelRemoveEntry();
-    this.removeEntry(index);
+    this.closeRemoveEntryModal(false);
+    try {
+      this.removeEntry(index);
+    } finally {
+      this.restoreRemoveEntryModalTrigger();
+    }
   }
 
-  removeEntry(index: number): void {
+  private removeEntry(index: number): void {
     if (!this.draft.entries || index < 0 || index >= this.draft.entries.length) {
       return;
     }
@@ -263,6 +268,31 @@ export class VocabDetailComponent implements OnChanges {
   private refreshTreePreviewIfVisible(): void {
     if (this.isTreePreviewVisible) {
       this.refreshTreePreview();
+    }
+  }
+
+  private rememberRemoveEntryModalTrigger(): void {
+    const activeElement = document.activeElement;
+    this.removeEntryModalTrigger = activeElement instanceof HTMLElement ? activeElement : null;
+  }
+
+  private restoreRemoveEntryModalTrigger(): void {
+    if (!this.removeEntryModalTrigger) {
+      return;
+    }
+    const target = this.removeEntryModalTrigger;
+    this.removeEntryModalTrigger = null;
+    if (!document.contains(target)) {
+      return;
+    }
+    setTimeout(() => target.focus(), 0);
+  }
+
+  private closeRemoveEntryModal(restoreFocus: boolean = true): void {
+    this.pendingRemoveEntryIndex = null;
+    this.isRemoveEntryModalOpen = false;
+    if (restoreFocus) {
+      this.restoreRemoveEntryModalTrigger();
     }
   }
 

@@ -1,4 +1,8 @@
-<div class="container-fluid px-0">
+<div
+  class="container-fluid px-0"
+  [attr.aria-hidden]="isRemoveEntryModalOpen ? 'true' : null"
+  [attr.inert]="isRemoveEntryModalOpen ? '' : null"
+>
   <div class="form-row">
     <div class="form-group col-md-6">
       <label for="vocab-name">{{ 'admin-vocabulary-name' | i18next }}</label>
@@ -198,10 +202,11 @@
 <div
   class="modal fade show d-block entry-remove-modal"
   tabindex="-1"
-  role="dialog"
+  role="alertdialog"
   aria-modal="true"
   aria-labelledby="removeEntryModalTitle"
   aria-describedby="removeEntryModalDescription"
+  (keydown.escape)="cancelRemoveEntry()"
   *ngIf="isRemoveEntryModalOpen"
 >
   <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>

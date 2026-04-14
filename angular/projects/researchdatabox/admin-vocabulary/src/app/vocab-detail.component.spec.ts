@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Pipe, PipeTransform } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { VocabDetailComponent } from './vocab-detail.component';
@@ -90,6 +90,62 @@ describe('VocabDetailComponent', () => {
 
     expect(component.isRemoveEntryModalOpen).toBeFalse();
     expect(component.draft.entries!.length).toBe(1);
+  });
+
+  it('returns focus to the remove trigger when the entry removal modal is cancelled', fakeAsync(() => {
+    component.draft.entries = [
+      { id: 'a', label: 'A', value: 'A' }
+    ];
+
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    const activeElementSpy = spyOnProperty(document, 'activeElement', 'get').and.returnValue(trigger);
+    const focusSpy = spyOn(trigger, 'focus');
+
+    component.requestRemoveEntry(0);
+    component.cancelRemoveEntry();
+    tick();
+
+    expect(focusSpy).toHaveBeenCalled();
+
+    activeElementSpy.and.callThrough();
+    document.body.removeChild(trigger);
+  }));
+
+  it('returns focus to the remove trigger when the entry removal is confirmed', fakeAsync(() => {
+    component.draft.entries = [
+      { id: 'a', label: 'A', value: 'A' }
+    ];
+
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    const activeElementSpy = spyOnProperty(document, 'activeElement', 'get').and.returnValue(trigger);
+    const focusSpy = spyOn(trigger, 'focus');
+
+    component.requestRemoveEntry(0);
+    component.confirmRemoveEntry();
+    tick();
+
+    expect(focusSpy).toHaveBeenCalled();
+
+    activeElementSpy.and.callThrough();
+    document.body.removeChild(trigger);
+  }));
+
+  it('closes the entry removal modal when Escape is pressed', () => {
+    component.draft.entries = [
+      { id: 'a', label: 'A', value: 'A' }
+    ];
+
+    fixture.detectChanges();
+    component.requestRemoveEntry(0);
+    fixture.detectChanges();
+
+    const modal = fixture.nativeElement.querySelector('.entry-remove-modal') as HTMLElement;
+    modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(component.isRemoveEntryModalOpen).toBeFalse();
   });
 
   it('removes the pending entry when removal is confirmed', () => {
