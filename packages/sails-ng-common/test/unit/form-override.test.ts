@@ -150,4 +150,77 @@ describe('FormOverride reusable expansion', () => {
 
     expect(result).to.equal('<span data-value="{{default (get project "startDate" "") ""}}">{{formatDate (get project "startDate" "") "DD/MM/YYYY"}}</span>');
   });
+
+  it('expands contributor_dmp_permissions wrapper with replaceName, wrapper expressions, and syncSources', () => {
+    const formOverride = new FormOverride(createLogger());
+    const wrapperExpressions = [
+      createExpression('projectType-sync'),
+      createExpression('ciRhd-sync'),
+      createExpression('ciNotRhd-sync'),
+    ];
+    const syncSourcesOverride = [
+      { fieldName: 'contributor_ci_rhd', visibilityConditionField: 'project-type', visibilityConditionValues: ['rhd'] },
+      { fieldName: 'contributor_ci_not_rhd', visibilityConditionField: 'project-type', visibilityConditionValues: ['staff'] },
+    ];
+
+    const result = formOverride.applyOverridesReusable(
+      [
+        {
+          name: 'contributor_dmp_permissions',
+          component: {
+            class: ReusableComponentName,
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'contributor_dmp_permissions_repeatable',
+                  overrides: {
+                    replaceName: 'contributor_dmp_permissions',
+                  },
+                  component: {
+                    class: 'RepeatableComponent',
+                    config: {
+                      syncSources: syncSourcesOverride,
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          expressions: wrapperExpressions,
+          overrides: {
+            reusableFormName: 'contributor-dmp-permissions',
+          },
+        } as never,
+      ],
+      {
+        'contributor-dmp-permissions': [
+          {
+            name: 'contributor_dmp_permissions_repeatable',
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                addButtonShow: true,
+                allowZeroRows: true,
+                hideWhenZeroRows: false,
+                syncSources: [],
+                elementTemplate: {
+                  name: '',
+                  component: { class: ReusableComponentName, config: { componentDefinitions: [] } },
+                },
+              },
+            },
+            model: { class: 'RepeatableModel' },
+            layout: { class: 'DefaultLayout' },
+          } as never,
+        ],
+      }
+    );
+
+    expect(result).to.have.length(1);
+    expect(result[0].name).to.equal('contributor_dmp_permissions');
+    expect(result[0].expressions).to.deep.equal(wrapperExpressions);
+    expect(result[0].component.config.syncSources).to.deep.equal(syncSourcesOverride);
+    expect(result[0].component.config.addButtonShow).to.equal(true);
+    expect(result[0].component.config.elementTemplate).to.exist;
+  });
 });

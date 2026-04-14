@@ -1,8 +1,9 @@
 import { AbstractControl } from '@angular/forms';
 import { get as _get } from 'lodash-es';
-import { FormComponentEventBus } from './form-component-event-bus.service';
+import { FormComponentEventBus, ScopedEventBus } from './form-component-event-bus.service';
 import {
   FormComponentEventType,
+  createFieldValueChangedEvent,
   FieldItemSelectedEvent,
   FormComponentEvent,
   FormComponentEventTypeValue,
@@ -91,6 +92,8 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
     if (!control || !this.onItemSelect) {
       return;
     }
+    const parentControl = control.parent;
+    const previousParentValue = parentControl ? structuredClone(parentControl.value) : undefined;
 
     const clearValue = this.onItemSelect.clearValue ?? null;
 
@@ -98,6 +101,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
       await setControlValue(control, clearValue, { emitEvent: false });
       control.markAsDirty();
       control.markAsTouched();
+      this.publishParentValueChanged(previousParentValue);
       return;
     }
 
@@ -118,6 +122,35 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
     await setControlValue(control, resolved, { emitEvent: false });
     control.markAsDirty();
     control.markAsTouched();
+    this.publishParentValueChanged(previousParentValue);
+  }
+
+  /**
+   * Rebroadcast the containing group's final value after an item selection updates
+   * sibling fields like email/orcid. This preserves selection-only sync behavior
+   * for cross-tree expressions listening on the parent group JSON pointer.
+   */
+  private publishParentValueChanged(previousValue: unknown): void {
+    const parentControl = this.control?.parent;
+    const ownPointer = this.ownPointer;
+    if (!parentControl || !ownPointer) {
+      return;
+    }
+
+    const parentPointer = this.getParentPointer(ownPointer);
+    if (!parentPointer) {
+      return;
+    }
+
+    const nextValue = structuredClone(parentControl.value);
+    const scopedEvent = createFieldValueChangedEvent({
+      fieldId: parentPointer,
+      value: nextValue,
+      previousValue: previousValue === undefined ? undefined : structuredClone(previousValue),
+      sourceId: parentPointer
+    });
+    this.eventBus.scoped(parentPointer).publish(scopedEvent as Omit<typeof scopedEvent, 'timestamp' | 'sourceId'>);
+
   }
 
   /**

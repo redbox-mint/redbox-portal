@@ -2,6 +2,30 @@ import {KeyValueStringProperty} from "./shared.outline";
 import {FieldDefinitionFrame, FieldDefinitionOutline} from "./field.outline";
 
 /**
+ * Declares a source field for one-way additive sync.
+ * This is declarative metadata only and is not read by expression templates at runtime.
+ */
+export interface SyncSourceEntry {
+    /**
+     * formData key to read the source data from.
+     */
+    fieldName: string;
+    /**
+     * Optional property on the source object to use as the dedupe/upsert key.
+     * When omitted, consumers may fall back to component-specific defaults.
+     */
+    syncKey?: string;
+    /**
+     * Optional formData key whose value determines whether this source is active.
+     */
+    visibilityConditionField?: string;
+    /**
+     * Values of the condition field that make this source active.
+     */
+    visibilityConditionValues?: string[];
+}
+
+/**
  * The form field component config interface that provides typing for the object literal and schema.
  */
 export interface BaseFieldComponentConfigFrame {
@@ -50,6 +74,11 @@ export interface BaseFieldComponentConfigFrame {
      * Defaults to false.
      */
     showValidIndicator?: boolean;
+    /**
+     * Declares source fields for one-way additive sync.
+     * Declarative metadata only and not interpreted by the component runtime.
+     */
+    syncSources?: SyncSourceEntry[];
 }
 
 export interface BaseFieldComponentConfigOutline extends BaseFieldComponentConfigFrame {

@@ -130,6 +130,11 @@ export abstract class FormComponentEventBaseProducerConsumer {
    */
   protected setupQuerySourceUpdateListener(): void {
     if (this.formComp) {
+      // Some components are created lazily (e.g. hidden tab content) after the
+      // form ready event has already fired. Seed the current query source now so
+      // JSONPointer/JSONataQuery expressions can still match immediately.
+      this.componentDefQuerySource = this.formComp.getQuerySource();
+
       // Clean up existing subscriptions before creating new ones
       this.subscriptions.get('componentQuerySourceReady')?.unsubscribe();
       this.subscriptions.get('componentQuerySourceUpdated')?.unsubscribe();

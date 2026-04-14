@@ -60,16 +60,22 @@ export class DropdownInputComponent extends FormFieldBaseComponent<DropdownInput
       this.options = defaultConfig.options;
     }
     this.setDefaultSelection();
+    setTimeout(() => this.setDefaultSelection(), 0);
   }
 
   private setDefaultSelection(): void {
     const currentValue = this.formControl?.value;
-    if (!_isUndefined(currentValue) && currentValue !== null) {
+    if (!_isUndefined(currentValue) && currentValue !== null && currentValue !== '') {
       return;
     }
 
     if (this.options.some((option) => option.value === '') || this.placeholder) {
       this.formControl?.setValue('', { emitEvent: false });
+      return;
+    }
+
+    if (this.options.length > 0) {
+      this.formControl?.setValue(this.options[0].value, { emitEvent: false });
     }
   }
 

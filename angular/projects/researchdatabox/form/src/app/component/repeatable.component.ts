@@ -1,4 +1,5 @@
-import { Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef } from '@angular/core';
+import { Component, ComponentRef, DestroyRef, inject, ViewChild, ViewContainerRef, TemplateRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, AbstractControl } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
@@ -9,15 +10,17 @@ import {
   RepeatableElementLayoutName,
   RepeatableFieldComponentConfig,
   RepeatableFieldComponentDefinitionFrame,
-  RepeatableModelName
+  RepeatableModelName,
+  SyncSourceEntry,
 } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty, cloneDeep as _cloneDeep, isUndefined as _isUndefined } from 'lodash-es';
+import { isEmpty as _isEmpty, cloneDeep as _cloneDeep, isEqual as _isEqual, isUndefined as _isUndefined } from 'lodash-es';
 import { FormService } from '../form.service';
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
 import { DefaultLayoutComponent } from "./default-layout.component";
 import { createFormDefinitionChangeRequestEvent, createFormStatusDirtyRequestEvent, FormComponentEventBus } from '../form-state';
 import { CustomSetValueControl } from '../form-state/custom-set-value.control';
 import {FormComponent} from "../form.component";
+import { FieldValueChangedEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
 
 type RepeatableSetValueOptions = { emitEvent?: boolean; onlySelf?: boolean };
 
@@ -84,12 +87,14 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   protected elemInitFieldEntry?: FormFieldCompMapEntry;
 
   protected compDefMapEntries: Array<RepeatableElementEntry> = [];
+  private syncSourcesUpdatePromise: Promise<void> = Promise.resolve();
 
   @ViewChild('repeatableContainer', { read: ViewContainerRef, static: true }) repeatableContainer!: ViewContainerRef;
   @ViewChild('removeButtonTemplate', { read: TemplateRef<any>, static: false }) removeButtonTemplate!: TemplateRef<any>;
 
 
   private readonly eventBus = inject(FormComponentEventBus);
+  private readonly destroyRef = inject(DestroyRef);
 
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
     return this.formFieldCompMapEntries
@@ -185,6 +190,131 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     for (const elementValue of elemVals) {
       await this.appendNewElement(elementValue, false);
     }
+
+    this.setupSyncSourceSubscriptions();
+  }
+
+  private setupSyncSourceSubscriptions(): void {
+    const syncSources = this.getSyncSources();
+    if (syncSources.length === 0) {
+      return;
+    }
+
+    void this.syncFromCurrentSources(false);
+
+    this.eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((event: FieldValueChangedEvent) => {
+        if (this.isSyncSourceTriggerEvent(event, syncSources)) {
+          void this.syncFromCurrentSources(false);
+        }
+      });
+  }
+
+  private getSyncSources(): SyncSourceEntry[] {
+    const cfg = this.componentDefinition?.config as RepeatableFieldComponentConfig | undefined;
+    return Array.isArray(cfg?.syncSources) ? cfg.syncSources : [];
+  }
+
+  private shouldKeepAtLeastOneRow(): boolean {
+    return !this.allowZeroRows || this.getSyncSources().length > 0;
+  }
+
+  private isSyncSourceTriggerEvent(event: FieldValueChangedEvent, syncSources: SyncSourceEntry[]): boolean {
+    const fieldId = event.fieldId || '';
+    return syncSources.some(source =>
+      fieldId.endsWith(`/${source.fieldName}`)
+      || (!!source.visibilityConditionField && fieldId.endsWith(`/${source.visibilityConditionField}`))
+    );
+  }
+
+  private async syncFromCurrentSources(emitEvent: boolean): Promise<void> {
+    this.syncSourcesUpdatePromise = this.syncSourcesUpdatePromise
+      .catch(() => undefined)
+      .then(async () => {
+        const syncSources = this.getSyncSources();
+        if (syncSources.length === 0) {
+          return;
+        }
+
+        const currentValue = Array.isArray(this.model?.formControl?.value)
+          ? _cloneDeep(this.model?.formControl?.value)
+          : [];
+        let nextValue = currentValue;
+
+        for (const source of syncSources) {
+          if (!this.isActiveSyncSource(source)) {
+            continue;
+          }
+          nextValue = this.upsertSyncedSource(nextValue, this.getNamedFieldValue(source.fieldName), source);
+        }
+
+        if (_isEqual(nextValue, currentValue)) {
+          return;
+        }
+
+        await this.replaceAllElements(nextValue, { emitEvent });
+      });
+
+    await this.syncSourcesUpdatePromise;
+  }
+
+  private isActiveSyncSource(source: SyncSourceEntry): boolean {
+    if (!source.visibilityConditionField) {
+      return true;
+    }
+    const conditionValue = this.getNamedFieldValue(source.visibilityConditionField);
+    const allowed = Array.isArray(source.visibilityConditionValues) ? source.visibilityConditionValues : [];
+    return typeof conditionValue === 'string' && allowed.includes(conditionValue);
+  }
+
+  private getNamedFieldValue(fieldName: string): unknown {
+    const rawFormValue = this.getFormComponent.form?.getRawValue?.() as Record<string, unknown> | undefined;
+    if (rawFormValue && fieldName in rawFormValue) {
+      return rawFormValue[fieldName];
+    }
+    const pointerSource = this.getFormComponent.getQuerySource()?.jsonPointerSource as Record<string, unknown> | undefined;
+    return pointerSource?.[fieldName];
+  }
+
+  private upsertSyncedSource(existing: unknown[], sourceValue: unknown, syncSource: SyncSourceEntry): unknown[] {
+    const source = (typeof sourceValue === 'object' && sourceValue !== null)
+      ? _cloneDeep(sourceValue as Record<string, unknown>)
+      : null;
+    if (!source) {
+      return existing;
+    }
+
+    const template = { username: null, role: 'View&Edit' };
+    const items = existing.map(item => _cloneDeep(item as Record<string, unknown>));
+    const syncKey = syncSource.syncKey;
+    const syncValue = syncKey ? source[syncKey] : undefined;
+    if (syncKey && (_isUndefined(syncValue) || syncValue === null || syncValue === '')) {
+      return existing;
+    }
+
+    const hasSyncKey = !!syncKey;
+
+    if (hasSyncKey) {
+      const existingIndex = items.findIndex(item => item?.[syncKey] === syncValue);
+      if (existingIndex >= 0) {
+        items[existingIndex] = { ...items[existingIndex], ...source, ...template };
+        return items;
+      }
+    }
+
+    if (items.length === 1 && this.isBlankPlaceholder(items[0])) {
+      return [{ ...items[0], ...source, ...template }];
+    }
+
+    return [...items, { ...source, ...template }];
+  }
+
+  private isBlankPlaceholder(item: Record<string, unknown> | undefined): boolean {
+    if (!item) {
+      return false;
+    }
+    return !item['email'] && !item['name'] && !item['orcid'] && !item['username'];
   }
 
   public async appendNewElement(value?: any, markFormDirty: boolean = true, options?: RepeatableSetValueOptions) {
@@ -192,9 +322,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       throw new Error(`${this.logName}: elemInitFieldEntry is not defined. Cannot append new element.`);
     }
     if (value === undefined) {
-      // If the provided value is undefined, use the elementTemplate model config value,
-      // which is the default for new entries.
-      value = (this.componentDefinition?.config as RepeatableFieldComponentConfig)?.elementTemplate?.model?.config?.value;
+      // If the provided value is undefined, use the elementTemplate new-entry
+      // default when available. Element templates store row defaults in
+      // model.config.newEntryValue, not model.config.value.
+      const elementTemplateModelConfig =
+        (this.componentDefinition?.config as RepeatableFieldComponentConfig)?.elementTemplate?.model?.config;
+      value = elementTemplateModelConfig?.newEntryValue ?? elementTemplateModelConfig?.value;
     }
     const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value, options);
     await this.createElement(elemEntry, options);
@@ -318,9 +451,16 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // TODO: how to know when to apply defaultComponentConfig or not?
     // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
-    const layoutInstance = ((compInstance as unknown) as RepeatableElementLayoutComponent<Array<unknown>>);
+    const layoutInstance = elemFieldEntry.layoutRef?.instance as RepeatableElementLayoutComponent<Array<unknown>> | undefined;
+    if (!layoutInstance) {
+      this.loggerService.warn(`${this.logName}: repeatable element layout was not initialised for`, elemFieldEntry);
+      elemEntry.wrapperRef = wrapperRef;
+      return wrapperRef;
+    }
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
-    layoutInstance.canRemove = this.allowZeroRows ? this.compDefMapEntries.length > 0 : this.compDefMapEntries.length > 1;
+    layoutInstance.canRemove = this.shouldKeepAtLeastOneRow()
+      ? this.compDefMapEntries.length > 1
+      : this.compDefMapEntries.length > 0;
     elemEntry.layoutInstance = layoutInstance;
     if (this.model?.formControl && compInstance?.model) {
       this.model.addElement(compInstance.model, options);
@@ -340,7 +480,18 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       );
       const defIdx = that.compDefMapEntries.findIndex((entry) => entry.localUniqueId === elemEntry.localUniqueId);
       if (defIdx === -1) {
-        that.loggerService.warn(`${that.logName}: removeElement called, but no element found with localUniqueId:`, elemEntry.localUniqueId);
+        that.loggerService.warn(`${that.logName}: removeElement called, but no tracked element found with localUniqueId. Falling back to model removal.`, elemEntry.localUniqueId);
+        try {
+          elemEntry.wrapperRef?.destroy();
+          that.model?.removeElement(elemEntry.defEntry?.model, options);
+          if (that.shouldEmitComponentEvents(options)) {
+            that.requestFormDirty('repeatable.element.removed');
+          }
+          that.updateCanRemoveFlags();
+          that.rebuildLineagePaths(options);
+        } catch (error) {
+          that.loggerService.warn(`${that.logName}: fallback removeElement failed`, error);
+        }
         return;
       }
       that.compDefMapEntries.splice(defIdx, 1);
@@ -369,7 +520,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   }
 
   protected updateCanRemoveFlags() {
-    const canRemove = this.allowZeroRows ? this.compDefMapEntries.length > 0 : this.compDefMapEntries.length > 1;
+    const canRemove = this.shouldKeepAtLeastOneRow()
+      ? this.compDefMapEntries.length > 1
+      : this.compDefMapEntries.length > 0;
     for (const entry of this.compDefMapEntries) {
       if (entry.layoutInstance) {
         entry.layoutInstance.canRemove = canRemove;

@@ -206,20 +206,22 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 	 */
 	protected hasMatchedJSONPointerCondition(opts: FormComponentEventJSONPointerMatchOptions): boolean {
 		const querySource = opts.querySource;
-		if (!querySource) {
-			return false;
-		}
 		if (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && opts.expression.config.runOnFormReady === false) {
 			return false;
 		}
 		const pointerCondition = this.getEventJSONPointerCondition(opts.condition);
 		// Check if the pointer has a match in the query source, broadcasts will fail this check
-		const ref = getObjectWithJsonPointer(querySource.jsonPointerSource, pointerCondition.jsonPointer);
+		const ref = querySource
+			? getObjectWithJsonPointer(querySource.jsonPointerSource, pointerCondition.jsonPointer)
+			: undefined;
 		const targetEvent = pointerCondition.event;
-		const hasMatchedTargetEvent = targetEvent === '*' || targetEvent === opts.querySource.event.type;
+		const hasMatchedTargetEvent = targetEvent === '*' || targetEvent === opts.event.type;
 		// Scenarios where it will match if the `targetEvent` matches, that is '*' or the specific event type AND the `sourceId` matches:
-		// 1. Scoped - the `pointerCondition.jsonPointer` will match the event.sourceId
-		const hasScopedMatch = ref != undefined && pointerCondition.jsonPointer == opts.event.sourceId;
+		// 1. Scoped - the `pointerCondition.jsonPointer` will match the event.sourceId.
+		// Do not require the target component's local query source to also contain that
+		// pointer: cross-tree sync expressions intentionally listen to fields outside the
+		// target component's subtree (e.g. People tab -> Permissions tab).
+		const hasScopedMatch = pointerCondition.jsonPointer == opts.event.sourceId;
 		// 2. Broadcast - the opts.event.sourceId is '*' indicating broadcast, and the condition's jsonPointer matches path of the `fieldId` of the event OR this is a form ready event and the expression is set to run on form ready
 		const eventFieldId = opts.event.fieldId || "";
 		const isRunOnFormReady = (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && opts.expression.config.runOnFormReady !== false);
