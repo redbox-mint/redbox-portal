@@ -230,12 +230,6 @@ export interface DoiPublishingConfigData {
     allowStateChange: boolean;
   };
   profiles: Record<string, DoiProfile>;
-  migration: {
-    source: 'none' | 'legacyDatacite' | 'manual';
-    requiresTemplateReview: boolean;
-    migratedAt?: string;
-    notes?: string[];
-  };
 }
 
 export interface DoiPublishingFormData extends Omit<DoiPublishingConfigData, 'profiles'> {
@@ -673,6 +667,11 @@ const WRITE_BACK_SCHEMA = {
 const VALIDATION_SCHEMA = {
   type: 'object',
   title: 'Validation',
+  widget: {
+    formlyConfig: {
+      hide: true
+    }
+  },
   properties: {
     requireUrl: { type: 'boolean', title: 'Require Url', default: true },
     requirePublisher: { type: 'boolean', title: 'Require Publisher', default: true },
@@ -843,34 +842,6 @@ const OPERATIONS_SCHEMA = {
   }
 };
 
-const MIGRATION_SCHEMA = {
-  type: 'object',
-  title: 'Migration',
-  properties: {
-    source: {
-      type: 'string',
-      title: 'Source',
-      enum: ['none', 'legacyDatacite', 'manual'],
-      default: 'none'
-    },
-    requiresTemplateReview: {
-      type: 'boolean',
-      title: 'Requires Template Review',
-      default: false
-    },
-    migratedAt: {
-      type: 'string',
-      title: 'Migrated At'
-    },
-    notes: {
-      type: 'array',
-      title: 'Notes',
-      items: { type: 'string' },
-      default: []
-    }
-  }
-};
-
 export class DoiPublishing extends AppConfig implements DoiPublishingConfigData {
   enabled = false;
   defaultProfile = '';
@@ -898,15 +869,8 @@ export class DoiPublishing extends AppConfig implements DoiPublishingConfigData 
 
   profiles: Record<string, DoiProfile> = {};
 
-  migration: DoiPublishingConfigData['migration'] = {
-    source: 'none',
-    requiresTemplateReview: false,
-    migratedAt: '',
-    notes: []
-  };
-
   public static getFieldOrder(): string[] {
-    return ['enabled', 'defaultProfile', 'connection', 'operations', 'profiles', 'migration'];
+    return ['enabled', 'defaultProfile', 'connection', 'profiles'];
   }
 }
 
@@ -927,7 +891,6 @@ export const DOI_PUBLISHING_SCHEMA = {
       }
     },
     operations: OPERATIONS_SCHEMA,
-    profiles: PROFILES_SCHEMA,
-    migration: MIGRATION_SCHEMA
+    profiles: PROFILES_SCHEMA
   }
 };

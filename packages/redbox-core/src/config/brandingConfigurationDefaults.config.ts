@@ -562,12 +562,6 @@ const defaultDoiPublishingConfig: DoiPublishingConfigData = {
                 requireTitles: true
             }
         }
-    },
-    migration: {
-        source: 'none',
-        requiresTemplateReview: false,
-        migratedAt: '',
-        notes: []
     }
 };
 

@@ -247,11 +247,15 @@ describe('AppConfigComponent', () => {
     const profilesField = findFieldByKey(app.fields, 'profiles');
     const retryField = findFieldByKey(app.fields, 'retry');
     const migrationField = findFieldByKey(app.fields, 'migration');
+    const operationsField = findFieldByKey(app.fields, 'operations');
+    const validationField = findFieldByKey(app.fields, 'validation');
     const bindingField = findFieldByKey(app.fields, 'url');
 
     expect(profilesField?.fieldArray).toBeTruthy();
     expect(retryField).toBeTruthy();
-    expect(migrationField).toBeTruthy();
+    expect(migrationField).toBeFalsy();
+    expect(operationsField).toBeFalsy();
+    expect(validationField?.hide).toBeTrue();
     expect(bindingField?.type).toBe('figshare-binding-editor');
 
     app.onSubmit(app.model);
@@ -448,7 +452,7 @@ export function getStubAppConfigService(recordData: any = {}) {
       }
       if (configKey === 'doiPublishing') {
         return {
-          fieldOrder: ['enabled', 'defaultProfile', 'connection', 'operations', 'profiles', 'migration'],
+          fieldOrder: ['enabled', 'defaultProfile', 'connection', 'profiles'],
           schema: {
             type: 'object',
             properties: {
@@ -581,6 +585,11 @@ export function getStubAppConfigService(recordData: any = {}) {
                     },
                     validation: {
                       type: 'object',
+                      widget: {
+                        formlyConfig: {
+                          hide: true
+                        }
+                      },
                       properties: {
                         requireUrl: { type: 'boolean' },
                         requirePublisher: { type: 'boolean' },
@@ -589,18 +598,6 @@ export function getStubAppConfigService(recordData: any = {}) {
                         requireTitles: { type: 'boolean' }
                       }
                     }
-                  }
-                }
-              },
-              migration: {
-                type: 'object',
-                properties: {
-                  source: { type: 'string' },
-                  requiresTemplateReview: { type: 'boolean' },
-                  migratedAt: { type: 'string' },
-                  notes: {
-                    type: 'array',
-                    items: { type: 'string' }
                   }
                 }
               }
@@ -661,13 +658,7 @@ export function getStubAppConfigService(recordData: any = {}) {
                   requireTitles: true
                 }
               }
-            ],
-            migration: {
-              source: 'none',
-              requiresTemplateReview: false,
-              migratedAt: '',
-              notes: []
-            }
+            ]
           }
         };
       }
