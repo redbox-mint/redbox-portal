@@ -33,4 +33,8 @@ export {
 } from './Lifecycle';
 
 // Utils
-export { toWaterlineModelDef } from './utils';
+export {
+  toWaterlineModelDef,
+  buildInvalidNewRecordError,
+  buildInvalidUpdateRecordError,
+} from './utils';

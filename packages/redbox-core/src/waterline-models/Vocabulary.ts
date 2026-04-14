@@ -1,5 +1,14 @@
 /// <reference path="../sails.ts" />
-import { Attr, BeforeCreate, BeforeUpdate, BelongsTo, Entity, HasMany, toWaterlineModelDef } from '../decorators';
+import {
+  Attr,
+  BeforeCreate,
+  BeforeUpdate,
+  BelongsTo,
+  buildInvalidNewRecordError, buildInvalidUpdateRecordError,
+  Entity,
+  HasMany,
+  toWaterlineModelDef
+} from '../decorators';
 import type { BrandingConfigAttributes } from './BrandingConfig';
 import type { VocabularyEntryAttributes } from './VocabularyEntry';
 
@@ -19,10 +28,10 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
   const hasName = typeof record.name !== 'undefined';
   const name = hasName ? String(record.name ?? '').trim() : '';
   if (isCreate && !name) {
-    throw new Error('Vocabulary.name is required');
+    throw buildInvalidNewRecordError('Vocabulary.name is required');
   }
   if (hasName && !name) {
-    throw new Error('Vocabulary.name is required');
+    throw buildInvalidUpdateRecordError('Vocabulary.name is required');
   }
   if (hasName) {
     record.name = name;
@@ -89,14 +98,14 @@ const normalizeAndResolveBranding = async (record: Record<string, unknown>, isCr
   const hasBranding = typeof record.branding !== 'undefined';
   if (!hasBranding) {
     if (isCreate) {
-      throw new Error('Vocabulary.branding is required');
+      throw buildInvalidNewRecordError('Vocabulary.branding is required');
     }
     return;
   }
 
   const brandingValue = String(record.branding ?? '').trim();
   if (!brandingValue) {
-    throw new Error('Vocabulary.branding is required');
+    throw buildInvalidUpdateRecordError('Vocabulary.branding is required');
   }
 
   if (isLikelyMongoId(brandingValue)) {

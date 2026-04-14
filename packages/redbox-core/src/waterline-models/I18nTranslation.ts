@@ -1,13 +1,20 @@
 /// <reference path="../sails.ts" />
-import { Entity, Attr, BelongsTo, BeforeCreate, BeforeUpdate, toWaterlineModelDef } from '../decorators';
+import {
+  Entity,
+  Attr,
+  BelongsTo,
+  BeforeCreate,
+  BeforeUpdate,
+  toWaterlineModelDef,
+  buildInvalidNewRecordError, buildInvalidUpdateRecordError
+} from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
 import { I18nBundleAttributes } from './I18nBundle';
 
 const beforeCreate = (translation: Record<string, unknown>, cb: (err?: Error) => void) => {
   // Manual validation for 'value' because required:true disallows empty strings
   if (translation.value === undefined || translation.value === null) {
-    const err = new Error('Value is required');
-    (err as unknown as Record<string, unknown>).code = 'E_INVALID_NEW_RECORD';
+    const err = buildInvalidNewRecordError('Value is required');
     return cb(err);
   }
   try {
@@ -27,8 +34,7 @@ const beforeCreate = (translation: Record<string, unknown>, cb: (err?: Error) =>
 const beforeUpdate = (values: Record<string, unknown>, cb: (err?: Error) => void) => {
   // Manual validation for 'value'
   if (Object.hasOwn(values, 'value') && values.value === null) {
-    const err = new Error('Value cannot be null');
-    (err as unknown as Record<string, unknown>).code = 'E_INVALID_NEW_RECORD';
+    const err = buildInvalidUpdateRecordError('Value cannot be null');
     return cb(err);
   }
   try {
