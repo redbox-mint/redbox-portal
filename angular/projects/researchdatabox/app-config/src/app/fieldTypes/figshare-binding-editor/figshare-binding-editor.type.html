@@ -1,60 +1,97 @@
-<div class="card card-body mb-3">
-  <div class="mb-3">
-    <div class="text-uppercase text-muted small">DOI field</div>
-    <div class="fw-semibold">{{ props.label || field.key }}</div>
-    @if (field.key && props.label && props.label !== field.key) {
-    <div class="text-muted small">{{ field.key }}</div>
+<div class="card binding-card mb-2" [class.configured]="isConfigured" [class.has-default-only]="!isConfigured && hasDefault">
+  <!-- Clickable header row: collapse toggle + field label + summary -->
+  <div class="binding-header d-flex align-items-center py-2 px-3" (click)="toggleCollapsed()">
+    <i class="fa fa-fw me-1" [class.fa-chevron-right]="collapsed" [class.fa-chevron-down]="!collapsed"></i>
+    <span class="fw-semibold">{{ fieldLabel }}</span>
+    @if (collapsed) {
+      @if (isConfigured) {
+        <span class="binding-source text-muted ms-auto d-flex align-items-center gap-2">
+          <span class="text-truncate" style="max-width: 400px;">&larr; {{ summarySource }}</span>
+          @if (kind !== 'path') {
+            <span class="badge bg-secondary binding-badge">{{ kind }}</span>
+          }
+          @if (hasDefault) {
+            <span class="badge bg-info binding-badge text-dark">default: {{ value.defaultValue }}</span>
+          }
+        </span>
+      } @else {
+        @if (hasDefault) {
+          <span class="binding-source text-muted ms-auto d-flex align-items-center gap-2">
+            <span class="badge bg-info binding-badge text-dark">default: {{ value.defaultValue }}</span>
+          </span>
+        } @else {
+          <span class="text-muted ms-auto fst-italic small">not mapped</span>
+        }
+      }
     }
   </div>
 
-  <div class="mb-3">
-    <label class="form-label">Binding Type</label>
-    <select class="form-select" [value]="kind" (change)="updateField('kind', $any($event.target).value)">
-      @for (bindingKind of bindingKinds; track bindingKind) {
-      <option [value]="bindingKind">{{ bindingKind }}</option>
+  <!-- Expanded editor body -->
+  @if (!collapsed) {
+    <div class="card-body pt-2 pb-3 px-3 border-top">
+      @if (showAdvanced || kind !== 'path') {
+        <div class="mb-2">
+          <label class="form-label small text-muted mb-1">Binding Type</label>
+          <select class="form-select form-select-sm" [value]="kind" (change)="updateField('kind', $any($event.target).value)">
+            @for (bindingKind of bindingKinds; track bindingKind) {
+              <option [value]="bindingKind">{{ bindingKind }}</option>
+            }
+          </select>
+        </div>
       }
-    </select>
-  </div>
 
-  @if (kind === 'path') {
-  <div class="mb-3">
-    <label class="form-label">Record Path</label>
-    <input
-      class="form-control"
-      type="text"
-      [value]="value.path || ''"
-      (input)="updateField('path', $any($event.target).value)"
-    />
-  </div>
-  } @if (kind === 'handlebars') {
-  <div class="mb-3">
-    <label class="form-label">Handlebars Template</label>
-    <textarea
-      class="form-control"
-      rows="3"
-      [value]="value.template || ''"
-      (input)="updateField('template', $any($event.target).value)"
-    ></textarea>
-  </div>
-  } @if (kind === 'jsonata') {
-  <div class="mb-3">
-    <label class="form-label">JSONata Expression</label>
-    <textarea
-      class="form-control"
-      rows="3"
-      [value]="value.expression || ''"
-      (input)="updateField('expression', $any($event.target).value)"
-    ></textarea>
-  </div>
+      @if (kind === 'path') {
+        <div class="mb-2">
+          <label class="form-label small text-muted mb-1">Record Path</label>
+          <input
+            class="form-control form-control-sm"
+            type="text"
+            [value]="value.path || ''"
+            (input)="updateField('path', $any($event.target).value)"
+            placeholder="e.g. record.metadata.field_name"
+          />
+        </div>
+      }
+      @if (kind === 'handlebars') {
+        <div class="mb-2">
+          <label class="form-label small text-muted mb-1">Handlebars Template</label>
+          <textarea
+            class="form-control form-control-sm"
+            rows="2"
+            [value]="value.template || ''"
+            (input)="updateField('template', $any($event.target).value)"
+          ></textarea>
+        </div>
+      }
+      @if (kind === 'jsonata') {
+        <div class="mb-2">
+          <label class="form-label small text-muted mb-1">JSONata Expression</label>
+          <textarea
+            class="form-control form-control-sm"
+            rows="2"
+            [value]="value.expression || ''"
+            (input)="updateField('expression', $any($event.target).value)"
+          ></textarea>
+        </div>
+      }
+
+      <div class="mb-2">
+        <label class="form-label small text-muted mb-1">Default Value</label>
+        <input
+          class="form-control form-control-sm"
+          type="text"
+          [value]="value.defaultValue || ''"
+          (input)="updateField('defaultValue', $any($event.target).value)"
+        />
+      </div>
+
+      @if (!showAdvanced && kind === 'path') {
+        <div class="text-end mt-1">
+          <button type="button" class="btn btn-link btn-sm text-muted p-0" (click)="toggleAdvanced()">
+            <i class="fa fa-cog me-1"></i>Advanced
+          </button>
+        </div>
+      }
+    </div>
   }
-
-  <div>
-    <label class="form-label">Default Value</label>
-    <input
-      class="form-control"
-      type="text"
-      [value]="value.defaultValue || ''"
-      (input)="updateField('defaultValue', $any($event.target).value)"
-    />
-  </div>
 </div>
