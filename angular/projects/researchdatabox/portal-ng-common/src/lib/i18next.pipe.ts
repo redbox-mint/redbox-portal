@@ -17,7 +17,7 @@ export class I18NextPipe implements PipeTransform {
   transform(key: unknown, options?: ITranslationOptions): string {
     this.ensureSubscription();
 
-    if (key === null || typeof key === 'undefined') {
+    if (key === null || key === undefined || key === '' || (Array.isArray(key) && key.length === 0)) {
       return '';
     }
 

@@ -180,6 +180,25 @@ export class TranslationService extends HttpClientService implements Service {
     defaultValueOrOptions?: string | ITranslationOptions,
     options?: ITranslationOptions
   ): TranslationResult {
+    if (key === null || key === undefined || key === '' || (Array.isArray(key) && key.length === 0)) {
+      return '';
+    }
+
+    // Conservative guess at whether the key is a natural language string.
+    // If the key is a string, and doesn't start with @,
+    // and either contains a space or the first letter is a capital,
+    // and does not contain ':' or '_',
+    // then it is likely to be a natural language string, not a translation key, so just return it.
+    if (
+      !Array.isArray(key) &&
+      !key.startsWith('@') &&
+      (key.includes(' ') || (key.length > 0 && key[0].toLowerCase() !== key[0])) &&
+      !key.includes(':') &&
+      !key.includes('_')
+    ) {
+      return key;
+    }
+
     if (typeof defaultValueOrOptions === 'string') {
       return this.i18NextService.t(key, defaultValueOrOptions, options);
     }
