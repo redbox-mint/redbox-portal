@@ -4,17 +4,9 @@ import type {
   DoiAffiliationMapping,
   DoiContributorMapping,
   DoiCreatorMapping,
-  DoiDateMapping,
-  DoiDescriptionMapping,
-  DoiFundingReferenceMapping,
   DoiGeoLocationMapping,
-  DoiIdentifierMapping,
   DoiProfile,
-  DoiRelatedIdentifierMapping,
   DoiRelatedItemMapping,
-  DoiRightsMapping,
-  DoiSubjectMapping,
-  DoiTitleMapping
 } from '../../configmodels/DoiPublishing';
 import { RBValidationError } from '../../model/RBValidationError';
 import { asStringArray, asTrimmedString, evaluateBinding } from './bindings';

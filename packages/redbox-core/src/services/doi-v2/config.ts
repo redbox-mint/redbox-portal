@@ -1,8 +1,7 @@
 import _ from 'lodash';
 import {
   DoiPublishing,
-  resolveDoiConnectionPassword,
-  type DoiPublishingConfigData
+  resolveDoiConnectionPassword
 } from '../../configmodels/DoiPublishing';
 import type { DoiRecordModel, ResolvedDoiPublishingConfigData } from './types';
 
