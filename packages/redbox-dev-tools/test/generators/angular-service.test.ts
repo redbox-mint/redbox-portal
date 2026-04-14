@@ -1,9 +1,10 @@
-import { expect } from 'chai';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import { AngularServiceGenerator } from '../../src/generators/angular-service';
-import { resolvePaths } from '../../src/utils/paths';
+const { expect } = require('chai');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const loadTs = require('../support/load-ts.cjs');
+const angularServiceGeneratorModule = loadTs(module, '../../src/generators/angular-service');
+const pathsModule = loadTs(module, '../../src/utils/paths');
 
 describe('AngularServiceGenerator', () => {
   let tempRoot: string;
@@ -27,8 +28,8 @@ describe('AngularServiceGenerator', () => {
   });
 
   it('should generate an Angular service extending HttpClientService', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new AngularServiceGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new angularServiceGeneratorModule.AngularServiceGenerator({
       name: 'my-data',
       app: 'test-app',
       methods: ['getData', 'saveData'],

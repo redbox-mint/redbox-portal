@@ -1,0 +1,21 @@
+import { Controllers as CoreControllers } from '@researchdatabox/redbox-core';
+
+export namespace Controllers {
+  export class Example extends CoreControllers.Core.Controller {
+    protected _exportedMethods: string[] = [
+      'index'
+    ];
+
+    public async index(_req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      return res.json({
+        hook: '{{packageName}}',
+        status: 'ok'
+      });
+    }
+  }
+}
+
+export type ExampleController = ReturnType<Controllers.Example['exports']>;
+export const ExampleController: ExampleController = new Controllers.Example().exports() as ExampleController;
+
+module.exports = ExampleController;

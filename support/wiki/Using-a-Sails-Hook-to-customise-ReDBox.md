@@ -6,7 +6,7 @@ have them applied to the instance during the lifting process.
 
 ### Getting Started with TypeScript
 
-The recommended way to develop hooks is using the [Redbox Hook Kit](redbox-dev-tools):
+The recommended way to develop hooks is using the [Redbox Dev Tools](redbox-dev-tools):
 
 ```bash
 # Initialize a new hook project
@@ -238,6 +238,6 @@ These files are copied into `/opt/redbox-portal/assets` and `/opt/redbox-portal/
 
 ## See Also
 
-- [Redbox Hook Kit](redbox-dev-tools) - TypeScript development toolkit
+- [Redbox Dev Tools](redbox-dev-tools) - Hook development toolkit
 - [Redbox Core Types](redbox-core) - Core types and base classes
 - [Redbox Loader](Redbox-Loader) - How hooks are discovered and loaded

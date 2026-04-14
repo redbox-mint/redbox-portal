@@ -1,9 +1,10 @@
-import { expect } from 'chai';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import { ModelGenerator } from '../../src/generators/model';
-import { resolvePaths } from '../../src/utils/paths';
+const { expect } = require('chai');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const loadTs = require('../support/load-ts.cjs');
+const modelGeneratorModule = loadTs(module, '../../src/generators/model');
+const pathsModule = loadTs(module, '../../src/utils/paths');
 
 describe('ModelGenerator', () => {
   let tempRoot: string;
@@ -71,8 +72,8 @@ export function toWaterlineModelDef(cls: any) { return {}; }
   });
 
   it('should generate a simple model with attributes', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new ModelGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new modelGeneratorModule.ModelGenerator({
       name: 'Product',
       attributes: [
         { name: 'name', type: 'string', required: true },
@@ -105,8 +106,8 @@ export function toWaterlineModelDef(cls: any) { return {}; }
   });
 
   it('should generate a model with belongsTo association', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new ModelGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new modelGeneratorModule.ModelGenerator({
       name: 'Order',
       attributes: [{ name: 'orderNumber', type: 'string', required: true, unique: true }],
       associations: [{ name: 'customer', type: 'belongsTo', model: 'user' }],
@@ -125,8 +126,8 @@ export function toWaterlineModelDef(cls: any) { return {}; }
   });
 
   it('should generate a model with hasMany association', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new ModelGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new modelGeneratorModule.ModelGenerator({
       name: 'Category',
       attributes: [{ name: 'name', type: 'string', required: true }],
       associations: [{ name: 'products', type: 'hasMany', model: 'product', via: 'category' }],
@@ -145,8 +146,8 @@ export function toWaterlineModelDef(cls: any) { return {}; }
   });
 
   it('should use custom identity when provided', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new ModelGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new modelGeneratorModule.ModelGenerator({
       name: 'UserProfile',
       identity: 'user_profiles',
       attributes: [{ name: 'bio', type: 'string' }],
@@ -163,8 +164,8 @@ export function toWaterlineModelDef(cls: any) { return {}; }
   });
 
   it('should update the index file', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new ModelGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new modelGeneratorModule.ModelGenerator({
       name: 'Setting',
       attributes: [
         { name: 'key', type: 'string', required: true, unique: true },
@@ -183,8 +184,8 @@ export function toWaterlineModelDef(cls: any) { return {}; }
   });
 
   it('should generate attributes with column type', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new ModelGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new modelGeneratorModule.ModelGenerator({
       name: 'Event',
       attributes: [
         { name: 'title', type: 'string', required: true },

@@ -1,0 +1,23 @@
+import type { ExampleController as ExampleControllerExports } from './ExampleController';
+
+export type HookRedboxControllers = {
+  ExampleController: ExampleControllerExports;
+};
+
+const controllerCache: Partial<HookRedboxControllers> = {};
+
+function getOrCreateController<K extends keyof HookRedboxControllers>(
+  name: K,
+  factory: () => HookRedboxControllers[K]
+): HookRedboxControllers[K] {
+  if (!controllerCache[name]) {
+    controllerCache[name] = factory();
+  }
+  return controllerCache[name] as HookRedboxControllers[K];
+}
+
+export const ControllerExports = {
+  get ExampleController(): ExampleControllerExports {
+    return getOrCreateController('ExampleController', () => require('./ExampleController') as ExampleControllerExports);
+  }
+};

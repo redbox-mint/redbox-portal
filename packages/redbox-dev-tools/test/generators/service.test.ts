@@ -1,9 +1,10 @@
-import { expect } from 'chai';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import { ServiceGenerator } from '../../src/generators/service';
-import { resolvePaths } from '../../src/utils/paths';
+const { expect } = require('chai');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const loadTs = require('../support/load-ts.cjs');
+const serviceGeneratorModule = loadTs(module, '../../src/generators/service');
+const pathsModule = loadTs(module, '../../src/utils/paths');
 
 describe('ServiceGenerator', () => {
   let tempRoot: string;
@@ -44,8 +45,8 @@ export const ServiceExports = {
   });
 
   it('should generate a service and update index', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new ServiceGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new serviceGeneratorModule.ServiceGenerator({
       name: 'Test',
       methods: ['doSomething', 'processData'],
       root: tempRoot,
