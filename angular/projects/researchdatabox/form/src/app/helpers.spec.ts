@@ -17,7 +17,8 @@ import { APP_BASE_HREF, CommonModule } from "@angular/common";
 import { BrowserModule, Title } from "@angular/platform-browser";
 import { FormService } from "./form.service";
 import {
-  buildKeyString,
+  buildKeyString, DynamicScriptResponse, DynamicScriptResponseEvaluateContext,
+  DynamicScriptResponseEvaluateExtra, DynamicScriptResponseEvaluateKey,
   FormConfigFrame,
   formValidatorsSharedDefinitions,
 } from "@researchdatabox/sails-ng-common";
@@ -253,14 +254,14 @@ export function setUpDynamicAssets(opts?: {
   }
   const utilityService = TestBed.inject(UtilityService);
   spyOn(utilityService, "getDynamicImport").and.callFake(
-    async (brandingAndPortalUrl: string, urlPath: string[], params?: { [key: string]: any }) => {
+    async (brandingAndPortalUrl: string, urlPath: string[], params?: { [key: string]: any }): Promise<DynamicScriptResponse> => {
       const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? []).join("/")}`;
       if (!opts.urlKeyStart || !urlKey.startsWith(opts.urlKeyStart)) {
         throw new Error(`Expected url key '${opts.urlKeyStart}', but got unknown url key: ${urlKey}`);
       }
 
       return {
-        evaluate: (key: (string | number)[], context: any, extra: any) => {
+        evaluate: function(key: DynamicScriptResponseEvaluateKey, context: DynamicScriptResponseEvaluateContext, extra?: DynamicScriptResponseEvaluateExtra): unknown {
           const keyStr = buildKeyString(key as string[]);
           if (opts.callable) {
             return opts.callable(keyStr, key, context, extra);

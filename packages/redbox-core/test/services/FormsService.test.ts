@@ -414,7 +414,7 @@ describe('FormsService', function () {
       expect(templates).to.have.length(expected.length);
     });
 
-    it('should apply context variables and include contextVariables in the returned form', async function () {
+    it('should apply context variables in the returned form', async function () {
       const item: FormConfigFrame = {
         name: 'custom-fields-test',
         componentDefinitions: [
@@ -450,17 +450,19 @@ describe('FormsService', function () {
         item,
         'edit',
         [],
-        {},
+        null,
         {},
         'default',
         contextVariablesMap
       );
 
       const contentConfig = form.componentDefinitions?.[0]?.component?.config as { content?: string };
-      const titleConfig = form.componentDefinitions?.[1]?.model?.config as { defaultValue?: string };
+      const titleConfig = form.componentDefinitions?.[1]?.model?.config as { defaultValue?: string, value?: string };
 
       expect(contentConfig.content).to.equal('Welcome Alice');
-      expect(form.contextVariables).to.deep.equal(contextVariablesMap);
+      expect(titleConfig.defaultValue).to.be.undefined;
+      expect(titleConfig.value).to.equal('Title for Alice');
+
     });
 
     it('should populate generated view-only metadata display content from the record metadata', async function () {
