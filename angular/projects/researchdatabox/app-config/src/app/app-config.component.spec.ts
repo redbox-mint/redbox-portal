@@ -12,7 +12,7 @@ import { FormlyFieldTextArea } from '@ngx-formly/bootstrap/textarea';
 import { MenuEditorTypeComponent } from './fieldTypes/menu-editor';
 import { AdminSidebarEditorTypeComponent } from './fieldTypes/admin-sidebar-editor';
 import { HomePanelsEditorTypeComponent } from './fieldTypes/home-panels-editor';
-import { FigshareBindingEditorTypeComponent } from './fieldTypes/figshare-binding-editor';
+import { ValueBindingEditorTypeComponent } from './fieldTypes/value-binding-editor';
 import { FigshareCategoryMappingEditorTypeComponent } from './fieldTypes/figshare-category-mapping-editor';
 
 let configService: any;
@@ -58,7 +58,7 @@ describe('AppConfigComponent', () => {
         MenuEditorTypeComponent,
         AdminSidebarEditorTypeComponent,
         HomePanelsEditorTypeComponent,
-        FigshareBindingEditorTypeComponent,
+        ValueBindingEditorTypeComponent,
         FigshareCategoryMappingEditorTypeComponent
       ],
       imports: [
@@ -72,7 +72,7 @@ describe('AppConfigComponent', () => {
             { name: 'menu-editor', component: MenuEditorTypeComponent },
             { name: 'admin-sidebar-editor', component: AdminSidebarEditorTypeComponent },
             { name: 'home-panels-editor', component: HomePanelsEditorTypeComponent },
-            { name: 'figshare-binding-editor', component: FigshareBindingEditorTypeComponent },
+            { name: 'value-binding-editor', component: ValueBindingEditorTypeComponent },
             { name: 'figshare-category-mapping-editor', component: FigshareCategoryMappingEditorTypeComponent }
           ],
         }),
@@ -226,7 +226,7 @@ describe('AppConfigComponent', () => {
     const titleField = findFieldByKey(app.fields, 'title');
     const mappingTableField = findFieldByKey(app.fields, 'mappingTable');
 
-    expect(titleField?.type).toBe('figshare-binding-editor');
+    expect(titleField?.type).toBe('value-binding-editor');
     expect(mappingTableField?.type).toBe('figshare-category-mapping-editor');
   });
 
@@ -256,7 +256,7 @@ describe('AppConfigComponent', () => {
     expect(migrationField).toBeFalsy();
     expect(operationsField).toBeFalsy();
     expect(validationField?.hide).toBeTrue();
-    expect(bindingField?.type).toBe('figshare-binding-editor');
+    expect(bindingField?.type).toBe('value-binding-editor');
 
     app.onSubmit(app.model);
     await fixture.whenStable();
@@ -277,7 +277,7 @@ describe('AppConfigComponent', () => {
 
     const compiled = fixture.debugElement.nativeElement;
     expect(compiled.textContent).toContain('publicationYear');
-    expect(compiled.textContent).toContain('DOI FIELD');
+    expect(compiled.textContent).toContain('Field Key');
   });
 
 });
@@ -419,7 +419,7 @@ export function getStubAppConfigService(recordData: any = {}) {
                     type: 'object',
                     widget: {
                       formlyConfig: {
-                        type: 'figshare-binding-editor'
+                        type: 'value-binding-editor'
                       }
                     }
                   }
@@ -507,7 +507,7 @@ export function getStubAppConfigService(recordData: any = {}) {
                           type: 'object',
                           widget: {
                             formlyConfig: {
-                              type: 'figshare-binding-editor'
+                              type: 'value-binding-editor'
                             }
                           }
                         },
@@ -515,7 +515,7 @@ export function getStubAppConfigService(recordData: any = {}) {
                           type: 'object',
                           widget: {
                             formlyConfig: {
-                              type: 'figshare-binding-editor'
+                              type: 'value-binding-editor'
                             }
                           }
                         },
@@ -523,7 +523,7 @@ export function getStubAppConfigService(recordData: any = {}) {
                           type: 'object',
                           widget: {
                             formlyConfig: {
-                              type: 'figshare-binding-editor'
+                              type: 'value-binding-editor'
                             }
                           }
                         },
@@ -538,7 +538,7 @@ export function getStubAppConfigService(recordData: any = {}) {
                                 type: 'object',
                                 widget: {
                                   formlyConfig: {
-                                    type: 'figshare-binding-editor'
+                                    type: 'value-binding-editor'
                                   }
                                 }
                               }
@@ -554,7 +554,7 @@ export function getStubAppConfigService(recordData: any = {}) {
                                 type: 'object',
                                 widget: {
                                   formlyConfig: {
-                                    type: 'figshare-binding-editor'
+                                    type: 'value-binding-editor'
                                   }
                                 }
                               }
@@ -568,7 +568,7 @@ export function getStubAppConfigService(recordData: any = {}) {
                               type: 'object',
                               widget: {
                                 formlyConfig: {
-                                  type: 'figshare-binding-editor'
+                                  type: 'value-binding-editor'
                                 }
                               }
                             }

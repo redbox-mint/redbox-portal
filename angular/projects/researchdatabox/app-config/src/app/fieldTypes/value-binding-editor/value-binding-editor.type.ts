@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 
 type BindingKind = 'path' | 'handlebars' | 'jsonata';
-interface FigshareBindingValue {
+interface ValueBindingValue {
   kind?: BindingKind;
   path?: string;
   template?: string;
@@ -83,8 +83,8 @@ const HUMAN_LABELS: Record<string, string> = {
 };
 
 @Component({
-  selector: 'formly-figshare-binding-editor-type',
-  templateUrl: './figshare-binding-editor.type.html',
+  selector: 'formly-value-binding-editor-type',
+  templateUrl: './value-binding-editor.type.html',
   styles: [`
     .binding-card {
       border-left: 3px solid #dee2e6;
@@ -108,9 +108,9 @@ const HUMAN_LABELS: Record<string, string> = {
   `],
   standalone: false
 })
-export class FigshareBindingEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
+export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
   readonly bindingKinds: BindingKind[] = ['path', 'handlebars', 'jsonata'];
-  private bindingValue: FigshareBindingValue = { kind: 'path', path: '' };
+  private bindingValue: ValueBindingValue = { kind: 'path', path: '' };
   collapsed = true;
   showAdvanced = false;
 
@@ -121,7 +121,7 @@ export class FigshareBindingEditorTypeComponent extends FieldType<FieldTypeConfi
     this.collapsed = true;
   }
 
-  get value(): FigshareBindingValue {
+  get value(): ValueBindingValue {
     return this.bindingValue;
   }
 
@@ -190,15 +190,15 @@ export class FigshareBindingEditorTypeComponent extends FieldType<FieldTypeConfi
       .trim();
   }
 
-  private resolveCurrentValue(): FigshareBindingValue {
-    const modelValue = typeof this.key === 'string' ? (this.model?.[this.key] as FigshareBindingValue | undefined) : undefined;
-    const controlValue = this.formControl?.value as FigshareBindingValue | undefined;
+  private resolveCurrentValue(): ValueBindingValue {
+    const modelValue = typeof this.key === 'string' ? (this.model?.[this.key] as ValueBindingValue | undefined) : undefined;
+    const controlValue = this.formControl?.value as ValueBindingValue | undefined;
     return modelValue ?? controlValue ?? {};
   }
 
-  private normaliseValue(value: FigshareBindingValue): FigshareBindingValue {
+  private normaliseValue(value: ValueBindingValue): ValueBindingValue {
     const kind = value?.kind || 'path';
-    const nextValue: FigshareBindingValue = {
+    const nextValue: ValueBindingValue = {
       ...value,
       kind
     };
@@ -210,16 +210,16 @@ export class FigshareBindingEditorTypeComponent extends FieldType<FieldTypeConfi
     return nextValue;
   }
 
-  private syncValue(value: FigshareBindingValue, markChanged = false): void {
+  private syncValue(value: ValueBindingValue, markChanged = false): void {
     if (typeof this.key === 'string' && this.model) {
-      (this.model as Record<string, FigshareBindingValue>)[this.key] = value;
+      (this.model as Record<string, ValueBindingValue>)[this.key] = value;
     }
 
     if (this.formControl) {
-      if (typeof (this.formControl as { patchValue?: (val: FigshareBindingValue) => void }).patchValue === 'function') {
-        (this.formControl as { patchValue: (val: FigshareBindingValue) => void }).patchValue(value);
-      } else if (typeof (this.formControl as { setValue?: (val: FigshareBindingValue) => void }).setValue === 'function') {
-        (this.formControl as { setValue: (val: FigshareBindingValue) => void }).setValue(value);
+      if (typeof (this.formControl as { patchValue?: (val: ValueBindingValue) => void }).patchValue === 'function') {
+        (this.formControl as { patchValue: (val: ValueBindingValue) => void }).patchValue(value);
+      } else if (typeof (this.formControl as { setValue?: (val: ValueBindingValue) => void }).setValue === 'function') {
+        (this.formControl as { setValue: (val: ValueBindingValue) => void }).setValue(value);
       }
       if (markChanged) {
         this.formControl.markAsDirty();

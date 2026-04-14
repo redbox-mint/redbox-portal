@@ -2,7 +2,10 @@
   <!-- Clickable header row: collapse toggle + field label + summary -->
   <div class="binding-header d-flex align-items-center py-2 px-3" (click)="toggleCollapsed()">
     <i class="fa fa-fw me-1" [class.fa-chevron-right]="collapsed" [class.fa-chevron-down]="!collapsed"></i>
-    <span class="fw-semibold">{{ fieldLabel }}</span>
+    <div class="d-flex flex-column">
+      <span class="fw-semibold">{{ fieldLabel }}</span>
+      <span class="small text-muted text-uppercase">Field Key: {{ fieldKey }}</span>
+    </div>
     @if (collapsed) {
       @if (isConfigured) {
         <span class="binding-source text-muted ms-auto d-flex align-items-center gap-2">

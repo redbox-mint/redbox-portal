@@ -331,7 +331,7 @@ export function fromDoiPublishingFormModel(model: unknown): DoiPublishingConfigD
 const VALUE_BINDING_EDITOR_WIDGET = {
   widget: {
     formlyConfig: {
-      type: 'figshare-binding-editor'
+      type: 'value-binding-editor'
     }
   }
 };
