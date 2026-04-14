@@ -12,9 +12,10 @@ import {
 } from "@researchdatabox/portal-ng-common";
 import { APP_BASE_HREF } from "@angular/common";
 import { Title } from "@angular/platform-browser";
-import { provideHttpClient } from "@angular/common/http";
+import {HttpContext, provideHttpClient} from "@angular/common/http";
 import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
 import {
+  FormConfigFrame,
   FormFieldValidationGroup,
   FormModesConfig,
   FormValidationGroups,
@@ -54,10 +55,18 @@ describe('The FormService', () => {
     });
     service = TestBed.inject(FormService);
     httpTesting = TestBed.inject(HttpTestingController);
+    (service as any).brandingAndPortalUrl = "http://localhost/default/rdmp";
+    (service as any).httpContext = new HttpContext();
   });
+
+  afterEach(() => {
+    if (httpTesting) {
+      httpTesting.verify();
+    }
+  });
+
   it('should create an instance', () => {
     expect(service).toBeTruthy();
-    httpTesting.verify();
   });
 
   it('should resolve accordion component classes from static map', async () => {
@@ -274,4 +283,43 @@ describe('The FormService', () => {
     });
   });
 
+  it("should download form components and form config meta", async function () {
+    const basicFormConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'form-control'
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'test_field',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'initial value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent',
+            config: {
+              type: 'text',
+              label: 'Test Field'
+            }
+          }
+        }
+      ]
+    };
+    const meta: Record<string, unknown> = {
+      workflow: {stage: 'draft', stageLabel: 'Draft'},
+      contextVariables: {'one': 1},
+    };
+    const oid = "oid", recordType = "auto", editMode = false, formName = "", modulePaths: string[] = [];
+    const result = service.downloadFormComponents(oid, recordType, editMode, formName, modulePaths);
+    const req = httpTesting.expectOne((request) =>
+      request.url.startsWith(`http://localhost/default/rdmp/record/form/${recordType}/${oid}`));
+    expect(req.request.method).toBe('GET');
+    req.flush({data: basicFormConfig, meta: meta});
+    expect((await result).formConfigMeta).toEqual(meta);
+  });
 });
