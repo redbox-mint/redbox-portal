@@ -18,44 +18,54 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import {
   Component,
-  Inject,
-  ElementRef,
-  signal,
-  HostBinding,
-  ViewChild,
-  ViewContainerRef,
-  inject,
   effect,
+  ElementRef,
+  HostBinding,
+  Inject,
+  inject,
   model,
   OnDestroy,
+  signal,
+  ViewChild,
+  ViewContainerRef,
   ViewEncapsulation,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
-import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
-import { FormGroup, FormControlStatus, StatusChangeEvent, PristineChangeEvent, ValueChangeEvent } from '@angular/forms';
-import { isEmpty as _isEmpty, isString as _isString, isNull as _isNull, get as _get, trim as _trim, set as _set } from 'lodash-es';
+import {Subscription} from 'rxjs';
+import {Location, LocationStrategy, PathLocationStrategy} from '@angular/common';
+import {FormControlStatus, FormGroup, PristineChangeEvent, StatusChangeEvent, ValueChangeEvent} from '@angular/forms';
 import {
-  ConfigService,
-  LoggerService,
-  TranslationService,
+  get as _get,
+  isEmpty as _isEmpty,
+  isNull as _isNull,
+  isString as _isString,
+  set as _set,
+  trim as _trim
+} from 'lodash-es';
+import {
   BaseComponent,
+  ConfigService,
   FormFieldCompMapEntry,
-  UtilityService,
-  RecordService,
+  LoggerService,
   RecordActionResult,
+  RecordService,
+  TranslationService,
+  UtilityService,
 } from '@researchdatabox/portal-ng-common';
 import {
-  FormStatus,
+  DynamicScriptResponse,
   FormConfigFrame,
-  JSONataQuerySource,
-  FormValidatorSummaryErrors,
-  FormRequestParamValue,
   FormRequestParamsMap,
+  FormRequestParamValue,
+  FormStatus,
+  FormValidatorSummaryErrors,
+  JSONataQuerySource,
 } from '@researchdatabox/sails-ng-common';
-import { FormBaseWrapperComponent } from './component/base-wrapper.component';
-import { FormComponentsMap, FormService } from './form.service';
-import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
-import { FormComponentFocusRequestCoordinator } from './form-state/events/form-component-focus-request-coordinator.service';
+import {FormBaseWrapperComponent} from './component/base-wrapper.component';
+import {FormComponentsMap, FormService} from './form.service';
+import {FormComponentEventBus} from './form-state/events/form-component-event-bus.service';
+import {
+  FormComponentFocusRequestCoordinator
+} from './form-state/events/form-component-focus-request-coordinator.service';
 import {
   createFormDefinitionChangedEvent,
   createFormDefinitionReadyEvent,
@@ -66,14 +76,16 @@ import {
   createFormValidationBroadcastEvent,
   FormComponentEvent,
   FormComponentEventType,
-  FormStatusDirtyRequestEvent, FormValidationGroupsChangeInitial, FormValidationGroupsChangeRequestEvent,
+  FormStatusDirtyRequestEvent,
+  FormValidationGroupsChangeInitial,
+  FormValidationGroupsChangeRequestEvent,
 } from './form-state/events/form-component-event.types';
-import { FormStateFacade } from './form-state/facade/form-state.facade';
-import { Store } from '@ngrx/store';
+import {FormStateFacade} from './form-state/facade/form-state.facade';
+import {Store} from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
-import { FormComponentValueChangeEventConsumer } from './form-state/events/';
-import { DebugInfo, FormDebugStateService } from './form-debug/form-debug-state.service';
-import { FormBehaviourManager } from './form-state/behaviours/form-behaviour-manager.service';
+import {FormComponentValueChangeEventConsumer} from './form-state/events/';
+import {DebugInfo, FormDebugStateService} from './form-debug/form-debug-state.service';
+import {FormBehaviourManager} from './form-state/behaviours/form-behaviour-manager.service';
 
 /**
  * The ReDBox Form
@@ -1047,24 +1059,22 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   /**
    * Get the compiled items for the form with the default values.
    */
-  public async getFormCompiledItems() {
+  public async getFormCompiledItems(): Promise<DynamicScriptResponse> {
     const recordType = this.trimmedParams.recordType();
     const formMode = this.editMode() ? 'edit' : 'view';
-    const result = await this.formService.getDynamicImportFormCompiledItems(recordType, undefined, formMode);
-    // TODO: cache?
-    return result;
+    // Response is cached in utilityService.getDynamicImport.
+    return await this.formService.getDynamicImportFormCompiledItems(recordType, undefined, formMode);
   }
 
   /**
    * Get the compiled items for the form with the record's values.
    */
-  public async getRecordCompiledItems() {
+  public async getRecordCompiledItems(): Promise<DynamicScriptResponse> {
     const recordType = this.trimmedParams.recordType();
     const oid = this.trimmedParams.oid();
     const formMode = this.editMode() ? 'edit' : 'view';
-    const result = await this.formService.getDynamicImportFormCompiledItems(recordType, oid, formMode);
-    // TODO: cache?
-    return result;
+    // Response is cached in utilityService.getDynamicImport.
+    return await this.formService.getDynamicImportFormCompiledItems(recordType, oid, formMode);
   }
 
   // Expose the `form` status
