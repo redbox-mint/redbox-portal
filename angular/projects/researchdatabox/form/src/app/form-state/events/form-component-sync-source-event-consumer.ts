@@ -32,17 +32,8 @@ export class FormComponentSyncSourceEventConsumer extends FormComponentEventBase
     super(eventBus);
   }
 
-  /**
-   * Delay the initial replay until the wrapper has finished binding the
-   * component and seeding query-source state. This keeps initial sync aligned
-   * with the "run on first render" behaviour described in the implementation
-   * plan without depending on a form-ready event reaching this lazy consumer.
-   */
   override bind(options: FormComponentEventBindingOptions): void {
-    super.bind(options);
-    setTimeout(() => {
-      void this.consumeInitialSyncExpressions();
-    }, 0);
+    super.bind(options);    
   }
 
   protected override async consumeEvent(
@@ -63,46 +54,4 @@ export class FormComponentSyncSourceEventConsumer extends FormComponentEventBase
     }
   }
 
-  /**
-   * Replays the current source-field values through the same consume path used
-   * for live `field.value.changed` events.
-   *
-   * This is intentionally limited to JSONPointer conditions targeting value
-   * change events because the sync-source design is declarative documentation on
-   * the component config, while the actual runtime behaviour still lives in the
-   * existing expression system.
-   */
-  private async consumeInitialSyncExpressions(): Promise<void> {
-    const querySource = this.formComp?.getQuerySource();
-    const expressions = this.expressions ?? [];
-    if (!querySource || expressions.length === 0) {
-      return;
-    }
-
-    for (const expression of expressions) {
-      if (!expression.config.condition) {
-        continue;
-      }
-      const conditionKind = expression.config.conditionKind || ExpressionsConditionKind.JSONPointer;
-      if (conditionKind !== ExpressionsConditionKind.JSONPointer) {
-        continue;
-      }
-
-      const pointerCondition = this.getEventJSONPointerCondition(expression.config.condition);
-      if (pointerCondition.event !== '*' && pointerCondition.event !== FormComponentEventType.FIELD_VALUE_CHANGED) {
-        continue;
-      }
-
-      const value = getObjectWithJsonPointer(querySource.jsonPointerSource, pointerCondition.jsonPointer);
-      const event = {
-        ...createFieldValueChangedEvent({
-          fieldId: pointerCondition.jsonPointer,
-          sourceId: pointerCondition.jsonPointer,
-          value: value,
-        }),
-        timestamp: Date.now(),
-      };
-      await this.consumeEvent(event, expression);
-    }
-  }
 }
