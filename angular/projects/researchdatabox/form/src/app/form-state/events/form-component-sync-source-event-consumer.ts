@@ -15,8 +15,14 @@ import { FormComponentEventBindingOptions } from './form-component-base-event-pr
 
 /**
  * Dedicated value-change consumer for components that declare syncSources.
- * Unlike the default value change consumer, it skips updates when a template
- * evaluates to undefined so keystroke noise does not clear or replace values.
+ *
+ * Design intent:
+ * - keep the regular value-change consumer unchanged for existing components
+ * - make sync-source behaviour opt-in via component config
+ * - treat `undefined` template results as "no-op" rather than "clear value"
+ *
+ * This supports additive contributor-permission sync where typeahead keystrokes
+ * must not wipe repeatable rows before the user commits a selection.
  */
 export class FormComponentSyncSourceEventConsumer extends FormComponentEventBaseConsumer {
   protected override readonly consumedEventType: FormComponentEventTypeValue =
@@ -26,6 +32,12 @@ export class FormComponentSyncSourceEventConsumer extends FormComponentEventBase
     super(eventBus);
   }
 
+  /**
+   * Delay the initial replay until the wrapper has finished binding the
+   * component and seeding query-source state. This keeps initial sync aligned
+   * with the "run on first render" behaviour described in the implementation
+   * plan without depending on a form-ready event reaching this lazy consumer.
+   */
   override bind(options: FormComponentEventBindingOptions): void {
     super.bind(options);
     setTimeout(() => {
@@ -51,6 +63,15 @@ export class FormComponentSyncSourceEventConsumer extends FormComponentEventBase
     }
   }
 
+  /**
+   * Replays the current source-field values through the same consume path used
+   * for live `field.value.changed` events.
+   *
+   * This is intentionally limited to JSONPointer conditions targeting value
+   * change events because the sync-source design is declarative documentation on
+   * the component config, while the actual runtime behaviour still lives in the
+   * existing expression system.
+   */
   private async consumeInitialSyncExpressions(): Promise<void> {
     const querySource = this.formComp?.getQuerySource();
     const expressions = this.expressions ?? [];

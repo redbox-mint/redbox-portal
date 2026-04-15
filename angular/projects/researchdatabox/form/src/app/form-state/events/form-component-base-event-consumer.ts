@@ -44,7 +44,10 @@ export interface FormComponentEventJSONataQueryMatchOptions extends FormComponen
 
 /**
  * Base class for form component event consumers.
- * Provides JSONata expression processing and compiled items cache handling.
+ *
+ * Subclasses decide which event stream to listen to; this base class owns the
+ * shared mechanics for expression matching, compiled JSONata lookup, runtime
+ * evaluation context, and target mutation.
  */
 export abstract class FormComponentEventBaseConsumer extends FormComponentEventBaseProducerConsumer {
 
@@ -129,6 +132,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 
 	/**
 	 * Evaluate the JSONata expression template with the provided context.
+	*
+	* Design note: when compiled templates are unavailable, fall back to the raw
+	* event value. That preserves historical behaviour for partially constructed
+	* forms instead of failing closed and clearing dependent fields.
    *
    * @param expression - The expression config frame containing the template.
    * @param event - The event that triggered the evaluation.
@@ -149,10 +156,9 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 		try {
       const dataFieldId = getLastSegmentFromJSONPointer(event.fieldId || '');
 
-      // The value from angular may be frozen (from Object.freeze).
-	      // This is good, it reduces the chances of accidentally changing the value in the angular model.
-	      // However, some jsonata expressions might involve trying to change the value, which will fail.
-	      // So convert to and then from JSON to get a fresh value.
+	      // Expressions are allowed to reshape their inputs. Clone everything we
+	      // expose to JSONata so a mutating expression cannot leak writes back
+	      // into Angular form state or event objects.
 	      const valueOriginal = dataFieldId ? this.formComp?.form?.value[dataFieldId] : undefined;
 	      const value = this.cloneExpressionContextValue(valueOriginal, 'value');
 	      const eventClone = this.cloneExpressionContextValue(event, 'event');
@@ -186,6 +192,11 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 			}
 		}
 
+		/**
+		 * Best-effort clone used to isolate JSONata evaluation from live Angular
+		 * state. If cloning fails, continue with the original reference because the
+		 * form should still behave, even if the expression loses mutation safety.
+		 */
 		protected cloneExpressionContextValue<T>(value: T, label: string): T {
 			if (value === undefined) {
 				return value;
@@ -236,6 +247,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 	}
   /**
    * Sets up event consumption for the specified event type.
+	 *
+	 * Matching and consumption stay serial on purpose. Several expressions can
+	 * target the same control, and preserving declaration order avoids hidden
+	 * race conditions between async template evaluations.
    *
    * @param options
    * @param eventType
@@ -361,6 +376,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
   /**
    * Sets the expression target property to the value.
    *
+	* Centralising target application here keeps specialised consumers, such as
+	* the sync-source consumer, focused on their matching semantics rather than
+	* re-implementing model/layout/component update rules.
+	*
    * Supported targets:
    * - `model.value` → this.control.setValue
    * - `layout.* →` this.options.definition.layout.componentDefinition.config.*

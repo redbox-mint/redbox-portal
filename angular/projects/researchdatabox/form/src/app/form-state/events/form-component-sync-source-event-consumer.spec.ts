@@ -9,6 +9,9 @@ import { Subject } from 'rxjs';
 import { CustomSetValueControl } from '../custom-set-value.control';
 
 describe('FormComponentSyncSourceEventConsumer', () => {
+  // These tests pin the intent from the implementation plan:
+  // `undefined` means "skip the sync", while other defined values, including
+  // falsy ones, still flow through the normal target-update path.
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
   let consumer: FormComponentSyncSourceEventConsumer;
   let eventStream$: Subject<FieldValueChangedEvent>;
@@ -34,6 +37,8 @@ describe('FormComponentSyncSourceEventConsumer', () => {
     consumer.destroy();
   });
 
+  // Minimal binding harness for exercising the consumer without needing a full
+  // rendered form component tree.
   function createSetup(expressions: FormExpressionsConfigFrame[]) {
     const control = new FormControl<unknown>('');
     const definition = {

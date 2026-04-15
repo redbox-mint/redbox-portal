@@ -20,6 +20,10 @@ import { setControlValue } from '../custom-set-value.control';
  * extracts a value at `onItemSelect.rawPath` and writes it into the local
  * form control. Scope is limited to siblings sharing the same JSON Pointer
  * parent container.
+ *
+ * This narrow scope is deliberate: the consumer is a small compatibility layer
+ * for sibling-field autofill and does not evaluate expressions. Cross-tree,
+ * additive sync flows use the dedicated sync-source consumer instead.
  */
 export class FormComponentItemSelectEventConsumer extends FormComponentEventBaseConsumer {
   protected override readonly consumedEventType: FormComponentEventTypeValue =
@@ -34,7 +38,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
 
   /**
    * Override base bind to skip expression-based consumption.
-   * Instead, set up subscription filtered by sibling scope.
+    * Instead, subscribe directly and enforce the sibling-only contract in code.
    */
   override bind(options: FormComponentEventBindingOptions): void {
     this.destroy();
@@ -86,6 +90,10 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
 
   /**
    * Process a field.item.selected event from a sibling component.
+    *
+    * The control update is intentionally followed by a parent-group rebroadcast
+    * so listeners attached to the containing object see the final selected row
+    * value rather than a piecemeal child-field mutation.
    */
   protected async handleItemSelected(event: FieldItemSelectedEvent): Promise<void> {
     const control = this.control;
@@ -155,7 +163,10 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
 
   /**
    * Check whether the event's fieldId shares the same parent JSON pointer
-   * as this consumer's own pointer (sibling scope).
+    * as this consumer's own pointer (sibling scope).
+    *
+    * Keeping this boundary strict avoids surprising cross-tree writes for older
+    * form configs that rely on item selection only affecting adjacent fields.
    */
   private isSiblingEvent(event: FieldItemSelectedEvent): boolean {
     if (!this.ownPointer || !event.fieldId) {
