@@ -16,6 +16,17 @@ export interface SyncSourceEntry {
      */
     syncKey?: string;
     /**
+     * Optional list of item fields to inspect when deciding whether an existing
+     * repeatable row is still a blank placeholder.
+     */
+    blankCheckFields?: string[];
+    /**
+     * Optional object merged into synced rows before insertion/update.
+     * This allows sync behavior to stay generic while individual configs
+     * provide domain-specific defaults such as roles.
+     */
+    defaultTemplate?: Record<string, unknown>;
+    /**
      * Optional formData key whose value determines whether this source is active.
      */
     visibilityConditionField?: string;
