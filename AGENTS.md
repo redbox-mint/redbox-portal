@@ -57,3 +57,11 @@ All project documentation is maintained in the `support/wiki/` submodule. Agents
 - `tsconfig.json`: TypeScript compiler options.
 - `.circleci/config.yml`: CI/CD pipeline definitions.
 - `support/integration-testing/docker-compose*.yml`: Test environment setups.
+
+## Dependency pinning (security)
+
+- **Policy**: Do not use semantic version ranges (for example `^`, `~`, `>`, `<`, or `*`) in `package.json`. Use exact versions (e.g. `1.2.3`) for both `dependencies` and `devDependencies` to reduce exposure to npm supply-chain attacks.
+- **Rationale**: Pinning exact versions prevents unexpected automatic upgrades that could introduce malicious or compromised packages.
+- **Exceptions**: Local/internal packages referenced via `file:` or workspace/local monorepo references are allowed to use non-exact paths.
+- **Process**: When updating a dependency, change the exact version in `package.json`, explain the reason in the PR description, and run tests before merging.
+

@@ -1,9 +1,10 @@
-import { expect } from 'chai';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import { AddMethodGenerator } from '../../src/generators/add-method';
-import { resolvePaths } from '../../src/utils/paths';
+const { expect } = require('chai');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const loadTs = require('../support/load-ts.cjs');
+const addMethodGeneratorModule = loadTs(module, '../../src/generators/add-method');
+const pathsModule = loadTs(module, '../../src/utils/paths');
 
 describe('AddMethodGenerator', () => {
   let tempRoot: string;
@@ -78,8 +79,8 @@ export namespace Controllers {
 `
     );
 
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new AddMethodGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new addMethodGeneratorModule.AddMethodGenerator({
       file: controllerPath,
       method: 'newMethod',
       route: 'get /new-route',
@@ -121,8 +122,8 @@ export namespace Services {
 `
     );
 
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new AddMethodGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new addMethodGeneratorModule.AddMethodGenerator({
       file: servicePath,
       method: 'newServiceMethod',
       root: tempRoot,

@@ -16,6 +16,7 @@ There are several configuration items that are specific to the ReDBox Portal:
 2. `auth.js` manages configuration around authorisation and authentication
 3. [emailnotification.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Email-Notifications) manages configuration of email notifications
 4. [form.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms) manages form configuration
+5. [solr.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Solr) manages Solr connection, schema, and indexing transformations
 
 ## Configuration Defaults (redbox-core)
 
@@ -110,3 +111,4 @@ Compare these files to identify where a setting is being overwritten.
 - [Redbox Core Types](redbox-core) - Where config defaults are defined
 - [Redbox Loader](Redbox-Loader) - How config shims are generated
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Adding config via hooks
+- [Configuring Solr](Configuring-Solr) - Solr connection, schema, and pre-index mapping options

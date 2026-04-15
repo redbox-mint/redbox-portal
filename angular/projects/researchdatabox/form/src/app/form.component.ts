@@ -1094,14 +1094,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Get the available validation group definitions.
    */
   public get validationGroups() {
-    return  this.formDefMap?.formConfig?.validationGroups ?? {};
+    return this.formDefMap?.formConfig?.validationGroups ?? {};
   }
 
   /**
    * Get the form-level validators.
    */
   public get formValidators() {
-    return  this.formDefMap?.formConfig?.validators ?? [];
+    return this.formDefMap?.formConfig?.validators ?? [];
   }
 
   /**
