@@ -1,7 +1,12 @@
 import { FormOverride } from '../../src/config/form-override.model';
 import { ContentComponentName } from '../../src/config/component/content.outline';
+import {
+  RepeatableComponentName,
+  RepeatableFieldComponentDefinitionFrame,
+} from '../../src/config/component/repeatable.outline';
 import { ReusableComponentName } from '../../src/config/component/reusable.outline';
 import { SimpleInputComponentName } from '../../src/config/component/simple-input.outline';
+import { isTypeFieldDefinitionName } from '../../src/config/form-types.outline';
 import { ILogger } from '../../src/logger.interface';
 
 let expect: Chai.ExpectStatic;
@@ -219,8 +224,13 @@ describe('FormOverride reusable expansion', () => {
     expect(result).to.have.length(1);
     expect(result[0].name).to.equal('contributor_dmp_permissions');
     expect(result[0].expressions).to.deep.equal(wrapperExpressions);
-    expect(result[0].component.config.syncSources).to.deep.equal(syncSourcesOverride);
-    expect(result[0].component.config.addButtonShow).to.equal(true);
-    expect(result[0].component.config.elementTemplate).to.exist;
+
+    if (!isTypeFieldDefinitionName<RepeatableFieldComponentDefinitionFrame>(result[0].component, RepeatableComponentName)) {
+      throw new Error(`Expected RepeatableFieldComponentDefinitionFrame but got ${result[0].component?.class}`);
+    }
+
+    expect(result[0].component.config?.syncSources).to.deep.equal(syncSourcesOverride);
+    expect(result[0].component.config?.addButtonShow).to.equal(true);
+    expect(result[0].component.config?.elementTemplate).to.exist;
   });
 });
