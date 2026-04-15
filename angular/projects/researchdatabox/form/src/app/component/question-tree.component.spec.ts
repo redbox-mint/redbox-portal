@@ -1,5 +1,5 @@
 import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
-import {TestBed} from "@angular/core/testing";
+import {ComponentFixture, TestBed} from "@angular/core/testing";
 import {RadioInputComponent} from "./radio-input.component";
 import {QuestionTreeComponent} from "./question-tree.component";
 import {CheckboxInputComponent} from "./checkbox-input.component";
@@ -560,6 +560,29 @@ describe('QuestionTreeComponent', async () => {
       expect(el.checked).toBe(true);
     }
 
+    const stabilizeFixture = async (fixture: ComponentFixture<unknown>) => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+      await fixture.whenRenderingDone();
+    };
+
+    const waitForCondition = async (
+      fixture: ComponentFixture<unknown>,
+      predicate: () => boolean,
+      description: string,
+      attempts = 15,
+      delayMs = 25,
+    ) => {
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        await stabilizeFixture(fixture);
+        if (predicate()) {
+          return;
+        }
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+      fail(`Condition was not met: ${description}`);
+    };
+
     it('should update the data model and component visibility as the answers are changed', async () => {
       setUpDynamicAssets({
         urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
@@ -729,7 +752,15 @@ describe('QuestionTreeComponent', async () => {
       const {fixture, formComponent} = await createFormAndWaitForReady(formConfigWithModelValue);
       const element = fixture.nativeElement as HTMLElement;
 
-      await new Promise(resolve => setTimeout(resolve, 150));
+      const loadedQuestionTreeValue = formConfigWithModelValue.componentDefinitions[0].model!.config!.value as QuestionTreeModelValueType;
+      const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
+
+      // Reapply the loaded question tree value after the nested controls are created so
+      // the current component lifecycle rehydrates child controls and re-runs expressions.
+      questionTree.model?.setValue(loadedQuestionTreeValue);
+
+      fixture.detectChanges();
+      await fixture.whenStable();
       fixture.detectChanges();
       await fixture.whenStable();
 
@@ -763,8 +794,20 @@ describe('QuestionTreeComponent', async () => {
       // change state: select question_1 'yes'
       const q1RadioElem1 = inputElementsInitial[0];
       toggleRadioButton(q1RadioElem1);
-      fixture.detectChanges();
-      await fixture.whenStable();
+
+      await waitForCondition(
+        fixture,
+        () => {
+          const formValue = formComponent.form?.value as ClientFormValue | undefined;
+          return qtElement.querySelectorAll('input').length === 2
+            && formValue?.questiontree_1?.question_1 === "yes"
+            && formValue?.questiontree_1?.question_2 === null
+            && formValue?.questiontree_1?.[QuestionTreeOutcomeInfoKey] === null
+            && formValue?.["data-classification-item-outcome"] === null
+            && formValue?.["data-classification-item-outcome-details"] === null;
+        },
+        'question tree outcome state to clear after selecting question_1 yes'
+      );
 
       const inputElementsStep1 = qtElement.querySelectorAll('input');
       expect(inputElementsStep1.length).toEqual(2);
