@@ -52,34 +52,38 @@
     ></textarea>
   </div>
 
-  <div class="mb-3" *ngIf="draft.type === 'tree' && hasEntries">
-    <button class="btn btn-sm btn-outline-info" type="button" (click)="toggleTreePreview()">
-      {{
-        isTreePreviewVisible
-          ? ('admin-vocabulary-hide-tree-preview' | i18next)
-          : ('admin-vocabulary-show-tree-preview' | i18next)
-      }}
-    </button>
+  @if (draft.type === 'tree' && hasEntries) {
+    <div class="mb-3">
+      <button class="btn btn-sm btn-outline-info" type="button" (click)="toggleTreePreview()">
+        {{
+          isTreePreviewVisible
+            ? ('admin-vocabulary-hide-tree-preview' | i18next)
+            : ('admin-vocabulary-show-tree-preview' | i18next)
+        }}
+      </button>
 
-    <div class="card card-body mt-2 tree-preview-panel" *ngIf="isTreePreviewVisible">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="mb-0">{{ 'admin-vocabulary-hierarchy-preview' | i18next }}</h6>
-        <button class="btn btn-sm btn-outline-secondary" type="button" (click)="refreshTreePreview()">
-          {{ 'admin-vocabulary-refresh' | i18next }}
-        </button>
-      </div>
+      @if (isTreePreviewVisible) {
+        <div class="card card-body mt-2 tree-preview-panel">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">{{ 'admin-vocabulary-hierarchy-preview' | i18next }}</h6>
+            <button class="btn btn-sm btn-outline-secondary" type="button" (click)="refreshTreePreview()">
+              {{ 'admin-vocabulary-refresh' | i18next }}
+            </button>
+          </div>
 
-      <ul class="tree-preview-list mb-0" *ngIf="(previewTree || []).length > 0; else emptyPreview">
-        <ng-container
-          *ngTemplateOutlet="previewNodesTemplate; context: { $implicit: previewTree || [] }"
-        ></ng-container>
-      </ul>
-
-      <ng-template #emptyPreview>
-        <p class="text-muted mb-0">{{ 'admin-vocabulary-empty-tree-preview' | i18next }}</p>
-      </ng-template>
+          @if ((previewTree || []).length > 0) {
+            <ul class="tree-preview-list mb-0">
+              <ng-container
+                *ngTemplateOutlet="previewNodesTemplate; context: { $implicit: previewTree || [] }"
+              ></ng-container>
+            </ul>
+          } @else {
+            <p class="text-muted mb-0">{{ 'admin-vocabulary-empty-tree-preview' | i18next }}</p>
+          }
+        </div>
+      }
     </div>
-  </div>
+  }
 
   <hr />
 
@@ -90,173 +94,176 @@
     </button>
   </div>
 
-  <div class="table-responsive" *ngIf="hasEntries">
-    <table class="table table-sm table-bordered mb-0">
-      <thead class="thead-light">
-        <tr>
-          <th style="width: 50px">#</th>
-          <th>{{ 'admin-vocabulary-label' | i18next }}</th>
-          <th>{{ 'admin-vocabulary-value' | i18next }}</th>
-          <th>{{ 'admin-vocabulary-historical' | i18next }}</th>
-          <th>{{ 'admin-vocabulary-parent' | i18next }}</th>
-          <th style="width: 220px">{{ 'record-table-results-table-header-actions' | i18next }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let entry of draft.entries; let idx = index; trackBy: trackByEntryIndex">
-          <td class="align-middle">{{ idx + 1 }}</td>
-          <td>
-            <input
-              class="form-control form-control-sm"
-              [(ngModel)]="entry.label"
-              (ngModelChange)="onEntryEdited()"
-              [attr.placeholder]="'admin-vocabulary-entry-label-placeholder' | i18next"
-            />
-          </td>
-          <td>
-            <input
-              class="form-control form-control-sm"
-              [(ngModel)]="entry.value"
-              (ngModelChange)="onEntryEdited()"
-              [attr.placeholder]="'admin-vocabulary-entry-value-placeholder' | i18next"
-            />
-          </td>
-          <td class="align-middle text-center">
-            <input
-              type="checkbox"
-              [(ngModel)]="entry.historical"
-              (ngModelChange)="onEntryEdited()"
-              [attr.aria-label]="'admin-vocabulary-historical-checkbox' | i18next"
-            />
-          </td>
-          <td>
-            <ng-container *ngIf="draft.type === 'tree'; else flatParentField">
-              <ng-container *ngIf="isParentEditorOpen(entry); else parentReadOnly">
-                <div class="d-flex">
-                  <select
-                    class="form-control form-control-sm mr-2"
-                    [ngModel]="entry.parent || ''"
-                    (ngModelChange)="onParentChanged(entry, $event)"
-                  >
-                    <option value="">{{ 'admin-vocabulary-parent-root' | i18next }}</option>
-                    <option *ngFor="let option of getParentOptions(entry)" [value]="option.id">
-                      {{ option.label }}
-                    </option>
-                  </select>
-                  <button class="btn btn-sm btn-outline-secondary" type="button" (click)="closeParentEditor()">
-                    {{ 'admin-vocabulary-done' | i18next }}
-                  </button>
-                </div>
-              </ng-container>
-              <ng-template #parentReadOnly>
-                <div class="d-flex">
-                  <input
-                    class="form-control form-control-sm mr-2"
-                    [value]="parentDisplayValue(entry) || ('admin-vocabulary-parent-root' | i18next)"
-                    disabled
-                  />
-                  <button class="btn btn-sm btn-outline-primary" type="button" (click)="openParentEditor(entry)">
-                    {{ 'admin-vocabulary-change' | i18next }}
-                  </button>
-                </div>
-              </ng-template>
-            </ng-container>
-            <ng-template #flatParentField>
+  @if (hasEntries) {
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered mb-0">
+        <thead class="thead-light">
+          <tr>
+            <th style="width: 50px">#</th>
+            <th>{{ 'admin-vocabulary-label' | i18next }}</th>
+            <th>{{ 'admin-vocabulary-value' | i18next }}</th>
+            <th>{{ 'admin-vocabulary-historical' | i18next }}</th>
+            <th>{{ 'admin-vocabulary-parent' | i18next }}</th>
+            <th style="width: 220px">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let entry of draft.entries; let idx = index; trackBy: trackByEntryIndex">
+            <td class="align-middle">{{ idx + 1 }}</td>
+            <td>
               <input
                 class="form-control form-control-sm"
-                [value]="parentDisplayValue(entry)"
-                disabled
-                [attr.placeholder]="'admin-vocabulary-parent-na-flat' | i18next"
+                [(ngModel)]="entry.label"
+                (ngModelChange)="onEntryEdited()"
+                [attr.placeholder]="'admin-vocabulary-entry-label-placeholder' | i18next"
               />
-            </ng-template>
-          </td>
-          <td>
-            <button
-              class="btn btn-sm btn-outline-secondary mr-1"
-              type="button"
-              (click)="moveEntryUp(idx)"
-              [disabled]="idx === 0"
-            >
-              {{ 'admin-vocabulary-up' | i18next }}
-            </button>
-            <button
-              class="btn btn-sm btn-outline-secondary mr-1"
-              type="button"
-              (click)="moveEntryDown(idx)"
-              [disabled]="idx === (draft.entries?.length || 1) - 1"
-            >
-              {{ 'admin-vocabulary-down' | i18next }}
-            </button>
-            <button class="btn btn-sm btn-outline-danger" type="button" (click)="requestRemoveEntry(idx)">
-              {{ 'admin-vocabulary-remove' | i18next }}
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <p class="text-muted mb-0" *ngIf="!hasEntries">{{ 'admin-vocabulary-empty-entries' | i18next }}</p>
+            </td>
+            <td>
+              <input
+                class="form-control form-control-sm"
+                [(ngModel)]="entry.value"
+                (ngModelChange)="onEntryEdited()"
+                [attr.placeholder]="'admin-vocabulary-entry-value-placeholder' | i18next"
+              />
+            </td>
+            <td class="align-middle text-center">
+              <input
+                type="checkbox"
+                [(ngModel)]="entry.historical"
+                (ngModelChange)="onEntryEdited()"
+                [attr.aria-label]="'admin-vocabulary-historical-checkbox' | i18next"
+              />
+            </td>
+            <td>
+              @if (draft.type === 'tree') {
+                @if (isParentEditorOpen(entry)) {
+                  <div class="d-flex">
+                    <select
+                      class="form-control form-control-sm mr-2"
+                      [ngModel]="entry.parent || ''"
+                      (ngModelChange)="onParentChanged(entry, $event)"
+                    >
+                      <option value="">{{ 'admin-vocabulary-parent-root' | i18next }}</option>
+                      <option *ngFor="let option of getParentOptions(entry)" [value]="option.id">
+                        {{ option.label }}
+                      </option>
+                    </select>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" (click)="closeParentEditor()">
+                      {{ 'admin-vocabulary-done' | i18next }}
+                    </button>
+                  </div>
+                } @else {
+                  <div class="d-flex">
+                    <input
+                      class="form-control form-control-sm mr-2"
+                      [value]="parentDisplayValue(entry) || ('admin-vocabulary-parent-root' | i18next)"
+                      disabled
+                    />
+                    <button class="btn btn-sm btn-outline-primary" type="button" (click)="openParentEditor(entry)">
+                      {{ 'admin-vocabulary-change' | i18next }}
+                    </button>
+                  </div>
+                }
+              } @else {
+                <input
+                  class="form-control form-control-sm"
+                  [value]="parentDisplayValue(entry)"
+                  disabled
+                  [attr.placeholder]="'admin-vocabulary-parent-na-flat' | i18next"
+                />
+              }
+            </td>
+            <td>
+              <button
+                class="btn btn-sm btn-outline-secondary mr-1"
+                type="button"
+                (click)="moveEntryUp(idx)"
+                [disabled]="idx === 0"
+              >
+                {{ 'admin-vocabulary-up' | i18next }}
+              </button>
+              <button
+                class="btn btn-sm btn-outline-secondary mr-1"
+                type="button"
+                (click)="moveEntryDown(idx)"
+                [disabled]="idx === (draft.entries?.length || 1) - 1"
+              >
+                {{ 'admin-vocabulary-down' | i18next }}
+              </button>
+              <button class="btn btn-sm btn-outline-danger" type="button" (click)="requestRemoveEntry(idx)">
+                {{ 'admin-vocabulary-remove' | i18next }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <p class="text-muted mb-0">{{ 'admin-vocabulary-empty-entries' | i18next }}</p>
+  }
 </div>
 
-<div
-  class="modal fade show d-block entry-remove-modal"
-  tabindex="-1"
-  role="alertdialog"
-  aria-modal="true"
-  aria-labelledby="removeEntryModalTitle"
-  aria-describedby="removeEntryModalDescription"
-  (keydown.escape)="cancelRemoveEntry()"
-  *ngIf="isRemoveEntryModalOpen"
->
-  <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
-    <div class="modal-content">
-      <div class="modal-header">
-        <span class="modal-title h4-header" id="removeEntryModalTitle">{{
-          'admin-vocabulary-confirm-remove-entry-title' | i18next
-        }}</span>
-        <button
-          type="button"
-          class="btn-close"
-          [attr.aria-label]="'admin-vocabulary-close' | i18next"
-          (click)="cancelRemoveEntry()"
-        ></button>
-      </div>
-      <div class="modal-body">
-        <p class="mb-2" id="removeEntryModalDescription">{{ 'admin-vocabulary-confirm-remove-entry' | i18next }}</p>
-        <p class="mb-0 text-muted" *ngIf="pendingRemoveEntryDisplay">
-          {{ 'admin-vocabulary-confirm-remove-entry-detail' | i18next: { entry: pendingRemoveEntryDisplay } }}
-        </p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="cancelRemoveEntry()" cdkFocusInitial>
-          {{ 'admin-vocabulary-cancel' | i18next }}
-        </button>
-        <button type="button" class="btn btn-danger" (click)="confirmRemoveEntry()">
-          {{ 'admin-vocabulary-remove' | i18next }}
-        </button>
+@if (isRemoveEntryModalOpen) {
+  <div
+    class="modal fade show d-block entry-remove-modal"
+    tabindex="-1"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="removeEntryModalTitle"
+    aria-describedby="removeEntryModalDescription"
+    (keydown.escape)="cancelRemoveEntry()"
+  >
+    <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="modal-title h4-header" id="removeEntryModalTitle">{{
+            'admin-vocabulary-confirm-remove-entry-title' | i18next
+          }}</span>
+          <button
+            type="button"
+            class="btn-close"
+            [attr.aria-label]="'admin-vocabulary-close' | i18next"
+            (click)="cancelRemoveEntry()"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2" id="removeEntryModalDescription">{{ 'admin-vocabulary-confirm-remove-entry' | i18next }}</p>
+          @if (pendingRemoveEntryDisplay) {
+            <p class="mb-0 text-muted">
+              {{ 'admin-vocabulary-confirm-remove-entry-detail' | i18next: { entry: pendingRemoveEntryDisplay } }}
+            </p>
+          }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="cancelRemoveEntry()" cdkFocusInitial>
+            {{ 'admin-vocabulary-cancel' | i18next }}
+          </button>
+          <button type="button" class="btn btn-danger" (click)="confirmRemoveEntry()">
+            {{ 'admin-vocabulary-remove' | i18next }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
-</div>
-<div class="modal-backdrop fade show entry-remove-backdrop" *ngIf="isRemoveEntryModalOpen" aria-hidden="true"></div>
+  <div class="modal-backdrop fade show entry-remove-backdrop" aria-hidden="true"></div>
+}
 
 <ng-template #previewNodesTemplate let-nodes>
   <li *ngFor="let node of nodes; trackBy: trackByPreviewNode">
     <div class="tree-preview-node">
-      <button
-        *ngIf="hasPreviewChildren(node)"
-        class="btn btn-sm btn-link tree-preview-toggle"
-        type="button"
-        (click)="togglePreviewNode(node)"
-      >
-        {{ isPreviewNodeCollapsed(node) ? '+' : '−' }}
-      </button>
-      <span class="tree-preview-leaf-spacer" *ngIf="!hasPreviewChildren(node)"></span>
+      @if (hasPreviewChildren(node)) {
+        <button class="btn btn-sm btn-link tree-preview-toggle" type="button" (click)="togglePreviewNode(node)">
+          {{ isPreviewNodeCollapsed(node) ? '+' : '−' }}
+        </button>
+      } @else {
+        <span class="tree-preview-leaf-spacer"></span>
+      }
       <span>{{ node.display }}</span>
     </div>
-    <ul class="tree-preview-list" *ngIf="hasPreviewChildren(node) && !isPreviewNodeCollapsed(node)">
-      <ng-container *ngTemplateOutlet="previewNodesTemplate; context: { $implicit: node.children }"></ng-container>
-    </ul>
+    @if (hasPreviewChildren(node) && !isPreviewNodeCollapsed(node)) {
+      <ul class="tree-preview-list">
+        <ng-container *ngTemplateOutlet="previewNodesTemplate; context: { $implicit: node.children }"></ng-container>
+      </ul>
+    }
   </li>
 </ng-template>

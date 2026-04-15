@@ -41,12 +41,10 @@
 }
 
 .entry-remove-modal {
-  position: fixed;
-  z-index: 1060;
+  --bs-modal-zindex: 1060;
 }
 
 .entry-remove-backdrop {
-  position: fixed;
   --bs-backdrop-opacity: 0.25;
-  z-index: 1055;
+  --bs-backdrop-zindex: 1055;
 }
