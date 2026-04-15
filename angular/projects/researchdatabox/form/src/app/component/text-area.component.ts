@@ -17,10 +17,10 @@ export class TextAreaModel extends FormFieldModel<string> {
         [class.is-valid]="showValidState"
         [class.is-invalid]="!isValid"
         [readonly]="isReadonly"
-        [title]="tooltip"
+        [title]="tooltip | i18next"
         [rows]="rows"
         [cols]="cols"
-        [placeholder]="placeholder"></textarea>
+        [placeholder]="placeholder | i18next"></textarea>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
