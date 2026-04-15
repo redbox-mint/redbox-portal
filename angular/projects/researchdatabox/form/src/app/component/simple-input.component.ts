@@ -29,7 +29,7 @@ export class SimpleInputModel extends FormFieldModel<string> {
             [class.is-valid]="showValidState"
             [class.is-invalid]="!isValid"
             [readonly]="isReadonly"
-            [title]="tooltip" />
+            [title]="tooltip | i18next" />
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
     `,
