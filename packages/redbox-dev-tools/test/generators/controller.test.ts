@@ -1,15 +1,17 @@
-import { expect } from 'chai';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import { ControllerGenerator } from '../../src/generators/controller';
-import { resolvePaths } from '../../src/utils/paths';
+const { expect } = require('chai');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const loadTs = require('../support/load-ts.cjs');
+const controllerGeneratorModule = loadTs(module, '../../src/generators/controller');
+const pathsModule = loadTs(module, '../../src/utils/paths');
 
 describe('ControllerGenerator', () => {
   let tempRoot: string;
   let coreTypesRoot: string;
 
   beforeEach(() => {
+
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-test-'));
     coreTypesRoot = path.join(tempRoot, 'packages', 'redbox-core');
 
@@ -69,8 +71,8 @@ export const auth: any = {
   });
 
   it('should generate a controller and update index', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new ControllerGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new controllerGeneratorModule.ControllerGenerator({
       name: 'Test',
       actions: ['index', 'save'],
       root: tempRoot,
@@ -98,8 +100,8 @@ export const auth: any = {
   });
 
   it('should update routes and auth', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new ControllerGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new controllerGeneratorModule.ControllerGenerator({
       name: 'Test',
       actions: ['index'],
       routes: [{ action: 'index', verb: 'get', path: '/test-route' }],
@@ -129,8 +131,8 @@ export const WebserviceControllerNames: string[] = [];
 `
     );
 
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new ControllerGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new controllerGeneratorModule.ControllerGenerator({
       name: 'Test',
       actions: ['index'],
       webservice: true,
@@ -169,8 +171,8 @@ export const WebserviceControllerNames: string[] = [];
 `
     );
 
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new ControllerGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new controllerGeneratorModule.ControllerGenerator({
       name: 'Dashboard',
       actions: ['listDashboards', 'getDashboard', 'createDashboard', 'updateDashboard', 'deleteDashboard'],
       webservice: true,

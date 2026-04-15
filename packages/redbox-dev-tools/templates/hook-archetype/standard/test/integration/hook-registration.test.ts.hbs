@@ -1,0 +1,13 @@
+const { expect, firstValueFrom } = require('@researchdatabox/redbox-dev-tools/testing');
+
+describe('{{packageName}} integration', function () {
+  it('registers example services and form configs with the lifted portal', async function () {
+    expect(sails.services.exampleservice).to.exist;
+
+    const result = await firstValueFrom(sails.services.exampleservice.describe());
+    expect(result).to.deep.equal({ hook: '{{packageName}}', status: 'ready' });
+
+    const hookModule = require('{{packageName}}');
+    expect(hookModule.registerRedboxFormConfigs()).to.have.property('generated-view-only');
+  });
+});

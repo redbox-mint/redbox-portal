@@ -1,0 +1,8 @@
+import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormConfigExports as CoreFormConfigExports } from '@researchdatabox/redbox-core';
+import defaultDraft from './default-1.0-draft';
+
+export const FormConfigExports: Record<string, FormConfigFrame> = {
+  'default-1.0-draft': defaultDraft,
+  'generated-view-only': CoreFormConfigExports['generated-view-only']
+};

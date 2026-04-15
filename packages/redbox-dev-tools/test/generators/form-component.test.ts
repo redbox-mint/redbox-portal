@@ -1,9 +1,10 @@
-import { expect } from 'chai';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import { FormComponentGenerator } from '../../src/generators/form-component';
-import { resolvePaths } from '../../src/utils/paths';
+const { expect } = require('chai');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const loadTs = require('../support/load-ts.cjs');
+const formComponentGeneratorModule = loadTs(module, '../../src/generators/form-component');
+const pathsModule = loadTs(module, '../../src/utils/paths');
 
 describe('FormComponentGenerator', () => {
   let tempRoot: string;
@@ -185,8 +186,8 @@ export class FormModule { }
   });
 
   it('generates component scaffold and updates wiring', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new FormComponentGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new formComponentGeneratorModule.FormComponentGenerator({
       name: 'my-widget',
       root: tempRoot,
       paths,
@@ -232,8 +233,8 @@ export class FormModule { }
   });
 
   it('generates companion service when requested', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new FormComponentGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new formComponentGeneratorModule.FormComponentGenerator({
       name: 'my-widget',
       withService: true,
       root: tempRoot,

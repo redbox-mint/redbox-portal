@@ -1,0 +1,75 @@
+networks:
+  main:
+
+services:
+  rbportal:
+    build:
+      context: '../../..'
+      dockerfile: '{{packageName}}/Dockerfile'
+      target: '{{packageName}}'
+    ports:
+      - "1500:1500"
+    volumes:
+      - "../../:/opt/redbox-portal/node_modules/{{packageName}}"
+      - "../../../redbox-portal/packages/redbox-core:/opt/redbox-portal/packages/redbox-core"
+      - "../../../redbox-portal/packages/redbox-dev-tools:/opt/redbox-portal/packages/redbox-dev-tools"
+      - "../../../redbox-portal/packages/sails-ng-common:/opt/redbox-portal/packages/sails-ng-common"
+      - "../../../redbox-portal/.tmp/public/angular/form:/opt/redbox-portal/.tmp/public/angular/form"
+      - "../../../redbox-portal/.tmp/public/angular/local-auth:/opt/redbox-portal/.tmp/public/angular/local-auth"
+      - "../../../redbox-portal/.tmp/public/angular/export:/opt/redbox-portal/.tmp/public/angular/export"
+      - "../../../redbox-portal/.tmp/public/angular/dashboard:/opt/redbox-portal/.tmp/public/angular/dashboard"
+      - "../../../redbox-portal/.tmp/public/angular/report:/opt/redbox-portal/.tmp/public/angular/report"
+      - "../../../redbox-portal/.tmp/public/angular/manage-users:/opt/redbox-portal/.tmp/public/angular/manage-users"
+      - "../../../redbox-portal/.tmp/public/angular/admin-vocabulary:/opt/redbox-portal/.tmp/public/angular/admin-vocabulary"
+      - "../../../redbox-portal/.tmp/public/angular/manage-roles:/opt/redbox-portal/.tmp/public/angular/manage-roles"
+      - "../../../redbox-portal/.tmp/public/angular/app-config:/opt/redbox-portal/.tmp/public/angular/app-config"
+      - "../../../redbox-portal/.tmp/public/angular/deleted-records:/opt/redbox-portal/.tmp/public/angular/deleted-records"
+      - "../../../redbox-portal/.tmp/public/angular/branding:/opt/redbox-portal/.tmp/public/angular/branding"
+      - "../../../redbox-portal/.tmp/public/angular/translation:/opt/redbox-portal/.tmp/public/angular/translation"
+      - "../../../redbox-portal/.tmp/public/angular/record-search:/opt/redbox-portal/.tmp/public/angular/record-search"
+      - "./.tmp/attachments/staging:/attachments/staging"
+    expose:
+      - "1500"
+    environment:
+      - NODE_ENV=docker
+      - NODE_PATH=/opt/redbox-portal/node_modules:/opt/redbox-portal/node_modules/@researchdatabox/redbox-core/node_modules
+      - LOAD_DEFAULT_FORMS=true
+      - PORT=1500
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+      - sails_angularDev='true'
+    networks:
+      main:
+        aliases:
+          - rbportal
+    entrypoint: >-
+      /bin/bash -c "set -x;
+      cd /opt/redbox-portal &&
+      node --enable-source-maps app.js;"
+
+  mongodb:
+    image: mongo:7
+    networks:
+      main:
+        aliases:
+          - mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - ".tmp/mongo:/data/db"
+
+  solr:
+    image: solr:8.11.1
+    networks:
+      main:
+        aliases:
+          - solr
+    expose:
+      - "8983"
+    ports:
+      - "8983:8983"
+    environment:
+      - SOLR_HOME=/var/solr/data
+    entrypoint:
+      - docker-entrypoint.sh
+      - solr-precreate
+      - redbox

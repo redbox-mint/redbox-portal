@@ -5,3 +5,5 @@
  */
 
 export { defineWebpackHook } from './webpack';
+export { defineRedboxHook } from './defineRedboxHook';
+export type { DefineRedboxHookOptions, HookRegistrationMap } from './defineRedboxHook';
