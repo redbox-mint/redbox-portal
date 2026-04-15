@@ -1,8 +1,8 @@
 {
     "extends": "./packages/redbox-dev-tools/config/tsconfig.base.json",
     "compilerOptions": {
-      "module": "commonjs",
-      "moduleResolution": "node",
+      "module": "nodenext",
+      "moduleResolution": "nodenext",
       "outDir": "./",
       "rootDir": "./typescript",
       "strict": false,

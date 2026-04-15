@@ -1,9 +1,10 @@
-import { expect } from 'chai';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import { AngularAppGenerator } from '../../src/generators/angular-app';
-import { resolvePaths } from '../../src/utils/paths';
+const { expect } = require('chai');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const loadTs = require('../support/load-ts.cjs');
+const angularAppGeneratorModule = loadTs(module, '../../src/generators/angular-app');
+const pathsModule = loadTs(module, '../../src/utils/paths');
 
 describe('AngularAppGenerator', () => {
   let tempRoot: string;
@@ -57,8 +58,8 @@ export const auth: any = {
   });
 
   it('should scaffold an Angular app and update configs', async () => {
-    const paths = resolvePaths({ root: tempRoot });
-    const generator = new AngularAppGenerator({
+    const paths = pathsModule.resolvePaths({ root: tempRoot });
+    const generator = new angularAppGeneratorModule.AngularAppGenerator({
       name: 'test-app',
       ejsView: 'testView',
       auth: ['Admin'],

@@ -1,0 +1,23 @@
+import type { ExampleService as ExampleServiceExports } from './ExampleService';
+
+export type HookRedboxServices = {
+  ExampleService: ExampleServiceExports;
+};
+
+const serviceCache: Partial<HookRedboxServices> = {};
+
+function getOrCreateService<K extends keyof HookRedboxServices>(
+  name: K,
+  factory: () => HookRedboxServices[K]
+): HookRedboxServices[K] {
+  if (!(name in serviceCache)) {
+    serviceCache[name] = factory();
+  }
+  return serviceCache[name] as HookRedboxServices[K];
+}
+
+export const ServiceExports = {
+  get ExampleService(): ExampleServiceExports {
+    return getOrCreateService('ExampleService', () => require('./ExampleService') as ExampleServiceExports);
+  }
+};

@@ -2,6 +2,8 @@
 
 The `@researchdatabox/redbox-core` package provides shared TypeScript type definitions and core business logic used across the ReDBox Portal system.
 
+For hook authors, `redbox-core` is also the approved shared runtime dependency surface. Hooks may rely on the copies of `axios`, `rxjs`, and `lodash` supplied through `@researchdatabox/redbox-core` instead of declaring those packages directly in each hook. Hook-owned runtime libraries should still be declared by the hook itself.
+
 ## Overview
 
 This package centralizes:
@@ -290,5 +292,5 @@ Hooks extending ReDBox can depend on this package:
 
 See also:
 - [Redbox Loader](Redbox-Loader) - Pre-lift shim generation
-- [Redbox Hook Kit](redbox-dev-tools) - Hook development toolkit
+- [Redbox Dev Tools](redbox-dev-tools) - Hook development toolkit
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox)
