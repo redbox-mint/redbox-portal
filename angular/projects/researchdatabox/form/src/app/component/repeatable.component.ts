@@ -5,12 +5,14 @@ import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry } from '@
 import {
   ContentComponentName,
   FormConfigFrame,
+  GroupFieldComponentName,
   isTypeFieldDefinitionName,
   RepeatableComponentName,
   RepeatableElementLayoutName,
   RepeatableFieldComponentConfig,
   RepeatableFieldComponentDefinitionFrame,
   RepeatableModelName,
+  ReusableComponentName,
   SyncSourceEntry,
 } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, cloneDeep as _cloneDeep, isEqual as _isEqual, isUndefined as _isUndefined } from 'lodash-es';
@@ -285,7 +287,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       return existing;
     }
 
-    const template = { username: null, role: 'View&Edit' };
+    const template = this.getSyncDefaultTemplate(syncSource);
     const items = existing.map(item => _cloneDeep(item as Record<string, unknown>));
     const syncKey = syncSource.syncKey;
     const syncValue = syncKey ? source[syncKey] : undefined;
@@ -303,18 +305,158 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       }
     }
 
-    if (items.length === 1 && this.isBlankPlaceholder(items[0])) {
+    if (items.length === 1 && this.isBlankPlaceholder(items[0], syncSource, source)) {
       return [{ ...items[0], ...source, ...template }];
     }
 
     return [...items, { ...source, ...template }];
   }
 
-  private isBlankPlaceholder(item: Record<string, unknown> | undefined): boolean {
+  private isBlankPlaceholder(
+    item: Record<string, unknown> | undefined,
+    syncSource?: SyncSourceEntry,
+    source?: Record<string, unknown> | null,
+  ): boolean {
     if (!item) {
       return false;
     }
-    return !item['email'] && !item['name'] && !item['orcid'] && !item['username'];
+
+    const blankCheckFields = this.getBlankCheckFields(syncSource, item, source);
+    if (blankCheckFields.length === 0) {
+      return false;
+    }
+
+    return blankCheckFields.every(fieldName => {
+      const value = item[fieldName];
+      return value === undefined || value === null || value === '';
+    });
+  }
+
+  private getBlankCheckFields(
+    syncSource: SyncSourceEntry | undefined,
+    item: Record<string, unknown>,
+    source?: Record<string, unknown> | null,
+  ): string[] {
+    const configuredFields = this.normalizeBlankCheckFields(syncSource?.blankCheckFields);
+    if (configuredFields.length > 0) {
+      return configuredFields;
+    }
+
+    const elementTemplate = (this.componentDefinition?.config as RepeatableFieldComponentConfig | undefined)?.elementTemplate;
+    return this.inferBlankCheckFields(elementTemplate, item, source);
+  }
+
+  private normalizeBlankCheckFields(blankCheckFields: SyncSourceEntry['blankCheckFields']): string[] {
+    if (!Array.isArray(blankCheckFields)) {
+      return [];
+    }
+
+    const seen = new Set<string>();
+    const normalized: string[] = [];
+    for (const fieldName of blankCheckFields) {
+      if (typeof fieldName !== 'string') {
+        continue;
+      }
+      const trimmedFieldName = fieldName.trim();
+      if (!trimmedFieldName || seen.has(trimmedFieldName)) {
+        continue;
+      }
+      seen.add(trimmedFieldName);
+      normalized.push(trimmedFieldName);
+    }
+    return normalized;
+  }
+
+  private inferBlankCheckFields(
+    elementTemplate: RepeatableFieldComponentConfig['elementTemplate'] | undefined,
+    item: Record<string, unknown>,
+    source?: Record<string, unknown> | null,
+  ): string[] {
+    if (!elementTemplate || typeof elementTemplate !== 'object') {
+      return [];
+    }
+
+    const inferredFields = new Set<string>();
+    const structuralClasses = new Set<string>([
+      ContentComponentName,
+      GroupFieldComponentName,
+      RepeatableComponentName,
+      ReusableComponentName,
+    ]);
+
+    const visitTemplate = (node: unknown): void => {
+      if (!node || typeof node !== 'object') {
+        return;
+      }
+
+      const templateNode = node as Record<string, unknown>;
+      const component = templateNode['component'];
+      const componentRecord = (component && typeof component === 'object')
+        ? component as Record<string, unknown>
+        : undefined;
+      const componentClass = typeof componentRecord?.['class'] === 'string'
+        ? componentRecord['class']
+        : undefined;
+      const componentConfig = componentRecord?.['config'];
+      const componentConfigRecord = (componentConfig && typeof componentConfig === 'object')
+        ? componentConfig as Record<string, unknown>
+        : undefined;
+      const childDefinitions = Array.isArray(componentConfigRecord?.['componentDefinitions'])
+        ? componentConfigRecord['componentDefinitions'] as unknown[]
+        : [];
+
+      const name = typeof templateNode['name'] === 'string' ? templateNode['name'].trim() : '';
+      if (name && !structuralClasses.has(componentClass ?? '') && childDefinitions.length === 0) {
+        inferredFields.add(name);
+      }
+
+      const model = templateNode['model'];
+      const modelRecord = (model && typeof model === 'object') ? model as Record<string, unknown> : undefined;
+      const modelConfig = modelRecord?.['config'];
+      const modelConfigRecord = (modelConfig && typeof modelConfig === 'object')
+        ? modelConfig as Record<string, unknown>
+        : undefined;
+      const templateValue = [modelConfigRecord?.['newEntryValue'], modelConfigRecord?.['value']]
+        .find(value => !!value && typeof value === 'object' && !Array.isArray(value));
+      if (templateValue && typeof templateValue === 'object') {
+        for (const key of Object.keys(templateValue as Record<string, unknown>)) {
+          if (key) {
+            inferredFields.add(key);
+          }
+        }
+      }
+
+      for (const childDefinition of childDefinitions) {
+        visitTemplate(childDefinition);
+      }
+
+      const nestedElementTemplate = componentConfigRecord?.['elementTemplate'];
+      if (nestedElementTemplate) {
+        visitTemplate(nestedElementTemplate);
+      }
+    };
+
+    visitTemplate(elementTemplate);
+
+    const candidateFields = Array.from(inferredFields);
+    if (candidateFields.length === 0) {
+      return [];
+    }
+
+    const relevantKeys = new Set<string>([
+      ...Object.keys(item),
+      ...(source ? Object.keys(source) : []),
+    ]);
+    const matchedFields = candidateFields.filter(fieldName => relevantKeys.has(fieldName));
+    return matchedFields.length > 0 ? matchedFields : candidateFields;
+  }
+
+  private getSyncDefaultTemplate(syncSource: SyncSourceEntry | undefined): Record<string, unknown> {
+    const template = syncSource?.defaultTemplate;
+    if (!template || typeof template !== 'object' || Array.isArray(template)) {
+      return {};
+    }
+    return _cloneDeep(template as Record<string, unknown>);
   }
 
   public async appendNewElement(value?: any, markFormDirty: boolean = true, options?: RepeatableSetValueOptions) {

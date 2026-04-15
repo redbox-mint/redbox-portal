@@ -390,7 +390,18 @@ export const reusableFormDefinitions: ReusableFormDefinitions = {
           addButtonShow: true,
           allowZeroRows: true,
           hideWhenZeroRows: false,
-          syncSources: [],
+          syncSources: [
+            {
+              fieldName: "",
+              blankCheckFields: ["name", "email", "orcid", "username"],
+              defaultTemplate: { username: null, role: "View&Edit" }
+            },
+            {
+              fieldName: "",
+              blankCheckFields: ["name", "email", "orcid", "username"],
+              defaultTemplate: { username: null, role: "View&Edit" }
+            }
+          ],
           elementTemplate: {
             name: "",
             overrides: { reusableFormName: "standard-contributor-fields-lookup-only-group" },
