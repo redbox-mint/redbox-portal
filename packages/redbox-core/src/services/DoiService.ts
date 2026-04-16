@@ -10,7 +10,7 @@ import { RBValidationError } from '../model/RBValidationError';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { evaluateBinding, asTrimmedString } from './doi-v2/bindings';
 import { completeDoiAudit, failDoiAudit, startDoiAudit } from './doi-v2/audit';
-import { resolveDoiPublishingConfig, resolveDoiPublishingConfigAsync } from './doi-v2/config';
+import { resolveDoiPublishingConfig, resolveDoiPublishingConfigAsync, resolveDoiPublishingConfigForBrand } from './doi-v2/config';
 import { createBindingContext, createRunContext } from './doi-v2/context';
 import { buildDoiPayload } from './doi-v2/payload';
 import { resolveProfile } from './doi-v2/profiles';
@@ -27,7 +27,7 @@ import type { IntegrationAuditContext } from './IntegrationAuditService';
 
 type DoiAction = 'create' | 'update';
 type DoiAuditOptions = Record<string, unknown> & {
-  auditParentContext?: Pick<IntegrationAuditContext, 'traceId' | 'spanId'>;
+  auditContext?: IntegrationAuditContext | null;
 };
 
 export namespace Services {
@@ -145,7 +145,7 @@ export namespace Services {
         event,
         action,
         profile: resolvedProfile.name
-      }, options.auditParentContext);
+      }, options.auditContext);
       let requestSummary: Record<string, unknown> | undefined;
 
       try {
@@ -172,8 +172,14 @@ export namespace Services {
           requestBody: payload,
         };
         const result = action === 'update'
-          ? await runUpdateDoiProgram(config, runContext, String(citationDoi), payload)
-          : await runCreateDoiProgram(config, runContext, payload);
+          ? await runUpdateDoiProgram(config, runContext, String(citationDoi), payload, {
+            auditContext: auditCtx,
+            requestSummary,
+          })
+          : await runCreateDoiProgram(config, runContext, payload, {
+            auditContext: auditCtx,
+            requestSummary,
+          });
 
         completeDoiAudit(auditCtx, {
           message: action === 'update' ? 'DOI updated successfully.' : 'DOI published successfully.',
@@ -209,16 +215,19 @@ export namespace Services {
       return this.publishV2Doi(oid, record, config, effectiveEvent, action, options);
     }
 
-    public async deleteDoi(doi: string): Promise<boolean> {
-      const config = await this.resolveConfig();
+    public async deleteDoi(brand: BrandingModel, doi: string): Promise<boolean> {
+      const config = resolveDoiPublishingConfigForBrand(brand);
       if (config == null) {
         return false;
       }
 
-      const runContext = createRunContext({ metadata: {}, branding: 'default' }, undefined, undefined, 'deleteDoi');
+      const runContext = createRunContext({ metadata: {}, branding: brand.name, metaMetadata: { brandId: brand.id } }, undefined, undefined, 'deleteDoi');
       const auditCtx = startDoiAudit(doi, IntegrationAuditAction.deleteDoi, runContext, { doi });
       try {
-        const result = await runDeleteDoiProgram(config, runContext, doi);
+        const result = await runDeleteDoiProgram(config, runContext, doi, {
+          auditContext: auditCtx,
+          requestSummary: { doi },
+        });
         completeDoiAudit(auditCtx, {
           message: 'DOI deleted successfully.',
           httpStatusCode: result.statusCode,
@@ -236,16 +245,19 @@ export namespace Services {
       }
     }
 
-    public async changeDoiState(doi: string, event: string): Promise<boolean> {
-      const config = await this.resolveConfig();
+    public async changeDoiState(brand: BrandingModel, doi: string, event: string): Promise<boolean> {
+      const config = resolveDoiPublishingConfigForBrand(brand);
       if (config == null) {
         return false;
       }
 
-      const runContext = createRunContext({ metadata: {}, branding: 'default' }, undefined, undefined, 'changeDoiState');
+      const runContext = createRunContext({ metadata: {}, branding: brand.name, metaMetadata: { brandId: brand.id } }, undefined, undefined, 'changeDoiState');
       const auditCtx = startDoiAudit(doi, IntegrationAuditAction.changeDoiState, runContext, { doi, event });
       try {
-        const result = await runChangeDoiStateProgram(config, runContext, doi, event);
+        const result = await runChangeDoiStateProgram(config, runContext, doi, event, {
+          auditContext: auditCtx,
+          requestSummary: { doi, event },
+        });
         completeDoiAudit(auditCtx, {
           message: 'DOI state changed successfully.',
           httpStatusCode: result.statusCode,
@@ -272,7 +284,7 @@ export namespace Services {
           const doi = await this.publishDoi(oid, record, String(options.event ?? 'publish'), 'create', {
             ...options,
             triggerSource: 'publishDoiTrigger',
-            auditParentContext: auditCtx ?? undefined,
+            auditContext: auditCtx,
           });
           if (doi != null) {
             record = await this.addDoiDataToRecord(oid, record, doi, options);
@@ -295,7 +307,7 @@ export namespace Services {
           const doi = await this.publishDoi(oid, record, String(options.event ?? 'publish'), 'create', {
             ...options,
             triggerSource: 'publishDoiTriggerSync',
-            auditParentContext: auditCtx ?? undefined,
+            auditContext: auditCtx,
           });
           if (doi != null) {
             record = await this.addDoiDataToRecord(oid, record, doi, options);
@@ -317,7 +329,7 @@ export namespace Services {
           await this.publishDoi(oid, record, String(options.event ?? 'publish'), 'update', {
             ...options,
             triggerSource: 'updateDoiTriggerSync',
-            auditParentContext: auditCtx ?? undefined,
+            auditContext: auditCtx,
           });
           completeDoiAudit(auditCtx, { message: 'DOI update trigger sync completed.' });
         } catch (error) {

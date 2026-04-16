@@ -4,13 +4,23 @@ import {
   resolveDoiConnectionPassword
 } from '../../configmodels/DoiPublishing';
 import type { DoiRecordModel } from './types';
+import type { BrandingModel } from '../../model/storage/BrandingModel';
 
 const DOI_PASSWORD_FALLBACK_ENV_VARS = [
   'DOI_CONNECTION_PASSWORD',
   'DATACITE_PASSWORD'
 ] as const;
 
-
+function resolveBrandConfig(brandName: string): DoiPublishing | null {
+  const appConfig = sails.config.brandingAware(brandName).doiPublishing as DoiPublishing | undefined;
+  if (appConfig?.enabled === true) {
+    appConfig.connection.password = resolveDoiConnectionPassword(appConfig.connection.password, {
+      fallbackEnvVarNames: [...DOI_PASSWORD_FALLBACK_ENV_VARS]
+    });
+    return appConfig;
+  }
+  return null;
+}
 
 export function resolveDoiPublishingConfig(
   record?: DoiRecordModel
@@ -20,17 +30,20 @@ export function resolveDoiPublishingConfig(
     throw new Error('Cannot resolve DOI publishing config: record does not have a brand');
   }
   const brandName = BrandingService.getBrandById(brandId)?.name;
-
-  const appConfig = sails.config.brandingAware(brandName).doiPublishing as DoiPublishing | undefined;
-
-  if (appConfig?.enabled === true) {
-    appConfig.connection.password = resolveDoiConnectionPassword(appConfig.connection.password, {
-      fallbackEnvVarNames: [...DOI_PASSWORD_FALLBACK_ENV_VARS]
-    });
-    return appConfig;
+  if (_.isEmpty(brandName)) {
+    throw new Error(`Cannot resolve DOI publishing config: unknown brand id '${brandId}'`);
   }
+  return resolveBrandConfig(String(brandName));
+}
 
-  return null;
+export function resolveDoiPublishingConfigForBrand(
+  branding: BrandingModel | string
+): DoiPublishing | null {
+  const brandName = typeof branding === 'string' ? branding : branding?.name;
+  if (_.isEmpty(brandName)) {
+    throw new Error('Cannot resolve DOI publishing config: brand name is required');
+  }
+  return resolveBrandConfig(String(brandName));
 }
 
 export async function resolveDoiPublishingConfigAsync(

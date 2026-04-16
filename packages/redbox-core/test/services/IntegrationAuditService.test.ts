@@ -310,8 +310,35 @@ describe('IntegrationAuditService', function () {
   });
 
   it('groups audit rows into traces with one event per span in started order', async function () {
-    mockStorageService.countIntegrationAudit.resolves(9);
+    mockStorageService.countIntegrationAudit.resolves(11);
     mockStorageService.getIntegrationAudit.resolves([
+      {
+        id: 'event-11',
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'createDoiRequest',
+        triggeredBy: 'publishDoiTriggerSync',
+        status: 'started',
+        traceId: 'trace-d',
+        spanId: 'span-d3',
+        parentSpanId: 'span-d2',
+        startedAt: '2026-03-03T00:00:05.500Z',
+      },
+      {
+        id: 'event-10',
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'createDoiRequest',
+        triggeredBy: 'publishDoiTriggerSync',
+        status: 'success',
+        traceId: 'trace-d',
+        spanId: 'span-d3',
+        parentSpanId: 'span-d2',
+        startedAt: '2026-03-03T00:00:05.500Z',
+        completedAt: '2026-03-03T00:00:05.900Z',
+        message: 'DataCite create DOI request completed.',
+        responseSummary: { data: { id: '10.1234/5678' } },
+      },
       {
         id: 'event-9',
         redboxOid: 'oid-1',
@@ -433,13 +460,17 @@ describe('IntegrationAuditService', function () {
     expect(result.total).to.equal(4);
     expect(result.rows.map(row => row.traceId)).to.deep.equal(['trace-d', 'trace-b', 'trace-a', 'trace-c']);
     expect(result.rows[0].status).to.equal('success');
-    expect(result.rows[0].actions).to.deep.equal(['publishDoiTriggerSync', 'publishDoi']);
-    expect(result.rows[0].events.map(event => event.spanId)).to.deep.equal(['span-d1', 'span-d2']);
+    expect(result.rows[0].actions).to.deep.equal(['publishDoiTriggerSync', 'publishDoi', 'createDoiRequest']);
+    expect(result.rows[0].events.map(event => event.spanId)).to.deep.equal(['span-d1', 'span-d2', 'span-d3']);
     expect(result.rows[0].events[0].message).to.equal('DOI trigger sync completed.');
     expect(result.rows[0].events[0].status).to.equal('success');
     expect(result.rows[0].events[1].message).to.equal('DOI published successfully.');
     expect(result.rows[0].events[1].status).to.equal('success');
     expect(result.rows[0].events[1].responseSummary).to.deep.equal({ id: '10.1234/5678' });
+    expect(result.rows[0].events[2].message).to.equal('DataCite create DOI request completed.');
+    expect(result.rows[0].events[2].status).to.equal('success');
+    expect(result.rows[0].events[2].depth).to.equal(2);
+    expect(result.rows[0].events[2].responseSummary).to.deep.equal({ data: { id: '10.1234/5678' } });
     expect(result.rows[1].status).to.equal('started');
     expect(result.rows[2].status).to.equal('failed');
     expect(result.rows[2].actions).to.deep.equal(['syncRecordWithFigshare', 'publishAfterUploadFilesJob']);

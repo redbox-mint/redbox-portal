@@ -13,10 +13,27 @@ describe('DoiService', function() {
   let originalEnv: NodeJS.ProcessEnv;
   const baseDoiPublishing = _.cloneDeep(brandingConfigurationDefaults.doiPublishing)!;
 
+  function withBrand<T extends Record<string, unknown>>(record: T): T & { metaMetadata: { brandId: string } } {
+    return {
+      ...record,
+      metaMetadata: { brandId: 'default' }
+    };
+  }
+
+  function brandRecord(): { metaMetadata: { brandId: string }, metadata: Record<string, unknown> } {
+    return withBrand({ metadata: {} });
+  }
+
   beforeEach(function() {
     originalEnv = { ...process.env };
     mockSails = createMockSails({
       config: {
+        auth: {
+          defaultBrand: 'default',
+          defaultPortal: 'portal',
+          roles: [{ name: 'Admin' }, { name: 'Maintainer' }, { name: 'Researcher' }, { name: 'Guest' }],
+        },
+        brandingAware: sinon.stub(),
         brandingConfigurationDefaults: {
           doiPublishing: {
             ..._.cloneDeep(baseDoiPublishing),
@@ -43,10 +60,8 @@ describe('DoiService', function() {
       }
     });
     setupServiceTestGlobals(mockSails);
+    mockSails.config.brandingAware.withArgs('default').returns(mockSails.config.brandingConfigurationDefaults);
 
-    (global as any).AppConfigService = {
-      getAppConfigurationForBrand: sinon.stub().returns(mockSails.config.brandingConfigurationDefaults)
-    };
     (global as any).TranslationService = {
       t: sinon.stub().returnsArg(0)
     };
@@ -59,7 +74,8 @@ describe('DoiService', function() {
       failAudit: sinon.stub()
     };
     (global as any).BrandingService = {
-      getBrand: sinon.stub().returns({})
+      getBrand: sinon.stub().returns({}),
+      getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' })
     };
 
     runtime = require('../../src/services/doi-v2/runtime');
@@ -85,7 +101,6 @@ describe('DoiService', function() {
   afterEach(function() {
     process.env = originalEnv;
     cleanupServiceTestGlobals();
-    delete (global as any).AppConfigService;
     delete (global as any).TranslationService;
     delete (global as any).RecordsService;
     delete (global as any).IntegrationAuditService;
@@ -95,19 +110,22 @@ describe('DoiService', function() {
 
   describe('publishDoi', function() {
     it('should create DOI through the v2 runtime', async function() {
-      const record = {
+      const record = withBrand({
         metadata: {
           creators: [{ given_name: 'First', family_name: 'Last' }],
           citation_title: 'My Title',
           citation_publisher: 'My Publisher',
           citation_publication_date: '2023-04-01'
         }
-      };
+      });
 
       const result = await service.publishDoi('oid1', record);
 
       expect(result).to.equal('10.1234/5678');
       expect((runtime.runCreateDoiProgram as sinon.SinonStub).calledOnce).to.be.true;
+      const runtimeOptions = (runtime.runCreateDoiProgram as sinon.SinonStub).firstCall.args[3];
+      expect(runtimeOptions.auditContext).to.exist;
+      expect(runtimeOptions.requestSummary.action).to.equal('create');
       expect((global as any).IntegrationAuditService.completeAudit.calledOnce).to.be.true;
       const auditDetails = (global as any).IntegrationAuditService.completeAudit.firstCall.args[1];
       expect(auditDetails.requestSummary.event).to.equal('publish');
@@ -118,7 +136,7 @@ describe('DoiService', function() {
     });
 
     it('should skip DOI update when the stored DOI prefix does not match the configured profile prefix', async function() {
-      const record = {
+      const record = withBrand({
         metadata: {
           creators: [{ given_name: 'First', family_name: 'Last' }],
           citation_doi: 'xxxxx/5678',
@@ -126,7 +144,7 @@ describe('DoiService', function() {
           citation_publisher: 'My Publisher',
           citation_publication_date: '2023-04-01'
         }
-      };
+      });
 
       const result = await service.publishDoi('oid1', record, 'publish', 'update');
 
@@ -142,14 +160,14 @@ describe('DoiService', function() {
         }
       });
 
-      const record = {
+      const record = withBrand({
         metadata: {
           creators: [{ given_name: 'First', family_name: 'Last' }],
           citation_title: 'My Title',
           citation_publisher: 'My Publisher',
           citation_publication_date: '2023-04-01'
         }
-      };
+      });
 
       let thrown: unknown;
       try {
@@ -167,13 +185,13 @@ describe('DoiService', function() {
     });
 
     it('should include the partial DOI request body in failure audits when payload validation fails', async function() {
-      const record = {
+      const record = withBrand({
         metadata: {
           creators: [{ given_name: 'First', family_name: 'Last' }],
           citation_publisher: 'My Publisher',
           citation_publication_date: '2023-04-01'
         }
-      };
+      });
 
       let thrown: unknown;
       try {
@@ -207,14 +225,14 @@ describe('DoiService', function() {
       });
       (runtime.runCreateDoiProgram as sinon.SinonStub).rejects(doiHttpError);
 
-      const record = {
+      const record = withBrand({
         metadata: {
           creators: [{ given_name: 'First', family_name: 'Last' }],
           citation_title: 'My Title',
           citation_publisher: 'My Publisher',
           citation_publication_date: '2023-04-01'
         }
-      };
+      });
 
       let thrown: unknown;
       try {
@@ -247,36 +265,53 @@ describe('DoiService', function() {
         parentSpanId: 'span-parent',
       });
 
-      const record = {
+      const record = withBrand({
         metadata: {
           creators: [{ given_name: 'First', family_name: 'Last' }],
           citation_title: 'My Title',
           citation_publisher: 'My Publisher',
           citation_publication_date: '2023-04-01'
         }
-      };
+      });
 
-      await service.publishDoiTriggerSync('oid1', record, {});
+      await service.publishDoiTriggerSync('oid1', record, { forceRun: true });
 
       expect((global as any).IntegrationAuditService.startAudit.calledTwice).to.be.true;
       const childAuditOptions = (global as any).IntegrationAuditService.startAudit.secondCall.args[2];
       expect(childAuditOptions.traceId).to.equal('trace-1');
       expect(childAuditOptions.parentSpanId).to.equal('span-parent');
+      expect(childAuditOptions.traceId).to.equal((global as any).IntegrationAuditService.startAudit.firstCall.returnValue.traceId);
+      const runtimeOptions = (runtime.runCreateDoiProgram as sinon.SinonStub).firstCall.args[3];
+      expect(runtimeOptions.auditContext).to.equal((global as any).IntegrationAuditService.startAudit.secondCall.returnValue);
     });
   });
 
   describe('deleteDoi', function() {
-    it('should delete DOI through the v2 runtime', async function() {
-      const result = await service.deleteDoi('10.1234/5678');
+    it('should delete DOI through the v2 runtime for the provided brand', async function() {
+      const result = await service.deleteDoi({ id: 'brand-1', name: 'default' }, '10.1234/5678');
 
       expect(result).to.be.true;
       expect((runtime.runDeleteDoiProgram as sinon.SinonStub).calledOnce).to.be.true;
     });
   });
 
+  describe('changeDoiState', function() {
+    it('should change DOI state through the v2 runtime for the provided brand', async function() {
+      sinon.stub(runtime, 'runChangeDoiStateProgram').resolves({
+        statusCode: 200,
+        responseSummary: { changed: true, doi: '10.1234/5678', event: 'publish' }
+      });
+
+      const result = await service.changeDoiState({ id: 'brand-1', name: 'default' }, '10.1234/5678', 'publish');
+
+      expect(result).to.be.true;
+      expect((runtime.runChangeDoiStateProgram as sinon.SinonStub).calledOnce).to.be.true;
+    });
+  });
+
   describe('getAuthenticationString', function() {
     it('should return base64 encoded doiPublishing credentials', function() {
-      const result = service.getAuthenticationString();
+      const result = service.getAuthenticationString(brandRecord());
       const expected = Buffer.from('user:pwd').toString('base64');
       expect(result).to.equal(expected);
     });
@@ -285,7 +320,7 @@ describe('DoiService', function() {
       process.env.DOI_CONNECTION_PASSWORD = 'env-pwd';
       process.env.DATACITE_PASSWORD = 'legacy-env-pwd';
 
-      const result = service.getAuthenticationString();
+      const result = service.getAuthenticationString(brandRecord());
       const expected = Buffer.from('user:pwd').toString('base64');
 
       expect(result).to.equal(expected);
@@ -295,7 +330,7 @@ describe('DoiService', function() {
       mockSails.config.brandingConfigurationDefaults.doiPublishing.connection.password = '';
       process.env.DOI_CONNECTION_PASSWORD = 'env-pwd';
 
-      const result = service.getAuthenticationString();
+      const result = service.getAuthenticationString(brandRecord());
       const expected = Buffer.from('user:env-pwd').toString('base64');
 
       expect(result).to.equal(expected);
@@ -306,23 +341,27 @@ describe('DoiService', function() {
       process.env.DOI_PASSWORD_FROM_ENV = 'referenced-pwd';
       process.env.DOI_CONNECTION_PASSWORD = 'fallback-pwd';
 
-      const result = service.getAuthenticationString();
+      const result = service.getAuthenticationString(brandRecord());
       const expected = Buffer.from('user:referenced-pwd').toString('base64');
 
       expect(result).to.equal(expected);
+    });
+
+    it('should throw when no record brand is provided', function() {
+      expect(() => service.getAuthenticationString()).to.throw('Cannot resolve DOI publishing config: record does not have a brand');
     });
   });
 
   describe('addDoiDataToRecord', function() {
     it('should add DOI data using doiPublishing write-back bindings', async function() {
-      const record = {
+      const record = withBrand({
         metadata: {
           creators: [{ family_name: 'Last', given_name: 'First' }],
           citation_title: 'Test Title',
           citation_publisher: 'Test Publisher',
           citation_publication_date: '2024-01-01'
         }
-      };
+      });
       const doi = '10.1234/5678';
       const oid = 'oid-1';
 

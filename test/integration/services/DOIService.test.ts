@@ -1,7 +1,9 @@
 describe('The DOI Service', function () {
   this.timeout(120000);
+  let brand: any;
 
   before(function () {
+    brand = BrandingService.getDefault();
     const doiPublishing = sails.config.brandingConfigurationDefaults?.doiPublishing;
     const defaultProfile = doiPublishing?.defaultProfile ?? '';
     const profile = defaultProfile !== '' ? doiPublishing?.profiles?.[defaultProfile] : undefined;
@@ -21,6 +23,9 @@ describe('The DOI Service', function () {
   let createdDoi = null
   let oid = "xxxxxxxxx";
   let record: any = {
+    metaMetadata: {
+      brandId: undefined,
+    },
     metadata: {
       citation_publication_date: '2021',
       citation_title: 'New Test Publication',
@@ -36,6 +41,10 @@ describe('The DOI Service', function () {
       ]
     }
   }
+
+  beforeEach(function () {
+    record.metaMetadata.brandId = brand.id;
+  });
 
   it("Should create a DOI", async function () {
     const result = await sails.services.doiservice.publishDoi(oid, record, 'draft');
@@ -56,7 +65,7 @@ describe('The DOI Service', function () {
 
   it("Should delete a DOI", async function () {
     sails.log.debug("Deleting the created DOI: " + createdDoi);
-    const result = await sails.services.doiservice.deleteDoi(createdDoi);
+    const result = await sails.services.doiservice.deleteDoi(brand, createdDoi);
     expect(result).to.eq(true);
   });
 
@@ -70,19 +79,19 @@ describe('The DOI Service', function () {
 
   it("Should register a DOI", async function () {
     sails.log.debug("Registering the created DOI: " + createdDoi);
-    const result = await sails.services.doiservice.changeDoiState(createdDoi, 'register');
+    const result = await sails.services.doiservice.changeDoiState(brand, createdDoi, 'register');
     expect(result).to.eq(true);
   });
 
   it("Should publish a DOI", async function () {
     sails.log.debug("Publishing the registered DOI: " + createdDoi);
-    const result = await sails.services.doiservice.changeDoiState(createdDoi, 'publish');
+    const result = await sails.services.doiservice.changeDoiState(brand, createdDoi, 'publish');
     expect(result).to.eq(true);
   });
 
   it("Should hide a DOI", async function () {
     sails.log.debug("Hiding the published DOI: " + createdDoi);
-    const result = await sails.services.doiservice.changeDoiState(createdDoi, 'hide');
+    const result = await sails.services.doiservice.changeDoiState(brand, createdDoi, 'hide');
     expect(result).to.eq(true);
   });
 

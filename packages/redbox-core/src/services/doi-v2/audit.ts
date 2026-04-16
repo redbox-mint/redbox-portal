@@ -17,7 +17,7 @@ export function startDoiAudit(
   action: IntegrationAuditAction,
   runContext: DoiRunContext,
   requestSummary: Record<string, unknown>,
-  parentAuditContext?: Pick<IntegrationAuditContext, 'traceId' | 'spanId'>
+  parentAuditContext?: IntegrationAuditContext | null
 ): IntegrationAuditContext | null {
   if (typeof IntegrationAuditService?.startAudit !== 'function') {
     return null;
