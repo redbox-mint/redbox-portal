@@ -251,6 +251,26 @@ describe('RecordAuditComponent', () => {
     expect(recordService.getRecordIntegrationAuditTab).toHaveBeenCalledWith('oid-1', { page: 2, pageSize: 20 });
   });
 
+  it('formats durations with short-span precision', async () => {
+    await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
+
+    expect(component.formatDuration(450)).toBe('450ms');
+    expect(component.formatDuration(999)).toBe('999ms');
+    expect(component.formatDuration(1603)).toBe('1603ms');
+    expect(component.formatDuration(9999)).toBe('9999ms');
+    expect(component.formatDuration(10000)).toBe('10s');
+    expect(component.formatDuration(15993)).toBe('15.993s');
+    expect(component.formatDuration(30000)).toBe('30s');
+    expect(component.formatDuration(61000)).toBe('1m 1s');
+  });
+
+  it('formats timestamps with millisecond precision', async () => {
+    await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
+
+    const formatted = component.formatTimestamp('2026-04-16T02:26:46.154Z');
+    expect(formatted).toContain('.154');
+  });
+
   it('renders trace summaries and expands trace events', async () => {
     await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
     await component.activateTab('integration');

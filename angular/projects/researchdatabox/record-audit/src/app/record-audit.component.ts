@@ -25,6 +25,22 @@ export class RecordAuditComponent extends BaseComponent {
     typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function'
       ? new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'short' })
       : null;
+  private readonly timestampDateFormatter =
+    typeof Intl !== 'undefined' && typeof Intl.DateTimeFormat === 'function'
+      ? new Intl.DateTimeFormat(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+      : null;
+  private readonly timestampTimeFormatter =
+    typeof Intl !== 'undefined' && typeof Intl.DateTimeFormat === 'function'
+      ? new Intl.DateTimeFormat(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+      : null;
 
   title = '@researchdatabox/record-audit';
   oid = '';
@@ -218,13 +234,9 @@ export class RecordAuditComponent extends BaseComponent {
     try {
       const date = new Date(isoString);
       if (isNaN(date.getTime())) return isoString;
-      return date.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const datePart = this.timestampDateFormatter?.format(date) ?? date.toLocaleDateString();
+      const timePart = this.timestampTimeFormatter?.format(date) ?? date.toLocaleTimeString();
+      return `${datePart}, ${timePart}.${String(date.getMilliseconds()).padStart(3, '0')}`;
     } catch {
       return isoString;
     }
@@ -330,8 +342,11 @@ export class RecordAuditComponent extends BaseComponent {
     if (durationMs == null || Number.isNaN(durationMs)) {
       return '-';
     }
-    if (durationMs < 1000) {
-      return `${durationMs}ms`;
+    if (durationMs < 10000) {
+      return `${Math.round(durationMs)}ms`;
+    }
+    if (durationMs < 60000) {
+      return `${this.formatSeconds(durationMs / 1000)}s`;
     }
     const totalSeconds = Math.floor(durationMs / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -340,6 +355,10 @@ export class RecordAuditComponent extends BaseComponent {
       return `${seconds}s`;
     }
     return `${minutes}m ${seconds}s`;
+  }
+
+  private formatSeconds(seconds: number): string {
+    return seconds.toFixed(3).replace(/\.?0+$/, '');
   }
 
   formatTraceActions(actions: string[] | null | undefined): string {
