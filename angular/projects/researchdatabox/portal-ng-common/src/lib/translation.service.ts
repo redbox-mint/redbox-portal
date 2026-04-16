@@ -25,7 +25,7 @@ import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, merge as
 
 import { Service } from './service.interface';
 import { HttpClientService } from './httpClient.service';
-
+import { isLikelyNaturalLanguage } from "@researchdatabox/sails-ng-common";
 import HttpApi from 'i18next-http-backend';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { ConfigService } from './config.service';
@@ -184,18 +184,9 @@ export class TranslationService extends HttpClientService implements Service {
       return '';
     }
 
-    // Conservative guess at whether the key is a natural language string.
-    // If the key is a string, and doesn't start with @,
-    // and either contains a space or the first letter is a capital,
-    // and does not contain ':' or '_',
-    // then it is likely to be a natural language string, not a translation key, so just return it.
-    if (
-      !Array.isArray(key) &&
-      !key.startsWith('@') &&
-      (key.includes(' ') || (key.length > 0 && key[0].toLowerCase() !== key[0])) &&
-      !key.includes(':') &&
-      !key.includes('_')
-    ) {
+    // Guess at whether the key is a natural language string.
+    // If it likely is natural langauge, just return it.
+    if (!Array.isArray(key) && isLikelyNaturalLanguage(key)) {
       return key;
     }
 
