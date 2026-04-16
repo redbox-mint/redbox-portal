@@ -10,7 +10,7 @@ import { RBValidationError } from '../model/RBValidationError';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { evaluateBinding, asTrimmedString } from './doi-v2/bindings';
 import { completeDoiAudit, failDoiAudit, startDoiAudit } from './doi-v2/audit';
-import { resolveDoiPublishingConfig } from './doi-v2/config';
+import { resolveDoiPublishingConfig, resolveDoiPublishingConfigAsync } from './doi-v2/config';
 import { createBindingContext, createRunContext } from './doi-v2/context';
 import { buildDoiPayload } from './doi-v2/payload';
 import { resolveProfile } from './doi-v2/profiles';
@@ -20,10 +20,15 @@ import {
   runDeleteDoiProgram,
   runUpdateDoiProgram
 } from './doi-v2/runtime';
-import type { DoiRecordModel, ResolvedDoiPublishingConfigData } from './doi-v2/types';
+import type { DoiRecordModel } from './doi-v2/types';
 import { IntegrationAuditAction } from '../model/storage/IntegrationAuditModel';
+import { DoiPublishing } from '../configmodels/DoiPublishing';
+import type { IntegrationAuditContext } from './IntegrationAuditService';
 
 type DoiAction = 'create' | 'update';
+type DoiAuditOptions = Record<string, unknown> & {
+  auditParentContext?: Pick<IntegrationAuditContext, 'traceId' | 'spanId'>;
+};
 
 export namespace Services {
   export class Doi extends services.Core.Service {
@@ -48,13 +53,14 @@ export namespace Services {
       return this._msgPrefix;
     }
 
-    private resolveConfig(record?: DoiRecordModel): ResolvedDoiPublishingConfigData | null {
-      return resolveDoiPublishingConfig(record);
+    private async resolveConfig(record?: DoiRecordModel): Promise<DoiPublishing | null> {
+      return resolveDoiPublishingConfigAsync(record);
     }
 
-    private summarizeError(error: unknown): { statusCode?: number; responseSummary?: Record<string, unknown> } {
+    private summarizeError(error: unknown): { statusCode?: number; requestSummary?: Record<string, unknown>; responseSummary?: Record<string, unknown> } {
       if (error instanceof RBValidationError) {
         return {
+          requestSummary: _.get(error, 'requestSummary') as Record<string, unknown> | undefined,
           responseSummary: {
             displayErrors: error.displayErrors
           }
@@ -62,9 +68,20 @@ export namespace Services {
       }
       const statusCode = _.get(error, 'statusCode') as number | undefined;
       const responseBody = _.get(error, 'responseBody') as Record<string, unknown> | undefined;
+      const causeCode = _.get(error, 'cause.code') as string | undefined;
+      const causeMessage = _.get(error, 'cause.message') as string | undefined;
+      const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         statusCode,
-        responseSummary: responseBody != null && typeof responseBody === 'object' ? responseBody : undefined
+        responseSummary: responseBody != null && typeof responseBody === 'object'
+          ? responseBody
+          : {
+            errorType: error instanceof Error ? error.name : typeof error,
+            message: errorMessage,
+            ...(statusCode != null ? { statusCode } : {}),
+            ...(causeCode != null ? { causeCode } : {}),
+            ...(causeMessage != null ? { causeMessage } : {})
+          }
       };
     }
 
@@ -107,7 +124,7 @@ export namespace Services {
     }
 
     public getAuthenticationString(record?: DoiRecordModel) {
-      const config = this.resolveConfig(record);
+      const config = resolveDoiPublishingConfig(record);
       const username = String(config?.connection.username ?? '');
       const password = String(config?.connection.password ?? '');
       return Buffer.from(`${username}:${password}`).toString('base64');
@@ -116,10 +133,10 @@ export namespace Services {
     private async publishV2Doi(
       oid: string,
       record: DoiRecordModel,
-      config: ResolvedDoiPublishingConfigData,
+      config: DoiPublishing,
       event: string,
       action: DoiAction,
-      options: Record<string, unknown>
+      options: DoiAuditOptions
     ): Promise<string | null> {
       const resolvedProfile = resolveProfile(config, options);
       const runContext = createRunContext(record, resolvedProfile.name, undefined, String(options.triggerSource ?? 'publishDoi'));
@@ -128,7 +145,8 @@ export namespace Services {
         event,
         action,
         profile: resolvedProfile.name
-      });
+      }, options.auditParentContext);
+      let requestSummary: Record<string, unknown> | undefined;
 
       try {
         const prefix = asTrimmedString(await evaluateBinding(resolvedProfile.profile.metadata.prefix, createBindingContext(record, oid, resolvedProfile.profile)));
@@ -146,6 +164,13 @@ export namespace Services {
         }
 
         const payload = await buildDoiPayload(record, oid, resolvedProfile.profile, action, event);
+        requestSummary = {
+          event,
+          action,
+          profile: resolvedProfile.name,
+          ...(citationDoi != null ? { doi: citationDoi } : {}),
+          requestBody: payload,
+        };
         const result = action === 'update'
           ? await runUpdateDoiProgram(config, runContext, String(citationDoi), payload)
           : await runCreateDoiProgram(config, runContext, payload);
@@ -153,6 +178,7 @@ export namespace Services {
         completeDoiAudit(auditCtx, {
           message: action === 'update' ? 'DOI updated successfully.' : 'DOI published successfully.',
           httpStatusCode: result.statusCode,
+          requestSummary,
           responseSummary: result.responseSummary
         });
         return result.doi ?? null;
@@ -161,6 +187,7 @@ export namespace Services {
         failDoiAudit(auditCtx, error, {
           message: action === 'update' ? 'DOI update failed.' : 'DOI publish failed.',
           httpStatusCode: errorSummary.statusCode,
+          requestSummary: requestSummary ?? errorSummary.requestSummary,
           responseSummary: errorSummary.responseSummary
         });
         this.wrapHttpError(error, action === 'update' ? TranslationService.t('Error updating DOI') : TranslationService.t('Error creating DOI'));
@@ -172,9 +199,9 @@ export namespace Services {
       record: DoiRecordModel,
       event = 'publish',
       action: DoiAction = 'create',
-      options: Record<string, unknown> = {}
+      options: DoiAuditOptions = {}
     ): Promise<string | null> {
-      const config = this.resolveConfig(record);
+      const config = await this.resolveConfig(record);
       if (config == null) {
         return null;
       }
@@ -183,7 +210,7 @@ export namespace Services {
     }
 
     public async deleteDoi(doi: string): Promise<boolean> {
-      const config = this.resolveConfig();
+      const config = await this.resolveConfig();
       if (config == null) {
         return false;
       }
@@ -210,7 +237,7 @@ export namespace Services {
     }
 
     public async changeDoiState(doi: string, event: string): Promise<boolean> {
-      const config = this.resolveConfig();
+      const config = await this.resolveConfig();
       if (config == null) {
         return false;
       }
@@ -244,7 +271,8 @@ export namespace Services {
           const brand: BrandingModel = BrandingService.getBrand('default');
           const doi = await this.publishDoi(oid, record, String(options.event ?? 'publish'), 'create', {
             ...options,
-            triggerSource: 'publishDoiTrigger'
+            triggerSource: 'publishDoiTrigger',
+            auditParentContext: auditCtx ?? undefined,
           });
           if (doi != null) {
             record = await this.addDoiDataToRecord(oid, record, doi, options);
@@ -266,7 +294,8 @@ export namespace Services {
         try {
           const doi = await this.publishDoi(oid, record, String(options.event ?? 'publish'), 'create', {
             ...options,
-            triggerSource: 'publishDoiTriggerSync'
+            triggerSource: 'publishDoiTriggerSync',
+            auditParentContext: auditCtx ?? undefined,
           });
           if (doi != null) {
             record = await this.addDoiDataToRecord(oid, record, doi, options);
@@ -287,7 +316,8 @@ export namespace Services {
         try {
           await this.publishDoi(oid, record, String(options.event ?? 'publish'), 'update', {
             ...options,
-            triggerSource: 'updateDoiTriggerSync'
+            triggerSource: 'updateDoiTriggerSync',
+            auditParentContext: auditCtx ?? undefined,
           });
           completeDoiAudit(auditCtx, { message: 'DOI update trigger sync completed.' });
         } catch (error) {
@@ -304,7 +334,7 @@ export namespace Services {
       doi: string,
       options: Record<string, unknown> = {}
     ): Promise<DoiRecordModel> {
-      const config = this.resolveConfig(record);
+      const config = await this.resolveConfig(record);
       if (config == null) {
         return record;
       }

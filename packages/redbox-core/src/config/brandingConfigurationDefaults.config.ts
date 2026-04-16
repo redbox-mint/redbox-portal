@@ -416,9 +416,9 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
 };
 
 const DEFAULT_DOI_BASE_URL = 'https://api.test.datacite.org';
-const DEFAULT_DOI_PREFIX = 'xxxxx';
-const DEFAULT_DOI_USERNAME = 'xxxxx';
-const DEFAULT_DOI_PASSWORD = 'xxxxxxx';
+const DEFAULT_DOI_PREFIX = '';
+const DEFAULT_DOI_USERNAME = '';
+const DEFAULT_DOI_PASSWORD = '';
 const DEFAULT_DOI_CITATION_URL_PATH = 'metadata.citation_url';
 const DEFAULT_DOI_CITATION_DOI_PATH = 'metadata.citation_doi';
 const DEFAULT_DOI_GENERATED_CITATION_PATH = 'metadata.citation_generated';

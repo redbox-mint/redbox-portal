@@ -524,6 +524,13 @@ export const recordtype: RecordTypeConfig = {
                                 }
                             ]
                         }
+                    },
+                    {
+                        function: 'sails.services.doiservice.publishDoiTriggerSync',
+                        options: {
+                            forceRun: true,
+                            event: 'draft'
+                        }
                     }
                 ]
             },

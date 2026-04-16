@@ -30,6 +30,7 @@ export const APP_CONFIG_SECRET_MASK = '__REDACTED__'
 export const APP_CONFIG_SECRET_CLEAR = '__CLEAR_SECRET__';
 
 type AppConfigData = Record<string, unknown>;
+type AppConfigRecordLike = AppConfigAttributes & Record<string, unknown>;
 
 export namespace Services {
   /**
@@ -180,6 +181,55 @@ export namespace Services {
       return AppConfig.find({ branding: brandId }) as unknown as Promise<AppConfigAttributes[]>;
     }
 
+    private getConfigRecordTimestamp(record: AppConfigRecordLike | undefined): number {
+      const updatedAt = Date.parse(String(record?.updatedAt ?? ''));
+      if (!Number.isNaN(updatedAt)) {
+        return updatedAt;
+      }
+      const createdAt = Date.parse(String(record?.createdAt ?? ''));
+      if (!Number.isNaN(createdAt)) {
+        return createdAt;
+      }
+      return 0;
+    }
+
+    private chooseLatestConfigRecord(records: AppConfigAttributes[]): AppConfigAttributes | undefined {
+      return records.reduce<AppConfigAttributes | undefined>((latest, current) => {
+        if (latest == null) {
+          return current;
+        }
+        return this.getConfigRecordTimestamp(current as AppConfigRecordLike) >= this.getConfigRecordTimestamp(latest as AppConfigRecordLike)
+          ? current
+          : latest;
+      }, undefined);
+    }
+
+    private reduceToLatestConfigRecords(records: AppConfigAttributes[]): AppConfigAttributes[] {
+      const latestByKey = new Map<string, AppConfigAttributes>();
+
+      for (const record of records) {
+        const key = String(record.configKey ?? '');
+        const currentLatest = latestByKey.get(key);
+        if (currentLatest == null) {
+          latestByKey.set(key, record);
+          continue;
+        }
+        if (this.getConfigRecordTimestamp(record as AppConfigRecordLike) >= this.getConfigRecordTimestamp(currentLatest as AppConfigRecordLike)) {
+          latestByKey.set(key, record);
+        }
+      }
+
+      return Array.from(latestByKey.values());
+    }
+
+    private async findLatestConfigRecord(brandId: string, configKey: string): Promise<AppConfigAttributes | undefined> {
+      const records = await (AppConfig.find({ branding: brandId, configKey }) as unknown as Promise<AppConfigAttributes[]>);
+      if (records.length > 1) {
+        sails.log.warn(`Multiple appconfig records found for branding '${brandId}' and key '${configKey}'. Using the most recently updated record.`);
+      }
+      return this.chooseLatestConfigRecord(records);
+    }
+
     public async loadAppConfigurationModel(brandId: string): Promise<BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails }> {
       const appConfiguration: Record<string, unknown> = {};
       const modelNames = ConfigModels.getConfigKeys();
@@ -198,14 +248,18 @@ export namespace Services {
 
 
       const appConfigItems: AppConfigAttributes[] = await this.getAllConfigurationForBrand(brandId);
-      for (const appConfigItem of appConfigItems) {
+      const latestAppConfigItems = this.reduceToLatestConfigRecords(appConfigItems);
+      if (latestAppConfigItems.length !== appConfigItems.length) {
+        sails.log.warn(`Duplicate appconfig records detected for branding '${brandId}'. Using the most recently updated record for each config key.`);
+      }
+      for (const appConfigItem of latestAppConfigItems) {
         _.set(appConfiguration, appConfigItem.configKey, appConfigItem.configData);
       }
       return appConfiguration as unknown as BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails };
     }
 
     public async getAppConfigByBrandAndKey(brandId: string, configKey: string): Promise<unknown> {
-      const dbConfig = await AppConfig.findOne({ branding: brandId, configKey });
+      const dbConfig = await this.findLatestConfigRecord(brandId, configKey);
 
       // If no config exists in the DB return the default settings
       if (dbConfig != null) {
@@ -225,7 +279,7 @@ export namespace Services {
     }
 
     public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: AppConfigData): Promise<unknown> {
-      const dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
+      const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
       const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
       const mergedConfigData = this.mergeSecretFields(configKey, preparedConfigData, dbConfig?.configData);
 
@@ -243,7 +297,7 @@ export namespace Services {
 
     public async createConfig(brandName: string, configKey: string, configData: AppConfigData): Promise<unknown> {
       const branding: BrandingModel = BrandingService.getBrand(brandName);
-      const dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
+      const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
       const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
 
       // Create if no config exists

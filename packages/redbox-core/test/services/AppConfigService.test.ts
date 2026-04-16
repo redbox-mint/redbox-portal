@@ -74,7 +74,7 @@ describe('AppConfigService', function () {
         return p;
       };
 
-      (global as any).AppConfig.findOne.callsFake(() => mockDeferred({}));
+      (global as any).AppConfig.find.callsFake(() => mockDeferred([{}]));
       try {
         await service.createConfig('default', 'key', {});
         expect.fail('Should have thrown');
@@ -122,9 +122,9 @@ describe('AppConfigService', function () {
         return p;
       });
 
-      (global as any).AppConfig.findOne = sinon.stub().callsFake(() => {
-        const p: any = Promise.resolve(existingRecord);
-        p.exec = sinon.stub().yields(null, existingRecord);
+      (global as any).AppConfig.find = sinon.stub().callsFake(() => {
+        const p: any = Promise.resolve([existingRecord]);
+        p.exec = sinon.stub().yields(null, [existingRecord]);
         return p;
       });
       (global as any).AppConfig.updateOne = sinon.stub().returns({ set: updateSet });
@@ -140,6 +140,97 @@ describe('AppConfigService', function () {
         configData: { connection: { token: 'secret-token' } }
       });
       expect(result.connection.token).to.equal(APP_CONFIG_SECRET_MASK);
+    });
+
+    it('should prefer the most recently updated duplicate config record when loading app config', async function () {
+      (ConfigModels.getConfigKeys as sinon.SinonStub).returns(['doiPublishing']);
+      (ConfigModels.getModelInfo as sinon.SinonStub).callsFake((key: string) => {
+        if (key === 'doiPublishing') {
+          return {
+            modelName: 'DoiPublishing',
+            class: DoiPublishing
+          };
+        }
+        return {
+          modelName: 'MockModel',
+          class: class MockModel { }
+        };
+      });
+
+      const duplicateRecords = [
+        {
+          branding: 'brand1',
+          configKey: 'doiPublishing',
+          updatedAt: '2026-04-15T03:00:00.000Z',
+          configData: {
+            enabled: true,
+            defaultProfile: 'dataPublication',
+            connection: {
+              baseUrl: 'https://api.test.datacite.org',
+              username: 'old-user',
+              password: null,
+              timeoutMs: 30000,
+              retry: {
+                maxAttempts: 3,
+                baseDelayMs: 500,
+                maxDelayMs: 4000,
+                retryOnStatusCodes: [408, 429, 500, 502, 503, 504],
+                retryOnMethods: ['get', 'put', 'patch', 'delete']
+              }
+            },
+            operations: {
+              createEvent: 'publish',
+              updateEvent: 'publish',
+              allowDeleteDraft: true,
+              allowStateChange: true
+            },
+            profiles: {}
+          }
+        },
+        {
+          branding: 'brand1',
+          configKey: 'doiPublishing',
+          updatedAt: '2026-04-15T03:04:11.122Z',
+          configData: {
+            enabled: true,
+            defaultProfile: 'dataPublication',
+            connection: {
+              baseUrl: 'https://api.test.datacite.org',
+              username: 'new-user',
+              password: 'new-password',
+              timeoutMs: 30000,
+              retry: {
+                maxAttempts: 3,
+                baseDelayMs: 500,
+                maxDelayMs: 4000,
+                retryOnStatusCodes: [408, 429, 500, 502, 503, 504],
+                retryOnMethods: ['get', 'put', 'patch', 'delete']
+              }
+            },
+            operations: {
+              createEvent: 'publish',
+              updateEvent: 'publish',
+              allowDeleteDraft: true,
+              allowStateChange: true
+            },
+            profiles: {}
+          }
+        }
+      ];
+
+      (global as any).AppConfig.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
+        const records = duplicateRecords.filter((record) => {
+          return Object.entries(criteria).every(([key, value]) => (record as Record<string, unknown>)[key] === value);
+        });
+        const p: any = Promise.resolve(records);
+        p.exec = sinon.stub().yields(null, records);
+        return p;
+      });
+
+      const loaded: any = await service.loadAppConfigurationModel('brand1');
+
+      expect(loaded.doiPublishing.connection.username).to.equal('new-user');
+      expect(loaded.doiPublishing.connection.password).to.equal('new-password');
     });
   });
 

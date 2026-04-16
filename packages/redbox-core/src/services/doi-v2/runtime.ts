@@ -1,11 +1,12 @@
 import { Context, Effect, Layer } from 'effect';
-import type { ResolvedDoiPublishingConfigData, DoiOperationResult, DoiRunContext } from './types';
+import * as Cause from 'effect/Cause';
+import type { DoiPublishing, DoiOperationResult, DoiRunContext } from './types';
 import { DoiClientTag, makeClientLayer } from './http';
 
-export const DoiConfigTag = Context.GenericTag<ResolvedDoiPublishingConfigData>('redbox/DoiConfig');
+export const DoiConfigTag = Context.GenericTag<DoiPublishing>('redbox/DoiConfig');
 export const DoiRunContextTag = Context.GenericTag<DoiRunContext>('redbox/DoiRunContext');
 
-export function makeRuntimeLayer(config: ResolvedDoiPublishingConfigData, runContext: DoiRunContext) {
+export function makeRuntimeLayer(config: DoiPublishing, runContext: DoiRunContext) {
   return Layer.mergeAll(
     Layer.succeed(DoiConfigTag, config),
     Layer.succeed(DoiRunContextTag, runContext),
@@ -13,8 +14,21 @@ export function makeRuntimeLayer(config: ResolvedDoiPublishingConfigData, runCon
   );
 }
 
+async function runProgram<A>(program: Effect.Effect<A, unknown, never>): Promise<A> {
+  const exit = await Effect.runPromiseExit(program);
+  if (exit._tag === 'Success') {
+    return exit.value;
+  }
+
+  const failure = Cause.failureOrCause(exit.cause);
+  if (failure._tag === 'Left') {
+    throw failure.left;
+  }
+  throw Cause.squash(failure.right);
+}
+
 export async function runCreateDoiProgram(
-  config: ResolvedDoiPublishingConfigData,
+  config: DoiPublishing,
   runContext: DoiRunContext,
   payload: Record<string, unknown>
 ): Promise<DoiOperationResult> {
@@ -28,11 +42,11 @@ export async function runCreateDoiProgram(
       responseSummary: { doi: data?.data?.id ?? null }
     };
   }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
-  return Effect.runPromise(program);
+  return runProgram(program);
 }
 
 export async function runUpdateDoiProgram(
-  config: ResolvedDoiPublishingConfigData,
+  config: DoiPublishing,
   runContext: DoiRunContext,
   doi: string,
   payload: Record<string, unknown>
@@ -47,11 +61,11 @@ export async function runUpdateDoiProgram(
       responseSummary: { doi: data?.data?.id ?? doi }
     };
   }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
-  return Effect.runPromise(program);
+  return runProgram(program);
 }
 
 export async function runDeleteDoiProgram(
-  config: ResolvedDoiPublishingConfigData,
+  config: DoiPublishing,
   runContext: DoiRunContext,
   doi: string
 ): Promise<DoiOperationResult> {
@@ -64,11 +78,11 @@ export async function runDeleteDoiProgram(
       responseSummary: { deleted: response.statusCode === 204, doi }
     };
   }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
-  return Effect.runPromise(program);
+  return runProgram(program);
 }
 
 export async function runChangeDoiStateProgram(
-  config: ResolvedDoiPublishingConfigData,
+  config: DoiPublishing,
   runContext: DoiRunContext,
   doi: string,
   event: string
@@ -82,5 +96,5 @@ export async function runChangeDoiStateProgram(
       responseSummary: { changed: response.statusCode === 200, doi, event }
     };
   }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
-  return Effect.runPromise(program);
+  return runProgram(program);
 }

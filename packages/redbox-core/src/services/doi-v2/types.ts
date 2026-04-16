@@ -22,10 +22,7 @@ export interface DoiRunContext {
   profileName?: string;
 }
 
-export interface ResolvedDoiPublishingConfigData extends DoiPublishingConfigData {
-  runtime: {
-    source: 'appConfig';
-  };
+export interface DoiPublishing extends DoiPublishingConfigData {
 }
 
 export interface ResolvedDoiProfile {

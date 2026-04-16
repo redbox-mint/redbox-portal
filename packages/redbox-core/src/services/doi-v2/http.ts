@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { Context, Layer } from 'effect';
-import type { ResolvedDoiPublishingConfigData, DoiHttpResult, DoiRunContext } from './types';
+import type { DoiPublishing, DoiHttpResult, DoiRunContext } from './types';
 
 export class DoiHttpError extends Error {
   statusCode?: number;
@@ -32,7 +32,7 @@ function getRetryDelay(baseDelayMs: number, maxDelayMs: number, attempt: number)
 }
 
 async function requestWithRetry(
-  config: ResolvedDoiPublishingConfigData,
+  config: DoiPublishing,
   _runContext: DoiRunContext,
   method: string,
   path: string,
@@ -71,7 +71,7 @@ async function requestWithRetry(
   throw new DoiHttpError(`DOI HTTP request failed for ${method} ${path}`);
 }
 
-export function makeLiveClient(config: ResolvedDoiPublishingConfigData, runContext: DoiRunContext): DoiClient {
+export function makeLiveClient(config: DoiPublishing, runContext: DoiRunContext): DoiClient {
   return {
     createDoi(payload) {
       return requestWithRetry(config, runContext, 'post', '/dois', payload);
@@ -93,6 +93,6 @@ export function makeLiveClient(config: ResolvedDoiPublishingConfigData, runConte
   };
 }
 
-export function makeClientLayer(config: ResolvedDoiPublishingConfigData, runContext: DoiRunContext) {
+export function makeClientLayer(config: DoiPublishing, runContext: DoiRunContext) {
   return Layer.succeed(DoiClientTag, makeLiveClient(config, runContext));
 }

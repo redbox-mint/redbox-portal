@@ -291,6 +291,12 @@ export async function buildDoiPayload(
     ...(relatedItems.length > 0 ? { relatedItems } : {}),
     ...(Object.keys(types).length > 0 ? { types } : {})
   };
+  const requestBody = {
+    data: {
+      type: 'dois',
+      attributes
+    }
+  };
 
   const errors: string[] = [];
   if (profile.validation.requireTitles && titles.length === 0) {
@@ -315,16 +321,17 @@ export async function buildDoiPayload(
     errors.push('general-resource-type-required');
   }
   if (errors.length > 0) {
-    throw new RBValidationError({
+    const error = new RBValidationError({
       message: `Could not build DOI payload for oid ${oid}: ${errors.join(', ')}`,
       displayErrors: errors.map(code => ({ code, title: 'datacite-validation-error', meta: { oid, action, event } }))
     });
+    (error as RBValidationError & { requestSummary?: Record<string, unknown> }).requestSummary = {
+      event,
+      action,
+      requestBody
+    };
+    throw error;
   }
 
-  return {
-    data: {
-      type: 'dois',
-      attributes
-    }
-  };
+  return requestBody;
 }

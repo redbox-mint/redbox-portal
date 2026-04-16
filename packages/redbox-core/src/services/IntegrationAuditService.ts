@@ -72,6 +72,9 @@ type IntegrationAuditOptions = {
   requestSummary?: Record<string, unknown>;
   message?: string;
   httpStatusCode?: number;
+  traceId?: string;
+  spanId?: string;
+  parentSpanId?: string;
 };
 
 export namespace Services {
@@ -137,6 +140,15 @@ export namespace Services {
       };
     }
 
+    private resolveTraceContext(opts: IntegrationAuditOptions): { traceId: string; spanId: string; parentSpanId?: string } {
+      const activeTraceContext = this.extractTraceContext();
+      return {
+        traceId: this.getString(opts.traceId) ?? activeTraceContext.traceId,
+        spanId: this.getString(opts.spanId) ?? activeTraceContext.spanId,
+        parentSpanId: this.getString(opts.parentSpanId) ?? activeTraceContext.parentSpanId,
+      };
+    }
+
     private sanitizeText(value: unknown, maxLength: number = 1000): string | undefined {
       if (_.isNil(value)) {
         return undefined;
@@ -169,6 +181,23 @@ export namespace Services {
       return undefined;
     }
 
+    private mergeSummaries(
+      baseSummary: Record<string, unknown> | undefined,
+      extraSummary: unknown
+    ): Record<string, unknown> | undefined {
+      const sanitizedExtra = this.sanitizeSummary(extraSummary);
+      if (baseSummary == null) {
+        return sanitizedExtra;
+      }
+      if (sanitizedExtra == null) {
+        return baseSummary;
+      }
+      return {
+        ...baseSummary,
+        ...sanitizedExtra,
+      };
+    }
+
     private buildAuditEntry(
       ctx: IntegrationAuditContext,
       status: IntegrationAuditStatus,
@@ -176,6 +205,7 @@ export namespace Services {
         message?: string;
         errorDetail?: string;
         httpStatusCode?: number;
+        requestSummary?: unknown;
         responseSummary?: Record<string, unknown>;
         completedAt?: string;
         durationMs?: number;
@@ -197,7 +227,7 @@ export namespace Services {
         startedAt: ctx.startedAt,
         completedAt: details.completedAt,
         durationMs: details.durationMs,
-        requestSummary: ctx.requestSummary,
+        requestSummary: this.mergeSummaries(ctx.requestSummary, details.requestSummary),
         responseSummary: details.responseSummary,
       });
     }
@@ -211,6 +241,12 @@ export namespace Services {
         const response = await this.storageService.createIntegrationAudit(entry) as StorageServiceResponse;
         if (response?.isSuccessful != null && typeof response.isSuccessful === 'function' && !response.isSuccessful()) {
           sails.log.error(`${this.logHeader} Failed to persist integration audit.`);
+          if (!_.isEmpty(response.message)) {
+            sails.log.error(`${this.logHeader} Storage response message: ${response.message}`);
+          }
+          if (!_.isNil(response.details)) {
+            sails.log.error(`${this.logHeader} Storage response details: ${JSON.stringify(response.details)}`);
+          }
         }
       } catch (error) {
         sails.log.error(`${this.logHeader} Failed to persist integration audit entry.`);
@@ -233,7 +269,7 @@ export namespace Services {
 
     public startAudit(oid: string, action: IntegrationAuditAction, opts: IntegrationAuditOptions = {}): IntegrationAuditContext {
       const startedAt = new Date().toISOString();
-      const traceContext = this.extractTraceContext();
+      const traceContext = this.resolveTraceContext(opts);
       const ctx: IntegrationAuditContext = {
         redboxOid: oid,
         brandId: opts.brandId,
@@ -263,6 +299,7 @@ export namespace Services {
       const entry = this.buildAuditEntry(ctx, IntegrationAuditStatus.success, {
         message: this.sanitizeText(result?.message ?? 'Integration action completed successfully.'),
         httpStatusCode: _.isNumber(result?.httpStatusCode) ? (result?.httpStatusCode as number) : undefined,
+        requestSummary: result?.requestSummary,
         responseSummary: this.sanitizeSummary(result?.responseSummary ?? result),
         completedAt,
         durationMs,
@@ -280,6 +317,7 @@ export namespace Services {
         message: this.sanitizeText(details.message ?? (error instanceof Error ? error.message : String(error))),
         errorDetail: this.sanitizeText(details.errorDetail ?? error),
         httpStatusCode: _.isNumber(details.httpStatusCode) ? (details.httpStatusCode as number) : undefined,
+        requestSummary: details.requestSummary,
         responseSummary: this.sanitizeSummary(details.responseSummary),
         completedAt,
         durationMs,
@@ -317,15 +355,17 @@ export namespace Services {
       return this.getTimestampValue(row, 'startedAt', 'completedAt', 'dateCreated', 'updatedAt', 'createdAt');
     }
 
-    private deriveTraceStatus(rows: Record<string, unknown>[]): string {
-      const statuses = rows.map(row => this.getString(row['status'])?.toLowerCase()).filter(Boolean);
-      if (statuses.some(status => status === IntegrationAuditStatus.failed)) {
-        return IntegrationAuditStatus.failed;
+    private getStatusRank(status: unknown): number {
+      switch (this.getString(status)?.toLowerCase()) {
+        case IntegrationAuditStatus.failed:
+          return 3;
+        case IntegrationAuditStatus.success:
+          return 2;
+        case IntegrationAuditStatus.started:
+          return 1;
+        default:
+          return 0;
       }
-      if (statuses.length === 0 || statuses.some(status => status === IntegrationAuditStatus.started)) {
-        return IntegrationAuditStatus.started;
-      }
-      return IntegrationAuditStatus.success;
     }
 
     private buildEventId(row: Record<string, unknown>, traceId: string, index: number): string {
@@ -337,8 +377,77 @@ export namespace Services {
       return `${traceId}:${spanId}:${index}`;
     }
 
+    private buildSpanEvents(rows: Record<string, unknown>[], traceId: string): Record<string, unknown>[] {
+      const spans = new Map<string, Array<{ row: Record<string, unknown>; index: number }>>();
+
+      rows.forEach((row, index) => {
+        const spanId = this.getString(row['spanId']) ?? `${traceId}:unknown-span:${index}`;
+        const existing = spans.get(spanId) ?? [];
+        existing.push({ row, index });
+        spans.set(spanId, existing);
+      });
+
+      return Array.from(spans.entries()).map(([spanId, spanRows]) => {
+        const sortedSpanRows = [...spanRows].sort(
+          (left, right) => this.getRowSortTimestamp(left.row) - this.getRowSortTimestamp(right.row)
+        );
+        const preferredEntry = [...sortedSpanRows].sort((left, right) => {
+          const statusDiff = this.getStatusRank(right.row['status']) - this.getStatusRank(left.row['status']);
+          if (statusDiff !== 0) {
+            return statusDiff;
+          }
+          const completedDiff = this.getTimestampValue(right.row, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt')
+            - this.getTimestampValue(left.row, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt');
+          if (completedDiff !== 0) {
+            return completedDiff;
+          }
+          return right.index - left.index;
+        })[0];
+        const preferredRow = preferredEntry?.row ?? {};
+        const earliestRow = sortedSpanRows[0]?.row ?? {};
+        const parentSpanId = sortedSpanRows
+          .map(entry => this.getString(entry.row['parentSpanId']))
+          .find(Boolean);
+        const startedTimes = sortedSpanRows
+          .map(entry => this.getString(entry.row['startedAt']))
+          .filter(Boolean)
+          .map(value => ({ raw: value as string, ts: new Date(value as string).getTime() }))
+          .filter(value => Number.isFinite(value.ts))
+          .sort((left, right) => left.ts - right.ts);
+        const completedTimes = sortedSpanRows
+          .map(entry => this.getString(entry.row['completedAt']))
+          .filter(Boolean)
+          .map(value => ({ raw: value as string, ts: new Date(value as string).getTime() }))
+          .filter(value => Number.isFinite(value.ts))
+          .sort((left, right) => right.ts - left.ts);
+        const startedAt = startedTimes[0]?.raw ?? this.getString(earliestRow['startedAt']) ?? this.getString(preferredRow['startedAt']) ?? '';
+        const completedAt = completedTimes[0]?.raw ?? this.getString(preferredRow['completedAt']);
+        const startedAtMs = startedTimes[0]?.ts;
+        const completedAtMs = completedTimes[0]?.ts;
+        const durationMs =
+          Number.isFinite(startedAtMs) && Number.isFinite(completedAtMs) && (completedAtMs as number) >= (startedAtMs as number)
+            ? (completedAtMs as number) - (startedAtMs as number)
+            : (_.isNumber(preferredRow['durationMs']) ? preferredRow['durationMs'] as number : undefined);
+
+        return {
+          ...(earliestRow as Record<string, unknown>),
+          ...(preferredRow as Record<string, unknown>),
+          id: this.buildEventId(preferredRow as Record<string, unknown>, traceId, preferredEntry?.index ?? 0),
+          traceId,
+          spanId,
+          parentSpanId,
+          startedAt,
+          completedAt,
+          durationMs,
+          status: this.getString(preferredRow['status']) ?? '',
+        };
+      });
+    }
+
     private buildOrderedTraceEvents(rows: Record<string, unknown>[], traceId: string): IntegrationAuditTraceEvent[] {
-      const sortedRows = [...rows].sort((left, right) => this.getRowSortTimestamp(left) - this.getRowSortTimestamp(right));
+      const sortedRows = this.buildSpanEvents(rows, traceId).sort(
+        (left, right) => this.getRowSortTimestamp(left) - this.getRowSortTimestamp(right)
+      );
       const childrenByParent = new Map<string, Array<{ row: Record<string, unknown>; index: number }>>();
       const roots: Array<{ row: Record<string, unknown>; index: number }> = [];
       const spanIds = new Set(sortedRows.map(row => this.getString(row['spanId'])).filter(Boolean) as string[]);
@@ -386,9 +495,14 @@ export namespace Services {
       return orderedEvents;
     }
 
+    private deriveTraceStatus(events: IntegrationAuditTraceEvent[]): string {
+      const orderedByStart = [...events].sort((left, right) => this.getRowSortTimestamp(left) - this.getRowSortTimestamp(right));
+      return orderedByStart[orderedByStart.length - 1]?.status ?? IntegrationAuditStatus.started;
+    }
+
     private buildTraceRecord(traceId: string, rows: Record<string, unknown>[]): IntegrationAuditTraceRecord {
       const events = this.buildOrderedTraceEvents(rows, traceId);
-      const status = this.deriveTraceStatus(rows);
+      const status = this.deriveTraceStatus(events);
       const startedTimes = rows
         .map(row => this.getString(row['startedAt']))
         .filter(Boolean)
@@ -411,8 +525,8 @@ export namespace Services {
           : undefined;
       const actions = Array.from(
         new Set(
-          rows
-            .map(row => this.getString(row['integrationAction']))
+          events
+            .map(event => this.getString(event['integrationAction']))
             .filter(Boolean)
         )
       ) as string[];

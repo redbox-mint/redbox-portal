@@ -1,9 +1,9 @@
 import _ from 'lodash';
 import type { ResolvedDoiProfile } from './types';
-import type { ResolvedDoiPublishingConfigData } from './types';
+import type { DoiPublishing } from './types';
 
 export function resolveProfileName(
-  config: ResolvedDoiPublishingConfigData,
+  config: DoiPublishing,
   options: Record<string, unknown> = {}
 ): string {
   const explicit = String(options.profile ?? '').trim();
@@ -18,7 +18,7 @@ export function resolveProfileName(
 }
 
 export function resolveProfile(
-  config: ResolvedDoiPublishingConfigData,
+  config: DoiPublishing,
   options: Record<string, unknown> = {}
 ): ResolvedDoiProfile {
   const name = resolveProfileName(config, options);
