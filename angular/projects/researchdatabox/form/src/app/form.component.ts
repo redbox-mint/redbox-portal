@@ -638,11 +638,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  protected async getAndApplyUpdatedDataModel() {
-    const dataModel = await this.formService.getModelData(this.trimmedParams.oid(), this.trimmedParams.recordType());
-    this.form?.patchValue(dataModel);
-  }
-
   @HostBinding('class.edit-mode') get isEditMode() {
     return this.editMode();
   }

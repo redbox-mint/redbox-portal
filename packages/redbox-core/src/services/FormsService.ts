@@ -85,7 +85,7 @@ export namespace Services {
     ];
 
     public async bootstrap(workflowStep: WorkflowStepLike, brandingId: string): Promise<unknown> {
-      sails.log.verbose(`Bootstrapping form for workflow step: ${workflowStep.id} with form config: ${workflowStep.config.form}`);
+      this.logger.verbose(`Bootstrapping form for workflow step: ${workflowStep.id} with form config: ${workflowStep.config.form}`);
       let form = await Form.find({
         name: workflowStep.config.form,
         branding: brandingId
@@ -101,8 +101,8 @@ export namespace Services {
       let formDefs: string[] = [];
       let formName: string | null = null;
       const formRegistry = this.getFormConfigRegistry();
-      sails.log.verbose("Form registry: ");
-      sails.log.verbose(JSON.stringify(formRegistry));
+      this.logger.verbose("Form registry: ");
+      this.logger.verbose(JSON.stringify(formRegistry));
       this.logger.verbose("Found : ");
       this.logger.verbose(form);
       if (!form || (Array.isArray(form) && form.length == 0)) {
@@ -145,8 +145,7 @@ export namespace Services {
       this.logger.verbose(formName);
       let result = null;
       if (formName) {
-        sails.log.verbose(`Preparing to create form...`);
-        // TODO: assess the form config to see what should change
+        this.logger.verbose(`Preparing to create form...`);
         const formConfigRaw = formRegistry[formName] as Record<string, unknown> | undefined;
         if (!formConfigRaw) {
           this.logger.warn(`No form config found for ${formName}, skipping bootstrap.`);
@@ -206,7 +205,7 @@ export namespace Services {
     private getFormConfigRegistry(): Record<string, unknown> {
       const appPath = _.get(sails, 'config.appPath', process.cwd());
       try {
-        sails.log.verbose(`Attempting to load form config registry from file system at path: ${appPath}/api/form-config`);
+        this.logger.verbose(`Attempting to load form config registry from file system at path: ${appPath}/api/form-config`);
         const registryModule = require(path.join(appPath, 'api', 'form-config')) as { forms?: Record<string, unknown> };
         return registryModule?.forms ?? {};
       } catch (error) {
@@ -232,8 +231,6 @@ export namespace Services {
       }
       return super.getObservable<FormAttributes | null>(Form.findOne(query)).pipe(flatMap(form => {
         if (form) {
-          // TODO: setFormEditMode is currently a no-op; legacy 'fields' property has been
-          // replaced by componentDefinitions in FormConfigFrame
           return of(form);
         }
         return of(null);
@@ -295,8 +292,6 @@ export namespace Services {
         }),
         flatMap(form => {
           if (form) {
-            // TODO: setFormEditMode is currently a no-op; legacy 'fields' property has been
-            // replaced by componentDefinitions in FormConfigFrame
             return of(form);
           }
           return of(null);
@@ -569,23 +564,6 @@ export namespace Services {
       const form: FormConfigFrame = formObject as FormConfigFrame;
 
       return form;
-    }
-
-    protected setFormEditMode(_fields: FormFieldLike[], _editMode: boolean): void {
-      // TODO: Form is processed differently now, see buildClientFormConfig
-      // _.remove(fields, field => {
-      //   if (editMode) {
-      //     return field.viewOnly == true;
-      //   } else {
-      //     return field.editOnly == true;
-      //   }
-      // });
-      // _.forEach(fields, field => {
-      //   field.definition.editMode = editMode;
-      //   if (!_.isEmpty(field.definition.fields)) {
-      //     this.setFormEditMode(field.definition.fields, editMode);
-      //   }
-      // });
     }
 
     public filterFieldsHasEditAccess(fields: FormFieldLike[], hasEditAccess: boolean): void {

@@ -850,8 +850,11 @@ describe('QuestionTreeComponent', async () => {
           attempts += 1;
           actualValue = firstLabel?.textContent?.trim();
           await sleep(300);
-          if (attempts > 10) {
-            fail(`Actual value '${actualValue}' was never equal to expected value '${expectedValue}' in ${attempts} attempts.`);
+          if (attempts >= 10) {
+            const msg = `Actual value '${actualValue}' was never equal to expected value '${expectedValue}' in ${attempts} attempts.`;
+            attempts = 0;
+            fail(msg);
+            return;
           }
         }
         console.log(`Took ${attempts} attempts to get actual value to match expected value.`);
