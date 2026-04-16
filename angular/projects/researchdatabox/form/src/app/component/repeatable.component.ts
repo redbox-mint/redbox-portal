@@ -184,7 +184,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       // Use the default value from the elementTemplate, because elementTemplate defines the default for new entries.
       // If there is no model value, use undefined.
       // Undefined is not set to control.value, anything else is set, which is what we want.
-      const elementTemplateValue = elementTemplate?.model?.config?.value;
+      const elementTemplateValue = this.getElementTemplateDefaultValue();
       elemVals.push(elementTemplateValue);
       this.loggerService.warn(`${this.logName}: Created one element for repeatable '${formComponentName}' with no value: ${JSON.stringify(elemVals)}`);
     }
@@ -459,17 +459,18 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     return _cloneDeep(template as Record<string, unknown>);
   }
 
+  private getElementTemplateDefaultValue(): unknown {
+    const elementTemplateModelConfig =
+      (this.componentDefinition?.config as RepeatableFieldComponentConfig | undefined)?.elementTemplate?.model?.config;
+    return elementTemplateModelConfig?.newEntryValue ?? elementTemplateModelConfig?.value;
+  }
+
   public async appendNewElement(value?: any, markFormDirty: boolean = true, options?: RepeatableSetValueOptions) {
     if (!this.elemInitFieldEntry) {
       throw new Error(`${this.logName}: elemInitFieldEntry is not defined. Cannot append new element.`);
     }
     if (value === undefined) {
-      // If the provided value is undefined, use the elementTemplate new-entry
-      // default when available. Element templates store row defaults in
-      // model.config.newEntryValue, not model.config.value.
-      const elementTemplateModelConfig =
-        (this.componentDefinition?.config as RepeatableFieldComponentConfig)?.elementTemplate?.model?.config;
-      value = elementTemplateModelConfig?.newEntryValue ?? elementTemplateModelConfig?.value;
+      value = this.getElementTemplateDefaultValue();
     }
     const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value, options);
     await this.createElement(elemEntry, options);

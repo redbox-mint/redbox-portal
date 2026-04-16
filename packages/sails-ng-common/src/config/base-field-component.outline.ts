@@ -3,7 +3,6 @@ import {FieldDefinitionFrame, FieldDefinitionOutline} from "./field.outline";
 
 /**
  * Declares a source field for one-way additive sync.
- * This is declarative metadata only and is not read by expression templates at runtime.
  */
 export interface SyncSourceEntry {
     /**
@@ -87,7 +86,6 @@ export interface BaseFieldComponentConfigFrame {
     showValidIndicator?: boolean;
     /**
      * Declares source fields for one-way additive sync.
-     * Declarative metadata only and not interpreted by the component runtime.
      */
     syncSources?: SyncSourceEntry[];
 }

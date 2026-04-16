@@ -1,15 +1,12 @@
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import {
-  createFieldValueChangedEvent,
   FieldValueChangedEvent,
   FormComponentEventType,
   FormComponentEventTypeValue,
 } from './form-component-event.types';
 import { FormComponentEventBaseConsumer } from './form-component-base-event-consumer';
 import {
-  ExpressionsConditionKind,
   FormExpressionsConfigFrame,
-  getObjectWithJsonPointer,
 } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBindingOptions } from './form-component-base-event-producer-consumer';
 

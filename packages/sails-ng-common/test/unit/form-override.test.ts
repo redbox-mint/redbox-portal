@@ -233,4 +233,171 @@ describe('FormOverride reusable expansion', () => {
     expect(result[0].component.config?.addButtonShow).to.equal(true);
     expect(result[0].component.config?.elementTemplate).to.exist;
   });
+
+  it('applies nested contributor_dmp_permissions field overrides inside the repeatable element template', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = formOverride.applyOverridesReusable(
+      [
+        {
+          name: 'contributor_dmp_permissions',
+          component: {
+            class: ReusableComponentName,
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'contributor_dmp_permissions_repeatable',
+                  overrides: {
+                    replaceName: 'contributor_dmp_permissions',
+                  },
+                  component: {
+                    class: 'RepeatableComponent',
+                    config: {
+                      elementTemplate: {
+                        component: {
+                          config: {
+                            componentDefinitions: [
+                              {
+                                name: 'standard_contributor_fields_lookup_only_group',
+                                component: {
+                                  class: 'GroupComponent',
+                                  config: {
+                                    componentDefinitions: [
+                                      {
+                                        name: 'standard_contributor_fields_lookup_only_reusable',
+                                        component: {
+                                          class: ReusableComponentName,
+                                          config: {
+                                            componentDefinitions: [
+                                              {
+                                                name: 'name',
+                                                component: {
+                                                  class: 'TypeaheadInputComponent',
+                                                  config: {
+                                                    labelField: 'text_full_name',
+                                                    valueField: 'text_full_name',
+                                                  },
+                                                },
+                                              },
+                                              {
+                                                name: 'email',
+                                                component: {
+                                                  class: 'SimpleInputComponent',
+                                                  config: {
+                                                    onItemSelect: { rawPath: 'email' },
+                                                  },
+                                                },
+                                              },
+                                              {
+                                                name: 'orcid',
+                                                component: {
+                                                  class: 'SimpleInputComponent',
+                                                  config: {
+                                                    onItemSelect: { rawPath: 'orcid' },
+                                                  },
+                                                },
+                                              },
+                                            ],
+                                          },
+                                        },
+                                      },
+                                    ],
+                                  },
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          overrides: {
+            reusableFormName: 'contributor-dmp-permissions',
+          },
+        } as never,
+      ],
+      {
+        'standard-contributor-fields-lookup-only': [
+          {
+            name: 'name',
+            component: {
+              class: 'TypeaheadInputComponent',
+              config: {
+                labelField: 'metadata.fullName',
+                valueField: 'oid',
+              },
+            },
+          },
+          {
+            name: 'email',
+            component: {
+              class: 'SimpleInputComponent',
+              config: {
+                onItemSelect: { rawPath: 'metadata.email' },
+              },
+            },
+          },
+          {
+            name: 'orcid',
+            component: {
+              class: 'SimpleInputComponent',
+              config: {
+                onItemSelect: { rawPath: 'metadata.orcid' },
+              },
+            },
+          },
+        ] as never,
+        'contributor-dmp-permissions': [
+          {
+            name: 'contributor_dmp_permissions_repeatable',
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                elementTemplate: {
+                  name: '',
+                  component: {
+                    class: ReusableComponentName,
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'standard_contributor_fields_lookup_only_group',
+                          component: {
+                            class: 'GroupComponent',
+                            config: {
+                              componentDefinitions: [
+                                {
+                                  name: 'standard_contributor_fields_lookup_only_reusable',
+                                  overrides: { reusableFormName: 'standard-contributor-fields-lookup-only' },
+                                  component: { class: ReusableComponentName, config: { componentDefinitions: [] } },
+                                },
+                              ],
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          } as never,
+        ],
+      }
+    );
+
+    const repeatableComponent = result[0].component as RepeatableFieldComponentDefinitionFrame;
+    const nestedGroup = (repeatableComponent.config?.elementTemplate as any)?.component?.config?.componentDefinitions?.[0];
+    const nestedReusable = nestedGroup?.component?.config?.componentDefinitions?.[0];
+    const nestedFields = nestedReusable?.component?.config?.componentDefinitions;
+
+    expect(nestedFields).to.have.length(3);
+    expect(nestedFields[0].component.config.labelField).to.equal('text_full_name');
+    expect(nestedFields[0].component.config.valueField).to.equal('text_full_name');
+    expect(nestedFields[1].component.config.onItemSelect.rawPath).to.equal('email');
+    expect(nestedFields[2].component.config.onItemSelect.rawPath).to.equal('orcid');
+  });
 });

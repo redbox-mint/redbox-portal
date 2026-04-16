@@ -1,6 +1,6 @@
 import { AbstractControl } from '@angular/forms';
 import { get as _get } from 'lodash-es';
-import { FormComponentEventBus, ScopedEventBus } from './form-component-event-bus.service';
+import { FormComponentEventBus } from './form-component-event-bus.service';
 import {
   FormComponentEventType,
   createFieldValueChangedEvent,
