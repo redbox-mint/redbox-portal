@@ -1,10 +1,13 @@
 import {ReusableFormDefinitions} from "@researchdatabox/sails-ng-common";
-import {reusableRelatedObjectsFormDefinitions} from "./reusableRelatedObjectsFormDefinition.config";
+import {buildRelatedObjectsFieldDefinition, reusableRelatedObjectsFormDefinitions} from "./reusableRelatedObjectsFormDefinition.config";
 import {reusableViewFormDefinitions} from "./reusableViewFormDefinition.config";
 import {reusableContributorFormDefinitions} from "./reusableContributorFormDefinition.config";
 
 // Re-export the type for convenience
 export {ReusableFormDefinitions};
+
+// Provide convenience build methods.
+export {buildRelatedObjectsFieldDefinition};
 
 /**
  * Reusable Form Definitions Config Interface and Default Values

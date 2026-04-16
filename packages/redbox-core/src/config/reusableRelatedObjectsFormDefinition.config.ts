@@ -385,6 +385,98 @@ export const buildRelatedLinkRepeatableFieldDefinition = (
   ];
 };
 
+export const buildRelatedObjectsFieldDefinition = function (options: {
+  fieldReusable?: string,
+  fieldName?: string, fieldLabel?: string, fieldHelp?: string,
+  titleReusable?: string, titleName?: string, titleLabel?: string, titlePlaceholder?: string,
+  urlReusable?: string, urlName?: string, urlLabel?: string, urlPlaceholder?: string,
+  notesReusable?: string, notesName?: string, notesLabel?: string, notesPlaceholder?: string,
+}): AvailableFormComponentDefinitionFrames[] {
+
+  return [{
+    name: "related-objects-fields-title-first-group",
+      overrides: {reusableFormName: options.fieldReusable ?? "related-objects-fields-title-first-group"},
+    component: {
+      class: "ReusableComponent",
+        config: {
+        componentDefinitions: [{
+          name: "related_objects_fields_group",
+          overrides: {replaceName: options.fieldName},
+          component: {
+            class: "RepeatableComponent", config: {
+              elementTemplate: {
+                name: "",
+                component: {
+                  class: "GroupComponent",
+                  config: {
+                    componentDefinitions: [{
+                      overrides: {reusableFormName: options.titleReusable ?? "related-objects-field-title"},
+                      name: "related_objects_field_title",
+                      component: {class: "ReusableComponent", config: {componentDefinitions: [
+                            {
+                              name: options.titleName ?? "related_title",
+                              component: {
+                                class: "SimpleInputComponent",
+                                config: {
+                                  label: options.titleLabel,
+                                  placeholder: options.titlePlaceholder,
+                                }
+                              },
+                              layout: {
+                                class: "InlineLayout",
+                                config: {label: options.titleLabel}
+                              },
+                            }
+                          ]}}
+                    },{
+                      overrides: {reusableFormName: options.urlReusable ?? "related-objects-field-url"},
+                      name: "related_objects_field_url",
+                      component: {class: "ReusableComponent", config: {componentDefinitions:[
+                            {
+                              name: options.urlName ?? "related_url",
+                              component: {
+                                class: "SimpleInputComponent",
+                                config: {
+                                  label: options.urlLabel,
+                                  placeholder: options.urlPlaceholder,
+                                }
+                              },
+                              layout: {class: "InlineLayout", config: {label: options.urlLabel}},
+                            }
+                          ]}}
+                    }, {
+                      overrides: {reusableFormName: options.notesReusable ?? "related-objects-field-notes"},
+                      name: "related_objects_field_notes",
+                      component: {class: "ReusableComponent", config: {componentDefinitions:[
+                            {
+                              name: options.notesName ?? "related_notes",
+                              component: {
+                                class: "TextAreaComponent",
+                                config: {
+                                  label: options.notesLabel,
+                                  placeholder: options.notesPlaceholder,
+                                  rows: 1,
+                                  cols: 20
+                                }
+                              },
+                              layout: {class: "InlineLayout", config: {label: options.notesLabel}},
+                            }
+                          ]}}
+                    }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          layout: {class: "DefaultLayout", config: {label: options.fieldLabel, helpText: options.fieldHelp}},
+        }
+        ]
+      }
+    },
+  }];
+}
+
 export const reusableRelatedObjectsFormDefinitions: ReusableFormDefinitions = {
   "related-objects-field-title": [
     {
@@ -401,13 +493,11 @@ export const reusableRelatedObjectsFormDefinitions: ReusableFormDefinitions = {
           readonly: false,
           visible: true,
           editMode: true,
-          label: "@dmpt-related-publication-title",
           wrapperCssClasses: "rb-form-related-link-inline__field",
           disabled: false,
           autofocus: false,
           showValidIndicator: false,
           type: "text",
-          placeholder: "Full citation or publication title",
         }
       },
       model: {
@@ -416,70 +506,33 @@ export const reusableRelatedObjectsFormDefinitions: ReusableFormDefinitions = {
           validators: []
         }
       },
-      layout: {
-        class: "InlineLayout",
-        config: {
-          label: "@dmpt-related-publication-title",
-        }
-      }
+      layout: {        class: "InlineLayout"      }
     }
   ],
   "related-objects-field-url": [
     {
       name: "related_url",
-      constraints: {
-        authorization: {
-          allowRoles: []
-        },
-        allowModes: [
-          "edit"
-        ]
-      },
+      constraints: {allowModes: ["edit"]},
       component: {
         class: "SimpleInputComponent",
         config: {
           readonly: false,
           visible: true,
           editMode: true,
-          label: "@dmpt-related-publication-url",
           wrapperCssClasses: "rb-form-related-link-inline__field",
           disabled: false,
           autofocus: false,
           showValidIndicator: false,
           type: "text",
-          placeholder: "https://doi.org/...",
         }
       },
-      model: {
-        class: "SimpleInputModel",
-        config: {
-          validators: []
-        }
-      },
-      layout: {
-        class: "InlineLayout",
-        config: {
-          label: "@dmpt-related-publication-url",
-        }
-      }
+      model: {class: "SimpleInputModel"},
+      layout: {class: "InlineLayout"}
     },
     {
       name: "related_url-link-value",
-      constraints: {
-        authorization: {
-          allowRoles: []
-        },
-        allowModes: [
-          "view"
-        ]
-      },
-      overrides: {
-        formModeClasses: {
-          view: {
-            component: "ContentComponent"
-          }
-        }
-      },
+      constraints: {allowModes: ["view"]},
+      overrides: {formModeClasses: {view: {component: "ContentComponent"}}},
       component: {
         class: "ContentComponent",
         config: {
@@ -498,30 +551,12 @@ export const reusableRelatedObjectsFormDefinitions: ReusableFormDefinitions = {
           }
         }
       },
-      layout: {
-        class: "InlineLayout",
-        config: {
-          label: "@dmpt-related-publication-url",
-        }
-      }
+      layout: {class: "InlineLayout"}
     },
     {
       name: "related_url",
-      constraints: {
-        authorization: {
-          allowRoles: []
-        },
-        allowModes: [
-          "view"
-        ]
-      },
-      overrides: {
-        formModeClasses: {
-          view: {
-            component: "SimpleInputComponent"
-          }
-        }
-      },
+      constraints: {allowModes: ["view"]},
+      overrides: {formModeClasses: {view: {component: "SimpleInputComponent"}}},
       component: {
         class: "SimpleInputComponent",
         config: {
@@ -536,69 +571,34 @@ export const reusableRelatedObjectsFormDefinitions: ReusableFormDefinitions = {
           type: "hidden"
         }
       },
-      model: {
-        class: "SimpleInputModel",
-        config: {
-          validators: []
-        }
-      },
-      layout: {
-        class: "InlineLayout",
-        config: {
-          label: "@dmpt-related-publication-url",
-          visible: false,
-        }
-      }
+      model: {class: "SimpleInputModel"},
+      layout: {class: "InlineLayout", config: {visible: false}}
     },
   ],
   "related-objects-field-notes": [
     {
       name: "related_notes",
-      constraints: {
-        authorization: {
-          allowRoles: []
-        },
-        allowModes: []
-      },
       component: {
         class: "TextAreaComponent",
         config: {
           readonly: false,
           visible: true,
           editMode: true,
-          label: "@dmpt-related-publication-notes",
           wrapperCssClasses: "rb-form-related-link-inline__field",
           disabled: false,
           autofocus: false,
           showValidIndicator: false,
           rows: 1,
           cols: 20,
-          placeholder: "Open access, in press, or other context",
         }
       },
-      model: {
-        class: "TextAreaModel",
-        config: {
-          validators: []
-        }
-      },
-      layout: {
-        class: "InlineLayout",
-        config: {
-          label: "@dmpt-related-publication-notes",
-        }
-      }
+      model: {class: "TextAreaModel"},
+      layout: {class: "InlineLayout"}
     }
   ],
   "related-objects-fields-group": [
     {
       name: "related_objects_fields_group",
-      constraints: {
-        authorization: {
-          allowRoles: []
-        },
-        allowModes: []
-      },
       component: {
         class: "RepeatableComponent",
         config: {
@@ -610,19 +610,7 @@ export const reusableRelatedObjectsFormDefinitions: ReusableFormDefinitions = {
           showValidIndicator: false,
           elementTemplate: {
             name: "",
-            constraints: {
-              authorization: {
-                allowRoles: []
-              },
-              allowModes: []
-            },
-            overrides: {
-              formModeClasses: {
-                view: {
-                  component: "GroupComponent"
-                }
-              }
-            },
+            overrides: {formModeClasses: {view: {component: "GroupComponent"}}},
             component: {
               class: "GroupComponent",
               config: {
@@ -636,12 +624,7 @@ export const reusableRelatedObjectsFormDefinitions: ReusableFormDefinitions = {
                 componentDefinitions: []
               }
             },
-            model: {
-              class: "GroupModel",
-              config: {
-                validators: []
-              }
-            },
+            model: {class: "GroupModel"},
             layout: {
               class: "RepeatableElementLayout",
               config: {
@@ -669,12 +652,7 @@ export const reusableRelatedObjectsFormDefinitions: ReusableFormDefinitions = {
           hideWhenZeroRows: false
         }
       },
-      model: {
-        class: "RepeatableModel",
-        config: {
-          validators: []
-        }
-      },
+      model: {class: "RepeatableModel"},
       layout: {
         class: "DefaultLayout",
         config: {
@@ -710,18 +688,18 @@ export const reusableRelatedObjectsFormDefinitions: ReusableFormDefinitions = {
                         componentDefinitions: [
                           {
                             overrides: {reusableFormName: "related-objects-field-url"},
-                            name: "related_url",
-                            component: {class: "SimpleInputComponent"}
+                            name: "related_objects_field_url",
+                            component: {class: "ReusableComponent"}
                           },
                           {
                             overrides: {reusableFormName: "related-objects-field-title"},
-                            name: "related_title",
-                            component: {class: "SimpleInputComponent"}
+                            name: "related_objects_field_title",
+                            component: {class: "ReusableComponent"}
                           },
                           {
                             overrides: {reusableFormName: "related-objects-field-notes"},
-                            name: "related_notes",
-                            component: {class: "TextAreaComponent"}
+                            name: "related_objects_field_notes",
+                            component: {class: "ReusableComponent"}
                           }
                         ]
                       }
@@ -753,18 +731,18 @@ export const reusableRelatedObjectsFormDefinitions: ReusableFormDefinitions = {
                         componentDefinitions: [
                           {
                             overrides: {reusableFormName: "related-objects-field-title"},
-                            name: "related_title",
-                            component: {class: "SimpleInputComponent"}
+                            name: "related_objects_field_title",
+                            component: {class: "ReusableComponent"}
                           },
                           {
                             overrides: {reusableFormName: "related-objects-field-url"},
-                            name: "related_url",
-                            component: {class: "SimpleInputComponent"}
+                            name: "related_objects_field_url",
+                            component: {class: "ReusableComponent"}
                           },
                           {
                             overrides: {reusableFormName: "related-objects-field-notes"},
-                            name: "related_notes",
-                            component: {class: "TextAreaComponent"}
+                            name: "related_objects_field_notes",
+                            component: {class: "ReusableComponent"}
                           }
                         ]
                       }
