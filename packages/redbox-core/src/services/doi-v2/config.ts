@@ -18,7 +18,7 @@ function resolveBrandConfig(brandName: string): DoiPublishing | null {
     resolvedConfig.connection = {
       ...resolvedConfig.connection,
       password: resolveDoiConnectionPassword(resolvedConfig.connection.password, {
-      fallbackEnvVarNames: [...DOI_PASSWORD_FALLBACK_ENV_VARS]
+        fallbackEnvVarNames: [...DOI_PASSWORD_FALLBACK_ENV_VARS]
       })
     };
     return resolvedConfig;

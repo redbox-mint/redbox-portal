@@ -307,6 +307,12 @@ describe('RecordAuditComponent', () => {
     });
   });
 
+  it('only exposes integration statuses accepted by the backend filter', async () => {
+    await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
+
+    expect(component.integrationStatusOptions).toEqual(['', 'started', 'success', 'failed']);
+  });
+
   it('formats durations with short-span precision', async () => {
     await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
 

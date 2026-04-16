@@ -22,7 +22,7 @@ type RecordAuditTabName = 'audit' | 'permissions' | 'integration';
 })
 export class RecordAuditComponent extends BaseComponent {
   readonly auditActionOptions = ['', 'created', 'updated', 'deleted', 'destroyed', 'restored'] as const;
-  readonly integrationStatusOptions = ['', 'success', 'failed', 'error', 'started', 'pending', 'in_progress'] as const;
+  readonly integrationStatusOptions = ['', 'started', 'success', 'failed'] as const;
   private readonly relativeTimeFormatter =
     typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function'
       ? new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'short' })
