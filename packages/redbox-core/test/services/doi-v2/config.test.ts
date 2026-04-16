@@ -1,5 +1,4 @@
 let expect: Chai.ExpectStatic;
-import('chai').then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { brandingConfigurationDefaults } from '../../../src/config/brandingConfigurationDefaults.config';
 import { DoiPublishing } from '../../../src/configmodels/DoiPublishing';
@@ -8,6 +7,10 @@ import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } f
 
 describe('doi-v2 config', function () {
   let originalEnv: NodeJS.ProcessEnv;
+
+  before(async function () {
+    ({ expect } = await import('chai'));
+  });
 
   beforeEach(function () {
     originalEnv = { ...process.env };

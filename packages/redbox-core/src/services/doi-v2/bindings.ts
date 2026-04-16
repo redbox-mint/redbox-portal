@@ -86,5 +86,5 @@ export function asObjectArray(value: unknown): Array<Record<string, unknown>> {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.filter((item): item is Record<string, unknown> => item != null && typeof item === 'object');
+  return value.filter((item): item is Record<string, unknown> => item != null && typeof item === 'object' && !Array.isArray(item));
 }

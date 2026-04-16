@@ -1,11 +1,16 @@
-import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { Layer } from 'effect';
 import { runCreateDoiProgram } from '../../../src/services/doi-v2/runtime';
 import { DoiClientTag, DoiHttpError } from '../../../src/services/doi-v2/http';
 import * as httpModule from '../../../src/services/doi-v2/http';
 
+let expect: Chai.ExpectStatic;
+
 describe('doi-v2 runtime', function () {
+  before(async function () {
+    ({ expect } = await import('chai'));
+  });
+
   afterEach(function () {
     delete (global as any).IntegrationAuditService;
     sinon.restore();
@@ -45,7 +50,7 @@ describe('doi-v2 runtime', function () {
 
     const runContext = {
       recordOid: 'oid-1',
-      brandName: 'default',
+      brandId: 'default',
       correlationId: 'corr-1',
       triggerSource: 'publishDoi'
     } as any;
@@ -76,6 +81,17 @@ describe('doi-v2 runtime', function () {
     (global as any).IntegrationAuditService = { startAudit, completeAudit, failAudit };
     startAudit.returns({ traceId: 'trace-child', spanId: 'span-child', redboxOid: 'oid-1' });
 
+    const transportCause = Object.assign(new Error('getaddrinfo ENOTFOUND'), { code: 'ENOTFOUND' });
+    sinon.stub(httpModule, 'makeClientLayer').returns(
+      Layer.succeed(DoiClientTag, {
+        createDoi: sinon.stub().rejects(
+          new DoiHttpError('DOI HTTP request failed for post /dois', {
+            cause: transportCause,
+          })
+        )
+      } as any)
+    );
+
     const config = {
       connection: {
         baseUrl: 'https://example.test',
@@ -94,7 +110,7 @@ describe('doi-v2 runtime', function () {
 
     const runContext = {
       recordOid: 'oid-1',
-      brandName: 'default',
+      brandId: 'default',
       correlationId: 'corr-1',
       triggerSource: 'test'
     } as any;

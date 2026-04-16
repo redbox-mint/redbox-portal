@@ -59,6 +59,15 @@
   gap: 12px;
 }
 
+.rb-audit-filters,
+.rb-integration-filters {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  padding: 16px;
+  border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+}
+
 .rb-audit-record-count,
 .rb-timestamp-relative,
 .rb-pagination-info {
@@ -235,6 +244,31 @@
 }
 
 .rb-trace-events-table {
+  margin-bottom: 0;
+}
+
+.rb-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: 0.9em;
+    font-weight: 600;
+    margin: 0;
+  }
+}
+
+.rb-filter-actions {
+  align-items: flex-end;
+  display: flex;
+  gap: 8px;
+}
+
+.rb-integration-empty {
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
   margin-bottom: 0;
 }
 

@@ -7,6 +7,7 @@ describe('Webservice IntegrationAuditController', () => {
   let controller: Controllers.IntegrationAudit;
   let originalSails: any;
   let originalIntegrationAuditService: any;
+  let originalLodash: any;
 
   before(async () => {
     const chai = await import('chai');
@@ -16,6 +17,7 @@ describe('Webservice IntegrationAuditController', () => {
   beforeEach(() => {
     originalSails = (global as any).sails;
     originalIntegrationAuditService = (global as any).IntegrationAuditService;
+    originalLodash = (global as any)._;
 
     (global as any).sails = {
       log: {
@@ -35,6 +37,7 @@ describe('Webservice IntegrationAuditController', () => {
     sinon.restore();
     (global as any).sails = originalSails;
     (global as any).IntegrationAuditService = originalIntegrationAuditService;
+    (global as any)._ = originalLodash;
   });
 
   it('returns paginated audit data', async () => {

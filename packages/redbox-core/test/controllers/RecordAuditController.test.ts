@@ -163,6 +163,10 @@ describe('RecordAuditController', () => {
     param.withArgs('oid').returns('oid-1');
     param.withArgs('branding').returns('default');
     param.withArgs('portal').returns('rdmp');
+    param.withArgs('dateFrom').returns('');
+    param.withArgs('dateTo').returns('');
+    param.withArgs('action').returns('');
+    param.withArgs('workflowState').returns('');
     const req = {
       param,
       options: { locals: {} },
@@ -182,6 +186,60 @@ describe('RecordAuditController', () => {
     assert.equal(payload?.data?.records?.[0]?.changeSummary?.changes?.[0]?.displayName, 'Contributor Name');
     assert.equal(payload?.data?.records?.[0]?.actor?.displayName, 'Editor');
     assert.equal(payload?.data?.records?.[1]?.changeSummary?.note, '@record-audit-note-update-only');
+  });
+
+  it('passes audit filters through to the records service', async () => {
+    const param = sinon.stub();
+    param.withArgs('oid').returns('oid-1');
+    param.withArgs('branding').returns('default');
+    param.withArgs('portal').returns('rdmp');
+    param.withArgs('dateFrom').returns('2026-03-01');
+    param.withArgs('dateTo').returns('2026-03-31');
+    param.withArgs('action').returns('updated');
+    param.withArgs('workflowState').returns('Draft');
+    const req = {
+      param,
+      options: { locals: {} },
+      session: { branding: 'default', portal: 'rdmp' },
+      user: { roles: [] },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.getAuditData(req, res);
+
+    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.calledOnce, true);
+    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.action, 'updated');
+    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.workflowState, 'Draft');
+    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateFrom?.toISOString(), new Date(2026, 2, 1, 0, 0, 0, 0).toISOString());
+    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateTo?.toISOString(), new Date(2026, 2, 31, 23, 59, 59, 999).toISOString());
+    assert.equal(sendResp.calledOnce, true);
+  });
+
+  it('rejects invalid audit date filters', async () => {
+    const param = sinon.stub();
+    param.withArgs('oid').returns('oid-1');
+    param.withArgs('branding').returns('default');
+    param.withArgs('portal').returns('rdmp');
+    param.withArgs('dateFrom').returns('bad-date');
+    param.withArgs('dateTo').returns('');
+    param.withArgs('action').returns('');
+    param.withArgs('workflowState').returns('');
+    const req = {
+      param,
+      options: { locals: {} },
+      session: { branding: 'default', portal: 'rdmp' },
+      user: { roles: [] },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.getAuditData(req, res);
+
+    assert.deepEqual(sendResp.firstCall.args[2], {
+      status: 400,
+      displayErrors: [{ detail: 'Invalid audit start date.' }],
+    });
   });
 
   it('falls back to safe route segments when building the raw audit url', async () => {
@@ -227,6 +285,9 @@ describe('RecordAuditController', () => {
     param.withArgs('page').returns('2');
     param.withArgs('pageSize').returns('10');
     param.withArgs('status').returns('success');
+    param.withArgs('integrationName').returns('figshare');
+    param.withArgs('dateFrom').returns('2026-03-01');
+    param.withArgs('dateTo').returns('2026-03-31');
     const req = {
       param,
       options: { locals: {} },
@@ -239,6 +300,10 @@ describe('RecordAuditController', () => {
     await controller.getIntegrationAuditData(req, res);
 
     assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.calledOnce, true);
+    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.integrationName, 'figshare');
+    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.status, 'success');
+    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.dateFrom?.toISOString(), new Date(2026, 2, 1, 0, 0, 0, 0).toISOString());
+    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.dateTo?.toISOString(), new Date(2026, 2, 31, 23, 59, 59, 999).toISOString());
     assert.equal(sendResp.firstCall.args[2]?.data?.summary?.page, 2);
     assert.equal(sendResp.firstCall.args[2]?.data?.summary?.pageSize, 10);
   });
@@ -262,6 +327,9 @@ describe('RecordAuditController', () => {
     param.withArgs('page').returns('2');
     param.withArgs('pageSize').returns('10');
     param.withArgs('status').returns('success');
+    param.withArgs('integrationName').returns('');
+    param.withArgs('dateFrom').returns('');
+    param.withArgs('dateTo').returns('');
     const req = {
       param,
       options: { locals: {} },
@@ -283,6 +351,9 @@ describe('RecordAuditController', () => {
     param.withArgs('page').returns('1');
     param.withArgs('pageSize').returns('10');
     param.withArgs('status').returns('invalid-status');
+    param.withArgs('integrationName').returns('');
+    param.withArgs('dateFrom').returns('');
+    param.withArgs('dateTo').returns('');
     const req = {
       param,
       options: { locals: {} },
@@ -298,6 +369,33 @@ describe('RecordAuditController', () => {
     assert.deepEqual(sendResp.firstCall.args[2], {
       status: 400,
       displayErrors: [{ detail: 'Invalid integration audit status.' }],
+    });
+  });
+
+  it('rejects invalid integration audit date filters', async () => {
+    const param = sinon.stub();
+    param.withArgs('oid').returns('oid-1');
+    param.withArgs('page').returns('1');
+    param.withArgs('pageSize').returns('10');
+    param.withArgs('status').returns('');
+    param.withArgs('integrationName').returns('');
+    param.withArgs('dateFrom').returns('not-a-date');
+    param.withArgs('dateTo').returns('');
+    const req = {
+      param,
+      options: { locals: {} },
+      session: { branding: 'default' },
+      user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.getIntegrationAuditData(req, res);
+
+    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.called, false);
+    assert.deepEqual(sendResp.firstCall.args[2], {
+      status: 400,
+      displayErrors: [{ detail: 'Invalid integration audit start date.' }],
     });
   });
 });

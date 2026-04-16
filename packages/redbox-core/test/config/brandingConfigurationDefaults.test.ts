@@ -1,9 +1,12 @@
 let expect: Chai.ExpectStatic;
-import('chai').then(mod => expect = mod.expect);
 import { brandingConfigurationDefaults } from '../../src/config/brandingConfigurationDefaults.config';
 import { evaluateBinding } from '../../src/services/doi-v2/bindings';
 
 describe('brandingConfigurationDefaults', function () {
+  before(async function () {
+    ({ expect } = await import('chai'));
+  });
+
   it('exposes a canonical doiPublishing default for runtime use', async function () {
     const doiPublishing = brandingConfigurationDefaults.doiPublishing;
 

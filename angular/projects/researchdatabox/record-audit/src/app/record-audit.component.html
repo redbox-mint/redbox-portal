@@ -50,11 +50,7 @@
     <div *ngIf="auditTab.error" class="alert alert-danger">
       <i class="fa-solid fa-circle-exclamation"></i> {{ auditTab.error | i18next }}
     </div>
-    <div *ngIf="!auditTab.loading && !auditTab.error && auditTab.records.length === 0" class="alert alert-warning">
-      <i class="fa-solid fa-circle-info"></i> {{ '@record-audit-empty' | i18next }}
-    </div>
-
-    <div *ngIf="!auditTab.loading && !auditTab.error && auditTab.records.length > 0" class="panel panel-default">
+    <div *ngIf="!auditTab.loading && !auditTab.error" class="panel panel-default">
       <div class="panel-heading rb-audit-heading">
         <span class="rb-audit-panel-title">
           <i class="fa-solid fa-clock-rotate-left"></i>
@@ -72,7 +68,69 @@
           >
         </div>
       </div>
-      <div class="table-responsive">
+      <div class="rb-audit-filters">
+        <div class="rb-filter-field">
+          <label for="rb-audit-date-from">{{ '@record-audit-filter-date-from' | i18next }}</label>
+          <input
+            id="rb-audit-date-from"
+            type="date"
+            class="form-control"
+            [(ngModel)]="auditTab.filters.dateFrom"
+            [disabled]="auditTab.loading"
+          />
+        </div>
+        <div class="rb-filter-field">
+          <label for="rb-audit-date-to">{{ '@record-audit-filter-date-to' | i18next }}</label>
+          <input
+            id="rb-audit-date-to"
+            type="date"
+            class="form-control"
+            [(ngModel)]="auditTab.filters.dateTo"
+            [disabled]="auditTab.loading"
+          />
+        </div>
+        <div class="rb-filter-field">
+          <label for="rb-audit-action">{{ '@record-audit-filter-action' | i18next }}</label>
+          <select
+            id="rb-audit-action"
+            class="form-control"
+            [(ngModel)]="auditTab.filters.action"
+            [disabled]="auditTab.loading"
+          >
+            <option *ngFor="let action of auditActionOptions" [ngValue]="action">
+              {{ (action ? ('@record-audit-action-' + action) : '@record-audit-filter-action-all') | i18next }}
+            </option>
+          </select>
+        </div>
+        <div class="rb-filter-field">
+          <label for="rb-audit-workflow-state">{{ '@record-audit-filter-workflow-state' | i18next }}</label>
+          <input
+            id="rb-audit-workflow-state"
+            type="text"
+            class="form-control"
+            [(ngModel)]="auditTab.filters.workflowState"
+            [placeholder]="'@record-audit-filter-workflow-state-placeholder' | i18next"
+            [disabled]="auditTab.loading"
+          />
+        </div>
+        <div class="rb-filter-actions">
+          <button type="button" class="btn btn-primary btn-sm" [disabled]="auditTab.loading" (click)="applyAuditFilters()">
+            <i class="fa-solid fa-filter"></i> {{ '@record-audit-filter-apply' | i18next }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-default btn-sm"
+            [disabled]="auditTab.loading || !hasActiveAuditFilters()"
+            (click)="clearAuditFilters()"
+          >
+            <i class="fa-solid fa-rotate-left"></i> {{ '@record-audit-filter-clear' | i18next }}
+          </button>
+        </div>
+      </div>
+      <div *ngIf="auditTab.records.length === 0" class="alert alert-warning rb-integration-empty">
+        <i class="fa-solid fa-circle-info"></i> {{ '@record-audit-empty' | i18next }}
+      </div>
+      <div *ngIf="auditTab.records.length > 0" class="table-responsive">
         <table class="table rb-audit-table">
           <thead>
             <tr>
@@ -89,7 +147,7 @@
               <tr
                 class="rb-audit-row"
                 [class.rb-audit-row-expanded]="row.expanded || row.technicalExpanded"
-                [class.rb-audit-row-created]="row.actionLabelKey.includes('created')"
+                [class.rb-audit-row-created]="row.actionLabelKey?.includes('created')"
               >
                 <td class="rb-col-timestamp">
                   <div class="rb-timestamp-wrapper">
@@ -366,25 +424,86 @@
     <div *ngIf="integrationTab.error" class="alert alert-danger">
       <i class="fa-solid fa-circle-exclamation"></i> {{ integrationTab.error | i18next }}
     </div>
-    <div
-      *ngIf="!integrationTab.loading && !integrationTab.error && (integrationTab.data?.records?.length || 0) === 0"
-      class="alert alert-warning"
-    >
-      <i class="fa-solid fa-circle-info"></i> {{ '@record-audit-empty' | i18next }}
-    </div>
-
-    <div *ngIf="(integrationTab.data?.records?.length || 0) > 0 && !integrationTab.loading" class="panel panel-default">
+    <div *ngIf="!integrationTab.loading && !integrationTab.error" class="panel panel-default">
       <div class="panel-heading">
         <span class="rb-audit-panel-title">
           <i class="fa-solid fa-plug"></i>
           {{ '@record-audit-tab-integration-audit' | i18next }}
         </span>
       </div>
-      <div class="table-responsive">
+      <div class="rb-integration-filters">
+        <div class="rb-filter-field">
+          <label for="rb-integration-date-from">{{ '@record-audit-integration-filter-date-from' | i18next }}</label>
+          <input
+            id="rb-integration-date-from"
+            type="date"
+            class="form-control"
+            [(ngModel)]="integrationTab.filters.dateFrom"
+            [disabled]="integrationTab.loading"
+          />
+        </div>
+        <div class="rb-filter-field">
+          <label for="rb-integration-date-to">{{ '@record-audit-integration-filter-date-to' | i18next }}</label>
+          <input
+            id="rb-integration-date-to"
+            type="date"
+            class="form-control"
+            [(ngModel)]="integrationTab.filters.dateTo"
+            [disabled]="integrationTab.loading"
+          />
+        </div>
+        <div class="rb-filter-field">
+          <label for="rb-integration-name">{{ '@record-audit-integration-filter-integration-name' | i18next }}</label>
+          <input
+            id="rb-integration-name"
+            type="text"
+            class="form-control"
+            [(ngModel)]="integrationTab.filters.integrationName"
+            [placeholder]="'@record-audit-integration-filter-integration-name-placeholder' | i18next"
+            [disabled]="integrationTab.loading"
+          />
+        </div>
+        <div class="rb-filter-field">
+          <label for="rb-integration-status">{{ '@record-audit-integration-filter-status' | i18next }}</label>
+          <select
+            id="rb-integration-status"
+            class="form-control"
+            [(ngModel)]="integrationTab.filters.status"
+            [disabled]="integrationTab.loading"
+          >
+            <option *ngFor="let status of integrationStatusOptions" [ngValue]="status">
+              {{ (status ? status : '@record-audit-integration-filter-status-all') | i18next }}
+            </option>
+          </select>
+        </div>
+        <div class="rb-filter-actions">
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            [disabled]="integrationTab.loading"
+            (click)="applyIntegrationFilters()"
+          >
+            <i class="fa-solid fa-filter"></i> {{ '@record-audit-integration-filter-apply' | i18next }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-default btn-sm"
+            [disabled]="integrationTab.loading || !hasActiveIntegrationFilters()"
+            (click)="clearIntegrationFilters()"
+          >
+            <i class="fa-solid fa-rotate-left"></i> {{ '@record-audit-integration-filter-clear' | i18next }}
+          </button>
+        </div>
+      </div>
+      <div *ngIf="(integrationTab.data?.records?.length || 0) === 0" class="alert alert-warning rb-integration-empty">
+        <i class="fa-solid fa-circle-info"></i> {{ '@record-audit-empty' | i18next }}
+      </div>
+      <div *ngIf="(integrationTab.data?.records?.length || 0) > 0" class="table-responsive">
         <table class="table rb-audit-table">
           <thead>
             <tr>
               <th>{{ '@record-audit-integration-col-trace' | i18next }}</th>
+              <th>{{ '@record-audit-integration-col-integration-name' | i18next }}</th>
               <th>{{ '@record-audit-integration-col-started' | i18next }}</th>
               <th>{{ '@record-audit-integration-col-completed' | i18next }}</th>
               <th>{{ '@record-audit-integration-col-duration' | i18next }}</th>
@@ -411,6 +530,7 @@
                     {{ getIntegrationTraceLabel(trace) }}
                   </button>
                 </td>
+                <td>{{ getIntegrationNameLabel(trace) }}</td>
                 <td>
                   <div class="rb-timestamp-wrapper">
                     <span class="rb-timestamp-main">{{ formatTimestamp(trace.startedAt) }}</span>
@@ -434,7 +554,7 @@
                 </td>
               </tr>
               <tr *ngIf="integrationTab.expandedTraces[trace.id]" class="rb-expanded-row">
-                <td colspan="8" class="rb-audit-expanded-cell">
+                <td colspan="9" class="rb-audit-expanded-cell">
                   <div class="rb-trace-events-container">
                     <div class="rb-diff-header">
                       <i class="fa-solid fa-diagram-project"></i>
@@ -512,7 +632,7 @@
           </tbody>
         </table>
       </div>
-      <div class="rb-audit-pagination">
+      <div *ngIf="(integrationTab.data?.records?.length || 0) > 0" class="rb-audit-pagination">
         <span class="rb-pagination-info">
           {{ formatPaginationLabel(integrationTab.data.summary.page, integrationTab.data.summary.totalPages || 1) }}
         </span>

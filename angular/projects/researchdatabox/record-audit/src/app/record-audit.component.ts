@@ -21,6 +21,8 @@ type RecordAuditTabName = 'audit' | 'permissions' | 'integration';
   standalone: false,
 })
 export class RecordAuditComponent extends BaseComponent {
+  readonly auditActionOptions = ['', 'created', 'updated', 'deleted', 'destroyed', 'restored'] as const;
+  readonly integrationStatusOptions = ['', 'success', 'failed', 'error', 'started', 'pending', 'in_progress'] as const;
   private readonly relativeTimeFormatter =
     typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function'
       ? new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'short' })
@@ -54,12 +56,24 @@ export class RecordAuditComponent extends BaseComponent {
     error: string;
     summary: { returnedCount: number };
     rawAuditUrl: string;
+    filters: {
+      dateFrom: string;
+      dateTo: string;
+      action: string;
+      workflowState: string;
+    };
     records: Array<RecordAuditTabResponse['records'][number] & { expanded?: boolean; technicalExpanded?: boolean }>;
   } = {
       loading: true,
       error: '',
       summary: { returnedCount: 0 },
       rawAuditUrl: '',
+      filters: {
+        dateFrom: '',
+        dateTo: '',
+        action: '',
+        workflowState: '',
+      },
       records: [],
     };
 
@@ -82,6 +96,12 @@ export class RecordAuditComponent extends BaseComponent {
     data: IntegrationAuditTabResponse;
     expandedTraces: Record<string, boolean>;
     expandedEvents: Record<string, boolean>;
+    filters: {
+      dateFrom: string;
+      dateTo: string;
+      integrationName: string;
+      status: string;
+    };
   } = {
       loaded: false,
       loading: false,
@@ -89,6 +109,12 @@ export class RecordAuditComponent extends BaseComponent {
       data: { summary: { numFound: 0, page: 1, pageSize: 20, totalPages: 0 }, records: [] },
       expandedTraces: {},
       expandedEvents: {},
+      filters: {
+        dateFrom: '',
+        dateTo: '',
+        integrationName: '',
+        status: '',
+      },
     };
 
   constructor(
@@ -124,7 +150,12 @@ export class RecordAuditComponent extends BaseComponent {
     this.auditTab.loading = true;
     this.auditTab.error = '';
     try {
-      const response = await this.recordService.getRecordAuditTab(this.oid);
+      const response = await this.recordService.getRecordAuditTab(this.oid, {
+        dateFrom: this.auditTab.filters.dateFrom || undefined,
+        dateTo: this.auditTab.filters.dateTo || undefined,
+        action: this.auditTab.filters.action || undefined,
+        workflowState: this.normalizedAuditWorkflowStateFilter() || undefined,
+      });
       this.auditTab.summary = response.summary;
       this.auditTab.rawAuditUrl = response.rawAuditUrl;
       this.auditTab.records = response.records.map(record => ({ ...record, expanded: false, technicalExpanded: false }));
@@ -161,6 +192,10 @@ export class RecordAuditComponent extends BaseComponent {
       this.integrationTab.data = await this.recordService.getRecordIntegrationAuditTab(this.oid, {
         page,
         pageSize: this.integrationTab.data.summary.pageSize || 20,
+        dateFrom: this.integrationTab.filters.dateFrom || undefined,
+        dateTo: this.integrationTab.filters.dateTo || undefined,
+        integrationName: this.normalizedIntegrationNameFilter() || undefined,
+        status: this.integrationTab.filters.status || undefined,
       });
       this.integrationTab.expandedTraces = {};
       this.integrationTab.expandedEvents = {};
@@ -184,6 +219,33 @@ export class RecordAuditComponent extends BaseComponent {
     if (row) {
       row.technicalExpanded = !row.technicalExpanded;
     }
+  }
+
+  async applyAuditFilters() {
+    await this.loadAuditTab();
+  }
+
+  async clearAuditFilters() {
+    this.auditTab.filters = {
+      dateFrom: '',
+      dateTo: '',
+      action: '',
+      workflowState: '',
+    };
+    await this.loadAuditTab();
+  }
+
+  hasActiveAuditFilters() {
+    return !!(
+      this.auditTab.filters.dateFrom ||
+      this.auditTab.filters.dateTo ||
+      this.auditTab.filters.action ||
+      this.normalizedAuditWorkflowStateFilter()
+    );
+  }
+
+  normalizedAuditWorkflowStateFilter() {
+    return this.auditTab.filters.workflowState.trim();
   }
 
   toggleIntegrationTrace(traceId: string) {
@@ -224,6 +286,33 @@ export class RecordAuditComponent extends BaseComponent {
 
   canGoToNextPage() {
     return this.integrationTab.data.summary.page < this.integrationTab.data.summary.totalPages && !this.integrationTab.loading;
+  }
+
+  async applyIntegrationFilters() {
+    await this.loadIntegrationTab(1);
+  }
+
+  async clearIntegrationFilters() {
+    this.integrationTab.filters = {
+      dateFrom: '',
+      dateTo: '',
+      integrationName: '',
+      status: '',
+    };
+    await this.loadIntegrationTab(1);
+  }
+
+  hasActiveIntegrationFilters() {
+    return !!(
+      this.integrationTab.filters.dateFrom ||
+      this.integrationTab.filters.dateTo ||
+      this.normalizedIntegrationNameFilter() ||
+      this.integrationTab.filters.status
+    );
+  }
+
+  normalizedIntegrationNameFilter() {
+    return this.integrationTab.filters.integrationName.trim();
   }
 
   /**
@@ -351,9 +440,6 @@ export class RecordAuditComponent extends BaseComponent {
     const totalSeconds = Math.floor(durationMs / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    if (minutes === 0) {
-      return `${seconds}s`;
-    }
     return `${minutes}m ${seconds}s`;
   }
 
@@ -367,6 +453,10 @@ export class RecordAuditComponent extends BaseComponent {
 
   getIntegrationTraceLabel(trace: IntegrationAuditTraceRecord): string {
     return trace.traceId || trace.id || '-';
+  }
+
+  getIntegrationNameLabel(trace: IntegrationAuditTraceRecord): string {
+    return trace.integrationName?.trim() || '-';
   }
 
   getIntegrationEventIndent(event: IntegrationAuditTraceEvent): string {

@@ -47,6 +47,34 @@ function buildHttpRequestSummary(
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function toResponseSummary(value: unknown): Record<string, unknown> {
+  if (isRecord(value)) {
+    return value;
+  }
+  return { rawResponseBody: value };
+}
+
+function extractDoiId(responseSummary: Record<string, unknown>, statusCode: number, operationName: string): string | null {
+  const responseData = responseSummary['data'];
+  if (isRecord(responseData)) {
+    const id = responseData['id'];
+    if (typeof id === 'string' && id.trim() !== '') {
+      return id;
+    }
+  }
+
+  if (statusCode >= 200 && statusCode < 300) {
+    sails.log.warn(`${operationName} returned a successful response without a DOI id.`);
+    sails.log.warn(responseSummary);
+  }
+
+  return null;
+}
+
 async function runAuditedHttpOperation(
   auditAction: IntegrationAuditAction,
   runContext: DoiRunContext,
@@ -101,11 +129,11 @@ export async function runCreateDoiProgram(
       const program = Effect.gen(function* () {
         const client = yield* DoiClientTag;
         const response = yield* Effect.promise(() => client.createDoi(payload));
-        const data = response.data as { data?: { id?: string } };
+        const responseSummary = toResponseSummary(response.data);
         return {
-          doi: data?.data?.id ?? null,
+          doi: extractDoiId(responseSummary, response.statusCode, 'DataCite create DOI request'),
           statusCode: response.statusCode,
-          responseSummary: response.data as Record<string, unknown>
+          responseSummary,
         };
       }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
       return runProgram(program);
@@ -131,11 +159,11 @@ export async function runUpdateDoiProgram(
       const program = Effect.gen(function* () {
         const client = yield* DoiClientTag;
         const response = yield* Effect.promise(() => client.updateDoi(doi, payload));
-        const data = response.data as { data?: { id?: string } };
+        const responseSummary = toResponseSummary(response.data);
         return {
-          doi: data?.data?.id ?? doi,
+          doi: extractDoiId(responseSummary, response.statusCode, 'DataCite update DOI request') ?? doi,
           statusCode: response.statusCode,
-          responseSummary: response.data as Record<string, unknown>
+          responseSummary,
         };
       }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
       return runProgram(program);

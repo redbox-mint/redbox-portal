@@ -288,7 +288,13 @@ export namespace Services {
           });
           if (doi != null) {
             record = await this.addDoiDataToRecord(oid, record, doi, options);
-            RecordsService.updateMeta(brand, oid, record).then(() => { });
+            try {
+              await RecordsService.updateMeta(brand, oid, record);
+            } catch (error) {
+              sails.log.error(`Failed to persist DOI metadata for record '${oid}'.`);
+              sails.log.error(error);
+              throw error;
+            }
           }
           completeDoiAudit(auditCtx, { message: 'DOI trigger completed.' });
         } catch (error) {

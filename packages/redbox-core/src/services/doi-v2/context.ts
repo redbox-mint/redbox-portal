@@ -8,10 +8,10 @@ export function createRunContext(
   triggerSource: string = 'manual'
 ): DoiRunContext {
   const recordOid = String(record.redboxOid ?? record.id ?? '');
-  const brandName = record.metaMetadata?.brandId ?? record.branding ?? 'default';
+  const brandId = record.metaMetadata?.brandId ?? record.branding ?? 'default';
   return {
     recordOid,
-    brandName,
+    brandId,
     correlationId: jobId ?? `${recordOid || 'record'}-${Date.now()}`,
     triggerSource,
     jobId,

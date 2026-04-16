@@ -236,6 +236,8 @@ describe('The IntegrationAuditService', function () {
       startedAt: '2025-01-01T00:00:06.000Z',
     });
 
+    await waitForAuditCount(oid, 4);
+
     const traces = await integrationAuditService.getTraceAuditLog({ oid, page: 1, pageSize: 10 });
 
     expect(traces.total).to.equal(3);

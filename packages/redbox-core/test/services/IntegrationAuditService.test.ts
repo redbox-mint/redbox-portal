@@ -522,4 +522,42 @@ describe('IntegrationAuditService', function () {
     expect(result.rows).to.have.length(1);
     expect(result.rows[0].traceId).to.equal('trace-2');
   });
+
+  it('filters traces by integration name before pagination', async function () {
+    mockStorageService.countIntegrationAudit.resolves(4);
+    mockStorageService.getIntegrationAudit.resolves([
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'success',
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        startedAt: '2026-03-01T00:00:00.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'publishDoi',
+        status: 'success',
+        traceId: 'trace-2',
+        spanId: 'span-2',
+        startedAt: '2026-03-02T00:00:00.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'publishAfterUploadFilesJob',
+        status: 'success',
+        traceId: 'trace-3',
+        spanId: 'span-3',
+        startedAt: '2026-03-03T00:00:00.000Z',
+      },
+    ]);
+
+    const result = await service.getTraceAuditLog({ oid: 'oid-1', integrationName: 'fig', page: 1, pageSize: 10 } as any);
+
+    expect(result.total).to.equal(2);
+    expect(result.rows.map(row => row.traceId)).to.deep.equal(['trace-3', 'trace-1']);
+  });
 });

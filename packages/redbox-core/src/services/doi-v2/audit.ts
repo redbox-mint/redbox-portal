@@ -24,7 +24,7 @@ export function startDoiAudit(
   }
   return IntegrationAuditService.startAudit(oid, action, {
     integrationName: IntegrationAuditName.doi,
-    brandId: runContext.brandName,
+    brandId: runContext.brandId,
     triggeredBy: runContext.triggerSource,
     requestSummary,
     traceId: parentAuditContext?.traceId,

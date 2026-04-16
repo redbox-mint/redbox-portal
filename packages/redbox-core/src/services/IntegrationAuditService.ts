@@ -77,6 +77,9 @@ type IntegrationAuditOptions = {
   parentSpanId?: string;
 };
 
+const MAX_DEPTH = 1000;
+const MAX_BATCH = 500;
+
 export namespace Services {
   export class IntegrationAuditService extends services.Core.Service {
     protected readonly storeJobName = 'IntegrationAuditService-StoreIntegrationAudit';
@@ -487,6 +490,9 @@ export namespace Services {
           depth,
           hasChildren: children.length > 0,
         });
+        if (depth >= MAX_DEPTH) {
+          return;
+        }
         children.forEach(child => visitNode(child, depth + 1));
       };
 
@@ -556,16 +562,33 @@ export namespace Services {
           return [];
         }
 
-        const queryParams = new IntegrationAuditParams();
-        queryParams.oid = params.oid;
-        queryParams.dateFrom = params.dateFrom;
-        queryParams.dateTo = params.dateTo;
-        queryParams.page = 1;
-        queryParams.pageSize = totalRows;
-        return (await this.storageService.getIntegrationAudit(queryParams)) as Record<string, unknown>[];
+        const rows: Record<string, unknown>[] = [];
+        let page = 1;
+
+        while (rows.length < totalRows) {
+          const queryParams = new IntegrationAuditParams();
+          queryParams.oid = params.oid;
+          queryParams.dateFrom = params.dateFrom;
+          queryParams.dateTo = params.dateTo;
+          queryParams.page = page;
+          queryParams.pageSize = Math.min(MAX_BATCH, totalRows - rows.length);
+
+          const pageRows = (await this.storageService.getIntegrationAudit(queryParams)) as Record<string, unknown>[];
+          if (pageRows.length === 0) {
+            break;
+          }
+
+          rows.push(...pageRows);
+          if (pageRows.length < queryParams.pageSize) {
+            break;
+          }
+
+          page += 1;
+        }
+
+        return rows;
       }
 
-      const pageSize = 500;
       const rows: Record<string, unknown>[] = [];
       let page = 1;
 
@@ -575,11 +598,11 @@ export namespace Services {
         queryParams.dateFrom = params.dateFrom;
         queryParams.dateTo = params.dateTo;
         queryParams.page = page;
-        queryParams.pageSize = pageSize;
+        queryParams.pageSize = MAX_BATCH;
 
         const pageRows = (await this.storageService.getIntegrationAudit(queryParams)) as Record<string, unknown>[];
         rows.push(...pageRows);
-        if (pageRows.length < pageSize) {
+        if (pageRows.length < MAX_BATCH) {
           break;
         }
         page += 1;
@@ -607,6 +630,10 @@ export namespace Services {
       });
 
       let groupedRows = Array.from(traceRows.entries()).map(([traceId, rows]) => this.buildTraceRecord(traceId, rows));
+      if (!_.isEmpty(params.integrationName)) {
+        const integrationNameFilter = String(params.integrationName).trim().toLowerCase();
+        groupedRows = groupedRows.filter(row => (row.integrationName ?? '').toLowerCase().includes(integrationNameFilter));
+      }
       if (!_.isEmpty(params.status)) {
         groupedRows = groupedRows.filter(row => row.status === params.status);
       }

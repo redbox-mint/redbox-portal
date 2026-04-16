@@ -14,10 +14,14 @@ const DOI_PASSWORD_FALLBACK_ENV_VARS = [
 function resolveBrandConfig(brandName: string): DoiPublishing | null {
   const appConfig = sails.config.brandingAware(brandName).doiPublishing as DoiPublishing | undefined;
   if (appConfig?.enabled === true) {
-    appConfig.connection.password = resolveDoiConnectionPassword(appConfig.connection.password, {
+    const resolvedConfig = _.cloneDeep(appConfig) as DoiPublishing;
+    resolvedConfig.connection = {
+      ...resolvedConfig.connection,
+      password: resolveDoiConnectionPassword(resolvedConfig.connection.password, {
       fallbackEnvVarNames: [...DOI_PASSWORD_FALLBACK_ENV_VARS]
-    });
-    return appConfig;
+      })
+    };
+    return resolvedConfig;
   }
   return null;
 }

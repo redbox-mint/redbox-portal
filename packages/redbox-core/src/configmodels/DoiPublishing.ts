@@ -331,6 +331,11 @@ export function fromDoiPublishingFormModel(model: unknown): DoiPublishingConfigD
     }
     const entry = _.cloneDeep(profile) as Record<string, unknown>;
     const name = normaliseProfileName(entry.name, `profile-${index + 1}`);
+    if (mappedProfiles[name] != null) {
+      throw new Error(
+        `Duplicate DOI profile name '${name}' resolved from profile entry at index ${index} (original name: '${String(entry.name ?? '')}').`
+      );
+    }
     delete entry.name;
     mappedProfiles[name] = entry as unknown as DoiProfile;
   });

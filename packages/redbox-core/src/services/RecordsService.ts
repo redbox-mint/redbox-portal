@@ -894,7 +894,16 @@ export namespace Services {
           },
         ] as Record<string, unknown>[];
       }
-      return audit;
+      const actionFilter = _.isString(params.action) ? params.action.trim().toLowerCase() : '';
+      const workflowStateFilter = _.isString(params.workflowState) ? params.workflowState.trim().toLowerCase() : '';
+
+      return audit.filter(auditRow => {
+        const action = String(auditRow['action'] ?? '').trim().toLowerCase();
+        const workflowStageLabel = String(_.get(auditRow, 'record.workflow.stageLabel', '')).trim().toLowerCase();
+        const actionMatches = _.isEmpty(actionFilter) || action === actionFilter;
+        const workflowMatches = _.isEmpty(workflowStateFilter) || workflowStageLabel.includes(workflowStateFilter);
+        return actionMatches && workflowMatches;
+      });
     }
 
     public async getResolvedPermissionsSummary(oid: string) {
@@ -912,12 +921,22 @@ export namespace Services {
           if (_.isEmpty(username)) {
             continue;
           }
-          const user = await firstValueFrom(UsersService.getUserWithUsername(username));
-          resolvedUsers.push({
-            username,
-            name: String(_.get(user, 'name', '')),
-            email: String(_.get(user, 'email', '')),
-          });
+          try {
+            const user = await firstValueFrom(UsersService.getUserWithUsername(username));
+            resolvedUsers.push({
+              username,
+              name: String(_.get(user, 'name', '')),
+              email: String(_.get(user, 'email', '')),
+            });
+          } catch (error) {
+            sails.log.warn(`RecordsService.getResolvedPermissionsSummary could not resolve user '${username}' for record '${oid}'.`);
+            sails.log.warn(error);
+            resolvedUsers.push({
+              username,
+              name: '',
+              email: '',
+            });
+          }
         }
         return resolvedUsers;
       };

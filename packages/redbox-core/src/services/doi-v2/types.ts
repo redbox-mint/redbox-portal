@@ -15,7 +15,7 @@ export type DoiChangeEvent = 'draft' | 'register' | 'publish' | 'hide';
 
 export interface DoiRunContext {
   recordOid: string;
-  brandName: string;
+  brandId: string;
   correlationId: string;
   triggerSource: string;
   jobId?: string;
