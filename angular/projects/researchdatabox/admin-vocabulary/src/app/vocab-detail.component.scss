@@ -39,3 +39,12 @@
   margin-right: 0.35rem;
   width: 1.25rem;
 }
+
+.entry-remove-modal {
+  --bs-modal-zindex: 1060;
+}
+
+.entry-remove-backdrop {
+  --bs-backdrop-opacity: 0.25;
+  --bs-backdrop-zindex: 1055;
+}

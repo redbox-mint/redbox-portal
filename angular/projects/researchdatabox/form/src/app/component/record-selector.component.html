@@ -27,7 +27,7 @@
                   [formControl]="searchControl"
                   [attr.aria-controls]="filteredRecords.length > 0 ? listboxId : null"
                   [attr.aria-describedby]="showStatusMessage ? statusId : null"
-                  [title]="tooltip"
+                  [title]="tooltip | i18next"
                 />
               </div>
               <p class="rb-record-selector-search-hint">{{ 'record-selector-search-hint' | i18next }}</p>

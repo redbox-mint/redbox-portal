@@ -111,8 +111,8 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
           [class.is-valid]="showValidState"
           [class.is-invalid]="!isValid"
           [readonly]="isReadonly"
-          [title]="tooltip"
-          [placeholder]="placeholder"
+          [title]="tooltip | i18next"
+          [placeholder]="placeholder | i18next"
         />
         <div class="input-group-append">
           <span class="input-group-text date-input-addon" (click)="toggleDatepicker()" >

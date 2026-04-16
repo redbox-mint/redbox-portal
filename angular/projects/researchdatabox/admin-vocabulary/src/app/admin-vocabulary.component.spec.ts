@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
 import { Pipe, PipeTransform } from '@angular/core';
@@ -162,6 +162,97 @@ describe('AdminVocabularyComponent', () => {
     expect(component.draft.entries?.[1].id).toBe('child');
     expect(component.draft.entries?.[1].parent).toBe('parent');
   });
+
+  it('opens and cancels the vocabulary deletion modal without deleting', () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(VocabularyApiService);
+
+    component.vocabularies = [
+      { id: 'v1', name: 'Vocabulary One', slug: 'vocabulary-one', type: 'flat', source: 'local' }
+    ];
+    const deleteSpy = spyOn(api, 'delete').and.callThrough();
+
+    component.requestDeleteVocabulary('v1');
+
+    expect(component.isDeleteVocabularyModalOpen).toBeTrue();
+    expect(component.pendingDeleteVocabularyId).toBe('v1');
+    expect(component.pendingDeleteVocabularyName).toBe('Vocabulary One');
+
+    component.cancelDeleteVocabulary();
+
+    expect(component.isDeleteVocabularyModalOpen).toBeFalse();
+    expect(component.pendingDeleteVocabularyId).toBeNull();
+    expect(component.pendingDeleteVocabularyName).toBe('');
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it('closes the vocabulary deletion modal when Escape is pressed', () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+
+    component.vocabularies = [
+      { id: 'v1', name: 'Vocabulary One', slug: 'vocabulary-one', type: 'flat', source: 'local' }
+    ];
+
+    fixture.detectChanges();
+    component.requestDeleteVocabulary('v1');
+    fixture.detectChanges();
+
+    const modal = fixture.nativeElement.querySelector('.delete-vocabulary-modal') as HTMLElement;
+    modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(component.isDeleteVocabularyModalOpen).toBeFalse();
+    expect(component.pendingDeleteVocabularyId).toBeNull();
+  });
+
+  it('deletes the pending vocabulary when deletion is confirmed', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(VocabularyApiService);
+
+    component.vocabularies = [
+      { id: 'v1', name: 'Vocabulary One', slug: 'vocabulary-one', type: 'flat', source: 'local' }
+    ];
+    const deleteSpy = spyOn(api, 'delete').and.resolveTo();
+    spyOn(api, 'list').and.resolveTo({ data: [], meta: { total: 0, limit: 25, offset: 0 } });
+
+    component.requestDeleteVocabulary('v1');
+    await component.confirmDeleteVocabulary();
+
+    expect(deleteSpy).toHaveBeenCalledWith('v1');
+    expect(component.isDeleteVocabularyModalOpen).toBeFalse();
+    expect(component.message).toBe('Vocabulary deleted');
+  });
+
+  it('restores focus to the delete trigger after confirming deletion', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(VocabularyApiService);
+
+    component.vocabularies = [
+      { id: 'v1', name: 'Vocabulary One', slug: 'vocabulary-one', type: 'flat', source: 'local' }
+    ];
+
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    const activeElementSpy = spyOnProperty(document, 'activeElement', 'get').and.returnValue(trigger);
+    const focusSpy = spyOn(trigger, 'focus');
+
+    spyOn(api, 'delete').and.resolveTo();
+    spyOn(api, 'list').and.resolveTo({ data: [], meta: { total: 0, limit: 25, offset: 0 } });
+
+    component.requestDeleteVocabulary('v1');
+    component.confirmDeleteVocabulary();
+    flushMicrotasks();
+    tick();
+
+    expect(focusSpy).toHaveBeenCalled();
+
+    activeElementSpy.and.callThrough();
+    document.body.removeChild(trigger);
+  }));
 
   it('opens sync confirmation without syncing immediately', async () => {
     const fixture = TestBed.createComponent(AdminVocabularyComponent);

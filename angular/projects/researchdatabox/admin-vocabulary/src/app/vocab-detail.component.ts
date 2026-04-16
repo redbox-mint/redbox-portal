@@ -17,8 +17,11 @@ export class VocabDetailComponent implements OnChanges {
   private tempIdCounter = 0;
   private parentEditorEntryId: string | null = null;
   private collapsedPreviewNodeIds = new Set<string>();
+  private pendingRemoveEntryIndex: number | null = null;
+  private removeEntryModalTrigger: HTMLElement | null = null;
   isTreePreviewVisible = false;
   previewTree: PreviewTreeNode[] = [];
+  isRemoveEntryModalOpen = false;
 
   @Input() draft: VocabularyDetail = {
     name: '',
@@ -32,11 +35,20 @@ export class VocabDetailComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if ('draft' in changes) {
       this.ensureEntryIds();
+      this.syncPendingRemoveEntry();
     }
   }
 
   get hasEntries(): boolean {
     return !!this.draft.entries && this.draft.entries.length > 0;
+  }
+
+  get pendingRemoveEntryDisplay(): string {
+    if (this.pendingRemoveEntryIndex === null || !this.draft.entries) {
+      return '';
+    }
+    const entry = this.draft.entries[this.pendingRemoveEntryIndex];
+    return entry ? this.optionLabel(entry) : '';
   }
 
   addEntry(): void {
@@ -53,8 +65,36 @@ export class VocabDetailComponent implements OnChanges {
     this.refreshTreePreviewIfVisible();
   }
 
-  removeEntry(index: number): void {
-    if (!this.draft.entries) {
+  requestRemoveEntry(index: number): void {
+    if (!this.draft.entries || index < 0 || index >= this.draft.entries.length) {
+      return;
+    }
+    this.rememberRemoveEntryModalTrigger();
+    this.pendingRemoveEntryIndex = index;
+    this.isRemoveEntryModalOpen = true;
+  }
+
+  cancelRemoveEntry(): void {
+    this.closeRemoveEntryModal();
+  }
+
+  confirmRemoveEntry(): void {
+    if (this.pendingRemoveEntryIndex === null) {
+      this.closeRemoveEntryModal();
+      return;
+    }
+
+    const index = this.pendingRemoveEntryIndex;
+    this.closeRemoveEntryModal(false);
+    try {
+      this.removeEntry(index);
+    } finally {
+      this.restoreRemoveEntryModalTrigger();
+    }
+  }
+
+  private removeEntry(index: number): void {
+    if (!this.draft.entries || index < 0 || index >= this.draft.entries.length) {
       return;
     }
     const removedEntryId = this.entryId(this.draft.entries[index]);
@@ -216,9 +256,43 @@ export class VocabDetailComponent implements OnChanges {
     });
   }
 
+  private syncPendingRemoveEntry(): void {
+    if (this.pendingRemoveEntryIndex === null) {
+      return;
+    }
+    if (!this.draft.entries || this.pendingRemoveEntryIndex < 0 || this.pendingRemoveEntryIndex >= this.draft.entries.length) {
+      this.cancelRemoveEntry();
+    }
+  }
+
   private refreshTreePreviewIfVisible(): void {
     if (this.isTreePreviewVisible) {
       this.refreshTreePreview();
+    }
+  }
+
+  private rememberRemoveEntryModalTrigger(): void {
+    const activeElement = document.activeElement;
+    this.removeEntryModalTrigger = activeElement instanceof HTMLElement ? activeElement : null;
+  }
+
+  private restoreRemoveEntryModalTrigger(): void {
+    if (!this.removeEntryModalTrigger) {
+      return;
+    }
+    const target = this.removeEntryModalTrigger;
+    this.removeEntryModalTrigger = null;
+    if (!document.contains(target)) {
+      return;
+    }
+    setTimeout(() => target.focus(), 0);
+  }
+
+  private closeRemoveEntryModal(restoreFocus: boolean = true): void {
+    this.pendingRemoveEntryIndex = null;
+    this.isRemoveEntryModalOpen = false;
+    if (restoreFocus) {
+      this.restoreRemoveEntryModalTrigger();
     }
   }
 
