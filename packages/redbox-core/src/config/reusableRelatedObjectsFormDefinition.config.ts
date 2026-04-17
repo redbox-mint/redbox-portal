@@ -394,8 +394,8 @@ export const buildRelatedObjectsFieldDefinition = function (options: {
 }): AvailableFormComponentDefinitionFrames[] {
 
   return [{
-    name: "related-objects-fields-title-first-group",
-      overrides: {reusableFormName: options.fieldReusable ?? "related-objects-fields-title-first-group"},
+    name: "related_objects_fields_group_reusable",
+    overrides: {reusableFormName: options.fieldReusable ?? "related-objects-fields-title-first-group"},
     component: {
       class: "ReusableComponent",
         config: {
@@ -417,10 +417,7 @@ export const buildRelatedObjectsFieldDefinition = function (options: {
                               name: options.titleName ?? "related_title",
                               component: {
                                 class: "SimpleInputComponent",
-                                config: {
-                                  label: options.titleLabel,
-                                  placeholder: options.titlePlaceholder,
-                                }
+                                config: {label: options.titleLabel, placeholder: options.titlePlaceholder}
                               },
                               layout: {
                                 class: "InlineLayout",
@@ -436,10 +433,7 @@ export const buildRelatedObjectsFieldDefinition = function (options: {
                               name: options.urlName ?? "related_url",
                               component: {
                                 class: "SimpleInputComponent",
-                                config: {
-                                  label: options.urlLabel,
-                                  placeholder: options.urlPlaceholder,
-                                }
+                                config: {label: options.urlLabel, placeholder: options.urlPlaceholder}
                               },
                               layout: {class: "InlineLayout", config: {label: options.urlLabel}},
                             }
