@@ -41,7 +41,7 @@ import {
   FormFieldModel,
   HttpClientService,
   JSONataClientQuerySourceProperty,
-  LoggerService,
+  LoggerService, ModifyOptions,
   TranslationService,
   UtilityService
 } from '@researchdatabox/portal-ng-common';
@@ -566,7 +566,7 @@ export class FormService extends HttpClientService {
     validators?: FormValidatorConfig[] | null,
     enabledValidationGroups?: string[] | null,
     validationGroups?: FormValidationGroups | null,
-    updateValueAndValidityOpts?: { doUpdate?: boolean, onlySelf?: boolean, emitEvent?: boolean },
+    updateValueAndValidityOpts?: { doUpdate?: boolean } & ModifyOptions,
   ): void {
     if (!formControl) {
       this.loggerService.warn(`${this.logName}: Cannot set validators because formControl was not provided.`);
@@ -589,10 +589,12 @@ export class FormService extends HttpClientService {
     const enabledValidators = this.validatorsSupport.enabledValidators(availableGroups, enabledValidationGroups, validators);
     const validatorFns = this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators) ?? [];
 
+    // For debugging:
+    // this.loggerService.debug(`${this.logName}: setting validators to formControl`,
+    //   {definedValidators: validators, enabledValidators, formControlValue: formControl.value});
+
     // Set validators to the form control.
     // This may setValidators with an empty array - that is ok, and is necessary to remove existing validators.
-    this.loggerService.debug(`${this.logName}: setting validators to formControl`,
-      {definedValidators: validators, enabledValidators, formControlValue: formControl.value});
     formControl.setValidators(validatorFns);
     if (updateValueAndValidityOpts?.doUpdate !== false) {
       // TODO: Store the first created validator functions per formControl, and use that in .hasValidator.
@@ -942,7 +944,8 @@ export class FormService extends HttpClientService {
       }
     }
 
-    this.loggerService.debug(`${this.logName}: Calculated validation groups ${JSON.stringify(enabledNames)} from currentValidationGroups ${JSON.stringify(currentValidationGroups)} validationGroups ${JSON.stringify(validationGroups)} initial ${initial} groups ${JSON.stringify(groups)}`);
+    // For debugging:
+    // this.loggerService.debug(`${this.logName}: Calculated validation groups ${JSON.stringify(enabledNames)} from currentValidationGroups ${JSON.stringify(currentValidationGroups)} validationGroups ${JSON.stringify(validationGroups)} initial ${initial} groups ${JSON.stringify(groups)}`);
 
     return enabledNames;
   }

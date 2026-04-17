@@ -103,3 +103,8 @@ function valueProtoInfo(value: any) {
         isValueProtoCtorFuncObj,
     };
 }
+
+/**
+ * Extract all properties of the type T that are of the type U.
+ */
+export type ExtractPropertyNamesOfType<T, U> = { [K in keyof T]: T[K] extends U ? K : never }[keyof T];

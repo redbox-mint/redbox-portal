@@ -2,6 +2,26 @@ import {cloneDeep as _cloneDeep} from 'lodash-es';
 import {AbstractControl, FormControl} from '@angular/forms';
 import {FieldModelDefinitionFrame, FormValidatorConfig, guessType} from "@researchdatabox/sails-ng-common";
 
+
+/**
+ * Common angular modify options.
+ */
+export type ModifyOptions = {
+  /**
+   * When true or not supplied the statusChanges, valueChanges and events observables
+   * emit events with the latest status and value when the control is updated.
+   * When false, no events are emitted.
+   *
+   * Default true.
+   */
+  emitEvent?: boolean,
+  /**
+   * When true, mark only this control.
+   * When false or not supplied, marks all direct ancestors. Default is false.
+   */
+  onlySelf?: boolean
+};
+
 /**
  * Core model for form elements.
  */
@@ -117,14 +137,6 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
   }
 
   /**
-   * Set the value of the field
-   * @param value the value to set
-   */
-  public setValueDontEmitEvent(value: ValueType): void {
-    this.formControl?.setValue(value, { emitEvent: false });
-  }
-
-  /**
    * Primitive implementation returns the form control.
    * Complex implementations should override this method to create complex form controls.
    * @returns the form control
@@ -137,8 +149,35 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
     }
   }
 
+  /**
+   * Get all the validators initially set on this model.
+   */
   get validators(): FormValidatorConfig[] {
     return this.initConfig?.config?.validators ?? [];
+  }
+
+  /**
+   * True if this model is disabled, false if enabled.
+   */
+  public isDisabled(): boolean {
+    return this.formControl?.disabled ?? false;
+  }
+
+  /**
+   * Set this model to be disabled or enabled.
+   * @param disabled Set the disabled status.
+   * @param opts The modify options.
+   */
+  public setDisabled(disabled: boolean, opts?: ModifyOptions) {
+    const isDisabled = this.formControl?.disabled;
+    if (isDisabled === undefined) {
+      return;
+    }
+    if (!disabled && isDisabled) {
+      this.formControl?.enable(opts);
+    } else if (disabled && !isDisabled) {
+      this.formControl?.disable(opts);
+    }
   }
 }
 

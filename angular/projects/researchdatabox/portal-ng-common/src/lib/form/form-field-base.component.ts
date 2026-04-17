@@ -1,4 +1,4 @@
-import { FormFieldModel } from './base.model';
+import {FormFieldModel, ModifyOptions} from './base.model';
 import { FormControl } from '@angular/forms';
 import {
   Directive, HostBinding, ViewChild, signal, inject, TemplateRef,
@@ -6,26 +6,28 @@ import {
   EffectRef, Injector, ApplicationRef
 } from '@angular/core';
 import { LoggerService } from '../logger.service';
-import { get as _get,  isEmpty as _isEmpty } from 'lodash-es';
+import {  isEmpty as _isEmpty } from 'lodash-es';
 import { UtilityService } from "../utility.service";
 import {
   FormComponentDefinitionFrame,
-  FieldComponentConfigFrame,
   FieldComponentDefinitionFrame,
   FieldLayoutDefinitionFrame,
-  FieldLayoutConfigFrame,
   FormFieldComponentStatus,
   LineagePaths,
   JSONataQuerySourceProperty,
-  FormExpressionsConfigOutline
+  FormExpressionsConfigOutline,
+  ExtractPropertyNamesOfType
 } from '@researchdatabox/sails-ng-common';
 
 export type FormFieldComponentOrLayoutDefinition = FieldComponentDefinitionFrame | FieldLayoutDefinitionFrame;
-export type FormFieldComponentOrLayoutConfig = FieldComponentConfigFrame | FieldLayoutConfigFrame;
+export type FormFieldComponentOrLayoutConfig = NonNullable<FormFieldComponentOrLayoutDefinition['config']>;
 export interface FormFieldFocusRequestOptions {
   scroll?: boolean;
   scrollOptions?: ScrollIntoViewOptions;
 }
+type FormFieldComponentOrLayoutStringKeys = NonNullable<ExtractPropertyNamesOfType<FormFieldComponentOrLayoutConfig, string | undefined>>;
+type FormFieldComponentOrLayoutBooleanKeys = NonNullable<ExtractPropertyNamesOfType<FormFieldComponentOrLayoutConfig, boolean | undefined>>;
+
 
 /**
  * Base class for form components. Data binding to a form field is optional.
@@ -131,12 +133,12 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return this.status() === FormFieldComponentStatus.INIT_VIEW_READY || this.status() === FormFieldComponentStatus.READY;
   }
 
-  public getBooleanProperty(name: string, defaultValue: boolean): boolean {
-    return _get(this.componentDefinition?.config, name, defaultValue);
+  public getBooleanProperty(name: FormFieldComponentOrLayoutBooleanKeys, defaultValue: boolean): boolean {
+    return this.componentDefinition?.config?.[name] ?? defaultValue;
   }
 
-  public getStringProperty(name: string) {
-    return _get(this.componentDefinition?.config, name, '');
+  public getStringProperty(name: FormFieldComponentOrLayoutStringKeys) {
+    return this.componentDefinition?.config?.[name] ?? '';
   }
 
   get isVisible(): boolean {
@@ -147,12 +149,37 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return this.componentDefinition?.config?.readonly ?? false;
   }
 
+  /**
+   * Get whether this component is disabled or not.
+   *
+   * NOTE: Do not use isDisabled for HTML elements that are associated with an angular formControl (e.g. [disabled]="isDisabled").
+   *       The formControl sets the disabled state on the HTML element DOM.
+   */
   get isDisabled(): boolean {
     return this.componentDefinition?.config?.disabled ?? false;
   }
 
+  /**
+   * Set this component to be disabled or enabled.
+   * @param disabled True for disabled, false for enabled.
+   * @param opts The modify options.
+   */
+  public setDisabled(disabled: boolean, opts?: ModifyOptions) {
+    const current = this.isDisabled;
+    try {
+      this.model?.setDisabled(disabled, opts);
+      if (this.componentDefinition?.config) {
+        this.componentDefinition.config.disabled = disabled;
+      }
+    } catch {
+      if (this.componentDefinition?.config) {
+        this.componentDefinition.config.disabled = current;
+      }
+    }
+  }
+
   get label(): string {
-    return _get(this.componentDefinition?.config, 'label', '');
+    return this.componentDefinition?.config?.label ?? '';
   }
 
   /**

@@ -1,5 +1,5 @@
 import { Component, Input, ViewChild } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions } from "@researchdatabox/portal-ng-common";
 import {
   DateInputFieldComponentConfigFrame,
   DateInputFieldComponentConfig,
@@ -63,9 +63,9 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
     return normalizeDateInputValue(this.fieldConfig.config?.value) ?? null;
   }
 
-  public override setValue(value: DateInputModelValueType): void {
+  public override setValue(value: DateInputModelValueType, opts?: ModifyOptions): void {
     const normalizedValue = normalizeDateInputValue(value);
-    super.setValue((normalizedValue ?? value) as DateInputModelValueType);
+    super.setValue((normalizedValue ?? value) as DateInputModelValueType, opts);
   }
 
   public override patchValue(value: DateInputModelValueType): void {
@@ -73,17 +73,12 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
     super.patchValue((normalizedValue ?? value) as DateInputModelValueType);
   }
 
-  public override setValueDontEmitEvent(value: DateInputModelValueType): void {
-    const normalizedValue = normalizeDateInputValue(value);
-    super.setValueDontEmitEvent((normalizedValue ?? value) as DateInputModelValueType);
-  }
-
   public setTimeValue(timeValue: string): void {
     if(this.enableTimePicker) {
       //TODO: Implementation of time input requires more work to handle timezones properly and this will be done in a later PR if/when required
       let isoDts:string = `${this.stripTimeFromJSDate(this.formControl?.value as Date)}T${timeValue}:00.000Z`;
       let jsDate = DateTime.fromISO(isoDts).toJSDate();
-      this.setValueDontEmitEvent(jsDate);
+      this.setValue(jsDate, {emitEvent: false});
     }
   }
 

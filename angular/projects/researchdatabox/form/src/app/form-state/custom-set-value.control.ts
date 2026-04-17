@@ -1,8 +1,9 @@
 import { AbstractControl } from '@angular/forms';
 import {FormValidationGroupsChangeRequestEvent} from "./events";
+import {ModifyOptions} from "@researchdatabox/portal-ng-common";
 import {guessType} from "@researchdatabox/sails-ng-common";
 
-export type ControlSetValueOptions = { emitEvent?: boolean; onlySelf?: boolean };
+export type ControlSetValueOptions = ModifyOptions;
 
 export interface CustomSetValueControl<ValueType = unknown> {
   setCustomValue(value: ValueType, options?: ControlSetValueOptions): Promise<void> | void;

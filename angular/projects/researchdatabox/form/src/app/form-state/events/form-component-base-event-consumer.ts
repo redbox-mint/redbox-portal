@@ -377,17 +377,11 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         await syncComponentDisplayFromModel(this.options?.component);
       }
     } else if (exprTarget.startsWith(FormExpressionsTargetLayoutPrefix)) {
-      const layoutPath = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);
-      const container = this.options?.definition?.layout?.componentDefinition?.config;
-      if (container) {
-        _set(container, layoutPath, targetValue);
-      }
+      const propPath = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);
+      await this.setTargetComponentProp(targetValue, propPath, "layout");
     } else if (exprTarget.startsWith(FormExpressionsTargetComponentPrefix)) {
-      const componentPath = exprTarget.substring(FormExpressionsTargetComponentPrefix.length);
-      const container = this.options?.definition?.component?.componentDefinition?.config;
-      if (container) {
-        _set(container, componentPath, targetValue);
-      }
+      const propPath = exprTarget.substring(FormExpressionsTargetComponentPrefix.length);
+      await this.setTargetComponentProp(targetValue, propPath, "component");
     } else if (exprTarget === FormExpressionsTargetValidationGroups) {
       if (isTypeFormValidationGroupsChangeRequestInfo(targetValue)) {
         // Only publish an event in response to scoped change events, don't need to respond to the broadcast events.
@@ -412,6 +406,39 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         expression
       );
     }
+
+  }
+
+  protected async setTargetComponentProp(
+    targetValue: unknown, propPath: string, targetKind: "component" | "layout"
+  ) {
+
+    if (targetKind === "component" && propPath !== 'disabled') {
+      const config = this.options?.definition?.component?.componentDefinition?.config;
+      if (config && propPath) {
+        _set(config, propPath, targetValue);
+      }
+      return;
+    }
+
+    if (targetKind === "layout" && propPath !== 'disabled') {
+      const config = this.options?.definition?.layout?.componentDefinition?.config;
+      if (config && propPath) {
+        _set(config, propPath, targetValue);
+      }
+    }
+
+    if (propPath === 'disabled' && typeof targetValue === 'boolean') {
+      const component = this.options?.component;
+      if (component) {
+        component.setDisabled(targetValue);
+      }
+      return;
+    }
+
+    this.loggerService.warn(
+      `FormComponentBaseEventConsumer: Unknown target ${targetKind} property path '${propPath}' value '${targetValue}' in expression config.`
+    );
   }
 
   /**
