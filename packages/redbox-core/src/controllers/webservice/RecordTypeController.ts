@@ -1,6 +1,15 @@
-import { APIErrorResponse, BrandingModel, Controllers as controllers, ListAPIResponse, ListAPISummary, RecordTypeModel } from '../../index';
+import {
+  APIErrorResponse,
+  BrandingModel,
+  Controllers as controllers,
+  ListAPIResponse,
+  ListAPISummary,
+  RecordTypeModel,
+  validateApiRouteRequest,
+  getRecordTypeRoute,
+  listRecordTypesRoute,
+} from '../../index';
 import { firstValueFrom } from 'rxjs';
-
 
 export namespace Controllers {
   /**
@@ -16,10 +25,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: string[] = [
-      'getRecordType',
-      'listRecordTypes'
-    ];
+    protected override _exportedMethods: string[] = ['getRecordType', 'listRecordTypes'];
 
     /**
      **************************************************************************************************
@@ -27,30 +33,44 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() {
-
-    }
+    public bootstrap() { }
 
     public async getRecordType(req: Sails.Req, res: Sails.Res) {
-
       try {
-        const name = req.param('name');
+        const validated = validateApiRouteRequest(req, getRecordTypeRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const { query } = validated;
+        const name = query.name as string;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const recordType = await firstValueFrom(RecordTypesService.get(brand, name));
 
-        return this.apiRespond(req, res, recordType, 200)
+        return this.apiRespond(req, res, recordType, 200);
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
 
     public async listRecordTypes(req: Sails.Req, res: Sails.Res) {
       try {
+        const validated = validateApiRouteRequest(req, listRecordTypesRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const recordTypes: RecordTypeModel[] = await firstValueFrom(RecordTypesService.getAll(brand));
         const response: ListAPIResponse<RecordTypeModel> = new ListAPIResponse();
@@ -64,11 +84,10 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
-
 
     /**
      **************************************************************************************************

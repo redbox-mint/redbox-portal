@@ -4,6 +4,8 @@ import Handlebars from 'handlebars';
 import path from 'path';
 import { performance } from 'perf_hooks';
 
+import type { ApiRouteDefinition } from '../api-routes';
+
 export interface LoaderOptions {
     forceRegenerate?: boolean;
     verbose?: boolean;
@@ -12,6 +14,10 @@ export interface LoaderOptions {
 export interface HookBootstrapRegistration {
     name: string;
     module: string;
+}
+
+export interface HookApiRouteRegistration extends HookModuleRegistration {
+    name: string;
 }
 
 export interface HookModuleRegistration {
@@ -32,6 +38,7 @@ export interface HookRegistrations {
     hookModels: Record<string, HookModelRegistration>;
     hookPolicies: Record<string, HookPolicyRegistration>;
     hookBootstraps: HookBootstrapRegistration[];
+    hookApiRoutes: HookApiRouteRegistration[];
     hookServices: Record<string, HookServiceRegistration>;
     hookControllers: Record<string, HookControllerRegistration>;
     hookWebserviceControllers: Record<string, HookControllerRegistration>;
@@ -80,6 +87,7 @@ export interface GenerateAllShimsStats {
     controllerStats: HookGenerationStats;
     formConfigStats: FormConfigGenerationStats;
     configShimStats: GenerationStats;
+    apiRouteHookStats: GenerationStats;
     bootstrapStats: BootstrapGenerationStats;
 }
 
@@ -212,10 +220,19 @@ function sanitizePackageNameForVar(name: string, suffix: string): string {
     return `${name.replace(/[^a-zA-Z0-9_]/g, '_')}_${suffix}`;
 }
 
+function resolveDependencyModulePath(depName: string, appPath: string): string | null {
+    try {
+        return require.resolve(depName, { paths: [appPath] });
+    } catch {
+        return null;
+    }
+}
+
 export async function findAndRegisterHooks(appPath: string): Promise<HookRegistrations> {
     const hookModels: Record<string, HookModelRegistration> = {};
     const hookPolicies: Record<string, HookPolicyRegistration> = {};
     const hookBootstraps: HookBootstrapRegistration[] = [];
+    const hookApiRoutes: HookApiRouteRegistration[] = [];
     const hookServices: Record<string, HookServiceRegistration> = {};
     const hookControllers: Record<string, HookControllerRegistration> = {};
     const hookWebserviceControllers: Record<string, HookControllerRegistration> = {};
@@ -232,6 +249,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
             hookModels,
             hookPolicies,
             hookBootstraps,
+            hookApiRoutes,
             hookServices,
             hookControllers,
             hookWebserviceControllers,
@@ -255,6 +273,11 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
                 continue;
             }
 
+            const depModulePath = resolveDependencyModulePath(depName, appPath);
+            if (!depModulePath) {
+                continue;
+            }
+
             const depPackageJson = JSON.parse(
                 await fs.readFile(depPackageJsonPath, 'utf8')
             ) as {
@@ -262,6 +285,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
                     hasModels?: boolean;
                     hasPolicies?: boolean;
                     hasBootstrap?: boolean;
+                    hasApiRoutes?: boolean;
                     hasServices?: boolean;
                     hasControllers?: boolean;
                     hasFormConfigs?: boolean;
@@ -270,7 +294,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
 
             if (depPackageJson.sails?.hasModels === true) {
                 log.verbose(`Found hook with models: ${depName}`);
-                const hookModule = require(depName) as {
+                const hookModule = require(depModulePath) as {
                     registerRedboxModels?: () => Record<string, Record<string, unknown>>;
                 };
                 if (typeof hookModule.registerRedboxModels === 'function') {
@@ -286,7 +310,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
 
             if (depPackageJson.sails?.hasPolicies === true) {
                 log.verbose(`Found hook with policies: ${depName}`);
-                const hookModule = require(depName) as {
+                const hookModule = require(depModulePath) as {
                     registerRedboxPolicies?: () => Record<string, HookPolicyRegistration>;
                 };
                 if (typeof hookModule.registerRedboxPolicies === 'function') {
@@ -300,7 +324,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
 
             if (depPackageJson.sails?.hasBootstrap === true) {
                 log.verbose(`Found hook with bootstrap: ${depName}`);
-                const hookModule = require(depName) as {
+                const hookModule = require(depModulePath) as {
                     registerRedboxBootstrap?: () => Promise<void>;
                 };
                 if (typeof hookModule.registerRedboxBootstrap === 'function') {
@@ -311,9 +335,22 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
                 }
             }
 
+            if (depPackageJson.sails?.hasApiRoutes === true) {
+                log.verbose(`Found hook with api routes: ${depName}`);
+                const hookModule = require(depModulePath) as {
+                    registerHookApiRoutes?: () => readonly ApiRouteDefinition[];
+                };
+                if (typeof hookModule.registerHookApiRoutes === 'function') {
+                    hookApiRoutes.push({ name: depName, module: depName });
+                    log.verbose(`Registered api routes from ${depName}`);
+                } else {
+                    log.warn(`Hook ${depName} has 'hasApiRoutes: true' but no 'registerHookApiRoutes' function`);
+                }
+            }
+
             if (depPackageJson.sails?.hasServices === true) {
                 log.verbose(`Found hook with services: ${depName}`);
-                const hookModule = require(depName) as {
+                const hookModule = require(depModulePath) as {
                     registerRedboxServices?: () => Record<string, unknown>;
                 };
                 if (typeof hookModule.registerRedboxServices === 'function') {
@@ -329,7 +366,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
 
             if (depPackageJson.sails?.hasControllers === true) {
                 log.verbose(`Found hook with controllers: ${depName}`);
-                const hookModule = require(depName) as {
+                const hookModule = require(depModulePath) as {
                     registerRedboxControllers?: () => Record<string, unknown>;
                     registerRedboxWebserviceControllers?: () => Record<string, unknown>;
                 };
@@ -351,7 +388,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
 
             if (depPackageJson.sails?.hasFormConfigs === true) {
                 log.verbose(`Found hook with form configs: ${depName}`);
-                const hookModule = require(depName) as {
+                const hookModule = require(depModulePath) as {
                     registerRedboxFormConfigs?: () => Record<string, unknown>;
                 };
                 if (typeof hookModule.registerRedboxFormConfigs === 'function') {
@@ -374,11 +411,32 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
         hookModels,
         hookPolicies,
         hookBootstraps,
+        hookApiRoutes,
         hookServices,
         hookControllers,
         hookWebserviceControllers,
         hookFormConfigs,
     };
+}
+
+export async function generateApiRouteHookConfig(
+    configDir: string,
+    hookApiRoutes: HookApiRouteRegistration[]
+): Promise<GenerationStats> {
+    const filePath = path.join(configDir, 'apiRoutesHooks.js');
+
+    const hookImports = hookApiRoutes
+        .map(hook => {
+            const varName = sanitizePackageNameForVar(hook.name, 'apiRoutes');
+            return `const ${varName} = require('${hook.module}').registerHookApiRoutes;`;
+        })
+        .join('\n');
+
+    const hookProviders = hookApiRoutes.map(hook => sanitizePackageNameForVar(hook.name, 'apiRoutes'));
+    const content = `'use strict';\n/**\n * apiRoutesHooks config shim\n * Auto-generated by @researchdatabox/redbox-core loader\n * Do not edit manually - regenerated when .regenerate-shims marker exists\n *\n * Provides hook-contributed API route factories for buildMergedApiRouteConfig().\n */\n${hookImports ? `${hookImports}\n\n` : ''}module.exports.apiRoutesHooks = [${hookProviders.join(', ')}];\n`;
+
+    const written = await writeFileIfChanged(filePath, content);
+    return { generated: written ? 1 : 0, total: 1 };
 }
 
 export async function generatePolicyShims(
@@ -739,13 +797,18 @@ export async function findAndRegisterHookConfigs(appPath: string): Promise<HookC
                 continue;
             }
 
+            const depModulePath = resolveDependencyModulePath(depName, appPath);
+            if (!depModulePath) {
+                continue;
+            }
+
             const depPackageJson = JSON.parse(
                 await fs.readFile(depPackageJsonPath, 'utf8')
             ) as { sails?: { hasConfig?: boolean } };
 
             if (depPackageJson.sails?.hasConfig === true) {
                 log.verbose(`Found hook with config: ${depName}`);
-                const hookModule = require(depName) as { registerRedboxConfig?: () => Record<string, unknown> };
+                const hookModule = require(depModulePath) as { registerRedboxConfig?: () => Record<string, unknown> };
                 if (typeof hookModule.registerRedboxConfig === 'function') {
                     hookConfigs.push({ name: depName, module: depName });
                     log.verbose(`Registered config from ${depName}`);
@@ -945,6 +1008,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             hookModels,
             hookPolicies,
             hookBootstraps,
+            hookApiRoutes,
             hookServices,
             hookControllers,
             hookWebserviceControllers,
@@ -984,6 +1048,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             controllerStats,
             formConfigStats,
             configShimStats,
+            apiRouteHookStats,
             bootstrapStats,
         ] = await Promise.all([
             generateModelShims(modelsDir, hookModels),
@@ -994,6 +1059,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             generateControllerShims(controllersDir, hookControllers, hookWebserviceControllers),
             generateFormConfigShims(formConfigDir, hookFormConfigs),
             generateConfigShims(configDir, hookConfigs),
+            generateApiRouteHookConfig(configDir, hookApiRoutes),
             generateBootstrapShim(configDir, hookBootstraps),
         ]);
 
@@ -1008,6 +1074,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             `Form-config: index ${formConfigStats.generated ? 'written' : 'unchanged'}; entries ${formConfigStats.indexCount} (${formConfigStats.fromHooks} from hooks)`
         );
         log.verbose(`Config Shims: ${configShimStats.generated}/${configShimStats.total} written`);
+        log.verbose(`API route hooks: ${apiRouteHookStats.generated}/${apiRouteHookStats.total} written (${hookApiRoutes.length} hooks)`);
         log.verbose(`Bootstrap: ${bootstrapStats.generated}/${bootstrapStats.total} written (${bootstrapStats.hookCount} hook bootstraps)`);
 
         await generatePreLiftSnapshot(appPath, hookConfigs);
@@ -1038,6 +1105,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
                 controllerStats,
                 formConfigStats,
                 configShimStats,
+                apiRouteHookStats,
                 bootstrapStats,
             },
             totalTimeMs: Number.parseFloat(totalTime),

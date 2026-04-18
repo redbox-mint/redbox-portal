@@ -1,9 +1,11 @@
 import {
   APIErrorResponse,
   BrandingModel,
-  Controllers as controllers
+  Controllers as controllers,
+  validateApiRouteRequest,
+  getAppConfigByIdRoute,
+  saveAppConfigByIdRoute,
 } from '../../index';
-
 
 export namespace Controllers {
   /**
@@ -23,10 +25,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: string[] = [
-      'getAppConfig',
-      'saveAppConfig'
-    ];
+    protected override _exportedMethods: string[] = ['getAppConfig', 'saveAppConfig'];
 
     /**
      **************************************************************************************************
@@ -36,17 +35,21 @@ export namespace Controllers {
 
     public bootstrap() { }
 
-
     public async saveAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-        const appConfigId: string = req.param('appConfigId');
-        const appConfig = req.body;
-        if (appConfigId === undefined) {
-          return res.badRequest('appConfigId is required');
+        const validated = validateApiRouteRequest(req, saveAppConfigByIdRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
         }
-        //TODO: validate post body against key?
-        await AppConfigService.createOrUpdateConfig(brand, appConfigId, appConfig)
+        const { params, body } = validated;
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const appConfigId = params.appConfigId as string;
+        const appConfig = body;
+        await AppConfigService.createOrUpdateConfig(brand, appConfigId, appConfig as string);
         return this.apiRespond(req, res, appConfig, 200);
       } catch (error: unknown) {
         sails.log.error(error);
@@ -54,24 +57,35 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
 
     public async getAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-        const appConfigId: string = req.param('appConfigId');
-        if (appConfigId === undefined) {
-          return res.badRequest('appConfigId is required');
+        const validated = validateApiRouteRequest(req, getAppConfigByIdRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
         }
+        const { params } = validated;
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const appConfigId = params.appConfigId as string;
         const appConfig = await AppConfigService.getAppConfigByBrandAndKey(brand.id, appConfigId);
 
-        return res.json(appConfig);
+        return this.apiRespond(req, res, appConfig, 200);
       } catch (error) {
         sails.log.error(error);
-        return res.serverError(error);
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders(),
+        });
       }
     }
   }

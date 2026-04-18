@@ -54,7 +54,7 @@ describe('Webservice SearchController', () => {
 
     describe('index', () => {
         it('should fetch record meta and index it', async () => {
-            const req = { param: sinon.stub().withArgs('oid').returns('123') } as unknown as Sails.Req;
+            const req = { query: { oid: '123' } } as unknown as Sails.Req;
             const res = {} as unknown as Sails.Res;
             const mockRecord = { id: '123', metadata: { title: 'Test' } };
             mockSails.services.recordsservice.getMeta.resolves(mockRecord);
@@ -79,6 +79,42 @@ describe('Webservice SearchController', () => {
             await controller.removeAll(req, res);
 
             expect(mockSails.services.solrsearchservice.remove.calledWith('*')).to.be.true;
+            expect(apiRespondStub.called).to.be.true;
+        });
+    });
+
+    describe('search', () => {
+        it('should pass bracket-style exact and facet maps to the search service', async () => {
+            const req = {
+                session: { branding: 'default' },
+                user: { username: 'tester', roles: [] },
+                query: {
+                    searchStr: 'galaxy',
+                    exactNames: {
+                        title: 'Nebula',
+                        creator: 'Andromeda'
+                    },
+                    facetNames: {
+                        subject: 'Astronomy'
+                    }
+                }
+            } as unknown as Sails.Req;
+            const res = {} as unknown as Sails.Res;
+            mockSails.services.solrsearchservice.searchFuzzy.resolves({});
+            const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
+
+            await controller.search(req, res);
+
+            expect(mockSails.services.solrsearchservice.searchFuzzy.calledOnce).to.be.true;
+            const searchArgs = mockSails.services.solrsearchservice.searchFuzzy.firstCall.args;
+            expect(searchArgs[3]).to.equal('galaxy');
+            expect(searchArgs[4]).to.deep.equal([
+                { name: 'title', value: 'Nebula' },
+                { name: 'creator', value: 'Andromeda' }
+            ]);
+            expect(searchArgs[5]).to.deep.equal([
+                { name: 'subject', value: 'Astronomy' }
+            ]);
             expect(apiRespondStub.called).to.be.true;
         });
     });

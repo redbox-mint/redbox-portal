@@ -15,11 +15,15 @@
     "lint:fix": "cd ../.. && oxlint packages/redbox-core/src --fix",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
-    "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json"
+    "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
+    "generate-openapi": "ts-node --transpile-only scripts/generate-openapi.ts",
+    "doc:api": "npm run generate-openapi --",
+    "docs:serve": "npx serve ../../../support/docs/generated/api -p 8080"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@apidevtools/swagger-parser": "12.1.0",
     "@researchdatabox/raido-openapi-generated-node": "file:../raido",
     "@researchdatabox/rva-registry-openapi-generated-node": "file:../rva-registry",
     "@researchdatabox/sails-ng-common": "file:../sails-ng-common",
@@ -88,7 +92,10 @@
     "url-pattern": "1.0.3",
     "uuid": "13.0.0",
     "webpack": "5.105.4",
-    "wkt-parser-helper": "7.1.0"
+    "wkt-parser-helper": "7.1.0",
+    "yaml": "1.10.3",
+    "zod": "3.5.1",
+    "zod-to-openapi": "0.2.1"
   },
   "overrides": {
     "immutable": "5.1.5",

@@ -4,6 +4,9 @@ import * as BrandingLogoServiceModule from '../services/BrandingLogoService';
 import * as crypto from 'crypto';
 import * as fs from 'graceful-fs';
 import * as path from 'path';
+import { buildMergedApiBlueprint, buildMergedApiOpenApiDocument } from '../api-routes';
+
+const yaml: { dump: (value: unknown, options?: { lineWidth?: number }) => string } = require('js-yaml');
 
 // sails is declared globally via sails.ts; BrandingConfig is declared globally via waterline-models/BrandingConfig.ts
 declare const BrandingService: BrandingServiceModule.Services.Branding;
@@ -160,8 +163,12 @@ export namespace Controllers {
      */
     public renderApiB(req: Sails.Req, res: Sails.Res) {
       res.contentType('text/plain');
-      (req.options!.locals as globalThis.Record<string, unknown>)["baseUrl"] = sails.config.appUrl;
-      return this.sendView(req, res, "apidocsapib", { layout: false });
+      return res.send(
+        buildMergedApiBlueprint({
+          branding: req.param('branding') as string | undefined,
+          portal: req.param('portal') as string | undefined,
+        })
+      );
     }
 
 
@@ -174,8 +181,16 @@ export namespace Controllers {
      */
     public renderSwaggerJSON(req: Sails.Req, res: Sails.Res) {
       res.contentType('application/json');
-      (req.options!.locals as globalThis.Record<string, unknown>)["baseUrl"] = sails.config.appUrl;
-      return this.sendView(req, res, "apidocsswaggerjson", { layout: false });
+      return res.send(
+        JSON.stringify(
+          buildMergedApiOpenApiDocument({
+            branding: req.param('branding') as string | undefined,
+            portal: req.param('portal') as string | undefined,
+          }),
+          null,
+          2
+        )
+      );
     }
 
     /**
@@ -187,8 +202,15 @@ export namespace Controllers {
      */
     public renderSwaggerYAML(req: Sails.Req, res: Sails.Res) {
       res.contentType('application/x-yaml');
-      (req.options!.locals as globalThis.Record<string, unknown>)["baseUrl"] = sails.config.appUrl;
-      return this.sendView(req, res, "apidocsswaggeryaml", { layout: false });
+      return res.send(
+        yaml.dump(
+          buildMergedApiOpenApiDocument({
+            branding: req.param('branding') as string | undefined,
+            portal: req.param('portal') as string | undefined,
+          }),
+          { lineWidth: -1 }
+        )
+      );
     }
 
     /**
@@ -211,7 +233,7 @@ export namespace Controllers {
         // Try persistent storage first (GridFS), then in-memory cache
         let buf: Buffer | null = null;
         buf = await BrandingLogoService.getBinaryAsync(id);
-        
+
         if (!buf) {
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);

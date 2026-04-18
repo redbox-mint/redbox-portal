@@ -7,6 +7,13 @@ import * as os from 'os';
 
 import * as redboxLoader from '../../src/loader';
 
+async function createHookModule(sandboxDir: string, packageName: string, packageJson: Record<string, unknown>, indexJs: string): Promise<void> {
+    const moduleDir = path.join(sandboxDir, 'node_modules', packageName);
+    await fsPromises.mkdir(moduleDir, { recursive: true });
+    await fsPromises.writeFile(path.join(moduleDir, 'package.json'), JSON.stringify(packageJson, null, 2));
+    await fsPromises.writeFile(path.join(moduleDir, 'index.js'), indexJs);
+}
+
 describe('redbox-loader', function () {
     this.timeout(10000);
 
@@ -384,6 +391,7 @@ describe('redbox-loader', function () {
             expect(result.hookModels).to.deep.equal({});
             expect(result.hookPolicies).to.deep.equal({});
             expect(result.hookBootstraps).to.deep.equal([]);
+            expect(result.hookApiRoutes).to.deep.equal([]);
         });
 
         // Note: Testing actual hook discovery requires real modules in node_modules
@@ -402,6 +410,67 @@ describe('redbox-loader', function () {
             const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
             // Should not crash, just return empty
             expect(result.hookBootstraps).to.be.an('array');
+        });
+
+        it('should discover hook API routes exported by a hook dependency', async function () {
+            const packageName = 'redbox-hook-api-routes';
+            await createHookModule(
+                sandboxDir,
+                packageName,
+                {
+                    name: packageName,
+                    version: '1.0.0',
+                    sails: { hasApiRoutes: true },
+                },
+                `module.exports.registerHookApiRoutes = function() {
+                    return [{
+                        method: 'get',
+                        path: '/:branding/:portal/api/hooks/example',
+                        controller: 'hook/ExampleController',
+                        action: 'show'
+                    }];
+                };`
+            );
+
+            await fsPromises.writeFile(
+                path.join(sandboxDir, 'package.json'),
+                JSON.stringify({
+                    name: 'test-app',
+                    dependencies: {
+                        [packageName]: '1.0.0',
+                    },
+                    devDependencies: {},
+                })
+            );
+
+            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
+
+            expect(result.hookApiRoutes).to.deep.equal([{ name: packageName, module: packageName }]);
+        });
+    });
+
+    describe('generateApiRouteHookConfig', function () {
+        let configDir: string;
+
+        beforeEach(async function () {
+            configDir = path.join(sandboxDir, 'config');
+            await fsPromises.mkdir(configDir, { recursive: true });
+        });
+
+        it('should generate apiRoutesHooks.js from discovered hook api routes', async function () {
+            const packageName = 'redbox-hook-api-routes';
+            const hookApiRoutes = [{ name: packageName, module: packageName }];
+
+            const result = await redboxLoader.generateApiRouteHookConfig(configDir, hookApiRoutes);
+
+            expect(result.generated).to.equal(1);
+            expect(result.total).to.equal(1);
+
+            const content = await fsPromises.readFile(path.join(configDir, 'apiRoutesHooks.js'), 'utf8');
+            expect(content).to.include("registerHookApiRoutes");
+            expect(content).to.include("module.exports.apiRoutesHooks = [");
+            expect(content).to.include("require('redbox-hook-api-routes').registerHookApiRoutes");
+            expect(() => new vm.Script(content)).to.not.throw();
         });
     });
 });

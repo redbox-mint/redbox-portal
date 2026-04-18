@@ -57,13 +57,10 @@ describe('Webservice UserManagementController', () => {
     });
 
     it('should search link candidates', async () => {
-        const param = sinon.stub();
-        param.withArgs('query').returns('candidate');
-        param.withArgs('primaryUserId').returns('primary-1');
         const req = {
             session: { branding: 'default' },
             user: { username: 'admin-user' },
-            param
+            query: { query: 'candidate', primaryUserId: 'primary-1' }
         } as unknown as Sails.Req;
         const res = {} as unknown as Sails.Res;
         const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -77,12 +74,9 @@ describe('Webservice UserManagementController', () => {
 
     it('should reject link candidate searches when branding cannot be resolved', async () => {
         (global as any).BrandingService.getBrand = sinon.stub().returns(null);
-        const param = sinon.stub();
-        param.withArgs('query').returns('candidate');
-        param.withArgs('primaryUserId').returns('primary-1');
         const req = {
             session: { branding: 'default' },
-            param
+            query: { query: 'candidate', primaryUserId: 'primary-1' }
         } as unknown as Sails.Req;
         const res = {} as unknown as Sails.Res;
         const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -95,12 +89,10 @@ describe('Webservice UserManagementController', () => {
     });
 
     it('should get linked accounts through the service', async () => {
-        const param = sinon.stub();
-        param.withArgs('id').returns('primary-1');
         const req = {
             session: { branding: 'default' },
             user: { username: 'admin-user' },
-            param
+            params: { id: 'primary-1' }
         } as unknown as Sails.Req;
         const res = {} as unknown as Sails.Res;
         const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -114,11 +106,9 @@ describe('Webservice UserManagementController', () => {
 
     it('should reject linked account lookups when branding cannot be resolved', async () => {
         (global as any).BrandingService.getBrand = sinon.stub().returns(null);
-        const param = sinon.stub();
-        param.withArgs('id').returns('primary-1');
         const req = {
             session: { branding: 'default' },
-            param
+            params: { id: 'primary-1' }
         } as unknown as Sails.Req;
         const res = {} as unknown as Sails.Res;
         const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -132,12 +122,10 @@ describe('Webservice UserManagementController', () => {
 
     describe('getUserAudit', () => {
         it('should return audit data for an admin and sanitize the user payload', async () => {
-            const param = sinon.stub();
-            param.withArgs('id').returns('user-1');
             const req = {
                 session: { branding: 'default' },
                 user: { username: 'admin-user' },
-                param
+                params: { id: 'user-1' }
             } as unknown as Sails.Req;
             const res = {} as unknown as Sails.Res;
             const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -153,11 +141,10 @@ describe('Webservice UserManagementController', () => {
         });
 
         it('should return 400 when the user id is missing', async () => {
-            const param = sinon.stub().returns('');
             const req = {
                 session: { branding: 'default' },
                 user: { username: 'admin-user' },
-                param
+                params: {}
             } as unknown as Sails.Req;
             const res = {} as unknown as Sails.Res;
             const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -169,12 +156,10 @@ describe('Webservice UserManagementController', () => {
 
         it('should return 404 when the user does not exist', async () => {
             (global as any).UsersService.getUserWithId = sinon.stub().returns(of(null));
-            const param = sinon.stub();
-            param.withArgs('id').returns('missing-user');
             const req = {
                 session: { branding: 'default' },
                 user: { username: 'admin-user' },
-                param
+                params: { id: 'missing-user' }
             } as unknown as Sails.Req;
             const res = {} as unknown as Sails.Res;
             const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -186,12 +171,10 @@ describe('Webservice UserManagementController', () => {
 
         it('should return 400 when branding cannot be resolved', async () => {
             (global as any).BrandingService.getBrand = sinon.stub().returns(null);
-            const param = sinon.stub();
-            param.withArgs('id').returns('user-1');
             const req = {
                 session: { branding: 'default' },
                 user: { username: 'admin-user' },
-                param
+                params: { id: 'user-1' }
             } as unknown as Sails.Req;
             const res = {} as unknown as Sails.Res;
             const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -204,12 +187,10 @@ describe('Webservice UserManagementController', () => {
 
         it('should return 500 when the audit service fails', async () => {
             (global as any).UsersService.getUserAudit = sinon.stub().rejects(new Error('audit exploded'));
-            const param = sinon.stub();
-            param.withArgs('id').returns('user-1');
             const req = {
                 session: { branding: 'default' },
                 user: { username: 'admin-user' },
-                param
+                params: { id: 'user-1' }
             } as unknown as Sails.Req;
             const res = {} as unknown as Sails.Res;
             const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -314,12 +295,10 @@ describe('Webservice UserManagementController', () => {
 
     describe('disableUser', () => {
         it('should disable a user when called by admin', async () => {
-            const param = sinon.stub();
-            param.withArgs('id').returns('user-1');
             const req = {
                 session: { branding: 'default' },
                 user: { username: 'admin-user' },
-                param
+                params: { id: 'user-1' }
             } as unknown as Sails.Req;
             const res = {} as unknown as Sails.Res;
             const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
@@ -332,11 +311,10 @@ describe('Webservice UserManagementController', () => {
         });
 
         it('should reject when user id is missing', async () => {
-            const param = sinon.stub().returns('');
             const req = {
                 session: { branding: 'default' },
                 user: { username: 'admin-user' },
-                param
+                params: {}
             } as unknown as Sails.Req;
             const res = {} as unknown as Sails.Res;
             const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -347,12 +325,10 @@ describe('Webservice UserManagementController', () => {
         });
 
         it('should reject self-disable attempts', async () => {
-            const param = sinon.stub();
-            param.withArgs('id').returns('admin-1');
             const req = {
                 session: { branding: 'default' },
                 user: { id: 'admin-1', username: 'admin-user' },
-                param
+                params: { id: 'admin-1' }
             } as unknown as Sails.Req;
             const res = {} as unknown as Sails.Res;
             const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -367,12 +343,10 @@ describe('Webservice UserManagementController', () => {
 
     describe('enableUser', () => {
         it('should enable a user when called by admin', async () => {
-            const param = sinon.stub();
-            param.withArgs('id').returns('user-1');
             const req = {
                 session: { branding: 'default' },
                 user: { username: 'admin-user' },
-                param
+                params: { id: 'user-1' }
             } as unknown as Sails.Req;
             const res = {} as unknown as Sails.Res;
             const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
@@ -385,11 +359,10 @@ describe('Webservice UserManagementController', () => {
         });
 
         it('should reject when user id is missing', async () => {
-            const param = sinon.stub().returns('');
             const req = {
                 session: { branding: 'default' },
                 user: { username: 'admin-user' },
-                param
+                params: {}
             } as unknown as Sails.Req;
             const res = {} as unknown as Sails.Res;
             const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -401,12 +374,10 @@ describe('Webservice UserManagementController', () => {
 
         it('should reject enable requests when branding cannot be resolved', async () => {
             (global as any).BrandingService.getBrand = sinon.stub().returns(null);
-            const param = sinon.stub();
-            param.withArgs('id').returns('user-1');
             const req = {
                 session: { branding: 'default' },
                 user: { username: 'admin-user' },
-                param
+                params: { id: 'user-1' }
             } as unknown as Sails.Req;
             const res = {} as unknown as Sails.Res;
             const sendRespStub = sinon.stub(controller as any, 'sendResp');

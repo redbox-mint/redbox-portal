@@ -177,6 +177,7 @@ Hooks must export registration functions:
 | `hasServices` | `registerRedboxServices()` | Returns services object (hook services take precedence over core) |
 | `hasControllers` | `registerRedboxControllers()` / `registerRedboxWebserviceControllers()` | Returns controller export objects (hook controllers take precedence) |
 | `hasBootstrap` | `registerRedboxBootstrap()` | Returns async bootstrap function |
+| `hasApiRoutes` | `registerHookApiRoutes()` | Returns an array of contract-first API route definitions |
 | `hasConfig` | `registerRedboxConfig()` | Returns config object to merge |
 | `hasFormConfigs` | `registerRedboxFormConfigs()` | Returns form config registry |
 

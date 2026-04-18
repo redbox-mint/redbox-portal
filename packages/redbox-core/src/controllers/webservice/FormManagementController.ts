@@ -1,4 +1,12 @@
-import { APIErrorResponse, ListAPIResponse, ListAPISummary, Controllers as controllers } from '../../index';
+import {
+  APIErrorResponse,
+  ListAPIResponse,
+  ListAPISummary,
+  Controllers as controllers,
+  validateApiRouteRequest,
+  getFormRoute,
+  listFormsRoute,
+} from '../../index';
 import { FormAttributes } from '../../waterline-models/Form';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 import { firstValueFrom } from 'rxjs';
@@ -17,10 +25,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: string[] = [
-      'getForm',
-      'listForms'
-    ];
+    protected override _exportedMethods: string[] = ['getForm', 'listForms'];
 
     /**
      **************************************************************************************************
@@ -28,38 +33,54 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() {
-
-    }
+    public bootstrap() { }
 
     public async getForm(req: Sails.Req, res: Sails.Res) {
       try {
-        const name: string = req.param('name');
-        const editableParam = req.param('editable');
-        const editable: boolean = editableParam !== 'false';
-        const brand: BrandingModel = BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
+        const validated = validateApiRouteRequest(req, getFormRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const { query } = validated;
+        const name = query.name as string;
+        const editable: boolean = query.editable !== 'false';
+        const brand: BrandingModel =
+          BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
         const form = await firstValueFrom(FormsService.getFormByName(name, editable, String(brand.id)));
         if (!form) {
           return this.sendResp(req, res, {
             status: 404,
             displayErrors: [{ title: 'Form not found' }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
-        return this.apiRespond(req, res, form, 200)
+        return this.apiRespond(req, res, form, 200);
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
 
     public async listForms(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
+        const validated = validateApiRouteRequest(req, listFormsRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const brand: BrandingModel =
+          BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
         const forms: FormAttributes[] = await firstValueFrom(FormsService.listForms(String(brand.id)));
         const response: ListAPIResponse<FormAttributes> = new ListAPIResponse();
         const summary: ListAPISummary = new ListAPISummary();
@@ -72,11 +93,10 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
-
 
     /**
      **************************************************************************************************

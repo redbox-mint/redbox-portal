@@ -13,6 +13,7 @@ import { lastValueFrom, Observable } from 'rxjs';
 import type { BrandingAwareFunction } from './config';
 import type { LoDashStatic } from 'lodash';
 import { BrandingModel } from './model';
+import { getMergedApiRoutes } from './api-routes';
 
 declare const sails: Sails.Application;
 declare const _: LoDashStatic;
@@ -185,6 +186,7 @@ export function preLiftSetup(): void {
     sails.config.log.customLogger.level = sails.config.log.level;
 
     sails.log.debug("Starting bootstrap process with bootstrapAlways set to: " + sails.config.appmode.bootstrapAlways);
+    void getMergedApiRoutes();
 
     // Initialize all services that have an init() method
     // This allows services registered via redbox-loader shims to perform

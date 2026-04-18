@@ -9,12 +9,12 @@ import type { Configuration } from 'webpack';
 // Plugins (CommonJS require due to compatibility)
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
-const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 
 // Use process.cwd() as topDir (project root) instead of __dirname relative resolution
 // because this config file will run from inside node_modules or compiled dist folder.
 const topDir = process.cwd();
 const outputDir = path.resolve(topDir, './.tmp/public');
+const enableCssMinimizerPlugin = process.env.WEBPACK_ENABLE_CSS_MINI_PLUGIN === 'true';
 
 export interface WebpackConfig {
     config: Configuration[];
@@ -104,11 +104,13 @@ export const webpack: WebpackConfig = {
                 ]
             },
             optimization: {
-                minimizer: [
-                    // For webpack@5 you can use the `...` syntax to extend existing minimizers (i.e. `terser-webpack-plugin`), uncomment the next line
-                    // `...`,
-                    new CssMinimizerPlugin(),
-                ],
+                minimizer: enableCssMinimizerPlugin
+                    ? [
+                        // For webpack@5 you can use the `...` syntax to extend existing minimizers (i.e. `terser-webpack-plugin`), uncomment the next line
+                        // `...`,
+                        new (require("css-minimizer-webpack-plugin"))(),
+                    ]
+                    : undefined,
                 // disabled by default for local development
                 minimize: false,
             },

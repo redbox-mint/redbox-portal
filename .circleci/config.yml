@@ -16,6 +16,15 @@ jobs:
       - run:
           name: Run lint
           command: npm run lint
+      - run:
+          name: Validate API route contracts
+          command: npm run validate:api-routes
+      - run:
+          name: Generate API docs artifacts
+          command: npm run doc:api
+      - store_artifacts:
+          path: support/docs/generated/api
+          destination: api-docs
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:

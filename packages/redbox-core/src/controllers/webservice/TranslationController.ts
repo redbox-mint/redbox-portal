@@ -1,4 +1,16 @@
-import { APIActionResponse, APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
+import {
+  APIActionResponse,
+  APIErrorResponse,
+  BrandingModel,
+  Controllers as controllers,
+  validateApiRouteRequest,
+  listEntriesRoute,
+  getEntryRoute,
+  setEntryRoute,
+  deleteEntryRoute,
+  getBundleRoute,
+  setBundleRoute,
+} from '../../index';
 
 export namespace Controllers {
   /**
@@ -15,16 +27,25 @@ export namespace Controllers {
       'deleteEntry',
       'getBundle',
       'setBundle',
-      'updateBundleEnabled'
+      'updateBundleEnabled',
     ];
 
     public async listEntries(req: Sails.Req, res: Sails.Res) {
       try {
+        const validated = validateApiRouteRequest(req, listEntriesRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const { query } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
-        const locale = req.param('locale');
-        const namespace = req.param('namespace') || 'translation';
-        const keyPrefix = req.param('keyPrefix');
+        const locale = query.locale as string;
+        const namespace = (query.namespace as string) || 'translation';
+        const keyPrefix = query.keyPrefix as string | undefined;
 
         const entries = await I18nEntriesService.listEntries(branding, locale, namespace, keyPrefix);
         // Ensure metadata fields are included in the response
@@ -35,18 +56,27 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
 
     public async getEntry(req: Sails.Req, res: Sails.Res) {
       try {
+        const validated = validateApiRouteRequest(req, getEntryRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const { params } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
-        const locale = req.param('locale');
-        const namespace = req.param('namespace') || 'translation';
-        const key = req.param('key');
+        const locale = params.locale as string;
+        const namespace = (params.namespace as string) || 'translation';
+        const key = params.key as string;
 
         const entry = await I18nEntriesService.getEntry(branding, locale, namespace, key);
         if (!entry) {
@@ -54,7 +84,7 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 404,
             displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
         return this.apiRespond(req, res, entry, 200);
@@ -64,25 +94,43 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
 
     public async setEntry(req: Sails.Req, res: Sails.Res) {
       try {
+        const validated = validateApiRouteRequest(req, setEntryRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const { params, body } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
-        const locale = req.param('locale');
-        const namespace = req.param('namespace') || 'translation';
-        const key = req.param('key');
-        const value = req.body?.value;
-        const category = req.body?.category;
-        const description = req.body?.description;
+        const locale = params.locale as string;
+        const namespace = (params.namespace as string) || 'translation';
+        const key = params.key as string;
+        const bodyObj = body as Record<string, unknown>;
+        const value = bodyObj?.value;
+        const category = bodyObj?.category as string | undefined;
+        const description = bodyObj?.description as string | undefined;
 
-        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, description });
+        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, {
+          category,
+          description,
+        });
         // Auto-refresh server-side i18n cache; best-effort and non-blocking
-        try { TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.setEntry] reload failed', err.message); }
+        try {
+          TranslationService.reloadResources();
+        } catch (e) {
+          const err = this.asError(e);
+          sails.log.warn('[TranslationController.setEntry] reload failed', err.message);
+        }
         return this.apiRespond(req, res, saved, 200);
       } catch (error) {
         const err = this.asError(error);
@@ -90,18 +138,27 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
 
     public async deleteEntry(req: Sails.Req, res: Sails.Res) {
       try {
+        const validated = validateApiRouteRequest(req, deleteEntryRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const { params } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
-        const locale = req.param('locale');
-        const namespace = req.param('namespace') || 'translation';
-        const key = req.param('key');
+        const locale = params.locale as string;
+        const namespace = (params.namespace as string) || 'translation';
+        const key = params.key as string;
 
         const ok = await I18nEntriesService.deleteEntry(branding, locale, namespace, key);
         if (!ok) {
@@ -109,11 +166,16 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 404,
             displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
         // Refresh i18n cache after deletion
-        try { TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.deleteEntry] reload failed', err.message); }
+        try {
+          TranslationService.reloadResources();
+        } catch (e) {
+          const err = this.asError(e);
+          sails.log.warn('[TranslationController.deleteEntry] reload failed', err.message);
+        }
         return this.apiRespond(req, res, new APIActionResponse('Deleted'), 200);
       } catch (error) {
         const err = this.asError(error);
@@ -121,17 +183,26 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
 
     public async getBundle(req: Sails.Req, res: Sails.Res) {
       try {
+        const validated = validateApiRouteRequest(req, getBundleRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const { params } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
-        const locale = req.param('locale');
-        const namespace = req.param('namespace') || 'translation';
+        const locale = params.locale as string;
+        const namespace = (params.namespace as string) || 'translation';
 
         const bundle = await I18nEntriesService.getBundle(branding, locale, namespace);
         if (!bundle) {
@@ -139,7 +210,7 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 404,
             displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
         return this.apiRespond(req, res, bundle, 200);
@@ -149,24 +220,42 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
 
     public async setBundle(req: Sails.Req, res: Sails.Res) {
       try {
+        const validated = validateApiRouteRequest(req, setBundleRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const { params, body } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
-        const locale = req.param('locale');
-        const namespace = req.param('namespace') || 'translation';
-        const data = req.body?.data || req.body;
-        const splitToEntries = req.param('splitToEntries') === 'true' || req.body?.splitToEntries === true;
-        const overwriteEntries = req.param('overwriteEntries') === 'true' || req.body?.overwriteEntries === true;
+        const locale = params.locale as string;
+        const namespace = (params.namespace as string) || 'translation';
+        const bodyObj = body as Record<string, unknown>;
+        const data = (bodyObj?.data || body) as Record<string, unknown>;
+        const splitToEntries = bodyObj?.splitToEntries === true;
+        const overwriteEntries = bodyObj?.overwriteEntries === true;
 
-        const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, undefined, { splitToEntries, overwriteEntries });
+        const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, undefined, {
+          splitToEntries,
+          overwriteEntries,
+        });
         // Refresh i18n cache after bundle update
-        try { TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.setBundle] reload failed', err.message); }
+        try {
+          TranslationService.reloadResources();
+        } catch (e) {
+          const err = this.asError(e);
+          sails.log.warn('[TranslationController.setBundle] reload failed', err.message);
+        }
         return this.apiRespond(req, res, bundle, 200);
       } catch (error) {
         const err = this.asError(error);
@@ -174,7 +263,7 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
@@ -183,20 +272,25 @@ export namespace Controllers {
       try {
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
-        const locale = req.param('locale');
-        const namespace = req.param('namespace') || 'translation';
-        const enabled = req.param('enabled') === 'true' || req.body?.enabled === true;
+        const locale = req.params['locale'];
+        const namespace = req.params['namespace'] || 'translation';
+        const enabled = req.query['enabled'] === 'true' || req.body?.enabled === true || req.body?.enabled === 'true';
 
         const bundle = await I18nEntriesService.updateBundleEnabled(branding, locale, namespace, enabled);
         // Refresh i18n cache after bundle update
-        try { TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.updateBundleEnabled] reload failed', err.message); }
+        try {
+          TranslationService.reloadResources();
+        } catch (e) {
+          const err = this.asError(e);
+          sails.log.warn('[TranslationController.updateBundleEnabled] reload failed', err.message);
+        }
         return this.sendResp(req, res, { data: bundle, headers: this.getNoCacheHeaders() });
       } catch (error) {
         const err = this.asError(error);
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ detail: err.message }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }

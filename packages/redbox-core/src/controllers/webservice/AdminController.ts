@@ -1,4 +1,14 @@
-import { APIActionResponse, APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
+import {
+  APIActionResponse,
+  APIErrorResponse,
+  BrandingModel,
+  Controllers as controllers,
+  validateApiRouteRequest,
+  refreshCachedResourcesRoute,
+  setAppConfigRoute,
+  getAppConfigByKeyRoute,
+  listAppConfigsRoute,
+} from '../../index';
 
 export namespace Controllers {
   /**
@@ -14,75 +24,97 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: string[] = [
-      'refreshCachedResources',
-      'setAppConfig',
-      'getAppConfig'
-    ];
+    protected override _exportedMethods: string[] = ['refreshCachedResources', 'setAppConfig', 'getAppConfig'];
 
-    public bootstrap() {
-
-    }
+    public bootstrap() { }
 
     public async refreshCachedResources(req: Sails.Req, res: Sails.Res) {
       try {
+        const validated = validateApiRouteRequest(req, refreshCachedResourcesRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         const response = new APIActionResponse();
         TranslationService.reloadResources();
         sails.config.startupMinute = Math.floor(Date.now() / 60000);
 
-        return this.apiRespond(req, res, response, 200)
+        return this.apiRespond(req, res, response, 200);
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
 
     public async setAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const configKey = req.param('configKey')
+        const validated = validateApiRouteRequest(req, setAppConfigRoute);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const { params, body } = validated;
+        const configKey = params.configKey as string;
 
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const brand: BrandingModel = BrandingService.getBrand(brandName);
 
-        await AppConfigService.createOrUpdateConfig(brand, configKey, req.body)
+        await AppConfigService.createOrUpdateConfig(brand, configKey, body as string);
 
         const response = new APIActionResponse('App configuration updated successfully');
 
-        return this.apiRespond(req, res, response, 200)
+        return this.apiRespond(req, res, response, 200);
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
 
     public async getAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const configKey = req.param('configKey')
+        const configKey = req.params['configKey'] as string | undefined;
+        const route = configKey !== undefined ? getAppConfigByKeyRoute : listAppConfigsRoute;
+        const validated = validateApiRouteRequest(req, route);
+        if (!validated.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const { params } = validated;
+        const validatedConfigKey = params.configKey as string | undefined;
 
         const brandName: string = BrandingService.getBrandNameFromReq(req);
 
         const brand: BrandingModel = BrandingService.getBrand(brandName);
 
-        let config: unknown = AppConfigService.getAppConfigurationForBrand(brand.name)
-        if (!_.isEmpty(configKey)) {
-          config = _.get(config, configKey, null)
+        let config: unknown = AppConfigService.getAppConfigurationForBrand(brand.name);
+        if (!_.isEmpty(validatedConfigKey)) {
+          config = _.get(config, validatedConfigKey!, null);
         }
 
-        return this.apiRespond(req, res, config, 200)
+        return this.apiRespond(req, res, config, 200);
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
