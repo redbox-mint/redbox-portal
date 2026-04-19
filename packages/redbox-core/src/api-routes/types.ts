@@ -65,7 +65,7 @@ export interface ApiRouteDefinition extends ApiOpenApiMetadata {
   controller: string;
   action: string;
   csrf?: boolean;
-  policy?: string;
+  policy?: string | string[];
   skipAssets?: boolean;
   locals?: Record<string, unknown>;
   view?: string;

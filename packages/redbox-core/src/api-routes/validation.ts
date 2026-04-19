@@ -18,7 +18,7 @@ export interface ApiValidationOptions {
   files?: Record<string, unknown[]>;
 }
 
-export interface ApiRouteValidationOptions extends ApiValidationOptions {}
+export interface ApiRouteValidationOptions extends ApiValidationOptions { }
 
 function formatIssuePath(path: (string | number)[]): string {
   if (!path.length) {
@@ -154,6 +154,8 @@ export interface InvalidApiRequest {
 
 export type ApiRouteRequestResult = ValidatedApiRequest | InvalidApiRequest;
 
+export type ValidatedApiRouteRequest = Omit<ValidatedApiRequest, 'valid'>;
+
 export function validateApiRouteRequest(
   req: Sails.Req,
   route: ApiRouteDefinition,
@@ -171,4 +173,22 @@ export function validateApiRouteRequest(
     body: extracted.body,
     files: options.files ?? extracted.files,
   };
+}
+
+export function validateApiRouteFiles(
+  route: ApiRouteDefinition,
+  files: Record<string, unknown[]>
+): ApiValidationResult {
+  const issues: ApiValidationIssue[] = [];
+  if (route.request?.files) {
+    validateFiles(files, route.request.files, issues);
+  }
+  return { valid: issues.length === 0, issues };
+}
+
+export function getValidatedApiRequest(req: Sails.Req): ValidatedApiRouteRequest {
+  if (!req.apiRequest) {
+    throw new Error(`Missing validated API request context for ${String(req.method).toUpperCase()} ${req.path ?? req.originalUrl}`);
+  }
+  return req.apiRequest;
 }

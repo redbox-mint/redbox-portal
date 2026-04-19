@@ -351,6 +351,43 @@ export function buildSailsRouteEntry(route: ApiRouteDefinition): Record<string, 
   return entry;
 }
 
+function normalizeMatchedRoutePath(routeValue: unknown): string | undefined {
+  if (typeof routeValue === 'string') {
+    const parsed = parseRoutePattern(routeValue);
+    return parsed.path || undefined;
+  }
+
+  if (isRecord(routeValue)) {
+    const directPath = routeValue.path;
+    if (typeof directPath === 'string' && directPath.trim() !== '') {
+      return directPath.trim();
+    }
+
+    const directRoute = routeValue.route;
+    if (typeof directRoute === 'string' && directRoute.trim() !== '') {
+      const parsed = parseRoutePattern(directRoute);
+      return parsed.path || undefined;
+    }
+  }
+
+  return undefined;
+}
+
+export function getMatchedRoutePath(req: Sails.Req): string | undefined {
+  const matched = normalizeMatchedRoutePath(req.route);
+  if (matched) {
+    return matched;
+  }
+
+  const optionsRoute = isRecord(req.options) ? normalizeMatchedRoutePath(req.options.route) : undefined;
+  if (optionsRoute) {
+    return optionsRoute;
+  }
+
+  const path = typeof req.path === 'string' && req.path.trim() !== '' ? req.path.trim() : undefined;
+  return path;
+}
+
 export function buildSailsRouteConfig(routes: readonly ApiRouteDefinition[]): ApiRouteMap {
   const sortedRoutes = [...ensureUniqueApiRoutes(routes, 'Sails route config')].sort(compareRouteSpecificity);
   return sortedRoutes.reduce((acc, route) => {

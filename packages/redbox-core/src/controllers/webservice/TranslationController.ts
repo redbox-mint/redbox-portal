@@ -3,7 +3,7 @@ import {
   APIErrorResponse,
   BrandingModel,
   Controllers as controllers,
-  validateApiRouteRequest,
+  getValidatedApiRequest,
   listEntriesRoute,
   getEntryRoute,
   setEntryRoute,
@@ -32,14 +32,7 @@ export namespace Controllers {
 
     public async listEntries(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, listEntriesRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { query } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
@@ -63,14 +56,7 @@ export namespace Controllers {
 
     public async getEntry(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, getEntryRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
@@ -101,14 +87,7 @@ export namespace Controllers {
 
     public async setEntry(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, setEntryRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params, body } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
@@ -145,14 +124,7 @@ export namespace Controllers {
 
     public async deleteEntry(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, deleteEntryRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
@@ -190,14 +162,7 @@ export namespace Controllers {
 
     public async getBundle(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, getBundleRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
@@ -227,14 +192,7 @@ export namespace Controllers {
 
     public async setBundle(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, setBundleRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params, body } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);

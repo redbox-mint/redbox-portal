@@ -1,8 +1,7 @@
 import { Controllers as controllers } from '../CoreController';
 import { APIActionResponse } from '../model/APIActionResponse';
 import { Services } from '../services/EmailService';
-import { validateApiRouteRequest } from '../api-routes/validation';
-import { sendNotificationRoute } from '../api-routes/groups/notifications';
+import { getValidatedApiRequest } from '../api-routes/validation';
 
 
 export namespace Controllers {
@@ -45,15 +44,7 @@ export namespace Controllers {
          */
 
         public sendNotification(req: Sails.Req, res: Sails.Res) {
-            const validated = validateApiRouteRequest(req, sendNotificationRoute);
-            if (!validated.valid) {
-                const validationDetail = validated.issues.map(i => `${i.path}: ${i.message}`).join(' | ');
-                return this.sendResp(req, res, {
-                    status: 400,
-                    displayErrors: [{ title: "An error has occurred", detail: validationDetail }],
-                    headers: this.getNoCacheHeaders()
-                });
-            }
+            const validated = getValidatedApiRequest(req);
             const body = validated.body as Record<string, unknown>;
 
             if (!body.to) {

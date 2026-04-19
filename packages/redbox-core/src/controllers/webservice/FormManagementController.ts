@@ -3,7 +3,7 @@ import {
   ListAPIResponse,
   ListAPISummary,
   Controllers as controllers,
-  validateApiRouteRequest,
+  getValidatedApiRequest,
   getFormRoute,
   listFormsRoute,
 } from '../../index';
@@ -37,14 +37,7 @@ export namespace Controllers {
 
     public async getForm(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, getFormRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { query } = validated;
         const name = query.name as string;
         const editable: boolean = query.editable !== 'false';
@@ -71,14 +64,7 @@ export namespace Controllers {
 
     public async listForms(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, listFormsRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const brand: BrandingModel =
           BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
         const forms: FormAttributes[] = await firstValueFrom(FormsService.listForms(String(brand.id)));

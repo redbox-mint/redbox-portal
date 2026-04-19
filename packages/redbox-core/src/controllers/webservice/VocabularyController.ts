@@ -1,7 +1,7 @@
 import { Controllers as controllers } from '../../CoreController';
 import { ListAPIResponse, ListAPISummary } from '../../model';
 import { Services as VocabularyServiceModule } from '../../services/VocabularyService';
-import { validateApiRouteRequest } from '../../api-routes/validation';
+import { getValidatedApiRequest } from '../../api-routes/validation';
 import {
   listVocabularyRoute,
   importVocabularyRoute,
@@ -47,14 +47,7 @@ export namespace Controllers {
 
     public async list(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, listVocabularyRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { query } = validated;
         const limit = this.parseNumberParam(query.limit, 25);
         const offset = this.parseNumberParam(query.offset, 0);
@@ -89,14 +82,7 @@ export namespace Controllers {
 
     public async get(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, getVocabularyRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params } = validated;
         const id = String(params.id || '');
         const vocabulary = await VocabularyService.getById(id);
@@ -120,14 +106,7 @@ export namespace Controllers {
 
     public async create(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, createVocabularyRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { body } = validated;
         const payload = {
           ...(body as Record<string, unknown>),
@@ -143,14 +122,7 @@ export namespace Controllers {
 
     public async update(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, updateVocabularyRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params, body } = validated;
         const id = String(params.id || '');
         const updated = await VocabularyService.update(id, body as Partial<VocabularyServiceModule.VocabularyInput>);
@@ -163,14 +135,7 @@ export namespace Controllers {
 
     public async reorder(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, reorderVocabularyRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params, body } = validated;
         const id = String(params.id || '').trim();
         const bodyObj = body as Record<string, unknown>;
@@ -215,14 +180,7 @@ export namespace Controllers {
 
     public async delete(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, deleteVocabularyRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params } = validated;
         const id = String(params.id || '');
         await VocabularyService.delete(id);
@@ -235,14 +193,7 @@ export namespace Controllers {
 
     public async import(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, importVocabularyRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { body } = validated;
         const bodyObj = body as Record<string, unknown>;
         const rvaId = String(bodyObj?.rvaId || '');
@@ -268,14 +219,7 @@ export namespace Controllers {
 
     public async sync(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, syncVocabularyRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params, body } = validated;
         const id = String(params.id || '');
         const bodyObj = body as Record<string, unknown>;

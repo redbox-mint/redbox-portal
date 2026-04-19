@@ -32,7 +32,8 @@ import {
   RecordTypeModel,
   SearchService,
   UserModel,
-  validateApiRouteRequest,
+  getValidatedApiRequest,
+  validateApiRouteFiles,
   getPermissionsRoute,
   addUserEditRoute,
   removeUserEditRoute,
@@ -135,14 +136,7 @@ export namespace Controllers {
     }
 
     public async getPermissions(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, getPermissionsRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
 
       try {
@@ -158,14 +152,7 @@ export namespace Controllers {
 
     public async addUserEdit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = validateApiRouteRequest(req, addUserEditRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
       const users = body['users'] as string[] | undefined;
@@ -207,14 +194,7 @@ export namespace Controllers {
 
     public async addUserView(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = validateApiRouteRequest(req, addUserViewRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
       const users = body['users'] as string[] | undefined;
@@ -256,14 +236,7 @@ export namespace Controllers {
 
     public async removeUserEdit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = validateApiRouteRequest(req, removeUserEditRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
       const users = body['users'] as string[] | undefined;
@@ -305,14 +278,7 @@ export namespace Controllers {
 
     public async removeUserView(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = validateApiRouteRequest(req, removeUserViewRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
       const users = body['users'] as string[] | undefined;
@@ -353,14 +319,7 @@ export namespace Controllers {
     }
 
     public async getMeta(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, getMetaRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
 
       try {
@@ -381,14 +340,7 @@ export namespace Controllers {
     }
 
     public async getRecordAudit(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, getRecordAuditRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const dateFrom = validated.query.dateFrom as string | undefined;
       const dateTo = validated.query.dateTo as string | undefined;
@@ -420,14 +372,7 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       sails.log.debug('brand is...');
       sails.log.debug(brand);
-      const validated = validateApiRouteRequest(req, getObjectMetaRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
 
       try {
@@ -443,14 +388,7 @@ export namespace Controllers {
 
     public async updateMeta(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = validateApiRouteRequest(req, updateMetaRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
       const shouldMerge = validated.query.merge === true;
@@ -509,14 +447,7 @@ export namespace Controllers {
 
     public async updateObjectMeta(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = validateApiRouteRequest(req, updateObjectMetaRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
 
@@ -538,14 +469,7 @@ export namespace Controllers {
 
     public create(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = validateApiRouteRequest(req, createRecordRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const recordType = validated.params.recordType as string;
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       const body = validated.body as globalThis.Record<string, unknown>;
@@ -640,14 +564,7 @@ export namespace Controllers {
     }
 
     public async getDataStream(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, getDataStreamRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const datastreamId = validated.params.datastreamId as string;
       sails.log.debug(`getDataStream ${oid} ${datastreamId}`);
@@ -710,14 +627,7 @@ export namespace Controllers {
     }
 
     public async addDataStreams(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, addDataStreamsRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const self = this;
       const attachmentsDir =
@@ -762,16 +672,21 @@ export namespace Controllers {
               });
             }
             const uploadedFiles = Array.isArray(UploadedFileMetadata) ? UploadedFileMetadata : [];
-            const validated = validateApiRouteRequest(req, addDataStreamsRoute, {
-              files: { attachmentFields: uploadedFiles as globalThis.Record<string, unknown>[] },
+            const fileValidation = validateApiRouteFiles(addDataStreamsRoute, {
+              attachmentFields: uploadedFiles as globalThis.Record<string, unknown>[],
             });
-            if (!validated.valid) {
+            if (!fileValidation.valid) {
               return self.sendResp(req, res, {
                 status: 400,
-                displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+                displayErrors: fileValidation.issues.map(i => ({ title: i.path, detail: i.message })),
                 headers: self.getNoCacheHeaders(),
               });
             }
+            const validated = getValidatedApiRequest(req);
+            req.apiRequest = {
+              ...validated,
+              files: { attachmentFields: uploadedFiles as globalThis.Record<string, unknown>[] },
+            };
             sails.log.verbose(UploadedFileMetadata);
             sails.log.verbose('Succesfully uploaded all file metadata. Sending locations downstream....');
             const fileIds: Datastream[] = (UploadedFileMetadata as globalThis.Record<string, unknown>[]).map(
@@ -986,14 +901,7 @@ export namespace Controllers {
     public listRecords(req: Sails.Req, res: Sails.Res) {
       //sails.log.debug('api-list-records');
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = validateApiRouteRequest(req, listRecordsRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const { query } = validated;
       const editAccessOnly = query.editOnly;
 
@@ -1055,14 +963,7 @@ export namespace Controllers {
     }
 
     public async restoreRecord(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, restoreRecordRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       if (_.isEmpty(oid)) {
@@ -1086,14 +987,7 @@ export namespace Controllers {
     }
 
     public async deleteRecord(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, deleteRecordRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const permanentlyDelete = req.query.permanent === 'true';
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
@@ -1135,14 +1029,7 @@ export namespace Controllers {
     }
 
     public async destroyDeletedRecord(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, destroyDeletedRecordRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       if (_.isEmpty(oid)) {
@@ -1168,14 +1055,7 @@ export namespace Controllers {
     }
 
     public async transitionWorkflow(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, transitionWorkflowRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const targetStepName = validated.params.targetStep as string;
       try {
@@ -1219,14 +1099,7 @@ export namespace Controllers {
     }
 
     public async listDatastreams(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, listDatastreamsRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
@@ -1252,14 +1125,7 @@ export namespace Controllers {
 
     public async addRoleEdit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = validateApiRouteRequest(req, addRoleEditRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
       const roles = body['roles'] as string[] | undefined;
@@ -1297,14 +1163,7 @@ export namespace Controllers {
 
     public async addRoleView(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = validateApiRouteRequest(req, addRoleViewRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
       const roles = body['roles'] as string[] | undefined;
@@ -1342,14 +1201,7 @@ export namespace Controllers {
 
     public async removeRoleEdit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = validateApiRouteRequest(req, removeRoleEditRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
       const roles = body['roles'] as string[] | undefined;
@@ -1387,14 +1239,7 @@ export namespace Controllers {
 
     public async removeRoleView(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = validateApiRouteRequest(req, removeRoleViewRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
       const users = body['roles'] as string[] | undefined;
@@ -1433,14 +1278,7 @@ export namespace Controllers {
     public async harvest(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
 
-      const validated = validateApiRouteRequest(req, harvestRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const recordType = validated.params.recordType as string;
       const updateMode = _.isEmpty(validated.query.updateMode)
         ? 'override'
@@ -1530,14 +1368,7 @@ export namespace Controllers {
     public async legacyHarvest(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
 
-      const validated = validateApiRouteRequest(req, legacyHarvestRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const recordType = validated.params.recordType as string;
       const recordTypeModel: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
 
@@ -1769,14 +1600,7 @@ export namespace Controllers {
 
     public listDeletedRecords(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = validateApiRouteRequest(req, listDeletedRecordsRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const { query } = validated;
       const editAccessOnly = query.editOnly;
 

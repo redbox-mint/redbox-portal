@@ -9,7 +9,7 @@ import {
   RoleModel,
   SearchService,
   UserModel,
-  validateApiRouteRequest,
+  getValidatedApiRequest,
   searchRecordsRoute,
   indexRecordRoute,
   indexAllRecordsRoute,
@@ -58,14 +58,7 @@ export namespace Controllers {
     public bootstrap() { }
 
     public override async index(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, indexRecordRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const { query } = validated;
       const oid = query.oid as string;
       const record: RecordModel = await this.RecordsService.getMeta(oid);
@@ -80,14 +73,7 @@ export namespace Controllers {
     }
 
     public async indexAll(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, indexAllRecordsRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       sails.log.verbose(`SearchController::indexAll() -> Indexing all records has been requested!`);
       const itemsPerPage = 100;
@@ -137,14 +123,7 @@ export namespace Controllers {
     }
 
     public async removeAll(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, removeAllIndexedRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       sails.log.verbose(`SearchController::removeAll() -> Removing all records has been requested!`);
 
       // delete all documents by specifying id as '*'
@@ -160,14 +139,7 @@ export namespace Controllers {
     }
 
     public async search(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, searchRecordsRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const { query } = validated;
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const type = query.type as string | undefined;

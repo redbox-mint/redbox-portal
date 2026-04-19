@@ -1,6 +1,7 @@
 import {
   Controllers as controllers,
-  validateApiRouteRequest,
+  getValidatedApiRequest,
+  validateApiRouteFiles,
   brandingDraftRoute,
   brandingPreviewRoute,
   brandingPublishRoute,
@@ -30,14 +31,7 @@ export namespace Controllers {
     protected override _exportedMethods: string[] = ['draft', 'preview', 'publish', 'rollback', 'logo', 'history'];
 
     async draft(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, brandingDraftRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: toValidationDisplayErrors(validated.issues),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const { params, body } = validated;
       const branding = params.branding as string;
       const actor = req.user;
@@ -57,14 +51,7 @@ export namespace Controllers {
     }
 
     async preview(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, brandingPreviewRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: toValidationDisplayErrors(validated.issues),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const branding = BrandingService.getBrandNameFromReq(req);
       const portal = req.params['portal'];
       try {
@@ -98,14 +85,7 @@ export namespace Controllers {
       }
     }
     async publish(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, brandingPublishRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: toValidationDisplayErrors(validated.issues),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const { params, body } = validated;
       const branding = params.branding as string;
       const portal = params.portal as string;
@@ -129,14 +109,7 @@ export namespace Controllers {
       }
     }
     async rollback(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, brandingRollbackRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: toValidationDisplayErrors(validated.issues),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const { params } = validated;
       const versionId = params.versionId as string;
       const actor = req.user;
@@ -172,14 +145,16 @@ export namespace Controllers {
             resolve([]);
           }
         });
-        const validated = validateApiRouteRequest(req, brandingLogoRoute, { files: { logo: files } });
-        if (!validated.valid) {
+        const fileValidation = validateApiRouteFiles(brandingLogoRoute, { logo: files });
+        if (!fileValidation.valid) {
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: toValidationDisplayErrors(validated.issues),
+            displayErrors: toValidationDisplayErrors(fileValidation.issues),
             headers: this.getNoCacheHeaders(),
           });
         }
+        const validated = getValidatedApiRequest(req);
+        req.apiRequest = { ...validated, files: { logo: files } };
         const { params } = validated;
         const branding = params.branding as string;
         const portal = params.portal as string;
@@ -198,14 +173,7 @@ export namespace Controllers {
       }
     }
     async history(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, brandingHistoryRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: toValidationDisplayErrors(validated.issues),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const { params } = validated;
       const branding = params.branding as string;
 

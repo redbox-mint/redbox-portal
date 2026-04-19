@@ -3,11 +3,7 @@ import {
   APIErrorResponse,
   BrandingModel,
   Controllers as controllers,
-  validateApiRouteRequest,
-  refreshCachedResourcesRoute,
-  setAppConfigRoute,
-  getAppConfigByKeyRoute,
-  listAppConfigsRoute,
+  getValidatedApiRequest,
 } from '../../index';
 
 export namespace Controllers {
@@ -30,14 +26,6 @@ export namespace Controllers {
 
     public async refreshCachedResources(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, refreshCachedResourcesRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
         const response = new APIActionResponse();
         TranslationService.reloadResources();
         sails.config.startupMinute = Math.floor(Date.now() / 60000);
@@ -55,14 +43,7 @@ export namespace Controllers {
 
     public async setAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, setAppConfigRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params, body } = validated;
         const configKey = params.configKey as string;
 
@@ -86,16 +67,7 @@ export namespace Controllers {
 
     public async getAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const configKey = req.params['configKey'] as string | undefined;
-        const route = configKey !== undefined ? getAppConfigByKeyRoute : listAppConfigsRoute;
-        const validated = validateApiRouteRequest(req, route);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params } = validated;
         const validatedConfigKey = params.configKey as string | undefined;
 

@@ -5,7 +5,7 @@ import {
   ListAPIResponse,
   ListAPISummary,
   RecordTypeModel,
-  validateApiRouteRequest,
+  getValidatedApiRequest,
   getRecordTypeRoute,
   listRecordTypesRoute,
 } from '../../index';
@@ -37,14 +37,7 @@ export namespace Controllers {
 
     public async getRecordType(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, getRecordTypeRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { query } = validated;
         const name = query.name as string;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
@@ -63,14 +56,7 @@ export namespace Controllers {
 
     public async listRecordTypes(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, listRecordTypesRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const recordTypes: RecordTypeModel[] = await firstValueFrom(RecordTypesService.getAll(brand));
         const response: ListAPIResponse<RecordTypeModel> = new ListAPIResponse();

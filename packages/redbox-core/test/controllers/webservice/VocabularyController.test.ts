@@ -3,6 +3,18 @@ import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { Controllers } from '../../../src/controllers/webservice/VocabularyController';
 
+function makeReq(req: Record<string, unknown>): Sails.Req {
+  return {
+    ...req,
+    apiRequest: (req.apiRequest as Sails.Req['apiRequest']) ?? {
+      params: (req.params ?? {}) as Record<string, unknown>,
+      query: (req.query ?? {}) as Record<string, unknown>,
+      body: req.body,
+      files: (req.files as Record<string, unknown[]>) ?? {},
+    },
+  } as Sails.Req;
+}
+
 describe('Webservice VocabularyController', () => {
   let controller: Controllers.Vocabulary;
 
@@ -44,7 +56,7 @@ describe('Webservice VocabularyController', () => {
   });
 
   it('lists vocabularies', async () => {
-    const req = { param: sinon.stub().returns(undefined), session: { branding: 'default' } } as unknown as Sails.Req;
+    const req = makeReq({ param: sinon.stub().returns(undefined), session: { branding: 'default' } });
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -58,7 +70,7 @@ describe('Webservice VocabularyController', () => {
   });
 
   it('gets vocabulary details with tree', async () => {
-    const req = { param: sinon.stub().withArgs('id').returns('v1') } as unknown as Sails.Req;
+    const req = makeReq({ params: { id: 'v1' }, param: sinon.stub().withArgs('id').returns('v1') });
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -68,9 +80,9 @@ describe('Webservice VocabularyController', () => {
   });
 
   it('returns display error detail when RVA import fails', async () => {
-    const req = {
-      body: { rvaId: '141' }
-    } as unknown as Sails.Req;
+    const req = makeReq({
+      body: { rvaId: '141' },
+    });
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
     (global as any).sails.services.rvaimportservice.importRvaVocabulary.rejects(

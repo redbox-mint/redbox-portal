@@ -2,7 +2,7 @@ import {
   APIErrorResponse,
   BrandingModel,
   Controllers as controllers,
-  validateApiRouteRequest,
+  getValidatedApiRequest,
   downloadRecsRoute,
 } from '../../index';
 import { default as util } from 'util';
@@ -29,14 +29,7 @@ export namespace Controllers {
      */
     public async downloadRecs(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, downloadRecsRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params, query } = validated;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const format = params.format as string;

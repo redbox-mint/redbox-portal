@@ -4,7 +4,6 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 
 import { Controllers } from '../../../src/controllers/webservice/RecordController';
-import * as validationModule from '../../../src/api-routes/validation';
 
 type PermissionCase = {
     name: string;
@@ -22,10 +21,14 @@ type PermissionCase = {
     expectedFields: Array<[string, string[]]>;
 };
 
-function makeThrowingRequest(extra: Partial<Sails.Req> = {}): Sails.Req {
+function makeThrowingRequest(
+    apiRequest: Sails.Req['apiRequest'],
+    extra: Partial<Sails.Req> = {}
+): Sails.Req {
     const request = {
         session: { branding: 'default' },
         user: { username: 'tester' },
+        apiRequest,
         ...extra,
     } as Record<string, unknown>;
 
@@ -38,21 +41,6 @@ function makeThrowingRequest(extra: Partial<Sails.Req> = {}): Sails.Req {
     });
 
     return request as Sails.Req;
-}
-
-function stubValidValidation(
-    body: unknown,
-    params: Record<string, unknown> = {},
-    query: Record<string, unknown> = {}
-): sinon.SinonStub {
-    return sinon.stub(validationModule, 'validateApiRouteRequest').returns({
-        valid: true,
-        issues: [],
-        params,
-        query,
-        body,
-        files: {},
-    } as never);
 }
 
 function successResult(oid = 'record-1') {
@@ -213,19 +201,22 @@ describe('Webservice RecordController body source', () => {
         ];
 
         for (const testCase of userPermissionCases) {
-            it(`uses validated body in ${testCase.name}`, async () => {
+            it(`uses req.apiRequest body in ${testCase.name}`, async () => {
                 const permissionRecord = {
                     authorization: cloneAuthorization(testCase.initialAuthorization),
                 };
                 recordsService.getMeta.resolves(permissionRecord);
                 recordsService.updateMeta.resolves(successResult());
-                const validationStub = stubValidValidation(testCase.body, { oid: 'record-1' });
-                const req = makeThrowingRequest();
+                const req = makeThrowingRequest({
+                    params: { oid: 'record-1' },
+                    query: {},
+                    body: testCase.body,
+                    files: {},
+                });
                 const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
                 await (controller as any)[testCase.method](req, {} as Sails.Res);
 
-                expect(validationStub.calledOnce).to.be.true;
                 expect(recordsService.updateMeta.calledOnce).to.be.true;
                 expect(recordsService.getMeta.callCount).to.equal(2);
 
@@ -282,19 +273,22 @@ describe('Webservice RecordController body source', () => {
         ];
 
         for (const testCase of rolePermissionCases) {
-            it(`uses validated body in ${testCase.name}`, async () => {
+            it(`uses req.apiRequest body in ${testCase.name}`, async () => {
                 const permissionRecord = {
                     authorization: cloneAuthorization(testCase.initialAuthorization),
                 };
                 recordsService.getMeta.resolves(permissionRecord);
                 recordsService.updateMeta.resolves(successResult());
-                const validationStub = stubValidValidation(testCase.body, { oid: 'record-1' });
-                const req = makeThrowingRequest();
+                const req = makeThrowingRequest({
+                    params: { oid: 'record-1' },
+                    query: {},
+                    body: testCase.body,
+                    files: {},
+                });
                 const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
                 await (controller as any)[testCase.method](req, {} as Sails.Res);
 
-                expect(validationStub.calledOnce).to.be.true;
                 expect(recordsService.updateMeta.calledOnce).to.be.true;
                 expect(recordsService.getMeta.callCount).to.equal(2);
 
@@ -309,7 +303,7 @@ describe('Webservice RecordController body source', () => {
     });
 
     describe('metadata handlers', () => {
-        it('uses validated body in updateMeta', async () => {
+        it('uses req.apiRequest body in updateMeta', async () => {
             const body = {
                 title: 'Validated title',
                 tags: ['incoming'],
@@ -325,13 +319,16 @@ describe('Webservice RecordController body source', () => {
             };
             recordsService.getMeta.resolves(record);
             recordsService.updateMeta.resolves(successResult());
-            const validationStub = stubValidValidation(body, { oid: 'record-1' }, { merge: true, datastreams: false });
-            const req = makeThrowingRequest();
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1' },
+                query: { merge: true, datastreams: false },
+                body,
+                files: {},
+            });
             const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
             await controller.updateMeta(req, {} as Sails.Res);
 
-            expect(validationStub.calledOnce).to.be.true;
             expect(recordsService.updateMeta.calledOnce).to.be.true;
             const updatedRecord = recordsService.updateMeta.firstCall.args[2] as any;
             expect(updatedRecord.metadata.tags).to.deep.equal(['existing', 'incoming']);
@@ -339,7 +336,7 @@ describe('Webservice RecordController body source', () => {
             expect(sendRespStub.calledOnce).to.be.true;
         });
 
-        it('uses validated body in updateObjectMeta', async () => {
+        it('uses req.apiRequest body in updateObjectMeta', async () => {
             const body = {
                 kind: 'object-meta',
                 source: 'validated',
@@ -349,20 +346,23 @@ describe('Webservice RecordController body source', () => {
             };
             recordsService.getMeta.resolves(record);
             recordsService.updateMeta.resolves(successResult());
-            const validationStub = stubValidValidation(body, { oid: 'record-1' });
-            const req = makeThrowingRequest();
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1' },
+                query: {},
+                body,
+                files: {},
+            });
             const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
             await controller.updateObjectMeta(req, {} as Sails.Res);
 
-            expect(validationStub.calledOnce).to.be.true;
             expect(recordsService.updateMeta.calledOnce).to.be.true;
             const updatedRecord = recordsService.updateMeta.firstCall.args[2] as any;
             expect(updatedRecord.metaMetadata).to.deep.equal(body);
             expect(sendRespStub.calledOnce).to.be.true;
         });
 
-        it('uses validated body in create', async () => {
+        it('uses req.apiRequest body in create', async () => {
             const body = {
                 authorization: {
                     edit: ['creator'],
@@ -375,14 +375,17 @@ describe('Webservice RecordController body source', () => {
                 },
             };
             recordsService.create.resolves(successResult('created-record'));
-            const validationStub = stubValidValidation(body, { recordType: 'dataset' });
-            const req = makeThrowingRequest();
+            const req = makeThrowingRequest({
+                params: { recordType: 'dataset' },
+                query: {},
+                body,
+                files: {},
+            });
             const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
             await controller.create(req, {} as Sails.Res);
             await flushPromises();
 
-            expect(validationStub.calledOnce).to.be.true;
             expect(recordsService.create.calledOnce).to.be.true;
             const createRequest = recordsService.create.firstCall.args[1] as any;
             expect(createRequest.metadata).to.deep.equal(body.metadata);
@@ -396,7 +399,7 @@ describe('Webservice RecordController body source', () => {
     });
 
     describe('harvest handlers', () => {
-        it('uses validated body in harvest', async () => {
+        it('uses req.apiRequest body in harvest', async () => {
             const body = {
                 records: [
                     {
@@ -421,20 +424,23 @@ describe('Webservice RecordController body source', () => {
             const updateHarvestRecordStub = sinon
                 .stub(controller as any, 'updateHarvestRecord')
                 .resolves({ harvestId: 'harvest-1', oid: 'record-1', status: true });
-            const validationStub = stubValidValidation(body, { recordType: 'dataset' });
-            const req = makeThrowingRequest();
+            const req = makeThrowingRequest({
+                params: { recordType: 'dataset' },
+                query: {},
+                body,
+                files: {},
+            });
             const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
             await controller.harvest(req, {} as Sails.Res);
 
-            expect(validationStub.calledOnce).to.be.true;
             expect(findExistingHarvestRecordStub.calledOnce).to.be.true;
             expect(updateHarvestRecordStub.calledOnce).to.be.true;
             expect(updateHarvestRecordStub.firstCall.args[3]).to.deep.equal(body.records[0].recordRequest.metadata);
             expect(sendRespStub.calledOnce).to.be.true;
         });
 
-        it('uses validated body in legacyHarvest', async () => {
+        it('uses req.apiRequest body in legacyHarvest', async () => {
             const body = {
                 records: [
                     {
@@ -459,13 +465,16 @@ describe('Webservice RecordController body source', () => {
             const updateHarvestRecordStub = sinon
                 .stub(controller as any, 'updateHarvestRecord')
                 .resolves({ harvestId: 'legacy-harvest-1', oid: 'record-2', status: true });
-            const validationStub = stubValidValidation(body, { recordType: 'dataset' });
-            const req = makeThrowingRequest();
+            const req = makeThrowingRequest({
+                params: { recordType: 'dataset' },
+                query: {},
+                body,
+                files: {},
+            });
             const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
             await controller.legacyHarvest(req, {} as Sails.Res);
 
-            expect(validationStub.calledOnce).to.be.true;
             expect(findExistingHarvestRecordStub.calledOnce).to.be.true;
             expect(updateHarvestRecordStub.calledOnce).to.be.true;
             expect(updateHarvestRecordStub.firstCall.args[3]).to.deep.equal(body.records[0].metadata.data);

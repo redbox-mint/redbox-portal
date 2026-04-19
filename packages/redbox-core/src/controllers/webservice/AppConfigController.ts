@@ -2,7 +2,7 @@ import {
   APIErrorResponse,
   BrandingModel,
   Controllers as controllers,
-  validateApiRouteRequest,
+  getValidatedApiRequest,
   getAppConfigByIdRoute,
   saveAppConfigByIdRoute,
 } from '../../index';
@@ -37,14 +37,7 @@ export namespace Controllers {
 
     public async saveAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, saveAppConfigByIdRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params, body } = validated;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const appConfigId = params.appConfigId as string;
@@ -64,14 +57,7 @@ export namespace Controllers {
 
     public async getAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, getAppConfigByIdRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params } = validated;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const appConfigId = params.appConfigId as string;

@@ -7,7 +7,7 @@ import {
   UserAPITokenAPIResponse,
   APIActionResponse,
   BrandingModel,
-  validateApiRouteRequest,
+  getValidatedApiRequest,
   listUsersRoute,
   findUserRoute,
   getUserRoute,
@@ -128,14 +128,7 @@ export namespace Controllers {
     public bootstrap() { }
 
     public async listUsers(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, listUsersRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const { query } = validated;
       const searchField = query.searchBy as string | undefined;
       const searchQuery = query.query as string | undefined;
@@ -179,14 +172,7 @@ export namespace Controllers {
 
     public getUser(req: Sails.Req, res: Sails.Res) {
       const that = this;
-      const validated = validateApiRouteRequest(req, findUserRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const { query } = validated;
       const searchField = query.searchBy as string;
       const searchQuery = query.query as string;
@@ -220,14 +206,7 @@ export namespace Controllers {
     }
 
     public createUser(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, createUserRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const userReq: UserModel = validated.body as UserModel;
 
       const respondWithUser = (response: UserModel) => {
@@ -322,14 +301,7 @@ export namespace Controllers {
     }
 
     public updateUser(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, updateUserRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const userReq: UserModel = validated.body as UserModel;
 
       UsersService.updateUserDetails(
@@ -422,14 +394,7 @@ export namespace Controllers {
     }
 
     public generateAPIToken(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, generateAPITokenRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const userid = validated.query.id as string;
 
       if (userid) {
@@ -466,14 +431,7 @@ export namespace Controllers {
     }
 
     public revokeAPIToken(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, revokeAPITokenRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const userid = validated.query.id as string;
 
       if (userid) {
@@ -511,14 +469,7 @@ export namespace Controllers {
 
     public async searchLinkCandidates(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, searchLinkCandidatesRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { query } = validated;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         if (!brand || !brand.id) {
@@ -551,14 +502,7 @@ export namespace Controllers {
 
     public async getUserLinks(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, getUserLinksRoute);
-        if (!validated.valid) {
-          return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-            headers: this.getNoCacheHeaders(),
-          });
-        }
+        const validated = getValidatedApiRequest(req);
         const { params } = validated;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         if (!brand || !brand.id) {
@@ -584,14 +528,7 @@ export namespace Controllers {
     }
 
     public async getUserAudit(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, getUserAuditRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const userId = String(validated.params.id ?? '').trim();
       if (_.isEmpty(userId)) {
         return this.sendResp(req, res, {
@@ -641,14 +578,7 @@ export namespace Controllers {
 
     public async linkAccounts(req: Sails.Req, res: Sails.Res) {
       // Input validation
-      const validated = validateApiRouteRequest(req, linkAccountsRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const body = validated.body as Record<string, unknown>;
       const primaryUserId = String(body.primaryUserId ?? '').trim();
       const secondaryUserId = String(body.secondaryUserId ?? '').trim();
@@ -719,14 +649,7 @@ export namespace Controllers {
     }
 
     public listSystemRoles(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, listSystemRolesRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const response: ListAPIResponse<unknown> = new ListAPIResponse<unknown>();
       response.summary.numFound = brand.roles.length;
@@ -736,14 +659,7 @@ export namespace Controllers {
     }
 
     public createSystemRole(req: Sails.Req, res: Sails.Res) {
-      const validated = validateApiRouteRequest(req, createSystemRoleRoute);
-      if (!validated.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
-          headers: this.getNoCacheHeaders(),
-        });
-      }
+      const validated = getValidatedApiRequest(req);
       const body = validated.body as Record<string, unknown>;
       const roleName = (body.roleName as string | undefined) ?? (validated.query.roleName as string | undefined);
       sails.log.verbose('createSystemRole - roleName ' + roleName);
@@ -769,15 +685,15 @@ export namespace Controllers {
 
     public async disableUser(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, disableUserRoute);
-        if (!validated.valid) {
+        const validated = getValidatedApiRequest(req);
+        const userId = String(validated.params.id ?? '').trim();
+        if (!userId) {
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            displayErrors: [{ detail: 'User id is required' }],
             headers: this.getNoCacheHeaders(),
           });
         }
-        const userId = validated.params.id as string;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         if (!brand || !brand.id) {
           return this.sendResp(req, res, {
@@ -807,15 +723,15 @@ export namespace Controllers {
 
     public async enableUser(req: Sails.Req, res: Sails.Res) {
       try {
-        const validated = validateApiRouteRequest(req, enableUserRoute);
-        if (!validated.valid) {
+        const validated = getValidatedApiRequest(req);
+        const userId = String(validated.params.id ?? '').trim();
+        if (!userId) {
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: validated.issues.map(i => ({ title: i.path, detail: i.message })),
+            displayErrors: [{ detail: 'User id is required' }],
             headers: this.getNoCacheHeaders(),
           });
         }
-        const userId = validated.params.id as string;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         if (!brand || !brand.id) {
           return this.sendResp(req, res, {

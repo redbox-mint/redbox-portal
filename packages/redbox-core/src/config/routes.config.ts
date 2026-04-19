@@ -10,7 +10,7 @@ import { buildMergedApiRouteConfig } from '../api-routes';
 export interface RouteTargetObject {
     controller?: string;
     action?: string;
-    policy?: string;
+    policy?: string | string[];
     csrf?: boolean;
     skipAssets?: boolean;
     locals?: Record<string, unknown>;

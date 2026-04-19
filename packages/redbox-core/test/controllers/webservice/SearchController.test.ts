@@ -3,6 +3,18 @@ import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { Controllers } from '../../../src/controllers/webservice/SearchController';
 
+function makeReq(req: Record<string, unknown>): Sails.Req {
+    return {
+        ...req,
+        apiRequest: (req.apiRequest as Sails.Req['apiRequest']) ?? {
+            params: (req.params ?? {}) as Record<string, unknown>,
+            query: (req.query ?? {}) as Record<string, unknown>,
+            body: req.body,
+            files: (req.files as Record<string, unknown[]>) ?? {},
+        },
+    } as Sails.Req;
+}
+
 describe('Webservice SearchController', () => {
     let controller: Controllers.Search;
     let mockSails: any;
@@ -54,7 +66,7 @@ describe('Webservice SearchController', () => {
 
     describe('index', () => {
         it('should fetch record meta and index it', async () => {
-            const req = { query: { oid: '123' } } as unknown as Sails.Req;
+            const req = makeReq({ query: { oid: '123' } });
             const res = {} as unknown as Sails.Res;
             const mockRecord = { id: '123', metadata: { title: 'Test' } };
             mockSails.services.recordsservice.getMeta.resolves(mockRecord);
@@ -71,7 +83,7 @@ describe('Webservice SearchController', () => {
 
     describe('removeAll', () => {
         it('should call remove with wildcard', async () => {
-            const req = { session: { branding: 'default' } } as unknown as Sails.Req;
+            const req = makeReq({ session: { branding: 'default' } as Sails.Req['session'] });
             const res = {} as unknown as Sails.Res;
             mockSails.services.solrsearchservice.remove.resolves();
             const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
@@ -85,20 +97,25 @@ describe('Webservice SearchController', () => {
 
     describe('search', () => {
         it('should pass bracket-style exact and facet maps to the search service', async () => {
-            const req = {
-                session: { branding: 'default' },
+            const req = makeReq({
+                session: { branding: 'default' } as Sails.Req['session'],
                 user: { username: 'tester', roles: [] },
-                query: {
-                    searchStr: 'galaxy',
-                    exactNames: {
-                        title: 'Nebula',
-                        creator: 'Andromeda'
+                apiRequest: {
+                    params: {},
+                    query: {
+                        searchStr: 'galaxy',
+                        exactNames: {
+                            title: 'Nebula',
+                            creator: 'Andromeda'
+                        },
+                        facetNames: {
+                            subject: 'Astronomy'
+                        }
                     },
-                    facetNames: {
-                        subject: 'Astronomy'
-                    }
+                    body: undefined,
+                    files: {},
                 }
-            } as unknown as Sails.Req;
+            });
             const res = {} as unknown as Sails.Res;
             mockSails.services.solrsearchservice.searchFuzzy.resolves({});
             const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
