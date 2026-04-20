@@ -57,7 +57,7 @@
     "terra-draw": "1.28.1",
     "terra-draw-leaflet-adapter": "1.2.0",
     "tslib": "2.8.1",
-    "zone.js": "0.15.1"
+    "zone.js": "0.16.1"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "20.3.23",
