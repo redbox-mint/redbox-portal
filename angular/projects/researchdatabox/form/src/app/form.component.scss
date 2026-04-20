@@ -578,3 +578,154 @@
     margin-right: 0;
   }
 }
+
+@media print {
+  .rb-form-host {
+    display: block;
+    max-width: none !important;
+  }
+
+  .rb-form-host .rb-form-shell {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    gap: 0 !important;
+  }
+
+  .rb-form-host .rb-form-shell__main {
+    min-height: 0 !important;
+  }
+
+  .rb-form-loading {
+    display: none !important;
+  }
+
+  .rb-form-debug-panel,
+  .rb-form-host.rb-form-debug-open .rb-form-debug-panel,
+  .rb-form-host.rb-form-debug-popout .rb-form-shell__main {
+    display: none !important;
+  }
+
+  .rb-form-tab-nav-wrapper,
+  .rb-form-tab-nav,
+  .rb-form-tab-nav-buttons {
+    display: none !important;
+  }
+
+  .rb-form-host .rb-form-tab-shell {
+    display: block !important;
+    grid-template-columns: none !important;
+    column-gap: 0 !important;
+  }
+
+  .rb-form-tab-pane,
+  .tab-content > .rb-form-tab-pane,
+  .rb-form-tab-pane:not(.active) {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    page-break-inside: avoid;
+  }
+
+  .rb-form-action-row,
+  .rb-form-action-row--legacy-inline,
+  .rb-form-action-row-layout {
+    display: none !important;
+  }
+
+  .rb-form-repeatable__add,
+  .rb-form-repeatable-item__remove {
+    display: none !important;
+  }
+
+  .rb-form-repeatable__items {
+    display: block !important;
+    gap: 0 !important;
+  }
+
+  .rb-form-repeatable-item {
+    display: block !important;
+    page-break-inside: avoid;
+    padding: 4pt 0 4pt 8pt !important;
+    margin: 0 0 6pt !important;
+    border-left: 1.5pt solid #e0ddd9 !important;
+    gap: 0 !important;
+  }
+
+  .rb-form-repeatable-item__content {
+    flex: 1 1 auto !important;
+  }
+
+  .rb-form-group {
+    display: block !important;
+    gap: 0 !important;
+  }
+
+  .rb-form-field-layout,
+  .rb-form-inline-layout {
+    display: block !important;
+    page-break-inside: avoid;
+    margin: 0 0 5pt !important;
+    gap: 0 !important;
+  }
+
+  .rb-form-inline-layout__row {
+    display: block !important;
+    gap: 0 !important;
+  }
+
+  .rb-form-field-label,
+  .rb-form-inline-label {
+    display: block !important;
+    font-size: 8pt !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.07em !important;
+    text-transform: uppercase !important;
+    color: #6b6b6b !important;
+    margin: 0 0 1pt !important;
+    page-break-after: avoid;
+  }
+
+  .rb-form-field-control,
+  .rb-form-inline-layout__control {
+    display: block !important;
+    font-size: 10pt !important;
+    color: #111 !important;
+    line-height: 1.4 !important;
+  }
+
+  .rb-form-host .form-control,
+  .rb-form-host .form-control[readonly],
+  .rb-form-host textarea,
+  .rb-form-host textarea[readonly],
+  .rb-form-host select,
+  .rb-form-host select.form-select {
+    background: transparent !important;
+    border: none !important;
+    color: #111 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    resize: none !important;
+    font-size: 10pt !important;
+  }
+
+  // Inline contributor/related-link groups → render as a tighter grid
+  // so values like Title/Name/Email/ORCID sit side-by-side when possible.
+  .rb-form-contributor-inline .rb-form-group,
+  .rb-form-related-link-inline .rb-form-group {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    column-gap: 12pt !important;
+    row-gap: 3pt !important;
+  }
+
+  .rb-form-validation-summary,
+  .rb-form-field-error-summary,
+  .rb-form-field-error-panel,
+  .rb-form-field-error-toggle {
+    display: none !important;
+  }
+}
