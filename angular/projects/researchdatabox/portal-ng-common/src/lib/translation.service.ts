@@ -25,7 +25,7 @@ import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, merge as
 
 import { Service } from './service.interface';
 import { HttpClientService } from './httpClient.service';
-
+import { isLikelyNaturalLanguage } from "@researchdatabox/sails-ng-common";
 import HttpApi from 'i18next-http-backend';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { ConfigService } from './config.service';
@@ -180,6 +180,16 @@ export class TranslationService extends HttpClientService implements Service {
     defaultValueOrOptions?: string | ITranslationOptions,
     options?: ITranslationOptions
   ): TranslationResult {
+    if (key === null || key === undefined || key === '' || (Array.isArray(key) && key.length === 0)) {
+      return '';
+    }
+
+    // Guess at whether the key is a natural language string.
+    // If it likely is natural langauge, just return it.
+    if (!Array.isArray(key) && isLikelyNaturalLanguage(key)) {
+      return key;
+    }
+
     if (typeof defaultValueOrOptions === 'string') {
       return this.i18NextService.t(key, defaultValueOrOptions, options);
     }
