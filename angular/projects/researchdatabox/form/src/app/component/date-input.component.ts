@@ -68,9 +68,9 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
     super.setValue((normalizedValue ?? value) as DateInputModelValueType, opts);
   }
 
-  public override patchValue(value: DateInputModelValueType): void {
+  public override patchValue(value: DateInputModelValueType, opts?: ModifyOptions): void {
     const normalizedValue = normalizeDateInputValue(value);
-    super.patchValue((normalizedValue ?? value) as DateInputModelValueType);
+    super.patchValue((normalizedValue ?? value) as DateInputModelValueType, opts);
   }
 
   public setTimeValue(timeValue: string): void {

@@ -103,8 +103,9 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
   /**
    * Set the value of the field
    * @param value the value to set
+   * @param opts The modify options.
    */
-  public setValue(value: ValueType): void {
+  public setValue(value: ValueType, opts?: ModifyOptions): void {
     // NOTE: There are some form configs or form modes that will throw an error when setting the value.
     // This can occur when a repeatable (FormArray) or group (FormGroup) component has no controls that have a model.
     // Use the 'controls' property to check if there are any controls before trying to set the value.
@@ -125,15 +126,16 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
       }
     }
 
-    this.formControl?.setValue(value);
+    this.formControl?.setValue(value, opts);
   }
 
   /**
    * Set the value of the field if it is provided in value, otherwise keeps the existing value.
    * @param value The new form field value.
+   * @param opts The modify options.
    */
-  public patchValue(value: ValueType): void {
-    this.formControl?.patchValue(value);
+  public patchValue(value: ValueType, opts?: ModifyOptions): void {
+    this.formControl?.patchValue(value, opts);
   }
 
   /**
