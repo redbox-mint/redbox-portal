@@ -8,11 +8,7 @@ import { SaveButtonTypes } from './component/save-button.outline';
 import { SaveStatusTypes } from './component/save-status.outline';
 import { TextAreaTypes } from './component/text-area.outline';
 import { ContentTypes } from './component/content.outline';
-import {
-  SimpleInputFormComponentDefinitionFrame,
-  SimpleInputFormComponentDefinitionOutline,
-  SimpleInputTypes,
-} from './component/simple-input.outline';
+import { SimpleInputTypes} from './component/simple-input.outline';
 import { ValidationSummaryTypes } from './component/validation-summary.outline';
 import {
   TabContentFormComponentDefinitionOutline,
@@ -26,28 +22,17 @@ import { InlineLayoutTypes } from './component/inline-layout.outline';
 import { ActionRowLayoutTypes } from './component/action-row-layout.outline';
 
 import {
+  FieldComponentDefinitionFrameKindType,
   FieldLayoutDefinitionFrameKindType,
   FieldLayoutDefinitionKindType,
   FormComponentDefinitionFrameKindType,
   FormComponentDefinitionKindType,
 } from './shared.outline';
-import {
-  CheckboxInputFormComponentDefinitionFrame,
-  CheckboxInputFormComponentDefinitionOutline,
-  CheckboxInputTypes,
-} from './component/checkbox-input.outline';
+import {  CheckboxInputTypes} from './component/checkbox-input.outline';
 import { DropdownInputTypes } from './component/dropdown-input.outline';
-import {
-  RadioInputFormComponentDefinitionFrame,
-  RadioInputFormComponentDefinitionOutline,
-  RadioInputTypes,
-} from './component/radio-input.outline';
+import {  RadioInputTypes} from './component/radio-input.outline';
 import { DateInputTypes } from './component/date-input.outline';
-import {
-  ReusableFormComponentDefinitionFrame,
-  ReusableFormComponentDefinitionOutline,
-  ReusableTypes,
-} from './component/reusable.outline';
+import {  ReusableTypes} from './component/reusable.outline';
 import { QuestionTreeTypes } from './component/question-tree.outline';
 import { CheckboxTreeTypes } from './component/checkbox-tree.outline';
 import { RecordSelectorTypes } from './component/record-selector.outline';
@@ -147,6 +132,9 @@ export type AllFormComponentDefinitionOutlines = Extract<
     kind: FormComponentDefinitionKindType;
   }
 >['class'];
+
+export type AllFieldComponentDefinitionFrames = Extract<AllTypes, {kind:FieldComponentDefinitionFrameKindType}>['class'];
+export type AllFieldLayoutDefinitionFrames = Extract<AllTypes, {kind:FieldLayoutDefinitionFrameKindType}>['class'];
 
 /**
  * The form component definition outlines available for use in any list of form components.
