@@ -40,6 +40,8 @@ declare const Buffer: typeof globalThis.Buffer;
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
   type DoneCallback = (err: unknown, user?: unknown, info?: unknown) => void;
+  const DEFAULT_AAF_ATTRIBUTES_FIELD = 'https://aaf.edu.au/attributes';
+  const DEFAULT_AAF_USERNAME_FIELD = 'sub';
   type BcryptLike = {
     compare: (password: string, hash: string, cb: (err: unknown, res: boolean) => void) => void;
     hash: (password: string, saltRounds: number, cb: (err: unknown, hash: string) => void) => void;
@@ -996,250 +998,261 @@ export namespace Services {
     }
 
     protected aafAuthInit = () => {
-      // users the default brand's configuration on startup
-      // TODO: consider moving late initializing this if possible
-      const defAuthConfig = this.getAuthConfig(BrandingService.getDefault().name);
-      //
-      // JWT/AAF Strategy
-      //
-      const that = this;
-      sails.log.verbose(`AAF, checking if within active array: ${defAuthConfig.active}`);
-      if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('aaf') != -1) {
-        const JwtStrategy = require('passport-jwt').Strategy,
-          ExtractJwt = require('passport-jwt').ExtractJwt;
-        const aafOpts = (defAuthConfig.aaf?.opts ?? {}) as Record<string, unknown>;
-        aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
-        (sails.config.passport as PassportLike).use('aaf-jwt', new JwtStrategy(aafOpts, function (req: Sails.Req, jwt_payload: AnyRecord, done: DoneCallback) {
-          const brandName: string = BrandingService.getBrandNameFromReq(req);
+      this.registerSailsHook('on', 'ready', async () => {
+        // users the default brand's configuration once sails is fully ready
+        const defaultBrandName = BrandingService.getDefault().name;
+        const defAuthConfig = this.getAuthConfig(defaultBrandName);
 
-          const brand: BrandingModel = BrandingService.getBrand(brandName);
+        //
+        // JWT/AAF Strategy
+        //
+        const that = this;
+        sails.log.verbose(`AAF auth init for default brand "${defaultBrandName}" with active providers: ${JSON.stringify(defAuthConfig.active ?? [])}`);
+        if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('aaf') != -1) {
+          const JwtStrategy = require('passport-jwt').Strategy,
+            ExtractJwt = require('passport-jwt').ExtractJwt;
+          const aafOpts = (defAuthConfig.aaf?.opts ?? {}) as Record<string, unknown>;
+          aafOpts.passReqToCallback = aafOpts.passReqToCallback ?? true;
+          // Default JWT options for AAF; allow overrides from config
+          const jwtDefaults = {
+            issuer: 'https://rapid.aaf.edu.au',
+            ignoreNotBefore: true,
+            clockTolerance: 120,
+          };
+          aafOpts.jsonWebTokenOptions = Object.assign({}, jwtDefaults, (aafOpts.jsonWebTokenOptions ?? {}) as Record<string, unknown>);
+          aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
+          sails.log.verbose(`Registering Passport strategy "aaf-jwt" with option keys: ${JSON.stringify(Object.keys(aafOpts))}`);
+          (sails.config.passport as PassportLike).use('aaf-jwt', new JwtStrategy(aafOpts, function (req: Sails.Req, jwt_payload: AnyRecord, done: DoneCallback) {
+            const brandName: string = BrandingService.getBrandNameFromReq(req);
 
-          const authConfig = that.getAuthConfig(brand.name);
-          const aafAttributes = authConfig.aaf?.attributesField ?? 'attributes';
-          sails.log.verbose("Configured roles: ")
-          sails.log.verbose(sails.config.auth.roles);
-          sails.log.verbose("AAF default roles ")
-          sails.log.verbose(authConfig.aaf?.defaultRole)
-          sails.log.verbose("Brand roles ")
-          sails.log.verbose(brand.roles)
-          sails.log.verbose("Brand")
-          sails.log.verbose(brand)
-          const defaultAuthRole = RolesService.getDefAuthenticatedRole(brand);
-          let aafDefRoles = []
-          if (defaultAuthRole != undefined) {
-            aafDefRoles = _.map(RolesService.getNestedRoles(defaultAuthRole.name, brand.roles), 'id');
-          }
-          const aafUsernameField = authConfig.aaf?.usernameField ?? 'username';
-          const userName = Buffer.from(String(jwt_payload[aafUsernameField] ?? '')).toString('base64');
-          User.findOne({
-            username: userName
-          }, function (err: unknown, user: unknown) {
-            sails.log.verbose("At AAF Strategy verify, payload:");
-            sails.log.verbose(jwt_payload);
-            sails.log.verbose("User:");
-            sails.log.verbose(user);
-            sails.log.verbose("Error:");
-            sails.log.verbose(err);
-            if (err) {
-              return done(err, false);
+            const brand: BrandingModel = BrandingService.getBrand(brandName);
+
+            const authConfig = that.getAuthConfig(brand.name);
+            const aafAttributes = authConfig.aaf?.attributesField ?? DEFAULT_AAF_ATTRIBUTES_FIELD;
+            sails.log.verbose("Configured roles: ")
+            sails.log.verbose(sails.config.auth.roles);
+            sails.log.verbose("AAF default roles ")
+            sails.log.verbose(authConfig.aaf?.defaultRole)
+            sails.log.verbose("Brand roles ")
+            sails.log.verbose(brand.roles)
+            sails.log.verbose("Brand")
+            sails.log.verbose(brand)
+            const defaultAuthRole = RolesService.getDefAuthenticatedRole(brand);
+            let aafDefRoles = []
+            if (defaultAuthRole != undefined) {
+              aafDefRoles = _.map(RolesService.getNestedRoles(defaultAuthRole.name, brand.roles), 'id');
             }
-            if (user) {
-              const userObj = user as UserAttributes & AnyRecord;
-              // Gate disabled users
-              that.assertAuthenticationAllowed(userObj).then(() => {
+            const aafUsernameField = authConfig.aaf?.usernameField ?? DEFAULT_AAF_USERNAME_FIELD;
+            const userName = Buffer.from(String(jwt_payload[aafUsernameField] ?? '')).toString('base64');
+            User.findOne({
+              username: userName
+            }, function (err: unknown, user: unknown) {
+              sails.log.verbose(`At AAF Strategy verify, payload: ${JSON.stringify(jwt_payload)}`);
+              sails.log.verbose(`AAF resolved username field "${aafUsernameField}": ${JSON.stringify(jwt_payload[aafUsernameField])}`);
+              sails.log.verbose(`AAF resolved attributes field "${aafAttributes}": ${JSON.stringify(jwt_payload[aafAttributes])}`);
+              sails.log.verbose(`AAF user lookup result: ${JSON.stringify(user)}`);
+              sails.log.verbose(`AAF verify error: ${err == null ? 'null' : JSON.stringify(err)}`);
+              if (err) {
+                return done(err, false);
+              }
+              if (user) {
+                const userObj = user as UserAttributes & AnyRecord;
+                // Gate disabled users
+                that.assertAuthenticationAllowed(userObj).then(() => {
+                  const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
+                  userObj.lastLogin = new Date();
+                  userObj.name = String(attrs.cn ?? '');
+                  userObj.email = String(attrs.mail ?? '').toLowerCase();
+                  userObj.displayname = _.isNil(attrs.displayname) ? undefined : String(attrs.displayname);
+                  userObj.cn = _.isNil(attrs.cn) ? undefined : String(attrs.cn);
+                  userObj.edupersonscopedaffiliation = _.isNil(attrs.edupersonscopedaffiliation) ? undefined : String(attrs.edupersonscopedaffiliation);
+                  userObj.edupersontargetedid = _.isNil(attrs.edupersontargetedid) ? undefined : String(attrs.edupersontargetedid);
+                  userObj.edupersonprincipalname = _.isNil(attrs.edupersonprincipalname) ? undefined : String(attrs.edupersonprincipalname);
+                  userObj.givenname = _.isNil(attrs.givenname) ? undefined : String(attrs.givenname);
+                  userObj.surname = _.isNil(attrs.surname) ? undefined : String(attrs.surname);
+
+                  const configAAF = _.get(defAuthConfig, 'aaf', {});
+                  if (that.hasPreSaveTriggerConfigured(configAAF, 'onUpdate')) {
+                    that.triggerPreSaveTriggers(userObj, configAAF).then((userAdditionalInfo: AnyRecord) => {
+
+                      const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                      if (success) {
+
+                        User.update({
+                          username: _.get(userAdditionalInfo, 'username')
+                        }).set(userAdditionalInfo).exec(function (err: unknown, user: unknown) {
+                          if (err) {
+                            sails.log.error("Error updating user:");
+                            sails.log.error(err);
+                            return done(err, false, { message: "Error updating user" });
+                          }
+                          if (_.isEmpty(user)) {
+                            sails.log.error("No user found");
+                            return done("No user found", false, { message: "No user found" });
+                          }
+
+                          if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
+                            that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
+                          }
+
+                          if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
+                            that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
+                          }
+
+                          sails.log.verbose("Done, returning updated user:");
+                          sails.log.verbose(user);
+                          const updatedUsers = user as AnyRecord[];
+                          that.resolveLinkedUserCandidate(updatedUsers[0])
+                            .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
+                              message: 'Logged In Successfully'
+                            }))
+                            .catch((resolveErr: unknown) => done(resolveErr, false));
+                          return;
+                        });
+
+                      } else {
+                        return done('All required conditions for login not met', false, { message: 'All required conditions for login not met' });
+                      }
+
+                    });
+
+                  } else {
+
+                    User.update({
+                      username: userObj.username
+                    }).set(userObj).exec(function (err: unknown, user: unknown) {
+                      if (err) {
+                        sails.log.error("Error updating user:");
+                        sails.log.error(err);
+                        return done(err, false, { message: "Error updating user" });
+                      }
+                      if (_.isEmpty(user)) {
+                        sails.log.error("No user found");
+                        return done("No user found", false, { message: "No user found" });
+                      }
+
+                      if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
+                        that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
+                      }
+
+                      if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
+                        that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
+                      }
+
+                      sails.log.verbose("Done, returning updated user:");
+                      sails.log.verbose(user);
+                      const updatedUsers = user as AnyRecord[];
+                      that.resolveLinkedUserCandidate(updatedUsers[0])
+                        .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
+                          message: 'Logged In Successfully'
+                        }))
+                        .catch((resolveErr: unknown) => done(resolveErr, false));
+                      return;
+                    });
+
+                  }
+
+                }).catch((err: unknown) => {
+                  if (err instanceof Error && err.message === 'Account is disabled') {
+                    return done(null, false, { message: 'Account is disabled' });
+                  }
+                  return done(err);
+                }); // end AAF disabled gate
+              } else {
+                sails.log.verbose("At AAF Strategy verify, creating new user...");
+                // first time login, create with default role
                 const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
-                userObj.lastLogin = new Date();
-                userObj.name = String(attrs.cn ?? '');
-                userObj.email = String(attrs.mail ?? '').toLowerCase();
-                userObj.displayname = _.isNil(attrs.displayname) ? undefined : String(attrs.displayname);
-                userObj.cn = _.isNil(attrs.cn) ? undefined : String(attrs.cn);
-                userObj.edupersonscopedaffiliation = _.isNil(attrs.edupersonscopedaffiliation) ? undefined : String(attrs.edupersonscopedaffiliation);
-                userObj.edupersontargetedid = _.isNil(attrs.edupersontargetedid) ? undefined : String(attrs.edupersontargetedid);
-                userObj.edupersonprincipalname = _.isNil(attrs.edupersonprincipalname) ? undefined : String(attrs.edupersonprincipalname);
-                userObj.givenname = _.isNil(attrs.givenname) ? undefined : String(attrs.givenname);
-                userObj.surname = _.isNil(attrs.surname) ? undefined : String(attrs.surname);
+                let userToCreate: AnyRecord = {
+                  username: userName,
+                  name: attrs.cn,
+                  email: String(attrs.mail ?? '').toLowerCase(),
+                  displayname: attrs.displayname,
+                  cn: attrs.cn,
+                  edupersonscopedaffiliation: attrs.edupersonscopedaffiliation,
+                  edupersontargetedid: attrs.edupersontargetedid,
+                  edupersonprincipalname: attrs.edupersonprincipalname,
+                  givenname: attrs.givenname,
+                  surname: attrs.surname,
+                  type: 'aaf',
+                  roles: aafDefRoles,
+                  lastLogin: new Date()
+                };
+                sails.log.verbose(userToCreate);
+
+                const emailAuthorizedCheck = that.checkAuthorizedEmail(String(userToCreate.email ?? ''), brandName, 'aaf');
+                if (!emailAuthorizedCheck) {
+                  return done("authorized-email-denied", false);
+                }
 
                 const configAAF = _.get(defAuthConfig, 'aaf', {});
-                if (that.hasPreSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                  that.triggerPreSaveTriggers(userObj, configAAF).then((userAdditionalInfo: AnyRecord) => {
+                if (that.hasPreSaveTriggerConfigured(configAAF, 'onCreate')) {
+                  that.triggerPreSaveTriggers(userToCreate, configAAF).then((userAdditionalInfo: AnyRecord) => {
 
                     const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                     if (success) {
-
-                      User.update({
-                        username: _.get(userAdditionalInfo, 'username')
-                      }).set(userAdditionalInfo).exec(function (err: unknown, user: unknown) {
+                      userToCreate = userAdditionalInfo;
+                      User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
                         if (err) {
-                          sails.log.error("Error updating user:");
+                          sails.log.error("Error creating new user:");
                           sails.log.error(err);
-                          return done(err, false, { message: "Error updating user" });
-                        }
-                        if (_.isEmpty(user)) {
-                          sails.log.error("No user found");
-                          return done("No user found", false, { message: "No user found" });
+                          return done(err, false);
                         }
 
-                        if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                          that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
+                        if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
+                          that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF);
                         }
 
-                        if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
-                          that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
+                        if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
+                          that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF);
                         }
 
-                        sails.log.verbose("Done, returning updated user:");
-                        sails.log.verbose(user);
-                        const updatedUsers = user as AnyRecord[];
-                        that.resolveLinkedUserCandidate(updatedUsers[0])
-                          .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
-                            message: 'Logged In Successfully'
-                          }))
+                        sails.log.verbose("Done, returning new user:");
+                        sails.log.verbose(newUser);
+                        that.resolveLinkedUserCandidate(newUser)
+                          .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
                           .catch((resolveErr: unknown) => done(resolveErr, false));
                         return;
                       });
-
                     } else {
-                      return done('All required conditions for login not met', false, { message: 'All required conditions for login not met' });
+                      return done(`All required conditions for login not met ${userAdditionalInfo.email}`, false);
                     }
-
                   });
+
 
                 } else {
 
-                  User.update({
-                    username: userObj.username
-                  }).set(userObj).exec(function (err: unknown, user: unknown) {
+                  User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
                     if (err) {
-                      sails.log.error("Error updating user:");
+                      sails.log.error("Error creating new user:");
                       sails.log.error(err);
-                      return done(err, false, { message: "Error updating user" });
-                    }
-                    if (_.isEmpty(user)) {
-                      sails.log.error("No user found");
-                      return done("No user found", false, { message: "No user found" });
+                      return done(err, false);
                     }
 
-                    if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                      that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
+                    if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
+                      that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF);
                     }
 
-                    if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
-                      that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
+                    if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
+                      that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF);
                     }
 
-                    sails.log.verbose("Done, returning updated user:");
-                    sails.log.verbose(user);
-                    const updatedUsers = user as AnyRecord[];
-                    that.resolveLinkedUserCandidate(updatedUsers[0])
-                      .then((resolvedUser) => done(null, resolvedUser as AnyRecord, {
-                        message: 'Logged In Successfully'
-                      }))
+                    sails.log.verbose("Done, returning new user:");
+                    sails.log.verbose(newUser);
+                    that.resolveLinkedUserCandidate(newUser)
+                      .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
                       .catch((resolveErr: unknown) => done(resolveErr, false));
                     return;
                   });
 
                 }
-
-              }).catch((err: unknown) => {
-                if (err instanceof Error && err.message === 'Account is disabled') {
-                  return done(null, false, { message: 'Account is disabled' });
-                }
-                return done(err);
-              }); // end AAF disabled gate
-            } else {
-              sails.log.verbose("At AAF Strategy verify, creating new user...");
-              // first time login, create with default role
-              const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
-              let userToCreate: AnyRecord = {
-                username: userName,
-                name: attrs.cn,
-                email: String(attrs.mail ?? '').toLowerCase(),
-                displayname: attrs.displayname,
-                cn: attrs.cn,
-                edupersonscopedaffiliation: attrs.edupersonscopedaffiliation,
-                edupersontargetedid: attrs.edupersontargetedid,
-                edupersonprincipalname: attrs.edupersonprincipalname,
-                givenname: attrs.givenname,
-                surname: attrs.surname,
-                type: 'aaf',
-                roles: aafDefRoles,
-                lastLogin: new Date()
-              };
-              sails.log.verbose(userToCreate);
-
-              const emailAuthorizedCheck = that.checkAuthorizedEmail(String(userToCreate.email ?? ''), brandName, 'aaf');
-              if (!emailAuthorizedCheck) {
-                return done("authorized-email-denied", false);
               }
 
-              const configAAF = _.get(defAuthConfig, 'aaf', {});
-              if (that.hasPreSaveTriggerConfigured(configAAF, 'onCreate')) {
-                that.triggerPreSaveTriggers(userToCreate, configAAF).then((userAdditionalInfo: AnyRecord) => {
-
-                  const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                  if (success) {
-                    userToCreate = userAdditionalInfo;
-                    User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
-                      if (err) {
-                        sails.log.error("Error creating new user:");
-                        sails.log.error(err);
-                        return done(err, false);
-                      }
-
-                      if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                        that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF);
-                      }
-
-                      if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
-                        that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF);
-                      }
-
-                      sails.log.verbose("Done, returning new user:");
-                      sails.log.verbose(newUser);
-                      that.resolveLinkedUserCandidate(newUser)
-                        .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
-                        .catch((resolveErr: unknown) => done(resolveErr, false));
-                      return;
-                    });
-                  } else {
-                    return done(`All required conditions for login not met ${userAdditionalInfo.email}`, false);
-                  }
-                });
-
-
-              } else {
-
-                User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
-                  if (err) {
-                    sails.log.error("Error creating new user:");
-                    sails.log.error(err);
-                    return done(err, false);
-                  }
-
-                  if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                    that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF);
-                  }
-
-                  if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
-                    that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF);
-                  }
-
-                  sails.log.verbose("Done, returning new user:");
-                  sails.log.verbose(newUser);
-                  that.resolveLinkedUserCandidate(newUser)
-                    .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
-                    .catch((resolveErr: unknown) => done(resolveErr, false));
-                  return;
-                });
-
-              }
-            }
-
-          });
-        }));
-      } else {
-        sails.log.verbose(`AAF, not active.`);
-      }
+            });
+          }));
+        } else {
+          sails.log.verbose(`AAF strategy registration skipped because "aaf" is not in active providers.`);
+        }
+      });
     }
 
     protected openIdConnectAuth = () => {
