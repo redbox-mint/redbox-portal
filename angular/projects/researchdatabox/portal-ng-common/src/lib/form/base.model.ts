@@ -161,7 +161,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
   /**
    * True if this model is disabled, false if enabled.
    */
-  public isDisabled(): boolean {
+  public get isDisabled(): boolean {
     return this.formControl?.disabled ?? false;
   }
 

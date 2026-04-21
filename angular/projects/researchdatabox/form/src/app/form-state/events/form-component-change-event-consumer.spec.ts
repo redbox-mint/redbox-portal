@@ -1,6 +1,6 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { FormControl } from '@angular/forms';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService, ModifyOptions } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import { FormComponentValueChangeEventConsumer } from './form-component-change-event-consumer';
 import {
@@ -29,7 +29,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
     eventStream$ = new Subject();
     eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$']);
     eventBus.select$.and.returnValue(eventStream$.asObservable());
-    
+
     consumer = TestBed.runInInjectionContext(() => new FormComponentValueChangeEventConsumer(eventBus));
   });
 
@@ -39,20 +39,32 @@ describe('FormComponentValueChangeEventConsumer', () => {
 
   function createSetup(expressions: FormExpressionsConfigFrame[]) {
     const control = new FormControl('');
-    const definition = {
-      model: { formControl: control },
-      expressions: expressions,
-      lineagePaths: { formConfig: ['root'] },
-      layout: { componentDefinition: { config: {} } },
-      component: { componentDefinition: { config: {} } }
-    } as unknown as FormFieldCompMapEntry;
-    
     const component = {
       formFieldConfigName: () => 'test-field',
-      model: { formControl: control }
+      model: {formControl: control},
+      componentDefinition: {config: {}},
+      setDisabled: function (
+        this: FormFieldBaseComponent<unknown>, disabled: boolean, opts?: ModifyOptions
+      ): void {
+        if (disabled) {
+          this.model?.formControl?.disable(opts);
+        } else {
+          this.model?.formControl?.enable(opts);
+        }
+        if (this?.componentDefinition?.config) {
+          this.componentDefinition.config.disabled = disabled;
+        }
+      }
     } as unknown as FormFieldBaseComponent<unknown>;
+    const definition = {
+      model: {formControl: control},
+      expressions: expressions,
+      lineagePaths: {formConfig: ['root']},
+      layout: {componentDefinition: {config: {}}},
+      component: component,
+    } as unknown as FormFieldCompMapEntry;
 
-    return { control, definition, component };
+    return {control, definition, component};
   }
 
   it('should subscribe to FIELD_VALUE_CHANGED events when bound', () => {
@@ -545,7 +557,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
     };
 
     const matched = await (consumer as any).getMatchedExpressions(event, [exprUndefined, exprNull]);
-    
+
     expect(matched).toBeTruthy();
     expect(matched.length).toBe(2);
     expect(matched).toContain(exprUndefined);
@@ -568,7 +580,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
 
     // Subsequent events should not be processed
     spyOn<any>(consumer, 'consumeEvent');
-    
+
     const event: FieldValueChangedEvent = {
       type: 'field.value.changed',
       fieldId: 'otherField',

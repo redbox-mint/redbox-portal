@@ -148,7 +148,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
    * NOTE: Do not use isDisabled for HTML elements that are associated with an angular formControl (e.g. [disabled]="isDisabled").
    *       The formControl sets the disabled state on the HTML element DOM.
    */
-  get isDisabled(): boolean {
+  public get isDisabled(): boolean {
     return this.componentDefinition?.config?.disabled ?? false;
   }
 
