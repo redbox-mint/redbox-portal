@@ -999,7 +999,7 @@ export namespace Services {
 
     protected aafAuthInit = () => {
       this.registerSailsHook('on', 'ready', async () => {
-        // users the default brand's configuration once sails is fully ready
+        // uses the default brand's configuration once sails is fully ready
         const defaultBrandName = BrandingService.getDefault().name;
         const defAuthConfig = this.getAuthConfig(defaultBrandName);
 
@@ -1011,15 +1011,16 @@ export namespace Services {
         if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('aaf') != -1) {
           const JwtStrategy = require('passport-jwt').Strategy,
             ExtractJwt = require('passport-jwt').ExtractJwt;
-          const aafOpts = (defAuthConfig.aaf?.opts ?? {}) as Record<string, unknown>;
-          aafOpts.passReqToCallback = aafOpts.passReqToCallback ?? true;
+          const configuredAafOpts = (defAuthConfig.aaf?.opts ?? {}) as Record<string, unknown>;
+          const aafOpts = Object.assign({}, configuredAafOpts) as Record<string, unknown>;
+          aafOpts.passReqToCallback = true;
           // Default JWT options for AAF; allow overrides from config
           const jwtDefaults = {
             issuer: 'https://rapid.aaf.edu.au',
             ignoreNotBefore: true,
             clockTolerance: 120,
           };
-          aafOpts.jsonWebTokenOptions = Object.assign({}, jwtDefaults, (aafOpts.jsonWebTokenOptions ?? {}) as Record<string, unknown>);
+          aafOpts.jsonWebTokenOptions = Object.assign({}, jwtDefaults, (configuredAafOpts.jsonWebTokenOptions ?? {}) as Record<string, unknown>);
           aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
           sails.log.verbose(`Registering Passport strategy "aaf-jwt" with option keys: ${JSON.stringify(Object.keys(aafOpts))}`);
           (sails.config.passport as PassportLike).use('aaf-jwt', new JwtStrategy(aafOpts, function (req: Sails.Req, jwt_payload: AnyRecord, done: DoneCallback) {
@@ -1029,29 +1030,24 @@ export namespace Services {
 
             const authConfig = that.getAuthConfig(brand.name);
             const aafAttributes = authConfig.aaf?.attributesField ?? DEFAULT_AAF_ATTRIBUTES_FIELD;
-            sails.log.verbose("Configured roles: ")
-            sails.log.verbose(sails.config.auth.roles);
-            sails.log.verbose("AAF default roles ")
-            sails.log.verbose(authConfig.aaf?.defaultRole)
-            sails.log.verbose("Brand roles ")
-            sails.log.verbose(brand.roles)
-            sails.log.verbose("Brand")
-            sails.log.verbose(brand)
+            sails.log.verbose(`Configured roles: ${JSON.stringify(sails.config.auth.roles)}`);
+            sails.log.verbose(`AAF default roles: ${JSON.stringify(authConfig.aaf?.defaultRole)}`);
+            sails.log.verbose(`Brand roles: ${JSON.stringify(brand.roles)}`);
             const defaultAuthRole = RolesService.getDefAuthenticatedRole(brand);
             let aafDefRoles = []
             if (defaultAuthRole != undefined) {
               aafDefRoles = _.map(RolesService.getNestedRoles(defaultAuthRole.name, brand.roles), 'id');
             }
             const aafUsernameField = authConfig.aaf?.usernameField ?? DEFAULT_AAF_USERNAME_FIELD;
-            const userName = Buffer.from(String(jwt_payload[aafUsernameField] ?? '')).toString('base64');
+            const aafUsername = String(jwt_payload[aafUsernameField] ?? '');
+            const userName = Buffer.from(aafUsername).toString('base64');
             User.findOne({
               username: userName
             }, function (err: unknown, user: unknown) {
-              sails.log.verbose(`At AAF Strategy verify, payload: ${JSON.stringify(jwt_payload)}`);
-              sails.log.verbose(`AAF resolved username field "${aafUsernameField}": ${JSON.stringify(jwt_payload[aafUsernameField])}`);
-              sails.log.verbose(`AAF resolved attributes field "${aafAttributes}": ${JSON.stringify(jwt_payload[aafAttributes])}`);
-              sails.log.verbose(`AAF user lookup result: ${JSON.stringify(user)}`);
-              sails.log.verbose(`AAF verify error: ${err == null ? 'null' : JSON.stringify(err)}`);
+              sails.log.verbose(`At AAF Strategy verify for brand "${brandName}" using username "${aafUsername}"`);
+              sails.log.verbose(`AAF resolved attributes field "${aafAttributes}"`);
+              sails.log.verbose(`AAF user lookup result: ${user ? `found user id=${String((user as AnyRecord).id ?? 'unknown')}` : 'no user found'}`);
+              sails.log.verbose(`AAF verify error: ${err == null ? 'null' : err instanceof Error ? err.message : String(err)}`);
               if (err) {
                 return done(err, false);
               }
@@ -1162,22 +1158,35 @@ export namespace Services {
                 sails.log.verbose("At AAF Strategy verify, creating new user...");
                 // first time login, create with default role
                 const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
+                const normalizedUsername = String(userName);
+                const normalizedEmail = String(attrs.mail ?? '').toLowerCase();
+                const normalizedCn = _.isNil(attrs.cn) ? undefined : String(attrs.cn);
+                const normalizedDisplayName = _.isNil(attrs.displayname) ? undefined : String(attrs.displayname);
+                const normalizedEduPersonScopedAffiliation = _.isNil(attrs.edupersonscopedaffiliation) ? undefined : String(attrs.edupersonscopedaffiliation);
+                const normalizedEduPersonTargetedId = _.isNil(attrs.edupersontargetedid) ? undefined : String(attrs.edupersontargetedid);
+                const normalizedEduPersonPrincipalName = _.isNil(attrs.edupersonprincipalname) ? undefined : String(attrs.edupersonprincipalname);
+                const normalizedGivenName = _.isNil(attrs.givenname) ? undefined : String(attrs.givenname);
+                const normalizedSurname = _.isNil(attrs.surname) ? undefined : String(attrs.surname);
+                const normalizedFullName = [normalizedGivenName, normalizedSurname]
+                  .filter((value): value is string => !_.isNil(value) && value.trim().length > 0)
+                  .join(' ');
+                const normalizedName = normalizedCn ?? normalizedDisplayName ?? (normalizedFullName.length > 0 ? normalizedFullName : undefined) ?? normalizedUsername;
                 let userToCreate: AnyRecord = {
-                  username: userName,
-                  name: attrs.cn,
-                  email: String(attrs.mail ?? '').toLowerCase(),
-                  displayname: attrs.displayname,
-                  cn: attrs.cn,
-                  edupersonscopedaffiliation: attrs.edupersonscopedaffiliation,
-                  edupersontargetedid: attrs.edupersontargetedid,
-                  edupersonprincipalname: attrs.edupersonprincipalname,
-                  givenname: attrs.givenname,
-                  surname: attrs.surname,
+                  username: normalizedUsername,
+                  name: normalizedName,
+                  email: normalizedEmail,
+                  displayname: normalizedDisplayName,
+                  cn: normalizedCn,
+                  edupersonscopedaffiliation: normalizedEduPersonScopedAffiliation,
+                  edupersontargetedid: normalizedEduPersonTargetedId,
+                  edupersonprincipalname: normalizedEduPersonPrincipalName,
+                  givenname: normalizedGivenName,
+                  surname: normalizedSurname,
                   type: 'aaf',
                   roles: aafDefRoles,
                   lastLogin: new Date()
                 };
-                sails.log.verbose(userToCreate);
+                sails.log.verbose(`AAF prepared user create request for brand "${brandName}" and username "${aafUsername}"`);
 
                 const emailAuthorizedCheck = that.checkAuthorizedEmail(String(userToCreate.email ?? ''), brandName, 'aaf');
                 if (!emailAuthorizedCheck) {
@@ -1186,7 +1195,7 @@ export namespace Services {
 
                 const configAAF = _.get(defAuthConfig, 'aaf', {});
                 if (that.hasPreSaveTriggerConfigured(configAAF, 'onCreate')) {
-                  that.triggerPreSaveTriggers(userToCreate, configAAF).then((userAdditionalInfo: AnyRecord) => {
+                  that.triggerPreSaveTriggers(userToCreate, configAAF, 'onCreate').then((userAdditionalInfo: AnyRecord) => {
 
                     const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                     if (success) {
@@ -1199,11 +1208,11 @@ export namespace Services {
                         }
 
                         if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                          that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF);
+                          that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
                         }
 
                         if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
-                          that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF);
+                          that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF, 'onCreate');
                         }
 
                         sails.log.verbose("Done, returning new user:");
@@ -1214,7 +1223,7 @@ export namespace Services {
                         return;
                       });
                     } else {
-                      return done(`All required conditions for login not met ${userAdditionalInfo.email}`, false);
+                      return done(null, false, { message: 'All required conditions for login not met' });
                     }
                   });
 
@@ -1229,11 +1238,11 @@ export namespace Services {
                     }
 
                     if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                      that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF);
+                      that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
                     }
 
                     if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
-                      that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF);
+                      that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF, 'onCreate');
                     }
 
                     sails.log.verbose("Done, returning new user:");
@@ -1512,9 +1521,8 @@ export namespace Services {
                       that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
                     }
 
-                    sails.log.verbose("Done, returning updated user:");
-                    sails.log.verbose(user);
                     const updatedUsers = user as AnyRecord[];
+                    sails.log.verbose(`Done, returning updated user id=${String((updatedUsers[0] as AnyRecord)?.id ?? 'unknown')}`);
                     that.resolveLinkedUserCandidate(updatedUsers[0])
                       .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
                       .catch((resolveErr: unknown) => done(resolveErr, false));
@@ -1625,8 +1633,7 @@ export namespace Services {
                     that.triggerPostSaveSyncTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
                   }
 
-                  sails.log.verbose("Done, returning new user:");
-                  sails.log.verbose(newUser);
+                  sails.log.verbose(`Done, returning new user id=${String((newUser as AnyRecord)?.id ?? 'unknown')}`);
                   that.resolveLinkedUserCandidate(newUser)
                     .then((resolvedUser) => done(null, resolvedUser as AnyRecord))
                     .catch((resolveErr: unknown) => done(resolveErr, false));
