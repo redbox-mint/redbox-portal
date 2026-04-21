@@ -170,7 +170,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
    * @param disabled Set the disabled status.
    * @param opts The modify options.
    */
-  public setDisabled(disabled: boolean, opts?: ModifyOptions) {
+  public setDisabled(disabled: boolean, opts?: ModifyOptions): void {
     const isDisabled = this.formControl?.disabled;
     if (isDisabled === undefined) {
       return;

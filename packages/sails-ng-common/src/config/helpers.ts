@@ -105,6 +105,22 @@ function valueProtoInfo(value: any) {
 }
 
 /**
+ * Apply conventions to convert a value to a boolean.
+ * @param value A value to convert to boolean.
+ */
+export function toBoolean(value: unknown): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+  const normalized = String(value ?? '').trim().toLowerCase();
+  const trueValues = ["true", "t", "1", "yes", "y", "on", "enable", "enabled"];
+  return trueValues.includes(normalized);
+}
+
+/**
  * Extract all properties of the type T that are of the type U.
  */
 export type ExtractPropertyNamesOfType<T, U> = { [K in keyof T]: T[K] extends U ? K : never }[keyof T];

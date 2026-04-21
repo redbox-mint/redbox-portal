@@ -164,10 +164,12 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       if (this.componentDefinition?.config) {
         this.componentDefinition.config.disabled = disabled;
       }
-    } catch {
+    } catch (error) {
       if (this.componentDefinition?.config) {
         this.componentDefinition.config.disabled = current;
       }
+      this.loggerService.error(
+        `Could not set model disabled state with value ${disabled} and opts ${opts}.`, error);
     }
   }
 

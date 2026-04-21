@@ -223,7 +223,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
     const expr: FormExpressionsConfigFrame = {
       name: 'layout-update',
       config: {
-        target: 'layout.someProp',
+        target: 'layout.disabled',
         condition: 'otherField',
         template: ''
       }
@@ -246,7 +246,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
     tick();
 
     const config = definition.layout?.componentDefinition?.config as Record<string, unknown>;
-    expect(config['someProp']).toBe('red');
+    expect(config['disabled']).toBe('red');
   }));
 
   it('should update component config when target starts with "component."', fakeAsync(() => {
@@ -277,6 +277,37 @@ describe('FormComponentValueChangeEventConsumer', () => {
 
     const config = definition.component?.componentDefinition?.config as Record<string, unknown>;
     expect(config['someSetting']).toBe('enabled');
+  }));
+
+  it('should update component config and formControl.disabled when target is "component.disabled"', fakeAsync(() => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'component-update',
+      config: {
+        target: 'component.disabled',
+        condition: 'otherField',
+        template: ''
+      }
+    };
+    const { control, definition, component } = createSetup([expr]);
+
+    spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
+
+    consumer.bind({ component, definition });
+
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: 'otherField',
+      sourceId: 'otherField',
+      value: 'enabled',
+      timestamp: Date.now()
+    };
+
+    eventStream$.next(event);
+    tick();
+
+    const config = definition.component?.componentDefinition?.config as Record<string, unknown>;
+    expect(config['disabled']).toBe(true);
+    expect(control.disabled).toBe(true);
   }));
 
   it('should use template evaluation when hasTemplate is true', fakeAsync(() => {

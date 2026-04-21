@@ -11,7 +11,7 @@ import {
   ExpressionsConditionKind,
   ExpressionsConditionKindType,
   FormExpressionsTargetModelValue, FormExpressionsTargetLayoutPrefix, FormExpressionsTargetComponentPrefix,
-  FormExpressionsTargetValidationGroups, DynamicScriptResponse, guessType,
+  FormExpressionsTargetValidationGroups, DynamicScriptResponse, guessType, toBoolean,
 } from '@researchdatabox/sails-ng-common';
 import jsonata from 'jsonata';
 import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
@@ -423,10 +423,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     }
 
     // For a component, the disabled property must be handled specially to satisfy angular.
-    if (targetKind === "component" && propPath === 'disabled' && typeof targetValue === 'boolean') {
+    if (targetKind === "component" && propPath === 'disabled') {
       const component = this.options?.component;
       if (component) {
-        component.setDisabled(targetValue);
+        component.setDisabled(toBoolean(targetValue));
       }
       return;
     }

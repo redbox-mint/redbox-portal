@@ -1,5 +1,6 @@
 import {get as _get} from "lodash";
 import {FormValidatorCreateConfig} from "./form.model";
+import {toBoolean} from "../config/helpers";
 
 
 /**
@@ -61,11 +62,7 @@ export function formValidatorGetDefinitionBoolean(
   defaultValue: boolean | undefined = undefined,
 ) {
   const value = formValidatorGetDefinitionItem(config, key, defaultValue);
-  if (typeof value === "boolean") {
-    return value;
-  }
-  const valueString = value?.toString()?.toLowerCase() ?? "";
-  return ["true", "t", "1", "yes", "y"].includes(valueString);
+  return toBoolean(value);
 }
 
 export function formValidatorGetDefinitionRegexp(
