@@ -48,6 +48,8 @@ import { PublishDataLocationSelectorTypes } from './component/publish-data-locat
 import { CancelButtonTypes } from './component/cancel-button.outline';
 import { TabNavButtonTypes } from './component/tab-nav-button.outline';
 import { DeleteButtonTypes } from './component/delete-button.outline';
+import {FieldComponentDefinitionFrame} from "./field-component.outline";
+import {FieldLayoutDefinitionFrame} from "./field-layout.outline";
 
 /**
  * The static type union of all available interfaces that provides typing for the object literal and schema.
@@ -133,8 +135,25 @@ export type AllFormComponentDefinitionOutlines = Extract<
   }
 >['class'];
 
+/**
+ * All possible field component definition frames.
+ */
 export type AllFieldComponentDefinitionFrames = Extract<AllTypes, {kind:FieldComponentDefinitionFrameKindType}>['class'];
+
+/**
+ * All possible field layout definition frames.
+ */
 export type AllFieldLayoutDefinitionFrames = Extract<AllTypes, {kind:FieldLayoutDefinitionFrameKindType}>['class'];
+
+/**
+ * All possible field component and field layout definition frames, including the non-component specific frames.
+ */
+export type FormFieldComponentOrLayoutDefinition =
+  | FieldComponentDefinitionFrame
+  | FieldLayoutDefinitionFrame
+  | AllFieldComponentDefinitionFrames
+  | AllFieldLayoutDefinitionFrames
+  ;
 
 /**
  * The form component definition outlines available for use in any list of form components.

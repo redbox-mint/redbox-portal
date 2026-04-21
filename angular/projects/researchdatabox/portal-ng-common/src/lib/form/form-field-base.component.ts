@@ -6,28 +6,21 @@ import {
   EffectRef, Injector, ApplicationRef
 } from '@angular/core';
 import { LoggerService } from '../logger.service';
-import {  isEmpty as _isEmpty } from 'lodash-es';
+import {  isEmpty as _isEmpty, get as _get } from 'lodash-es';
 import { UtilityService } from "../utility.service";
 import {
   FormComponentDefinitionFrame,
-  FieldComponentDefinitionFrame,
-  FieldLayoutDefinitionFrame,
   FormFieldComponentStatus,
   LineagePaths,
   JSONataQuerySourceProperty,
   FormExpressionsConfigOutline,
-  ExtractPropertyNamesOfType
+  FormFieldComponentOrLayoutDefinition,
 } from '@researchdatabox/sails-ng-common';
 
-export type FormFieldComponentOrLayoutDefinition = FieldComponentDefinitionFrame | FieldLayoutDefinitionFrame;
-export type FormFieldComponentOrLayoutConfig = NonNullable<FormFieldComponentOrLayoutDefinition['config']>;
 export interface FormFieldFocusRequestOptions {
   scroll?: boolean;
   scrollOptions?: ScrollIntoViewOptions;
 }
-type FormFieldComponentOrLayoutStringKeys = NonNullable<ExtractPropertyNamesOfType<FormFieldComponentOrLayoutConfig, string | undefined>>;
-type FormFieldComponentOrLayoutBooleanKeys = NonNullable<ExtractPropertyNamesOfType<FormFieldComponentOrLayoutConfig, boolean | undefined>>;
-
 
 /**
  * Base class for form components. Data binding to a form field is optional.
@@ -133,12 +126,12 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return this.status() === FormFieldComponentStatus.INIT_VIEW_READY || this.status() === FormFieldComponentStatus.READY;
   }
 
-  public getBooleanProperty(name: FormFieldComponentOrLayoutBooleanKeys, defaultValue: boolean): boolean {
-    return this.componentDefinition?.config?.[name] ?? defaultValue;
+  public getBooleanProperty(name: string, defaultValue: boolean): boolean {
+    return _get(this.componentDefinition?.config, name, defaultValue);
   }
 
-  public getStringProperty(name: FormFieldComponentOrLayoutStringKeys) {
-    return this.componentDefinition?.config?.[name] ?? '';
+  public getStringProperty(name: string): string {
+    return _get(this.componentDefinition?.config, name, '');
   }
 
   get isVisible(): boolean {

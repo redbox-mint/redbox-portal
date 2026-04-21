@@ -11,7 +11,7 @@ import {
   ExpressionsConditionKind,
   ExpressionsConditionKindType,
   FormExpressionsTargetModelValue, FormExpressionsTargetLayoutPrefix, FormExpressionsTargetComponentPrefix,
-  FormExpressionsTargetValidationGroups, DynamicScriptResponse,
+  FormExpressionsTargetValidationGroups, DynamicScriptResponse, guessType,
 } from '@researchdatabox/sails-ng-common';
 import jsonata from 'jsonata';
 import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
@@ -413,6 +413,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     targetValue: unknown, propPath: string, targetKind: "component" | "layout"
   ) {
 
+    // For a component, all config properties except 'disabled' can be set directly.
     if (targetKind === "component" && propPath !== 'disabled') {
       const config = this.options?.definition?.component?.componentDefinition?.config;
       if (config && propPath) {
@@ -421,14 +422,8 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       return;
     }
 
-    if (targetKind === "layout" && propPath !== 'disabled') {
-      const config = this.options?.definition?.layout?.componentDefinition?.config;
-      if (config && propPath) {
-        _set(config, propPath, targetValue);
-      }
-    }
-
-    if (propPath === 'disabled' && typeof targetValue === 'boolean') {
+    // For a component, the disabled property must be handled specially to satisfy angular.
+    if (targetKind === "component" && propPath === 'disabled' && typeof targetValue === 'boolean') {
       const component = this.options?.component;
       if (component) {
         component.setDisabled(targetValue);
@@ -436,8 +431,17 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       return;
     }
 
+    // For a layout, there is no need for specific handling of the 'disabled' property.
+    // This is because the 'disabled' property has no general meaning and is specific to each layout.
+    if (targetKind === "layout") {
+      const config = this.options?.definition?.layout?.componentDefinition?.config;
+      if (config && propPath) {
+        _set(config, propPath, targetValue);
+      }
+    }
+
     this.loggerService.warn(
-      `FormComponentBaseEventConsumer: Unknown target ${targetKind} property path '${propPath}' value '${targetValue}' in expression config.`
+      `FormComponentBaseEventConsumer: Don't know what to do with target '${targetKind}' property path '${propPath}' value '${targetValue}' (type ${guessType(targetValue)}) in expression config.`
     );
   }
 
