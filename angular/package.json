@@ -63,7 +63,7 @@
     "@angular-devkit/build-angular": "20.3.23",
     "@angular-devkit/core": "20.3.23",
     "@angular-devkit/schematics": "20.3.23",
-    "@angular/compiler-cli": "20.3.18",
+    "@angular/compiler-cli": "21.2.8",
     "@schematics/angular": "20.3.23",
     "@types/jasmine": "6.0.0",
     "@types/leaflet": "1.9.21",
