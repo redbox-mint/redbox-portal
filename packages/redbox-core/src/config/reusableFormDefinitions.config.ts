@@ -1,7 +1,7 @@
 import {ReusableFormDefinitions} from "@researchdatabox/sails-ng-common";
-import {buildRelatedObjectsFieldDefinition, reusableRelatedObjectsFormDefinitions} from "./reusableRelatedObjectsFormDefinition.config";
-import {reusableViewFormDefinitions} from "./reusableViewFormDefinition.config";
-import {reusableContributorFormDefinitions} from "./reusableContributorFormDefinition.config";
+import {buildRelatedObjectsFieldDefinition, reusableRelatedObjectsFormDefinitions} from "./reusableRelatedObjectsFormDefinitions.config";
+import {reusableViewFormDefinitions} from "./reusableViewFormDefinitions.config";
+import {reusableContributorFormDefinitions} from "./reusableContributorFormDefinitions.config";
 
 // Re-export the type for convenience
 export {ReusableFormDefinitions};
@@ -14,8 +14,8 @@ export {buildRelatedObjectsFieldDefinition};
  *
  * Re-usable, server-side only, component templates.
  * Used as defaults for properties not defined.
- * The 'name' property for these templates can be used as the value
- * in the 'templateName' property in form component definitions.
+ * The key of these templates can be used as the value
+ * in the 'reusableFormName' property in form component definitions.
  *
  * TODO: Think about how this could work if clients are allowed to define templates and store in db...
  */

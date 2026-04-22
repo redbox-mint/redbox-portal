@@ -519,6 +519,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
     this.sharedProps.setPropOverride('type', item.config, config);
+    this.sharedProps.setPropOverride('placeholder', item.config, config);
   }
 
   visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
