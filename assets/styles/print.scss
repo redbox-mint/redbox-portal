@@ -1,0 +1,336 @@
+@media print {
+  @page {
+    size: A4;
+    margin: 18mm 15mm 18mm 15mm;
+  }
+
+  @page :first {
+    margin-top: 24mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #1b1b1b !important;
+    font-family: "Titillium Web", "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 10pt;
+    line-height: 1.45;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  h1, h2, h3, h4 {
+    color: #111 !important;
+    font-family: "Titillium Web", "Helvetica Neue", Arial, sans-serif !important;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    page-break-after: avoid;
+    orphans: 3;
+    widows: 3;
+  }
+  h1 { font-size: 24pt; line-height: 1.15; margin: 0 0 4pt; }
+  h2 { font-size: 14pt; line-height: 1.2; margin: 10pt 0 4pt; }
+  h3 { font-size: 12pt; line-height: 1.25; margin: 8pt 0 3pt; }
+  h4 { font-size: 11pt; line-height: 1.3; margin: 6pt 0 2pt; }
+
+  p, li {
+    orphans: 3;
+    widows: 3;
+    margin: 0 0 4pt;
+  }
+
+  a,
+  a:visited {
+    color: #1b1b1b !important;
+    text-decoration: none;
+  }
+
+  strong, b { font-weight: 700; }
+
+  // ---------------------------------------------------------------------------
+  // Page chrome — hide site header, nav, footer, user menu, buttons
+  // ---------------------------------------------------------------------------
+  .header-area,
+  .site-branding-area,
+  .mainmenu-area,
+  .main-search-box,
+  .maincontent-title-area,
+  .footer-bottom-area,
+  .copyright,
+  .user-menu,
+  .navbar,
+  .navbar-fixed-bottom,
+  .system-message-area,
+  #system-message-area {
+    display: none !important;
+  }
+
+  // Hide interactive buttons, but NOT panel-heading / accordion toggle buttons
+  // which contain the section title text we want to print.
+  .btn:not(.rb-form-print-keep):not(.panel-heading .btn):not(.panel-title .btn):not(.panel-title > button),
+  .dropdown-menu,
+  .modal,
+  .modal-backdrop,
+  button.close,
+  .close {
+    display: none !important;
+  }
+
+  // The `:not()` chain above still fails in some browsers with descendant
+  // selectors inside `:not()`. Explicitly restore display for panel-heading
+  // buttons so their text (section titles) remains visible in print.
+  .panel-heading .btn,
+  .panel-heading button,
+  .panel-title > button,
+  .panel-title > a {
+    display: inline-block !important;
+  }
+
+  // The .btn element inside panel-heading is styled flex in screen mode; in
+  // print we want the icon+text laid out on one line so the section title
+  // reads naturally.
+  .panel-heading button.d-flex,
+  .panel-heading .btn.d-flex {
+    display: block !important;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Layout reset — remove Bootstrap container widths so we use the full page
+  // ---------------------------------------------------------------------------
+  .container,
+  .container-fluid {
+    width: auto !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .maincontent-body {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .maincontent-body > :first-child {
+    margin-top: 0 !important;
+  }
+
+  .row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  [class*="col-"] {
+    float: none !important;
+    width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Title block — the first H1 in the form acts as the document title.
+  // Give it a red accent rule underneath to evoke a report cover.
+  // ---------------------------------------------------------------------------
+  .rb-form-components > redbox-form-base-wrapper:first-child h1,
+  .rb-form-shell h1:first-of-type {
+    font-size: 26pt !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em;
+    padding-bottom: 6pt;
+    margin: 0 0 14pt !important;
+    border-bottom: 3pt solid #b1101a;
+    page-break-after: avoid;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Accordion panels → professional report sections
+  // ---------------------------------------------------------------------------
+  .panel,
+  .panel-default,
+  .panel-group {
+    border: none !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    margin: 10pt 0 !important;
+    page-break-inside: auto;
+  }
+
+  .panel:first-of-type {
+    margin-top: 6pt !important;
+  }
+
+  .panel-heading,
+  .panel-default > .panel-heading,
+  .panel-group .panel-heading {
+    background: #f6f3f1 !important;
+    background-color: #f6f3f1 !important;
+    color: #111 !important;
+    border: none !important;
+    border-left: 3pt solid #b1101a !important;
+    border-radius: 0 !important;
+    padding: 6pt 10pt 6pt 10pt !important;
+    margin: 0 0 8pt !important;
+    page-break-after: avoid;
+  }
+
+  .panel-title,
+  .panel-heading .panel-title,
+  .panel-title > a,
+  .panel-title > button,
+  .panel-heading .btn,
+  .panel-heading .btn > *,
+  .panel-heading button,
+  .panel-heading button > * {
+    color: #111 !important;
+    font-family: "Titillium Web", "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 12pt !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    background: transparent !important;
+    text-decoration: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  // ContentComponent heading spans injected inside labels (h1/h2/h3/h4-header).
+  // Without this they render with the muted-label style (uppercase, 8pt).
+  .rb-form-field-label .h1-header,
+  .rb-form-field-label .h2-header,
+  .rb-form-field-label .h3-header,
+  .rb-form-field-label .h4-header,
+  .rb-form-inline-label .h1-header,
+  .rb-form-inline-label .h2-header,
+  .rb-form-inline-label .h3-header,
+  .rb-form-inline-label .h4-header {
+    display: block !important;
+    color: #111 !important;
+    font-family: "Titillium Web", "Helvetica Neue", Arial, sans-serif !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.005em !important;
+    text-transform: none !important;
+    margin: 4pt 0 2pt !important;
+    page-break-after: avoid;
+  }
+
+  .rb-form-field-label .h1-header,
+  .rb-form-inline-label .h1-header { font-size: 16pt !important; }
+  .rb-form-field-label .h2-header,
+  .rb-form-inline-label .h2-header { font-size: 13pt !important; }
+  .rb-form-field-label .h3-header,
+  .rb-form-inline-label .h3-header { font-size: 11.5pt !important; }
+  .rb-form-field-label .h4-header,
+  .rb-form-inline-label .h4-header { font-size: 10.5pt !important; }
+
+  // When a label's sole content is a heading span, strip the label's
+  // uppercase/muted style (the heading carries its own styling).
+  .rb-form-field-label:has(.h1-header),
+  .rb-form-field-label:has(.h2-header),
+  .rb-form-field-label:has(.h3-header),
+  .rb-form-field-label:has(.h4-header),
+  .rb-form-inline-label:has(.h1-header),
+  .rb-form-inline-label:has(.h2-header),
+  .rb-form-inline-label:has(.h3-header),
+  .rb-form-inline-label:has(.h4-header) {
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    color: #111 !important;
+  }
+
+  .panel-toggle-icon,
+  .accordion-controls,
+  .accordion-control-btn,
+  .view-accordion .panel-group .main-expand-collapse {
+    display: none !important;
+  }
+
+  .panel-collapse,
+  .panel-collapse.collapse,
+  .panel-collapse.collapse.show,
+  .collapse {
+    display: block !important;
+    visibility: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .panel-body {
+    padding: 2pt 2pt 4pt !important;
+    background: transparent !important;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Tables
+  // ---------------------------------------------------------------------------
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    margin: 4pt 0 6pt !important;
+    font-size: 9.5pt;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  thead th {
+    background-color: #f6f3f1 !important;
+    color: #111 !important;
+    font-weight: 700 !important;
+    text-align: left;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 8.5pt;
+    padding: 4pt 6pt !important;
+    border-bottom: 1pt solid #b1101a !important;
+  }
+
+  tbody td {
+    padding: 3pt 6pt !important;
+    border-bottom: 0.5pt solid #e0ddd9 !important;
+    vertical-align: top;
+  }
+
+  tr,
+  img {
+    page-break-inside: avoid;
+  }
+
+  img {
+    max-width: 100% !important;
+  }
+
+  .table td,
+  .table th {
+    background-color: transparent !important;
+  }
+
+  .table-bordered td,
+  .table-bordered th {
+    border: 0.5pt solid #ccc !important;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Print utility classes (preserved from the legacy responsive block)
+  // ---------------------------------------------------------------------------
+  .print-hidden {
+    display: none !important;
+  }
+
+  .print-display {
+    display: inherit !important;
+  }
+}
