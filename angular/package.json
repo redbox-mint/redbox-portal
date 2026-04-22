@@ -18,7 +18,7 @@
     "@angular/core": "20.3.18",
     "@angular/forms": "20.3.18",
     "@angular/platform-browser": "20.3.18",
-    "@angular/platform-browser-dynamic": "20.3.18",
+    "@angular/platform-browser-dynamic": "21.2.8",
     "@angular/router": "20.3.18",
     "@floating-ui/dom": "1.7.6",
     "@ngrx/effects": "20.1.0",
