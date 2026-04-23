@@ -113,7 +113,7 @@ export function toBoolean(value: unknown): boolean {
     return value;
   }
   if (typeof value === 'number') {
-    return value !== 0;
+    return !Number.isNaN(value) && value !== 0;
   }
   const normalized = String(value ?? '').trim().toLowerCase();
   const trueValues = ["true", "t", "1", "yes", "y", "on", "enable", "enabled"];
