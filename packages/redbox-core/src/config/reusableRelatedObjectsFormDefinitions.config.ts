@@ -253,7 +253,7 @@ export const reusableRelatedObjectsFormDefinitions: ReusableFormDefinitions = {
   "related-objects-fields-title-first-group": [
     {
       overrides: {reusableFormName: "related-objects-fields-group"},
-      name: "related_objects_fields_url_first_group",
+      name: "related_objects_fields_title_first_group",
       component: {
         class: "ReusableComponent", config: {
           componentDefinitions: [
