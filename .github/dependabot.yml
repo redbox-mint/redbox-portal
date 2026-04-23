@@ -76,10 +76,11 @@ updates:
         patterns:
           - "@angular*"
           - "ngx-bootstrap"
-          - "angular-i18next"
           - "@schematics/angular"
           - "ng-packagr"
           - "@ngx-formly/*"
+          - "@ngrx/*"
+          - "ngx-tiptap"
         update-types:
           - "minor"
           - "patch"
@@ -88,10 +89,11 @@ updates:
         patterns:
           - "@angular*"
           - "ngx-bootstrap"
-          - "angular-i18next"
           - "@schematics/angular"
           - "ng-packagr"
           - "@ngx-formly/*"
+          - "@ngrx/*"
+          - "ngx-tiptap"
         update-types:
           - "major"
     cooldown:
