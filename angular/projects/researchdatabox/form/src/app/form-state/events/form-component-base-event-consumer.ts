@@ -438,6 +438,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       if (config && propPath) {
         _set(config, propPath, targetValue);
       }
+      return;
     }
 
     this.loggerService.warn(
