@@ -1,9 +1,9 @@
 /**
  * Core Bootstrap Function
- * 
+ *
  * This is the main bootstrap logic for ReDBox Portal.
  * Called by the generated config/bootstrap.js shim.
- * 
+ *
  * Hooks can provide additional bootstrap functions via:
  * 1. Add "sails": { "hasBootstrap": true } to package.json
  * 2. Export registerRedboxBootstrap() returning an async function
@@ -28,7 +28,7 @@ export interface BootstrapProvider {
 
 /**
  * Core bootstrap function - initializes all ReDBox services
- * 
+ *
  * This function is called during Sails lift and bootstraps all core services
  * in the correct order. Hook bootstraps run after this completes.
  */
@@ -159,7 +159,7 @@ export async function coreBootstrap(): Promise<void> {
 
 /**
  * Pre-lift configuration setup
- * 
+ *
  * Called before coreBootstrap to configure Sails settings
  * that need to be in place before services bootstrap.
  */
@@ -178,7 +178,7 @@ export function preLiftSetup(): void {
 
     if (sails.config.environment === "production" || sails.config.ng2.force_bundle) {
         sails.config.ng2.use_bundled = true;
-        console.log("Using NG2 Bundled files.......");
+        sails.log.debug("Using NG2 Bundled files.......");
     }
 
     // Update the pino log level to the sails.log.level
