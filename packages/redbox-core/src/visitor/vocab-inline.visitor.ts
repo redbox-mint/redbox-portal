@@ -156,7 +156,9 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       }
       componentConfig.options = entries.map((entry) => ({
         label: String(entry?.label ?? ''),
-        value: String(entry?.value ?? '')
+        value: String(entry?.value ?? ''),
+        // only add disabled if it is true, otherwise set to undefined
+        disabled: entry?.historical === true ? true : undefined,
       }));
     } catch (error) {
       this.logger.warn(

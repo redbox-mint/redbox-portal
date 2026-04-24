@@ -102,6 +102,41 @@ describe('VocabInlineFormConfigVisitor', () => {
         expect(options[0]?.label).to.equal('Local');
     });
 
+    it('sets historical dropdown option to disabled', async () => {
+        const getEntries = async () => ({
+          entries: [{ label: 'Open', value: 'open', historical: true }] });
+        (globalThis as any).VocabularyService = { getEntries };
+
+        const input: FormConfigFrame = {
+            name: 'test',
+            componentDefinitions: [
+                {
+                    name: 'access_type',
+                    component: {
+                        class: 'DropdownInputComponent',
+                        config: {
+                            options: [],
+                            vocabRef: 'access-rights',
+                            inlineVocab: true,
+                        },
+                    },
+                },
+            ],
+        };
+
+        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructed = constructor.start({ data: input, formMode: 'edit' });
+
+        const visitor = new VocabInlineFormConfigVisitor(logger);
+        await visitor.resolveVocabs(constructed);
+
+        const radio = constructed.componentDefinitions?.[0] as RadioInputFormComponentDefinitionOutline;
+        const options = radio?.component?.config?.options;
+        expect(options).to.have.length(1);
+        expect(options?.[0]?.label).to.equal('Open');
+        expect(options?.[0]?.disabled).to.be.true;
+    });
+
     it('throws when inline vocab slug cannot be resolved', async () => {
         (globalThis as any).VocabularyService = {
             getEntries: async () => null,
