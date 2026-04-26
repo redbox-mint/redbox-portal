@@ -1,7 +1,7 @@
 /**
  * Routes Config Interface
  * (sails.config.routes)
- * 
+ *
  * URL to controller/action mapping configuration.
  */
 
@@ -174,9 +174,9 @@ export const routes: RoutesConfig = {
     // Auth routes
     'post /user/login_local': 'UserController.localLogin',
     'post /user/login_aaf': { controller: 'UserController', action: 'aafLogin', csrf: false },
-    'get /user/login_oidc': { controller: 'UserController', action: 'openIdConnectLogin', csrf: false },
+    'get /user/login_oidc': { controller: 'UserController', action: 'openIdConnectLogin' },
     'HEAD /user/begin_oidc': { policy: 'disallowedHeadRequestHandler' },
-    'get /user/begin_oidc': { controller: 'UserController', action: 'beginOidc', csrf: false },
+    'get /user/begin_oidc': { controller: 'UserController', action: 'beginOidc' },
     'get /user/info': 'UserController.info',
     'get /:branding/:portal/user/info': 'UserController.info',
     'get /:branding/:portal/user/login': 'UserController.login',
@@ -317,13 +317,13 @@ export const routes: RoutesConfig = {
     'post /:branding/:portal/api/records/harvest/:recordType': { controller: 'webservice/RecordController', action: 'harvest', csrf: false },
     'post /:branding/:portal/api/mint/harvest/:recordType': { controller: 'webservice/RecordController', action: 'legacyHarvest', csrf: false },
     'put /:branding/:portal/api/records/objectmetadata/:oid': { controller: 'webservice/RecordController', action: 'updateObjectMeta', csrf: false },
-    'get /:branding/:portal/api/records/metadata/:oid': { controller: 'webservice/RecordController', action: 'getMeta', csrf: false },
-    'get /:branding/:portal/api/records/audit/:oid': { controller: 'webservice/RecordController', action: 'getRecordAudit', csrf: false },
-    'get /:branding/:portal/api/records/list': { controller: 'webservice/RecordController', action: 'listRecords', csrf: false },
-    'get /:branding/:portal/api/deletedrecords/list': { controller: 'webservice/RecordController', action: 'listDeletedRecords', csrf: false },
+    'get /:branding/:portal/api/records/metadata/:oid': { controller: 'webservice/RecordController', action: 'getMeta' },
+    'get /:branding/:portal/api/records/audit/:oid': { controller: 'webservice/RecordController', action: 'getRecordAudit' },
+    'get /:branding/:portal/api/records/list': { controller: 'webservice/RecordController', action: 'listRecords'},
+    'get /:branding/:portal/api/deletedrecords/list': { controller: 'webservice/RecordController', action: 'listDeletedRecords' },
     'put /:branding/:portal/api/deletedrecords/:oid': { controller: 'webservice/RecordController', action: 'restoreRecord', csrf: false },
     'delete /:branding/:portal/api/deletedrecords/:oid': { controller: 'webservice/RecordController', action: 'destroyDeletedRecord', csrf: false },
-    'get /:branding/:portal/api/records/objectmetadata/:oid': { controller: 'webservice/RecordController', action: 'getObjectMeta', csrf: false },
+    'get /:branding/:portal/api/records/objectmetadata/:oid': { controller: 'webservice/RecordController', action: 'getObjectMeta' },
     'delete /:branding/:portal/api/records/metadata/:oid': { controller: 'webservice/RecordController', action: 'deleteRecord', csrf: false },
 
     // REST API routes - Permissions
@@ -335,49 +335,49 @@ export const routes: RoutesConfig = {
     'delete /:branding/:portal/api/records/permissions/editRole/:oid': { controller: 'webservice/RecordController', action: 'removeRoleEdit', csrf: false },
     'post /:branding/:portal/api/records/permissions/viewRole/:oid': { controller: 'webservice/RecordController', action: 'addRoleView', csrf: false },
     'delete /:branding/:portal/api/records/permissions/viewRole/:oid': { controller: 'webservice/RecordController', action: 'removeRoleView', csrf: false },
-    'get /:branding/:portal/api/records/permissions/:oid': { controller: 'webservice/RecordController', action: 'getPermissions', csrf: false },
+    'get /:branding/:portal/api/records/permissions/:oid': { controller: 'webservice/RecordController', action: 'getPermissions' },
 
     // REST API routes - Datastreams
     'post /:branding/:portal/api/records/datastreams/:oid': { controller: 'webservice/RecordController', action: 'addDataStreams', csrf: false },
-    'get /:branding/:portal/api/records/datastreams/:oid/:datastreamId': { controller: 'webservice/RecordController', action: 'getDataStream', csrf: false },
-    'get /:branding/:portal/api/records/datastreams/:oid': { controller: 'webservice/RecordController', action: 'listDatastreams', csrf: false },
+    'get /:branding/:portal/api/records/datastreams/:oid/:datastreamId': { controller: 'webservice/RecordController', action: 'getDataStream' },
+    'get /:branding/:portal/api/records/datastreams/:oid': { controller: 'webservice/RecordController', action: 'listDatastreams' },
 
     // REST API routes - Workflow
     'post /:branding/:portal/api/records/workflow/step/:targetStep/:oid': { controller: 'webservice/RecordController', action: 'transitionWorkflow', csrf: false },
 
     // REST API routes - Users
-    'get /:branding/:portal/api/users': { controller: 'webservice/UserManagementController', action: 'listUsers', csrf: false },
-    'get /:branding/:portal/api/users/find': { controller: 'webservice/UserManagementController', action: 'getUser', csrf: false },
-    'get /:branding/:portal/api/users/get': { controller: 'webservice/UserManagementController', action: 'getUser', csrf: false },
-    'get /:branding/:portal/api/users/link/candidates': { controller: 'webservice/UserManagementController', action: 'searchLinkCandidates', csrf: false },
-    'get /:branding/:portal/api/users/:id/links': { controller: 'webservice/UserManagementController', action: 'getUserLinks', csrf: false },
-    'get /:branding/:portal/api/users/:id/audit': { controller: 'webservice/UserManagementController', action: 'getUserAudit', csrf: false },
+    'get /:branding/:portal/api/users': { controller: 'webservice/UserManagementController', action: 'listUsers' },
+    'get /:branding/:portal/api/users/find': { controller: 'webservice/UserManagementController', action: 'getUser' },
+    'get /:branding/:portal/api/users/get': { controller: 'webservice/UserManagementController', action: 'getUser' },
+    'get /:branding/:portal/api/users/link/candidates': { controller: 'webservice/UserManagementController', action: 'searchLinkCandidates' },
+    'get /:branding/:portal/api/users/:id/links': { controller: 'webservice/UserManagementController', action: 'getUserLinks' },
+    'get /:branding/:portal/api/users/:id/audit': { controller: 'webservice/UserManagementController', action: 'getUserAudit' },
     'post /:branding/:portal/api/users/link': { controller: 'webservice/UserManagementController', action: 'linkAccounts', csrf: false },
     'put /:branding/:portal/api/users': { controller: 'webservice/UserManagementController', action: 'createUser', csrf: false },
     'post /:branding/:portal/api/users': { controller: 'webservice/UserManagementController', action: 'updateUser', csrf: false },
     'post /:branding/:portal/api/users/:id/disable': { controller: 'webservice/UserManagementController', action: 'disableUser', csrf: false },
     'post /:branding/:portal/api/users/:id/enable': { controller: 'webservice/UserManagementController', action: 'enableUser', csrf: false },
-    'get /:branding/:portal/api/users/token/generate': { controller: 'webservice/UserManagementController', action: 'generateAPIToken', csrf: false },
-    'get /:branding/:portal/api/users/token/revoke': { controller: 'webservice/UserManagementController', action: 'revokeAPIToken', csrf: false },
+    'get /:branding/:portal/api/users/token/generate': { controller: 'webservice/UserManagementController', action: 'generateAPIToken' },
+    'get /:branding/:portal/api/users/token/revoke': { controller: 'webservice/UserManagementController', action: 'revokeAPIToken' },
 
     // REST API routes - Roles
-    'get /:branding/:portal/api/roles': { controller: 'webservice/UserManagementController', action: 'listSystemRoles', csrf: false },
+    'get /:branding/:portal/api/roles': { controller: 'webservice/UserManagementController', action: 'listSystemRoles' },
     'post /:branding/:portal/api/roles/:roleName': { controller: 'webservice/UserManagementController', action: 'createSystemRole', csrf: false },
 
     // REST API routes - Search
-    'get /:branding/:portal/api/search': { controller: 'webservice/SearchController', action: 'search', csrf: false },
-    'get /:branding/:portal/api/search/index': { controller: 'webservice/SearchController', action: 'index', csrf: false },
-    'get /:branding/:portal/api/search/indexAll': { controller: 'webservice/SearchController', action: 'indexAll', csrf: false },
-    'get /:branding/:portal/api/search/removeAll': { controller: 'webservice/SearchController', action: 'removeAll', csrf: false },
+    'get /:branding/:portal/api/search': { controller: 'webservice/SearchController', action: 'search' },
+    'get /:branding/:portal/api/search/index': { controller: 'webservice/SearchController', action: 'index' },
+    'get /:branding/:portal/api/search/indexAll': { controller: 'webservice/SearchController', action: 'indexAll' },
+    'get /:branding/:portal/api/search/removeAll': { controller: 'webservice/SearchController', action: 'removeAll' },
 
     // REST API routes - Forms
-    'get /:branding/:portal/api/forms/get': { controller: 'webservice/FormManagementController', action: 'getForm', csrf: false },
-    'get /:branding/:portal/api/forms': { controller: 'webservice/FormManagementController', action: 'listForms', csrf: false },
+    'get /:branding/:portal/api/forms/get': { controller: 'webservice/FormManagementController', action: 'getForm' },
+    'get /:branding/:portal/api/forms': { controller: 'webservice/FormManagementController', action: 'listForms' },
 
     // REST API routes - Vocabulary
-    'get /:branding/:portal/api/vocabulary': { controller: 'webservice/VocabularyController', action: 'list', csrf: false },
+    'get /:branding/:portal/api/vocabulary': { controller: 'webservice/VocabularyController', action: 'list' },
     'post /:branding/:portal/api/vocabulary/import': { controller: 'webservice/VocabularyController', action: 'import', csrf: false },
-    'get /:branding/:portal/api/vocabulary/:id': { controller: 'webservice/VocabularyController', action: 'get', csrf: false },
+    'get /:branding/:portal/api/vocabulary/:id': { controller: 'webservice/VocabularyController', action: 'get' },
     'post /:branding/:portal/api/vocabulary': { controller: 'webservice/VocabularyController', action: 'create', csrf: false },
     'put /:branding/:portal/api/vocabulary/:id': { controller: 'webservice/VocabularyController', action: 'update', csrf: false },
     'put /:branding/:portal/api/vocabulary/:id/reorder': { controller: 'webservice/VocabularyController', action: 'reorder', csrf: false },
@@ -385,26 +385,26 @@ export const routes: RoutesConfig = {
     'post /:branding/:portal/api/vocabulary/:id/sync': { controller: 'webservice/VocabularyController', action: 'sync', csrf: false },
 
     // REST API routes - Record Types
-    'get /:branding/:portal/api/recordtypes/get': { controller: 'webservice/RecordTypeController', action: 'getRecordType', csrf: false },
-    'get /:branding/:portal/api/recordtypes': { controller: 'webservice/RecordTypeController', action: 'listRecordTypes', csrf: false },
+    'get /:branding/:portal/api/recordtypes/get': { controller: 'webservice/RecordTypeController', action: 'getRecordType' },
+    'get /:branding/:portal/api/recordtypes': { controller: 'webservice/RecordTypeController', action: 'listRecordTypes' },
 
     // REST API routes - Admin
-    'get /:branding/:portal/api/admin/refreshCachedResources': { controller: 'webservice/AdminController', action: 'refreshCachedResources', csrf: false },
+    'get /:branding/:portal/api/admin/refreshCachedResources': { controller: 'webservice/AdminController', action: 'refreshCachedResources' },
     'post /:branding/:portal/api/admin/config/:configKey': { controller: 'webservice/AdminController', action: 'setAppConfig', csrf: false },
-    'get /:branding/:portal/api/admin/config/:configKey': { controller: 'webservice/AdminController', action: 'getAppConfig', csrf: false },
-    'get /:branding/:portal/api/admin/config': { controller: 'webservice/AdminController', action: 'getAppConfig', csrf: false },
+    'get /:branding/:portal/api/admin/config/:configKey': { controller: 'webservice/AdminController', action: 'getAppConfig' },
+    'get /:branding/:portal/api/admin/config': { controller: 'webservice/AdminController', action: 'getAppConfig' },
 
     // REST API routes - Notifications
     'post /:branding/:portal/api/sendNotification': { controller: 'EmailController', action: 'sendNotification', csrf: false },
 
     // REST API routes - Reports
-    'get /:branding/:portal/api/report/namedQuery': { controller: 'webservice/ReportController', action: 'executeNamedQuery', csrf: false },
+    'get /:branding/:portal/api/report/namedQuery': { controller: 'webservice/ReportController', action: 'executeNamedQuery'},
 
     // REST API routes - Export
-    'get /:branding/:portal/api/export/record/download/:format': { controller: 'webservice/ExportController', action: 'downloadRecs', csrf: false },
+    'get /:branding/:portal/api/export/record/download/:format': { controller: 'webservice/ExportController', action: 'downloadRecs' },
 
     // REST API routes - App Config
-    'get /:branding/:portal/api/appconfig/:appConfigId': { controller: 'webservice/AppConfigController', action: 'getAppConfig', csrf: false },
+    'get /:branding/:portal/api/appconfig/:appConfigId': { controller: 'webservice/AppConfigController', action: 'getAppConfig' },
     'post /:branding/:portal/api/appconfig/:appConfigId': { controller: 'webservice/AppConfigController', action: 'saveAppConfig', csrf: false },
 
     // REST API routes - Branding
@@ -413,23 +413,23 @@ export const routes: RoutesConfig = {
     'post /:branding/:portal/api/branding/publish': { controller: 'webservice/BrandingController', action: 'publish', csrf: false },
     'post /:branding/:portal/api/branding/rollback/:versionId': { controller: 'webservice/BrandingController', action: 'rollback', csrf: false },
     'post /:branding/:portal/api/branding/logo': { controller: 'webservice/BrandingController', action: 'logo', csrf: false },
-    'get /:branding/:portal/api/branding/history': { controller: 'webservice/BrandingController', action: 'history', csrf: false },
+    'get /:branding/:portal/api/branding/history': { controller: 'webservice/BrandingController', action: 'history' },
 
     // Translation routes
-    'get /:branding/:portal/locales/:lng/:ns.json': { controller: 'TranslationController', action: 'getNamespace', csrf: false },
-    'get /:branding/:portal/locales/:lng/translation.json': { controller: 'TranslationController', action: 'getNamespace', csrf: false },
-    'get /:branding/:portal/locales': { controller: 'TranslationController', action: 'getLanguages', csrf: false },
+    'get /:branding/:portal/locales/:lng/:ns.json': { controller: 'TranslationController', action: 'getNamespace' },
+    'get /:branding/:portal/locales/:lng/translation.json': { controller: 'TranslationController', action: 'getNamespace' },
+    'get /:branding/:portal/locales': { controller: 'TranslationController', action: 'getLanguages' },
 
     // Workspace routes
     'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
     'get /:branding/:portal/workspaces/types': 'WorkspaceTypesController.get',
 
     // REST API routes - i18n
-    'get /:branding/:portal/api/i18n/entries': { controller: 'webservice/TranslationController', action: 'listEntries', csrf: false },
-    'get /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*': { controller: 'webservice/TranslationController', action: 'getEntry', csrf: false },
+    'get /:branding/:portal/api/i18n/entries': { controller: 'webservice/TranslationController', action: 'listEntries' },
+    'get /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*': { controller: 'webservice/TranslationController', action: 'getEntry' },
     'post /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*': { controller: 'webservice/TranslationController', action: 'setEntry', csrf: false },
     'delete /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*': { controller: 'webservice/TranslationController', action: 'deleteEntry', csrf: false },
-    'get /:branding/:portal/api/i18n/bundles/:locale/:namespace': { controller: 'webservice/TranslationController', action: 'getBundle', csrf: false },
+    'get /:branding/:portal/api/i18n/bundles/:locale/:namespace': { controller: 'webservice/TranslationController', action: 'getBundle' },
     'post /:branding/:portal/api/i18n/bundles/:locale/:namespace': { controller: 'webservice/TranslationController', action: 'setBundle', csrf: false },
 
     // App i18n routes (CSRF enabled)
