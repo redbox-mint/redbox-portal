@@ -166,7 +166,7 @@ USER node
 
 FROM runtime_puppeteer_base AS runtime_pdfgen
 RUN npm install --omit=dev --save --package-lock=true \
-    @researchdatabox/sails-hook-redbox-pdfgen
+    git+https://github.com:redbox-mint/sails-hook-redbox-pdfgen.git#feature/version5-migration
 USER root
 RUN apt-get purge -y --auto-remove git \
  && rm -rf /var/lib/apt/lists/*
@@ -175,7 +175,7 @@ USER node
 FROM runtime_puppeteer_base AS runtime_cloud_pdfgen
 RUN npm install --omit=dev --no-save --package-lock=false \
     @researchdatabox/sails-hook-redbox-datastream-cloud \
-    @researchdatabox/sails-hook-redbox-pdfgen
+    git+https://github.com:redbox-mint/sails-hook-redbox-pdfgen.git#feature/version5-migration
 USER root
 RUN apt-get purge -y --auto-remove git \
  && rm -rf /var/lib/apt/lists/*
