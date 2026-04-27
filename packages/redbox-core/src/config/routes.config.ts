@@ -172,15 +172,23 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/dynamicAsset/recordDashboardTemplates/:recordType/:workflowStage': 'DynamicAssetController.getRecordDashboardTemplates',
 
     // Auth routes
+    'HEAD /user/login_local': { policy: 'disallowedHeadRequestHandler' },
     'post /user/login_local': 'UserController.localLogin',
+    'HEAD /user/login_aaf': { policy: 'disallowedHeadRequestHandler' },
     'post /user/login_aaf': { controller: 'UserController', action: 'aafLogin', csrf: false },
+    'HEAD /user/login_oidc': { policy: 'disallowedHeadRequestHandler' },
     'get /user/login_oidc': { controller: 'UserController', action: 'openIdConnectLogin' },
     'HEAD /user/begin_oidc': { policy: 'disallowedHeadRequestHandler' },
     'get /user/begin_oidc': { controller: 'UserController', action: 'beginOidc' },
+    'HEAD /user/info': { policy: 'disallowedHeadRequestHandler' },
     'get /user/info': 'UserController.info',
+    'HEAD /:branding/:portal/user/info': { policy: 'disallowedHeadRequestHandler' },
     'get /:branding/:portal/user/info': 'UserController.info',
+    'HEAD /:branding/:portal/user/login': { policy: 'disallowedHeadRequestHandler' },
     'get /:branding/:portal/user/login': 'UserController.login',
+    'HEAD /:branding/:portal/user/logout': { policy: 'disallowedHeadRequestHandler' },
     'get /:branding/:portal/user/logout': 'UserController.logout',
+    'HEAD /:branding/:portal/user/find': { policy: 'disallowedHeadRequestHandler' },
     'get /:branding/:portal/user/find': 'UserController.find',
 
     // App Branding routes
@@ -311,6 +319,9 @@ export const routes: RoutesConfig = {
         locals: { 'view': 'admin/branding' }
     },
 
+    // Explicitly reject HEAD on branded API routes so protected endpoints do not fall through to 503s.
+    'HEAD /:branding/:portal/api/*': { policy: 'disallowedHeadRequestHandler' },
+
     // REST API routes - Records
     'post /:branding/:portal/api/records/metadata/:recordType': { controller: 'webservice/RecordController', action: 'create', csrf: false },
     'put /:branding/:portal/api/records/metadata/:oid': { controller: 'webservice/RecordController', action: 'updateMeta', csrf: false },
@@ -319,7 +330,7 @@ export const routes: RoutesConfig = {
     'put /:branding/:portal/api/records/objectmetadata/:oid': { controller: 'webservice/RecordController', action: 'updateObjectMeta', csrf: false },
     'get /:branding/:portal/api/records/metadata/:oid': { controller: 'webservice/RecordController', action: 'getMeta' },
     'get /:branding/:portal/api/records/audit/:oid': { controller: 'webservice/RecordController', action: 'getRecordAudit' },
-    'get /:branding/:portal/api/records/list': { controller: 'webservice/RecordController', action: 'listRecords'},
+    'get /:branding/:portal/api/records/list': { controller: 'webservice/RecordController', action: 'listRecords' },
     'get /:branding/:portal/api/deletedrecords/list': { controller: 'webservice/RecordController', action: 'listDeletedRecords' },
     'put /:branding/:portal/api/deletedrecords/:oid': { controller: 'webservice/RecordController', action: 'restoreRecord', csrf: false },
     'delete /:branding/:portal/api/deletedrecords/:oid': { controller: 'webservice/RecordController', action: 'destroyDeletedRecord', csrf: false },
@@ -398,7 +409,7 @@ export const routes: RoutesConfig = {
     'post /:branding/:portal/api/sendNotification': { controller: 'EmailController', action: 'sendNotification', csrf: false },
 
     // REST API routes - Reports
-    'get /:branding/:portal/api/report/namedQuery': { controller: 'webservice/ReportController', action: 'executeNamedQuery'},
+    'get /:branding/:portal/api/report/namedQuery': { controller: 'webservice/ReportController', action: 'executeNamedQuery' },
 
     // REST API routes - Export
     'get /:branding/:portal/api/export/record/download/:format': { controller: 'webservice/ExportController', action: 'downloadRecs' },

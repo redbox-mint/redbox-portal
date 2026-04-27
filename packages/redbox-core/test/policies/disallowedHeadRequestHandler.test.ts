@@ -7,27 +7,40 @@ describe('disallowedHeadRequestHandler policy', function () {
         const req: any = { method };
         let statusCode: number | undefined;
         let sentBody: string | undefined;
+        const headers: Record<string, string> = {};
         const res: any = {
             status: (code: number) => {
                 statusCode = code;
                 return res;
+            },
+            setHeader: (name: string, value: string) => {
+                headers[name] = value;
             },
             send: (body: string) => {
                 sentBody = body;
                 return res;
             }
         };
-        return { req, res, getStatus: () => statusCode, getBody: () => sentBody };
+        return {
+            req,
+            res,
+            getStatus: () => statusCode,
+            getBody: () => sentBody,
+            getHeader: (name: string) => headers[name]
+        };
     }
 
     it('should block HEAD requests with 400 status', function () {
-        const { req, res, getStatus, getBody } = createMockReqRes('HEAD');
+        const { req, res, getStatus, getBody, getHeader } = createMockReqRes('HEAD');
         let nextCalled = false;
 
         disallowedHeadRequestHandler(req, res, () => { nextCalled = true; });
 
         expect(getStatus()).to.equal(400);
         expect(getBody()).to.include('HEAD method is not allowed');
+        expect(getHeader('Cache-Control')).to.equal('no-store, no-cache, must-revalidate, proxy-revalidate');
+        expect(getHeader('Pragma')).to.equal('no-cache');
+        expect(getHeader('Expires')).to.equal('0');
         expect(nextCalled).to.be.false;
     });
 
