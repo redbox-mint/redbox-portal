@@ -1188,6 +1188,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       for (const [schemaKey, schemaValue] of Object.entries(schema)) {
         const schemaCurrent = schemaValue as Record<string, unknown>;
         switch (schemaKey) {
+          case 'optionalProperties':
           case 'properties':
             // Allow missing or null object values - set an empty object.
             if (currentValue === undefined || currentValue === null) {
