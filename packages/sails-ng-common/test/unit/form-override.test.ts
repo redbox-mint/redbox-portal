@@ -1,7 +1,12 @@
 import { FormOverride } from '../../src/config/form-override.model';
 import { ContentComponentName } from '../../src/config/component/content.outline';
+import {
+  RepeatableComponentName,
+  RepeatableFieldComponentDefinitionFrame,
+} from '../../src/config/component/repeatable.outline';
 import { ReusableComponentName } from '../../src/config/component/reusable.outline';
 import { SimpleInputComponentName } from '../../src/config/component/simple-input.outline';
+import { isTypeFieldDefinitionName } from '../../src/config/form-types.outline';
 import { ILogger } from '../../src/logger.interface';
 
 let expect: Chai.ExpectStatic;
@@ -149,5 +154,250 @@ describe('FormOverride reusable expansion', () => {
     );
 
     expect(result).to.equal('<span data-value="{{default (get project "startDate" "") ""}}">{{formatDate (get project "startDate" "") "DD/MM/YYYY"}}</span>');
+  });
+
+  it('expands contributor_dmp_permissions wrapper with replaceName, wrapper expressions, and syncSources', () => {
+    const formOverride = new FormOverride(createLogger());
+    const wrapperExpressions = [
+      createExpression('projectType-sync'),
+      createExpression('ciRhd-sync'),
+      createExpression('ciNotRhd-sync'),
+    ];
+    const syncSourcesOverride = [
+      { fieldName: 'contributor_ci_rhd', visibilityConditionField: 'project-type', visibilityConditionValues: ['rhd'] },
+      { fieldName: 'contributor_ci_not_rhd', visibilityConditionField: 'project-type', visibilityConditionValues: ['staff'] },
+    ];
+
+    const result = formOverride.applyOverridesReusable(
+      [
+        {
+          name: 'contributor_dmp_permissions',
+          component: {
+            class: ReusableComponentName,
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'contributor_dmp_permissions_repeatable',
+                  overrides: {
+                    replaceName: 'contributor_dmp_permissions',
+                  },
+                  component: {
+                    class: 'RepeatableComponent',
+                    config: {
+                      syncSources: syncSourcesOverride,
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          expressions: wrapperExpressions,
+          overrides: {
+            reusableFormName: 'contributor-dmp-permissions',
+          },
+        } as never,
+      ],
+      {
+        'contributor-dmp-permissions': [
+          {
+            name: 'contributor_dmp_permissions_repeatable',
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                addButtonShow: true,
+                allowZeroRows: true,
+                hideWhenZeroRows: false,
+                syncSources: [],
+                elementTemplate: {
+                  name: '',
+                  component: { class: ReusableComponentName, config: { componentDefinitions: [] } },
+                },
+              },
+            },
+            model: { class: 'RepeatableModel' },
+            layout: { class: 'DefaultLayout' },
+          } as never,
+        ],
+      }
+    );
+
+    expect(result).to.have.length(1);
+    expect(result[0].name).to.equal('contributor_dmp_permissions');
+    expect(result[0].expressions).to.deep.equal(wrapperExpressions);
+
+    if (!isTypeFieldDefinitionName<RepeatableFieldComponentDefinitionFrame>(result[0].component, RepeatableComponentName)) {
+      throw new Error(`Expected RepeatableFieldComponentDefinitionFrame but got ${result[0].component?.class}`);
+    }
+
+    expect(result[0].component.config?.syncSources).to.deep.equal(syncSourcesOverride);
+    expect(result[0].component.config?.addButtonShow).to.equal(true);
+    expect(result[0].component.config?.elementTemplate).to.exist;
+  });
+
+  it('applies nested contributor_dmp_permissions field overrides inside the repeatable element template', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = formOverride.applyOverridesReusable(
+      [
+        {
+          name: 'contributor_dmp_permissions',
+          component: {
+            class: ReusableComponentName,
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'contributor_dmp_permissions_repeatable',
+                  overrides: {
+                    replaceName: 'contributor_dmp_permissions',
+                  },
+                  component: {
+                    class: 'RepeatableComponent',
+                    config: {
+                      elementTemplate: {
+                        component: {
+                          config: {
+                            componentDefinitions: [
+                              {
+                                name: 'standard_contributor_fields_lookup_only_group',
+                                component: {
+                                  class: 'GroupComponent',
+                                  config: {
+                                    componentDefinitions: [
+                                      {
+                                        name: 'standard_contributor_fields_lookup_only_reusable',
+                                        component: {
+                                          class: ReusableComponentName,
+                                          config: {
+                                            componentDefinitions: [
+                                              {
+                                                name: 'name',
+                                                component: {
+                                                  class: 'TypeaheadInputComponent',
+                                                  config: {
+                                                    labelField: 'text_full_name',
+                                                    valueField: 'text_full_name',
+                                                  },
+                                                },
+                                              },
+                                              {
+                                                name: 'email',
+                                                component: {
+                                                  class: 'SimpleInputComponent',
+                                                  config: {
+                                                    onItemSelect: { rawPath: 'email' },
+                                                  },
+                                                },
+                                              },
+                                              {
+                                                name: 'orcid',
+                                                component: {
+                                                  class: 'SimpleInputComponent',
+                                                  config: {
+                                                    onItemSelect: { rawPath: 'orcid' },
+                                                  },
+                                                },
+                                              },
+                                            ],
+                                          },
+                                        },
+                                      },
+                                    ],
+                                  },
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          overrides: {
+            reusableFormName: 'contributor-dmp-permissions',
+          },
+        } as never,
+      ],
+      {
+        'standard-contributor-fields-lookup-only': [
+          {
+            name: 'name',
+            component: {
+              class: 'TypeaheadInputComponent',
+              config: {
+                labelField: 'metadata.fullName',
+                valueField: 'oid',
+              },
+            },
+          },
+          {
+            name: 'email',
+            component: {
+              class: 'SimpleInputComponent',
+              config: {
+                onItemSelect: { rawPath: 'metadata.email' },
+              },
+            },
+          },
+          {
+            name: 'orcid',
+            component: {
+              class: 'SimpleInputComponent',
+              config: {
+                onItemSelect: { rawPath: 'metadata.orcid' },
+              },
+            },
+          },
+        ] as never,
+        'contributor-dmp-permissions': [
+          {
+            name: 'contributor_dmp_permissions_repeatable',
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                elementTemplate: {
+                  name: '',
+                  component: {
+                    class: ReusableComponentName,
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'standard_contributor_fields_lookup_only_group',
+                          component: {
+                            class: 'GroupComponent',
+                            config: {
+                              componentDefinitions: [
+                                {
+                                  name: 'standard_contributor_fields_lookup_only_reusable',
+                                  overrides: { reusableFormName: 'standard-contributor-fields-lookup-only' },
+                                  component: { class: ReusableComponentName, config: { componentDefinitions: [] } },
+                                },
+                              ],
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          } as never,
+        ],
+      }
+    );
+
+    const repeatableComponent = result[0].component as RepeatableFieldComponentDefinitionFrame;
+    const nestedGroup = (repeatableComponent.config?.elementTemplate as any)?.component?.config?.componentDefinitions?.[0];
+    const nestedReusable = nestedGroup?.component?.config?.componentDefinitions?.[0];
+    const nestedFields = nestedReusable?.component?.config?.componentDefinitions;
+
+    expect(nestedFields).to.have.length(3);
+    expect(nestedFields[0].component.config.labelField).to.equal('text_full_name');
+    expect(nestedFields[0].component.config.valueField).to.equal('text_full_name');
+    expect(nestedFields[1].component.config.onItemSelect.rawPath).to.equal('email');
+    expect(nestedFields[2].component.config.onItemSelect.rawPath).to.equal('orcid');
   });
 });

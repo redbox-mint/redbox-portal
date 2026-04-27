@@ -48,6 +48,10 @@ export function getEventJSONPointerCondition(condition: string): FormComponentEv
 }
 /**
  * Base class for form component event producers and consumers.
+ *
+ * It owns the shared binding lifecycle for the form-event layer: active
+ * subscriptions, resolved field identity, and the cached query-source snapshot
+ * that expression consumers use for JSONPointer and JSONataQuery matching.
  */
 export abstract class FormComponentEventBaseProducerConsumer {
   protected readonly eventBus: FormComponentEventBus;
@@ -88,7 +92,9 @@ export abstract class FormComponentEventBaseProducerConsumer {
     this.fieldId = undefined;
   }
   /**
-   * Helper to resolve field ID from options
+    * Resolve the most specific field identifier available for the bound
+    * component. Layout definitions use a different lineage path, so callers do
+    * not need to duplicate that distinction.
    *
    * @param options
    * @returns
@@ -126,10 +132,20 @@ export abstract class FormComponentEventBaseProducerConsumer {
     };
   }
   /**
-   * Sets up listeners to update the component query source when the form definition changes.
+    * Keep the component query source fresh across the form lifecycle.
+    *
+    * Hidden tabs and lazily created components can bind after the initial form
+    * ready event. Seeding the current query source immediately, then refreshing
+    * it on definition-ready and definition-changed events, gives late-bound
+    * consumers the same matching inputs as eagerly created ones.
    */
   protected setupQuerySourceUpdateListener(): void {
     if (this.formComp) {
+      // Some components are created lazily (e.g. hidden tab content) after the
+      // form ready event has already fired. Seed the current query source now so
+      // JSONPointer/JSONataQuery expressions can still match immediately.
+      this.componentDefQuerySource = this.formComp.getQuerySource();
+
       // Clean up existing subscriptions before creating new ones
       this.subscriptions.get('componentQuerySourceReady')?.unsubscribe();
       this.subscriptions.get('componentQuerySourceUpdated')?.unsubscribe();

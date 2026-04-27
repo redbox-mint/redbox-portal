@@ -2,6 +2,40 @@ import {KeyValueStringProperty} from "./shared.outline";
 import {FieldDefinitionFrame, FieldDefinitionOutline} from "./field.outline";
 
 /**
+ * Declares a source field for one-way additive sync.
+ */
+export interface SyncSourceEntry {
+    /**
+     * formData key to read the source data from.
+     */
+    fieldName: string;
+    /**
+     * Optional property on the source object to use as the dedupe/upsert key.
+     * When omitted, consumers may fall back to component-specific defaults.
+     */
+    syncKey?: string;
+    /**
+     * Optional list of item fields to inspect when deciding whether an existing
+     * repeatable row is still a blank placeholder.
+     */
+    blankCheckFields?: string[];
+    /**
+     * Optional object merged into synced rows before insertion/update.
+     * This allows sync behavior to stay generic while individual configs
+     * provide domain-specific defaults such as roles.
+     */
+    defaultTemplate?: Record<string, unknown>;
+    /**
+     * Optional formData key whose value determines whether this source is active.
+     */
+    visibilityConditionField?: string;
+    /**
+     * Values of the condition field that make this source active.
+     */
+    visibilityConditionValues?: string[];
+}
+
+/**
  * The form field component config interface that provides typing for the object literal and schema.
  */
 export interface BaseFieldComponentConfigFrame {
@@ -50,6 +84,10 @@ export interface BaseFieldComponentConfigFrame {
      * Defaults to false.
      */
     showValidIndicator?: boolean;
+    /**
+     * Declares source fields for one-way additive sync.
+     */
+    syncSources?: SyncSourceEntry[];
 }
 
 export interface BaseFieldComponentConfigOutline extends BaseFieldComponentConfigFrame {

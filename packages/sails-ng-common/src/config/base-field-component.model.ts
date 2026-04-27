@@ -2,7 +2,8 @@ import {FieldDefinition} from "./field.model";
 import {KeyValueStringProperty} from "./shared.outline";
 import {
     BaseFieldComponentConfigOutline,
-    BaseFieldComponentDefinitionOutline
+    BaseFieldComponentDefinitionOutline,
+    SyncSourceEntry
 } from "./base-field-component.outline";
 
 
@@ -21,6 +22,7 @@ export class BaseFieldComponentConfig implements BaseFieldComponentConfigOutline
     public autofocus?: boolean = false;
     public tooltip?: string;
     public showValidIndicator?: boolean = false;
+    public syncSources?: SyncSourceEntry[];
 }
 
 
