@@ -1,4 +1,4 @@
-import { AfterViewChecked, Component, DestroyRef, inject, Injector, Input, signal } from '@angular/core';
+import { AfterViewChecked, Component, DestroyRef, inject, Input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import {
@@ -21,6 +21,11 @@ import { FormComponent } from '../form.component';
 import { TypeaheadDataService } from '../service/typeahead-data.service';
 
 type TypeaheadStatus = 'idle' | 'loading' | 'no-results' | 'error' | 'misconfigured';
+
+type DisabledStateOptions = {
+  emitEvent?: boolean;
+  onlySelf?: boolean;
+};
 
 export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValueType> {
   protected override logName = TypeaheadInputModelName;
@@ -174,6 +179,9 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
     this.applyInitialDisplayFromModel();
     this.bindModelValueSync();
+    if (this.isDisabled) {
+      this.setDisabled(true, { emitEvent: false, onlySelf: true });
+    }
     this.displayControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(value => {
       if (this.programmaticDisplayUpdate) {
         return;
@@ -241,6 +249,33 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return;
     }
     this.setModelFromFreeText(text);
+  }
+
+  public setDisabled(disabled: boolean, opts?: DisabledStateOptions): void {
+    const currentDisabled = this.isDisabled;
+    try {
+      if (!disabled && this.formControl?.disabled) {
+        this.formControl.enable(opts);
+      } else if (disabled && this.formControl?.enabled) {
+        this.formControl.disable(opts);
+      }
+      if (!disabled && this.displayControl.disabled) {
+        this.displayControl.enable(opts);
+      } else if (disabled && this.displayControl.enabled) {
+        this.displayControl.disable(opts);
+      }
+      if (this.componentDefinition?.config) {
+        this.componentDefinition.config.disabled = disabled;
+      }
+    } catch (error) {
+      if (this.componentDefinition?.config) {
+        this.componentDefinition.config.disabled = currentDisabled;
+      }
+      this.loggerService.error(
+        `Could not set typeahead disabled state with value ${disabled} and opts ${JSON.stringify(opts)}.`,
+        error
+      );
+    }
   }
 
   private onInputTextChanged(text: string): void {

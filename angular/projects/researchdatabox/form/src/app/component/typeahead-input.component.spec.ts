@@ -232,6 +232,49 @@ describe("TypeaheadInputComponent", () => {
         expect((formComponent as any).form.get("person_lookup")?.dirty).toBeTrue();
     });
 
+    it("keeps the display control in sync with disabled state changes", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }]
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {}
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+
+        expect(component.displayControl.disabled).toBeFalse();
+
+        component.setDisabled(true, { emitEvent: false, onlySelf: true });
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(component.isDisabled).toBeTrue();
+        expect(component.displayControl.disabled).toBeTrue();
+        expect((formComponent as any).form.get("person_lookup")?.disabled).toBeTrue();
+
+        component.setDisabled(false, { emitEvent: false, onlySelf: true });
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(component.isDisabled).toBeFalse();
+        expect(component.displayControl.disabled).toBeFalse();
+        expect((formComponent as any).form.get("person_lookup")?.disabled).toBeFalse();
+    });
+
     it("shows misconfiguration message when named query source lacks queryId", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",

@@ -131,10 +131,36 @@ describe('RadioInputComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const legacyInput = compiled.querySelector<HTMLInputElement>('#radio_disabled_test-legacy');
+    const activeInput = compiled.querySelector<HTMLInputElement>('#radio_disabled_test-active');
+
+    expect(legacyInput).toBeTruthy();
+    if (!legacyInput) {
+      throw new Error('Expected legacy radio input to be present');
+    }
+
     expect(legacyInput?.disabled).toBeTrue();
     expect(legacyInput?.checked).toBeTrue();
+
+    expect(activeInput).toBeTruthy();
+    if (!activeInput) {
+      throw new Error('Expected active radio input to be present');
+    }
+
+    legacyInput.checked = false;
+    legacyInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect((formComponent as any).form.get('radio_disabled_test')?.value).toBe('legacy');
+
+    activeInput.checked = true;
+    activeInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect((formComponent as any).form.get('radio_disabled_test')?.value).toBe('active');
   });
 });
