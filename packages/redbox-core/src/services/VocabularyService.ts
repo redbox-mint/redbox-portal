@@ -3,7 +3,7 @@ import { VocabularyAttributes, VocabularyEntryAttributes } from '../waterline-mo
 import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import {toBoolean} from "@researchdatabox/sails-ng-common";
+import { toBoolean } from "@researchdatabox/sails-ng-common";
 
 export namespace Services {
   type VocabType = 'flat' | 'tree';
@@ -264,7 +264,7 @@ export namespace Services {
 
       const total = await VocabularyEntry.count(where);
       const entries = await VocabularyEntry.find(where)
-        .sort([{order:'ASC'},{label:'ASC'}])
+        .sort([{ order: 'ASC' }, { label: 'ASC' }])
         .skip(offset)
         .limit(limit) as VocabularyEntryAttributes[];
 
@@ -306,7 +306,7 @@ export namespace Services {
       where.parent = normalizedParentId || null;
 
       const entries = await VocabularyEntry.find(where)
-        .sort([{order:'ASC'},{label:'ASC'}]) as VocabularyEntryAttributes[];
+        .sort([{ order: 'ASC' }, { label: 'ASC' }]) as VocabularyEntryAttributes[];
 
       const childParentIds = entries.map((entry) => String(entry.id));
       const hasChildrenById = new Map<string, boolean>();
@@ -605,7 +605,7 @@ export namespace Services {
 
     public async getTree(vocabularyId: string): Promise<VocabularyTreeNode[]> {
       const entries = await VocabularyEntry.find({ vocabulary: vocabularyId })
-        .sort([{order: 'ASC'},{label: 'ASC'}]) as VocabularyEntryAttributes[];
+        .sort([{ order: 'ASC' }, { label: 'ASC' }]) as VocabularyEntryAttributes[];
       const nodes: Record<string, VocabularyTreeNode> = {};
       const roots: VocabularyTreeNode[] = [];
 
