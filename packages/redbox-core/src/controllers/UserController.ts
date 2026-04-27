@@ -27,6 +27,9 @@ import {
 
 type AnyRecord = globalThis.Record<string, unknown>;
 
+const INVALID_AAF_LOGIN_REQUEST_RESPONSE = { message: 'invalid-aaf-login-request' };
+const GENERIC_AAF_AUTH_ERROR_MESSAGE = 'There was an issue with your user credentials, please try again.';
+
 export namespace Controllers {
   /**
    *  User-related features...
@@ -118,6 +121,58 @@ export namespace Controllers {
       }
       sails.log.debug(`post login url: ${postLoginUrl}`);
       return postLoginUrl;
+    }
+
+    private getErrorMessage(error: unknown) {
+      if (_.isString(error)) {
+        return error;
+      }
+
+      if (error instanceof Error) {
+        return error.message;
+      }
+
+      if (_.isObject(error)) {
+        const message = _.get(error, 'message');
+        return _.isString(message) ? message : '';
+      }
+
+      return '';
+    }
+
+    private hasValidAafAssertion(req: Sails.Req) {
+      const assertion = _.get(req, 'body.assertion');
+      return _.isString(assertion) && !_.isEmpty(assertion.trim());
+    }
+
+    private isMalformedAafLoginError(err: unknown, info: unknown) {
+      const errors = [err, info];
+      const errorMessages = _.map(errors, error => this.getErrorMessage(error).toLowerCase());
+
+      return _.some(errors, error => {
+        const errorName = _.isObject(error) ? String(_.get(error, 'name', '')) : '';
+        return ['JsonWebTokenError', 'TokenExpiredError', 'NotBeforeError'].includes(errorName);
+      }) || _.some(errorMessages, message => {
+        return message.includes('no auth token')
+          || message.includes('jwt malformed')
+          || message.includes('invalid token')
+          || message.includes('invalid signature')
+          || message.includes('jwt issuer invalid')
+          || message.includes('jwt audience invalid')
+          || message.includes('jwt subject invalid')
+          || message.includes('jwt id invalid')
+          || message.includes('jwt not active')
+          || message.includes('jwt expired');
+      });
+    }
+
+    private setSessionAuthError(req: Sails.Req, detailedMessage: string) {
+      if (_.isEmpty(req.session.data)) {
+        req.session['data'] = {
+          message: 'error-auth',
+          detailedMessage,
+        };
+      }
     }
 
     public logout(req: Sails.Req, res: Sails.Res) {
@@ -486,54 +541,68 @@ export namespace Controllers {
     }
 
     public aafLogin(req: Sails.Req, res: Sails.Res) {
-      const passport = sails.config.passport as unknown as { authenticate: (strategy: string, callback: (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) => void) => (req: Sails.Req, res: Sails.Res) => void };
-      passport.authenticate('aaf-jwt', function (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) {
-        sails.log.verbose("At AAF Controller, verify...");
-        sails.log.verbose("Error:");
-        sails.log.verbose(err);
-        sails.log.verbose("Info:");
-        sails.log.verbose(info);
-        sails.log.verbose("User:");
-        sails.log.verbose(user);
-        if ((err) || (!user)) {
-          sails.log.error(err)
-          // means the provider has authenticated the user, but has been rejected, redirect to catch-all
+      if (!this.hasValidAafAssertion(req)) {
+        return res.badRequest(INVALID_AAF_LOGIN_REQUEST_RESPONSE);
+      }
 
-          const errorMessage = _.get(err, 'message', err?.toString() ?? '');
-          if (errorMessage === "authorized-email-denied") {
-            req.session['data'] = {
-              message: "error-auth",
-              detailedMessage: "authorized-email-denied",
+      const passport = sails.config.passport as unknown as { authenticate: (strategy: string, callback: (err: Error | string | null, user: AnyRecord | false, info: AnyRecord | string | Error | undefined) => void) => (req: Sails.Req, res: Sails.Res) => void };
+
+      try {
+        passport.authenticate('aaf-jwt', (err: Error | string | null, user: AnyRecord | false, info: AnyRecord | string | Error | undefined) => {
+          sails.log.verbose("At AAF Controller, verify...");
+          sails.log.verbose("Error:");
+          sails.log.verbose(err);
+          sails.log.verbose("Info:");
+          sails.log.verbose(info);
+          sails.log.verbose("User:");
+          sails.log.verbose(user);
+          if ((err) || (!user)) {
+            sails.log.error(err)
+            // means the provider has authenticated the user, but has been rejected, redirect to catch-all
+
+            const errorMessage = this.getErrorMessage(err);
+            if (errorMessage === "authorized-email-denied") {
+              req.session['data'] = {
+                message: "error-auth",
+                detailedMessage: "authorized-email-denied",
+              }
+              return res.forbidden();
             }
-            return res.forbidden();
+
+            if (this.isMalformedAafLoginError(err, info)) {
+              return res.badRequest(INVALID_AAF_LOGIN_REQUEST_RESPONSE);
+            }
+
+            // from https://sailsjs.com/documentation/reference/response-res/res-server-error
+            // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
+            // so storing the data in session
+            this.setSessionAuthError(req, GENERIC_AAF_AUTH_ERROR_MESSAGE);
+            return res.serverError();
           }
 
-          // from https://sailsjs.com/documentation/reference/response-res/res-server-error
-          // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
-          // so storing the data in session
-          if (_.isEmpty(req.session.data)) {
-            req.session['data'] = {
-              "message": 'error-auth',
-              "detailedMessage": `${err}${info}`
-            };
-          }
-          return res.serverError();
+          const requestDetails = new RequestDetails(req);
+          UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
+            sails.log.debug(`User login audit event created for AAF login: ${_.isEmpty(user) ? '' : (user as AnyRecord).id}`)
+          }).catch(err => {
+            sails.log.error(`User login audit event created for AAF login failed`)
+            sails.log.error(err)
+          });
+
+          req.logIn(user, function (err: unknown) {
+            if (err) res.send(err);
+            sails.log.debug("AAF Login OK, redirecting...");
+            return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
+          });
+        })(req, res);
+      } catch (err) {
+        sails.log.error(err);
+        if (this.isMalformedAafLoginError(err, undefined)) {
+          return res.badRequest(INVALID_AAF_LOGIN_REQUEST_RESPONSE);
         }
 
-        const requestDetails = new RequestDetails(req);
-        UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
-          sails.log.debug(`User login audit event created for AAF login: ${_.isEmpty(user) ? '' : (user as AnyRecord).id}`)
-        }).catch(err => {
-          sails.log.error(`User login audit event created for AAF login failed`)
-          sails.log.error(err)
-        });
-
-        req.logIn(user, function (err: unknown) {
-          if (err) res.send(err);
-          sails.log.debug("AAF Login OK, redirecting...");
-          return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
-        });
-      })(req, res);
+        this.setSessionAuthError(req, GENERIC_AAF_AUTH_ERROR_MESSAGE);
+        return res.serverError();
+      }
     }
 
     public find(req: Sails.Req, res: Sails.Res) {

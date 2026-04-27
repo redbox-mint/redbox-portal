@@ -23,8 +23,12 @@ describe('UserController', () => {
                     postLogoutRedir: '/logout-success'
                 },
                 http: { rootContext: '' },
-                appUrl: 'http://localhost'
+                appUrl: 'http://localhost',
+                passport: {
+                    authenticate: sinon.stub()
+                }
             },
+            getActions: sinon.stub().returns({ 'user/redirpostlogin': sinon.stub() }),
             log: { debug: sinon.stub(), verbose: sinon.stub(), error: sinon.stub() }
         };
 
@@ -104,6 +108,89 @@ describe('UserController', () => {
                     { id: '1', name: 'User 1', username: 'user1' }
                 ]
             }))).to.be.true;
+        });
+    });
+
+    describe('aafLogin', () => {
+        it('should return 400 when assertion is missing', () => {
+            const badRequestStub = sinon.stub();
+            const req = {
+                body: {},
+                session: {}
+            } as unknown as Sails.Req;
+            const res = {
+                badRequest: badRequestStub
+            } as unknown as Sails.Res;
+
+            controller.aafLogin(req, res);
+
+            expect(badRequestStub.calledWith({ message: 'invalid-aaf-login-request' })).to.be.true;
+            expect(mockSails.config.passport.authenticate.called).to.be.false;
+            expect(req.session['data']).to.be.undefined;
+        });
+
+        it('should return 400 for malformed JWT assertion errors', () => {
+            const badRequestStub = sinon.stub();
+            mockSails.config.passport.authenticate.callsFake((_strategy: string, callback: (err: Error | string | null, user: Record<string, unknown> | false, info: Record<string, unknown> | string | Error | undefined) => void) => {
+                return (_req: Sails.Req, _res: Sails.Res) => callback(new Error('jwt malformed'), false, undefined);
+            });
+            const req = {
+                body: { assertion: 'not-a-jwt' },
+                session: {}
+            } as unknown as Sails.Req;
+            const res = {
+                badRequest: badRequestStub,
+                serverError: sinon.stub()
+            } as unknown as Sails.Res;
+
+            controller.aafLogin(req, res);
+
+            expect(badRequestStub.calledWith({ message: 'invalid-aaf-login-request' })).to.be.true;
+            expect(req.session['data']).to.be.undefined;
+        });
+
+        it('should preserve forbidden for authorized email denied', () => {
+            const forbiddenStub = sinon.stub();
+            mockSails.config.passport.authenticate.callsFake((_strategy: string, callback: (err: Error | string | null, user: Record<string, unknown> | false, info: Record<string, unknown> | string | Error | undefined) => void) => {
+                return (_req: Sails.Req, _res: Sails.Res) => callback('authorized-email-denied', false, undefined);
+            });
+            const req = {
+                body: { assertion: 'header.payload.signature' },
+                session: {}
+            } as unknown as Sails.Req;
+            const res = {
+                forbidden: forbiddenStub
+            } as unknown as Sails.Res;
+
+            controller.aafLogin(req, res);
+
+            expect(forbiddenStub.calledOnce).to.be.true;
+            expect(req.session['data']).to.deep.equal({
+                message: 'error-auth',
+                detailedMessage: 'authorized-email-denied'
+            });
+        });
+
+        it('should not store raw passport errors in session data', () => {
+            const serverErrorStub = sinon.stub();
+            mockSails.config.passport.authenticate.callsFake((_strategy: string, callback: (err: Error | string | null, user: Record<string, unknown> | false, info: Record<string, unknown> | string | Error | undefined) => void) => {
+                return (_req: Sails.Req, _res: Sails.Res) => callback(new Error('unexpected-aaf-error'), false, 'internal-details');
+            });
+            const req = {
+                body: { assertion: 'header.payload.signature' },
+                session: {}
+            } as unknown as Sails.Req;
+            const res = {
+                serverError: serverErrorStub
+            } as unknown as Sails.Res;
+
+            controller.aafLogin(req, res);
+
+            expect(serverErrorStub.calledOnce).to.be.true;
+            expect(req.session['data']).to.deep.equal({
+                message: 'error-auth',
+                detailedMessage: 'There was an issue with your user credentials, please try again.'
+            });
         });
     });
 });
