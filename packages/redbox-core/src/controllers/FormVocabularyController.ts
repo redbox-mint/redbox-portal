@@ -69,6 +69,7 @@ export namespace Controllers {
       const rawLimit = req.param('limit');
       const rawOffset = req.param('offset');
       const search = String(req.param('search') ?? '').trim();
+      const includeHistoricalValues = this.parseBooleanParam(req.param('includeHistoricalValues'));
 
       const hasLimit = rawLimit !== undefined && rawLimit !== null && rawLimit !== '';
       const hasOffset = rawOffset !== undefined && rawOffset !== null && rawOffset !== '';
@@ -90,6 +91,7 @@ export namespace Controllers {
           search,
           limit,
           offset,
+          includeHistoricalValues,
         });
       } catch (error) {
         sails.log.verbose('Error getting vocabulary entries:');
@@ -114,6 +116,23 @@ export namespace Controllers {
         meta: result.meta,
         headers: this.getNoCacheHeaders()
       });
+    }
+
+    private parseBooleanParam(value: unknown, fallback = false): boolean {
+      if (typeof value === 'boolean') {
+        return value;
+      }
+      if (value === '' || typeof value === 'undefined' || value === null) {
+        return fallback;
+      }
+      const normalized = String(value).trim().toLowerCase();
+      if (['true', '1', 'yes', 'on'].includes(normalized)) {
+        return true;
+      }
+      if (['false', '0', 'no', 'off'].includes(normalized)) {
+        return false;
+      }
+      return fallback;
     }
 
     public async children(req: Sails.Req, res: Sails.Res): Promise<unknown> {

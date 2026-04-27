@@ -231,8 +231,11 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       if (!this.isHistorical(entry)) {
         return true;
       }
-      if (!this.shouldDisableHistoricalEntry(entry, componentConfig)) {
+      if (!this.includeHistoricalValues) {
         return false;
+      }
+      if (this.shouldDisableHistoricalEntry(entry, componentConfig)) {
+        return true;
       }
 
       const selectedValues = treeMode

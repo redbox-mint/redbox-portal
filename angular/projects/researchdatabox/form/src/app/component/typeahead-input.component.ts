@@ -298,7 +298,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     return true;
   }
 
-  private async lookup(term: string): Promise<TypeaheadOption[]> {
+  private async lookup(term: string, includeHistoricalValues = this.sourceType === 'vocabulary'): Promise<TypeaheadOption[]> {
     if (!this.validateConfiguration()) {
       return [];
     }
@@ -306,7 +306,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     if (trimmedTerm.length < this.minChars) {
       return [];
     }
-    const cacheKey = `${this.sourceType}:${trimmedTerm}`;
+    const cacheKey = `${this.sourceType}:${includeHistoricalValues ? 'historical' : 'current'}:${trimmedTerm}`;
     if (this.cacheResults && this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey) ?? [];
       this.searchState = cached.length > 0 ? 'idle' : 'no-results';
@@ -324,7 +324,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
           this.vocabRef,
           trimmedTerm,
           this.maxResults,
-          0
+          0,
+          includeHistoricalValues
         );
       } else if (this.sourceType === 'external') {
         options = await this.typeaheadDataService.searchExternal(
@@ -404,7 +405,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return;
     }
     try {
-      const matches = await this.lookup(storedValue);
+      const matches = await this.lookup(storedValue, true);
       const exactMatch = matches.find(opt => opt.value === storedValue || opt.label === storedValue);
       if (exactMatch?.label) {
         this.setDisplayValue(exactMatch.label);
@@ -506,13 +507,13 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       if (!this.isHistoricalOption(option)) {
         return [option];
       }
-      if (this.historicalVocabMode !== 'disable') {
-        return [];
+      if (this.historicalVocabMode === 'disable') {
+        return [{ ...option, disabled: true }];
       }
       if (selectedValues.has(String(option.value ?? ''))) {
         return [option];
       }
-      return [{ ...option, disabled: true }];
+      return [];
     });
   }
 

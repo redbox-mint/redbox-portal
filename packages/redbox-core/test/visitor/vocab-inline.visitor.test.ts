@@ -194,7 +194,8 @@ describe('VocabInlineFormConfigVisitor', () => {
 
         const dropdown = constructed.componentDefinitions?.[0] as DropdownInputFormComponentDefinitionOutline;
         const options = dropdown?.component?.config?.options as Array<{ label: string; value: string; disabled?: boolean }>;
-        expect(options.map((option) => option.value)).to.deep.equal(['open']);
+        expect(options.map((option) => option.value)).to.deep.equal(['open', 'legacy']);
+        expect(options[1]?.disabled).to.not.equal(true);
     });
 
     it('retains a selected historical vocab option as disabled when historicalVocabMode is disable', async () => {
@@ -238,7 +239,7 @@ describe('VocabInlineFormConfigVisitor', () => {
         expect(options[1]?.disabled).to.equal(true);
     });
 
-    it('does not retain unrelated historical vocab options when historicalVocabMode is disable', async () => {
+    it('retains unrelated historical vocab options as disabled when historicalVocabMode is disable', async () => {
         (globalThis as any).VocabularyService = {
             getEntries: async () => ({
                 entries: [
@@ -275,10 +276,11 @@ describe('VocabInlineFormConfigVisitor', () => {
 
         const dropdown = constructed.componentDefinitions?.[0] as DropdownInputFormComponentDefinitionOutline;
         const options = dropdown?.component?.config?.options as Array<{ label: string; value: string; disabled?: boolean }>;
-        expect(options.map((option) => option.value)).to.deep.equal(['open']);
+        expect(options.map((option) => option.value)).to.deep.equal(['open', 'legacy']);
+        expect(options[1]?.disabled).to.equal(true);
     });
 
-    it('retains only selected historical checkbox values when historicalVocabMode is disable', async () => {
+    it('retains all historical checkbox values when historicalVocabMode is disable', async () => {
         (globalThis as any).VocabularyService = {
             getEntries: async () => ({
                 entries: [
@@ -316,8 +318,9 @@ describe('VocabInlineFormConfigVisitor', () => {
 
         const checkbox = constructed.componentDefinitions?.[0] as CheckboxInputFormComponentDefinitionOutline;
         const options = checkbox?.component?.config?.options as Array<{ label: string; value: string; disabled?: boolean }>;
-        expect(options.map((option) => option.value)).to.deep.equal(['active', 'old-b']);
+        expect(options.map((option) => option.value)).to.deep.equal(['active', 'old-a', 'old-b']);
         expect(options[1]?.disabled).to.equal(true);
+        expect(options[2]?.disabled).to.equal(true);
     });
 
     it('does not retain historical default values for new records', async () => {
@@ -542,7 +545,8 @@ describe('VocabInlineFormConfigVisitor', () => {
         const tree = constructed.componentDefinitions?.[0] as CheckboxTreeFormComponentDefinitionOutline;
         const treeData = tree.component.config?.treeData ?? [];
         expect(treeData).to.have.length(1);
-        expect(treeData[0]?.children?.map((node) => node.id)).to.deep.equal(['e2']);
+        expect(treeData[0]?.children?.map((node) => node.id)).to.deep.equal(['e2', 'e3']);
         expect(treeData[0]?.children?.[0]?.disabled).to.equal(true);
+        expect(treeData[0]?.children?.[1]?.disabled).to.equal(true);
     });
 });

@@ -255,11 +255,14 @@ export namespace Services {
       const offset = Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
       const search = String(options?.search ?? '').trim().toLowerCase();
 
-      const where: { vocabulary: string; labelLower?: { contains: string } } = {
+      const where: { vocabulary: string; labelLower?: { contains: string }; historical?: boolean } = {
         vocabulary: String(vocabulary.id)
       };
       if (search) {
         where.labelLower = { contains: search };
+      }
+      if (options?.includeHistoricalValues !== true) {
+        where.historical = false;
       }
 
       const total = await VocabularyEntry.count(where);
