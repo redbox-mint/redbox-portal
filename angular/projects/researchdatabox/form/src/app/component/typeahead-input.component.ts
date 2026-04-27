@@ -506,8 +506,11 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       if (!this.isHistoricalOption(option)) {
         return [option];
       }
-      if (this.historicalVocabMode !== 'disable' || !selectedValues.has(String(option.value ?? ''))) {
+      if (this.historicalVocabMode !== 'disable') {
         return [];
+      }
+      if (selectedValues.has(String(option.value ?? ''))) {
+        return [option];
       }
       return [{ ...option, disabled: true }];
     });
