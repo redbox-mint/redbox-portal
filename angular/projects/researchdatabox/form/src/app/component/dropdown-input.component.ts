@@ -60,7 +60,6 @@ export class DropdownInputComponent extends FormFieldBaseComponent<DropdownInput
       this.options = defaultConfig.options;
     }
     this.setDefaultSelection();
-    setTimeout(() => this.setDefaultSelection(), 0);
   }
 
   private setDefaultSelection(): void {
