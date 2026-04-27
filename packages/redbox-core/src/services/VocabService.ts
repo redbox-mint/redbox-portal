@@ -24,6 +24,7 @@ import { VocabQueryConfig } from '../model/config/VocabQueryConfig';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as services } from '../CoreService';
 import axios, { AxiosResponse } from 'axios';
+import {toBoolean} from "@researchdatabox/sails-ng-common";
 
 
 export namespace Services {
@@ -384,19 +385,8 @@ export namespace Services {
         uri: String(entry.identifier ?? entry.value ?? ''),
         notation: String(entry.value ?? ''),
         label: String(entry.label ?? ''),
-        historical: this.toBoolean(entry.historical)
+        historical: toBoolean(entry.historical)
       }));
-    }
-
-    private toBoolean(value: unknown): boolean {
-      if (typeof value === 'boolean') {
-        return value;
-      }
-      if (typeof value === 'number') {
-        return value !== 0;
-      }
-      const normalized = String(value ?? '').trim().toLowerCase();
-      return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
     }
 
     // have to do this since ANDS endpoint ignores _pageSize

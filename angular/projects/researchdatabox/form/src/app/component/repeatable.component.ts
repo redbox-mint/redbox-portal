@@ -1,6 +1,6 @@
 import { Component, ComponentRef, inject, ViewChild, ViewContainerRef, TemplateRef } from '@angular/core';
 import { FormArray, AbstractControl } from '@angular/forms';
-import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldModel, FormFieldCompMapEntry, ModifyOptions } from '@researchdatabox/portal-ng-common';
 import {
   ContentComponentName,
   FormConfigFrame,
@@ -19,7 +19,7 @@ import { createFormDefinitionChangeRequestEvent, createFormStatusDirtyRequestEve
 import { CustomSetValueControl } from '../form-state/custom-set-value.control';
 import {FormComponent} from "../form.component";
 
-type RepeatableSetValueOptions = { emitEvent?: boolean; onlySelf?: boolean };
+type RepeatableSetValueOptions = ModifyOptions;
 
 class RepeatableFormArray
   extends FormArray<AbstractControl<unknown>>

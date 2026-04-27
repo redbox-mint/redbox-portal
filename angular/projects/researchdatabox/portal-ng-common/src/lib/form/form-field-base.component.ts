@@ -1,4 +1,4 @@
-import { FormFieldModel } from './base.model';
+import {FormFieldModel, ModifyOptions} from './base.model';
 import { FormControl } from '@angular/forms';
 import {
   Directive, HostBinding, ViewChild, signal, inject, TemplateRef,
@@ -6,22 +6,17 @@ import {
   EffectRef, Injector, ApplicationRef
 } from '@angular/core';
 import { LoggerService } from '../logger.service';
-import { get as _get,  isEmpty as _isEmpty } from 'lodash-es';
+import {  isEmpty as _isEmpty, get as _get } from 'lodash-es';
 import { UtilityService } from "../utility.service";
 import {
   FormComponentDefinitionFrame,
-  FieldComponentConfigFrame,
-  FieldComponentDefinitionFrame,
-  FieldLayoutDefinitionFrame,
-  FieldLayoutConfigFrame,
   FormFieldComponentStatus,
   LineagePaths,
   JSONataQuerySourceProperty,
-  FormExpressionsConfigOutline
+  FormExpressionsConfigOutline,
+  FormFieldComponentOrLayoutDefinition,
 } from '@researchdatabox/sails-ng-common';
 
-export type FormFieldComponentOrLayoutDefinition = FieldComponentDefinitionFrame | FieldLayoutDefinitionFrame;
-export type FormFieldComponentOrLayoutConfig = FieldComponentConfigFrame | FieldLayoutConfigFrame;
 export interface FormFieldFocusRequestOptions {
   scroll?: boolean;
   scrollOptions?: ScrollIntoViewOptions;
@@ -135,7 +130,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return _get(this.componentDefinition?.config, name, defaultValue);
   }
 
-  public getStringProperty(name: string) {
+  public getStringProperty(name: string): string {
     return _get(this.componentDefinition?.config, name, '');
   }
 
@@ -147,12 +142,39 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return this.componentDefinition?.config?.readonly ?? false;
   }
 
-  get isDisabled(): boolean {
+  /**
+   * Get whether this component is disabled or not.
+   *
+   * NOTE: Do not use isDisabled for HTML elements that are associated with an angular formControl (e.g. [disabled]="isDisabled").
+   *       The formControl sets the disabled state on the HTML element DOM.
+   */
+  public get isDisabled(): boolean {
     return this.componentDefinition?.config?.disabled ?? false;
   }
 
+  /**
+   * Set this component to be disabled or enabled.
+   * @param disabled True for disabled, false for enabled.
+   * @param opts The modify options.
+   */
+  public setDisabled(disabled: boolean, opts?: ModifyOptions) {
+    const current = this.isDisabled;
+    try {
+      this.model?.setDisabled(disabled, opts);
+      if (this.componentDefinition?.config) {
+        this.componentDefinition.config.disabled = disabled;
+      }
+    } catch (error) {
+      if (this.componentDefinition?.config) {
+        this.componentDefinition.config.disabled = current;
+      }
+      this.loggerService.error(
+        `Could not set model disabled state with value ${disabled} and opts ${opts}.`, error);
+    }
+  }
+
   get label(): string {
-    return _get(this.componentDefinition?.config, 'label', '');
+    return this.componentDefinition?.config?.label ?? '';
   }
 
   /**

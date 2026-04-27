@@ -11,7 +11,7 @@ import {
   ExpressionsConditionKind,
   ExpressionsConditionKindType,
   FormExpressionsTargetModelValue, FormExpressionsTargetLayoutPrefix, FormExpressionsTargetComponentPrefix,
-  FormExpressionsTargetValidationGroups, DynamicScriptResponse,
+  FormExpressionsTargetValidationGroups, DynamicScriptResponse, guessType, toBoolean,
 } from '@researchdatabox/sails-ng-common';
 import jsonata from 'jsonata';
 import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
@@ -377,17 +377,11 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         await syncComponentDisplayFromModel(this.options?.component);
       }
     } else if (exprTarget.startsWith(FormExpressionsTargetLayoutPrefix)) {
-      const layoutPath = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);
-      const container = this.options?.definition?.layout?.componentDefinition?.config;
-      if (container) {
-        _set(container, layoutPath, targetValue);
-      }
+      const propPath = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);
+      await this.setTargetComponentProp(targetValue, propPath, "layout");
     } else if (exprTarget.startsWith(FormExpressionsTargetComponentPrefix)) {
-      const componentPath = exprTarget.substring(FormExpressionsTargetComponentPrefix.length);
-      const container = this.options?.definition?.component?.componentDefinition?.config;
-      if (container) {
-        _set(container, componentPath, targetValue);
-      }
+      const propPath = exprTarget.substring(FormExpressionsTargetComponentPrefix.length);
+      await this.setTargetComponentProp(targetValue, propPath, "component");
     } else if (exprTarget === FormExpressionsTargetValidationGroups) {
       if (isTypeFormValidationGroupsChangeRequestInfo(targetValue)) {
         // Only publish an event in response to scoped change events, don't need to respond to the broadcast events.
@@ -412,6 +406,44 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         expression
       );
     }
+
+  }
+
+  protected async setTargetComponentProp(
+    targetValue: unknown, propPath: string, targetKind: "component" | "layout"
+  ) {
+
+    // For a component, all config properties except 'disabled' can be set directly.
+    if (targetKind === "component" && propPath !== 'disabled') {
+      const config = this.options?.definition?.component?.componentDefinition?.config;
+      if (config && propPath) {
+        _set(config, propPath, targetValue);
+      }
+      return;
+    }
+
+    // For a component, the disabled property must be handled specially to satisfy angular.
+    if (targetKind === "component" && propPath === 'disabled') {
+      const component = this.options?.component;
+      if (component) {
+        component.setDisabled(toBoolean(targetValue));
+      }
+      return;
+    }
+
+    // For a layout, there is no need for specific handling of the 'disabled' property.
+    // This is because the 'disabled' property has no general meaning and is specific to each layout.
+    if (targetKind === "layout") {
+      const config = this.options?.definition?.layout?.componentDefinition?.config;
+      if (config && propPath) {
+        _set(config, propPath, targetValue);
+      }
+      return;
+    }
+
+    this.loggerService.warn(
+      `FormComponentBaseEventConsumer: Don't know what to do with target '${targetKind}' property path '${propPath}' value '${targetValue}' (type ${guessType(targetValue)}) in expression config.`
+    );
   }
 
   /**
