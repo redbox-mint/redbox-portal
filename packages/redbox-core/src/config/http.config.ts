@@ -10,6 +10,7 @@ import { RequestHandler, Request, Response, NextFunction } from 'express';
 import type { PassportStatic } from 'passport';
 import * as _ from 'lodash';
 import * as fs from 'fs';
+const onHeaders = require('on-headers') as (res: Response, listener: () => void) => void;
 const skipper = require('skipper');
 
 import { redboxSession as redboxSessionMiddleware } from '../middleware/redboxSession';
@@ -110,6 +111,9 @@ let _lazyRedboxSessionMiddleware: RequestHandler | null = null;
 let _lazyCompanionMiddleware: RequestHandler | null = null;
 let _lazyCompanionMountPath = '/companion';
 let _lazyCompanionSocketWired = false;
+const noStoreCacheControlHeaderValue = 'no-store, no-cache, must-revalidate, proxy-revalidate';
+const authSensitiveStatusCodes = new Set([401, 403]);
+const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
 
 export interface CompanionAuthorizationDecision {
     isCompanionRequest: boolean;
@@ -205,6 +209,86 @@ const getCookieValue = (cookieHeader: string | undefined, cookieName: string): s
     }
     return undefined;
 };
+
+function getNoStoreHeaders(): Record<string, string> {
+    return {
+        'Cache-Control': noStoreCacheControlHeaderValue,
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    };
+}
+
+function applyNoStoreHeaders(res: Response): void {
+    for (const [headerName, headerValue] of Object.entries(getNoStoreHeaders())) {
+        res.setHeader(headerName, headerValue);
+    }
+}
+
+function getConfiguredNoCachePaths(): string[] {
+    return sails.config.custom?.cacheControl?.noCache || [];
+}
+
+function matchesConfiguredNoCachePath(pathname: string | null | undefined, noCachePaths = getConfiguredNoCachePaths()): boolean {
+    if (!pathname) {
+        return false;
+    }
+    const normalizedPath = pathname.toLowerCase();
+    return noCachePaths.some(path => normalizedPath.endsWith(path.toLowerCase()));
+}
+
+function getHeaderValue(headerValue: number | string | string[] | undefined): string | undefined {
+    if (_.isArray(headerValue)) {
+        return headerValue.join(', ');
+    }
+    if (_.isNumber(headerValue)) {
+        return `${headerValue}`;
+    }
+    if (_.isString(headerValue)) {
+        return headerValue;
+    }
+    return undefined;
+}
+
+function hasNoStoreDirective(headerValue: number | string | string[] | undefined): boolean {
+    const normalizedHeaderValue = getHeaderValue(headerValue)?.toLowerCase();
+    return normalizedHeaderValue?.includes('no-store') ?? false;
+}
+
+function getRedirectLocationPathname(res: Response): string | null {
+    const locationHeaderValue = getHeaderValue(res.getHeader('Location'));
+    if (!locationHeaderValue) {
+        return null;
+    }
+    try {
+        return new URL(locationHeaderValue, 'http://localhost').pathname;
+    } catch (_err) {
+        return null;
+    }
+}
+
+function shouldForceNoStoreHeaders(req: Request, res: Response): boolean {
+    if (hasNoStoreDirective(res.getHeader('Cache-Control'))) {
+        return true;
+    }
+    if (authSensitiveStatusCodes.has(res.statusCode)) {
+        return true;
+    }
+    if (matchesConfiguredNoCachePath(req.path)) {
+        return true;
+    }
+    if (redirectStatusCodes.has(res.statusCode) && matchesConfiguredNoCachePath(getRedirectLocationPathname(res))) {
+        return true;
+    }
+    return false;
+}
+
+function registerFinalCacheHeaders(req: Request, res: Response): void {
+    onHeaders(res, function () {
+        if (shouldForceNoStoreHeaders(req, res)) {
+            applyNoStoreHeaders(res);
+        }
+    });
+}
 
 export const http: HttpConfig = {
     rootContext: '',
@@ -506,9 +590,7 @@ export const http: HttpConfig = {
 
             // Patch the redirect function so that it sets the no-cache headers
             res.redirect = function (this: Response, urlOrStatus: string | number, statusOrUrl?: number | string) {
-                res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-                res.set('Pragma', 'no-cache');
-                res.set('Expires', '0');
+                applyNoStoreHeaders(res);
 
                 const redirect = originalRedirect as unknown as (...args: unknown[]) => Response;
                 if (typeof urlOrStatus === 'number') {
@@ -524,18 +606,16 @@ export const http: HttpConfig = {
         },
 
         cacheControl: function (req: Request, res: Response, next: NextFunction) {
+            registerFinalCacheHeaders(req, res);
+
             const sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 31536000 : sails.config.session.cookie.maxAge / 1000);
             let cacheControlHeaderVal: string | null = null;
             let expiresHeaderVal: string | null = null;
+            const noCachePaths = getConfiguredNoCachePaths();
             if (sessionTimeoutSeconds > 0) {
-                // Warning: sails.config.custom might differ at runtime verify structure
-                const noCachePaths = sails.config.custom?.cacheControl?.noCache || [];
-                const isMatch = _.find(noCachePaths, (path => {
-                    return _.endsWith(req.path, path);
-                }));
-                if (!_.isEmpty(isMatch)) {
-                    cacheControlHeaderVal = 'no-cache, no-store';
-                    expiresHeaderVal = new Date(0).toUTCString();
+                if (matchesConfiguredNoCachePath(req.path, noCachePaths)) {
+                    cacheControlHeaderVal = noStoreCacheControlHeaderValue;
+                    expiresHeaderVal = '0';
                 } else {
                     cacheControlHeaderVal = 'max-age=' + sessionTimeoutSeconds + ', private';
                     const expiresMilli = new Date().getTime() + (sessionTimeoutSeconds * 1000);
@@ -552,10 +632,12 @@ export const http: HttpConfig = {
             if (!_.isEmpty(expiresHeaderVal) && expiresHeaderVal) {
                 res.set('Expires', expiresHeaderVal);
             }
+            if (hasNoStoreDirective(cacheControlHeaderVal ?? undefined)) {
+                res.set('Pragma', 'no-cache');
+            }
             // Required for OAuth popup flows (e.g. Uppy Companion providers)
             // so window.opener/window.closed checks are not blocked by COOP.
             res.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-            res.set('Pragma', 'no-cache');
             return next();
         }
     },

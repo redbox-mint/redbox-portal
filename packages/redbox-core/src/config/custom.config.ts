@@ -21,6 +21,8 @@ export const custom: CustomConfig = {
             'csrfToken',
             'dynamic/apiClientConfig',
             'login',
+            'login_local',
+            'login_aaf',
             'begin_oidc',
             'login_oidc',
             'logout'
