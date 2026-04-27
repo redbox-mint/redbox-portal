@@ -44,7 +44,10 @@ describe('UserController', () => {
             findUsersWithName: sinon.stub().returns(of([]))
         };
         (global as any).ConfigService = {
-            getBrand: sinon.stub().returns({ local: { postLoginRedir: 'home' } })
+            getBrand: sinon.stub().returns({
+                local: { postLoginRedir: 'home' },
+                oidc: { opts: { issuer: 'https://oidc.example.com' } }
+            })
         };
 
         controller = new Controllers.User();
@@ -87,6 +90,53 @@ describe('UserController', () => {
         });
     });
 
+    describe('resolveSafeRedirectUrl', () => {
+        it('should normalize same-origin absolute redirects to internal paths', () => {
+            const req = {
+                session: {},
+                query: {}
+            } as unknown as Sails.Req;
+
+            const redirectUrl = (controller as any).resolveSafeRedirectUrl(
+                req,
+                'http://localhost/default/portal/records?tab=files#details',
+                '/default/portal/home'
+            );
+
+            expect(redirectUrl).to.equal('/default/portal/records?tab=files#details');
+        });
+
+        it('should reject unsafe redirect candidates and fall back to an internal path', () => {
+            const req = {
+                session: {},
+                query: {}
+            } as unknown as Sails.Req;
+
+            for (const candidate of [
+                'https://attacker.example/x',
+                'javascript:alert(1)',
+                '//attacker.example/x',
+                '/default/portal/home\nLocation:https://attacker.example'
+            ]) {
+                const redirectUrl = (controller as any).resolveSafeRedirectUrl(req, candidate, '/default/portal/home');
+                expect(redirectUrl).to.equal('/default/portal/home');
+            }
+        });
+    });
+
+    describe('getPostLoginUrl', () => {
+        it('should ignore an unsafe session redirect and use a safe query redirect', () => {
+            const req = {
+                session: { redirUrl: 'https://attacker.example/steal' },
+                query: { redirUrl: 'http://localhost/default/portal/dashboard?tab=activity' }
+            } as unknown as Sails.Req;
+
+            const redirectUrl = (controller as any).getPostLoginUrl(req, {} as Sails.Res);
+
+            expect(redirectUrl).to.equal('/default/portal/dashboard?tab=activity');
+        });
+    });
+
     describe('find', () => {
         it('should search for users and return mapped results', () => {
             const req = {
@@ -108,6 +158,92 @@ describe('UserController', () => {
                     { id: '1', name: 'User 1', username: 'user1' }
                 ]
             }))).to.be.true;
+        });
+    });
+
+    describe('logout', () => {
+        it('should fall back to the internal home page when postLogoutRedir is unsafe', () => {
+            mockSails.config.auth.postLogoutRedir = 'https://attacker.example/logout';
+            const redirectStub = sinon.stub();
+            const req = {
+                session: {},
+                user: { id: '123' },
+                logout: (callback: (err?: unknown) => void) => callback(),
+                app: undefined,
+                baseUrl: '',
+                body: {},
+                cookies: {},
+                fresh: false,
+                hostname: 'localhost',
+                ip: '127.0.0.1',
+                ips: [],
+                method: 'GET',
+                originalUrl: '/default/portal/user/logout',
+                params: {},
+                path: '/default/portal/user/logout',
+                protocol: 'http',
+                query: {},
+                route: undefined,
+                secure: false,
+                stale: false,
+                subdomains: [],
+                xhr: false,
+                headers: {},
+                url: '/default/portal/user/logout',
+                rawHeaders: []
+            } as unknown as Sails.Req;
+            const res = {
+                redirect: redirectStub,
+                status: sinon.stub().returnsThis(),
+                send: sinon.stub()
+            } as unknown as Sails.Res;
+
+            controller.logout(req, res);
+
+            expect(redirectStub.calledWith('/default/portal/home')).to.be.true;
+        });
+
+        it('should allow trusted oidc logout endpoints with safe post-logout redirects', () => {
+            const redirectStub = sinon.stub();
+            const req = {
+                session: {
+                    user: { id: '123', type: 'oidc' },
+                    logoutUrl: 'https://oidc.example.com/logout?post_logout_redirect_uri=/default/portal/home'
+                },
+                user: { id: '123', type: 'oidc' },
+                logout: (callback: (err?: unknown) => void) => callback(),
+                app: undefined,
+                baseUrl: '',
+                body: {},
+                cookies: {},
+                fresh: false,
+                hostname: 'localhost',
+                ip: '127.0.0.1',
+                ips: [],
+                method: 'GET',
+                originalUrl: '/default/portal/user/logout',
+                params: {},
+                path: '/default/portal/user/logout',
+                protocol: 'http',
+                query: {},
+                route: undefined,
+                secure: false,
+                stale: false,
+                subdomains: [],
+                xhr: false,
+                headers: {},
+                url: '/default/portal/user/logout',
+                rawHeaders: []
+            } as unknown as Sails.Req;
+            const res = {
+                redirect: redirectStub,
+                status: sinon.stub().returnsThis(),
+                send: sinon.stub()
+            } as unknown as Sails.Res;
+
+            controller.logout(req, res);
+
+            expect(redirectStub.calledWith('https://oidc.example.com/logout?post_logout_redirect_uri=http%3A%2F%2Flocalhost%2Fdefault%2Fportal%2Fhome')).to.be.true;
         });
     });
 

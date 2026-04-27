@@ -97,7 +97,7 @@ export namespace Controllers {
           url = sails.config.appUrl + '/' + sails.config.http.rootContext + url;
 
         }
-        req.session.redirUrl = url;
+        req.session.redirUrl = this.resolveSafeRedirectUrl(req, url, this.getConfiguredPostLoginUrl(req));
 
       }
       return res.redirect(`${BrandingService.getBrandAndPortalPath(req)}/${sails.config.auth.loginPath}`);
@@ -108,19 +108,159 @@ export namespace Controllers {
     }
 
     protected getPostLoginUrl(req: Sails.Req, _res: Sails.Res) {
-      const branding = BrandingService.getBrandNameFromReq(req);
-      let postLoginUrl = null;
-      if (req.session.redirUrl) {
-        postLoginUrl = req.session.redirUrl;
-      } else if (req.query.redirUrl) {
-        postLoginUrl = req.query.redirUrl;
-      } else {
-        const authConfig = ConfigService.getBrand(branding, 'auth');
-        const postLoginRedir = _.get(authConfig, 'local.postLoginRedir', 'home');
-        postLoginUrl = `${BrandingService.getBrandAndPortalPath(req)}/${postLoginRedir}`;
-      }
+      const postLoginUrl = this.tryResolveSafeRedirectUrl(req, req.session.redirUrl)
+        ?? this.tryResolveSafeRedirectUrl(req, req.query.redirUrl)
+        ?? this.getConfiguredPostLoginUrl(req);
       sails.log.debug(`post login url: ${postLoginUrl}`);
       return postLoginUrl;
+    }
+
+    private getConfiguredPostLoginUrl(req: Sails.Req): string {
+      const branding = BrandingService.getBrandNameFromReq(req);
+      const authConfig = ConfigService.getBrand(branding, 'auth');
+      const postLoginRedir = _.trimStart(String(_.get(authConfig, 'local.postLoginRedir', 'home') || 'home'), '/');
+      return `${BrandingService.getBrandAndPortalPath(req)}/${postLoginRedir}`;
+    }
+
+    private getDefaultHomeUrl(req: Sails.Req): string {
+      return `${BrandingService.getBrandAndPortalPath(req)}/home`;
+    }
+
+    private getApplicationOrigin(): string | null {
+      const appUrl = String(sails.config.appUrl ?? '').trim();
+      if (_.isEmpty(appUrl)) {
+        return null;
+      }
+
+      try {
+        return new URL(appUrl).origin;
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    private toAbsoluteAppUrl(path: string): string {
+      const applicationOrigin = this.getApplicationOrigin();
+      if (applicationOrigin == null || applicationOrigin.length === 0) {
+        return path;
+      }
+
+      try {
+        return new URL(path, applicationOrigin).toString();
+      } catch (_error) {
+        return path;
+      }
+    }
+
+    private hasUnsafeRedirectCharacters(redirectCandidate: string): boolean {
+      return /[\u0000-\u001F\u007F]/.test(redirectCandidate)
+        || /%(?:0[0-9A-F]|1[0-9A-F]|7F)/i.test(redirectCandidate)
+        || redirectCandidate.includes('\\')
+        || /%5C/i.test(redirectCandidate);
+    }
+
+    private tryResolveSafeRedirectUrl(req: Sails.Req, candidate: unknown): string | null {
+      if (!_.isString(candidate)) {
+        return null;
+      }
+
+      const redirectCandidate = candidate.trim();
+      if (_.isEmpty(redirectCandidate) || this.hasUnsafeRedirectCharacters(redirectCandidate)) {
+        return null;
+      }
+      if (redirectCandidate.startsWith('//')) {
+        return null;
+      }
+      if (redirectCandidate.startsWith('/')) {
+        return redirectCandidate;
+      }
+
+      const applicationOrigin = this.getApplicationOrigin();
+      if (_.isEmpty(applicationOrigin)) {
+        return null;
+      }
+
+      try {
+        const parsedUrl = new URL(redirectCandidate);
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+          return null;
+        }
+        if (parsedUrl.origin !== applicationOrigin) {
+          return null;
+        }
+        return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    protected resolveSafeRedirectUrl(req: Sails.Req, candidate: unknown, fallback: string): string {
+      return this.tryResolveSafeRedirectUrl(req, candidate)
+        ?? this.tryResolveSafeRedirectUrl(req, fallback)
+        ?? this.getDefaultHomeUrl(req);
+    }
+
+    private getTrustedOidcLogoutOrigins(req: Sails.Req): string[] {
+      const branding = BrandingService.getBrandNameFromReq(req);
+      const authConfig = ConfigService.getBrand(branding, 'auth') as AnyRecord;
+      const oidcConfig = _.get(authConfig, 'oidc');
+      const oidcConfigs = Array.isArray(oidcConfig) ? oidcConfig : [oidcConfig];
+
+      return _.compact(_.map(oidcConfigs, currentOidcConfig => {
+        const issuer = _.get(currentOidcConfig, 'opts.issuer');
+        const issuerValue = _.isString(issuer)
+          ? issuer
+          : (_.get(issuer, 'issuer') ?? _.get(issuer, 'end_session_endpoint'));
+        if (!_.isString(issuerValue) || _.isEmpty(issuerValue.trim())) {
+          return null;
+        }
+
+        try {
+          return new URL(issuerValue).origin;
+        } catch (_error) {
+          return null;
+        }
+      }));
+    }
+
+    private tryResolveTrustedOidcLogoutUrl(req: Sails.Req, candidate: unknown): string | null {
+      if (!_.isString(candidate)) {
+        return null;
+      }
+
+      const redirectCandidate = candidate.trim();
+      if (_.isEmpty(redirectCandidate) || this.hasUnsafeRedirectCharacters(redirectCandidate)) {
+        return null;
+      }
+
+      try {
+        const parsedUrl = new URL(redirectCandidate);
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+          return null;
+        }
+        if (!this.getTrustedOidcLogoutOrigins(req).includes(parsedUrl.origin)) {
+          return null;
+        }
+
+        const postLogoutRedirectUri = parsedUrl.searchParams.get('post_logout_redirect_uri');
+        if (postLogoutRedirectUri != null) {
+          const safePostLogoutRedirectUrl = this.tryResolveSafeRedirectUrl(req, postLogoutRedirectUri);
+          if (safePostLogoutRedirectUrl == null) {
+            return null;
+          }
+          parsedUrl.searchParams.set('post_logout_redirect_uri', this.toAbsoluteAppUrl(safePostLogoutRedirectUrl));
+        }
+
+        return parsedUrl.toString();
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    private resolveSafeLogoutRedirectUrl(req: Sails.Req, candidate: unknown, fallback: string): string {
+      const safeFallback = this.resolveSafeRedirectUrl(req, fallback, this.getDefaultHomeUrl(req));
+      return this.tryResolveTrustedOidcLogoutUrl(req, candidate)
+        ?? this.resolveSafeRedirectUrl(req, candidate, safeFallback);
     }
 
     private getErrorMessage(error: unknown) {
@@ -177,14 +317,10 @@ export namespace Controllers {
 
     public logout(req: Sails.Req, res: Sails.Res) {
       const requestDetails = new RequestDetails(req);
-      let redirUrl = sails.config.auth.postLogoutRedir;
+      const redirUrlFallback = this.resolveSafeRedirectUrl(req, sails.config.auth.postLogoutRedir, this.getDefaultHomeUrl(req));
+      let redirUrl = redirUrlFallback;
       if (req.session.user && req.session.user.type == 'oidc') {
-        redirUrl = req.session.logoutUrl as string;
-      }
-
-      // If the redirect URL is empty then revert back to the default
-      if (_.isEmpty(redirUrl)) {
-        redirUrl = _.isEmpty(sails.config.auth.postLogoutRedir) ? `${BrandingService.getBrandAndPortalPath(req)}/home` : sails.config.auth.postLogoutRedir;
+        redirUrl = this.resolveSafeLogoutRedirectUrl(req, req.session.logoutUrl, redirUrlFallback);
       }
 
       const user = req.session.user ? req.session.user : req.user;
