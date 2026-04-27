@@ -74,6 +74,7 @@ updates:
         applies-to: 'version-updates'
         group-by: 'dependency-name'
         patterns:
+          - '@tiptap/*'
           - '@angular/*'
           - '@angular-devkit/*'
           - 'ngx-bootstrap'
@@ -89,6 +90,7 @@ updates:
         applies-to: 'version-updates'
         group-by: 'dependency-name'
         patterns:
+          - '@tiptap/*'
           - '@angular/*'
           - '@angular-devkit/*'
           - 'ngx-bootstrap'
