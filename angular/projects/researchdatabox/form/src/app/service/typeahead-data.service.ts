@@ -35,6 +35,8 @@ export class TypeaheadDataService extends HttpClientService {
             label: String(opt?.label ?? ""),
             value: String(opt?.value ?? ""),
             sourceType: opt?.sourceType ?? "static",
+            historical: opt?.historical === true,
+            disabled: opt?.disabled === true,
             raw: opt?.raw
         }));
     }
@@ -66,6 +68,7 @@ export class TypeaheadDataService extends HttpClientService {
                 label: String(entry?.["label"] ?? ""),
                 value: String(entry?.["value"] ?? ""),
                 sourceType: "vocabulary" as const,
+                historical: entry?.["historical"] === true,
                 raw: entry
             }))
             .filter((entry) => Boolean(entry.label || entry.value));

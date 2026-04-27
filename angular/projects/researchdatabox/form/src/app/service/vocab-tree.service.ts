@@ -11,6 +11,7 @@ export interface VocabTreeApiNode {
   notation?: string;
   parent?: string | null;
   hasChildren: boolean;
+  disabled?: boolean;
 }
 
 export interface VocabTreeChildrenResponse {

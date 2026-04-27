@@ -29,7 +29,8 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
             [id]="this.getOptionId(opt)"
             [attr.id]="this.getOptionId(opt)"
             [checked]="isOptionSelected(opt.value)"
-            (change)="onOptionChange($any($event.target).checked, opt.value)"
+            [attr.disabled]="opt.disabled === true ? true : null"
+            (change)="onOptionChange($any($event.target).checked, opt)"
             [class.is-valid]="showValidState"
             [class.is-invalid]="!isValid"
             [title]="tooltip | i18next">
@@ -86,7 +87,11 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
   /**
    * Toggle option selection. Supports array values (multi-select) and single value based on multipleValues configuration.
    */
-  public onOptionChange(checked: boolean, optionValue: string): void {
+  public onOptionChange(checked: boolean, option: CheckboxOption): void {
+    if (option.disabled === true) {
+      return;
+    }
+    const optionValue = option.value;
     const currentValue = this.formControl?.value;
     if (this.multipleValues) {
       const currentArray = Array.isArray(currentValue) ? currentValue : [];

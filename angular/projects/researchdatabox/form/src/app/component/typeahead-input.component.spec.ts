@@ -374,4 +374,111 @@ describe("TypeaheadInputComponent", () => {
             "utf8_name"
         );
     });
+
+    it("hides historical vocabulary suggestions by default", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        spyOn(typeaheadDataService, "searchVocabularyEntries").and.resolveTo([
+            {label: "Active", value: "active", sourceType: "vocabulary"},
+            {label: "Legacy", value: "legacy", sourceType: "vocabulary", historical: true}
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "vocab_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "vocabulary",
+                            vocabRef: "access-rights",
+                            minChars: 1
+                        }
+                    },
+                    model: {class: "TypeaheadInputModel", config: {}}
+                }
+            ]
+        };
+
+        const {fixture} = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.displayControl.setValue("a");
+        const options = await firstValueFrom(component.suggestions$);
+        expect(options.map(option => option.value)).toEqual(["active"]);
+    });
+
+    it("retains selected historical vocabulary suggestions as disabled when configured", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        spyOn(typeaheadDataService, "searchVocabularyEntries").and.resolveTo([
+            {label: "Active", value: "active", sourceType: "vocabulary"},
+            {label: "Legacy", value: "legacy", sourceType: "vocabulary", historical: true},
+            {label: "Other Legacy", value: "other-legacy", sourceType: "vocabulary", historical: true}
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "vocab_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "vocabulary",
+                            vocabRef: "access-rights",
+                            minChars: 1,
+                            historicalVocabMode: "disable"
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {
+                            value: "legacy"
+                        }
+                    }
+                }
+            ]
+        };
+
+        const {fixture} = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.displayControl.setValue("leg");
+        const options = await firstValueFrom(component.suggestions$);
+        expect(options.map(option => option.value)).toEqual(["active", "legacy"]);
+        expect(options[1]?.disabled).toBeTrue();
+    });
+
+    it("does not select disabled historical vocabulary suggestions", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "vocab_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "vocabulary",
+                            vocabRef: "access-rights",
+                            minChars: 1,
+                            historicalVocabMode: "disable"
+                        }
+                    },
+                    model: {class: "TypeaheadInputModel", config: {}}
+                }
+            ]
+        };
+
+        const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.onSelect({
+            item: {
+                label: "Legacy",
+                value: "legacy",
+                sourceType: "vocabulary",
+                historical: true,
+                disabled: true
+            }
+        } as TypeaheadMatch);
+
+        expect((formComponent as any).form.get("vocab_lookup")?.value).toBeNull();
+    });
 });

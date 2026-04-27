@@ -47,6 +47,7 @@ export namespace Services {
     search?: string;
     limit?: number;
     offset?: number;
+    includeHistoricalValues?: boolean;
   }
 
   export interface VocabularyEntriesResponse {

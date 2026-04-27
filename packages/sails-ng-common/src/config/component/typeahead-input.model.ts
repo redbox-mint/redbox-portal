@@ -43,6 +43,7 @@ export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig imp
     multiSelect = false;
     placeholder?: string;
     readOnlyAfterSelect?: boolean;
+    historicalVocabMode?: 'hide' | 'disable';
 
     constructor() {
         super();

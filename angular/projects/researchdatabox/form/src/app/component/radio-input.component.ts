@@ -28,6 +28,7 @@ export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
             [name]="this.getOptionName($index)"
             [attr.value]="opt.value"
             [value]="opt.value"
+            [attr.disabled]="opt.disabled === true ? true : null"
             [id]="this.getOptionId(opt)"
             [attr.id]="this.getOptionId(opt)"
             [class.is-valid]="showValidState"

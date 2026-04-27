@@ -26,6 +26,7 @@ import {
 export class CheckboxTreeFieldComponentConfig extends FieldComponentConfig implements CheckboxTreeFieldComponentConfigOutline {
     vocabRef?: string;
     inlineVocab?: boolean;
+    historicalVocabMode?: 'hide' | 'disable';
     treeData: CheckboxTreeNode[] = [];
     leafOnly?: boolean;
     maxDepth?: number;

@@ -26,6 +26,7 @@ export class DropdownInputFieldComponentConfig extends FieldComponentConfig impl
     options: DropdownOption[] = [];
     vocabRef?: string;
     inlineVocab?: boolean;
+    historicalVocabMode?: 'hide' | 'disable';
 
     constructor() {
         super();

@@ -142,4 +142,47 @@ describe('CheckboxInputComponent', () => {
     expect(labels.length).toBeGreaterThan(0);
     expect(labels[0].getAttribute('for')).toEqual('checkbox_lang_test-en');
   });
+
+  it('should render disabled options and not toggle them', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      componentDefinitions: [
+        {
+          name: 'checkbox_disabled_test',
+          model: {
+            class: 'CheckboxInputModel',
+            config: {
+              value: ['legacy'],
+            },
+          },
+          component: {
+            class: 'CheckboxInputComponent',
+            config: {
+              options: [
+                { label: 'Active', value: 'active' },
+                { label: 'Legacy', value: 'legacy', disabled: true },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const legacyInput = compiled.querySelector<HTMLInputElement>('#checkbox_disabled_test-legacy');
+    expect(legacyInput).toBeTruthy();
+    if (!legacyInput) {
+      throw new Error('Expected legacy input to be present');
+    }
+    expect(legacyInput?.disabled).toBeTrue();
+    expect(legacyInput?.checked).toBeTrue();
+
+    legacyInput.checked = false;
+    legacyInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect((formComponent as any).form.value?.checkbox_disabled_test).toEqual(['legacy']);
+  });
 });

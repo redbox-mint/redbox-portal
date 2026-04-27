@@ -27,6 +27,7 @@ export class CheckboxInputFieldComponentConfig extends FieldComponentConfig impl
     multipleValues?: boolean;
     vocabRef?: string;
     inlineVocab?: boolean;
+    historicalVocabMode?: 'hide' | 'disable';
 
     constructor() {
         super();

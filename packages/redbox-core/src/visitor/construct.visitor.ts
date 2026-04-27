@@ -1657,6 +1657,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('multipleValues', item.config, config);
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('inlineVocab', item.config, config);
+    this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
   }
 
   visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
@@ -1699,6 +1700,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('inlineVocab', item.config, config);
+    this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
     this.sharedProps.setPropOverride('treeData', item.config, config);
     this.sharedProps.setPropOverride('leafOnly', item.config, config);
     this.sharedProps.setPropOverride('maxDepth', item.config, config);
@@ -1789,6 +1791,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('options', item.config, config);
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('inlineVocab', item.config, config);
+    this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
   }
 
   visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
@@ -1846,6 +1849,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('multiSelect', item.config, config);
     this.sharedProps.setPropOverride('placeholder', item.config, config);
     this.sharedProps.setPropOverride('readOnlyAfterSelect', item.config, config);
+    this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
 
     const sourceType = item.config.sourceType ?? 'static';
     if (sourceType === 'namedQuery') {
@@ -1917,6 +1921,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('options', item.config, config);
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('inlineVocab', item.config, config);
+    this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
   }
 
   visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {

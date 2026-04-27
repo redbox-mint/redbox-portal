@@ -24,6 +24,7 @@ import {
 } from "../field-model.outline";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import type {HistoricalVocabMode} from "./dropdown-input.outline";
 
 /* Typeahead Input Component */
 export const TypeaheadInputComponentName = "TypeaheadInputComponent" as const;
@@ -37,6 +38,8 @@ export interface TypeaheadOption {
     label: string;
     value: string;
     sourceType?: TypeaheadStoredSourceType;
+    historical?: boolean;
+    disabled?: boolean;
     raw?: unknown;
 }
 
@@ -59,6 +62,7 @@ export interface TypeaheadInputFieldComponentConfigFrame extends FieldComponentC
     multiSelect?: boolean;
     placeholder?: string;
     readOnlyAfterSelect?: boolean;
+    historicalVocabMode?: HistoricalVocabMode;
 }
 
 export interface TypeaheadInputFieldComponentConfigOutline extends TypeaheadInputFieldComponentConfigFrame, FieldComponentConfigOutline {

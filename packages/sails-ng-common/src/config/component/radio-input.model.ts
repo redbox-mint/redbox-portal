@@ -25,6 +25,7 @@ export class RadioInputFieldComponentConfig extends FieldComponentConfig impleme
     options: RadioOption[] = [];
     vocabRef?: string;
     inlineVocab?: boolean;
+    historicalVocabMode?: 'hide' | 'disable';
 
     constructor() {
         super();

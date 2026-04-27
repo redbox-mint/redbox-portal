@@ -304,6 +304,48 @@ describe("CheckboxTreeComponent", () => {
     expect(selectedCheckbox.checked).toBeTrue();
   });
 
+  it("keeps disabled selected nodes checked and prevents keyboard toggling", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              inlineVocab: true,
+              leafOnly: false,
+              treeData: [
+                { id: "legacy", label: "Legacy", value: "0101", notation: "0101", hasChildren: false, disabled: true }
+              ]
+            }
+          },
+          model: {
+            class: "CheckboxTreeModel",
+            config: {
+              value: [{ notation: "0101", label: "Legacy", name: "0101 - Legacy" }]
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const checkbox = compiled.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    expect(checkbox.disabled).toBeTrue();
+    expect(checkbox.checked).toBeTrue();
+
+    const tree = compiled.querySelector('[role="tree"]') as HTMLElement;
+    tree.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const formValue = (formComponent as any).form.value?.anzsrc ?? [];
+    expect(formValue.length).toBe(1);
+    expect(formValue[0]?.notation).toBe("0101");
+  });
+
   it("shows loading indicator while lazy child nodes are loading", async () => {
     const vocabTreeService = TestBed.inject(VocabTreeService);
     const deferred = createDeferred<{ data: Array<Record<string, unknown>>; meta: Record<string, unknown> }>();

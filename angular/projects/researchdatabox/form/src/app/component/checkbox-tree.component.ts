@@ -60,6 +60,7 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
                 class="rb-tree-checkbox"
                 [checked]="isSelected(node)"
                 [indeterminate]="isIndeterminate(node)"
+                [attr.disabled]="node.disabled === true ? true : null"
                 [attr.aria-checked]="getAriaChecked(node)"
                 [id]="getCheckboxId(node)"
                 (change)="onNodeChecked(node, $any($event.target).checked)"
@@ -341,6 +342,9 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   }
 
   public onNodeChecked(node: CheckboxTreeRenderNode, checked: boolean): void {
+    if (node.disabled === true) {
+      return;
+    }
     const notation = this.getNotation(node);
     if (!notation) {
       return;
@@ -403,7 +407,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       case " ":
       case "Enter":
         event.preventDefault();
-        if (this.isSelectable(currentNode)) {
+        if (this.isSelectable(currentNode) && currentNode.disabled !== true) {
           this.onNodeChecked(currentNode, !this.isSelected(currentNode));
         }
         break;
@@ -460,6 +464,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
         notation: String(node.notation ?? node.value ?? ""),
         parent: String(node.parent ?? "").trim() || null,
         hasChildren: Boolean(node.hasChildren),
+        disabled: node.disabled === true,
         children: []
       });
       normalized[normalized.length - 1].displayLabel = this.renderDisplayLabel(normalized[normalized.length - 1]);
@@ -483,6 +488,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
         notation: String(node.notation ?? node.value ?? ""),
         parent: String(node.parent ?? "").trim() || null,
         hasChildren: Boolean(node.hasChildren || (node.children?.length ?? 0) > 0),
+        disabled: node.disabled === true,
         children: this.normalizeNodes(node.children ?? [], seen)
       });
       normalized[normalized.length - 1].displayLabel = this.renderDisplayLabel(normalized[normalized.length - 1]);

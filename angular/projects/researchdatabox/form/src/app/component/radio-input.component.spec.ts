@@ -105,4 +105,36 @@ describe('RadioInputComponent', () => {
     expect(labels.length).toBeGreaterThan(0);
     expect(labels[0].getAttribute('for')).toEqual('radio_lang_test-option1');
   });
+
+  it('should render disabled options', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      componentDefinitions: [
+        {
+          name: 'radio_disabled_test',
+          model: {
+            class: 'RadioInputModel',
+            config: {
+              value: 'legacy'
+            }
+          },
+          component: {
+            class: 'RadioInputComponent',
+            config: {
+              options: [
+                { label: 'Active', value: 'active' },
+                { label: 'Legacy', value: 'legacy', disabled: true }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const legacyInput = compiled.querySelector<HTMLInputElement>('#radio_disabled_test-legacy');
+    expect(legacyInput?.disabled).toBeTrue();
+    expect(legacyInput?.checked).toBeTrue();
+  });
 });
