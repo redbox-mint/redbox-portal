@@ -68,7 +68,11 @@ class RepeatableFormArray
         <ng-container #repeatableContainer></ng-container>
       </div>
       @if (isStatusReady() && isVisible && addButtonShow && (!hideWhenZeroRows || compDefMapEntries.length > 0)) {
-        <button type="button" class="rb-form-repeatable__add btn btn-success" (click)="appendNewElement()" [attr.aria-label]="'add-button-label' | i18next">
+        <button type="button"
+                class="rb-form-repeatable__add btn btn-success"
+                (click)="appendNewElement()"
+                [attr.aria-label]="'add-button-label' | i18next"
+                [disabled]="isDisabled">
           <span class="fa fa-plus-circle" aria-hidden="true"></span>
           <span>{{ 'add-button-label' | i18next }}</span>
         </button>
@@ -741,7 +745,12 @@ export interface RepeatableElementEntry {
       <ng-container #componentContainer></ng-container>
     </div>
     @if (isVisible && canRemove) {
-      <button type="button" class="rb-form-repeatable-item__remove btn btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next">
+      <button
+        type="button"
+        class="rb-form-repeatable-item__remove btn btn-danger"
+        (click)="clickedRemove()"
+        [attr.aria-label]="'remove-button-label' | i18next"
+        [disabled]="isDisabled">
         <span class="fa fa-minus-circle" aria-hidden="true"></span>
       </button>
     }
