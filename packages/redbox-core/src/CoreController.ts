@@ -554,7 +554,7 @@ export namespace Controllers.Core {
 
     private ensureDisplayErrors(collectedErrors: Error[], collectedDisplayErrors: ErrorResponseItemV2[]) {
       if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
-        collectedDisplayErrors.push({ code: 'server-error' });
+        collectedDisplayErrors.push({ code: 'server-error', status: "500" });
       }
     }
 
@@ -565,9 +565,12 @@ export namespace Controllers.Core {
           .reduce((prev, curr) => {
             const currStr = curr?.toString() || "";
             const prevStr = prev?.toString() || "";
-            if (!prevStr.startsWith('5') && !prevStr.startsWith('4') && currStr.startsWith('4')) {
+            // If the previous status is not 4xx or 5xx, set the status to at least 400,
+            // since there is at least one error.
+            if (!prevStr.startsWith('5') && !prevStr.startsWith('4')) {
               return "400";
             }
+            // Any status of 5xx will override any 4xx statuses.
             if (!prevStr.startsWith('5') && currStr.startsWith('5')) {
               return "500";
             }
