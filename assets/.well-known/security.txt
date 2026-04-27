@@ -1,0 +1,4 @@
+Contact: mailto:info@redboxresearchdata.com.au
+Expires: 2027-04-28T00:00:00.000Z
+Policy: https://github.com/redbox-mint/redbox-portal/security/policy
+Preferred-Languages: en

@@ -1,5 +1,6 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => expect = mod.expect);
+import * as path from 'path';
 import { http } from '../../src/config/http.config';
 
 type MockResponse = {
@@ -40,11 +41,13 @@ function createMockResponse(statusCode = 200): { res: MockResponse; getHeaders: 
 
 describe('http cacheControl middleware', function () {
     let originalSails: unknown;
+    const appPath = path.resolve(__dirname, '../../../..');
 
     beforeEach(function () {
         originalSails = (global as any).sails;
         (global as any).sails = {
             config: {
+                appPath,
                 session: {
                     cookie: {
                         maxAge: 3600000
@@ -85,6 +88,20 @@ describe('http cacheControl middleware', function () {
         expect(headers['Cache-Control']).to.equal('max-age=3600, private');
         expect(headers['Pragma']).to.be.undefined;
         expect(headers['Cross-Origin-Opener-Policy']).to.equal('same-origin-allow-popups');
+    });
+
+    it('should set baseline browser hardening headers for normal responses', function () {
+        const req: any = { path: '/default/rdmp/home' };
+        const { res, getHeaders } = createMockResponse();
+
+        http.middleware.cacheControl?.(req, res as any, () => undefined);
+
+        const headers = getHeaders();
+        expect(headers['Cross-Origin-Opener-Policy']).to.equal('same-origin-allow-popups');
+        expect(headers['Cross-Origin-Resource-Policy']).to.equal('same-origin');
+        expect(headers['Permissions-Policy']).to.equal('accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()');
+        expect(headers['Referrer-Policy']).to.equal('strict-origin-when-cross-origin');
+        expect(headers['X-XSS-Protection']).to.equal('0');
     });
 
     it('should force strict no-store headers for 403 responses', function () {
@@ -141,5 +158,53 @@ describe('http cacheControl middleware', function () {
         expect(headers['Cache-Control']).to.equal('no-store, no-cache, must-revalidate, proxy-revalidate');
         expect(headers['Pragma']).to.equal('no-cache');
         expect(headers['Expires']).to.equal('0');
+    });
+
+    it('should serve robots.txt from bundled assets before the default static middleware', function () {
+        const req: any = { path: '/robots.txt' };
+        let sentFile: string | undefined;
+        let nextCalled = false;
+        const res: any = {
+            sendFile(filePath: string) {
+                sentFile = filePath;
+                return this;
+            }
+        };
+
+        http.middleware.securityStaticAssets?.(req, res, () => { nextCalled = true; });
+
+        expect(nextCalled).to.equal(false);
+        expect(sentFile).to.equal(path.join(appPath, '.tmp', 'public', 'robots.txt'));
+    });
+
+    it('should serve security.txt from bundled assets before the default static middleware', function () {
+        const req: any = { path: '/.well-known/security.txt' };
+        let sentFile: string | undefined;
+        let nextCalled = false;
+        const res: any = {
+            sendFile(filePath: string) {
+                sentFile = filePath;
+                return this;
+            }
+        };
+
+        http.middleware.securityStaticAssets?.(req, res, () => { nextCalled = true; });
+
+        expect(nextCalled).to.equal(false);
+        expect(sentFile).to.equal(path.join(appPath, 'assets', '.well-known', 'security.txt'));
+    });
+
+    it('should fall through to later middleware for unrelated public asset paths', function () {
+        const req: any = { path: '/favicon.ico' };
+        let nextCalled = false;
+        const res: any = {
+            sendFile() {
+                throw new Error('sendFile should not be called for unrelated paths');
+            }
+        };
+
+        http.middleware.securityStaticAssets?.(req, res, () => { nextCalled = true; });
+
+        expect(nextCalled).to.equal(true);
     });
 });

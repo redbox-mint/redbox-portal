@@ -10,6 +10,7 @@ import { RequestHandler, Request, Response, NextFunction } from 'express';
 import type { PassportStatic } from 'passport';
 import * as _ from 'lodash';
 import * as fs from 'fs';
+import * as path from 'path';
 const onHeaders = require('on-headers') as (res: Response, listener: () => void) => void;
 const skipper = require('skipper');
 
@@ -80,6 +81,7 @@ export interface HttpMiddlewareConfig {
     poweredBy?: MiddlewareFunction;
     redirectNoCacheHeaders?: MiddlewareFunction;
     cacheControl?: MiddlewareFunction;
+    securityStaticAssets?: MiddlewareFunction;
     cookieParser?: RequestHandler;
     compress?: RequestHandler;
     router?: RequestHandler;
@@ -114,6 +116,17 @@ let _lazyCompanionSocketWired = false;
 const noStoreCacheControlHeaderValue = 'no-store, no-cache, must-revalidate, proxy-revalidate';
 const authSensitiveStatusCodes = new Set([401, 403]);
 const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
+const publicSecurityAssetPaths = new Map<string, string>([
+    ['/.well-known/security.txt', '.well-known/security.txt'],
+    ['/robots.txt', 'robots.txt'],
+]);
+const defaultSecurityHeaders: Record<string, string> = {
+    'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    'Cross-Origin-Resource-Policy': 'same-origin',
+    'Permissions-Policy': 'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'X-XSS-Protection': '0',
+};
 
 export interface CompanionAuthorizationDecision {
     isCompanionRequest: boolean;
@@ -216,6 +229,20 @@ function getNoStoreHeaders(): Record<string, string> {
         'Pragma': 'no-cache',
         'Expires': '0'
     };
+}
+
+function resolvePublicSecurityAsset(relativePath: string): string | null {
+    const candidatePaths = [
+        path.join(sails.config.appPath, '.tmp/public', relativePath),
+        path.join(sails.config.appPath, 'assets', relativePath),
+    ];
+    return candidatePaths.find((candidatePath) => fs.existsSync(candidatePath)) ?? null;
+}
+
+function applyDefaultSecurityHeaders(res: Response): void {
+    Object.entries(defaultSecurityHeaders).forEach(([headerName, headerValue]) => {
+        res.set(headerName, headerValue);
+    });
 }
 
 function applyNoStoreHeaders(res: Response): void {
@@ -550,6 +577,23 @@ export const http: HttpConfig = {
             next();
         },
 
+        securityStaticAssets: function (req: Request, res: Response, next: NextFunction) {
+            // Keep these as HTTP middleware instead of Sails routes so they still behave like
+            // bundled static files, prefer the built `.tmp/public` copy when present, and let us
+            // intercept `/.well-known/*` before default static handling skips dot-prefixed paths.
+            const assetRelativePath = publicSecurityAssetPaths.get(req.path);
+            if (_.isNil(assetRelativePath)) {
+                return next();
+            }
+
+            const assetPath = resolvePublicSecurityAsset(assetRelativePath);
+            if (_.isNil(assetPath)) {
+                return next();
+            }
+
+            return res.sendFile(assetPath);
+        },
+
         order: [
             'cacheControl',
             'redirectNoCacheHeaders',
@@ -563,6 +607,7 @@ export const http: HttpConfig = {
             'poweredBy',
             'router',
             'translate',
+            'securityStaticAssets',
             'brandingAndPortalAwareStaticRouter',
             'www',
             'favicon',
@@ -635,9 +680,7 @@ export const http: HttpConfig = {
             if (hasNoStoreDirective(cacheControlHeaderVal ?? undefined)) {
                 res.set('Pragma', 'no-cache');
             }
-            // Required for OAuth popup flows (e.g. Uppy Companion providers)
-            // so window.opener/window.closed checks are not blocked by COOP.
-            res.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+            applyDefaultSecurityHeaders(res);
             return next();
         }
     },
