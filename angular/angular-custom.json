@@ -164,7 +164,7 @@
             ],
             "styles": [
               "projects/researchdatabox/export/src/styles.scss",
-              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
+              "ngx-bootstrap/datepicker/bs-datepicker.css"
             ],
             "scripts": [],
             "browser": "projects/researchdatabox/export/src/main.ts"
@@ -354,7 +354,7 @@
             ],
             "styles": [
               "projects/researchdatabox/report/src/styles.scss",
-              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
+              "ngx-bootstrap/datepicker/bs-datepicker.css"
             ],
             "scripts": [],
             "browser": "projects/researchdatabox/report/src/main.ts"
@@ -859,7 +859,7 @@
             ],
             "styles": [
               "projects/researchdatabox/deleted-records/src/styles.scss",
-              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
+              "ngx-bootstrap/datepicker/bs-datepicker.css"
             ],
             "scripts": [],
             "browser": "projects/researchdatabox/deleted-records/src/main.ts"
