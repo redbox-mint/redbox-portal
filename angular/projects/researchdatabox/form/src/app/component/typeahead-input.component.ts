@@ -1,11 +1,11 @@
-import { AfterViewChecked, Component, DestroyRef, inject, Injector, Input, signal } from '@angular/core';
+import {AfterViewChecked, Component, DestroyRef, inject, Input, signal} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import {
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
   FormFieldModel,
-  HandlebarsTemplateService,
+  HandlebarsTemplateService, ModifyOptions,
 } from '@researchdatabox/portal-ng-common';
 import {
   DynamicScriptResponse,
@@ -267,6 +267,17 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
   public onDropdownHidden(): void {
     this.isOpen = false;
+  }
+
+
+  override setDisabled(disabled: boolean, opts?: ModifyOptions) {
+    super.setDisabled(disabled, opts);
+    // Also disable and enable the display formControl.
+    if (!disabled && this.displayControl?.disabled) {
+      this.displayControl?.enable(opts);
+    } else if (disabled && this.displayControl?.enabled) {
+      this.displayControl?.disable(opts);
+    }
   }
 
   private validateConfiguration(): boolean {
