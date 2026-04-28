@@ -12,6 +12,7 @@ import {
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { FormComponentValueChangeEventProducer } from '../form-state/events/form-component-change-event-producer';
 import { FormComponentValueChangeEventConsumer } from '../form-state/events/form-component-change-event-consumer';
+import { FormComponentSyncSourceEventConsumer } from '../form-state/events/form-component-sync-source-event-consumer';
 import { FormComponentUIAttributeChangeEventProducer } from '../form-state/events/form-component-ui-attribute-change-event-producer';
 import { FormComponentUIAttributeChangeEventConsumer } from '../form-state/events/form-component-ui-attribute-change-event-consumer';
 import { FormComponentItemSelectEventProducer } from '../form-state/events/form-component-item-select-event-producer';
@@ -53,6 +54,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   private readonly injector = inject(Injector);
   private readonly valueChangeEventProducer = new FormComponentValueChangeEventProducer(this.eventBus);
   private readonly valueChangeEventConsumer = new FormComponentValueChangeEventConsumer(this.eventBus);
+  private readonly syncSourceEventConsumer = new FormComponentSyncSourceEventConsumer(this.eventBus);
   private readonly uiAttributeChangeEventProducer = new FormComponentUIAttributeChangeEventProducer(this.eventBus);
   private readonly uiAttributeChangeEventConsumer = new FormComponentUIAttributeChangeEventConsumer(this.eventBus);
   private readonly itemSelectEventProducer = new FormComponentItemSelectEventProducer(this.eventBus);
@@ -148,7 +150,14 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
       });
     }
 
-    if (this.shouldAttachValueChangeConsumer(this.formFieldCompMapEntry, compRef.instance)) {
+    if (this.shouldAttachSyncSourceConsumer(this.formFieldCompMapEntry, compRef.instance)) {
+      this.syncSourceEventConsumer.formComponent = this.getFormComponent;
+      this.syncSourceEventConsumer.bind({
+        isLayout: isLayout,
+        component: compRef.instance,
+        definition: this.formFieldCompMapEntry
+      });
+    } else if (this.shouldAttachValueChangeConsumer(this.formFieldCompMapEntry, compRef.instance)) {
       this.valueChangeEventConsumer.formComponent = this.getFormComponent;
       this.valueChangeEventConsumer.bind({
         isLayout: isLayout,
@@ -211,6 +220,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   ngOnDestroy() {
     this.valueChangeEventProducer.destroy();
     this.valueChangeEventConsumer.destroy();
+    this.syncSourceEventConsumer.destroy();
     this.uiAttributeChangeEventProducer.destroy();
     this.uiAttributeChangeEventConsumer.destroy();
     this.itemSelectEventProducer.destroy();
@@ -264,6 +274,22 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     return !VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS.has(
       entry.compConfigJson?.component?.class ?? ''
     );
+  }
+
+  /**
+   * When syncSources are declared, attach the guarded sync-source consumer
+   * instead of the default value change consumer.
+   */
+  private shouldAttachSyncSourceConsumer(
+    entry: FormFieldCompMapEntry | undefined,
+    instance: FormFieldBaseComponent<ValueType>
+  ): boolean {
+    if (!entry || entry.component !== instance) {
+      return false;
+    }
+
+    const syncSources = entry.compConfigJson?.component?.config?.syncSources;
+    return Array.isArray(syncSources) && syncSources.length > 0;
   }
 
   /**

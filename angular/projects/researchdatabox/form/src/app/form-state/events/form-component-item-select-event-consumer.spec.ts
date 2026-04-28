@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { FormControl } from '@angular/forms';
+import { FormControl, FormGroup } from '@angular/forms';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
 import { Subject } from 'rxjs';
-import { FormComponentEventBus } from './form-component-event-bus.service';
+import { FormComponentEventBus, ScopedEventBus } from './form-component-event-bus.service';
 import { FormComponentItemSelectEventConsumer } from './form-component-item-select-event-consumer';
 import { FieldItemSelectedEvent, FormComponentEventType } from './form-component-event.types';
 import { CustomSetValueControl } from '../custom-set-value.control';
@@ -11,15 +11,17 @@ describe('FormComponentItemSelectEventConsumer', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
   let consumer: FormComponentItemSelectEventConsumer;
   let eventStream$: Subject<FieldItemSelectedEvent>;
-
+  let scopedBus: jasmine.SpyObj<ScopedEventBus>;
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [LoggerService]
     });
 
     eventStream$ = new Subject<FieldItemSelectedEvent>();
-    eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$']);
+    scopedBus = jasmine.createSpyObj<ScopedEventBus>('ScopedEventBus', ['publish']);
+    eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$', 'publish', 'scoped']);
     eventBus.select$.and.returnValue(eventStream$.asObservable());
+    eventBus.scoped.and.returnValue(scopedBus);
 
     consumer = TestBed.runInInjectionContext(() => new FormComponentItemSelectEventConsumer(eventBus));
   });
@@ -36,6 +38,10 @@ describe('FormComponentItemSelectEventConsumer', () => {
     }
   ) {
     const control = new FormControl('');
+    new FormGroup({
+      funderName: control,
+      funderSearch: new FormControl('')
+    });
 
     const config = onItemSelect === null ? {} : { onItemSelect };
 
@@ -172,6 +178,27 @@ describe('FormComponentItemSelectEventConsumer', () => {
 
     expect(customSetter).toHaveBeenCalledWith('https://example.org/funder/custom', { emitEvent: false });
     expect(setValueSpy).not.toHaveBeenCalled();
+  });
+
+  it('should rebroadcast the parent group value after applying an item selection', async () => {
+    const { options } = createBindOptions('/record/contributors/0/funderName', {
+      rawPath: 'identifier',
+      clearValue: ''
+    });
+
+    consumer.bind(options as any);
+
+    emitEvent('/record/contributors/0/funderSearch', {
+      raw: {
+        identifier: 'https://example.org/funder/parent'
+      }
+    });
+    await Promise.resolve();
+
+    expect(eventBus.scoped).toHaveBeenCalledWith('/record/contributors/0');
+    expect(scopedBus.publish).toHaveBeenCalledWith(jasmine.objectContaining({
+      fieldId: '/record/contributors/0'
+    }));
   });
 
   it('should ignore events from same field (self)', () => {

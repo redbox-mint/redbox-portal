@@ -1,60 +1,59 @@
 version: 2
 updates:
-
   # Update Dockerfile files
-  - package-ecosystem: "docker"
-    directory: "/"
+  - package-ecosystem: 'docker'
+    directory: '/'
     schedule:
-      interval: "daily"
-    target-branch: "develop"
+      interval: 'daily'
+    target-branch: 'develop'
     cooldown:
       default-days: 7
 
   # Update docker compose files
-  - package-ecosystem: "docker-compose"
+  - package-ecosystem: 'docker-compose'
     directories:
-      - "/support/development"
-      - "/support/integration-testing"
-      - "/packages/sails-hook-redbox-storage-mongo/support"
+      - '/support/development'
+      - '/support/integration-testing'
+      - '/packages/sails-hook-redbox-storage-mongo/support'
     schedule:
-      interval: "daily"
-    target-branch: "develop"
+      interval: 'daily'
+    target-branch: 'develop'
     cooldown:
       default-days: 7
 
   # Update github actions files
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "daily"
-    target-branch: "develop"
+      interval: 'daily'
+    target-branch: 'develop'
     cooldown:
       default-days: 7
 
   # Update package npm files
-  - package-ecosystem: "npm"
+  - package-ecosystem: 'npm'
     directories:
-      - "/"
-      - "/packages/raido"
-      - "/packages/redbox-core"
-      - "/packages/redbox-dev-tools"
-      - "/packages/rva-registry"
-      - "/packages/sails-hook-redbox-storage-mongo"
-      - "/packages/sails-ng-common"
+      - '/'
+      - '/packages/raido'
+      - '/packages/redbox-core'
+      - '/packages/redbox-dev-tools'
+      - '/packages/rva-registry'
+      - '/packages/sails-hook-redbox-storage-mongo'
+      - '/packages/sails-ng-common'
     schedule:
-      interval: "daily"
-    target-branch: "develop"
+      interval: 'daily'
+    target-branch: 'develop'
     cooldown:
       default-days: 7
 
   # Update support npm files
-  - package-ecosystem: "npm"
+  - package-ecosystem: 'npm'
     directories:
-      - "/support/build/api-descriptors"
-      - "/test/bruno"
+      - '/support/build/api-descriptors'
+      - '/test/bruno'
     schedule:
-      interval: "daily"
-    target-branch: "develop"
+      interval: 'daily'
+    target-branch: 'develop'
     cooldown:
       default-days: 7
 
@@ -62,37 +61,45 @@ updates:
   # Update angular dependencies as a group,
   #  with one PR having minor & patch changes,
   #  and separate PR for major version changes
-  - package-ecosystem: "npm"
+  - package-ecosystem: 'npm'
     directories:
-      - "/angular"
-      - "/angular/projects/researchdatabox/portal-ng-common"
-      - "/angular/projects/researchdatabox/portal-ng-form-custom"
+      - '/angular'
+      - '/angular/projects/researchdatabox/portal-ng-common'
+      - '/angular/projects/researchdatabox/portal-ng-form-custom'
     schedule:
-      interval: "daily"
-    target-branch: "develop"
+      interval: 'daily'
+    target-branch: 'develop'
     groups:
       angular:
-        applies-to: "version-updates"
+        applies-to: 'version-updates'
+        group-by: 'dependency-name'
         patterns:
-          - "@angular*"
-          - "ngx-bootstrap"
-          - "angular-i18next"
-          - "@schematics/angular"
-          - "ng-packagr"
-          - "@ngx-formly/*"
+          - '@tiptap/*'
+          - '@angular/*'
+          - '@angular-devkit/*'
+          - 'ngx-bootstrap'
+          - '@schematics/angular'
+          - 'ng-packagr'
+          - '@ngx-formly/*'
+          - '@ngrx/*'
+          - 'ngx-tiptap'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
       angular-major:
-        applies-to: "version-updates"
+        applies-to: 'version-updates'
+        group-by: 'dependency-name'
         patterns:
-          - "@angular*"
-          - "ngx-bootstrap"
-          - "angular-i18next"
-          - "@schematics/angular"
-          - "ng-packagr"
-          - "@ngx-formly/*"
+          - '@tiptap/*'
+          - '@angular/*'
+          - '@angular-devkit/*'
+          - 'ngx-bootstrap'
+          - '@schematics/angular'
+          - 'ng-packagr'
+          - '@ngx-formly/*'
+          - '@ngrx/*'
+          - 'ngx-tiptap'
         update-types:
-          - "major"
+          - 'major'
     cooldown:
       default-days: 7

@@ -1,14 +1,20 @@
-import { TestBed } from '@angular/core/testing';
-import { FormFieldComponentStatus } from '@researchdatabox/sails-ng-common';
-import { LoggerService } from '../logger.service';
-import { UtilityService } from '../utility.service';
-import { FormFieldBaseComponent } from './form-field-base.component';
+import {TestBed} from '@angular/core/testing';
+import {FormFieldComponentStatus} from '@researchdatabox/sails-ng-common';
+import {LoggerService} from '../logger.service';
+import {UtilityService} from '../utility.service';
+import {FormFieldBaseComponent} from './form-field-base.component';
+import {FormFieldModel} from "./base.model";
 
 class TestFormFieldBaseComponent extends FormFieldBaseComponent<unknown> {
   public waitForViewReady(): Promise<void> {
     return this.untilViewIsInitialised();
   }
 }
+
+class TestFormFieldModel extends FormFieldModel<unknown> {
+  protected override logName = "TestFormFieldModel";
+}
+
 
 describe('FormFieldBaseComponent', () => {
   let component: TestFormFieldBaseComponent;
@@ -40,5 +46,21 @@ describe('FormFieldBaseComponent', () => {
     } finally {
       jasmine.clock().uninstall();
     }
+  });
+  it('should set formControl to disabled', async () => {
+    await component.initComponent({
+      modelClass: TestFormFieldModel,
+      model: new TestFormFieldModel({class: "SimpleInputModel"}),
+      compConfigJson: {
+        name: "testing-component-model-disabled",
+        component: {class: "SimpleInputComponent", config: {}}
+      }
+    });
+    expect(component.isDisabled).toBeFalse();
+
+    component.setDisabled(true);
+    expect(component.isDisabled).toBeTrue();
+
+    expect(component.model?.isDisabled).toBeTrue();
   });
 });

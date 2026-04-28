@@ -58,6 +58,70 @@ describe("Client Visitor", async () => {
     expect(repeatableConfig.hideWhenZeroRows).to.equal(true);
   });
 
+  it('should propagate syncSources through sharedPopulateFieldComponentConfig', () => {
+    const args: FormConfigFrame = {
+      name: 'repeatable-sync-sources-preserve',
+      componentDefinitions: [
+        {
+          name: 'contributor_dmp_permissions',
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              syncSources: [
+                {
+                  fieldName: 'contributor_ci_rhd',
+                  visibilityConditionField: 'project-type',
+                  visibilityConditionValues: ['@dmpt-project-type-rhd-val'],
+                },
+                {
+                  fieldName: 'contributor_ci_not_rhd',
+                  visibilityConditionField: 'project-type',
+                  visibilityConditionValues: [
+                    '@dmpt-project-type-staff-val',
+                    '@dmpt-project-type-other-val',
+                  ],
+                },
+              ],
+              elementTemplate: {
+                name: '',
+                component: {
+                  class: 'SimpleInputComponent',
+                },
+              },
+            } as RepeatableFieldComponentConfigFrame,
+          },
+        },
+      ],
+    };
+
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      data: args,
+      formMode: 'edit',
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed });
+    const repeatableConfig = actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame;
+
+    expect(repeatableConfig.syncSources).to.deep.equal([
+      {
+        fieldName: 'contributor_ci_rhd',
+        visibilityConditionField: 'project-type',
+        visibilityConditionValues: ['@dmpt-project-type-rhd-val'],
+      },
+      {
+        fieldName: 'contributor_ci_not_rhd',
+        visibilityConditionField: 'project-type',
+        visibilityConditionValues: [
+          '@dmpt-project-type-staff-val',
+          '@dmpt-project-type-other-val',
+        ],
+      },
+    ]);
+  });
+
   it('should keep numeric-like string values in repeatable group data', async function () {
     const args: FormConfigFrame = {
       name: 'repeatable-group-numeric-like',

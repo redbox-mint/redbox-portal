@@ -3,6 +3,7 @@ import { VocabularyAttributes, VocabularyEntryAttributes } from '../waterline-mo
 import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import {toBoolean} from "@researchdatabox/sails-ng-common";
 
 export namespace Services {
   type VocabType = 'flat' | 'tree';
@@ -189,17 +190,6 @@ export namespace Services {
       }
 
       return brandingString;
-    }
-
-    private toBoolean(value: unknown): boolean {
-      if (typeof value === 'boolean') {
-        return value;
-      }
-      if (typeof value === 'number') {
-        return value !== 0;
-      }
-      const normalized = String(value ?? '').trim().toLowerCase();
-      return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
     }
 
     public async list(options: VocabularyListOptions): Promise<{ data: VocabularyAttributes[]; meta: { total: number; limit: number; offset: number } }> {
@@ -577,7 +567,7 @@ export namespace Services {
         ...entry,
         label: String(entry.label ?? '').trim(),
         value: String(entry.value ?? '').trim(),
-        historical: this.toBoolean(entry.historical)
+        historical: toBoolean(entry.historical)
       };
     }
 
@@ -899,7 +889,7 @@ export namespace Services {
         label: String(entry.label ?? '').trim(),
         value: String(entry.value ?? '').trim(),
         order: typeof entry.order === 'number' ? entry.order : index,
-        historical: typeof entry.historical === 'undefined' ? false : this.toBoolean(entry.historical)
+        historical: typeof entry.historical === 'undefined' ? false : toBoolean(entry.historical)
       };
 
       if (typeof entry.identifier === 'string' && entry.identifier.trim()) {

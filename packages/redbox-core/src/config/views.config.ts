@@ -1,13 +1,13 @@
 /**
  * Views Config Interface
  * (sails.config.views)
- * 
+ *
  * View engine configuration for server-side rendering.
  */
 
 export interface ViewsConfig {
     /** Template engine: 'ejs', 'jade', 'handlebars', etc. */
-    engine?: string;
+    extension?: string;
 
     /** Layout template path (relative to views/) or false to disable */
     layout?: string | false;
@@ -23,7 +23,7 @@ export interface ViewsConfig {
 }
 
 export const views: ViewsConfig = {
-    engine: 'ejs',
+    extension: 'ejs',
     layout: 'default/default/layout',
     partials: false,
     noCache: [

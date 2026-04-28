@@ -84,6 +84,8 @@ export class TranslationService extends HttpClientService implements Service {
     }
   };
 
+  private readonly translationKeyValueCache: Map<string, TranslationResult> = new Map();
+
   constructor(
     @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
@@ -184,21 +186,34 @@ export class TranslationService extends HttpClientService implements Service {
       return '';
     }
 
+    const cacheKey = Array.isArray(key) ? key.join('][') : String(key);
+
+    if (this.translationKeyValueCache.has(cacheKey)) {
+      return this.translationKeyValueCache.get(cacheKey);
+    }
+
     // Guess at whether the key is a natural language string.
     // If it likely is natural langauge, just return it.
     if (!Array.isArray(key) && isLikelyNaturalLanguage(key)) {
+      this.translationKeyValueCache.set(cacheKey, key);
       return key;
     }
 
     if (typeof defaultValueOrOptions === 'string') {
-      return this.i18NextService.t(key, defaultValueOrOptions, options);
+      const result = this.i18NextService.t(key, defaultValueOrOptions, options);
+      this.translationKeyValueCache.set(cacheKey, result);
+      return result;
     }
 
     if (defaultValueOrOptions === undefined) {
-      return this.i18NextService.t(key);
+      const result = this.i18NextService.t(key);
+      this.translationKeyValueCache.set(cacheKey, result);
+      return result;
     }
 
-    return this.i18NextService.t(key, defaultValueOrOptions);
+    const result = this.i18NextService.t(key, defaultValueOrOptions);
+    this.translationKeyValueCache.set(cacheKey, result);
+    return result;
   }
 
   /** Change the current language and reload resources */
