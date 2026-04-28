@@ -38,7 +38,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
           type: "text",
           hostCssClasses: "flex-grow-1 d-block",
           wrapperCssClasses: "rb-form-contributor-inline__field",
-          onItemSelect: { rawPath: 'metadata.email' },
+          onItemSelect: {rawPath: 'metadata.email'},
         }
       },
       model: {class: "SimpleInputModel", config: {validators: [{class: "email"}]}},
@@ -55,7 +55,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
           type: "text",
           hostCssClasses: "flex-grow-1 d-block",
           wrapperCssClasses: "rb-form-contributor-inline__field",
-          onItemSelect: { rawPath: 'metadata.orcid' },
+          onItemSelect: {rawPath: 'metadata.orcid'},
         }
       },
       model: {class: "SimpleInputModel", config: {validators: [{class: "orcid"}]}},
@@ -103,7 +103,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
           type: "text",
           hostCssClasses: "flex-grow-1 d-block",
           wrapperCssClasses: "rb-form-contributor-inline__field",
-          onItemSelect: { rawPath: 'metadata.email' },
+          onItemSelect: {rawPath: 'metadata.email'},
           readonly: true,
         }
       },
@@ -121,7 +121,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
           type: "text",
           hostCssClasses: "flex-grow-1 d-block",
           wrapperCssClasses: "rb-form-contributor-inline__field",
-          onItemSelect: { rawPath: 'metadata.orcid' },
+          onItemSelect: {rawPath: 'metadata.orcid'},
         }
       },
       model: {class: "SimpleInputModel", config: {validators: [{class: "orcid"}]}},
@@ -143,7 +143,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
           type: "text",
           hostCssClasses: "d-block",
           wrapperCssClasses: "rb-form-contributor-inline__field rb-form-contributor-inline__field--title",
-          onItemSelect: { rawPath: 'metadata.title' },
+          onItemSelect: {rawPath: 'metadata.title'},
         }
       },
       model: {class: "SimpleInputModel", config: {}},
@@ -170,7 +170,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
           type: "text",
           hostCssClasses: "d-block",
           wrapperCssClasses: "rb-form-contributor-inline__field rb-form-contributor-inline__field--title",
-          onItemSelect: { rawPath: 'metadata.title' },
+          onItemSelect: {rawPath: 'metadata.title'},
         }
       },
       model: {class: "SimpleInputModel", config: {}},
@@ -273,6 +273,132 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
               component: {class: "ReusableComponent", config: {componentDefinitions: []}},
             },
           ],
+        },
+      },
+    },
+  ],
+  /**
+   * Contributor DMP permissions repeatable.
+   * Consuming configs should override syncSources and add expressions.
+   */
+  "contributor-dmp-permissions": [
+    {
+      name: "contributor_dmp_permissions_repeatable",
+      component: {
+        class: "RepeatableComponent",
+        config: {
+          addButtonShow: true,
+          allowZeroRows: true,
+          hideWhenZeroRows: false,
+          syncSources: [
+            {
+              fieldName: "",
+              blankCheckFields: ["name", "email", "orcid", "username"],
+              defaultTemplate: {username: null, role: "View&Edit"}
+            },
+            {
+              fieldName: "",
+              blankCheckFields: ["name", "email", "orcid", "username"],
+              defaultTemplate: {username: null, role: "View&Edit"}
+            }
+          ],
+          elementTemplate: {
+            name: "",
+            overrides: {reusableFormName: "standard-contributor-fields-lookup-only-group"},
+            component: {
+              class: "ReusableComponent",
+              config: {
+                label: "@dmpt-user-permissions-tab-dmp-permissions",
+                componentDefinitions: [
+                  {
+                    name: "standard_contributor_fields_lookup_only_group",
+                    overrides: {replaceName: ""},
+                    component: {
+                      class: "GroupComponent",
+                      config: {
+                        componentDefinitions: [
+                          {
+                            overrides: {reusableFormName: "standard-contributor-fields-lookup-only"},
+                            name: "standard_contributor_fields_lookup_only_reusable",
+                            component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+                          },
+                          {
+                            name: "role",
+                            component: {
+                              class: "DropdownInputComponent",
+                              config: {
+                                hostCssClasses: "rb-form-contributor-inline__field rb-form-contributor-inline__field--role",
+                                options: [
+                                  {
+                                    label: "View",
+                                    value: "View"
+                                  },
+                                  {
+                                    label: "Edit",
+                                    value: "View&Edit"
+                                  }
+                                ]
+                              }
+                            },
+                            model: {
+                              class: "DropdownInputModel",
+                              config: {
+                                validators: [{class: "required"}]
+                              }
+                            },
+                            layout: {
+                              class: "InlineLayout",
+                              config: {
+                                label: "@dmpt-user-permissions-tab-role-hdr",
+                                hostCssClasses: "d-flex align-items-center gap-2"
+                              }
+                            }
+                          }
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+            model: {
+              class: "GroupModel",
+              config: {
+                value: {
+                  role: "View"
+                },
+                newEntryValue: {
+                  role: "View"
+                },
+                validators: [{class: "required"}],
+              },
+            },
+            layout: {
+              class: "DefaultLayout",
+              config: {
+                label: "@dmpt-user-permissions-tab-dmp-permissions",
+                helpText: "@dmpt-user-permissions-tab-dmp-permission-help",
+              },
+            },
+          } as never,
+        },
+      },
+      model: {
+        class: "RepeatableModel",
+        config: {
+          defaultValue: [
+            {
+              role: "View"
+            }
+          ],
+          validators: [{class: "required"}],
+        },
+      },
+      layout: {
+        class: "DefaultLayout",
+        config: {
+          label: "@dmpt-user-permissions-tab-dmp-permissions",
+          helpText: "@dmpt-user-permissions-tab-dmp-permission-help",
         },
       },
     },
