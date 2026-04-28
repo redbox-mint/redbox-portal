@@ -1,7 +1,7 @@
 import { TestBed } from "@angular/core/testing";
 import { By } from "@angular/platform-browser";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
-import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
+import { createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets } from "../helpers.spec";
 import { CheckboxTreeComponent } from "./checkbox-tree.component";
 import { VocabTreeService } from "../service/vocab-tree.service";
 
@@ -73,6 +73,58 @@ describe("CheckboxTreeComponent", () => {
     const checkboxes = compiled.querySelectorAll('input[type="checkbox"]');
     expect(checkboxes.length).toBe(1);
     expect((compiled.textContent ?? "").includes("Leaf")).toBeTrue();
+  });
+
+  it("expands parent nodes when their label is clicked instead of toggling the parent checkbox", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              inlineVocab: true,
+              leafOnly: false,
+              treeData: [
+                {
+                  id: "root",
+                  label: "Root",
+                  value: "01",
+                  notation: "01",
+                  hasChildren: true,
+                  children: [
+                    { id: "leaf", label: "Leaf", value: "0101", notation: "0101", hasChildren: false }
+                  ]
+                }
+              ]
+            }
+          },
+          model: {
+            class: "CheckboxTreeModel",
+            config: {
+              value: []
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const parentLabel = compiled.querySelector(".rb-tree-label") as HTMLLabelElement;
+    const parentCheckbox = compiled.querySelector('input[type="checkbox"]') as HTMLInputElement;
+
+    expect(compiled.querySelectorAll('[role="treeitem"]').length).toBe(1);
+
+    parentLabel.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(compiled.querySelectorAll('[role="treeitem"]').length).toBe(2);
+    expect((compiled.textContent ?? "").includes("Leaf")).toBeTrue();
+    expect(parentCheckbox.checked).toBeFalse();
   });
 
   it("renders templated visible labels and updates selected item label value", async () => {
