@@ -47,6 +47,7 @@ import { getAppConfigByIdRoute, saveAppConfigByIdRoute } from '../../src/api-rou
 import { brandingApiRoutes } from '../../src/api-routes/groups/branding';
 import { listRecordsRoute, updateMetaRoute } from '../../src/api-routes/groups/records';
 import { objectField, stringField } from '../../src/api-routes/schemas/common';
+import { policies } from '../../src/config/policies.config';
 
 let expect: Chai.ExpectStatic;
 import('chai').then((mod) => expect = mod.expect);
@@ -300,6 +301,25 @@ describe('API routes contract layer', async () => {
       'get /api/widgets/static',
       'get /api/widgets/:id',
       'get /api/widgets/:id*',
+    ]);
+  });
+
+  it('should map contract-first API actions to request validation policy after default webservice policies', function () {
+    const recordPolicies = policies['webservice/RecordController'] as Record<string, unknown>;
+    const createPolicies = recordPolicies.create as string[];
+
+    expect(createPolicies).to.deep.equal([
+      'noCache',
+      'brandingAndPortal',
+      'checkBrandingValid',
+      'setLang',
+      'prepWs',
+      'i18nLanguages',
+      'menuResolver',
+      'isWebServiceAuthenticated',
+      'checkAuth',
+      'contentSecurityPolicy',
+      'validateApiContractRequest',
     ]);
   });
 
@@ -632,6 +652,14 @@ describe('API routes contract layer', async () => {
 
     const sendNotificationSchema = sendNotificationRoute.responses?.[200]?.content?.['application/json']?.schema;
     expect(sendNotificationSchema?.safeParse({ message: 'Sent', details: '' }).success).to.equal(true);
+
+    const missingTemplateResult = validateApiRouteRequest({
+      params: { branding: 'default', portal: 'rdmp' },
+      query: {},
+      headers: {},
+      body: { to: 'to@example.test', data: {} }
+    } as unknown as Sails.Req, sendNotificationRoute);
+    expect(missingTemplateResult.valid).to.equal(true);
 
     const formNotFoundSchema = getFormRoute.responses?.[404]?.content?.['application/json']?.schema;
     expect(formNotFoundSchema?.safeParse({ message: 'Form not found', details: '' }).success).to.equal(true);

@@ -5,6 +5,8 @@
  * Policy mapping configuration for controller actions.
  */
 
+import { registerCoreApiRoutes } from '../api-routes';
+
 export type PolicyName = string;
 export type PolicyChain = PolicyName | PolicyName[] | boolean;
 
@@ -32,6 +34,10 @@ const defaultPolicies: PolicyName[] = [
 ];
 
 const noCachePlusDefaultPolicies: PolicyName[] = ['noCache', ...defaultPolicies];
+const noCachePlusApiValidationPolicies: PolicyName[] = [
+    ...noCachePlusDefaultPolicies,
+    'validateApiContractRequest'
+];
 const doAttachmentPolicies: PolicyName[] = noCachePlusDefaultPolicies.flatMap((policy) => (
     policy === 'checkAuth' ? ['companionAttachmentUploadAuth', policy] : [policy]
 ));
@@ -44,6 +50,19 @@ const publicTranslationPolicies: PolicyName[] = [
 ];
 
 const noCachePlusCspNoncePolicy: PolicyName[] = ['noCache', 'contentSecurityPolicy'];
+
+function buildContractApiPolicies(): PoliciesConfig {
+    return registerCoreApiRoutes().reduce((acc, route) => {
+        const controllerPolicies = acc[route.controller] as ControllerPolicies | undefined;
+        acc[route.controller] = {
+            '*': noCachePlusDefaultPolicies,
+            ...(controllerPolicies ?? {}),
+            [route.action]: noCachePlusApiValidationPolicies
+        };
+        return acc;
+    }, {} as PoliciesConfig);
+}
+
 export const policies: PoliciesConfig = {
     UserController: {
         '*': noCachePlusDefaultPolicies,
@@ -68,6 +87,7 @@ export const policies: PoliciesConfig = {
     'webservice/BrandingController': {
         '*': noCachePlusDefaultPolicies
     },
+    ...buildContractApiPolicies(),
     'DynamicAssetController': {
         '*': noCachePlusDefaultPolicies
     },

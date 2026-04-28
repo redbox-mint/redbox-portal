@@ -179,5 +179,5 @@ export const notificationBody = objectField(
     format: stringField('Email format'),
     data: anyField('Template data'),
   },
-  ['to', 'template']
+  []
 );
