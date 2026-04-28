@@ -1,4 +1,5 @@
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { By } from '@angular/platform-browser';
 import { CheckboxInputComponent } from './checkbox-input.component';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { TestBed } from '@angular/core/testing';
@@ -184,5 +185,52 @@ describe('CheckboxInputComponent', () => {
     await fixture.whenStable();
 
     expect((formComponent as any).form.value?.checkbox_disabled_test).toEqual(['legacy']);
+  });
+
+  it('should disable all options when the field is disabled', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      componentDefinitions: [
+        {
+          name: 'checkbox_field_disabled_test',
+          model: {
+            class: 'CheckboxInputModel',
+            config: {
+              value: ['legacy'],
+            },
+          },
+          component: {
+            class: 'CheckboxInputComponent',
+            config: {
+              options: [
+                { label: 'Active', value: 'active' },
+                { label: 'Legacy', value: 'legacy' },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const component = fixture.debugElement.query(By.directive(CheckboxInputComponent)).componentInstance as CheckboxInputComponent;
+    const compiled = fixture.nativeElement as HTMLElement;
+    const activeInput = compiled.querySelector<HTMLInputElement>('#checkbox_field_disabled_test-active');
+    const legacyInput = compiled.querySelector<HTMLInputElement>('#checkbox_field_disabled_test-legacy');
+
+    component.setDisabled(true, { emitEvent: false, onlySelf: true });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(component.isDisabled).toBeTrue();
+    expect((formComponent as any).form.get('checkbox_field_disabled_test')?.disabled).toBeTrue();
+    expect(activeInput?.disabled).toBeTrue();
+    expect(legacyInput?.disabled).toBeTrue();
+
+    component.onOptionChange(true, { label: 'Active', value: 'active' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect((formComponent as any).form.get('checkbox_field_disabled_test')?.value).toEqual(['legacy']);
   });
 });

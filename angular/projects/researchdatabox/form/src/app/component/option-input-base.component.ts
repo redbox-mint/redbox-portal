@@ -29,13 +29,16 @@ export abstract class OptionInputBaseComponent<
     }
 
     protected setControlValue(value: TValue): void {
+        if (!this.formControl || this.isDisabled || this.isReadonly) {
+            return;
+        }
         this.formControl.setValue(value);
         this.formControl.markAsDirty();
         this.formControl.markAsTouched();
     }
 
     public isOptionDisabled(option: TOption): boolean {
-        return option.disabled === true;
+        return this.isDisabled || this.isReadonly || option.disabled === true;
     }
 
     public getOptionId(opt: TOption): string {

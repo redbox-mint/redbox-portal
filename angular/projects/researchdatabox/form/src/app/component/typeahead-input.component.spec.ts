@@ -255,8 +255,10 @@ describe("TypeaheadInputComponent", () => {
 
         const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
         const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
 
         expect(component.displayControl.disabled).toBeFalse();
+        expect(input.disabled).toBeFalse();
 
         component.setDisabled(true, { emitEvent: false, onlySelf: true });
         await fixture.whenStable();
@@ -264,6 +266,7 @@ describe("TypeaheadInputComponent", () => {
 
         expect(component.isDisabled).toBeTrue();
         expect(component.displayControl.disabled).toBeTrue();
+        expect(input.disabled).toBeTrue();
         expect((formComponent as any).form.get("person_lookup")?.disabled).toBeTrue();
 
         component.setDisabled(false, { emitEvent: false, onlySelf: true });
@@ -272,6 +275,7 @@ describe("TypeaheadInputComponent", () => {
 
         expect(component.isDisabled).toBeFalse();
         expect(component.displayControl.disabled).toBeFalse();
+        expect(input.disabled).toBeFalse();
         expect((formComponent as any).form.get("person_lookup")?.disabled).toBeFalse();
     });
 
@@ -498,6 +502,62 @@ describe("TypeaheadInputComponent", () => {
         component.displayControl.setValue("a");
         const options = await firstValueFrom(component.suggestions$);
         expect(options.map(option => option.value)).toEqual(["active"]);
+        expect(typeaheadDataService.searchVocabularyEntries).toHaveBeenCalledWith("access-rights", "a", 25, 0, false);
+    });
+
+    it("requests historical suggestions when the stored vocabulary value is historical in hide mode", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        const searchVocabularyEntries = spyOn(typeaheadDataService, "searchVocabularyEntries").and.callFake(async (
+            _vocabRef: string,
+            search: string,
+            _limit: number,
+            _offset: number,
+            includeHistoricalValues?: boolean
+        ) => {
+            if (includeHistoricalValues && (search === "legacy" || search === "leg")) {
+                return [
+                    { label: "Legacy", value: "legacy", sourceType: "vocabulary", historical: true }
+                ];
+            }
+            return [];
+        });
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "vocab_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "vocabulary",
+                            vocabRef: "access-rights",
+                            minChars: 1,
+                            historicalVocabMode: "hide"
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {
+                            value: "legacy"
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        searchVocabularyEntries.calls.reset();
+
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.displayControl.setValue("leg");
+        const options = await firstValueFrom(component.suggestions$);
+
+        expect(options.map(option => option.value)).toEqual(["legacy"]);
+        expect(searchVocabularyEntries).toHaveBeenCalledOnceWith("access-rights", "leg", 25, 0, true);
     });
 
     it("retains historical vocabulary suggestions in disable mode", async () => {

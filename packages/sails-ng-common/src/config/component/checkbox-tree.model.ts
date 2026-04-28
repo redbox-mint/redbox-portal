@@ -1,14 +1,15 @@
-import {FieldModelConfig, FieldModelDefinition} from "../field-model.model";
-import {FormComponentDefinition} from "../form-component.model";
-import {FormConfigVisitorOutline} from "../visitor/base.outline";
+import { FieldModelConfig, FieldModelDefinition } from "../field-model.model";
+import { FormComponentDefinition } from "../form-component.model";
+import { FormConfigVisitorOutline } from "../visitor/base.outline";
 import {
     FieldComponentConfigKind,
     FieldComponentDefinitionKind,
     FieldModelConfigKind,
     FieldModelDefinitionKind, FormComponentDefinitionKind
 } from "../shared.outline";
-import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
-import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import { FieldComponentConfig, FieldComponentDefinition } from "../field-component.model";
+import { AvailableFieldLayoutDefinitionOutlines } from "../dictionary.outline";
+import type { HistoricalVocabMode } from "./dropdown-input.outline";
 import {
     CheckboxTreeComponentName,
     CheckboxTreeFieldComponentConfigOutline,
@@ -26,7 +27,7 @@ import {
 export class CheckboxTreeFieldComponentConfig extends FieldComponentConfig implements CheckboxTreeFieldComponentConfigOutline {
     vocabRef?: string;
     inlineVocab?: boolean;
-    historicalVocabMode?: 'hide' | 'disable';
+    historicalVocabMode?: HistoricalVocabMode;
     treeData: CheckboxTreeNode[] = [];
     leafOnly?: boolean;
     maxDepth?: number;
@@ -88,11 +89,11 @@ export class CheckboxTreeFormComponentDefinition extends FormComponentDefinition
 }
 
 export const CheckboxTreeMap = [
-    {kind: FieldComponentConfigKind, def: CheckboxTreeFieldComponentConfig},
-    {kind: FieldComponentDefinitionKind, def: CheckboxTreeFieldComponentDefinition, class: CheckboxTreeComponentName},
-    {kind: FieldModelConfigKind, def: CheckboxTreeFieldModelConfig},
-    {kind: FieldModelDefinitionKind, def: CheckboxTreeFieldModelDefinition, class: CheckboxTreeModelName},
-    {kind: FormComponentDefinitionKind, def: CheckboxTreeFormComponentDefinition, class: CheckboxTreeComponentName},
+    { kind: FieldComponentConfigKind, def: CheckboxTreeFieldComponentConfig },
+    { kind: FieldComponentDefinitionKind, def: CheckboxTreeFieldComponentDefinition, class: CheckboxTreeComponentName },
+    { kind: FieldModelConfigKind, def: CheckboxTreeFieldModelConfig },
+    { kind: FieldModelDefinitionKind, def: CheckboxTreeFieldModelDefinition, class: CheckboxTreeModelName },
+    { kind: FormComponentDefinitionKind, def: CheckboxTreeFormComponentDefinition, class: CheckboxTreeComponentName },
 ];
 export const CheckboxTreeDefaults = {
     [FormComponentDefinitionKind]: {

@@ -1,14 +1,15 @@
-import {FieldModelConfig, FieldModelDefinition} from "../field-model.model";
-import {FormComponentDefinition} from "../form-component.model";
-import {FormConfigVisitorOutline} from "../visitor/base.outline";
+import { FieldModelConfig, FieldModelDefinition } from "../field-model.model";
+import { FormComponentDefinition } from "../form-component.model";
+import { FormConfigVisitorOutline } from "../visitor/base.outline";
 import {
     FieldComponentConfigKind,
     FieldComponentDefinitionKind,
     FieldModelConfigKind,
     FieldModelDefinitionKind, FormComponentDefinitionKind
 } from "../shared.outline";
-import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
-import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import { FieldComponentConfig, FieldComponentDefinition } from "../field-component.model";
+import { AvailableFieldLayoutDefinitionOutlines } from "../dictionary.outline";
+import type { HistoricalVocabMode } from "./dropdown-input.outline";
 import {
     RadioInputComponentName,
     RadioInputFieldComponentConfigOutline,
@@ -25,7 +26,7 @@ export class RadioInputFieldComponentConfig extends FieldComponentConfig impleme
     options: RadioOption[] = [];
     vocabRef?: string;
     inlineVocab?: boolean;
-    historicalVocabMode?: 'hide' | 'disable';
+    historicalVocabMode?: HistoricalVocabMode;
 
     constructor() {
         super();
@@ -87,11 +88,11 @@ export class RadioInputFormComponentDefinition extends FormComponentDefinition i
 }
 
 export const RadioInputMap = [
-    {kind: FieldComponentConfigKind, def: RadioInputFieldComponentConfig},
-    {kind: FieldComponentDefinitionKind, def: RadioInputFieldComponentDefinition, class: RadioInputComponentName},
-    {kind: FieldModelConfigKind, def: RadioInputFieldModelConfig},
-    {kind: FieldModelDefinitionKind, def: RadioInputFieldModelDefinition, class: RadioInputModelName},
-    {kind: FormComponentDefinitionKind, def: RadioInputFormComponentDefinition, class: RadioInputComponentName},
+    { kind: FieldComponentConfigKind, def: RadioInputFieldComponentConfig },
+    { kind: FieldComponentDefinitionKind, def: RadioInputFieldComponentDefinition, class: RadioInputComponentName },
+    { kind: FieldModelConfigKind, def: RadioInputFieldModelConfig },
+    { kind: FieldModelDefinitionKind, def: RadioInputFieldModelDefinition, class: RadioInputModelName },
+    { kind: FormComponentDefinitionKind, def: RadioInputFormComponentDefinition, class: RadioInputComponentName },
 ];
 export const RadioInputDefaults = {
     [FormComponentDefinitionKind]: {

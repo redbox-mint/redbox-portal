@@ -1,6 +1,6 @@
-import {FieldModelConfig, FieldModelDefinition} from "../field-model.model";
-import {FormComponentDefinition} from "../form-component.model";
-import {FormConfigVisitorOutline} from "../visitor/base.outline";
+import { FieldModelConfig, FieldModelDefinition } from "../field-model.model";
+import { FormComponentDefinition } from "../form-component.model";
+import { FormConfigVisitorOutline } from "../visitor/base.outline";
 import {
     FieldComponentConfigKind,
     FieldComponentDefinitionKind,
@@ -8,8 +8,9 @@ import {
     FieldModelDefinitionKind,
     FormComponentDefinitionKind
 } from "../shared.outline";
-import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
-import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import { FieldComponentConfig, FieldComponentDefinition } from "../field-component.model";
+import { AvailableFieldLayoutDefinitionOutlines } from "../dictionary.outline";
+import type { HistoricalVocabMode } from "./dropdown-input.outline";
 import {
     TypeaheadInputComponentName,
     TypeaheadInputFieldComponentConfigOutline,
@@ -43,7 +44,7 @@ export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig imp
     multiSelect = false;
     placeholder?: string;
     readOnlyAfterSelect?: boolean;
-    historicalVocabMode?: 'hide' | 'disable';
+    historicalVocabMode?: HistoricalVocabMode;
 
     constructor() {
         super();
@@ -101,11 +102,11 @@ export class TypeaheadInputFormComponentDefinition extends FormComponentDefiniti
 }
 
 export const TypeaheadInputMap = [
-    {kind: FieldComponentConfigKind, def: TypeaheadInputFieldComponentConfig},
-    {kind: FieldComponentDefinitionKind, def: TypeaheadInputFieldComponentDefinition, class: TypeaheadInputComponentName},
-    {kind: FieldModelConfigKind, def: TypeaheadInputFieldModelConfig},
-    {kind: FieldModelDefinitionKind, def: TypeaheadInputFieldModelDefinition, class: TypeaheadInputModelName},
-    {kind: FormComponentDefinitionKind, def: TypeaheadInputFormComponentDefinition, class: TypeaheadInputComponentName},
+    { kind: FieldComponentConfigKind, def: TypeaheadInputFieldComponentConfig },
+    { kind: FieldComponentDefinitionKind, def: TypeaheadInputFieldComponentDefinition, class: TypeaheadInputComponentName },
+    { kind: FieldModelConfigKind, def: TypeaheadInputFieldModelConfig },
+    { kind: FieldModelDefinitionKind, def: TypeaheadInputFieldModelDefinition, class: TypeaheadInputModelName },
+    { kind: FormComponentDefinitionKind, def: TypeaheadInputFormComponentDefinition, class: TypeaheadInputComponentName },
 ];
 
 export const TypeaheadInputDefaults = {

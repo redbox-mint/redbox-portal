@@ -60,7 +60,7 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
                 class="rb-tree-checkbox"
                 [checked]="isSelected(node)"
                 [indeterminate]="isIndeterminate(node)"
-                [attr.disabled]="node.disabled === true ? true : null"
+                [attr.disabled]="isNodeDisabled(node) ? true : null"
                 [attr.aria-checked]="getAriaChecked(node)"
                 [id]="getCheckboxId(node)"
                 (change)="onNodeChecked(node, $any($event.target).checked)"
@@ -342,7 +342,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   }
 
   public onNodeChecked(node: CheckboxTreeRenderNode, checked: boolean): void {
-    if (node.disabled === true) {
+    if (this.isNodeDisabled(node)) {
       return;
     }
     const notation = this.getNotation(node);
@@ -362,6 +362,10 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       this.selectedItem.set(null);
     }
     this.syncModelFromSelection();
+  }
+
+  public isNodeDisabled(node: CheckboxTreeRenderNode): boolean {
+    return this.isDisabled || this.isReadonly || node.disabled === true;
   }
 
   public onTreeKeydown(event: KeyboardEvent): void {
@@ -407,7 +411,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       case " ":
       case "Enter":
         event.preventDefault();
-        if (this.isSelectable(currentNode) && currentNode.disabled !== true) {
+        if (this.isSelectable(currentNode) && !this.isNodeDisabled(currentNode)) {
           this.onNodeChecked(currentNode, !this.isSelected(currentNode));
         }
         break;

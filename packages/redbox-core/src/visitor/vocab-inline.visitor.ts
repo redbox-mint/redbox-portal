@@ -13,6 +13,7 @@ import {
   FormConfigOutline,
   FormConfigVisitor,
   FormComponentDefinitionOutline,
+  HistoricalVocabMode,
   GroupFieldComponentDefinitionOutline,
   GroupFormComponentDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
@@ -26,7 +27,6 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { VocabularyEntryAttributes } from '../waterline-models';
 
-type HistoricalVocabMode = 'hide' | 'disable';
 type InlineCheckboxTreeNode = CheckboxTreeNode & { disabled?: boolean };
 
 type ComponentConfigWithInlineVocab = {

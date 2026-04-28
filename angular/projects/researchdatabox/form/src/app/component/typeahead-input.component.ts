@@ -9,6 +9,7 @@ import {
 } from '@researchdatabox/portal-ng-common';
 import {
   DynamicScriptResponse,
+  HistoricalVocabMode,
   TypeaheadInputComponentName,
   TypeaheadInputFieldComponentConfig,
   TypeaheadInputModelName,
@@ -45,7 +46,6 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
         [placeholder]="placeholder | i18next"
         [title]="tooltip | i18next"
         [readonly]="isReadonly || readOnlyAfterSelectLocked"
-        [disabled]="isDisabled"
         [attr.role]="'combobox'"
         [attr.aria-expanded]="isOpen"
         [attr.aria-autocomplete]="'list'"
@@ -117,7 +117,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private valueField = 'value';
   private valueMode: 'value' | 'optionObject' = 'value';
   private cacheResults = true;
-  private historicalVocabMode: 'hide' | 'disable' = 'hide';
+  private historicalVocabMode: HistoricalVocabMode = 'hide';
+  private hasHistoricalOrUnknownModelValue = false;
   private staticOptions: TypeaheadOption[] = [];
   private cache = new Map<string, TypeaheadOption[]>();
   private programmaticDisplayUpdate = false;
@@ -174,6 +175,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.valueMode = cfg.valueMode === 'optionObject' ? 'optionObject' : 'value';
     this.cacheResults = cfg.cacheResults ?? this.sourceType !== 'namedQuery';
     this.historicalVocabMode = cfg.historicalVocabMode === 'disable' ? 'disable' : 'hide';
+    this.hasHistoricalOrUnknownModelValue = false;
     this.readOnlyAfterSelectLocked = Boolean(cfg.readOnlyAfterSelect) && Boolean(this.model?.getValue());
     this.staticOptions = Array.isArray(cfg.staticOptions) ? cfg.staticOptions : [];
 
@@ -333,7 +335,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     return true;
   }
 
-  private async lookup(term: string, includeHistoricalValues = this.sourceType === 'vocabulary'): Promise<TypeaheadOption[]> {
+  private async lookup(term: string, includeHistoricalValues = this.shouldIncludeHistoricalValues()): Promise<TypeaheadOption[]> {
     if (!this.validateConfiguration()) {
       return [];
     }
@@ -426,10 +428,12 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
   private async resolvePrepopulatedLabel(): Promise<void> {
     if (this.valueMode !== 'value') {
+      this.setHistoricalLookupState(false);
       return;
     }
     const storedValue = this.model?.getValue();
     if (typeof storedValue !== 'string' || !storedValue.trim()) {
+      this.setHistoricalLookupState(false);
       return;
     }
     if (this.sourceType === 'static') {
@@ -437,11 +441,13 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       if (found?.label) {
         this.setDisplayValue(found.label);
       }
+      this.setHistoricalLookupState(false);
       return;
     }
     try {
-      const matches = await this.lookup(storedValue, true);
+      const matches = await this.lookup(storedValue, this.sourceType === 'vocabulary');
       const exactMatch = matches.find(opt => opt.value === storedValue || opt.label === storedValue);
+      this.setHistoricalLookupState(!exactMatch || this.isHistoricalOption(exactMatch));
       if (exactMatch?.label) {
         this.setDisplayValue(exactMatch.label);
       }
@@ -473,6 +479,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   }
 
   private setModelFromOption(option: TypeaheadOption): void {
+    this.setHistoricalLookupState(this.isHistoricalOption(option));
     if (this.valueMode === 'optionObject') {
       this.setModelValue({
         label: option.label,
@@ -485,6 +492,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   }
 
   private setModelFromFreeText(text: string): void {
+    this.setHistoricalLookupState(this.sourceType === 'vocabulary');
     if (this.valueMode === 'optionObject') {
       this.setModelValue({
         label: text,
@@ -503,6 +511,9 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   }
 
   private setModelValue(value: TypeaheadInputModelValueType): void {
+    if (value === null || value === undefined || value === '') {
+      this.setHistoricalLookupState(false);
+    }
     this.model?.setValue(value);
     this.formControl.markAsDirty();
     this.formControl.markAsTouched();
@@ -572,6 +583,15 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     }
     const raw = option.raw as { historical?: unknown } | null | undefined;
     return raw?.historical === true;
+  }
+
+  private shouldIncludeHistoricalValues(): boolean {
+    return this.sourceType === 'vocabulary' &&
+      (this.historicalVocabMode === 'disable' || this.hasHistoricalOrUnknownModelValue);
+  }
+
+  private setHistoricalLookupState(required: boolean): void {
+    this.hasHistoricalOrUnknownModelValue = this.sourceType === 'vocabulary' && required;
   }
 
   private renderOptionLabel(option: TypeaheadOption): string {
