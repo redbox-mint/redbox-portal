@@ -91,35 +91,36 @@ export namespace Services {
         .getFormByName(typedRecord.metaMetadata.form, true, typedRecord.metaMetadata.brandId)
         .pipe(
           mergeMap(form => {
-            const safeForm = form ?? { attachmentFields: [] };
+
             const reqs: Promise<unknown>[] = [];
-            typedRecord.metaMetadata.attachmentFields = safeForm.attachmentFields;
+            if (form?.attachmentFields) {
+              typedRecord.metaMetadata.attachmentFields = form.attachmentFields;
 
-            for (const attField of safeForm.attachmentFields) {
-              const perFieldFileIdsAdded: Datastream[] = [];
-              const oldAttachments = this.getAttachments(typedRecord.metadata, attField);
-              const newAttachments = this.getAttachments(typedNewMetadata, attField);
-              const removeIds: Datastream[] = [];
+              for (const attField of form.attachmentFields) {
+                const perFieldFileIdsAdded: Datastream[] = [];
+                const oldAttachments = this.getAttachments(typedRecord.metadata, attField);
+                const newAttachments = this.getAttachments(typedNewMetadata, attField);
+                const removeIds: Datastream[] = [];
 
-              const toRemove = this.diffAttachments(oldAttachments, newAttachments);
-              for (const removeAtt of toRemove) {
-                if (this.isAttachment(removeAtt)) {
-                  removeIds.push(new Datastream(removeAtt));
+                const toRemove = this.diffAttachments(oldAttachments, newAttachments);
+                for (const removeAtt of toRemove) {
+                  if (this.isAttachment(removeAtt)) {
+                    removeIds.push(new Datastream(removeAtt));
+                  }
                 }
-              }
 
-              const toAdd = this.diffAttachments(newAttachments, oldAttachments);
-              for (const addAtt of toAdd) {
-                if (this.isAttachment(addAtt)) {
-                  perFieldFileIdsAdded.push(new Datastream(addAtt));
+                const toAdd = this.diffAttachments(newAttachments, oldAttachments);
+                for (const addAtt of toAdd) {
+                  if (this.isAttachment(addAtt)) {
+                    perFieldFileIdsAdded.push(new Datastream(addAtt));
+                  }
                 }
+
+                fileIdsAdded.push(...perFieldFileIdsAdded);
+
+                reqs.push(this.addAndRemoveDatastreams(oid, perFieldFileIdsAdded, removeIds, stagingDisk));
               }
-
-              fileIdsAdded.push(...perFieldFileIdsAdded);
-
-              reqs.push(this.addAndRemoveDatastreams(oid, perFieldFileIdsAdded, removeIds, stagingDisk));
             }
-
             return of(reqs);
           })
         );
