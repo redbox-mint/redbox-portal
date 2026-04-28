@@ -6,6 +6,7 @@ import {
   FormFieldCompMapEntry,
   FormFieldModel,
   HandlebarsTemplateService,
+  ModifyOptions,
 } from '@researchdatabox/portal-ng-common';
 import {
   DynamicScriptResponse,
@@ -22,11 +23,6 @@ import { FormComponent } from '../form.component';
 import { TypeaheadDataService } from '../service/typeahead-data.service';
 
 type TypeaheadStatus = 'idle' | 'loading' | 'no-results' | 'error' | 'misconfigured';
-
-type DisabledStateOptions = {
-  emitEvent?: boolean;
-  onlySelf?: boolean;
-};
 
 export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValueType> {
   protected override logName = TypeaheadInputModelName;
@@ -253,7 +249,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.setModelFromFreeText(text);
   }
 
-  public override setDisabled(disabled: boolean, opts?: DisabledStateOptions): void {
+  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
     const currentDisabled = this.isDisabled;
     try {
       if (!disabled && this.formControl?.disabled) {
