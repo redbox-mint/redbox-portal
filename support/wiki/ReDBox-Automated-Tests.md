@@ -96,4 +96,4 @@ Some packages have their own independent test suites.
   Runs Mocha tests specifically for the shared models package.
 
 ## Continuous Integration
-Tests are automatically run in CircleCI on every push, and the build job also runs `npm run doc:api` so the generated API docs stay in sync. See `.circleci/config.yml` for the full pipeline definition.
+Tests are automatically run in CircleCI on every push. API route validation and OpenAPI generation now run in a dedicated `generate-api-docs` job that builds redbox-core first, while the main build job stays focused on linting and runtime image packaging. See `.circleci/config.yml` for the full pipeline definition.
