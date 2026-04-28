@@ -170,7 +170,7 @@
             "assets": ["projects/researchdatabox/export/src/favicon.ico", "projects/researchdatabox/export/src/assets"],
             "styles": [
               "projects/researchdatabox/export/src/styles.scss",
-              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
+              "ngx-bootstrap/datepicker/bs-datepicker.css"
             ],
             "scripts": [],
             "browser": "projects/researchdatabox/export/src/main.ts"
@@ -345,7 +345,7 @@
             "assets": ["projects/researchdatabox/report/src/favicon.ico", "projects/researchdatabox/report/src/assets"],
             "styles": [
               "projects/researchdatabox/report/src/styles.scss",
-              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
+              "ngx-bootstrap/datepicker/bs-datepicker.css"
             ],
             "scripts": [],
             "browser": "projects/researchdatabox/report/src/main.ts"
@@ -696,7 +696,7 @@
             ],
             "styles": [
               "projects/researchdatabox/form/src/styles.scss",
-              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss",
+              "ngx-bootstrap/datepicker/bs-datepicker.css",
               "node_modules/leaflet/dist/leaflet.css"
             ],
             "scripts": [],
@@ -883,7 +883,7 @@
             ],
             "styles": [
               "projects/researchdatabox/deleted-records/src/styles.scss",
-              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
+              "ngx-bootstrap/datepicker/bs-datepicker.css"
             ],
             "scripts": [],
             "browser": "projects/researchdatabox/deleted-records/src/main.ts"
