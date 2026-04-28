@@ -251,7 +251,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.setModelFromFreeText(text);
   }
 
-  public setDisabled(disabled: boolean, opts?: DisabledStateOptions): void {
+  public override setDisabled(disabled: boolean, opts?: DisabledStateOptions): void {
     const currentDisabled = this.isDisabled;
     try {
       if (!disabled && this.formControl?.disabled) {
