@@ -73,7 +73,6 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/api(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/home', role: 'Guest', can_read: true },
         { path: '/:branding/:portal/app/branding(/*)', role: 'Admin', can_update: true },
-        { path: '/:branding/:portal/preview', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/dynamicAsset/adminReportTemplates/:reportName', role: 'Librarians', can_read: true },
         { path: '/:branding/:portal/dynamicAsset/adminReportTemplates/:reportName', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/listRecords', role: 'Researcher', can_read: true },
