@@ -1,8 +1,12 @@
-import {AvailableFormComponentDefinitionFrames, ReusableFormDefinitions} from "@researchdatabox/sails-ng-common";
+import {
+  AvailableFormComponentDefinitionFrames,
+  FormExpressionsConfigFrame,
+  ReusableFormDefinitions
+} from "@researchdatabox/sails-ng-common";
 
 
 export const buildRelatedObjectsFieldDefinition = function (options: {
-  fieldReusable?: string,
+  fieldReusable?: string, fieldExpressions?: FormExpressionsConfigFrame[],
   fieldName?: string, fieldLabel?: string, fieldHelp?: string,
   titleReusable?: string, titleName?: string, titleLabel?: string, titlePlaceholder?: string,
   urlReusable?: string, urlName?: string, urlLabel?: string, urlPlaceholder?: string,
@@ -89,6 +93,7 @@ export const buildRelatedObjectsFieldDefinition = function (options: {
             }
           },
           layout: {class: "DefaultLayout", config: {label: options.fieldLabel, helpText: options.fieldHelp}},
+          expressions: options.fieldExpressions,
         }
         ]
       }
