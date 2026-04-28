@@ -62,11 +62,15 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
                 [indeterminate]="isIndeterminate(node)"
                 [attr.disabled]="isNodeDisabled(node) ? true : null"
                 [attr.aria-checked]="getAriaChecked(node)"
+                [attr.aria-label]="node.displayLabel"
                 [id]="getCheckboxId(node)"
                 (change)="onNodeChecked(node, $any($event.target).checked)"
               />
             }
-            <label class="rb-tree-label" [class.rb-tree-label-root]="level === 1" [attr.for]="isSelectable(node) ? getCheckboxId(node) : null">{{ node.displayLabel }}</label>
+            <label class="rb-tree-label"
+              [class.rb-tree-label-root]="level === 1"
+              [attr.for]="isSelectable(node) && !canExpand(node, level) ? getCheckboxId(node) : null"
+              (click)="onLabelClick($event, node, level)">{{ node.displayLabel }}</label>
           </div>
           @if (loadErrors.has(node.id)) {
             <div class="rb-tree-status rb-tree-status-error rb-tree-status-nested">{{ loadErrors.get(node.id) }}</div>
@@ -339,6 +343,15 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     if (!this.inlineVocab && node.hasChildren && (node.children?.length ?? 0) === 0 && !this.loadedNodeIds.has(node.id)) {
       await this.loadChildren(node);
     }
+  }
+
+  public onLabelClick(event: MouseEvent, node: CheckboxTreeRenderNode, level: number): void {
+    this.focusedNodeId = node.id;
+    if (!this.canExpand(node, level)) {
+      return;
+    }
+    event.preventDefault();
+    void this.toggleExpand(node, level);
   }
 
   public onNodeChecked(node: CheckboxTreeRenderNode, checked: boolean): void {

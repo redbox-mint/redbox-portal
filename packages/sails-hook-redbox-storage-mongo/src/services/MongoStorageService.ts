@@ -794,7 +794,7 @@ export namespace Services {
           `${this.logHeader} updateDatastream requires fileRoot to be a disk name or an IDisk instance with getStream()`
         );
       }
-      return FormsService.getFormByName(record.metaMetadata.form, true).pipe(
+      return FormsService.getFormByName(record.metaMetadata.form, true, record.metaMetadata.brandId).pipe(
         mergeMap(form => {
           const formConfig = form;
           const attachmentFields = _.get(
