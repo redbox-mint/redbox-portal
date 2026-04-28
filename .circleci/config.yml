@@ -16,15 +16,6 @@ jobs:
       - run:
           name: Run lint
           command: npm run lint
-      - run:
-          name: Validate API route contracts
-          command: npm run validate:api-routes
-      - run:
-          name: Generate API docs artifacts
-          command: npm run doc:api
-      - store_artifacts:
-          path: support/docs/generated/api
-          destination: api-docs
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -47,6 +38,40 @@ jobs:
           root: /tmp
           paths:
             - docker-images/redbox-portal-test.tar
+  generate-api-docs:
+    docker:
+      - image: 'cimg/node:24.14.1'
+    resource_class: large
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci --ignore-scripts --strict-peer-deps
+      - run:
+          name: Build redbox-core assets
+          command: |
+            npm run compile:raido
+            npm run compile:rva
+            npm run compile:sails-ng-common
+            npm run compile:core
+      - run:
+          name: Validate API route contracts
+          command: npm run validate:api-routes
+      - run:
+          name: Generate API docs artifacts
+          command: npm run doc:api
+      - store_artifacts:
+          path: support/docs/generated/api
+          destination: api-docs
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
   build-runtime-datastream-cloud:
     docker:
       - image: 'cimg/node:24.14.1'
@@ -813,6 +838,13 @@ jobs:
           name: Install npm dependencies
           command: npm ci --ignore-scripts --strict-peer-deps
       - run:
+          name: Build redbox-core assets
+          command: |
+            npm run compile:raido
+            npm run compile:rva
+            npm run compile:sails-ng-common
+            npm run compile:core
+      - run:
           name: Generate angular docs
           command: npm run doc-ng2
       - run:
@@ -854,6 +886,12 @@ workflows:
   build_test_gendocs_and_deploy:
     jobs:
       - build:
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - generate-api-docs:
+          requires:
+            - build
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -1063,6 +1101,14 @@ workflows:
               only: /^dependabot.*/
             tags:
               ignore: /.*/
+      - generate-api-docs:
+          requires:
+            - build
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - test-bruno-general:
           requires:
             - build
@@ -1158,6 +1204,14 @@ workflows:
   release_build_test_gendocs_and_deploy:
     jobs:
       - build:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - generate-api-docs:
+          requires:
+            - build
           filters:
             tags:
               only: /^v.*/
