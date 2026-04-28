@@ -40,7 +40,6 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
         [placeholder]="placeholder | i18next"
         [title]="tooltip | i18next"
         [readonly]="isReadonly || readOnlyAfterSelectLocked"
-        [disabled]="isDisabled"
         [attr.role]="'combobox'"
         [attr.aria-expanded]="isOpen"
         [attr.aria-autocomplete]="'list'"
