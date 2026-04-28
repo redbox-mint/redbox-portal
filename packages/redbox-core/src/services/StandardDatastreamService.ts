@@ -10,10 +10,6 @@ import type { Services as StorageManagerServices } from './StorageManagerService
 
 type IDisk = StorageManagerServices.IDisk;
 
-type FormLookup = {
-  attachmentFields: string[];
-};
-
 type RecordWithMetadata = {
   metaMetadata: { form: string; brandId?: string; attachmentFields?: string[] };
   metadata: Record<string, unknown>;
