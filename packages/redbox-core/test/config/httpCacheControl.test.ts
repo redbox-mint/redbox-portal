@@ -174,7 +174,7 @@ describe('http cacheControl middleware', function () {
         http.middleware.securityStaticAssets?.(req, res, () => { nextCalled = true; });
 
         expect(nextCalled).to.equal(false);
-        expect(sentFile).to.equal(path.join(appPath, '.tmp', 'public', 'robots.txt'));
+        expect(sentFile).to.equal(path.join(appPath, 'assets', 'robots.txt'));
     });
 
     it('should serve security.txt from bundled assets before the default static middleware', function () {

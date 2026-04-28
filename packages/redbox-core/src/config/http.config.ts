@@ -233,8 +233,8 @@ function getNoStoreHeaders(): Record<string, string> {
 
 function resolvePublicSecurityAsset(relativePath: string): string | null {
     const candidatePaths = [
-        path.join(sails.config.appPath, '.tmp/public', relativePath),
         path.join(sails.config.appPath, 'assets', relativePath),
+        path.join(sails.config.appPath, '.tmp/public', relativePath),
     ];
     return candidatePaths.find((candidatePath) => fs.existsSync(candidatePath)) ?? null;
 }
@@ -578,8 +578,8 @@ export const http: HttpConfig = {
         },
 
         securityStaticAssets: function (req: Request, res: Response, next: NextFunction) {
-            // Keep these as HTTP middleware instead of Sails routes so they still behave like
-            // bundled static files, prefer the built `.tmp/public` copy when present, and let us
+            // Keep these as HTTP middleware instead of Sails routes so they behave like bundled
+            // source assets, while still falling back to `.tmp/public` when needed, and let us
             // intercept `/.well-known/*` before default static handling skips dot-prefixed paths.
             const assetRelativePath = publicSecurityAssetPaths.get(req.path);
             if (_.isNil(assetRelativePath)) {
