@@ -633,7 +633,7 @@ describe('MongoStorageService', function () {
       service.updateDatastream(
         'oid-1',
         {
-          metaMetadata: { form: 'rdmp' },
+          metaMetadata: { form: 'rdmp', brandId: 'brand-1' },
           metadata: { files: [{ fileId: 'old', type: 'attachment' }] },
         },
         {
@@ -645,6 +645,7 @@ describe('MongoStorageService', function () {
     );
 
     expect((global as any).StorageManagerService.disk.calledOnceWith('staging')).to.be.true;
+    expect((global as any).FormsService.getFormByName.calledOnceWith('rdmp', true, 'brand-1')).to.be.true;
     await Promise.all(result);
     expect(addAndRemoveStub.calledOnce).to.be.true;
     expect(addAndRemoveStub.firstCall.args[1][0].fileId).to.equal('new');

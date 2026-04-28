@@ -14,8 +14,12 @@ type FormLookup = {
   attachmentFields: string[];
 };
 
+declare const FormsService: {
+  getFormByName(formName: string, editMode: boolean, brandingId?: string): Observable<FormLookup | null>;
+};
+
 type RecordWithMetadata = {
-  metaMetadata: { form: string; attachmentFields?: string[] };
+  metaMetadata: { form: string; brandId?: string; attachmentFields?: string[] };
   metadata: Record<string, unknown>;
 };
 
@@ -40,8 +44,8 @@ export namespace Services {
 
     protected logHeader: string = 'StandardDatastreamService::';
 
-    private getFormsService(): { getFormByName(formName: string, editMode: boolean): Observable<FormLookup | null> } {
-      const svc = FormsService as { getFormByName(formName: string, editMode: boolean): Observable<FormLookup | null> };
+    private getFormsService(): { getFormByName(formName: string, editMode: boolean, brandingId?: string): Observable<FormLookup | null> } {
+      const svc = FormsService;
       if (!svc) {
         throw new Error(`${this.logHeader} FormsService is not available`);
       }
@@ -99,7 +103,7 @@ export namespace Services {
       const typedNewMetadata = this.coerceMetadata(newMetadata);
 
       return this.getFormsService()
-        .getFormByName(typedRecord.metaMetadata.form, true)
+        .getFormByName(typedRecord.metaMetadata.form, true, typedRecord.metaMetadata.brandId)
         .pipe(
           mergeMap(form => {
             const safeForm = form ?? { attachmentFields: [] };
@@ -144,11 +148,12 @@ export namespace Services {
       const metaMetadata = rec.metaMetadata as Record<string, unknown> | undefined;
       const metadata = rec.metadata as Record<string, unknown> | undefined;
       const form = typeof metaMetadata?.form === 'string' ? metaMetadata.form : '';
+      const brandId = typeof metaMetadata?.brandId === 'string' ? metaMetadata.brandId : undefined;
       const attachmentFields = Array.isArray(metaMetadata?.attachmentFields)
         ? (metaMetadata?.attachmentFields as string[])
         : undefined;
       return {
-        metaMetadata: { form, attachmentFields },
+        metaMetadata: { form, brandId, attachmentFields },
         metadata: metadata ?? {},
       };
     }
