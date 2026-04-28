@@ -40,13 +40,6 @@ export namespace Services {
 
     protected logHeader: string = 'StandardDatastreamService::';
 
-    private getFormsService(): { getFormByName(formName: string, editMode: boolean, brandingId?: string): Observable<FormLookup | null> } {
-      const svc = FormsService;
-      if (!svc) {
-        throw new Error(`${this.logHeader} FormsService is not available`);
-      }
-      return svc;
-    }
 
     /**
      * Build the storage key for a file: `{oid}/{fileId}`
@@ -98,7 +91,7 @@ export namespace Services {
       const typedRecord = this.coerceRecord(record);
       const typedNewMetadata = this.coerceMetadata(newMetadata);
 
-      return this.getFormsService()
+      return FormsService
         .getFormByName(typedRecord.metaMetadata.form, true, typedRecord.metaMetadata.brandId)
         .pipe(
           mergeMap(form => {
