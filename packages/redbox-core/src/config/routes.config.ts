@@ -1,7 +1,7 @@
 /**
  * Routes Config Interface
  * (sails.config.routes)
- * 
+ *
  * URL to controller/action mapping configuration.
  */
 
@@ -176,9 +176,9 @@ export const routes: RoutesConfig = {
     // Auth routes
     'post /user/login_local': 'UserController.localLogin',
     'post /user/login_aaf': { controller: 'UserController', action: 'aafLogin', csrf: false },
-    'get /user/login_oidc': { controller: 'UserController', action: 'openIdConnectLogin', csrf: false },
+    'get /user/login_oidc': { controller: 'UserController', action: 'openIdConnectLogin' },
     'HEAD /user/begin_oidc': { policy: 'disallowedHeadRequestHandler' },
-    'get /user/begin_oidc': { controller: 'UserController', action: 'beginOidc', csrf: false },
+    'get /user/begin_oidc': { controller: 'UserController', action: 'beginOidc' },
     'get /user/info': 'UserController.info',
     'get /:branding/:portal/user/info': 'UserController.info',
     'get /:branding/:portal/user/login': 'UserController.login',
@@ -316,9 +316,9 @@ export const routes: RoutesConfig = {
     ...buildMergedApiRouteConfig(),
 
     // Translation routes
-    'get /:branding/:portal/locales/:lng/:ns.json': { controller: 'TranslationController', action: 'getNamespace', csrf: false },
-    'get /:branding/:portal/locales/:lng/translation.json': { controller: 'TranslationController', action: 'getNamespace', csrf: false },
-    'get /:branding/:portal/locales': { controller: 'TranslationController', action: 'getLanguages', csrf: false },
+    'get /:branding/:portal/locales/:lng/:ns.json': { controller: 'TranslationController', action: 'getNamespace' },
+    'get /:branding/:portal/locales/:lng/translation.json': { controller: 'TranslationController', action: 'getNamespace' },
+    'get /:branding/:portal/locales': { controller: 'TranslationController', action: 'getLanguages' },
 
     // Workspace routes
     'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',

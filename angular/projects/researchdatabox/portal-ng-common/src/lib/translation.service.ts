@@ -25,7 +25,7 @@ import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, merge as
 
 import { Service } from './service.interface';
 import { HttpClientService } from './httpClient.service';
-
+import { isLikelyNaturalLanguage } from "@researchdatabox/sails-ng-common";
 import HttpApi from 'i18next-http-backend';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { ConfigService } from './config.service';
@@ -83,6 +83,8 @@ export class TranslationService extends HttpClientService implements Service {
       // cookieDomain: I18NEXT_LANG_COOKIE_DOMAIN
     }
   };
+
+  private readonly translationKeyValueCache: Map<string, TranslationResult> = new Map();
 
   constructor(
     @Inject(HttpClient) protected override http: HttpClient,
@@ -180,15 +182,38 @@ export class TranslationService extends HttpClientService implements Service {
     defaultValueOrOptions?: string | ITranslationOptions,
     options?: ITranslationOptions
   ): TranslationResult {
+    if (key === null || key === undefined || key === '' || (Array.isArray(key) && key.length === 0)) {
+      return '';
+    }
+
+    const cacheKey = Array.isArray(key) ? key.join('][') : String(key);
+
+    if (this.translationKeyValueCache.has(cacheKey)) {
+      return this.translationKeyValueCache.get(cacheKey);
+    }
+
+    // Guess at whether the key is a natural language string.
+    // If it likely is natural langauge, just return it.
+    if (!Array.isArray(key) && isLikelyNaturalLanguage(key)) {
+      this.translationKeyValueCache.set(cacheKey, key);
+      return key;
+    }
+
     if (typeof defaultValueOrOptions === 'string') {
-      return this.i18NextService.t(key, defaultValueOrOptions, options);
+      const result = this.i18NextService.t(key, defaultValueOrOptions, options);
+      this.translationKeyValueCache.set(cacheKey, result);
+      return result;
     }
 
     if (defaultValueOrOptions === undefined) {
-      return this.i18NextService.t(key);
+      const result = this.i18NextService.t(key);
+      this.translationKeyValueCache.set(cacheKey, result);
+      return result;
     }
 
-    return this.i18NextService.t(key, defaultValueOrOptions);
+    const result = this.i18NextService.t(key, defaultValueOrOptions);
+    this.translationKeyValueCache.set(cacheKey, result);
+    return result;
   }
 
   /** Change the current language and reload resources */

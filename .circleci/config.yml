@@ -143,7 +143,7 @@ jobs:
       - run:
           name: Install npm dependencies
           command: npm ci --ignore-scripts --strict-peer-deps
-      - run:
+      - run: &installCodecov
           name: Install codecov
           command: |
             mkdir -p /tmp/.codecov-cli
@@ -207,17 +207,7 @@ jobs:
           name: Install npm dependencies
           command: npm ci --ignore-scripts --strict-peer-deps
       - run:
-          name: Install codecov
-          command: |
-            mkdir -p /tmp/.codecov-cli
-            cd /tmp/.codecov-cli
-            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-            curl -Os https://cli.codecov.io/latest/linux/codecov
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
-            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
-            shasum -a 256 -c codecov.SHA256SUM
-            chmod +x codecov
+          <<: *installCodecov
       - run:
           name: Setup test directories
           command: |
@@ -317,17 +307,7 @@ jobs:
           name: Install npm dependencies
           command: npm ci --ignore-scripts --strict-peer-deps
       - run:
-          name: Install codecov
-          command: |
-            mkdir -p /tmp/.codecov-cli
-            cd /tmp/.codecov-cli
-            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-            curl -Os https://cli.codecov.io/latest/linux/codecov
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
-            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
-            shasum -a 256 -c codecov.SHA256SUM
-            chmod +x codecov
+          <<: *installCodecov
       - run:
           name: Install required ReDBox dependencies
           command: |
@@ -379,17 +359,7 @@ jobs:
             && source support/build/compileProductionAngular.sh portal-ng-common
             && cd .. && source support/build/compileProductionAngular.sh portal-ng-form-custom
       - run:
-          name: Install codecov
-          command: |
-            mkdir -p /tmp/.codecov-cli
-            cd /tmp/.codecov-cli
-            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-            curl -Os https://cli.codecov.io/latest/linux/codecov
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
-            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
-            shasum -a 256 -c codecov.SHA256SUM
-            chmod +x codecov
+          <<: *installCodecov
       - run:
           name: Setup test directories
           command: |
@@ -416,17 +386,7 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Install codecov
-          command: |
-            mkdir -p /tmp/.codecov-cli
-            cd /tmp/.codecov-cli
-            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-            curl -Os https://cli.codecov.io/latest/linux/codecov
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
-            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
-            shasum -a 256 -c codecov.SHA256SUM
-            chmod +x codecov
+          <<: *installCodecov
       - run:
           name: Install packages
           command: |
@@ -460,17 +420,7 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Install codecov
-          command: |
-            mkdir -p /tmp/.codecov-cli
-            cd /tmp/.codecov-cli
-            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-            curl -Os https://cli.codecov.io/latest/linux/codecov
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
-            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
-            shasum -a 256 -c codecov.SHA256SUM
-            chmod +x codecov
+          <<: *installCodecov
       - run:
           name: Install required ReDBox dependencies
           command: |
@@ -505,17 +455,7 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install codecov
-          command: |
-            mkdir -p /tmp/.codecov-cli
-            cd /tmp/.codecov-cli
-            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-            curl -Os https://cli.codecov.io/latest/linux/codecov
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
-            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
-            shasum -a 256 -c codecov.SHA256SUM
-            chmod +x codecov
+          <<: *installCodecov
       - run:
           name: Install root dependencies
           command: |
@@ -576,17 +516,7 @@ jobs:
           name: Install npm dependencies
           command: npm ci --ignore-scripts --strict-peer-deps
       - run:
-          name: Install codecov
-          command: |
-            mkdir -p /tmp/.codecov-cli
-            cd /tmp/.codecov-cli
-            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-            curl -Os https://cli.codecov.io/latest/linux/codecov
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
-            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
-            shasum -a 256 -c codecov.SHA256SUM
-            chmod +x codecov
+          <<: *installCodecov
       - run:
           name: Install storage-mongo package dependencies
           command: |

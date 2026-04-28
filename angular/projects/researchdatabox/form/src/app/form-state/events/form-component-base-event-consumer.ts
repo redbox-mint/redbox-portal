@@ -11,7 +11,7 @@ import {
   ExpressionsConditionKind,
   ExpressionsConditionKindType,
   FormExpressionsTargetModelValue, FormExpressionsTargetLayoutPrefix, FormExpressionsTargetComponentPrefix,
-  FormExpressionsTargetValidationGroups, DynamicScriptResponse,
+  FormExpressionsTargetValidationGroups, DynamicScriptResponse, guessType, toBoolean,
 } from '@researchdatabox/sails-ng-common';
 import jsonata from 'jsonata';
 import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
@@ -44,7 +44,10 @@ export interface FormComponentEventJSONataQueryMatchOptions extends FormComponen
 
 /**
  * Base class for form component event consumers.
- * Provides JSONata expression processing and compiled items cache handling.
+ *
+ * Subclasses decide which event stream to listen to; this base class owns the
+ * shared mechanics for expression matching, compiled JSONata lookup, runtime
+ * evaluation context, and target mutation.
  */
 export abstract class FormComponentEventBaseConsumer extends FormComponentEventBaseProducerConsumer {
 
@@ -129,6 +132,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 
 	/**
 	 * Evaluate the JSONata expression template with the provided context.
+	*
+	* Design note: when compiled templates are unavailable, fall back to the raw
+	* event value. That preserves historical behaviour for partially constructed
+	* forms instead of failing closed and clearing dependent fields.
    *
    * @param expression - The expression config frame containing the template.
    * @param event - The event that triggered the evaluation.
@@ -149,10 +156,9 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 		try {
       const dataFieldId = getLastSegmentFromJSONPointer(event.fieldId || '');
 
-      // The value from angular may be frozen (from Object.freeze).
-	      // This is good, it reduces the chances of accidentally changing the value in the angular model.
-	      // However, some jsonata expressions might involve trying to change the value, which will fail.
-	      // So convert to and then from JSON to get a fresh value.
+	      // Expressions are allowed to reshape their inputs. Clone everything we
+	      // expose to JSONata so a mutating expression cannot leak writes back
+	      // into Angular form state or event objects.
 	      const valueOriginal = dataFieldId ? this.formComp?.form?.value[dataFieldId] : undefined;
 	      const value = this.cloneExpressionContextValue(valueOriginal, 'value');
 	      const eventClone = this.cloneExpressionContextValue(event, 'event');
@@ -186,6 +192,11 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 			}
 		}
 
+		/**
+		 * Best-effort clone used to isolate JSONata evaluation from live Angular
+		 * state. If cloning fails, continue with the original reference because the
+		 * form should still behave, even if the expression loses mutation safety.
+		 */
 		protected cloneExpressionContextValue<T>(value: T, label: string): T {
 			if (value === undefined) {
 				return value;
@@ -206,20 +217,22 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 	 */
 	protected hasMatchedJSONPointerCondition(opts: FormComponentEventJSONPointerMatchOptions): boolean {
 		const querySource = opts.querySource;
-		if (!querySource) {
-			return false;
-		}
 		if (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && opts.expression.config.runOnFormReady === false) {
 			return false;
 		}
 		const pointerCondition = this.getEventJSONPointerCondition(opts.condition);
 		// Check if the pointer has a match in the query source, broadcasts will fail this check
-		const ref = getObjectWithJsonPointer(querySource.jsonPointerSource, pointerCondition.jsonPointer);
+		const ref = querySource
+			? getObjectWithJsonPointer(querySource.jsonPointerSource, pointerCondition.jsonPointer)
+			: undefined;
 		const targetEvent = pointerCondition.event;
-		const hasMatchedTargetEvent = targetEvent === '*' || targetEvent === opts.querySource.event.type;
+		const hasMatchedTargetEvent = targetEvent === '*' || targetEvent === opts.event.type;
 		// Scenarios where it will match if the `targetEvent` matches, that is '*' or the specific event type AND the `sourceId` matches:
-		// 1. Scoped - the `pointerCondition.jsonPointer` will match the event.sourceId
-		const hasScopedMatch = ref != undefined && pointerCondition.jsonPointer == opts.event.sourceId;
+		// 1. Scoped - the `pointerCondition.jsonPointer` will match the event.sourceId.
+		// Do not require the target component's local query source to also contain that
+		// pointer: cross-tree sync expressions intentionally listen to fields outside the
+		// target component's subtree (e.g. People tab -> Permissions tab).
+		const hasScopedMatch = pointerCondition.jsonPointer == opts.event.sourceId;
 		// 2. Broadcast - the opts.event.sourceId is '*' indicating broadcast, and the condition's jsonPointer matches path of the `fieldId` of the event OR this is a form ready event and the expression is set to run on form ready
 		const eventFieldId = opts.event.fieldId || "";
 		const isRunOnFormReady = (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && opts.expression.config.runOnFormReady !== false);
@@ -234,6 +247,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 	}
   /**
    * Sets up event consumption for the specified event type.
+	 *
+	 * Matching and consumption stay serial on purpose. Several expressions can
+	 * target the same control, and preserving declaration order avoids hidden
+	 * race conditions between async template evaluations.
    *
    * @param options
    * @param eventType
@@ -359,6 +376,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
   /**
    * Sets the expression target property to the value.
    *
+	* Centralising target application here keeps specialised consumers, such as
+	* the sync-source consumer, focused on their matching semantics rather than
+	* re-implementing model/layout/component update rules.
+	*
    * Supported targets:
    * - `model.value` → this.control.setValue
    * - `layout.* →` this.options.definition.layout.componentDefinition.config.*
@@ -377,17 +398,11 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         await syncComponentDisplayFromModel(this.options?.component);
       }
     } else if (exprTarget.startsWith(FormExpressionsTargetLayoutPrefix)) {
-      const layoutPath = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);
-      const container = this.options?.definition?.layout?.componentDefinition?.config;
-      if (container) {
-        _set(container, layoutPath, targetValue);
-      }
+      const propPath = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);
+      await this.setTargetComponentProp(targetValue, propPath, "layout");
     } else if (exprTarget.startsWith(FormExpressionsTargetComponentPrefix)) {
-      const componentPath = exprTarget.substring(FormExpressionsTargetComponentPrefix.length);
-      const container = this.options?.definition?.component?.componentDefinition?.config;
-      if (container) {
-        _set(container, componentPath, targetValue);
-      }
+      const propPath = exprTarget.substring(FormExpressionsTargetComponentPrefix.length);
+      await this.setTargetComponentProp(targetValue, propPath, "component");
     } else if (exprTarget === FormExpressionsTargetValidationGroups) {
       if (isTypeFormValidationGroupsChangeRequestInfo(targetValue)) {
         // Only publish an event in response to scoped change events, don't need to respond to the broadcast events.
@@ -412,6 +427,44 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         expression
       );
     }
+
+  }
+
+  protected async setTargetComponentProp(
+    targetValue: unknown, propPath: string, targetKind: "component" | "layout"
+  ) {
+
+    // For a component, all config properties except 'disabled' can be set directly.
+    if (targetKind === "component" && propPath !== 'disabled') {
+      const config = this.options?.definition?.component?.componentDefinition?.config;
+      if (config && propPath) {
+        _set(config, propPath, targetValue);
+      }
+      return;
+    }
+
+    // For a component, the disabled property must be handled specially to satisfy angular.
+    if (targetKind === "component" && propPath === 'disabled') {
+      const component = this.options?.component;
+      if (component) {
+        component.setDisabled(toBoolean(targetValue));
+      }
+      return;
+    }
+
+    // For a layout, there is no need for specific handling of the 'disabled' property.
+    // This is because the 'disabled' property has no general meaning and is specific to each layout.
+    if (targetKind === "layout") {
+      const config = this.options?.definition?.layout?.componentDefinition?.config;
+      if (config && propPath) {
+        _set(config, propPath, targetValue);
+      }
+      return;
+    }
+
+    this.loggerService.warn(
+      `FormComponentBaseEventConsumer: Don't know what to do with target '${targetKind}' property path '${propPath}' value '${targetValue}' (type ${guessType(targetValue)}) in expression config.`
+    );
   }
 
   /**

@@ -13,11 +13,8 @@ export class SimpleInputModel extends FormFieldModel<string> {
 
 /**
  * The Simple Input Component.
- *
- * Notes:
- * - The disabled property binding in the template has been removed to allow form control state management (still unimplemented). This also applies to other components recently edited.
- *
- * TODO: Implement and/or integrate form control state management for the disabled state and review the removal of the `[disabled]` binding (and related changes in similar components).
+ * Used for inputs of type text, email, hidden, number, password, search, tel, url.
+ * Other input types have dedicated components.
  */
 @Component({
     selector: 'redbox-simpleinput',
@@ -29,7 +26,8 @@ export class SimpleInputModel extends FormFieldModel<string> {
             [class.is-valid]="showValidState"
             [class.is-invalid]="!isValid"
             [readonly]="isReadonly"
-            [title]="tooltip | i18next" />
+            [title]="tooltip | i18next"
+            [placeholder]="placeholder | i18next" />
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
     `,
@@ -39,6 +37,7 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
   protected override logName = SimpleInputComponentName;
   public tooltip:string = '';
   public inputType:string = 'text';
+  public placeholder: string | undefined = '';
 
   /**
    * Override to set additional properties required by the wrapper component.
@@ -52,6 +51,7 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
     let defaultConfig = new SimpleInputFieldComponentConfig();
     const cfg = (_isUndefined(simpleInputConfig) || _isEmpty(simpleInputConfig)) ? defaultConfig : simpleInputConfig;
     this.inputType = cfg.type || defaultConfig.type || 'text';
+    this.placeholder = cfg.placeholder || defaultConfig.placeholder;
   }
 
   /**

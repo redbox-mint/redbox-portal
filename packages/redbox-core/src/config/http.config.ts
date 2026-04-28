@@ -79,11 +79,8 @@ export interface HttpMiddlewareConfig {
     poweredBy?: MiddlewareFunction;
     redirectNoCacheHeaders?: MiddlewareFunction;
     cacheControl?: MiddlewareFunction;
-    handleBodyParserError?: MiddlewareFunction;
-    startRequestTimer?: MiddlewareFunction;
     cookieParser?: RequestHandler;
     compress?: RequestHandler;
-    methodOverride?: RequestHandler;
     router?: RequestHandler;
     www?: RequestHandler;
     favicon?: RequestHandler;
@@ -472,24 +469,19 @@ export const http: HttpConfig = {
         order: [
             'cacheControl',
             'redirectNoCacheHeaders',
-            'startRequestTimer',
             'cookieParser',
             'redboxSession',
             'passportInit',
             'passportSession',
             'companion',
             'myBodyParser',
-            'handleBodyParserError',
             'compress',
-            'methodOverride',
             'poweredBy',
             'router',
             'translate',
             'brandingAndPortalAwareStaticRouter',
             'www',
             'favicon',
-            '404',
-            '500'
         ],
 
         myBodyParser: function (req: Request, res: Response, next: NextFunction) {

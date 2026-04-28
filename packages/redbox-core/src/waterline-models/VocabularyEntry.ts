@@ -10,6 +10,7 @@ import {
   toWaterlineModelDef
 } from '../decorators';
 import type { VocabularyAttributes } from './Vocabulary';
+import {toBoolean} from "@researchdatabox/sails-ng-common";
 
 const normalize = (record: Record<string, unknown>, isCreate: boolean): void => {
   // On create, the record.label must be present and be a non-empty string.
@@ -44,17 +45,6 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
   if (Object.hasOwn(record, 'historical')) {
     record.historical = toBoolean(record.historical);
   }
-};
-
-const toBoolean = (value: unknown): boolean => {
-  if (typeof value === 'boolean') {
-    return value;
-  }
-  if (typeof value === 'number') {
-    return value !== 0;
-  }
-  const normalized = String(value ?? '').trim().toLowerCase();
-  return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
 };
 
 const validateParent = async (record: Record<string, unknown>): Promise<void> => {

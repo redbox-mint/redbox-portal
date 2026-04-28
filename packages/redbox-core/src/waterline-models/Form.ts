@@ -23,6 +23,7 @@ export interface FormAttributes extends Sails.WaterlineAttributes {
   name: string;
   branding: string | number | BrandingConfigAttributes;
   configuration?: FormConfigFrame;
+  attachmentFields?: string[];
 }
 
 export interface FormWaterlineModel extends Sails.Model<FormAttributes> {
