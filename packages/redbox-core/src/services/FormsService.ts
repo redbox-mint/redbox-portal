@@ -226,7 +226,7 @@ export namespace Services {
 
     public getFormByName = (formName: string, editMode: boolean, brandingId?: string): Observable<FormAttributes | null> => {
       const query: Record<string, unknown> = { name: formName };
-      const resolvedBrandingId = String(brandingId ?? BrandingService.getDefault()?.id ?? '').trim();
+      const resolvedBrandingId = brandingId?.trim() || BrandingService.getDefault()?.id?.toString().trim() || '';
       if (resolvedBrandingId) {
         query.branding = resolvedBrandingId;
       }

@@ -14,10 +14,6 @@ type FormLookup = {
   attachmentFields: string[];
 };
 
-declare const FormsService: {
-  getFormByName(formName: string, editMode: boolean, brandingId?: string): Observable<FormLookup | null>;
-};
-
 type RecordWithMetadata = {
   metaMetadata: { form: string; brandId?: string; attachmentFields?: string[] };
   metadata: Record<string, unknown>;
