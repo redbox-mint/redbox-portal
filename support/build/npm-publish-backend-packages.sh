@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly STAGING_ROOT="${NPM_PUBLISH_STAGING_ROOT:-/tmp/redbox-npm-publish}"
+STAGING_ROOT="${NPM_PUBLISH_STAGING_ROOT:-/tmp/redbox-npm-publish}"
 readonly RELEASE_KIND="${NPM_RELEASE_KIND:-}"
 readonly REQUESTED_VERSION="${NPM_PUBLISH_VERSION:-}"
 readonly DIST_TAG="${NPM_DIST_TAG:-latest}"
@@ -111,6 +111,7 @@ build_packages() {
 stage_packages() {
   local version="$1"
 
+  validate_staging_root
   rm -rf "$STAGING_ROOT"
   mkdir -p "$STAGING_ROOT"
 
@@ -121,19 +122,14 @@ stage_packages() {
   done
 
   log "Rewriting staged package metadata for version $version."
-  node - "$STAGING_ROOT" "$version" "${INTERNAL_PACKAGES[@]}" <<'NODE'
+  node - "$STAGING_ROOT" "$version" "${#PACKAGE_PATHS[@]}" "${PACKAGE_PATHS[@]}" "${INTERNAL_PACKAGES[@]}" <<'NODE'
 const fs = require('fs');
 const path = require('path');
 
-const [stagingRoot, version, ...internalPackages] = process.argv.slice(2);
-const packagePaths = [
-  'packages/raido',
-  'packages/rva-registry',
-  'packages/sails-ng-common',
-  'packages/redbox-core',
-  'packages/sails-hook-redbox-storage-mongo',
-  'packages/redbox-dev-tools',
-];
+const [stagingRoot, version, packageCountValue, ...values] = process.argv.slice(2);
+const packageCount = Number.parseInt(packageCountValue, 10);
+const packagePaths = values.slice(0, packageCount);
+const internalPackages = values.slice(packageCount);
 
 function rewriteDependencyBlock(pkg, blockName) {
   const block = pkg[blockName];
@@ -155,7 +151,6 @@ for (const packagePath of packagePaths) {
     ...(pkg.publishConfig || {}),
     access: 'public',
     registry: 'https://registry.npmjs.org/',
-    provenance: false,
   };
 
   for (const blockName of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
@@ -165,6 +160,23 @@ for (const packagePath of packagePaths) {
   fs.writeFileSync(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`);
 }
 NODE
+}
+
+validate_staging_root() {
+  local resolved
+  resolved="$(node -e "console.log(require('path').resolve(process.argv[1]))" "$STAGING_ROOT")"
+
+  if [[ -z "$resolved" || "$resolved" == "/" || "${#resolved}" -lt 10 ]]; then
+    fail "Refusing unsafe NPM_PUBLISH_STAGING_ROOT: $STAGING_ROOT"
+  fi
+
+  case "$resolved" in
+    "$PWD"|"$HOME"|/tmp|/Users|/Users/*/source|/Users/*/source/github)
+      fail "Refusing unsafe NPM_PUBLISH_STAGING_ROOT: $resolved"
+      ;;
+  esac
+
+  STAGING_ROOT="$resolved"
 }
 
 package_name() {
@@ -186,32 +198,35 @@ assert_no_staged_file_dependencies() {
 
 assert_versions_not_published() {
   local version="$1"
-  local package_path package_name view_error view_output status
+  local attempt package_path package_name view_error view_output status
 
   log "Checking npm registry for existing $version package versions."
   for package_path in "${PACKAGE_PATHS[@]}"; do
     package_name="$(package_name "$STAGING_ROOT/$package_path")"
-    view_output="$(mktemp)"
-    view_error="$(mktemp)"
-    status=0
-    npm view "$package_name@$version" version --silent >"$view_output" 2>"$view_error" || status=$?
-    if [[ "$status" -eq 0 ]]; then
-      cat "$view_output"
+
+    for attempt in 1 2 3; do
+      view_output="$(mktemp)"
+      view_error="$(mktemp)"
+      status=0
+      npm view "$package_name@$version" version >"$view_output" 2>"$view_error" || status=$?
+      if [[ "$status" -eq 0 ]]; then
+        cat "$view_output"
+        rm -f "$view_output" "$view_error"
+        fail "$package_name@$version already exists on npm."
+      fi
+      if grep -Eq '(E404|404 Not Found|No match found|not found)' "$view_error"; then
+        rm -f "$view_output" "$view_error"
+        break
+      fi
+      if [[ "$attempt" -eq 3 ]]; then
+        cat "$view_output" >&2
+        cat "$view_error" >&2
+        rm -f "$view_output" "$view_error"
+        fail "Unable to determine whether $package_name@$version already exists."
+      fi
       rm -f "$view_output" "$view_error"
-      fail "$package_name@$version already exists on npm."
-    fi
-    if [[ ! -s "$view_output" && ! -s "$view_error" ]]; then
-      rm -f "$view_error"
-      rm -f "$view_output"
-      continue
-    fi
-    if ! grep -Eq '(E404|404 Not Found|No match found|not found)' "$view_error"; then
-      cat "$view_output" >&2
-      cat "$view_error" >&2
-      rm -f "$view_output" "$view_error"
-      fail "Unable to determine whether $package_name@$version already exists."
-    fi
-    rm -f "$view_output" "$view_error"
+      sleep "$attempt"
+    done
   done
 }
 
@@ -240,12 +255,13 @@ publish_packages() {
     package_name="$(package_name "$STAGING_ROOT/$package_path")"
     version="$(package_version "$STAGING_ROOT/$package_path")"
     log "Publishing $package_name@$version."
-    (cd "$STAGING_ROOT/$package_path" && npm publish --access public --tag "$DIST_TAG")
+    (cd "$STAGING_ROOT/$package_path" && npm publish --access public --tag "$DIST_TAG" --provenance)
   done
 }
 
 main() {
   validate_inputs
+  validate_staging_root
 
   local version
   version="$(final_version)"

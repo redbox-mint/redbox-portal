@@ -652,7 +652,7 @@ jobs:
             NPM_RELEASE_KIND="<< parameters.release_kind >>" \
             NPM_PUBLISH_VERSION="<< parameters.release_version >>" \
             NPM_DIST_TAG="<< parameters.dist_tag >>" \
-            support/build/npm-publish-backend-packages.sh
+            bash support/build/npm-publish-backend-packages.sh
   deploy:
     docker:
       - image: 'cimg/node:24.14.1'
