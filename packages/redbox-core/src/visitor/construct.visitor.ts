@@ -323,6 +323,13 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { ValidationSummaryFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  SuggestedValidationSummaryComponentName,
+  SuggestedValidationSummaryFieldComponentDefinitionFrame,
+  SuggestedValidationSummaryFieldComponentDefinitionOutline,
+  SuggestedValidationSummaryFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { SuggestedValidationSummaryFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   SaveStatusComponentName,
   SaveStatusFieldComponentDefinitionFrame,
   SaveStatusFieldComponentDefinitionOutline,
@@ -710,9 +717,38 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     item.config = new ValidationSummaryFieldComponentConfig();
 
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+    this.sharedProps.setPropOverride('includeTabLabel', item.config, config);
+    this.sharedProps.setPropOverride('showWhenValid', item.config, config);
   }
 
   visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): void {
+    const currentData = this.getData();
+    if (
+      !isTypeFieldDefinitionName<SuggestedValidationSummaryFieldComponentDefinitionFrame>(
+        currentData,
+        SuggestedValidationSummaryComponentName
+      )
+    ) {
+      throw new Error(
+        `Invalid ${SuggestedValidationSummaryComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    item.config = new SuggestedValidationSummaryFieldComponentConfig();
+
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+    this.sharedProps.setPropOverride('enabledValidationGroups', item.config, config);
+    this.sharedProps.setPropOverride('includeTabLabel', item.config, config);
+    this.sharedProps.setPropOverride('showWhenValid', item.config, config);
+    this.sharedProps.setPropOverride('header', item.config, config);
+  }
+
+  visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
   }
 

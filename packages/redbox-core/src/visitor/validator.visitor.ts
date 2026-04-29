@@ -21,6 +21,8 @@ import {
     RepeatableFormComponentDefinitionOutline,
     ValidationSummaryFieldComponentDefinitionOutline,
     ValidationSummaryFormComponentDefinitionOutline,
+    SuggestedValidationSummaryFieldComponentDefinitionOutline,
+    SuggestedValidationSummaryFormComponentDefinitionOutline,
     SaveStatusFieldComponentDefinitionOutline,
     SaveStatusFormComponentDefinitionOutline,
     GroupFieldComponentDefinitionOutline,
@@ -242,6 +244,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
+        this.acceptFormComponentDefinition(item);
+    }
+
+    visitSuggestedValidationSummaryFieldComponentDefinition(_item: SuggestedValidationSummaryFieldComponentDefinitionOutline): void {
+    }
+
+    visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): void {
         this.acceptFormComponentDefinition(item);
     }
 

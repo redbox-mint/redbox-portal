@@ -16,6 +16,10 @@ import { TextAreaDefaults, TextAreaMap } from './component/text-area.model';
 import { ContentDefaults, ContentMap } from './component/content.model';
 import { SimpleInputDefaults, SimpleInputMap } from './component/simple-input.model';
 import { ValidationSummaryDefaults, ValidationSummaryMap } from './component/validation-summary.model';
+import {
+  SuggestedValidationSummaryDefaults,
+  SuggestedValidationSummaryMap,
+} from './component/suggested-validation-summary.model';
 import { TabContentDefaults, TabContentMap } from './component/tab-content.model';
 import { TabDefaults, TabMap } from './component/tab.model';
 import { AccordionDefaults, AccordionMap } from './component/accordion.model';
@@ -69,6 +73,7 @@ export const AllDefs = [
   ...ContentMap,
   ...SimpleInputMap,
   ...ValidationSummaryMap,
+  ...SuggestedValidationSummaryMap,
   ...TabContentMap,
   ...TabMap,
   ...AccordionMap,
@@ -110,6 +115,7 @@ const RawDefaults = [
   ContentDefaults,
   SimpleInputDefaults,
   ValidationSummaryDefaults,
+  SuggestedValidationSummaryDefaults,
   TabContentDefaults,
   TabDefaults,
   AccordionDefaults,
