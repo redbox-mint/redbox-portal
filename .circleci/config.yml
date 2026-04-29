@@ -648,6 +648,7 @@ jobs:
           name: Publish backend npm packages
           command: |
             source "$BASH_ENV"
+            CIRCLE_PIPELINE_NUMBER="<< pipeline.number >>" \
             NPM_RELEASE_KIND="<< parameters.release_kind >>" \
             NPM_PUBLISH_VERSION="<< parameters.release_version >>" \
             NPM_DIST_TAG="<< parameters.dist_tag >>" \

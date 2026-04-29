@@ -7,6 +7,7 @@ readonly REQUESTED_VERSION="${NPM_PUBLISH_VERSION:-}"
 readonly DIST_TAG="${NPM_DIST_TAG:-latest}"
 readonly DRY_RUN="${NPM_PUBLISH_DRY_RUN:-false}"
 readonly REQUIRED_NPM_VERSION="11.5.1"
+readonly PIPELINE_NUMBER="${CIRCLE_PIPELINE_NUMBER:-${CIRCLE_BUILD_NUM:-}}"
 
 readonly PACKAGE_PATHS=(
   "packages/raido"
@@ -67,8 +68,8 @@ validate_inputs() {
         || fail "NPM_PUBLISH_VERSION must be a stable semver base like 2.2.0 for beta publishes."
       [[ "$DIST_TAG" =~ ^(beta|next|alpha)$ ]] \
         || fail "NPM_DIST_TAG must be beta, next, or alpha for beta publishes."
-      [[ -n "${CIRCLE_PIPELINE_NUMBER:-}" ]] \
-        || fail "CIRCLE_PIPELINE_NUMBER is required to generate beta package versions."
+      [[ -n "$PIPELINE_NUMBER" ]] \
+        || fail "CIRCLE_PIPELINE_NUMBER or CIRCLE_BUILD_NUM is required to generate beta package versions."
       ;;
     release)
       [[ "${CIRCLE_TAG:-}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
@@ -89,7 +90,7 @@ validate_inputs() {
 final_version() {
   case "$RELEASE_KIND" in
     beta)
-      printf '%s-%s.%s\n' "$REQUESTED_VERSION" "$DIST_TAG" "$CIRCLE_PIPELINE_NUMBER"
+      printf '%s-%s.%s\n' "$REQUESTED_VERSION" "$DIST_TAG" "$PIPELINE_NUMBER"
       ;;
     release)
       printf '%s\n' "${CIRCLE_TAG#v}"
