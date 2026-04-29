@@ -8,8 +8,11 @@ import { RepeatableComponent, RepeatableElementLayoutComponent } from './repeata
 import { TabComponent } from './tab.component';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { FormComponentEventType } from '../form-state/events/form-component-event.types';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 
 describe('ValidationSummaryFieldComponent', () => {
+  let translationService: { translationMap: Record<string, string>; t: (key: string) => string };
+
   beforeEach(async () => {
     await createTestbedModule({
       declarations: {
@@ -20,6 +23,11 @@ describe('ValidationSummaryFieldComponent', () => {
         "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
       }
     });
+
+    translationService = TestBed.inject(TranslationService as any);
+    translationService.translationMap = translationService.translationMap || {};
+    translationService.translationMap['@dmpt-form-validation-summary-valid'] = 'The form is valid.';
+    spyOn(translationService, 't').and.callFake((key: string) => translationService.translationMap[key] ?? key);
   });
   it('should create component', () => {
     let fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
