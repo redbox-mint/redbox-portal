@@ -100,7 +100,14 @@ export namespace Services {
 
     private getErrorMessage(err: unknown): string {
       if (err instanceof Error) {
-        return err.message;
+        const messageParts = [err.message];
+        const causeMessage = err.cause instanceof Error
+          ? err.cause.message
+          : (typeof err.cause === 'string' ? err.cause : undefined);
+        if (causeMessage != null && causeMessage !== '' && causeMessage !== err.message) {
+          messageParts.push(`Cause: ${causeMessage}`);
+        }
+        return messageParts.join('\n');
       }
       return String(err);
     }
@@ -222,6 +229,8 @@ export namespace Services {
         await Record.updateOne({ redboxOid: oid }).set(record);
         response.success = true;
       } catch (err) {
+        const errorMessage = this.getErrorMessage(err);
+        sails.log.error(`${this.logHeader} updateMeta() failed for oid ${oid}: ${errorMessage}`);
         sails.log.error(
           `${this.logHeader} Failed to save update to MongoDB: ${JSON.stringify({
             error: err,
@@ -233,7 +242,7 @@ export namespace Services {
           })}`
         );
         response.success = false;
-        response.message = this.getErrorMessage(err);
+        response.message = errorMessage;
       }
       return response;
     }
@@ -976,8 +985,8 @@ export namespace Services {
       return payload;
     }
 
-    private sanitizeIntegrationAudit(audit: IntegrationAuditModel): IntegrationAuditModel {
-      const payload = new IntegrationAuditModel({
+    private sanitizeIntegrationAudit(audit: IntegrationAuditModel): Partial<IntegrationAuditModel> {
+      const payload: Partial<IntegrationAuditModel> = {
         redboxOid: audit.redboxOid,
         brandId: audit.brandId,
         integrationName: audit.integrationName,
@@ -995,10 +1004,34 @@ export namespace Services {
         durationMs: audit.durationMs,
         requestSummary: this.toJsonSafe(audit.requestSummary) as Record<string, unknown> | undefined,
         responseSummary: this.toJsonSafe(audit.responseSummary) as Record<string, unknown> | undefined,
-      });
+      };
 
       if (_.isUndefined(payload.requestSummary)) {
         delete payload.requestSummary;
+      }
+      if (_.isUndefined(payload.brandId)) {
+        delete payload.brandId;
+      }
+      if (_.isUndefined(payload.triggeredBy)) {
+        delete payload.triggeredBy;
+      }
+      if (_.isUndefined(payload.message)) {
+        delete payload.message;
+      }
+      if (_.isUndefined(payload.errorDetail)) {
+        delete payload.errorDetail;
+      }
+      if (_.isUndefined(payload.httpStatusCode)) {
+        delete payload.httpStatusCode;
+      }
+      if (_.isUndefined(payload.parentSpanId)) {
+        delete payload.parentSpanId;
+      }
+      if (_.isUndefined(payload.completedAt)) {
+        delete payload.completedAt;
+      }
+      if (_.isUndefined(payload.durationMs)) {
+        delete payload.durationMs;
       }
       if (_.isUndefined(payload.responseSummary)) {
         delete payload.responseSummary;

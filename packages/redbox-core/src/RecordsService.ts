@@ -4,8 +4,8 @@ import { RecordModel, UserModel } from "./model";
 type AnyRecord = Record<string, unknown>;
 type RecordInput = RecordModel | Record<string, unknown>;
 type UserInput = UserModel | Record<string, unknown>;
-type ResolvedPermissionUser = { username: string; name: string; email: string };
-type ResolvedRecordPermissions = {
+export type ResolvedPermissionUser = { username: string; name: string; email: string };
+export type ResolvedRecordPermissions = {
   edit: ResolvedPermissionUser[];
   view: ResolvedPermissionUser[];
   editPending: string[];

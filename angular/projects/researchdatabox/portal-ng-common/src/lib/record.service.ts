@@ -173,13 +173,30 @@ export class RecordService extends HttpClientService {
     return await firstValueFrom(result$);
   }
 
-  public async getRecordAuditTab(oid: string): Promise<RecordAuditTabResponse> {
+  public async getRecordAuditTab(
+    oid: string,
+    opts: { dateFrom?: string; dateTo?: string; action?: string; workflowState?: string } = {}
+  ): Promise<RecordAuditTabResponse> {
     const url = `${this.brandingAndPortalUrl}/record/viewAudit/${oid}/audit`;
+    let params = new HttpParams();
+    if (!_isEmpty(opts.dateFrom)) {
+      params = params.set('dateFrom', String(opts.dateFrom));
+    }
+    if (!_isEmpty(opts.dateTo)) {
+      params = params.set('dateTo', String(opts.dateTo));
+    }
+    if (!_isEmpty(opts.action)) {
+      params = params.set('action', String(opts.action));
+    }
+    if (!_isEmpty(opts.workflowState)) {
+      params = params.set('workflowState', String(opts.workflowState));
+    }
     const requestOptions = this.getHttpOptions();
     const httpOptions = {
       context: requestOptions?.context,
       observe: 'body' as const,
       responseType: 'json' as const,
+      params,
     };
     const result$ = this.http
       .get<{ data?: RecordAuditTabResponse } | RecordAuditTabResponse>(url, httpOptions)
@@ -220,7 +237,7 @@ export class RecordService extends HttpClientService {
 
   public async getRecordIntegrationAuditTab(
     oid: string,
-    opts: { page?: number; pageSize?: number; status?: string } = {}
+    opts: { page?: number; pageSize?: number; status?: string; integrationName?: string; dateFrom?: string; dateTo?: string } = {}
   ): Promise<IntegrationAuditTabResponse> {
     const url = `${this.brandingAndPortalUrl}/record/viewAudit/${oid}/integration-audit`;
     let params = new HttpParams();
@@ -232,6 +249,15 @@ export class RecordService extends HttpClientService {
     }
     if (!_isEmpty(opts.status)) {
       params = params.set('status', String(opts.status));
+    }
+    if (!_isEmpty(opts.integrationName)) {
+      params = params.set('integrationName', String(opts.integrationName));
+    }
+    if (!_isEmpty(opts.dateFrom)) {
+      params = params.set('dateFrom', String(opts.dateFrom));
+    }
+    if (!_isEmpty(opts.dateTo)) {
+      params = params.set('dateTo', String(opts.dateTo));
     }
     const requestOptions = this.getHttpOptions();
     const httpOptions = {

@@ -1,10 +1,22 @@
 export enum IntegrationAuditName {
   figshare = 'figshare',
+  doi = 'doi',
 }
 
 export enum IntegrationAuditAction {
   syncRecordWithFigshare = 'syncRecordWithFigshare',
   publishAfterUploadFilesJob = 'publishAfterUploadFilesJob',
+  publishDoi = 'publishDoi',
+  createDoiRequest = 'createDoiRequest',
+  updateDoi = 'updateDoi',
+  updateDoiRequest = 'updateDoiRequest',
+  deleteDoi = 'deleteDoi',
+  deleteDoiRequest = 'deleteDoiRequest',
+  changeDoiState = 'changeDoiState',
+  changeDoiStateRequest = 'changeDoiStateRequest',
+  publishDoiTrigger = 'publishDoiTrigger',
+  publishDoiTriggerSync = 'publishDoiTriggerSync',
+  updateDoiTriggerSync = 'updateDoiTriggerSync',
 }
 
 export enum IntegrationAuditStatus {
@@ -34,7 +46,41 @@ export class IntegrationAuditModel {
 
   constructor(init?: Partial<IntegrationAuditModel>) {
     Object.assign(this, init);
+    this.normalizeOptionalFields();
     this.validateRequiredFields();
+  }
+
+  private normalizeOptionalFields(): void {
+    if (this.brandId === null) {
+      this.brandId = undefined;
+    }
+    if (this.triggeredBy === null) {
+      this.triggeredBy = undefined;
+    }
+    if (this.message === null) {
+      this.message = undefined;
+    }
+    if (this.errorDetail === null) {
+      this.errorDetail = undefined;
+    }
+    if (this.httpStatusCode === null) {
+      this.httpStatusCode = undefined;
+    }
+    if (this.parentSpanId === null) {
+      this.parentSpanId = undefined;
+    }
+    if (this.completedAt === null) {
+      this.completedAt = undefined;
+    }
+    if (this.durationMs === null) {
+      this.durationMs = undefined;
+    }
+    if (this.requestSummary === null) {
+      this.requestSummary = undefined;
+    }
+    if (this.responseSummary === null) {
+      this.responseSummary = undefined;
+    }
   }
 
   private validateRequiredFields(): void {

@@ -103,6 +103,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: response });
       } catch (error) {
         return this.sendResp(req, res, {
+          status: 500,
           errors: [this.asError(error)],
           displayErrors: [{ detail: `Failed to list integration audit records for ${oid}.` }],
         });

@@ -134,6 +134,17 @@ describe('appConfigService', function () {
     const configForm = 'systemMessage';
     const appConfigForm = await appConfigService.getAppConfigForm(branding, configForm);
     expect(appConfigForm).to.not.be.null;
+    expect(appConfigForm.schema).to.not.be.null;
+    expect(appConfigForm.fieldOrder).to.deep.equal(['enabled', 'title', 'message', 'dismissalDurationHours']);
+  });
+
+  it('should get the authorized domains and emails app config form', async () => {
+    const branding = BrandingService.getBrand('default');
+    const configForm = 'authorizedDomainsEmails';
+    const appConfigForm = await appConfigService.getAppConfigForm(branding, configForm);
+    expect(appConfigForm).to.not.be.null;
+    expect(appConfigForm.schema).to.not.be.null;
+    expect(appConfigForm.fieldOrder).to.deep.equal(['enabled', 'domainsAaf', 'emailsAaf', 'domainsOidc', 'emailsOidc']);
   });
 
   it('should register a new config model with schema', () => {

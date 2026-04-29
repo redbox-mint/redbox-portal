@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { trace } from '@opentelemetry/api';
 import { Services } from '../../src/services/IntegrationAuditService';
-import { IntegrationAuditAction } from '../../src/model/storage/IntegrationAuditModel';
+import { IntegrationAuditAction, IntegrationAuditName } from '../../src/model/storage/IntegrationAuditModel';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 
 describe('IntegrationAuditService', function () {
@@ -69,6 +69,37 @@ describe('IntegrationAuditService', function () {
     expect(mockQueueService.now.firstCall.args[1].requestSummary.authorization).to.equal('REDACTED');
   });
 
+  it('preserves safe audit summary values such as oids and titles', function () {
+    sinon.stub(trace, 'getActiveSpan').returns(undefined);
+
+    service.startAudit('dc6e5dfa39304d6fad666cb3ce484caf', IntegrationAuditAction.publishDoi, {
+      integrationName: IntegrationAuditName.doi,
+      requestSummary: {
+        oid: 'dc6e5dfa39304d6fad666cb3ce484caf',
+        title: 'datacite-validation-error',
+        authorization: 'Bearer secret-token',
+      },
+    });
+
+    const payload = mockQueueService.now.firstCall.args[1];
+    expect(payload.requestSummary.oid).to.equal('dc6e5dfa39304d6fad666cb3ce484caf');
+    expect(payload.requestSummary.title).to.equal('datacite-validation-error');
+    expect(payload.requestSummary.authorization).to.equal('REDACTED');
+  });
+
+  it('records DOI integration metadata when requested', function () {
+    sinon.stub(trace, 'getActiveSpan').returns(undefined);
+
+    const ctx = service.startAudit('oid-1', IntegrationAuditAction.publishDoi, {
+      integrationName: IntegrationAuditName.doi,
+      requestSummary: { profile: 'dataPublication' },
+    });
+
+    expect(ctx.integrationName).to.equal(IntegrationAuditName.doi);
+    expect(mockQueueService.now.firstCall.args[1].integrationName).to.equal(IntegrationAuditName.doi);
+    expect(mockQueueService.now.firstCall.args[1].integrationAction).to.equal(IntegrationAuditAction.publishDoi);
+  });
+
   it('generates fallback trace ids when there is no active span', function () {
     sinon.stub(trace, 'getActiveSpan').returns(undefined);
 
@@ -76,6 +107,21 @@ describe('IntegrationAuditService', function () {
 
     expect(ctx.traceId).to.match(/^[a-f0-9]{32}$/);
     expect(ctx.spanId).to.match(/^[a-f0-9]{16}$/);
+  });
+
+  it('allows child audits to join an existing trace with a parent span', function () {
+    sinon.stub(trace, 'getActiveSpan').returns(undefined);
+
+    const ctx = service.startAudit('oid-1', IntegrationAuditAction.publishDoi, {
+      integrationName: IntegrationAuditName.doi,
+      traceId: 'a'.repeat(32),
+      parentSpanId: 'b'.repeat(16),
+    });
+
+    expect(ctx.traceId).to.equal('a'.repeat(32));
+    expect(ctx.parentSpanId).to.equal('b'.repeat(16));
+    expect(ctx.spanId).to.match(/^[a-f0-9]{16}$/);
+    expect(ctx.spanId).to.not.equal('b'.repeat(16));
   });
 
   it('persists directly in integrationtest and sanitizes failure details', function () {
@@ -95,6 +141,71 @@ describe('IntegrationAuditService', function () {
     expect(failurePayload.status).to.equal('failed');
     expect(failurePayload.errorDetail).to.contain('publish failed');
     expect(failurePayload.responseSummary.authorization).to.equal('REDACTED');
+  });
+
+  it('keeps safe nested responseSummary fields while redacting actual credentials', function () {
+    (global as any).sails.config.environment = 'integrationtest';
+    sinon.stub(trace, 'getActiveSpan').returns(undefined);
+
+    const ctx = service.startAudit('dc6e5dfa39304d6fad666cb3ce484caf', IntegrationAuditAction.publishDoi, {
+      integrationName: IntegrationAuditName.doi,
+    });
+    service.failAudit(ctx, new Error('publish failed'), {
+      responseSummary: {
+        displayErrors: [
+          {
+            code: 'title-required',
+            title: 'datacite-validation-error',
+            meta: {
+              oid: 'dc6e5dfa39304d6fad666cb3ce484caf',
+              authorization: 'Bearer abc.def.ghi',
+            },
+          },
+        ],
+      },
+    });
+
+    const failurePayload = mockStorageService.createIntegrationAudit.secondCall.args[0];
+    const displayError = failurePayload.responseSummary.displayErrors[0];
+    expect(displayError.title).to.equal('datacite-validation-error');
+    expect(displayError.meta.oid).to.equal('dc6e5dfa39304d6fad666cb3ce484caf');
+    expect(displayError.meta.authorization).to.equal('REDACTED');
+  });
+
+  it('merges extra requestSummary details into the final audit row', function () {
+    (global as any).sails.config.environment = 'integrationtest';
+    sinon.stub(trace, 'getActiveSpan').returns(undefined);
+
+    const ctx = service.startAudit('oid-1', IntegrationAuditAction.publishDoi, {
+      integrationName: IntegrationAuditName.doi,
+      requestSummary: {
+        event: 'draft',
+        forceRun: true,
+      },
+    });
+    service.completeAudit(ctx, {
+      message: 'DOI published successfully.',
+      requestSummary: {
+        requestBody: {
+          data: {
+            type: 'dois',
+            attributes: {
+              titles: [{ title: 'Visible title' }],
+            },
+          },
+        },
+        authorization: 'Bearer secret-token',
+      },
+      responseSummary: {
+        doi: '10.1234/5678',
+      },
+    });
+
+    const completionPayload = mockStorageService.createIntegrationAudit.secondCall.args[0];
+    expect(completionPayload.requestSummary.event).to.equal('draft');
+    expect(completionPayload.requestSummary.forceRun).to.equal(true);
+    expect(completionPayload.requestSummary.requestBody.data.attributes.titles[0].title).to.equal('Visible title');
+    expect(completionPayload.requestSummary.authorization).to.equal('REDACTED');
   });
 
   it('swallows persistence failures in storeIntegrationAudit', async function () {
@@ -131,6 +242,65 @@ describe('IntegrationAuditService', function () {
     expect((global as any).sails.log.error.called).to.be.true;
   });
 
+  it('normalizes null optional fields before persisting queued payloads', async function () {
+    service.storeIntegrationAudit({
+      attrs: {
+        data: {
+          redboxOid: 'oid-1',
+          brandId: 'brand-1',
+          integrationName: 'doi',
+          integrationAction: 'publishDoiTriggerSync',
+          triggeredBy: 'publishDoiTriggerSync',
+          message: null,
+          errorDetail: null,
+          httpStatusCode: null,
+          parentSpanId: null,
+          completedAt: null,
+          durationMs: null,
+          requestSummary: { event: 'draft' },
+          responseSummary: null,
+          status: 'started',
+          traceId: 'dd400d83e198e46e940ec54acd8e430c',
+          spanId: '44ea46d4a2d6bd14',
+          startedAt: '2026-04-14T23:50:30.069Z',
+        },
+      },
+    });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(mockStorageService.createIntegrationAudit.calledOnce).to.be.true;
+    const payload = mockStorageService.createIntegrationAudit.firstCall.args[0];
+    expect(payload.message).to.equal(undefined);
+    expect(payload.errorDetail).to.equal(undefined);
+    expect(payload.httpStatusCode).to.equal(undefined);
+    expect(payload.parentSpanId).to.equal(undefined);
+    expect(payload.completedAt).to.equal(undefined);
+    expect(payload.durationMs).to.equal(undefined);
+    expect(payload.responseSummary).to.equal(undefined);
+  });
+
+  it('logs the storage response message when persistence is rejected by storage', async function () {
+    mockStorageService.createIntegrationAudit.resolves({
+      success: false,
+      message: 'Invalid new record.',
+      details: 'message cannot be null',
+      isSuccessful: () => false,
+    });
+
+    (global as any).sails.config.environment = 'integrationtest';
+    sinon.stub(trace, 'getActiveSpan').returns(undefined);
+
+    service.startAudit('oid-1', IntegrationAuditAction.publishDoiTriggerSync, {
+      integrationName: IntegrationAuditName.doi,
+    });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect((global as any).sails.log.error.calledWithMatch(sinon.match('Storage response message: Invalid new record.'))).to.be.true;
+    expect((global as any).sails.log.error.calledWithMatch(sinon.match('Storage response details: "message cannot be null"'))).to.be.true;
+  });
+
   it('delegates audit-log retrieval to storage', async function () {
     const result = await service.getAuditLog({ oid: 'oid-1', page: 1, pageSize: 10 } as any);
 
@@ -139,9 +309,87 @@ describe('IntegrationAuditService', function () {
     expect(result).to.deep.equal({ rows: [{ redboxOid: 'oid-1' }], total: 7 });
   });
 
-  it('groups audit rows into traces with derived status and ordered events', async function () {
-    mockStorageService.countIntegrationAudit.resolves(5);
+  it('groups audit rows into traces with one event per span in started order', async function () {
+    mockStorageService.countIntegrationAudit.resolves(11);
     mockStorageService.getIntegrationAudit.resolves([
+      {
+        id: 'event-11',
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'createDoiRequest',
+        triggeredBy: 'publishDoiTriggerSync',
+        status: 'started',
+        traceId: 'trace-d',
+        spanId: 'span-d3',
+        parentSpanId: 'span-d2',
+        startedAt: '2026-03-03T00:00:05.500Z',
+      },
+      {
+        id: 'event-10',
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'createDoiRequest',
+        triggeredBy: 'publishDoiTriggerSync',
+        status: 'success',
+        traceId: 'trace-d',
+        spanId: 'span-d3',
+        parentSpanId: 'span-d2',
+        startedAt: '2026-03-03T00:00:05.500Z',
+        completedAt: '2026-03-03T00:00:05.900Z',
+        message: 'DataCite create DOI request completed.',
+        responseSummary: { data: { id: '10.1234/5678' } },
+      },
+      {
+        id: 'event-9',
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'publishDoi',
+        triggeredBy: 'publishDoiTriggerSync',
+        status: 'started',
+        traceId: 'trace-d',
+        spanId: 'span-d2',
+        parentSpanId: 'span-d1',
+        startedAt: '2026-03-03T00:00:05.000Z',
+      },
+      {
+        id: 'event-8',
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'publishDoiTriggerSync',
+        triggeredBy: 'publishDoiTriggerSync',
+        status: 'started',
+        traceId: 'trace-d',
+        spanId: 'span-d1',
+        startedAt: '2026-03-03T00:00:00.000Z',
+      },
+      {
+        id: 'event-7',
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'publishDoi',
+        triggeredBy: 'publishDoiTriggerSync',
+        status: 'success',
+        traceId: 'trace-d',
+        spanId: 'span-d2',
+        parentSpanId: 'span-d1',
+        startedAt: '2026-03-03T00:00:05.000Z',
+        completedAt: '2026-03-03T00:00:06.000Z',
+        message: 'DOI published successfully.',
+        responseSummary: { id: '10.1234/5678' },
+      },
+      {
+        id: 'event-6',
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'publishDoiTriggerSync',
+        triggeredBy: 'publishDoiTriggerSync',
+        status: 'success',
+        traceId: 'trace-d',
+        spanId: 'span-d1',
+        startedAt: '2026-03-03T00:00:00.000Z',
+        completedAt: '2026-03-03T00:00:07.000Z',
+        message: 'DOI trigger sync completed.',
+      },
       {
         id: 'event-5',
         redboxOid: 'oid-1',
@@ -209,14 +457,26 @@ describe('IntegrationAuditService', function () {
 
     expect(mockStorageService.countIntegrationAudit.calledOnce).to.be.true;
     expect(mockStorageService.getIntegrationAudit.calledOnce).to.be.true;
-    expect(result.total).to.equal(3);
-    expect(result.rows.map(row => row.traceId)).to.deep.equal(['trace-b', 'trace-a', 'trace-c']);
-    expect(result.rows[0].status).to.equal('started');
-    expect(result.rows[1].status).to.equal('failed');
-    expect(result.rows[1].actions).to.deep.equal(['publishAfterUploadFilesJob', 'syncRecordWithFigshare']);
-    expect(result.rows[1].events.map(event => event.spanId)).to.deep.equal(['span-a1', 'span-a2']);
-    expect(result.rows[2].events.map(event => event.spanId)).to.deep.equal(['span-c1', 'span-c2']);
-    expect(result.rows[2].events[1].depth).to.equal(0);
+    expect(result.total).to.equal(4);
+    expect(result.rows.map(row => row.traceId)).to.deep.equal(['trace-d', 'trace-b', 'trace-a', 'trace-c']);
+    expect(result.rows[0].status).to.equal('success');
+    expect(result.rows[0].actions).to.deep.equal(['publishDoiTriggerSync', 'publishDoi', 'createDoiRequest']);
+    expect(result.rows[0].events.map(event => event.spanId)).to.deep.equal(['span-d1', 'span-d2', 'span-d3']);
+    expect(result.rows[0].events[0].message).to.equal('DOI trigger sync completed.');
+    expect(result.rows[0].events[0].status).to.equal('success');
+    expect(result.rows[0].events[1].message).to.equal('DOI published successfully.');
+    expect(result.rows[0].events[1].status).to.equal('success');
+    expect(result.rows[0].events[1].responseSummary).to.deep.equal({ id: '10.1234/5678' });
+    expect(result.rows[0].events[2].message).to.equal('DataCite create DOI request completed.');
+    expect(result.rows[0].events[2].status).to.equal('success');
+    expect(result.rows[0].events[2].depth).to.equal(2);
+    expect(result.rows[0].events[2].responseSummary).to.deep.equal({ data: { id: '10.1234/5678' } });
+    expect(result.rows[1].status).to.equal('started');
+    expect(result.rows[2].status).to.equal('failed');
+    expect(result.rows[2].actions).to.deep.equal(['syncRecordWithFigshare', 'publishAfterUploadFilesJob']);
+    expect(result.rows[2].events.map(event => event.spanId)).to.deep.equal(['span-a1', 'span-a2']);
+    expect(result.rows[3].events.map(event => event.spanId)).to.deep.equal(['span-c1', 'span-c2']);
+    expect(result.rows[3].events[1].depth).to.equal(0);
   });
 
   it('filters and paginates traces by derived status', async function () {
@@ -261,5 +521,43 @@ describe('IntegrationAuditService', function () {
     expect(result.total).to.equal(2);
     expect(result.rows).to.have.length(1);
     expect(result.rows[0].traceId).to.equal('trace-2');
+  });
+
+  it('filters traces by integration name before pagination', async function () {
+    mockStorageService.countIntegrationAudit.resolves(4);
+    mockStorageService.getIntegrationAudit.resolves([
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'success',
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        startedAt: '2026-03-01T00:00:00.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'publishDoi',
+        status: 'success',
+        traceId: 'trace-2',
+        spanId: 'span-2',
+        startedAt: '2026-03-02T00:00:00.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'publishAfterUploadFilesJob',
+        status: 'success',
+        traceId: 'trace-3',
+        spanId: 'span-3',
+        startedAt: '2026-03-03T00:00:00.000Z',
+      },
+    ]);
+
+    const result = await service.getTraceAuditLog({ oid: 'oid-1', integrationName: 'fig', page: 1, pageSize: 10 } as any);
+
+    expect(result.total).to.equal(2);
+    expect(result.rows.map(row => row.traceId)).to.deep.equal(['trace-3', 'trace-1']);
   });
 });

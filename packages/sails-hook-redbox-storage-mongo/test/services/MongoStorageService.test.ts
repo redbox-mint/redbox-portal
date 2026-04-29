@@ -248,6 +248,7 @@ describe('MongoStorageService', function () {
 
     expect(response.success).to.equal(false);
     expect(String(response.message.message || response.message)).to.include('update failed');
+    expect(mockSails.log.error.calledWithMatch('updateMeta() failed for oid oid-1: update failed')).to.equal(true);
   });
 
   it('rejects getMeta for an empty oid', async function () {
@@ -839,6 +840,7 @@ describe('MongoStorageService', function () {
 
     expect(response.success).to.equal(true);
     expect(IntegrationAudit.create.calledOnce).to.be.true;
+    expect(IntegrationAudit.create.firstCall.args[0].constructor).to.equal(Object);
     expect(IntegrationAudit.create.firstCall.args[0]).to.include({
       redboxOid: 'oid-1',
       integrationName: 'figshare',

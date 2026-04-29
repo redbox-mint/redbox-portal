@@ -107,6 +107,37 @@ describe("RecordService", () => {
     } as any);
   });
 
+  it("includes filter query parameters for record audit requests", async () => {
+    const auditPromise = recordService.getRecordAuditTab("oid-791", {
+      dateFrom: "2026-03-01",
+      dateTo: "2026-03-31",
+      action: "updated",
+      workflowState: "Draft"
+    });
+
+    const request = httpTestingController.expectOne(req =>
+      req.url === `${recordService.brandingAndPortalUrl}/record/viewAudit/oid-791/audit` &&
+      req.params.get("dateFrom") === "2026-03-01" &&
+      req.params.get("dateTo") === "2026-03-31" &&
+      req.params.get("action") === "updated" &&
+      req.params.get("workflowState") === "Draft"
+    );
+    expect(request.request.method).toBe("GET");
+    request.flush({
+      data: {
+        summary: { returnedCount: 0 },
+        rawAuditUrl: "/default/rdmp/api/records/audit/oid-791",
+        records: []
+      }
+    });
+
+    await expectAsync(auditPromise).toBeResolvedTo({
+      summary: { returnedCount: 0 },
+      rawAuditUrl: "/default/rdmp/api/records/audit/oid-791",
+      records: []
+    } as any);
+  });
+
   it("unwraps record permissions responses", async () => {
     const permissionsPromise = recordService.getRecordPermissionsTab("oid-321");
 
@@ -161,14 +192,20 @@ describe("RecordService", () => {
     const integrationPromise = recordService.getRecordIntegrationAuditTab("oid-654", {
       page: 2,
       pageSize: 15,
-      status: "success"
+      status: "success",
+      integrationName: "figshare",
+      dateFrom: "2026-01-01",
+      dateTo: "2026-01-31"
     });
 
     const request = httpTestingController.expectOne(req =>
       req.url === `${recordService.brandingAndPortalUrl}/record/viewAudit/oid-654/integration-audit` &&
       req.params.get("page") === "2" &&
       req.params.get("pageSize") === "15" &&
-      req.params.get("status") === "success"
+      req.params.get("status") === "success" &&
+      req.params.get("integrationName") === "figshare" &&
+      req.params.get("dateFrom") === "2026-01-01" &&
+      req.params.get("dateTo") === "2026-01-31"
     );
     expect(request.request.method).toBe("GET");
     request.flush({

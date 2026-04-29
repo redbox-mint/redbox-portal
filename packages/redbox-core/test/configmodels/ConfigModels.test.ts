@@ -11,6 +11,13 @@ describe('ConfigModels', function() {
       expect(info).to.have.property('modelName', 'SystemMessage');
     });
 
+    it('should expose a form adapter for doiPublishing', function() {
+      const info = ConfigModels.getModelInfo('doiPublishing');
+      expect(info).to.have.property('formAdapter');
+      expect(info?.formAdapter?.toForm).to.be.a('function');
+      expect(info?.formAdapter?.fromForm).to.be.a('function');
+    });
+
     it('should return undefined for unknown key', function() {
       const info = ConfigModels.getModelInfo('unknown');
       expect(info).to.be.undefined;
@@ -23,6 +30,7 @@ describe('ConfigModels', function() {
       expect(keys).to.be.an('array');
       expect(keys).to.include('systemMessage');
       expect(keys).to.include('menu');
+      expect(keys).to.include('doiPublishing');
     });
   });
 

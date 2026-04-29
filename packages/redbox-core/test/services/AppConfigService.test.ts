@@ -3,6 +3,7 @@ import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { APP_CONFIG_SECRET_MASK, Services } from '../../src/services/AppConfigService';
 import { ConfigModels } from '../../src/configmodels/ConfigModels';
+import { DoiPublishing, fromDoiPublishingFormModel, toDoiPublishingFormModel } from '../../src/configmodels/DoiPublishing';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('AppConfigService', function () {
@@ -73,7 +74,7 @@ describe('AppConfigService', function () {
         return p;
       };
 
-      (global as any).AppConfig.findOne.callsFake(() => mockDeferred({}));
+      (global as any).AppConfig.find.callsFake(() => mockDeferred([{}]));
       try {
         await service.createConfig('default', 'key', {});
         expect.fail('Should have thrown');
@@ -121,9 +122,9 @@ describe('AppConfigService', function () {
         return p;
       });
 
-      (global as any).AppConfig.findOne = sinon.stub().callsFake(() => {
-        const p: any = Promise.resolve(existingRecord);
-        p.exec = sinon.stub().yields(null, existingRecord);
+      (global as any).AppConfig.find = sinon.stub().callsFake(() => {
+        const p: any = Promise.resolve([existingRecord]);
+        p.exec = sinon.stub().yields(null, [existingRecord]);
         return p;
       });
       (global as any).AppConfig.updateOne = sinon.stub().returns({ set: updateSet });
@@ -139,6 +140,167 @@ describe('AppConfigService', function () {
         configData: { connection: { token: 'secret-token' } }
       });
       expect(result.connection.token).to.equal(APP_CONFIG_SECRET_MASK);
+    });
+
+    it('should prefer the most recently updated duplicate config record when loading app config', async function () {
+      (ConfigModels.getConfigKeys as sinon.SinonStub).returns(['doiPublishing']);
+      (ConfigModels.getModelInfo as sinon.SinonStub).callsFake((key: string) => {
+        if (key === 'doiPublishing') {
+          return {
+            modelName: 'DoiPublishing',
+            class: DoiPublishing
+          };
+        }
+        return {
+          modelName: 'MockModel',
+          class: class MockModel { }
+        };
+      });
+
+      const duplicateRecords = [
+        {
+          branding: 'brand1',
+          configKey: 'doiPublishing',
+          updatedAt: '2026-04-15T03:00:00.000Z',
+          configData: {
+            enabled: true,
+            defaultProfile: 'dataPublication',
+            connection: {
+              baseUrl: 'https://api.test.datacite.org',
+              username: 'old-user',
+              password: null,
+              timeoutMs: 30000,
+              retry: {
+                maxAttempts: 3,
+                baseDelayMs: 500,
+                maxDelayMs: 4000,
+                retryOnStatusCodes: [408, 429, 500, 502, 503, 504],
+                retryOnMethods: ['get', 'put', 'patch', 'delete']
+              }
+            },
+            operations: {
+              createEvent: 'publish',
+              updateEvent: 'publish',
+              allowDeleteDraft: true,
+              allowStateChange: true
+            },
+            profiles: {}
+          }
+        },
+        {
+          branding: 'brand1',
+          configKey: 'doiPublishing',
+          updatedAt: '2026-04-15T03:04:11.122Z',
+          configData: {
+            enabled: true,
+            defaultProfile: 'dataPublication',
+            connection: {
+              baseUrl: 'https://api.test.datacite.org',
+              username: 'new-user',
+              password: 'new-password',
+              timeoutMs: 30000,
+              retry: {
+                maxAttempts: 3,
+                baseDelayMs: 500,
+                maxDelayMs: 4000,
+                retryOnStatusCodes: [408, 429, 500, 502, 503, 504],
+                retryOnMethods: ['get', 'put', 'patch', 'delete']
+              }
+            },
+            operations: {
+              createEvent: 'publish',
+              updateEvent: 'publish',
+              allowDeleteDraft: true,
+              allowStateChange: true
+            },
+            profiles: {}
+          }
+        }
+      ];
+
+      (global as any).AppConfig.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
+        const records = duplicateRecords.filter((record) => {
+          return Object.entries(criteria).every(([key, value]) => (record as Record<string, unknown>)[key] === value);
+        });
+        const p: any = Promise.resolve(records);
+        p.exec = sinon.stub().yields(null, records);
+        return p;
+      });
+
+      const loaded: any = await service.loadAppConfigurationModel('brand1');
+
+      expect(loaded.doiPublishing.connection.username).to.equal('new-user');
+      expect(loaded.doiPublishing.connection.password).to.equal('new-password');
+    });
+  });
+
+  describe('form adapters', function () {
+    it('should convert doiPublishing profiles between map and array form shapes', async function () {
+      class DoiPublishingFormMock {
+        static getFieldOrder() {
+          return ['profiles'];
+        }
+      }
+
+      (ConfigModels.getModelInfo as sinon.SinonStub).callsFake((key: string) => {
+        if (key === 'doiPublishing') {
+          return {
+            modelName: 'DoiPublishing',
+            class: DoiPublishingFormMock,
+            schema: {
+              type: 'object',
+              properties: {
+                profiles: {
+                  type: 'array'
+                }
+              }
+            },
+            formAdapter: {
+              toForm: toDoiPublishingFormModel,
+              fromForm: fromDoiPublishingFormModel
+            }
+          };
+        }
+        return {
+          modelName: 'MockModel',
+          class: class MockModel { }
+        };
+      });
+
+      const doiPublishing = new DoiPublishing();
+      doiPublishing.profiles = {
+        dataPublication: {
+          enabled: true,
+          label: 'Data Publication',
+          metadata: {} as any,
+          writeBack: {
+            citationUrlPath: 'metadata.citation_url',
+            citationDoiPath: 'metadata.citation_doi'
+          },
+          validation: {
+            requireUrl: true,
+            requirePublisher: true,
+            requirePublicationYear: true,
+            requireCreators: true,
+            requireTitles: true
+          }
+        } as any
+      };
+      service.brandingAppConfigMap = {
+        default: {
+          doiPublishing
+        }
+      } as any;
+
+      const branding = { id: 'brand1', name: 'default' } as any;
+      const appConfigForm: any = await service.getAppConfigForm(branding, 'doiPublishing');
+
+      expect(Array.isArray(appConfigForm.model.profiles)).to.equal(true);
+      expect(appConfigForm.model.profiles[0].name).to.equal('dataPublication');
+
+      const savedConfig: any = await service.createConfig('default', 'doiPublishing', appConfigForm.model);
+      expect(savedConfig.profiles.dataPublication).to.exist;
+      expect(savedConfig.profiles.dataPublication.name).to.be.undefined;
     });
   });
 });

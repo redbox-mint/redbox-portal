@@ -1,4 +1,5 @@
 import { APP_BASE_HREF } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   ConfigService,
@@ -122,7 +123,7 @@ describe('RecordAuditComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [RecordAuditComponent],
-      imports: [I18NextPipe],
+      imports: [FormsModule, I18NextPipe],
       providers: [
         LoggerService,
         UtilityService,
@@ -146,6 +147,14 @@ describe('RecordAuditComponent', () => {
             '@record-audit-entries-count': '{{count}} entries',
             '@record-audit-changed-fields-count': '{{count}} field(s) changed',
             '@record-audit-link-json': 'JSON',
+            '@record-audit-filter-date-from': 'Date From',
+            '@record-audit-filter-date-to': 'Date To',
+            '@record-audit-filter-action': 'Action',
+            '@record-audit-filter-action-all': 'All actions',
+            '@record-audit-filter-workflow-state': 'Workflow State',
+            '@record-audit-filter-workflow-state-placeholder': 'e.g. Draft',
+            '@record-audit-filter-apply': 'Apply Filters',
+            '@record-audit-filter-clear': 'Clear Filters',
             '@record-audit-pagination-page-of': 'Page {{page}} of {{totalPages}}',
             '@record-audit-col-updated': 'Updated',
             '@record-audit-col-action': 'Action',
@@ -165,6 +174,7 @@ describe('RecordAuditComponent', () => {
             '@record-audit-integration-col-started': 'Started',
             '@record-audit-integration-col-completed': 'Completed',
             '@record-audit-integration-col-duration': 'Duration',
+            '@record-audit-integration-col-integration-name': 'Integration Name',
             '@record-audit-integration-col-status': 'Status',
             '@record-audit-integration-col-trace': 'Trace',
             '@record-audit-integration-col-action': 'Action',
@@ -173,6 +183,14 @@ describe('RecordAuditComponent', () => {
             '@record-audit-integration-col-triggered-by': 'Triggered By',
             '@record-audit-integration-col-message': 'Message',
             '@record-audit-integration-trace-events': 'Trace Events',
+            '@record-audit-integration-filter-date-from': 'Date From',
+            '@record-audit-integration-filter-date-to': 'Date To',
+            '@record-audit-integration-filter-integration-name': 'Integration Name',
+            '@record-audit-integration-filter-integration-name-placeholder': 'e.g. figshare',
+            '@record-audit-integration-filter-status': 'Status',
+            '@record-audit-integration-filter-status-all': 'All statuses',
+            '@record-audit-integration-filter-apply': 'Apply Filters',
+            '@record-audit-integration-filter-clear': 'Clear Filters',
             '@tab-nav-previous': 'Previous',
             '@tab-nav-next': 'Next',
           }),
@@ -203,7 +221,12 @@ describe('RecordAuditComponent', () => {
     expect(component.branding).toBe('default');
     expect(component.portal).toBe('rdmp');
     expect(component.isAdmin).toBeFalse();
-    expect(recordService.getRecordAuditTab).toHaveBeenCalledWith('oid-1');
+    expect(recordService.getRecordAuditTab).toHaveBeenCalledWith('oid-1', {
+      dateFrom: undefined,
+      dateTo: undefined,
+      action: undefined,
+      workflowState: undefined,
+    });
   });
 
   it('shows only the audit tab for non-admin users', async () => {
@@ -223,7 +246,14 @@ describe('RecordAuditComponent', () => {
     fixture.detectChanges();
 
     expect(recordService.getRecordPermissionsTab).toHaveBeenCalledWith('oid-1');
-    expect(recordService.getRecordIntegrationAuditTab).toHaveBeenCalledWith('oid-1', { page: 1, pageSize: 20 });
+    expect(recordService.getRecordIntegrationAuditTab).toHaveBeenCalledWith('oid-1', {
+      page: 1,
+      pageSize: 20,
+      dateFrom: undefined,
+      dateTo: undefined,
+      integrationName: undefined,
+      status: undefined,
+    });
   });
 
   it('renders updated entries with change counts and supports expanding diff rows', async () => {
@@ -242,13 +272,65 @@ describe('RecordAuditComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Unknown');
   });
 
+  it('applies audit filters and reloads the audit tab', async () => {
+    await createComponent({ oid: 'oid-1', 'is-admin': 'false' });
+    recordService.getRecordAuditTab.calls.reset();
+
+    component.auditTab.filters.dateFrom = '2026-02-01';
+    component.auditTab.filters.dateTo = '2026-03-31';
+    component.auditTab.filters.action = 'updated';
+    component.auditTab.filters.workflowState = ' Draft ';
+
+    await component.applyAuditFilters();
+
+    expect(recordService.getRecordAuditTab).toHaveBeenCalledWith('oid-1', {
+      dateFrom: '2026-02-01',
+      dateTo: '2026-03-31',
+      action: 'updated',
+      workflowState: 'Draft',
+    });
+  });
+
   it('loads the next integration page when requested', async () => {
     await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
     recordService.getRecordIntegrationAuditTab.calls.reset();
 
     await component.loadIntegrationTab(2);
 
-    expect(recordService.getRecordIntegrationAuditTab).toHaveBeenCalledWith('oid-1', { page: 2, pageSize: 20 });
+    expect(recordService.getRecordIntegrationAuditTab).toHaveBeenCalledWith('oid-1', {
+      page: 2,
+      pageSize: 20,
+      dateFrom: undefined,
+      dateTo: undefined,
+      integrationName: undefined,
+      status: undefined,
+    });
+  });
+
+  it('only exposes integration statuses accepted by the backend filter', async () => {
+    await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
+
+    expect(component.integrationStatusOptions).toEqual(['', 'started', 'success', 'failed']);
+  });
+
+  it('formats durations with short-span precision', async () => {
+    await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
+
+    expect(component.formatDuration(450)).toBe('450ms');
+    expect(component.formatDuration(999)).toBe('999ms');
+    expect(component.formatDuration(1603)).toBe('1603ms');
+    expect(component.formatDuration(9999)).toBe('9999ms');
+    expect(component.formatDuration(10000)).toBe('10s');
+    expect(component.formatDuration(15993)).toBe('15.993s');
+    expect(component.formatDuration(30000)).toBe('30s');
+    expect(component.formatDuration(61000)).toBe('1m 1s');
+  });
+
+  it('formats timestamps with millisecond precision', async () => {
+    await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
+
+    const formatted = component.formatTimestamp('2026-04-16T02:26:46.154Z');
+    expect(formatted).toContain('.154');
   });
 
   it('renders trace summaries and expands trace events', async () => {
@@ -257,6 +339,7 @@ describe('RecordAuditComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('trace-1');
+    expect(fixture.nativeElement.textContent).toContain('figshare');
     expect(fixture.nativeElement.textContent).toContain('syncRecordWithFigshare, publishAfterUploadFilesJob');
     expect(fixture.nativeElement.textContent).toContain('2');
     expect(fixture.nativeElement.textContent).toContain('Page 1 of 2');
@@ -303,5 +386,27 @@ describe('RecordAuditComponent', () => {
     });
 
     await Promise.all([firstLoad, secondLoad]);
+  });
+
+  it('applies integration filters and reloads the first page', async () => {
+    await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
+    await component.activateTab('integration');
+    recordService.getRecordIntegrationAuditTab.calls.reset();
+
+    component.integrationTab.filters.dateFrom = '2026-03-01';
+    component.integrationTab.filters.dateTo = '2026-03-31';
+    component.integrationTab.filters.integrationName = ' figshare ';
+    component.integrationTab.filters.status = 'success';
+
+    await component.applyIntegrationFilters();
+
+    expect(recordService.getRecordIntegrationAuditTab).toHaveBeenCalledWith('oid-1', {
+      page: 1,
+      pageSize: 20,
+      dateFrom: '2026-03-01',
+      dateTo: '2026-03-31',
+      integrationName: 'figshare',
+      status: 'success',
+    });
   });
 });

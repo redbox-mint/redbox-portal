@@ -236,6 +236,8 @@ describe('The IntegrationAuditService', function () {
       startedAt: '2025-01-01T00:00:06.000Z',
     });
 
+    await waitForAuditCount(oid, 4);
+
     const traces = await integrationAuditService.getTraceAuditLog({ oid, page: 1, pageSize: 10 });
 
     expect(traces.total).to.equal(3);
@@ -246,5 +248,30 @@ describe('The IntegrationAuditService', function () {
     expect(traces.rows[1].events[0]).to.have.property('spanId', 'root-span');
     expect(traces.rows[1].events[1]).to.have.property('spanId', 'child-span');
     expect(traces.rows[1].events[1]).to.have.property('depth', 1);
+  });
+
+  it('supports DOI integration audit rows', async function () {
+    const oid = `integration-audit-service-${Date.now()}-4`;
+    createdOids.push(oid);
+
+    await IntegrationAudit.create({
+      redboxOid: oid,
+      brandId: 'default',
+      integrationName: 'doi',
+      integrationAction: 'publishDoi',
+      triggeredBy: 'integration-test',
+      status: 'success',
+      traceId: `trace-${Date.now()}-10`,
+      spanId: `span-${Date.now()}-10`,
+      startedAt: '2025-01-01T00:00:00.000Z',
+      completedAt: '2025-01-01T00:00:01.000Z',
+      durationMs: 1000,
+      responseSummary: { doi: '10.1234/5678' },
+    });
+
+    const audits = await waitForAuditCount(oid, 1);
+    expect(audits.rows[0]).to.have.property('integrationName', 'doi');
+    expect(audits.rows[0]).to.have.property('integrationAction', 'publishDoi');
+    expect(audits.rows[0].responseSummary.doi).to.equal('10.1234/5678');
   });
 });

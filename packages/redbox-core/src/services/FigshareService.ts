@@ -521,6 +521,19 @@ export namespace Services {
       try {
         await this.ensureNoFileUploadInProgress(config, record, articleId);
       } catch (error) {
+        if (!(error instanceof RBValidationError)) {
+          this.failIntegrationAudit(auditCtx, error, {
+            message: 'Figshare publish-after-uploads job failed while checking upload status.',
+            errorDetail: error instanceof Error ? error.message : String(error),
+            responseSummary: {
+              articleId,
+              correlationId: `${oid}:publish-job`,
+              phase: 'verify-upload-status',
+            },
+          });
+          throw error;
+        }
+
         sails.log.warn(`FigService - article '${articleId}' still has uploads in progress, rescheduling deferred publish`, error);
         try {
           this.queuePublishAfterUploadFiles(oid, articleId, user, brandId);

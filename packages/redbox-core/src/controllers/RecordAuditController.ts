@@ -289,6 +289,24 @@ export namespace Controllers {
       return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultValue;
     }
 
+    private parseDateBoundary(value: unknown, boundary: 'start' | 'end'): Date | null {
+      const raw = String(value ?? '').trim();
+      if (_.isEmpty(raw)) {
+        return null;
+      }
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        const [year, month, day] = raw.split('-').map(part => parseInt(part, 10));
+        const date = boundary === 'start'
+          ? new Date(year, month - 1, day, 0, 0, 0, 0)
+          : new Date(year, month - 1, day, 23, 59, 59, 999);
+        return Number.isNaN(date.getTime()) ? null : date;
+      }
+
+      const parsed = new Date(raw);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
     public async render(req: Sails.Req, res: Sails.Res) {
       const oid = String(req.param('oid') ?? '').trim();
       if (_.isEmpty(oid)) {
@@ -348,7 +366,32 @@ export namespace Controllers {
         }
 
         const fieldLabelMap = await this.buildFieldLabelMap(record, brand);
-        const rawAudit = await this.recordsService.getRecordAudit({ oid, dateFrom: null, dateTo: null });
+        const action = String(req.param('action') ?? '').trim();
+        const workflowState = String(req.param('workflowState') ?? '').trim();
+        const rawDateFrom = req.param('dateFrom');
+        const rawDateTo = req.param('dateTo');
+        const dateFrom = this.parseDateBoundary(rawDateFrom, 'start');
+        const dateTo = this.parseDateBoundary(rawDateTo, 'end');
+        if (!_.isNil(rawDateFrom) && !_.isEmpty(String(rawDateFrom).trim()) && dateFrom == null) {
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid audit start date.' }] });
+        }
+        if (!_.isNil(rawDateTo) && !_.isEmpty(String(rawDateTo).trim()) && dateTo == null) {
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid audit end date.' }] });
+        }
+        if (dateFrom != null && dateTo != null && dateFrom.getTime() > dateTo.getTime()) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Audit start date must be before end date.' }],
+          });
+        }
+
+        const rawAudit = await this.recordsService.getRecordAudit({
+          oid,
+          dateFrom,
+          dateTo,
+          action: !_.isEmpty(action) ? action : undefined,
+          workflowState: !_.isEmpty(workflowState) ? workflowState : undefined,
+        });
         const ascendingAudit = [...rawAudit].sort((a, b) => this.getAuditSortValue(a) - this.getAuditSortValue(b));
         const rowMap = new Map<string, AnyRecord>();
 
@@ -467,10 +510,36 @@ export namespace Controllers {
         const page = this.parsePositiveInt(req.param('page'), 1);
         const pageSize = Math.min(this.parsePositiveInt(req.param('pageSize'), 20), 100);
         const status = String(req.param('status') ?? '').trim();
+        const integrationName = String(req.param('integrationName') ?? '').trim();
+        const rawDateFrom = req.param('dateFrom');
+        const rawDateTo = req.param('dateTo');
+        const dateFrom = this.parseDateBoundary(rawDateFrom, 'start');
+        const dateTo = this.parseDateBoundary(rawDateTo, 'end');
         const params = new IntegrationAuditParams();
         params.oid = oid;
         params.page = page;
         params.pageSize = pageSize;
+        if (!_.isNil(rawDateFrom) && !_.isEmpty(String(rawDateFrom).trim()) && dateFrom == null) {
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid integration audit start date.' }] });
+        }
+        if (!_.isNil(rawDateTo) && !_.isEmpty(String(rawDateTo).trim()) && dateTo == null) {
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid integration audit end date.' }] });
+        }
+        if (dateFrom != null && dateTo != null && dateFrom.getTime() > dateTo.getTime()) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Integration audit start date must be before end date.' }],
+          });
+        }
+        if (!_.isEmpty(integrationName)) {
+          params.integrationName = integrationName;
+        }
+        if (dateFrom != null) {
+          params.dateFrom = dateFrom;
+        }
+        if (dateTo != null) {
+          params.dateTo = dateTo;
+        }
         if (!_.isEmpty(status)) {
           if (!VALID_INTEGRATION_AUDIT_STATUSES.has(status)) {
             return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid integration audit status.' }] });
