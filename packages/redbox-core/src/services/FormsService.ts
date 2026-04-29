@@ -171,7 +171,6 @@ export namespace Services {
           componentDefinitions: formConfigRaw.componentDefinitions as FormConfigFrame['componentDefinitions'],
           debugValue: formConfigRaw.debugValue as FormConfigFrame['debugValue'],
           attachmentFields: (formConfigRaw.attachmentFields ?? []) as FormConfigFrame['attachmentFields'],
-          contextVariables: formConfigRaw.contextVariables as FormConfigFrame['contextVariables'],
 
           // Deprecated legacy properties (now removed):
           // fields → replaced by componentDefinitions
@@ -653,10 +652,6 @@ export namespace Services {
         if (metadataComponent?.component?.config) {
           metadataComponent.component.config.content = _.cloneDeep(recordMetadata ?? {});
         }
-      }
-
-      if (contextVariablesMap && Object.keys(contextVariablesMap).length > 0) {
-        result.contextVariables = contextVariablesMap;
       }
 
       return result;

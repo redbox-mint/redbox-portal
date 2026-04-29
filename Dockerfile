@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24.14.1-bullseye AS base
+FROM node:24.14.1-bookworm AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -8,7 +8,6 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
     build-essential \
     git \
-    python2 \
     python3 \
     python-is-python3 \
     curl \
@@ -17,8 +16,8 @@ RUN apt-get update \
     openjdk-17-jre-headless \
  && rm -rf /var/lib/apt/lists/*
 
-ENV PYTHON=/usr/bin/python2
-ENV npm_config_python=/usr/bin/python2
+ENV PYTHON=/usr/bin/python3
+ENV npm_config_python=/usr/bin/python3
 ENV NVM_DIR=/root/.nvm
 RUN bash -lc "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash"
 
@@ -63,7 +62,7 @@ RUN npm prune --omit=dev \
     angular-legacy/node_modules \
     support/build/api-descriptors/node_modules
 
-FROM node:24.14.1-bullseye-slim AS runtime
+FROM node:24.14.1-bookworm-slim AS runtime
 
 ENV NODE_ENV=production
 ENV TZ=Australia/Brisbane

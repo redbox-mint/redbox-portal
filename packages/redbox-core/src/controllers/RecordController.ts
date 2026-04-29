@@ -473,7 +473,13 @@ export namespace Controllers {
         if (!_.isEmpty(mergedForm)) {
           return this.sendResp(req, res, {
             data: mergedForm,
-            meta: { formName: formParam, recordType: recordType, oid: oid, contextVariables: contextVariablesMap },
+            meta: {
+              formName: formParam,
+              recordType: recordType,
+              oid: oid,
+              workflow: recordData?.workflow,
+              contextVariables: contextVariablesMap
+            },
           });
         } else {
           const msg = `Failed to get form with name ${formParam} and record type ${recordType} and oid ${oid}`;
