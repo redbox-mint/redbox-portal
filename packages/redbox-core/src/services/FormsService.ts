@@ -609,7 +609,9 @@ export namespace Services {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
       const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
-      await vocabVisitor.resolveVocabs(constructed, branding);
+      await vocabVisitor.resolveVocabs(constructed, branding, {
+        includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined
+      });
       const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
       contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
       // create the client form config

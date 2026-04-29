@@ -581,7 +581,9 @@ export namespace Services {
           const constructor = new ConstructFormConfigVisitor(this.logger);
           const constructedForm = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
           const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
-          await vocabVisitor.resolveVocabs(constructedForm);
+          await vocabVisitor.resolveVocabs(constructedForm, undefined, {
+            includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined
+          });
           const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
           contextVariablesVisitor.applyContextVariables(constructedForm);
           const rawBehaviours = _.cloneDeep(constructedForm.behaviours);
