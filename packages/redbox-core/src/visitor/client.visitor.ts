@@ -1,4 +1,4 @@
-import { get as _get, set as _set, cloneDeep as _cloneDeep, map as _map } from 'lodash';
+import { cloneDeep as _cloneDeep } from 'lodash';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import {
   SimpleInputFieldComponentDefinitionOutline,
@@ -67,8 +67,8 @@ import {
   TextAreaFieldModelDefinitionOutline,
   TextAreaFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
-import { DefaultFieldLayoutDefinitionOutline } from '@researchdatabox/sails-ng-common';
-import { ActionRowLayoutName } from '@researchdatabox/sails-ng-common';
+import {DefaultFieldLayoutDefinitionOutline} from '@researchdatabox/sails-ng-common';
+import {ActionRowLayoutName} from '@researchdatabox/sails-ng-common';
 import {
   CheckboxInputFieldComponentDefinitionOutline,
   CheckboxInputFieldModelDefinitionOutline,
@@ -143,29 +143,29 @@ import {
   QuestionTreeFieldModelDefinitionOutline,
   QuestionTreeFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
-import { FormConstraintConfig } from '@researchdatabox/sails-ng-common';
-import { AvailableFormComponentDefinitionOutlines } from '@researchdatabox/sails-ng-common';
-import { FormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
-import { FieldComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
-import { FieldModelDefinitionOutline } from '@researchdatabox/sails-ng-common';
-import { FieldLayoutDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import {FormConstraintConfig} from '@researchdatabox/sails-ng-common';
+import {AvailableFormComponentDefinitionOutlines} from '@researchdatabox/sails-ng-common';
+import {FormComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
+import {FieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
+import {FieldModelDefinitionOutline} from '@researchdatabox/sails-ng-common';
+import {FieldLayoutDefinitionOutline} from '@researchdatabox/sails-ng-common';
 import {
   RecordMetadataRetrieverFieldComponentDefinitionOutline,
   RecordMetadataRetrieverFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
-import { ReusableFormDefinitions } from '@researchdatabox/sails-ng-common';
-import { ILogger } from '@researchdatabox/sails-ng-common';
-import { FormConfig } from '@researchdatabox/sails-ng-common';
-import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
-import { FormModesConfig } from '@researchdatabox/sails-ng-common';
-import { FormPathHelper } from '@researchdatabox/sails-ng-common';
-import { isTypeWithComponentDefinitions } from '@researchdatabox/sails-ng-common';
-import { JsonTypeDefSchemaFormConfigVisitor } from './json-type-def.visitor';
-import { guessType } from '@researchdatabox/sails-ng-common';
-import { FormOverride } from '@researchdatabox/sails-ng-common';
-import { GroupFieldComponentName } from '@researchdatabox/sails-ng-common';
-import { RepeatableComponentName } from '@researchdatabox/sails-ng-common';
-import { QuestionTreeComponentName } from '@researchdatabox/sails-ng-common';
+import {ReusableFormDefinitions} from '@researchdatabox/sails-ng-common';
+import {ILogger} from '@researchdatabox/sails-ng-common';
+import {FormConfig} from '@researchdatabox/sails-ng-common';
+import {FormConfigVisitor} from '@researchdatabox/sails-ng-common';
+import {FormModesConfig} from '@researchdatabox/sails-ng-common';
+import {FormPathHelper} from '@researchdatabox/sails-ng-common';
+import {isTypeWithComponentDefinitions} from '@researchdatabox/sails-ng-common';
+import {JsonTypeDefSchemaFormConfigVisitor} from './json-type-def.visitor';
+import {guessType} from '@researchdatabox/sails-ng-common';
+import {FormOverride} from '@researchdatabox/sails-ng-common';
+import {GroupFieldComponentName} from '@researchdatabox/sails-ng-common';
+import {RepeatableComponentName} from '@researchdatabox/sails-ng-common';
+import {QuestionTreeComponentName} from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config class type and build the form config for the client-side.
@@ -1125,23 +1125,21 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     // Build the data model schema from the components.
-    // TODO: This depends on the repeatable model being set.
+    // NOTE: This depends on the repeatable model being set already.
     const schemaVisitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
     const elementTemplateFormConfig = new FormConfig();
     elementTemplateFormConfig.componentDefinitions = _cloneDeep(elementTemplateCompConfig.componentDefinitions);
-    const elementTemplateSchema = schemaVisitor.start({ form: elementTemplateFormConfig });
+    const elementTemplateSchema = schemaVisitor.start({form: elementTemplateFormConfig});
 
     // Remove any data model items that are not present in the schema.
-    const toProcess = [{ path: [], schema: elementTemplateSchema }];
-
     const itemValue = item.model?.config?.value;
-    if (Array.isArray(itemValue)) {
-      item.model!.config!.value = itemValue.map(value => this.updateRepeatableDataModel(toProcess, value)) as never;
+    if (Array.isArray(itemValue) && item.model?.config) {
+      item.model.config.value = itemValue.map(value => this.buildDataMatchingSchema(elementTemplateSchema, [], value, []) ?? {});
     }
 
     const newEntryValue = elementTemplate?.model?.config?.newEntryValue;
     if (elementTemplate?.model?.config) {
-      elementTemplate.model.config.newEntryValue = this.updateRepeatableDataModel(toProcess, newEntryValue) as never;
+      elementTemplate.model.config.newEntryValue = this.buildDataMatchingSchema(elementTemplateSchema, [], newEntryValue, []) as any ?? {};
     }
   }
 
@@ -1159,115 +1157,189 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   /**
-   * Update a value using the array of path and schema items.
-   * @param toProcess The array of path and schema items.
-   * @param value The value to compare to the paths and schemas.
-   * @protected
+   * Match the schema at the given path to the value at the given path.
+   * @param currentSchema The current schema.
+   * @param schemaPath The current path within the schema.
+   * @param currentValue The current data.
+   * @param valuePath The current path within the value.
+   * @return The updated value.
    */
-  protected updateRepeatableDataModel(
-    toProcess: { path: string[]; schema: Record<string, unknown> }[],
-    value: unknown
+  public buildDataMatchingSchema(
+    currentSchema: Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
   ): unknown {
-    const processing = [...toProcess];
-    while (processing.length > 0) {
-      const current = processing.shift();
+    let result: unknown = structuredClone(currentValue);
+    const schemaKeys = Object.keys(currentSchema);
+    const propKeys = ['properties', 'optionalProperties'];
 
-      // Ignore empty item
-      if (current === undefined || current === null) {
-        continue;
-      }
+    // For debugging:
+    // this.logger.debug(`buildDataMatchingSchema ${JSON.stringify({currentSchema, schemaPath, result, valuePath})}`);
 
-      const path = current.path;
-      const schema = current.schema;
+    if (schemaKeys.includes('elements') && schemaKeys.length === 1) {
+      const elementsSchema = (currentSchema['elements'] ?? {}) as Record<string, unknown>;
+      result = this.buildDataMatchingSchemaElements(elementsSchema, [...schemaPath, 'elements'], result, valuePath);
 
-      let currentValue = path.length > 0 ? _get(value, path) : value;
-      let currentValueType = guessType(currentValue);
+    } else if (schemaKeys.includes('type') && schemaKeys.length === 1) {
+      const typeSchema = (currentSchema['type'] ?? {}) as Record<string, unknown>;
+      result = this.buildDataMatchingSchemaType(typeSchema, [...schemaPath, 'type'], result, valuePath);
 
-      const errMsg1 = `Component and data model do not match. Component at '${JSON.stringify(path)}' expected`;
-      const errMsg2 = `but got '${currentValueType}':`;
-      for (const [schemaKey, schemaValue] of Object.entries(schema)) {
-        const schemaCurrent = schemaValue as Record<string, unknown>;
-        switch (schemaKey) {
-          case 'optionalProperties':
-          case 'properties':
-            // Allow missing or null object values - set an empty object.
-            if (currentValue === undefined || currentValue === null) {
-              currentValue = {};
-              if (path.length > 0) {
-                _set(value as object, path, currentValue);
-              } else {
-                value = currentValue;
-              }
-              currentValueType = 'object';
-            }
-            if (currentValueType !== 'object') {
-              const schemaNames = Object.keys(schemaCurrent);
-              const canCoerceToLegacyGroupRow =
-                schemaNames.includes('name') && ['string', 'timestamp', 'number', 'boolean'].includes(currentValueType);
-              if (canCoerceToLegacyGroupRow) {
-                currentValue = {
-                  name: String(currentValue),
-                };
-                if (path.length > 0) {
-                  _set(value as object, path, currentValue);
-                } else {
-                  value = currentValue;
-                }
-                currentValueType = 'object';
-              }
-            }
-            if (currentValueType !== 'object') {
-              throw new Error(`${errMsg1} an object, ${errMsg2} ${JSON.stringify(currentValue)}`);
-            }
-            // Remove names missing in the schema.
-            // Add names in the schema to the to-process array.
-            const schemaNames = Object.keys(schemaCurrent);
-            if (schemaNames.includes('name')) {
-              const currentObj = currentValue as Record<string, unknown>;
-              const hasName = typeof currentObj.name === 'string' && currentObj.name.length > 0;
-              const legacyValue = currentObj.value;
-              if (!hasName && typeof legacyValue === 'string' && legacyValue.length > 0) {
-                currentObj.name = legacyValue;
-              }
-            }
-            Object.keys(currentValue).forEach(name => {
-              if (!schemaNames.includes(name)) {
-                delete currentValue[name];
-              } else {
-                processing.push({
-                  path: [...path, name],
-                  schema: schemaCurrent[name] as Record<string, unknown>,
-                });
-              }
-            });
-            break;
-          case 'elements':
-            if (currentValueType !== 'array') {
-              throw new Error(`${errMsg1} an array, ${errMsg2} ${JSON.stringify(currentValue)}`);
-            }
+    } else if (schemaKeys.length > 0 && schemaKeys.filter(k => !propKeys.includes(k)).length === 0) {
+      // Process required and optional properties.
+      const propertiesSchema = (currentSchema['properties'] ?? {}) as Record<string, unknown>;
+      result = this.buildDataMatchingSchemaProperties(propertiesSchema, [...schemaPath, 'properties'], result, valuePath);
+      const optionalPropertiesSchema = (currentSchema['optionalProperties'] ?? {}) as Record<string, unknown>;
+      result = this.buildDataMatchingSchemaProperties(optionalPropertiesSchema, [...schemaPath, 'optionalProperties'], result, valuePath);
 
-            (currentValue as unknown[]).forEach((_, index) => {
-              processing.push({
-                path: [...path, `${index}`],
-                schema: schemaCurrent,
-              });
-            });
-            break;
-          case 'type':
-            // TODO: do the json type def type names match the guessType names?
-            // Allow null values
-            const schemaValueStr = String(schemaValue);
-            const isTimestampString = schemaValueStr === 'string' && currentValueType === 'timestamp';
-            if (currentValueType !== schemaValueStr && currentValueType !== 'null' && !isTimestampString) {
-              throw new Error(`${errMsg1} ${schemaValue}, ${errMsg2} ${JSON.stringify(currentValue)}`);
-            }
-            // Nothing else to do.
-            break;
-          default:
-            throw new Error(`Unknown schema type '${schemaKey}'.`);
+      // Remove properties not in the schema.
+      const resultObj = (result ?? {}) as Record<string, unknown>;
+      const resultKeys = Object.keys(resultObj);
+      const propSchemaKeys = [...Object.keys(propertiesSchema), ...Object.keys(optionalPropertiesSchema)];
+      for (const key of resultKeys) {
+        // Remove names missing in the schema.
+        if (!propSchemaKeys.includes(key) && Object.hasOwn(resultObj, key)) {
+          delete (result as Record<string, unknown>)[key];
         }
       }
+
+    } else {
+      throw new Error(`Unknown schema structure '${JSON.stringify(currentSchema)}'.`);
     }
-    return value;
+
+    return result
+  }
+
+  /**
+   * Match an object to the schema. Removes any keys that do not existing the schema.
+   * @param currentSchema The current schema.
+   * @param schemaPath The current path within the schema.
+   * @param currentValue The current data.
+   * @param valuePath The current path within the value.
+   * @return The updated value.
+   * @protected
+   */
+  protected buildDataMatchingSchemaProperties(
+    currentSchema: Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
+  ): unknown {
+    let currentValueType = guessType(currentValue);
+
+    const result: Record<string, unknown> = {};
+
+    if (currentValueType === 'object' && typeof currentValue === 'object') {
+      Object.assign(result, structuredClone(currentValue));
+    }
+
+    // Allow missing or null object values - set an empty object.
+    if (currentValue === undefined || currentValue === null) {
+      currentValue = {};
+      currentValueType = 'object';
+    }
+
+    // Legacy schema allowed a single value where an object is now expected.
+    // Convert the single value to the object key 'name' if able.
+    const schemaNames = Object.keys(currentSchema);
+    const hasSchemaPropName = schemaNames.includes('name');
+    const isCurrentValueNameType = ['string', 'timestamp', 'number', 'boolean'].includes(currentValueType);
+    if (currentValueType !== 'object' && hasSchemaPropName && isCurrentValueNameType) {
+      currentValueType = 'object';
+      result.name = String(currentValue);
+    }
+
+    if (currentValueType !== 'object') {
+      throw this.matchDataSchemaError('object', currentSchema, schemaPath, result, valuePath);
+    }
+
+
+    // Legacy schema has value instead of name.
+    // Add the value as the name if name is missing.
+    const isObjPropNameString = typeof result.name === 'string' && result.name.length > 0;
+    const isObjPropValueString = typeof result.value === 'string' && result.value.length > 0;
+    if (hasSchemaPropName && !isObjPropNameString && isObjPropValueString) {
+      result.name = result.value;
+    }
+
+    // Build each of the current value's properties matching the schema.
+    for (const key of Object.keys(result)) {
+      // Remove names missing in the schema.
+      if (!schemaNames.includes(key) && Object.hasOwn(result, key)) {
+        // delete result[key];
+      } else {
+        const childSchema = currentSchema[key] as Record<string, unknown>;
+        result[key] = this.buildDataMatchingSchema(childSchema, [...schemaPath, key], result[key], [...valuePath, key]);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Match each item in an array to the schema type.
+   * @param currentSchema The current schema.
+   * @param schemaPath The current path within the schema.
+   * @param currentValue The current data.
+   * @param valuePath The current path within the value.
+   * @return The updated value.
+   * @protected
+   */
+  protected buildDataMatchingSchemaElements(
+    currentSchema: Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
+  ): unknown {
+    const currentValueType = guessType(currentValue);
+
+    if (!Array.isArray(currentValue) || currentValueType !== 'array') {
+      throw this.matchDataSchemaError('array', currentSchema, schemaPath, currentValue, valuePath);
+    }
+
+    return currentValue.map((v, i) =>
+      this.buildDataMatchingSchema(currentSchema, [...schemaPath], v, [...valuePath, i.toString()])
+    );
+  }
+
+  /**
+   * Match a value to a schema type.
+   * @param currentSchema The current schema.
+   * @param schemaPath The current path within the schema.
+   * @param currentValue The current data.
+   * @param valuePath The current path within the value.
+   * @return The updated value.
+   * @protected
+   */
+  protected buildDataMatchingSchemaType(
+    currentSchema: Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
+  ): unknown {
+    const currentSchemaType = String(currentSchema);
+    const currentValueType = guessType(currentValue);
+
+    // Allow a timestamp as a string.
+    const isTimestampString = currentSchemaType === 'string' && currentValueType === 'timestamp';
+    // Allow null values.
+    const isNull = currentValueType === 'null';
+
+    if (currentValueType !== currentSchemaType && !isNull && !isTimestampString) {
+      throw this.matchDataSchemaError(currentSchemaType, currentSchema, schemaPath, currentValue, valuePath);
+    }
+
+    return currentValue;
+  }
+
+  /**
+   * Create an error indicating the data that doesn't match the schema.
+   * @param expectedType The expected type of the data.
+   * @param currentSchema The current schema.
+   * @param schemaPath The current path within the schema.
+   * @param currentValue The current data.
+   * @param valuePath The current path within the value.
+   * @return An Error instance with the details of the match failure.
+   * @protected
+   */
+  protected matchDataSchemaError(
+    expectedType: string, currentSchema: Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
+  ): Error {
+    const currentValueType = guessType(currentValue);
+
+    // TODO: do the json type def type names match the guessType names?
+    return new Error(
+      `Value and schema do not match. ` +
+      `Value '${JSON.stringify(currentValue)}' at '${JSON.stringify(valuePath)}' is type '${currentValueType}'. ` +
+      `Schema ${JSON.stringify(currentSchema)} at '${JSON.stringify(schemaPath)}' expected type '${expectedType}'.`
+    );
   }
 }
