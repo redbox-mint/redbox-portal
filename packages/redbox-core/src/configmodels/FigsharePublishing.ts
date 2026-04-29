@@ -411,7 +411,7 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
 const VALUE_BINDING_EDITOR_WIDGET = {
   widget: {
     formlyConfig: {
-      type: 'figshare-binding-editor'
+      type: 'value-binding-editor'
     }
   }
 };

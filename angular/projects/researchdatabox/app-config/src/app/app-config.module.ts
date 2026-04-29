@@ -14,12 +14,12 @@ import { FormlyFieldTextArea } from '@ngx-formly/bootstrap/textarea';
 import { MenuEditorTypeComponent } from './fieldTypes/menu-editor';
 import { AdminSidebarEditorTypeComponent } from './fieldTypes/admin-sidebar-editor';
 import { HomePanelsEditorTypeComponent } from './fieldTypes/home-panels-editor';
-import { FigshareBindingEditorTypeComponent } from './fieldTypes/figshare-binding-editor';
+import { ValueBindingEditorTypeComponent } from './fieldTypes/value-binding-editor';
 import { FigshareCategoryMappingEditorTypeComponent } from './fieldTypes/figshare-category-mapping-editor';
 
 @NgModule({
   declarations: [
-    AppConfigComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent, HomePanelsEditorTypeComponent, FigshareBindingEditorTypeComponent, FigshareCategoryMappingEditorTypeComponent
+    AppConfigComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent, HomePanelsEditorTypeComponent, ValueBindingEditorTypeComponent, FigshareCategoryMappingEditorTypeComponent
   ],
   imports: [
     BrowserModule,
@@ -35,7 +35,7 @@ import { FigshareCategoryMappingEditorTypeComponent } from './fieldTypes/figshar
       { name: 'menu-editor', component: MenuEditorTypeComponent },
       { name: 'admin-sidebar-editor', component: AdminSidebarEditorTypeComponent },
       { name: 'home-panels-editor', component: HomePanelsEditorTypeComponent },
-      { name: 'figshare-binding-editor', component: FigshareBindingEditorTypeComponent },
+      { name: 'value-binding-editor', component: ValueBindingEditorTypeComponent },
       { name: 'figshare-category-mapping-editor', component: FigshareCategoryMappingEditorTypeComponent }
     ],
   }),

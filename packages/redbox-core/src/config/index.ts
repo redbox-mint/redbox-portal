@@ -9,7 +9,6 @@
 export * from './api.config';
 export * from './appmode.config';
 export * from './record.config';
-export * from './datacite.config';
 export * from './vocab.config';
 export * from './datastores.config';
 export * from './sockets.config';
@@ -80,7 +79,6 @@ export * from './validators.config';
 import { api, ReDBoxAPIConfig } from './api.config';
 import { appmode, AppModeConfig } from './appmode.config';
 import { record, RecordConfig } from './record.config';
-import { datacite, DataciteConfig } from './datacite.config';
 import { vocab, VocabConfig } from './vocab.config';
 import { sockets, SocketsConfig } from './sockets.config';
 import { static_assets, StaticAssetsConfig } from './static_assets.config';
@@ -183,7 +181,6 @@ export interface SailsConfig {
     api: ReDBoxAPIConfig;
     appmode: AppModeConfig;
     record: RecordConfig;
-    datacite: DataciteConfig;
     vocab: VocabConfig;
     datastores: DatastoresConfig;
     sockets: SocketsConfig;
@@ -283,7 +280,6 @@ export const Config = {
     api,
     appmode,
     record,
-    datacite,
     vocab,
     sockets,
     static_assets,

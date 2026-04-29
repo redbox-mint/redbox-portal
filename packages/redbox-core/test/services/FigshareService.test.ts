@@ -163,12 +163,14 @@ describe('FigshareService', function () {
     });
     mockSails.config.queue = { serviceName: 'queueservice' };
     mockSails.config.figshareDev = buildFigshareDevConfig();
-    mockSails.services.queueservice = {
+    const mockQueueService = {
       now: sinon.stub(),
       schedule: sinon.stub()
     };
+    mockSails.services.queueservice = mockQueueService;
 
     setupServiceTestGlobals(mockSails);
+    (global as any).AgendaQueueService = mockQueueService;
 
     appConfigByBrandStub = sinon.stub().callsFake((brand: string) => ({
       figsharePublishing: buildFigsharePublishingConfig({
@@ -192,6 +194,11 @@ describe('FigshareService', function () {
     (global as any).UsersService = {
       getUserWithUsername: sinon.stub().returns({ toPromise: sinon.stub().resolves({ username: 'figshare-job-user', type: 'admin', roles: [] }) })
     };
+    (global as any).IntegrationAuditService = {
+      startAudit: sinon.stub().callsFake((_oid: string, _action: string, opts: Record<string, unknown>) => ({ startedAt: '2025-01-01T00:00:00.000Z', ...opts })),
+      completeAudit: sinon.stub(),
+      failAudit: sinon.stub(),
+    };
     (global as any).NamedQueryService = {
       getNamedQueryConfig: sinon.stub().resolves({}),
       performNamedQueryFromConfigResults: sinon.stub().resolves([])
@@ -212,6 +219,8 @@ describe('FigshareService', function () {
     delete (global as any).BrandingService;
     delete (global as any).RecordsService;
     delete (global as any).UsersService;
+    delete (global as any).AgendaQueueService;
+    delete (global as any).IntegrationAuditService;
     delete (global as any).NamedQueryService;
     delete (global as any).RecordTypesService;
     delete (global as any).WorkflowStepsService;
@@ -242,6 +251,67 @@ describe('FigshareService', function () {
     const result = await service.syncRecordWithFigshare(record, 'job-1');
     expect(result.metadata.figshare_article_id).to.equal('fixture-123');
     expect(result.metadata.figshare_article_location).to.equal('https://figshare.com/articles/fixture-123');
+    expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
+    expect((global as any).IntegrationAuditService.completeAudit.calledOnce).to.be.true;
+  });
+
+  it('writes a failed integration audit when syncRecordWithFigshare throws', async function () {
+    const record = {
+      redboxOid: 'oid-1',
+      metaMetadata: { brandId: 'default' },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        forCodes: ['0101'],
+        license: 'CC-BY',
+      },
+    } as any;
+    sinon.stub(service, 'syncMetadata').rejects(new Error('sync exploded'));
+
+    try {
+      await service.syncRecordWithFigshare(record, 'job-1');
+      expect.fail('Expected syncRecordWithFigshare to throw');
+    } catch (error) {
+      expect((error as Error).message).to.equal('sync exploded');
+    }
+    expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
+    expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
+  });
+
+  it('audits publishAfterUploadFilesJob success and failure paths', async function () {
+    (global as any).RecordsService.getMeta.resolves({
+      redboxOid: 'oid-1',
+      metaMetadata: { brandId: 'default' },
+      metadata: {},
+    });
+    const client = {
+      publishArticle: sinon.stub().resolves({ status: 'published' }),
+      getArticle: sinon.stub().resolves({ id: 'article-1', status: 'public' }),
+    };
+    sinon.stub(service, 'makeClient').returns(client as any);
+    sinon.stub(service as any, 'ensureNoFileUploadInProgress').resolves();
+    sinon.stub(service, 'writeBack').returns({ redboxOid: 'oid-1', metaMetadata: { brandId: 'default' }, metadata: {} } as any);
+    sinon.stub(service, 'persistSyncRecord').resolves();
+    sinon.stub(service, 'queueDeleteFiles');
+
+    await service.publishAfterUploadFilesJob({
+      attrs: { data: { oid: 'oid-1', articleId: 'article-1', brandId: 'default', user: { username: 'user-1' } } },
+    } as any);
+
+    expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
+    expect((global as any).IntegrationAuditService.completeAudit.calledOnce).to.be.true;
+
+    client.publishArticle.rejects(new Error('publish failed'));
+    try {
+      await service.publishAfterUploadFilesJob({
+      attrs: { data: { oid: 'oid-1', articleId: 'article-1', brandId: 'default', user: { username: 'user-1' } } },
+      } as any);
+      expect.fail('Expected publishAfterUploadFilesJob to throw');
+    } catch (error) {
+      expect((error as Error).message).to.equal('publish failed');
+    }
+    expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
   });
 
   it('resolves live mode when figshareDev is disabled', function () {

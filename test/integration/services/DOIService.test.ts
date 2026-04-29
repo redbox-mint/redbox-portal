@@ -1,20 +1,31 @@
 describe('The DOI Service', function () {
-  before(function (done) {
+  this.timeout(120000);
+  let brand: any;
+
+  before(function () {
+    brand = BrandingService.getDefault();
+    const doiPublishing = sails.config.brandingConfigurationDefaults?.doiPublishing;
+    const defaultProfile = doiPublishing?.defaultProfile ?? '';
+    const profile = defaultProfile !== '' ? doiPublishing?.profiles?.[defaultProfile] : undefined;
+    const prefix = profile?.metadata?.prefix?.defaultValue;
+
     if (
-      !sails.config.datacite.username ||
-      !sails.config.datacite.password ||
-      !sails.config.datacite.doiPrefix ||
+      doiPublishing?.enabled !== true ||
+      !doiPublishing?.connection?.username ||
+      !doiPublishing?.connection?.password ||
+      !prefix ||
       process.env.SKIP_DOI_TESTS === 'true'
     ) {
       this.skip();
-    } else {
-      done();
     }
   });
 
   let createdDoi = null
   let oid = "xxxxxxxxx";
   let record: any = {
+    metaMetadata: {
+      brandId: undefined,
+    },
     metadata: {
       citation_publication_date: '2021',
       citation_title: 'New Test Publication',
@@ -31,102 +42,57 @@ describe('The DOI Service', function () {
     }
   }
 
-  it("Should create a DOI", function (done) {
-    this.timeout(25000);
-    sails.services.doiservice.publishDoi(oid, record, 'draft').then(result => {
-      sails.log.debug("DOI result: ")
-      sails.log.debug(result)
-      expect(result).to.not.be.null;
-      createdDoi = result
-      done()
-    }).catch(error => {
-      fail("Exception thrown");
-      sails.log.error(error);
-      done();
-    });
+  beforeEach(function () {
+    record.metaMetadata.brandId = brand.id;
   });
 
-  it("Should update a DOI", function (done) {
-    this.timeout(25000);
-    record.metadata.citation_doi = createdDoi
-    sails.services.doiservice.publishDoi(oid, record, 'draft', 'update').then(result => {
-      sails.log.debug("DOI result: ")
-      sails.log.debug(result)
-      expect(result).to.not.be.null;
-      done()
-    }).catch(error => {
-      fail("Exception thrown");
-      sails.log.error(error);
-      done();
-    });
+  it("Should create a DOI", async function () {
+    const result = await sails.services.doiservice.publishDoi(oid, record, 'draft');
+    sails.log.debug("DOI result: ");
+    sails.log.debug(result);
+    expect(result).to.not.be.null;
+    createdDoi = result;
+  });
+
+  it("Should update a DOI", async function () {
+    record.metadata.citation_doi = createdDoi;
+    const result = await sails.services.doiservice.publishDoi(oid, record, 'draft', 'update');
+    sails.log.debug("DOI result: ");
+    sails.log.debug(result);
+    expect(result).to.not.be.null;
   });
 
 
-  it("Should delete a DOI", function (done) {
-    this.timeout(25000);
-    sails.log.debug("Deleting the created DOI: " + createdDoi)
-    sails.services.doiservice.deleteDoi(createdDoi).then(result => {
-      expect(result).to.eq(true)
-      done()
-    }).catch(error => {
-      fail("Exception thrown");
-      sails.log.error(error);
-      done();
-    });
+  it("Should delete a DOI", async function () {
+    sails.log.debug("Deleting the created DOI: " + createdDoi);
+    const result = await sails.services.doiservice.deleteDoi(brand, createdDoi);
+    expect(result).to.eq(true);
   });
 
-  it("Should create a draft DOI", function (done) {
-    this.timeout(25000);
-    sails.services.doiservice.publishDoi(oid, record, 'draft').then(result => {
-      sails.log.debug("DOI result: ")
-      sails.log.debug(result)
-      expect(result).to.not.be.null;
-      createdDoi = result
-      done()
-    }).catch(error => {
-      fail("Exception thrown");
-      sails.log.error(error);
-      done();
-    });
+  it("Should create a draft DOI", async function () {
+    const result = await sails.services.doiservice.publishDoi(oid, record, 'draft');
+    sails.log.debug("DOI result: ");
+    sails.log.debug(result);
+    expect(result).to.not.be.null;
+    createdDoi = result;
   });
 
-  it("Should register a DOI", function (done) {
-    this.timeout(25000);
-    sails.log.debug("Registering the created DOI: " + createdDoi)
-    sails.services.doiservice.changeDoiState(createdDoi, 'register').then(result => {
-      expect(result).to.eq(true)
-      done()
-    }).catch(error => {
-      fail("Exception thrown");
-      sails.log.error(error);
-      done();
-    });
+  it("Should register a DOI", async function () {
+    sails.log.debug("Registering the created DOI: " + createdDoi);
+    const result = await sails.services.doiservice.changeDoiState(brand, createdDoi, 'register');
+    expect(result).to.eq(true);
   });
 
-  it("Should publish a DOI", function (done) {
-    this.timeout(25000);
-    sails.log.debug("Publishing the registered DOI: " + createdDoi)
-    sails.services.doiservice.changeDoiState(createdDoi, 'publish').then(result => {
-      expect(result).to.eq(true)
-      done()
-    }).catch(error => {
-      fail("Exception thrown");
-      sails.log.error(error);
-      done();
-    });
+  it("Should publish a DOI", async function () {
+    sails.log.debug("Publishing the registered DOI: " + createdDoi);
+    const result = await sails.services.doiservice.changeDoiState(brand, createdDoi, 'publish');
+    expect(result).to.eq(true);
   });
 
-  it("Should hide a DOI", function (done) {
-    this.timeout(25000);
-    sails.log.debug("Hiding the published DOI: " + createdDoi)
-    sails.services.doiservice.changeDoiState(createdDoi, 'hide').then(result => {
-      expect(result).to.eq(true)
-      done()
-    }).catch(error => {
-      fail("Exception thrown");
-      sails.log.error(error);
-      done();
-    });
+  it("Should hide a DOI", async function () {
+    sails.log.debug("Hiding the published DOI: " + createdDoi);
+    const result = await sails.services.doiservice.changeDoiState(brand, createdDoi, 'hide');
+    expect(result).to.eq(true);
   });
 
 });

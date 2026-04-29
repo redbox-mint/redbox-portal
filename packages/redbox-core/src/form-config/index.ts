@@ -1,6 +1,7 @@
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import defaultDraft from './default-1.0-draft';
 import dataRecordDraft from './dataRecord-1.0-draft';
+
 import generatedViewOnly from './generated-view-only';
 
 export const FormConfigExports: Record<string, FormConfigFrame> = {

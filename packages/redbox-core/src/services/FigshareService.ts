@@ -12,6 +12,9 @@ import { buildDeleteFilesMessage, buildPublishAfterUploadsMessage } from './figs
 import { shouldRunWorkflowTransitionJob } from './figshare-v2/workflow';
 import { FigshareClient, makeFixtureClient, makeLiveClient } from './figshare-v2/http';
 import { RBValidationError } from '../model/RBValidationError';
+import { IntegrationAuditContext } from './IntegrationAuditService';
+import { QueueService } from '../QueueService';
+import { IntegrationAuditAction } from '../model/storage/IntegrationAuditModel';
 import {
   RecordModel,
   UserModel,
@@ -28,15 +31,15 @@ import {
   setRecordField,
 } from './figshare-v2/types';
 
-type QueueServiceLike = {
-  now: (jobName: string, payload: unknown) => unknown;
-  schedule: (jobName: string, scheduleIn: string, payload: unknown) => unknown;
+declare const AgendaQueueService: QueueService;
+declare const IntegrationAuditService: {
+  startAudit(oid: string, action: IntegrationAuditAction, opts?: Record<string, unknown>): IntegrationAuditContext;
+  completeAudit(ctx: IntegrationAuditContext | null | undefined, result?: Record<string, unknown>): void;
+  failAudit(ctx: IntegrationAuditContext | null | undefined, error: unknown, details?: Record<string, unknown>): void;
 };
 
 export namespace Services {
   export class FigshareService extends services.Core.Service {
-    private queueService?: QueueServiceLike;
-
     protected override _exportedMethods: string[] = [
       'createUpdateFigshareArticle',
       'uploadFilesToFigshareArticle',
@@ -56,29 +59,25 @@ export namespace Services {
       'init',
     ];
 
-    public override init(): void {
-      this.registerSailsHook('on', 'ready', () => {
-        const queueServiceName = String(((sails.config as Record<string, unknown>).queue as Record<string, unknown> | undefined)?.serviceName ?? '');
-        this.queueService = queueServiceName
-          ? (sails.services as Record<string, unknown>)[queueServiceName] as QueueServiceLike | undefined
-          : undefined;
+    private startIntegrationAudit(
+      record: RecordModel,
+      action: IntegrationAuditAction,
+      details: Record<string, unknown>
+    ): IntegrationAuditContext {
+      const oid = String(record.redboxOid ?? record.id ?? '');
+      return IntegrationAuditService.startAudit(oid, action, {
+        brandId: record.metaMetadata?.brandId,
+        triggeredBy: details.triggerSource,
+        requestSummary: details,
       });
     }
 
-    private getQueueService(): QueueServiceLike {
-      if (this.queueService != null) {
-        return this.queueService;
-      }
+    private completeIntegrationAudit(ctx: IntegrationAuditContext, details: Record<string, unknown>): void {
+      IntegrationAuditService.completeAudit(ctx, details);
+    }
 
-      const queueServiceName = String(((sails.config as Record<string, unknown>).queue as Record<string, unknown> | undefined)?.serviceName ?? '');
-      const queueService = queueServiceName
-        ? (sails.services as Record<string, unknown>)[queueServiceName] as QueueServiceLike | undefined
-        : undefined;
-      if (queueService == null) {
-        throw new Error('Queue service is not configured');
-      }
-      this.queueService = queueService;
-      return queueService;
+    private failIntegrationAudit(ctx: IntegrationAuditContext, error: unknown, details: Record<string, unknown>): void {
+      IntegrationAuditService.failAudit(ctx, error, details);
     }
 
     private assertConfig(record: RecordModel, operation: string): NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>> {
@@ -372,6 +371,14 @@ export namespace Services {
         return record;
       }
 
+      const auditCtx = this.startIntegrationAudit(rm, IntegrationAuditAction.syncRecordWithFigshare, {
+        triggerSource,
+        jobId,
+        correlationId: plan.syncState.correlationId,
+        articleId: plan.articleId,
+        phase: 'sync-start',
+      });
+
       try {
         let article = await this.syncMetadata(rm, plan);
         const assetSyncResult = await this.syncAssets(rm, article);
@@ -380,12 +387,37 @@ export namespace Services {
         if (Object.keys(publishResult).length > 0) {
           article = await this.makeClient(config, rm, plan.syncState.correlationId, triggerSource).getArticle(String(article?.id ?? plan.articleId ?? ''));
         }
-        return this.writeBack(rm, article, publishResult, assetSyncResult);
+        const updatedRecord = this.writeBack(rm, article, publishResult, assetSyncResult);
+        this.completeIntegrationAudit(auditCtx, {
+          message: 'Figshare sync completed successfully.',
+          responseSummary: {
+            triggerSource,
+            jobId,
+            correlationId: plan.syncState.correlationId,
+            articleId: String(article?.id ?? plan.articleId ?? ''),
+            phases: ['metadata sync', 'asset sync', 'embargo sync', 'publish', 'write-back'],
+            publishResult,
+            partialProgress: this.getSyncState(config, rm).partialProgress,
+          },
+        });
+        return updatedRecord;
       } catch (error) {
         const syncState = this.getSyncState(config, rm);
         syncState.status = 'failed';
         syncState.lastError = error instanceof Error ? error.message : String(error);
         this.setSyncState(config, rm, syncState);
+        this.failIntegrationAudit(auditCtx, error, {
+          message: 'Figshare sync failed.',
+          errorDetail: error instanceof Error ? error.message : String(error),
+          responseSummary: {
+            triggerSource,
+            jobId,
+            correlationId: plan.syncState.correlationId,
+            articleId: plan.articleId,
+            phase: 'syncRecordWithFigshare',
+            partialProgress: syncState.partialProgress,
+          },
+        });
         throw error;
       }
     }
@@ -477,19 +509,90 @@ export namespace Services {
         return;
       }
 
+      const auditCtx = this.startIntegrationAudit(record, IntegrationAuditAction.publishAfterUploadFilesJob, {
+        triggerSource: 'publishAfterUploadFilesJob',
+        jobId: `${oid}:publish-job`,
+        correlationId: `${oid}:publish-job`,
+        articleId,
+        phase: 'publish',
+      });
+
       const client = this.makeClient(config, record, `${oid}:publish-job`, 'publishAfterUploadFilesJob');
       try {
         await this.ensureNoFileUploadInProgress(config, record, articleId);
       } catch (error) {
+        if (!(error instanceof RBValidationError)) {
+          this.failIntegrationAudit(auditCtx, error, {
+            message: 'Figshare publish-after-uploads job failed while checking upload status.',
+            errorDetail: error instanceof Error ? error.message : String(error),
+            responseSummary: {
+              articleId,
+              correlationId: `${oid}:publish-job`,
+              phase: 'verify-upload-status',
+            },
+          });
+          throw error;
+        }
+
         sails.log.warn(`FigService - article '${articleId}' still has uploads in progress, rescheduling deferred publish`, error);
-        this.queuePublishAfterUploadFiles(oid, articleId, user, brandId);
-        return;
+        try {
+          this.queuePublishAfterUploadFiles(oid, articleId, user, brandId);
+          this.completeIntegrationAudit(auditCtx, {
+            message: 'Figshare publish-after-uploads job rescheduled because file uploads are still in progress.',
+            responseSummary: {
+              articleId,
+              correlationId: `${oid}:publish-job`,
+              phase: 'publish',
+              rescheduled: true,
+            },
+          });
+          return;
+        } catch (queueError) {
+          this.failIntegrationAudit(auditCtx, queueError, {
+            message: 'Figshare publish-after-uploads job could not be rescheduled while uploads were still in progress.',
+            errorDetail: queueError instanceof Error ? queueError.message : String(queueError),
+            responseSummary: {
+              articleId,
+              correlationId: `${oid}:publish-job`,
+              phase: 'publish',
+              rescheduled: false,
+            },
+          });
+          throw queueError;
+        }
       }
-      const publishResult = await client.publishArticle(articleId, {});
-      const article = await client.getArticle(articleId);
-      const updatedRecord = this.writeBack(record, article, publishResult);
-      await this.persistSyncRecord(oid, updatedRecord, user);
-      this.queueDeleteFiles(oid, user, brandId, articleId);
+
+      try {
+        const publishResult = await client.publishArticle(articleId, {});
+        const article = await client.getArticle(articleId);
+        const updatedRecord = this.writeBack(record, article, publishResult);
+        await this.persistSyncRecord(oid, updatedRecord, user);
+        this.completeIntegrationAudit(auditCtx, {
+          message: 'Figshare publish-after-uploads job completed successfully.',
+          responseSummary: {
+            articleId,
+            correlationId: `${oid}:publish-job`,
+            publishResult,
+          },
+        });
+      } catch (error) {
+        this.failIntegrationAudit(auditCtx, error, {
+          message: 'Figshare publish-after-uploads job failed.',
+          errorDetail: error instanceof Error ? error.message : String(error),
+          responseSummary: {
+            articleId,
+            correlationId: `${oid}:publish-job`,
+            phase: 'publish',
+          },
+        });
+        throw error;
+      }
+
+      try {
+        this.queueDeleteFiles(oid, user, brandId, articleId);
+      } catch (error) {
+        sails.log.warn(`FigService - unable to queue uploaded file cleanup after successful publish for oid ${oid}`, error);
+      }
     }
 
     public async deleteFilesFromRedbox(job: FigshareJob) {
@@ -521,11 +624,10 @@ export namespace Services {
       } as RecordModel;
       const config = this.getConfig(record);
       const scheduleIn = String(config?.queue.publishAfterUploadDelay ?? 'in 2 minutes');
-      const queueService = this.getQueueService();
       if (scheduleIn === 'immediate') {
-        queueService.now(jobName, queueMessage);
+        AgendaQueueService.now(jobName, queueMessage);
       } else {
-        queueService.schedule(jobName, scheduleIn, queueMessage);
+        AgendaQueueService.schedule(jobName, scheduleIn, queueMessage);
       }
     }
 
@@ -537,11 +639,10 @@ export namespace Services {
       } as RecordModel;
       const config = this.getConfig(record);
       const scheduleIn = String(config?.queue.uploadedFilesCleanupDelay ?? 'in 5 minutes');
-      const queueService = this.getQueueService();
       if (scheduleIn === 'immediate') {
-        queueService.now(jobName, queueMessage);
+        AgendaQueueService.now(jobName, queueMessage);
       } else {
-        queueService.schedule(jobName, scheduleIn, queueMessage);
+        AgendaQueueService.schedule(jobName, scheduleIn, queueMessage);
       }
     }
 

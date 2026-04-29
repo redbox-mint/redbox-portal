@@ -1,0 +1,660 @@
+<div class="record-audit-app">
+  <!-- Page heading -->
+  <div class="rb-page-heading">
+    <h1>{{ '@record-audit-page-title' | i18next }}</h1>
+    <p class="text-muted">{{ '@record-audit-page-description' | i18next }}</p>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs rb-audit-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <a
+        class="nav-link"
+        [class.active]="activeTab === 'audit'"
+        href="#"
+        (click)="activateTab('audit'); $event.preventDefault()"
+      >
+        <i class="fa-solid fa-clock-rotate-left rb-tab-icon"></i>
+        {{ '@record-audit-tab-audit-history' | i18next }}
+      </a>
+    </li>
+    <li *ngIf="isAdmin" class="nav-item" role="presentation">
+      <a
+        class="nav-link"
+        [class.active]="activeTab === 'permissions'"
+        href="#"
+        (click)="activateTab('permissions'); $event.preventDefault()"
+      >
+        <i class="fa-solid fa-shield-halved rb-tab-icon"></i>
+        {{ '@record-audit-tab-permissions' | i18next }}
+      </a>
+    </li>
+    <li *ngIf="isAdmin" class="nav-item" role="presentation">
+      <a
+        class="nav-link"
+        [class.active]="activeTab === 'integration'"
+        href="#"
+        (click)="activateTab('integration'); $event.preventDefault()"
+      >
+        <i class="fa-solid fa-plug rb-tab-icon"></i>
+        {{ '@record-audit-tab-integration-audit' | i18next }}
+      </a>
+    </li>
+  </ul>
+
+  <!-- ==================== AUDIT HISTORY TAB ==================== -->
+  <section *ngIf="activeTab === 'audit'" class="rb-audit-tab">
+    <div *ngIf="auditTab.loading" class="alert alert-info">
+      <i class="fa-solid fa-spinner fa-spin"></i> {{ '@record-audit-loading' | i18next }}
+    </div>
+    <div *ngIf="auditTab.error" class="alert alert-danger">
+      <i class="fa-solid fa-circle-exclamation"></i> {{ auditTab.error | i18next }}
+    </div>
+    <div *ngIf="!auditTab.loading && !auditTab.error" class="panel panel-default">
+      <div class="panel-heading rb-audit-heading">
+        <span class="rb-audit-panel-title">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          {{ '@record-audit-tab-audit-history' | i18next }}
+        </span>
+        <div class="rb-audit-header-actions">
+          <span class="rb-audit-record-count">{{ formatEntriesCount(auditTab.records.length) }}</span>
+          <a
+            *ngIf="auditTab.rawAuditUrl"
+            class="btn btn-default btn-sm"
+            [href]="auditTab.rawAuditUrl"
+            target="_blank"
+            rel="noopener"
+            ><i class="fa-solid fa-code"></i> {{ '@record-audit-link-json' | i18next }}</a
+          >
+        </div>
+      </div>
+      <div class="rb-audit-filters">
+        <div class="rb-filter-field">
+          <label for="rb-audit-date-from">{{ '@record-audit-filter-date-from' | i18next }}</label>
+          <input
+            id="rb-audit-date-from"
+            type="date"
+            class="form-control"
+            [(ngModel)]="auditTab.filters.dateFrom"
+            [disabled]="auditTab.loading"
+          />
+        </div>
+        <div class="rb-filter-field">
+          <label for="rb-audit-date-to">{{ '@record-audit-filter-date-to' | i18next }}</label>
+          <input
+            id="rb-audit-date-to"
+            type="date"
+            class="form-control"
+            [(ngModel)]="auditTab.filters.dateTo"
+            [disabled]="auditTab.loading"
+          />
+        </div>
+        <div class="rb-filter-field">
+          <label for="rb-audit-action">{{ '@record-audit-filter-action' | i18next }}</label>
+          <select
+            id="rb-audit-action"
+            class="form-control"
+            [(ngModel)]="auditTab.filters.action"
+            [disabled]="auditTab.loading"
+          >
+            <option *ngFor="let action of auditActionOptions" [ngValue]="action">
+              {{ (action ? ('@record-audit-action-' + action) : '@record-audit-filter-action-all') | i18next }}
+            </option>
+          </select>
+        </div>
+        <div class="rb-filter-field">
+          <label for="rb-audit-workflow-state">{{ '@record-audit-filter-workflow-state' | i18next }}</label>
+          <input
+            id="rb-audit-workflow-state"
+            type="text"
+            class="form-control"
+            [(ngModel)]="auditTab.filters.workflowState"
+            [placeholder]="'@record-audit-filter-workflow-state-placeholder' | i18next"
+            [disabled]="auditTab.loading"
+          />
+        </div>
+        <div class="rb-filter-actions">
+          <button type="button" class="btn btn-primary btn-sm" [disabled]="auditTab.loading" (click)="applyAuditFilters()">
+            <i class="fa-solid fa-filter"></i> {{ '@record-audit-filter-apply' | i18next }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-default btn-sm"
+            [disabled]="auditTab.loading || !hasActiveAuditFilters()"
+            (click)="clearAuditFilters()"
+          >
+            <i class="fa-solid fa-rotate-left"></i> {{ '@record-audit-filter-clear' | i18next }}
+          </button>
+        </div>
+      </div>
+      <div *ngIf="auditTab.records.length === 0" class="alert alert-warning rb-integration-empty">
+        <i class="fa-solid fa-circle-info"></i> {{ '@record-audit-empty' | i18next }}
+      </div>
+      <div *ngIf="auditTab.records.length > 0" class="table-responsive">
+        <table class="table rb-audit-table">
+          <thead>
+            <tr>
+              <th class="rb-col-timestamp">{{ '@record-audit-col-updated' | i18next }}</th>
+              <th class="rb-col-action">{{ '@record-audit-col-action' | i18next }}</th>
+              <th class="rb-col-state">{{ '@record-audit-col-workflow-state' | i18next }}</th>
+              <th class="rb-col-actor">{{ '@record-audit-col-updated-by' | i18next }}</th>
+              <th class="rb-col-changes">{{ '@record-audit-col-changed-fields' | i18next }}</th>
+              <th class="rb-col-technical">{{ '@record-audit-col-technical-data' | i18next }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let row of auditTab.records; let i = index; let isFirst = first">
+              <tr
+                class="rb-audit-row"
+                [class.rb-audit-row-expanded]="row.expanded || row.technicalExpanded"
+                [class.rb-audit-row-created]="row.actionLabelKey?.includes('created')"
+              >
+                <td class="rb-col-timestamp">
+                  <div class="rb-timestamp-wrapper">
+                    <span class="rb-timestamp-main">{{ formatTimestamp(row.timestamp) }}</span>
+                    <span class="rb-timestamp-relative">{{ formatRelativeTime(row.timestamp) }}</span>
+                  </div>
+                </td>
+                <td class="rb-col-action">
+                  <span class="badge rb-action-badge" [ngClass]="getActionBadgeClass(row.actionLabelKey)">
+                    <i [ngClass]="getActionIcon(row.actionLabelKey)" class="rb-action-icon"></i>
+                    {{ row.actionLabelKey | i18next }}
+                  </span>
+                </td>
+                <td class="rb-col-state">
+                  <span class="rb-workflow-state">{{ row.workflowStageLabel || '-' }}</span>
+                </td>
+                <td class="rb-col-actor">
+                  <span class="rb-actor">
+                    <i class="fa-solid fa-user rb-actor-icon"></i>
+                    {{ row.actor?.displayName || row.actor?.name || row.actor?.username || '-' }}
+                  </span>
+                </td>
+                <td class="rb-col-changes">
+                  <button
+                    *ngIf="row.changeSummary.available"
+                    type="button"
+                    class="btn btn-sm rb-toggle-btn"
+                    [class.rb-toggle-active]="row.expanded"
+                    (click)="toggleDiff(row.id)"
+                  >
+                    <i class="fa-solid fa-chevron-right rb-toggle-chevron" [class.rb-chevron-open]="row.expanded"></i>
+                    <span class="rb-changes-count">{{ row.changeSummary.count }}</span>
+                    {{ formatChangedFields(row.changeSummary) }}
+                  </button>
+                  <span *ngIf="!row.changeSummary.available" class="text-muted rb-no-changes">
+                    {{ noteText(row.changeSummary.note) }}
+                  </span>
+                </td>
+                <td class="rb-col-technical">
+                  <button
+                    type="button"
+                    class="btn btn-sm rb-toggle-btn rb-technical-toggle"
+                    [class.rb-toggle-active]="row.technicalExpanded"
+                    (click)="toggleAuditTechnical(row.id)"
+                  >
+                    <i
+                      class="fa-solid fa-chevron-right rb-toggle-chevron"
+                      [class.rb-chevron-open]="row.technicalExpanded"
+                    ></i>
+                    {{
+                      (row.technicalExpanded
+                        ? '@record-audit-hide-technical-data'
+                        : '@record-audit-show-technical-data'
+                      ) | i18next
+                    }}
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Expanded: Field Changes Diff -->
+              <tr *ngIf="row.expanded" class="rb-expanded-row">
+                <td colspan="6" class="rb-audit-expanded-cell">
+                  <div class="rb-diff-container">
+                    <div class="rb-diff-header">
+                      <i class="fa-solid fa-code-compare"></i>
+                      {{ '@record-audit-section-field-changes' | i18next }}
+                    </div>
+                    <table class="table table-sm rb-audit-diff-table">
+                      <thead>
+                        <tr>
+                          <th>{{ '@record-audit-diff-col-field' | i18next }}</th>
+                          <th>{{ '@record-audit-diff-col-change-type' | i18next }}</th>
+                          <th>{{ '@record-audit-diff-col-previous-value' | i18next }}</th>
+                          <th>{{ '@record-audit-diff-col-new-value' | i18next }}</th>
+                          <th>{{ '@record-audit-diff-col-path' | i18next }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          *ngFor="let change of row.changeSummary.changes; trackBy: changeTrackBy"
+                          [ngClass]="getChangeKindClass(change)"
+                        >
+                          <td class="rb-diff-field-name">{{ change.displayName }}</td>
+                          <td>
+                            <span class="rb-diff-kind-badge" [ngClass]="getChangeKindClass(change)">
+                              <i [ngClass]="getChangeKindIcon(change)"></i>
+                              {{ changeKindLabel(change) }}
+                            </span>
+                          </td>
+                          <td class="rb-diff-value rb-diff-value-old">
+                            <pre>{{ change.original | json }}</pre>
+                          </td>
+                          <td class="rb-diff-value rb-diff-value-new">
+                            <pre>{{ change.changed | json }}</pre>
+                          </td>
+                          <td class="rb-diff-path">
+                            <code>{{ change.pathText }}</code>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Expanded: Technical Data -->
+              <tr *ngIf="row.technicalExpanded" class="rb-expanded-row">
+                <td colspan="6" class="rb-audit-expanded-cell">
+                  <div class="rb-technical-container">
+                    <div class="rb-diff-header">
+                      <i class="fa-solid fa-code"></i>
+                      {{ '@record-audit-col-technical-data' | i18next }}
+                    </div>
+                    <pre class="rb-json-block">{{ row.rawRecord | json }}</pre>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PERMISSIONS TAB ==================== -->
+  <section *ngIf="activeTab === 'permissions' && isAdmin" class="rb-audit-tab">
+    <div *ngIf="permissionsTab.loading" class="alert alert-info">
+      <i class="fa-solid fa-spinner fa-spin"></i> {{ '@record-audit-loading' | i18next }}
+    </div>
+    <div *ngIf="permissionsTab.error" class="alert alert-danger">
+      <i class="fa-solid fa-circle-exclamation"></i> {{ permissionsTab.error | i18next }}
+    </div>
+    <div *ngIf="permissionsTab.data && !permissionsTab.loading" class="row rb-permissions-grid">
+      <div class="col-md-6">
+        <div class="panel panel-default rb-permissions-panel">
+          <div class="panel-heading">
+            <span class="rb-audit-panel-title">
+              <i class="fa-solid fa-pen-to-square"></i>
+              {{ '@record-audit-permissions-heading-edit' | i18next }}
+            </span>
+          </div>
+          <div class="table-responsive">
+            <table class="table rb-permissions-table">
+              <tbody>
+                <tr>
+                  <th>{{ '@record-audit-tab-permissions' | i18next }}</th>
+                  <td>
+                    <ul class="rb-permissions-list" *ngIf="permissionsTab.data.edit.length > 0; else noEditUsers">
+                      <li *ngFor="let user of permissionsTab.data.edit">
+                        <span class="rb-permissions-user">
+                          <i class="fa-solid fa-user rb-perm-icon"></i>
+                          {{ user.name || user.username }}
+                        </span>
+                        <span class="text-muted" *ngIf="user.email">{{ user.email }}</span>
+                      </li>
+                    </ul>
+                    <ng-template #noEditUsers>
+                      <span class="text-muted">{{ '@record-audit-empty' | i18next }}</span>
+                    </ng-template>
+                  </td>
+                </tr>
+                <tr>
+                  <th>{{ '@record-audit-permissions-heading-roles' | i18next }}</th>
+                  <td>
+                    <ul class="rb-permissions-list" *ngIf="permissionsTab.data.editRoles.length > 0; else noEditRoles">
+                      <li *ngFor="let role of permissionsTab.data.editRoles">
+                        <span class="badge text-bg-secondary rb-role-badge"
+                          ><i class="fa-solid fa-user-tag"></i> {{ role }}</span
+                        >
+                      </li>
+                    </ul>
+                    <ng-template #noEditRoles>
+                      <span class="text-muted">-</span>
+                    </ng-template>
+                  </td>
+                </tr>
+                <tr>
+                  <th>{{ '@record-audit-permissions-heading-pending' | i18next }}</th>
+                  <td>
+                    <ul
+                      class="rb-permissions-list"
+                      *ngIf="permissionsTab.data.editPending.length > 0; else noEditPending"
+                    >
+                      <li *ngFor="let pending of permissionsTab.data.editPending">
+                        <span class="badge text-bg-warning rb-pending-badge"
+                          ><i class="fa-solid fa-clock"></i> {{ pending }}</span
+                        >
+                      </li>
+                    </ul>
+                    <ng-template #noEditPending>
+                      <span class="text-muted">-</span>
+                    </ng-template>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="panel panel-default rb-permissions-panel">
+          <div class="panel-heading">
+            <span class="rb-audit-panel-title">
+              <i class="fa-solid fa-eye"></i>
+              {{ '@record-audit-permissions-heading-view' | i18next }}
+            </span>
+          </div>
+          <div class="table-responsive">
+            <table class="table rb-permissions-table">
+              <tbody>
+                <tr>
+                  <th>{{ '@record-audit-tab-permissions' | i18next }}</th>
+                  <td>
+                    <ul class="rb-permissions-list" *ngIf="permissionsTab.data.view.length > 0; else noViewUsers">
+                      <li *ngFor="let user of permissionsTab.data.view">
+                        <span class="rb-permissions-user">
+                          <i class="fa-solid fa-user rb-perm-icon"></i>
+                          {{ user.name || user.username }}
+                        </span>
+                        <span class="text-muted" *ngIf="user.email">{{ user.email }}</span>
+                      </li>
+                    </ul>
+                    <ng-template #noViewUsers>
+                      <span class="text-muted">{{ '@record-audit-empty' | i18next }}</span>
+                    </ng-template>
+                  </td>
+                </tr>
+                <tr>
+                  <th>{{ '@record-audit-permissions-heading-roles' | i18next }}</th>
+                  <td>
+                    <ul class="rb-permissions-list" *ngIf="permissionsTab.data.viewRoles.length > 0; else noViewRoles">
+                      <li *ngFor="let role of permissionsTab.data.viewRoles">
+                        <span class="badge text-bg-secondary rb-role-badge"
+                          ><i class="fa-solid fa-user-tag"></i> {{ role }}</span
+                        >
+                      </li>
+                    </ul>
+                    <ng-template #noViewRoles>
+                      <span class="text-muted">-</span>
+                    </ng-template>
+                  </td>
+                </tr>
+                <tr>
+                  <th>{{ '@record-audit-permissions-heading-pending' | i18next }}</th>
+                  <td>
+                    <ul
+                      class="rb-permissions-list"
+                      *ngIf="permissionsTab.data.viewPending.length > 0; else noViewPending"
+                    >
+                      <li *ngFor="let pending of permissionsTab.data.viewPending">
+                        <span class="badge text-bg-warning rb-pending-badge"
+                          ><i class="fa-solid fa-clock"></i> {{ pending }}</span
+                        >
+                      </li>
+                    </ul>
+                    <ng-template #noViewPending>
+                      <span class="text-muted">-</span>
+                    </ng-template>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== INTEGRATION AUDIT TAB ==================== -->
+  <section *ngIf="activeTab === 'integration' && isAdmin" class="rb-audit-tab">
+    <div *ngIf="integrationTab.loading" class="alert alert-info">
+      <i class="fa-solid fa-spinner fa-spin"></i> {{ '@record-audit-loading' | i18next }}
+    </div>
+    <div *ngIf="integrationTab.error" class="alert alert-danger">
+      <i class="fa-solid fa-circle-exclamation"></i> {{ integrationTab.error | i18next }}
+    </div>
+    <div *ngIf="!integrationTab.loading && !integrationTab.error" class="panel panel-default">
+      <div class="panel-heading">
+        <span class="rb-audit-panel-title">
+          <i class="fa-solid fa-plug"></i>
+          {{ '@record-audit-tab-integration-audit' | i18next }}
+        </span>
+      </div>
+      <div class="rb-integration-filters">
+        <div class="rb-filter-field">
+          <label for="rb-integration-date-from">{{ '@record-audit-integration-filter-date-from' | i18next }}</label>
+          <input
+            id="rb-integration-date-from"
+            type="date"
+            class="form-control"
+            [(ngModel)]="integrationTab.filters.dateFrom"
+            [disabled]="integrationTab.loading"
+          />
+        </div>
+        <div class="rb-filter-field">
+          <label for="rb-integration-date-to">{{ '@record-audit-integration-filter-date-to' | i18next }}</label>
+          <input
+            id="rb-integration-date-to"
+            type="date"
+            class="form-control"
+            [(ngModel)]="integrationTab.filters.dateTo"
+            [disabled]="integrationTab.loading"
+          />
+        </div>
+        <div class="rb-filter-field">
+          <label for="rb-integration-name">{{ '@record-audit-integration-filter-integration-name' | i18next }}</label>
+          <input
+            id="rb-integration-name"
+            type="text"
+            class="form-control"
+            [(ngModel)]="integrationTab.filters.integrationName"
+            [placeholder]="'@record-audit-integration-filter-integration-name-placeholder' | i18next"
+            [disabled]="integrationTab.loading"
+          />
+        </div>
+        <div class="rb-filter-field">
+          <label for="rb-integration-status">{{ '@record-audit-integration-filter-status' | i18next }}</label>
+          <select
+            id="rb-integration-status"
+            class="form-control"
+            [(ngModel)]="integrationTab.filters.status"
+            [disabled]="integrationTab.loading"
+          >
+            <option *ngFor="let status of integrationStatusOptions" [ngValue]="status">
+              {{ (status ? status : '@record-audit-integration-filter-status-all') | i18next }}
+            </option>
+          </select>
+        </div>
+        <div class="rb-filter-actions">
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            [disabled]="integrationTab.loading"
+            (click)="applyIntegrationFilters()"
+          >
+            <i class="fa-solid fa-filter"></i> {{ '@record-audit-integration-filter-apply' | i18next }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-default btn-sm"
+            [disabled]="integrationTab.loading || !hasActiveIntegrationFilters()"
+            (click)="clearIntegrationFilters()"
+          >
+            <i class="fa-solid fa-rotate-left"></i> {{ '@record-audit-integration-filter-clear' | i18next }}
+          </button>
+        </div>
+      </div>
+      <div *ngIf="(integrationTab.data?.records?.length || 0) === 0" class="alert alert-warning rb-integration-empty">
+        <i class="fa-solid fa-circle-info"></i> {{ '@record-audit-empty' | i18next }}
+      </div>
+      <div *ngIf="(integrationTab.data?.records?.length || 0) > 0" class="table-responsive">
+        <table class="table rb-audit-table">
+          <thead>
+            <tr>
+              <th>{{ '@record-audit-integration-col-trace' | i18next }}</th>
+              <th>{{ '@record-audit-integration-col-integration-name' | i18next }}</th>
+              <th>{{ '@record-audit-integration-col-started' | i18next }}</th>
+              <th>{{ '@record-audit-integration-col-completed' | i18next }}</th>
+              <th>{{ '@record-audit-integration-col-duration' | i18next }}</th>
+              <th>{{ '@record-audit-integration-col-status' | i18next }}</th>
+              <th>{{ '@record-audit-integration-col-actions' | i18next }}</th>
+              <th>{{ '@record-audit-integration-col-event-count' | i18next }}</th>
+              <th>{{ '@record-audit-integration-col-triggered-by' | i18next }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let trace of integrationTab.data.records">
+              <tr class="rb-audit-row rb-trace-row">
+                <td>
+                  <button
+                    type="button"
+                    class="btn btn-sm rb-toggle-btn rb-trace-toggle"
+                    [class.rb-toggle-active]="integrationTab.expandedTraces[trace.id]"
+                    (click)="toggleIntegrationTrace(trace.id)"
+                  >
+                    <i
+                      class="fa-solid fa-chevron-right rb-toggle-chevron"
+                      [class.rb-chevron-open]="integrationTab.expandedTraces[trace.id]"
+                    ></i>
+                    {{ getIntegrationTraceLabel(trace) }}
+                  </button>
+                </td>
+                <td>{{ getIntegrationNameLabel(trace) }}</td>
+                <td>
+                  <div class="rb-timestamp-wrapper">
+                    <span class="rb-timestamp-main">{{ formatTimestamp(trace.startedAt) }}</span>
+                    <span class="rb-timestamp-relative">{{ formatRelativeTime(trace.startedAt) }}</span>
+                  </div>
+                </td>
+                <td>{{ formatTimestamp(trace.completedAt) }}</td>
+                <td>{{ formatDuration(trace.durationMs) }}</td>
+                <td>
+                  <span class="badge rb-action-badge" [ngClass]="getStatusBadgeClass(trace.status)">
+                    {{ trace.status }}
+                  </span>
+                </td>
+                <td>{{ formatTraceActions(trace.actions) }}</td>
+                <td>{{ trace.eventCount }}</td>
+                <td>
+                  <span *ngIf="trace.triggeredBy" class="rb-actor">
+                    <i class="fa-solid fa-user rb-actor-icon"></i> {{ trace.triggeredBy }}
+                  </span>
+                  <span *ngIf="!trace.triggeredBy" class="text-muted">-</span>
+                </td>
+              </tr>
+              <tr *ngIf="integrationTab.expandedTraces[trace.id]" class="rb-expanded-row">
+                <td colspan="9" class="rb-audit-expanded-cell">
+                  <div class="rb-trace-events-container">
+                    <div class="rb-diff-header">
+                      <i class="fa-solid fa-diagram-project"></i>
+                      {{ '@record-audit-integration-trace-events' | i18next }}
+                    </div>
+                    <table class="table table-sm rb-trace-events-table">
+                      <thead>
+                        <tr>
+                          <th>{{ '@record-audit-integration-col-action' | i18next }}</th>
+                          <th>{{ '@record-audit-integration-col-started' | i18next }}</th>
+                          <th>{{ '@record-audit-integration-col-completed' | i18next }}</th>
+                          <th>{{ '@record-audit-integration-col-duration' | i18next }}</th>
+                          <th>{{ '@record-audit-integration-col-status' | i18next }}</th>
+                          <th>{{ '@record-audit-integration-col-message' | i18next }}</th>
+                          <th>{{ '@record-audit-col-technical-data' | i18next }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <ng-container *ngFor="let event of trace.events">
+                          <tr class="rb-trace-event-row">
+                            <td>
+                              <div class="rb-trace-event-label" [style.padding-left]="getIntegrationEventIndent(event)">
+                                <i *ngIf="event.hasChildren" class="fa-solid fa-code-branch rb-trace-event-branch"></i>
+                                <span>{{ event.integrationAction }}</span>
+                                <code class="rb-trace-event-span">{{ event.spanId }}</code>
+                              </div>
+                            </td>
+                            <td>{{ formatTimestamp(event.startedAt) }}</td>
+                            <td>{{ formatTimestamp(event.completedAt) }}</td>
+                            <td>{{ formatDuration(event.durationMs) }}</td>
+                            <td>
+                              <span class="badge rb-action-badge" [ngClass]="getStatusBadgeClass(event.status)">
+                                {{ event.status }}
+                              </span>
+                            </td>
+                            <td class="rb-message-cell">{{ event.message || event.errorDetail || '-' }}</td>
+                            <td>
+                              <button
+                                type="button"
+                                class="btn btn-sm rb-toggle-btn rb-technical-toggle"
+                                [class.rb-toggle-active]="integrationTab.expandedEvents[event.id]"
+                                (click)="toggleIntegrationTechnical(event.id)"
+                              >
+                                <i
+                                  class="fa-solid fa-chevron-right rb-toggle-chevron"
+                                  [class.rb-chevron-open]="integrationTab.expandedEvents[event.id]"
+                                ></i>
+                                {{
+                                  (integrationTab.expandedEvents[event.id]
+                                    ? '@record-audit-hide-technical-data'
+                                    : '@record-audit-show-technical-data'
+                                  ) | i18next
+                                }}
+                              </button>
+                            </td>
+                          </tr>
+                          <tr *ngIf="integrationTab.expandedEvents[event.id]" class="rb-expanded-row">
+                            <td colspan="7" class="rb-audit-expanded-cell">
+                              <div class="rb-technical-container">
+                                <div class="rb-diff-header">
+                                  <i class="fa-solid fa-code"></i>
+                                  {{ '@record-audit-col-technical-data' | i18next }}
+                                </div>
+                                <pre class="rb-json-block">{{ event | json }}</pre>
+                              </div>
+                            </td>
+                          </tr>
+                        </ng-container>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+      <div *ngIf="(integrationTab.data?.records?.length || 0) > 0" class="rb-audit-pagination">
+        <span class="rb-pagination-info">
+          {{ formatPaginationLabel(integrationTab.data.summary.page, integrationTab.data.summary.totalPages || 1) }}
+        </span>
+        <div class="rb-pagination-controls">
+          <button
+            type="button"
+            class="btn btn-sm rb-pagination-btn"
+            [disabled]="!canGoToPreviousPage()"
+            (click)="loadIntegrationTab(integrationTab.data.summary.page - 1)"
+          >
+            <i class="fa-solid fa-chevron-left"></i> {{ '@tab-nav-previous' | i18next }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm rb-pagination-btn"
+            [disabled]="!canGoToNextPage()"
+            (click)="loadIntegrationTab(integrationTab.data.summary.page + 1)"
+          >
+            {{ '@tab-nav-next' | i18next }} <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
