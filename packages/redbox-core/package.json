@@ -25,7 +25,7 @@
     "@researchdatabox/rva-registry-openapi-generated-node": "file:../rva-registry",
     "@researchdatabox/sails-ng-common": "file:../sails-ng-common",
     "@tus/file-store": "2.0.0",
-    "@tus/s3-store": "2.0.2",
+    "@tus/s3-store": "2.0.3",
     "@tus/server": "2.3.0",
     "@types/dompurify": "3.2.0",
     "@types/express": "4.17.25",
