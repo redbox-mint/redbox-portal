@@ -89,7 +89,7 @@
     "typescript-json-schema": "0.67.1",
     "url-pattern": "1.0.3",
     "uuid": "13.0.0",
-    "webpack": "5.105.4",
+    "webpack": "5.106.2",
     "wkt-parser-helper": "7.1.0"
   },
   "overrides": {
