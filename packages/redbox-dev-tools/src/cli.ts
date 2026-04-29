@@ -7,6 +7,7 @@ import { generateHookArchetype } from './templates/hook-archetype';
 import {
   registerClientFormConfigCommand,
   registerMigrateDataClassificationCommand,
+  registerMigrateFigshareConfigCommand,
   registerMigrateFormConfigCommand, registerQuestionTreeDiagramCommand
 } from './commands/form-config';
 import { generateCompletionScript } from './completion';
@@ -122,6 +123,7 @@ program
 
 registerMigrateFormConfigCommand(program);
 registerMigrateDataClassificationCommand(program);
+registerMigrateFigshareConfigCommand(program);
 registerClientFormConfigCommand(program);
 registerQuestionTreeDiagramCommand(program);
 

@@ -47,6 +47,7 @@ export * from './jsonld.config';
 export * from './emailnotification.config';
 export * from './agendaQueue.config';
 export * from './crontab.config';
+export * from './figshareDev.config';
 export * from './solr.config';
 export * from './form.config';
 export * from './webpack.config';
@@ -60,8 +61,6 @@ export * from './branding.config';
 export * from './brandingConfigurationDefaults.config';
 export * from './raid.config';
 export * from './report.config';
-export * from './figshareAPI.config';
-export * from './figshareRedboxFORMapping.config';
 export * from './recordtype.config';
 export * from './workflow.config';
 // Miscellaneous configs
@@ -73,7 +72,6 @@ export * from './datapubs.config';
 export * from './workspacetype.config';
 export * from './lognamespace.config';
 export * from './redboxToCkan.config';
-export * from './figshareAPIEnv.config';
 export * from './typescript.config';
 export * from './custom_cache.config';
 export * from './validators.config';
@@ -119,6 +117,7 @@ import { jsonld, JsonLdConfig } from './jsonld.config';
 import { emailnotification, EmailNotificationConfig } from './emailnotification.config';
 import { agendaQueue, AgendaQueueConfig } from './agendaQueue.config';
 import { crontab, CrontabConfig } from './crontab.config';
+import { figshareDev, FigshareDevConfig } from './figshareDev.config';
 import { solr, SolrSearchConfig } from './solr.config';
 import { FormConfig } from './form.config';
 import { webpack, WebpackConfig } from './webpack.config';
@@ -135,8 +134,6 @@ import { BrandingConfig, branding } from './branding.config';
 import { BrandingConfigurationDefaultsConfig, brandingConfigurationDefaults, BrandAuthConfig, AuthBootstrapConfig } from './brandingConfigurationDefaults.config';
 import { RaidConfig, raid } from './raid.config';
 import { ReportsConfig, reports } from './report.config';
-import { FigshareApiConfig, figshareAPI } from './figshareAPI.config';
-import { FigshareReDBoxFORMappingConfig, figshareReDBoxFORMapping } from './figshareRedboxFORMapping.config';
 import { RecordTypeConfig, recordtype } from './recordtype.config';
 import { WorkflowConfig, workflow } from './workflow.config';
 // Miscellaneous config imports
@@ -148,7 +145,6 @@ import { datapubs, DataPubsConfig } from './datapubs.config';
 import { workspacetype, WorkspaceTypeConfig } from './workspacetype.config';
 import { lognamespace, LogNamespaceConfig } from './lognamespace.config';
 import { redboxToCkan, RedboxToCkanConfig } from './redboxToCkan.config';
-import { figshareAPIEnv, FigshareApiEnvConfig } from './figshareAPIEnv.config';
 import { typescript, TypeScriptHookConfig } from './typescript.config';
 import { custom_cache, CustomCacheConfig } from './custom_cache.config';
 import { validators, ValidatorsConfig } from './validators.config';
@@ -227,6 +223,7 @@ export interface SailsConfig {
     emailnotification: EmailNotificationConfig;
     agendaQueue: AgendaQueueConfig;
     crontab: CrontabConfig;
+    figshareDev: FigshareDevConfig;
     solr: SolrSearchConfig;
     form: FormConfig;
     webpack: WebpackConfig;
@@ -241,8 +238,6 @@ export interface SailsConfig {
     brandingConfigurationDefaults: BrandingConfigurationDefaultsConfig;
     raid: RaidConfig;
     reports: ReportsConfig;
-    figshareAPI: FigshareApiConfig;
-    figshareReDBoxFORMapping: FigshareReDBoxFORMappingConfig;
     recordtype: RecordTypeConfig;
     workflow: WorkflowConfig;
 
@@ -255,7 +250,6 @@ export interface SailsConfig {
     workspacetype: WorkspaceTypeConfig;
     lognamespace: LogNamespaceConfig;
     redboxToCkan: RedboxToCkanConfig;
-    figshareAPIEnv: FigshareApiEnvConfig;
     typescript: TypeScriptHookConfig;
     custom_cache: CustomCacheConfig;
     validators: ValidatorsConfig;
@@ -327,6 +321,7 @@ export const Config = {
     emailnotification,
     agendaQueue,
     crontab,
+    figshareDev,
     solr,
     // Security configs with default values
     csp,
@@ -340,7 +335,6 @@ export const Config = {
     workspacetype,
     lognamespace,
     redboxToCkan,
-    figshareAPIEnv,
     typescript,
     custom_cache,
     redboxSession,
@@ -351,8 +345,6 @@ export const Config = {
     raid,
     recordtype,
     workflow,
-    figshareAPI,
-    figshareReDBoxFORMapping,
     validators,
 } as const;
 

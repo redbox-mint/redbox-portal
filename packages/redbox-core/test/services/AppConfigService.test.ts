@@ -1,7 +1,7 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { Services } from '../../src/services/AppConfigService';
+import { APP_CONFIG_SECRET_MASK, Services } from '../../src/services/AppConfigService';
 import { ConfigModels } from '../../src/configmodels/ConfigModels';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
@@ -60,9 +60,9 @@ describe('AppConfigService', function() {
       // We can just rely on refreshBrandingAppConfigMap calling loadAppConfigurationModel which works with mocks
       
       const data = { key: 'val' };
-      const result = await service.createConfig('default', 'key', JSON.stringify(data));
+      const result = await service.createConfig('default', 'key', data);
       
-      expect(result).to.equal(JSON.stringify(data));
+      expect(result).to.deep.equal(data);
       expect((global as any).AppConfig.create.called).to.be.true;
     });
 
@@ -75,11 +75,32 @@ describe('AppConfigService', function() {
       
       (global as any).AppConfig.findOne.callsFake(() => mockDeferred({}));
       try {
-        await service.createConfig('default', 'key', '{}');
+        await service.createConfig('default', 'key', {});
         expect.fail('Should have thrown');
       } catch (e: unknown) {
         expect(e instanceof Error ? e.message : String(e)).to.contain('already exists');
       }
+    });
+  });
+
+  describe('secret fields', function() {
+    it('should mask secret fields when reading config', async function() {
+      class SecretModel {
+        connection = { token: 'secret-token' };
+      }
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+        modelName: 'SecretModel',
+        class: SecretModel,
+        secretFields: ['connection.token']
+      });
+      (global as any).AppConfig.findOne = sinon.stub().callsFake(() => {
+        const p: any = Promise.resolve({ configData: { connection: { token: 'secret-token' } } });
+        p.exec = sinon.stub().yields(null, { configData: { connection: { token: 'secret-token' } } });
+        return p;
+      });
+
+      const result: any = await service.getAppConfigByBrandAndKey('brand1', 'figsharePublishing');
+      expect(result.connection.token).to.equal(APP_CONFIG_SECRET_MASK);
     });
   });
 });

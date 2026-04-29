@@ -141,6 +141,7 @@ export interface BrandingConfigurationDefaultsConfig {
     menu: BrandingMenuConfig;
     homePanels: BrandingHomePanelsConfig;
     adminSidebar: BrandingAdminSidebarConfig;
+    figsharePublishing?: import('../configmodels/FigsharePublishing').FigsharePublishingConfigData;
 }
 
 /**
@@ -390,7 +391,8 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
             items: [
                 { id: 'menu', labelKey: 'menu-menuconfiguration', href: '/admin/appconfig/edit/menu' },
                 { id: 'homepanels', labelKey: 'menu-homepanelsconfiguration', href: '/admin/appconfig/edit/homePanels' },
-                { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' }
+                { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' },
+                { id: 'figsharepublishing', labelKey: 'menu-figsharepublishingconfiguration', href: '/admin/appconfig/edit/figsharePublishing' }
             ]
         },
         {

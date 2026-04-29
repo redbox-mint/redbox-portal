@@ -17,6 +17,7 @@ There are several configuration items that are specific to the ReDBox Portal:
 3. [emailnotification.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Email-Notifications) manages configuration of email notifications
 4. [form.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms) manages form configuration
 5. [solr.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Solr) manages Solr connection, schema, and indexing transformations
+6. [Figshare publishing AppConfig](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Figshare-Publishing) manages how records are mapped and published to Figshare
 
 ## Configuration Defaults (redbox-core)
 
@@ -88,6 +89,35 @@ It is possible to use environment variables to modify configuration, this is par
 You may override standard configuration item for a particular environment (e.g development, test and production) by creating or modifying the environment-specific config file in the location `config/env/<environment-name>.js`. You can specify the environment by setting the `NODE_ENV` environment variable.
 
 Please see the [Sails configuration documentation](https://sailsjs.com/documentation/concepts/configuration#?environmentspecific-files-config-env) for more information.
+
+### Developer-only Figshare fixture mode
+
+Figshare fixture mode is configured through environment/runtime config, not through brand AppConfig.
+
+- Config key: `figshareDev`
+- Intended use: local development, Docker development, and automated tests
+- Production behavior: runtime fixture activation is ignored in production
+
+Example:
+
+```javascript
+figshareDev: {
+  enabled: true,
+  mode: 'fixture',
+  fixtures: {
+    article: {
+      id: 'fixture-123',
+      url: 'https://figshare.example/articles/fixture-123'
+    },
+    licenses: [
+      { value: 1, name: 'CC-BY', url: 'https://license.test/cc-by' }
+    ],
+    articleFiles: []
+  }
+}
+```
+
+For machine-specific developer fixtures, prefer `config/local.js` so fixture payloads do not need to be committed.
 
 ## Debugging Configuration
 

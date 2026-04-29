@@ -1,0 +1,36 @@
+<div class="card card-body mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="fw-semibold">Category Mappings</span>
+    <button type="button" class="btn btn-sm btn-primary" (click)="addRow()">Add Row</button>
+  </div>
+
+  @if (rows.length === 0) {
+  <p class="text-muted mb-0">No mappings configured.</p>
+  } @for (row of rows; track $index; let i = $index) {
+  <div class="row g-2 align-items-end mb-2">
+    <div class="col-md-5">
+      <label class="form-label" for="sourceCode-{{i}}">Source Code</label>
+      <input
+        class="form-control"
+        id="sourceCode-{{i}}"
+        type="text"
+        [value]="row.sourceCode || ''"
+        (input)="updateRow(i, 'sourceCode', $any($event.target).value)"
+      />
+    </div>
+    <div class="col-md-5">
+      <label class="form-label" for="figshareCategoryId-{{i}}">Figshare Category ID</label>
+      <input
+        class="form-control"
+        id="figshareCategoryId-{{i}}"
+        type="number"
+        [value]="row.figshareCategoryId ?? ''"
+        (input)="updateRow(i, 'figshareCategoryId', $any($event.target).value)"
+      />
+    </div>
+    <div class="col-md-2">
+      <button type="button" class="btn btn-outline-danger w-100" (click)="removeRow(i)">Remove</button>
+    </div>
+  </div>
+  }
+</div>

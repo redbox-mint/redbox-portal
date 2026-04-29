@@ -12,6 +12,8 @@ import { FormlyFieldTextArea } from '@ngx-formly/bootstrap/textarea';
 import { MenuEditorTypeComponent } from './fieldTypes/menu-editor';
 import { AdminSidebarEditorTypeComponent } from './fieldTypes/admin-sidebar-editor';
 import { HomePanelsEditorTypeComponent } from './fieldTypes/home-panels-editor';
+import { FigshareBindingEditorTypeComponent } from './fieldTypes/figshare-binding-editor';
+import { FigshareCategoryMappingEditorTypeComponent } from './fieldTypes/figshare-category-mapping-editor';
 
 let configService: any;
 let userService: any;
@@ -55,7 +57,9 @@ describe('AppConfigComponent', () => {
         ObjectTypeComponent,
         MenuEditorTypeComponent,
         AdminSidebarEditorTypeComponent,
-        HomePanelsEditorTypeComponent
+        HomePanelsEditorTypeComponent,
+        FigshareBindingEditorTypeComponent,
+        FigshareCategoryMappingEditorTypeComponent
       ],
       imports: [
         ReactiveFormsModule,
@@ -67,7 +71,9 @@ describe('AppConfigComponent', () => {
             { name: 'textarea', component: FormlyFieldTextArea },
             { name: 'menu-editor', component: MenuEditorTypeComponent },
             { name: 'admin-sidebar-editor', component: AdminSidebarEditorTypeComponent },
-            { name: 'home-panels-editor', component: HomePanelsEditorTypeComponent }
+            { name: 'home-panels-editor', component: HomePanelsEditorTypeComponent },
+            { name: 'figshare-binding-editor', component: FigshareBindingEditorTypeComponent },
+            { name: 'figshare-category-mapping-editor', component: FigshareCategoryMappingEditorTypeComponent }
           ],
         }),
         FormlyBootstrapModule
@@ -208,6 +214,22 @@ describe('AppConfigComponent', () => {
     expect(panelsField?.fieldGroup).toBeUndefined();
   });
 
+  it('uses figshare custom editors from schema widgets', async () => {
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const app = fixture.componentInstance;
+    app.configKey = 'figsharePublishing';
+
+    fixture.autoDetectChanges(true);
+    await app.waitForInit();
+    await fixture.whenStable();
+
+    const titleField = findFieldByKey(app.fields, 'title');
+    const mappingTableField = findFieldByKey(app.fields, 'mappingTable');
+
+    expect(titleField?.type).toBe('figshare-binding-editor');
+    expect(mappingTableField?.type).toBe('figshare-category-mapping-editor');
+  });
+
 });
 
 export function getStubAppConfigService(recordData: any = {}) {
@@ -330,6 +352,50 @@ export function getStubAppConfigService(recordData: any = {}) {
             },
             sections: [],
             footerLinks: []
+          }
+        };
+      }
+      if (configKey === 'figsharePublishing') {
+        return {
+          fieldOrder: ['metadata', 'categories'],
+          schema: {
+            type: 'object',
+            properties: {
+              metadata: {
+                type: 'object',
+                properties: {
+                  title: {
+                    type: 'object',
+                    widget: {
+                      formlyConfig: {
+                        type: 'figshare-binding-editor'
+                      }
+                    }
+                  }
+                }
+              },
+              categories: {
+                type: 'object',
+                properties: {
+                  mappingTable: {
+                    type: 'array',
+                    widget: {
+                      formlyConfig: {
+                        type: 'figshare-category-mapping-editor'
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          model: {
+            metadata: {
+              title: { kind: 'path', path: 'metadata.title' }
+            },
+            categories: {
+              mappingTable: []
+            }
           }
         };
       }
