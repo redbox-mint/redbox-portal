@@ -38,6 +38,40 @@ jobs:
           root: /tmp
           paths:
             - docker-images/redbox-portal-test.tar
+  refresh-dependabot-package-locks:
+    docker:
+      - image: 'cimg/node:24.14.1'
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - '50:0c:a1:7f:b6:64:84:42:01:61:0f:76:3f:e4:78:ff'
+      - checkout
+      - run:
+          name: Refresh package locks
+          command: |
+            git fetch origin "$CIRCLE_BRANCH"
+            git checkout -B "$CIRCLE_BRANCH" "origin/$CIRCLE_BRANCH"
+
+            ./support/development/refreshRootPackageLock.sh \
+              . \
+              packages/redbox-core \
+              packages/redbox-dev-tools \
+              packages/sails-hook-redbox-storage-mongo
+      - run:
+          name: Commit refreshed package locks
+          command: |
+            git config user.name 'ci-build'
+            git config user.email 'ci-build@redboxresearchdata.com.au'
+
+            git add package-lock.json packages/*/package-lock.json
+
+            if git diff --cached --quiet; then
+              echo 'Package locks are already up to date.'
+              exit 0
+            fi
+
+            git commit -m 'Build(deps): refresh package locks'
+            git push origin "HEAD:${CIRCLE_BRANCH}"
   build-runtime-datastream-cloud:
     docker:
       - image: 'cimg/node:24.14.1'
@@ -1095,7 +1129,15 @@ workflows:
     when:
       equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
     jobs:
+      - refresh-dependabot-package-locks:
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - build:
+          requires:
+            - refresh-dependabot-package-locks
           filters:
             branches:
               only: /^dependabot.*/
