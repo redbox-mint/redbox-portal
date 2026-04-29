@@ -1032,20 +1032,6 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
-
-      - generate-docs:
-          requires:
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
-          filters:
-            branches:
-              only: 'master'
   build_test_dependabot:
     jobs:
       - build:
@@ -1133,19 +1119,6 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
-      - generate-docs:
-          requires:
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
-          filters:
-            branches:
-              only: 'master'
   release_build_test_gendocs_and_deploy:
     jobs:
       - build:
