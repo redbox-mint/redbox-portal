@@ -286,6 +286,7 @@ export namespace Services {
       'updateMeta',
       'getMeta',
       'getRecordAudit',
+      'getResolvedPermissionsSummary',
       'hasEditAccess',
       'hasViewAccess',
       'createBatch',
@@ -894,6 +895,41 @@ export namespace Services {
         ] as Record<string, unknown>[];
       }
       return audit;
+    }
+
+    public async getResolvedPermissionsSummary(oid: string) {
+      const record = await this.getMeta(oid);
+      if (_.isEmpty(record)) {
+        throw new Error(`Record not found: ${oid}`);
+      }
+
+      const authorization = (((record as unknown) as RecordWithMeta).authorization ?? {}) as AnyRecord;
+      const resolveUsers = async (value: unknown) => {
+        const usernames = Array.isArray(value) ? value : [];
+        const resolvedUsers = [];
+        for (const usernameValue of usernames) {
+          const username = String(usernameValue ?? '');
+          if (_.isEmpty(username)) {
+            continue;
+          }
+          const user = await firstValueFrom(UsersService.getUserWithUsername(username));
+          resolvedUsers.push({
+            username,
+            name: String(_.get(user, 'name', '')),
+            email: String(_.get(user, 'email', '')),
+          });
+        }
+        return resolvedUsers;
+      };
+
+      return {
+        edit: await resolveUsers(authorization.edit),
+        view: await resolveUsers(authorization.view),
+        editPending: _.castArray(authorization.editPending ?? []).map(value => String(value ?? '')),
+        viewPending: _.castArray(authorization.viewPending ?? []).map(value => String(value ?? '')),
+        editRoles: _.castArray(authorization.editRoles ?? []).map(value => String(value ?? '')),
+        viewRoles: _.castArray(authorization.viewRoles ?? []).map(value => String(value ?? '')),
+      };
     }
 
     createBatch(type: unknown, data: AnyRecord, harvestIdFldName: unknown): Promise<unknown> {

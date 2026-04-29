@@ -471,19 +471,19 @@ describe('appConfigService', function () {
     });
 
     expect(updated.connection.token).to.equal(APP_CONFIG_SECRET_MASK);
-    const legacyUpdated = await appConfigService.createOrUpdateConfig(branding, configKey, {
+    const maskedUpdatedAgain = await appConfigService.createOrUpdateConfig(branding, configKey, {
       enabled: true,
       connection: {
         baseUrl: 'https://api.figshare.com',
         frontEndUrl: 'https://figshare.com',
-        token: '*******',
+        token: APP_CONFIG_SECRET_MASK,
         timeoutMs: 1000,
         operationTimeouts: { metadataMs: 1000, uploadInitMs: 1000, uploadPartMs: 1000, publishMs: 1000 },
         retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1, retryOnStatusCodes: [] }
       }
     });
 
-    expect(legacyUpdated.connection.token).to.equal(APP_CONFIG_SECRET_MASK);
+    expect(maskedUpdatedAgain.connection.token).to.equal(APP_CONFIG_SECRET_MASK);
     const loaded = appConfigService.getAppConfigurationForBrand(brandName);
     expect(loaded.figsharePublishing.connection.token).to.equal('top-secret');
   });

@@ -1,0 +1,51 @@
+meta {
+  name: Get record audit tab data
+  type: http
+  seq: 59
+}
+
+get {
+  url: {{host}}/default/rdmp/record/viewAudit/{{dmpOid}}/audit
+  body: none
+  auth: none
+}
+
+headers {
+  Pragma: no-cache
+  Accept-Encoding: gzip, deflate, br
+  X-CSRF-Token:
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  Content-Type: application/json;charset=utf-8
+  Accept: application/json, text/plain, */*
+  Connection: keep-alive
+  Referer: {{host}}/default/rdmp/record/viewAudit/{{dmpOid}}
+  X-Source: jsclient
+  Cache-Control: no-cache
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Audit tab response includes summary and records", function () {
+      const jsonData = res.getBody();
+      expect(jsonData.summary).to.have.property("returnedCount");
+      expect(jsonData.rawAuditUrl).to.include(`/default/rdmp/api/records/audit/${bru.getEnvVar("dmpOid")}`);
+      expect(jsonData.records).to.be.an("array");
+      expect(jsonData.records.length).to.be.greaterThan(0);
+
+      const firstRecord = jsonData.records[0];
+      expect(firstRecord).to.have.property("action");
+      expect(firstRecord).to.have.property("actionLabelKey");
+      expect(firstRecord.actor).to.have.property("displayName");
+      expect(firstRecord.changeSummary).to.have.property("available");
+      expect(firstRecord.changeSummary).to.have.property("changes");
+  });
+}

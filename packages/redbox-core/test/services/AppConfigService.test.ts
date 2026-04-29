@@ -5,14 +5,14 @@ import { APP_CONFIG_SECRET_MASK, Services } from '../../src/services/AppConfigSe
 import { ConfigModels } from '../../src/configmodels/ConfigModels';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
-describe('AppConfigService', function() {
+describe('AppConfigService', function () {
   let service: Services.AppConfigs;
   let mockSails: any;
 
-  beforeEach(function() {
+  beforeEach(function () {
     mockSails = createMockSails();
     setupServiceTestGlobals(mockSails);
-    
+
     const mockDeferred = (result: unknown) => {
       const p: any = Promise.resolve(result);
       p.exec = sinon.stub().yields(null, result);
@@ -32,21 +32,21 @@ describe('AppConfigService', function() {
     };
 
     sinon.stub(ConfigModels, 'getConfigKeys').returns([]);
-    sinon.stub(ConfigModels, 'getModelInfo').returns({ modelName: 'MockModel', class: class MockModel {} });
+    sinon.stub(ConfigModels, 'getModelInfo').returns({ modelName: 'MockModel', class: class MockModel { } });
 
     service = new Services.AppConfigs();
     service.brandingAppConfigMap = {};
   });
 
-  afterEach(function() {
+  afterEach(function () {
     cleanupServiceTestGlobals();
     delete (global as any).AppConfig;
     delete (global as any).BrandingService;
     sinon.restore(); // Restores ConfigModels stubs
   });
 
-  describe('bootstrap', function() {
-    it('should load config for brands', async function() {
+  describe('bootstrap', function () {
+    it('should load config for brands', async function () {
       await service.bootstrap();
       // Should populate brandingAppConfigMap
       const config = service.getAppConfigurationForBrand('default');
@@ -54,25 +54,25 @@ describe('AppConfigService', function() {
     });
   });
 
-  describe('createConfig', function() {
-    it('should create new config', async function() {
+  describe('createConfig', function () {
+    it('should create new config', async function () {
       // Need to populate map first or mock refreshBrandingAppConfigMap
       // We can just rely on refreshBrandingAppConfigMap calling loadAppConfigurationModel which works with mocks
-      
+
       const data = { key: 'val' };
       const result = await service.createConfig('default', 'key', data);
-      
+
       expect(result).to.deep.equal(data);
       expect((global as any).AppConfig.create.called).to.be.true;
     });
 
-    it('should throw if config exists', async function() {
+    it('should throw if config exists', async function () {
       const mockDeferred = (result: unknown) => {
         const p: any = Promise.resolve(result);
         p.exec = sinon.stub().yields(null, result);
         return p;
       };
-      
+
       (global as any).AppConfig.findOne.callsFake(() => mockDeferred({}));
       try {
         await service.createConfig('default', 'key', {});
@@ -83,8 +83,8 @@ describe('AppConfigService', function() {
     });
   });
 
-  describe('secret fields', function() {
-    it('should mask secret fields when reading config', async function() {
+  describe('secret fields', function () {
+    it('should mask secret fields when reading config', async function () {
       class SecretModel {
         connection = { token: 'secret-token' };
       }
@@ -100,6 +100,44 @@ describe('AppConfigService', function() {
       });
 
       const result: any = await service.getAppConfigByBrandAndKey('brand1', 'figsharePublishing');
+      expect(result.connection.token).to.equal(APP_CONFIG_SECRET_MASK);
+    });
+
+    it('should preserve existing secrets when the mask placeholder is submitted', async function () {
+      class SecretModel {
+        connection = { token: '' };
+      }
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+        modelName: 'SecretModel',
+        class: SecretModel,
+        secretFields: ['connection.token']
+      });
+
+      const existingRecord = { configData: { connection: { token: 'secret-token' } } };
+      const updateSet = sinon.stub().callsFake((data: Record<string, unknown>) => {
+        const updatedRecord = { configData: data.configData };
+        const p: any = Promise.resolve(updatedRecord);
+        p.exec = sinon.stub().yields(null, updatedRecord);
+        return p;
+      });
+
+      (global as any).AppConfig.findOne = sinon.stub().callsFake(() => {
+        const p: any = Promise.resolve(existingRecord);
+        p.exec = sinon.stub().yields(null, existingRecord);
+        return p;
+      });
+      (global as any).AppConfig.updateOne = sinon.stub().returns({ set: updateSet });
+
+      const result: any = await service.createOrUpdateConfig(
+        { id: 'brand1', name: 'default' } as any,
+        'figsharePublishing',
+        { connection: { token: APP_CONFIG_SECRET_MASK } }
+      );
+
+      expect(updateSet.calledOnce).to.be.true;
+      expect(updateSet.firstCall.args[0]).to.deep.equal({
+        configData: { connection: { token: 'secret-token' } }
+      });
       expect(result.connection.token).to.equal(APP_CONFIG_SECRET_MASK);
     });
   });

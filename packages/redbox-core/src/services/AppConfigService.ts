@@ -28,7 +28,6 @@ import { globSync } from 'glob';
 
 export const APP_CONFIG_SECRET_MASK = '__REDACTED__'
 export const APP_CONFIG_SECRET_CLEAR = '__CLEAR_SECRET__';
-export const APP_CONFIG_LEGACY_SECRET_MASKS = ['*******'];
 
 type AppConfigData = Record<string, unknown>;
 
@@ -108,7 +107,7 @@ export namespace Services {
     }
 
     private isMaskedSecretPlaceholder(value: unknown): boolean {
-      return typeof value === 'string' && [APP_CONFIG_SECRET_MASK, ...APP_CONFIG_LEGACY_SECRET_MASKS].includes(value);
+      return typeof value === 'string' && value === APP_CONFIG_SECRET_MASK;
     }
 
     private shouldMaskSecretValue(value: unknown): boolean {
@@ -131,6 +130,8 @@ export namespace Services {
       });
       return masked;
     }
+
+
 
     private mergeSecretFields(configKey: string, incomingConfig: unknown, existingConfig?: unknown): unknown {
       const secretFields = this.getSecretFields(configKey);

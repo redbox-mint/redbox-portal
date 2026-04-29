@@ -218,6 +218,9 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/record/:recordType/edit': 'RecordController.edit',
     'get /:branding/:portal/record/edit/:oid': 'RecordController.edit',
     'get /:branding/:portal/record/viewAudit/:oid': 'RecordAuditController.render',
+    'get /:branding/:portal/record/viewAudit/:oid/audit': 'RecordAuditController.getAuditData',
+    'get /:branding/:portal/record/viewAudit/:oid/permissions': 'RecordAuditController.getPermissionsData',
+    'get /:branding/:portal/record/viewAudit/:oid/integration-audit': 'RecordAuditController.getIntegrationAuditData',
     'get /:branding/:portal/record/finalise/:recordType/edit/:oid': {
         controller: 'RecordController',
         action: 'edit',
@@ -319,6 +322,7 @@ export const routes: RoutesConfig = {
     'put /:branding/:portal/api/records/objectmetadata/:oid': { controller: 'webservice/RecordController', action: 'updateObjectMeta', csrf: false },
     'get /:branding/:portal/api/records/metadata/:oid': { controller: 'webservice/RecordController', action: 'getMeta', csrf: false },
     'get /:branding/:portal/api/records/audit/:oid': { controller: 'webservice/RecordController', action: 'getRecordAudit', csrf: false },
+    'get /:branding/:portal/api/integration-audit/:oid': { controller: 'webservice/IntegrationAuditController', action: 'getAuditLog', csrf: false },
     'get /:branding/:portal/api/records/list': { controller: 'webservice/RecordController', action: 'listRecords', csrf: false },
     'get /:branding/:portal/api/deletedrecords/list': { controller: 'webservice/RecordController', action: 'listDeletedRecords', csrf: false },
     'put /:branding/:portal/api/deletedrecords/:oid': { controller: 'webservice/RecordController', action: 'restoreRecord', csrf: false },

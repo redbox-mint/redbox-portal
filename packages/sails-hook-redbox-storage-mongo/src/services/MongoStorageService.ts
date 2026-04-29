@@ -20,6 +20,8 @@ import {
   Attachment,
   RecordAuditModel,
   RecordAuditParams,
+  IntegrationAuditModel,
+  IntegrationAuditParams,
   RecordModel,
   BrandingModel,
   UserModel,
@@ -41,6 +43,7 @@ type DatastreamContent = { readstream?: NodeJS.ReadableStream; body?: Buffer | s
 declare const Record: WaterlineModel;
 declare const DeletedRecord: WaterlineModel;
 declare const RecordAudit: WaterlineModel;
+declare const IntegrationAudit: WaterlineModel;
 
 type RelatedRecordsContext = {
   processedRelationships: string[];
@@ -78,7 +81,10 @@ export namespace Services {
       'getDatastream',
       'listDatastreams',
       'createRecordAudit',
+      'createIntegrationAudit',
       'getRecordAudit',
+      'getIntegrationAudit',
+      'countIntegrationAudit',
       'exists',
     ];
 
@@ -970,6 +976,37 @@ export namespace Services {
       return payload;
     }
 
+    private sanitizeIntegrationAudit(audit: IntegrationAuditModel): IntegrationAuditModel {
+      const payload = new IntegrationAuditModel({
+        redboxOid: audit.redboxOid,
+        brandId: audit.brandId,
+        integrationName: audit.integrationName,
+        integrationAction: audit.integrationAction,
+        triggeredBy: audit.triggeredBy,
+        status: audit.status,
+        message: audit.message,
+        errorDetail: audit.errorDetail,
+        httpStatusCode: audit.httpStatusCode,
+        traceId: audit.traceId,
+        spanId: audit.spanId,
+        parentSpanId: audit.parentSpanId,
+        startedAt: audit.startedAt,
+        completedAt: audit.completedAt,
+        durationMs: audit.durationMs,
+        requestSummary: this.toJsonSafe(audit.requestSummary) as Record<string, unknown> | undefined,
+        responseSummary: this.toJsonSafe(audit.responseSummary) as Record<string, unknown> | undefined,
+      });
+
+      if (_.isUndefined(payload.requestSummary)) {
+        delete payload.requestSummary;
+      }
+      if (_.isUndefined(payload.responseSummary)) {
+        delete payload.responseSummary;
+      }
+
+      return payload;
+    }
+
     public async createRecordAudit(recordAudit: RecordAuditModel): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
       const payload = this.sanitizeRecordAudit(recordAudit);
@@ -1019,6 +1056,92 @@ export namespace Services {
       sails.log.verbose(`${this.logHeader} finding: `);
       sails.log.verbose(JSON.stringify(criteria));
       return RecordAudit.find(criteria);
+    }
+
+    public async createIntegrationAudit(audit: IntegrationAuditModel): Promise<StorageServiceResponse> {
+      const response = new StorageServiceResponse();
+      const payload = this.sanitizeIntegrationAudit(audit);
+      try {
+        sails.log.verbose(`${this.logHeader} Saving Integration Audit to DB...`);
+        const savedAudit = await IntegrationAudit.create(payload);
+        response.oid = String(savedAudit._id ?? '');
+        response.success = true;
+        sails.log.verbose(`${this.logHeader} Integration Audit created...`);
+      } catch (err) {
+        sails.log.error(`${this.logHeader} Failed to create Integration Audit:`);
+        sails.log.error(JSON.stringify(err));
+        response.success = false;
+        response.message = this.getErrorMessage(err);
+        return response;
+      }
+      sails.log.verbose(JSON.stringify(response));
+      sails.log.verbose(`${this.logHeader} createIntegrationAudit() -> End`);
+      return response;
+    }
+
+    private buildIntegrationAuditStartedAtCriteria(params: IntegrationAuditParams): Record<string, unknown> | undefined {
+      const criteria: Record<string, unknown> = {};
+      if (_.isDate(params.dateFrom)) {
+        criteria['>='] = params.dateFrom.toISOString();
+      }
+      if (_.isDate(params.dateTo)) {
+        criteria['<='] = params.dateTo.toISOString();
+      }
+
+      return Object.keys(criteria).length > 0 ? criteria : undefined;
+    }
+
+    public async getIntegrationAudit(params: IntegrationAuditParams): Promise<unknown> {
+      const oid = params.oid;
+      if (_.isEmpty(oid)) {
+        const msg = `${this.logHeader} getIntegrationAudit() -> refusing to search using an empty OID`;
+        sails.log.error(msg);
+        throw new Error(msg);
+      }
+
+      const criteria: Record<string, unknown> = { redboxOid: oid };
+      if (!_.isEmpty(params.status)) {
+        criteria['status'] = params.status;
+      }
+      const startedAtCriteria = this.buildIntegrationAuditStartedAtCriteria(params);
+      if (!_.isUndefined(startedAtCriteria)) {
+        criteria['startedAt'] = startedAtCriteria;
+      }
+
+      const page = _.toInteger(params.page) > 0 ? _.toInteger(params.page) : 1;
+      const pageSize = _.toInteger(params.pageSize) > 0 ? _.toInteger(params.pageSize) : 20;
+      const skip = (page - 1) * pageSize;
+
+      sails.log.verbose(`${this.logHeader} finding Integration Audit: `);
+      sails.log.verbose(JSON.stringify(criteria));
+
+      const query = IntegrationAudit.find(criteria);
+      query.sort([{ startedAt: 'DESC' }, { dateCreated: 'DESC' }]);
+      query.skip(skip);
+      query.limit(pageSize);
+      return query;
+    }
+
+    public async countIntegrationAudit(params: IntegrationAuditParams): Promise<number> {
+      const oid = params.oid;
+      if (_.isEmpty(oid)) {
+        const msg = `${this.logHeader} countIntegrationAudit() -> refusing to search using an empty OID`;
+        sails.log.error(msg);
+        throw new Error(msg);
+      }
+
+      const criteria: Record<string, unknown> = { redboxOid: oid };
+      if (!_.isEmpty(params.status)) {
+        criteria['status'] = params.status;
+      }
+      const startedAtCriteria = this.buildIntegrationAuditStartedAtCriteria(params);
+      if (!_.isUndefined(startedAtCriteria)) {
+        criteria['startedAt'] = startedAtCriteria;
+      }
+
+      sails.log.verbose(`${this.logHeader} counting Integration Audit: `);
+      sails.log.verbose(JSON.stringify(criteria));
+      return await IntegrationAudit.count(criteria);
     }
 
     async restoreRecord(oid: string): Promise<StorageServiceResponse> {

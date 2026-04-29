@@ -50,6 +50,10 @@ export {
 }
     from "./RecordAuditParams";
 export {
+    IntegrationAuditParams
+}
+    from "./IntegrationAuditParams";
+export {
     ILogger
 }
     from "./Logger";
