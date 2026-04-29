@@ -20,7 +20,7 @@ import { ValidationSummaryFieldComponent } from './validation-summary.component'
     }
     @if (validationList.length > 0) {
       <div class="alert alert-warning suggested-validation-summary mt-3" role="alert">
-        <i class="fa fa-info-circle suggested-validation-summary__icon" aria-hidden="true"></i>
+        <i class="fa-solid fa-circle-info suggested-validation-summary__icon" aria-hidden="true"></i>
         <div class="suggested-validation-summary__content">
           <p class="suggested-validation-summary__header mb-2">{{ header | i18next }}</p>
           <div class="validation-summary-list mb-0">

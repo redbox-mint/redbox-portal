@@ -60,6 +60,7 @@ import {
   FormValidatorComponentErrors,
   FormValidatorConfig,
   FormValidatorDefinition,
+  FormValidatorFn,
   FormValidatorSummaryErrors,
   getObjectWithJsonPointer,
   JSONataQueryRuntimeContext,
@@ -79,6 +80,13 @@ import {FormValidationGroupsChangeInitial} from "./form-state";
 
 // redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
 declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
+
+interface SuggestedValidatorSummaryCacheEntry {
+  validatorKey: string;
+  valueKey: string;
+  validatorFns: FormValidatorFn[];
+  errors: FormValidatorComponentErrors[];
+}
 
 /**
  *
@@ -103,6 +111,8 @@ export class FormService extends HttpClientService {
 
   private requestOptions: Record<string, unknown> = {};
   private loadedValidatorDefinitions?: Map<string, FormValidatorDefinition>;
+  // Suggested validation is read from template getters, so cache by control to avoid rebuilding validators on every change detection pass.
+  private suggestedValidatorSummaryCache = new WeakMap<AbstractControl, SuggestedValidatorSummaryCacheEntry>();
 
   constructor(
     @Inject(PortalNgFormCustomService) private customModuleFormCmpResolverService: PortalNgFormCustomService,
@@ -501,16 +511,20 @@ export class FormService extends HttpClientService {
       return result;
     }
 
+    if (!this.shouldIncludeInFormControlMap(mapEntry)) {
+      // Advisory validators should mirror normal form validation and ignore fields disabled by config.
+      return result;
+    }
+
     const formControl = mapEntry.model?.formControl;
     const validators = mapEntry.model?.validators ?? [];
     const lineagePaths = mapEntry.lineagePaths;
-    if (formControl && lineagePaths && validators.length > 0) {
-      const availableGroups = validationGroups ?? {};
-      const enabledValidators = this.validatorsSupport.enabledValidators(availableGroups, enabledValidationGroups, validators);
-      const defMap = this.loadedValidatorDefinitions ?? new Map<string, FormValidatorDefinition>();
-      const validatorFns = this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators);
-      const errors = validatorFns.flatMap((validatorFn) =>
-        this.validatorsSupport.getFormValidatorComponentErrors(validatorFn(formControl))
+    if (formControl && !formControl.disabled && lineagePaths && validators.length > 0) {
+      const errors = this.getCachedSuggestedValidatorComponentErrors(
+        formControl,
+        validators,
+        enabledValidationGroups,
+        validationGroups
       );
       if (errors.length > 0) {
         const { id, labelMessage } = this.componentIdLabel(mapEntry.compConfigJson);
@@ -523,6 +537,68 @@ export class FormService extends HttpClientService {
     }
 
     return result;
+  }
+
+  /**
+   * Advisory summaries execute validators outside Angular's normal control pipeline.
+   * Cache the expensive validator construction and last error result so template reads
+   * stay cheap while still recalculating when validation config or form values change.
+   */
+  private getCachedSuggestedValidatorComponentErrors(
+    formControl: AbstractControl,
+    validators: FormValidatorConfig[],
+    enabledValidationGroups: string[],
+    validationGroups: FormValidationGroups
+  ): FormValidatorComponentErrors[] {
+    const validatorKey = this.getSuggestedValidatorCacheKey(validators, enabledValidationGroups, validationGroups);
+    // Validator output can depend on sibling fields, so include the root form value as well as this control's own value.
+    const valueKey = this.getSuggestedValidatorValueKey(formControl);
+    const cached = this.suggestedValidatorSummaryCache.get(formControl);
+
+    if (cached?.validatorKey === validatorKey && cached.valueKey === valueKey) {
+      return cached.errors;
+    }
+
+    const availableGroups = validationGroups ?? {};
+    const enabledValidators = this.validatorsSupport.enabledValidators(availableGroups, enabledValidationGroups, validators);
+    const validatorFns = cached?.validatorKey === validatorKey
+      ? cached.validatorFns
+      : this.validatorsSupport.createFormValidatorInstancesFromMapping(
+        this.loadedValidatorDefinitions ?? new Map<string, FormValidatorDefinition>(),
+        enabledValidators
+      );
+    const errors = validatorFns.flatMap((validatorFn) =>
+      this.validatorsSupport.getFormValidatorComponentErrors(validatorFn(formControl))
+    );
+
+    this.suggestedValidatorSummaryCache.set(formControl, {
+      validatorKey,
+      valueKey,
+      validatorFns,
+      errors,
+    });
+
+    return errors;
+  }
+
+  private getSuggestedValidatorCacheKey(
+    validators: FormValidatorConfig[],
+    enabledValidationGroups: string[],
+    validationGroups: FormValidationGroups
+  ): string {
+    return JSON.stringify({
+      enabledValidationGroups,
+      validationGroups: validationGroups ?? {},
+      validators,
+    });
+  }
+
+  private getSuggestedValidatorValueKey(formControl: AbstractControl): string {
+    return JSON.stringify({
+      disabled: formControl.disabled,
+      value: formControl.value,
+      rootValue: formControl.root?.value,
+    });
   }
 
   /**

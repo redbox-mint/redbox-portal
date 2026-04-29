@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormService } from '../form.service';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { SimpleInputComponent } from './simple-input.component';
 import { SaveButtonComponent } from './save-button.component';
@@ -157,6 +158,41 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
     expect(fixture.nativeElement.querySelector('div.alert-warning')).toBeNull();
     const summaryComponent = fixture.componentInstance.componentDefArr[1].component as SuggestedValidationSummaryFieldComponent;
     expect(summaryComponent.allValidationErrorsDisplay).toEqual([]);
+  });
+
+  it('should ignore disabled controls when suggested validators fail', async () => {
+    const config = baseSuggestedFormConfig({
+      suggestedValue: '',
+      suggestedGroups: { include: ['recommended'], exclude: ['all'] },
+    });
+    config.componentDefinitions[0].model!.config!.disabled = true;
+
+    const { fixture } = await createFormAndWaitForReady(config);
+
+    const control = fixture.componentInstance.componentDefArr[0].model?.formControl;
+    const summaryComponent = fixture.componentInstance.componentDefArr[1].component as SuggestedValidationSummaryFieldComponent;
+
+    expect(control?.disabled).toBeTrue();
+    expect(summaryComponent.allValidationErrorsDisplay).toEqual([]);
+    expect(fixture.nativeElement.querySelector('div.alert-warning')).toBeNull();
+  });
+
+  it('should reuse cached suggested validator instances and errors between unchanged reads', async () => {
+    const { fixture } = await createFormAndWaitForReady(baseSuggestedFormConfig({
+      suggestedValue: '',
+      suggestedGroups: { include: ['recommended'], exclude: ['all'] },
+    }));
+    const formService = TestBed.inject(FormService);
+    const validatorsSupport = (formService as unknown as {
+      validatorsSupport: { createFormValidatorInstancesFromMapping: (...args: unknown[]) => unknown };
+    }).validatorsSupport;
+    const createValidatorsSpy = spyOn(validatorsSupport, 'createFormValidatorInstancesFromMapping').and.callThrough();
+    const summaryComponent = fixture.componentInstance.componentDefArr[1].component as SuggestedValidationSummaryFieldComponent;
+    const callsBeforeReads = createValidatorsSpy.calls.count();
+
+    expect(summaryComponent.allValidationErrorsDisplay.length).toBe(1);
+    expect(summaryComponent.allValidationErrorsDisplay.length).toBe(1);
+    expect(createValidatorsSpy.calls.count()).toBe(callsBeforeReads);
   });
 });
 
