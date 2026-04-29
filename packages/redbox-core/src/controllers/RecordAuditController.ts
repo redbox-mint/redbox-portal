@@ -256,9 +256,11 @@ export namespace Controllers {
       const auditUser = _.isPlainObject(user) ? (user as AnyRecord) : {};
       const username = String(auditUser['username'] ?? '');
       const name = String(auditUser['name'] ?? '');
+      const email = String(auditUser['email'] ?? '');
       return {
         username,
         name,
+        email,
         displayName: name || username || 'Unknown',
       };
     }

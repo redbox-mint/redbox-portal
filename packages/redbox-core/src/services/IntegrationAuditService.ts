@@ -502,8 +502,16 @@ export namespace Services {
     }
 
     private deriveTraceStatus(events: IntegrationAuditTraceEvent[]): string {
-      const orderedByStart = [...events].sort((left, right) => this.getRowSortTimestamp(left) - this.getRowSortTimestamp(right));
-      return orderedByStart[orderedByStart.length - 1]?.status ?? IntegrationAuditStatus.started;
+      const statuses = events
+        .map(event => this.getString(event['status'])?.toLowerCase())
+        .filter(Boolean);
+      if (statuses.some(status => status === IntegrationAuditStatus.failed)) {
+        return IntegrationAuditStatus.failed;
+      }
+      if (statuses.length === 0 || statuses.some(status => status === IntegrationAuditStatus.started)) {
+        return IntegrationAuditStatus.started;
+      }
+      return IntegrationAuditStatus.success;
     }
 
     private buildTraceRecord(traceId: string, rows: Record<string, unknown>[]): IntegrationAuditTraceRecord {
