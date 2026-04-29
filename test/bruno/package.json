@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "cheerio": "1.2.0",
-    "@usebruno/cli": "3.2.2"
+    "@usebruno/cli": "3.3.0"
   },
   "overrides": {
     "axios": "1.15.0"
