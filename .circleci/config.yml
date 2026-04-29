@@ -613,6 +613,45 @@ jobs:
   #         when: always
   #     - store_test_results:
   #         path: packages/sails-hook-redbox-storage-mongo/support/junit
+  npm-publish-backend:
+    parameters:
+      release_kind:
+        type: enum
+        enum:
+          - beta
+          - release
+      release_version:
+        type: string
+        default: ""
+      dist_tag:
+        type: string
+        default: "latest"
+    docker:
+      - image: 'cimg/node:24.14.1'
+    resource_class: medium
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci --ignore-scripts --strict-peer-deps
+      - run:
+          name: Get npm OIDC token
+          command: |
+            OIDC_TOKEN="$(circleci run oidc get --claims '{"aud": "npm:registry.npmjs.org"}')"
+            printf 'export NPM_ID_TOKEN=%q\n' "$OIDC_TOKEN" >> "$BASH_ENV"
+      - run:
+          name: Publish backend npm packages
+          command: |
+            source "$BASH_ENV"
+            NPM_RELEASE_KIND="<< parameters.release_kind >>" \
+            NPM_PUBLISH_VERSION="<< parameters.release_version >>" \
+            NPM_DIST_TAG="<< parameters.dist_tag >>" \
+            support/build/npm-publish-backend-packages.sh
   deploy:
     docker:
       - image: 'cimg/node:24.14.1'
@@ -841,8 +880,27 @@ orbs:
   node: circleci/node@4.0.0
   docker: circleci/docker@1.4.0
 version: 2.1
+parameters:
+  npm_publish_mode:
+    type: enum
+    enum:
+      - none
+      - beta
+    default: none
+  npm_publish_version:
+    type: string
+    default: ""
+  npm_publish_dist_tag:
+    type: enum
+    enum:
+      - beta
+      - next
+      - alpha
+    default: beta
 workflows:
   build_test_gendocs_and_deploy:
+    when:
+      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
     jobs:
       - build:
           filters:
@@ -1047,6 +1105,8 @@ workflows:
             branches:
               only: 'master'
   build_test_dependabot:
+    when:
+      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
     jobs:
       - build:
           filters:
@@ -1147,6 +1207,8 @@ workflows:
             branches:
               only: 'master'
   release_build_test_gendocs_and_deploy:
+    when:
+      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
     jobs:
       - build:
           filters:
@@ -1238,6 +1300,14 @@ workflows:
             branches:
               ignore: /.*/
       - test-redbox-core:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-redbox-dev-tools-cli:
           requires:
             - build
           filters:
@@ -1383,3 +1453,33 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - npm-publish-backend:
+          release_kind: release
+          release_version: ""
+          dist_tag: latest
+          context:
+            - npm-publish
+          requires:
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-mocha
+            - test-angular
+            - test-sails-ng-common
+            - test-redbox-core
+            - test-redbox-dev-tools-cli
+            - test-storage-mongo
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
+            branches:
+              ignore: /.*/
+  npm_beta_publish:
+    when:
+      equal: [ beta, << pipeline.parameters.npm_publish_mode >> ]
+    jobs:
+      - npm-publish-backend:
+          release_kind: beta
+          release_version: << pipeline.parameters.npm_publish_version >>
+          dist_tag: << pipeline.parameters.npm_publish_dist_tag >>
+          context:
+            - npm-publish
