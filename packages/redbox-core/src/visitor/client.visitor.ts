@@ -1189,11 +1189,12 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const propKeys = ['properties', 'optionalProperties'];
 
     // For debugging:
-    // this.logger.debug(`buildDataMatchingSchema ${JSON.stringify({currentSchema, schemaPath, result, valuePath})}`);
+    // this.logger.warn(`buildDataMatchingSchema ${JSON.stringify({currentSchema, schemaPath, result, valuePath})}`);
 
-    if ((!currentSchema || schemaKeys.length === 0) && (currentValue === undefined || currentValue === null)) {
-      // If there are no components that have a data model,
-      // there will be no schema, so there is nothing to check and update.
+    if ((!currentSchema || schemaKeys.length === 0)) {
+      // TODO: If there are no components that have a data model,
+      //   there will be no schema, so there is nothing to check and update.
+      //   If there is no schema, then even if there is data, the data cannot be checked without a schema.
       return result;
     } else if (schemaKeys.includes('elements') && schemaKeys.length === 1) {
       const elementsSchema = (currentSchema['elements'] ?? {}) as Record<string, unknown>;
