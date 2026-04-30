@@ -6,7 +6,6 @@ readonly RELEASE_KIND="${NPM_RELEASE_KIND:-}"
 readonly REQUESTED_VERSION="${NPM_PUBLISH_VERSION:-}"
 readonly DIST_TAG="${NPM_DIST_TAG:-latest}"
 readonly DRY_RUN="${NPM_PUBLISH_DRY_RUN:-false}"
-readonly REQUIRED_NPM_VERSION="11.5.1"
 readonly PIPELINE_NUMBER="${CIRCLE_PIPELINE_NUMBER:-${CIRCLE_BUILD_NUM:-}}"
 
 readonly PACKAGE_PATHS=(
@@ -36,32 +35,7 @@ fail() {
   exit 1
 }
 
-version_ge() {
-  local current="$1"
-  local required="$2"
-
-  local current_major current_minor current_patch
-  local required_major required_minor required_patch
-  IFS=. read -r current_major current_minor current_patch <<< "$current"
-  IFS=. read -r required_major required_minor required_patch <<< "$required"
-
-  current_patch="${current_patch%%-*}"
-  required_patch="${required_patch%%-*}"
-
-  if (( current_major > required_major )); then return 0; fi
-  if (( current_major < required_major )); then return 1; fi
-  if (( current_minor > required_minor )); then return 0; fi
-  if (( current_minor < required_minor )); then return 1; fi
-  (( current_patch >= required_patch ))
-}
-
 validate_inputs() {
-  local npm_version
-  npm_version="$(npm --version)"
-  if ! version_ge "$npm_version" "$REQUIRED_NPM_VERSION"; then
-    fail "npm $REQUIRED_NPM_VERSION or newer is required for trusted publishing; found $npm_version."
-  fi
-
   case "$RELEASE_KIND" in
     beta)
       [[ "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
@@ -255,7 +229,7 @@ publish_packages() {
     package_name="$(package_name "$STAGING_ROOT/$package_path")"
     version="$(package_version "$STAGING_ROOT/$package_path")"
     log "Publishing $package_name@$version."
-    (cd "$STAGING_ROOT/$package_path" && npm publish --access public --tag "$DIST_TAG" --provenance)
+    (cd "$STAGING_ROOT/$package_path" && npm publish --access public --tag "$DIST_TAG")
   done
 }
 
