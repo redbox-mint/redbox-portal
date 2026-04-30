@@ -104,13 +104,36 @@
     "@sailshq/router": {
       "path-to-regexp": "0.1.13"
     },
+    "@researchdatabox/redbox-core": {
+      "@tus/server": {
+        "srvx": "0.11.13"
+      },
+      "exceljs": {
+        "uuid": "14.0.0"
+      },
+      "istanbul-lib-processinfo": {
+        "uuid": "14.0.0"
+      },
+      "mocha": {
+        "minimatch": "5.1.8"
+      }
+    },
+    "@researchdatabox/sails-hook-redbox-storage-mongo": {
+      "istanbul-lib-processinfo": {
+        "uuid": "14.0.0"
+      }
+    },
     "on-headers": "1.1.0",
     "serialize-javascript": "7.0.5",
     "@uppy/companion": {
       "express": "4.22.1",
       "express-session": "1.18.2",
+      "fast-xml-parser": "5.7.0",
       "morgan": "1.10.1",
       "serialize-javascript": "7.0.5"
+    },
+    "@tus/server": {
+      "srvx": "0.11.13"
     },
     "compression": {
       "on-headers": "1.1.0"
@@ -124,12 +147,20 @@
     "express-session": {
       "on-headers": "1.1.0"
     },
+    "exceljs": {
+      "uuid": "14.0.0"
+    },
+    "fast-xml-parser": "5.7.0",
+    "istanbul-lib-processinfo": {
+      "uuid": "14.0.0"
+    },
     "language-data-commons-vocabs": {
       "mocha": {
         "serialize-javascript": "7.0.5"
       }
     },
     "mocha": {
+      "minimatch": "5.1.8",
       "serialize-javascript": "7.0.5"
     },
     "morgan": {
@@ -138,8 +169,14 @@
     "sails-mongo": {
       "qs": "6.14.2"
     },
+    "postcss": "8.5.10",
+    "srvx": "0.11.13",
     "socket.io-parser": "4.2.6",
-    "svgo": "4.0.1"
+    "svgo": "4.0.1",
+    "uuid": "14.0.0",
+    "webdav": {
+      "minimatch": "9.0.9"
+    }
   },
   "devDependencies": {
     "@types/chai": "5.2.3",

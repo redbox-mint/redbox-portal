@@ -52,7 +52,7 @@
     "mocha": "11.7.5",
     "mocha-junit-reporter": "2.2.1",
     "mongodb": "6.21.0",
-    "nyc": "17.1.0",
+    "nyc": "18.0.0",
     "sails": "1.5.17",
     "sinon": "17.0.1",
     "serialize-javascript": "7.0.5",
@@ -64,10 +64,10 @@
   "dependencies": {
     "@researchdatabox/redbox-core": "file:../redbox-core",
     "json2csv": "5.0.7",
-    "lodash": "4.17.23",
+    "lodash": "4.18.1",
     "mongodb": "6.21.0",
     "reflect-metadata": "0.2.2",
-    "uuid": "13.0.0"
+    "uuid": "14.0.0"
   },
   "peerDependencies": {
     "luxon": "3.7.2",
@@ -76,6 +76,7 @@
   "overrides": {
     "on-headers": "1.1.0",
     "serialize-javascript": "7.0.5",
+    "uuid": "14.0.0",
     "compression": {
       "on-headers": "1.1.0"
     },
