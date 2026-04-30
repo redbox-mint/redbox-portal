@@ -1,6 +1,13 @@
 {
   "name": "@researchdatabox/portal-ng-form-custom",
   "version": "0.0.1",
+  "files": [
+    "README.md",
+    "src",
+    "!src/**/*.spec.ts",
+    "ng-package.json",
+    "package.json"
+  ],
   "peerDependencies": {
     "@angular/common": "20.3.18",
     "@angular/core": "20.3.18",

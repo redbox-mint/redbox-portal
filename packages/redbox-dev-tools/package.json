@@ -64,8 +64,8 @@
     "zod": "3.25.28"
   },
   "devDependencies": {
-    "@types/sinon": "17.0.3",
-    "sinon": "17.0.1"
+    "@types/sinon": "21.0.1",
+    "sinon": "21.1.2"
   },
   "peerDependenciesMeta": {
     "@researchdatabox/redbox-core": {
