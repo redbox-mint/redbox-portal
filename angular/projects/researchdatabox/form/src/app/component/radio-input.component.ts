@@ -1,13 +1,13 @@
-import {Component, Input} from '@angular/core';
-import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { Component, Input } from '@angular/core';
+import { FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
-  isTypeFieldDefinitionName,
   RadioInputComponentName,
   RadioInputFieldComponentDefinitionFrame,
   RadioInputModelName,
   RadioInputModelValueType,
   RadioOption
 } from '@researchdatabox/sails-ng-common';
+import { OptionInputBaseComponent } from './option-input-base.component';
 
 export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
   protected override logName = RadioInputModelName;
@@ -23,13 +23,15 @@ export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
           <input
             type="radio"
             class="form-check-input"
-            [formControl]="this.formControl"
             [attr.name]="this.getOptionName($index)"
             [name]="this.getOptionName($index)"
             [attr.value]="opt.value"
             [value]="opt.value"
+            [checked]="isOptionSelected(opt.value)"
+            [attr.disabled]="isOptionDisabled(opt) ? true : null"
             [id]="this.getOptionId(opt)"
             [attr.id]="this.getOptionId(opt)"
+            (change)="onOptionChange(opt)"
             [class.is-valid]="showValidState"
             [class.is-invalid]="!isValid"
             [title]="tooltip | i18next">
@@ -45,10 +47,13 @@ export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
   `,
   standalone: false
 })
-export class RadioInputComponent extends FormFieldBaseComponent<RadioInputModelValueType> {
+export class RadioInputComponent extends OptionInputBaseComponent<
+  RadioInputModelValueType,
+  RadioOption,
+  RadioInputFieldComponentDefinitionFrame['config'],
+  RadioInputFieldComponentDefinitionFrame
+> {
   protected override logName: string = RadioInputComponentName;
-  public tooltip: string = '';
-  public options: RadioOption[] = [];
 
   /**
    * The model associated with this component.
@@ -56,25 +61,18 @@ export class RadioInputComponent extends FormFieldBaseComponent<RadioInputModelV
   @Input() public override model?: RadioInputModel;
 
   protected override async initData(): Promise<void> {
-    const formComponentFrame = this.componentDefinition;
-    if (!isTypeFieldDefinitionName<RadioInputFieldComponentDefinitionFrame>(formComponentFrame, RadioInputComponentName)) {
-      throw new Error(`${this.logName}: Expected ${RadioInputComponentName} but got ${JSON.stringify(formComponentFrame)}`);
+    const config = this.getOptionInputConfig(RadioInputComponentName);
+    this.setSharedOptionConfig(config);
+  }
+
+  public isOptionSelected(optionValue: string): boolean {
+    return this.formControl?.value === optionValue;
+  }
+
+  public onOptionChange(option: RadioOption): void {
+    if (this.isOptionDisabled(option)) {
+      return;
     }
-    const config = formComponentFrame.config;
-    this.options = config?.options ?? [];
-    this.tooltip = config?.tooltip ?? "";
-  }
-
-  /**
-   * Generate a unique ID for each option
-   * @param opt The radio option
-   * @returns A unique ID string
-   */
-  getOptionId(opt: RadioOption): string {
-    return `${this.name}-${opt.value}`;
-  }
-
-  getOptionName(index: number): string {
-    return this.name ?? index?.toString();
+    this.setControlValue(option.value);
   }
 }

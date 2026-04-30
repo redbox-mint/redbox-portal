@@ -154,6 +154,11 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { ValidationSummaryFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  SuggestedValidationSummaryFieldComponentDefinitionOutline,
+  SuggestedValidationSummaryFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { SuggestedValidationSummaryFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   RecordMetadataRetrieverComponentName,
   RecordMetadataRetrieverFieldComponentDefinitionOutline,
   RecordMetadataRetrieverFormComponentDefinitionOutline,
@@ -1082,6 +1087,20 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
+    this.populateFormComponent(item);
+  }
+
+  visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new SuggestedValidationSummaryFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+    this.sharedProps.setPropOverride('enabledValidationGroups', item.config, field?.definition);
+    this.sharedProps.setPropOverride('includeTabLabel', item.config, field?.definition);
+    this.sharedProps.setPropOverride('showWhenValid', item.config, field?.definition);
+    this.sharedProps.setPropOverride('header', item.config, field?.definition);
+  }
+
+  visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
   }
 

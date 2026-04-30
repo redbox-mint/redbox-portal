@@ -245,6 +245,19 @@ describe('SolrSearchService', function() {
       
       expect(data.id).to.equal('my-oid');
     });
+
+    it('should run inline when queue service is unavailable', function() {
+      const solrAddOrUpdateStub = sinon.stub(SolrSearchService, 'solrAddOrUpdate').resolves();
+      SolrSearchService.queueService = undefined;
+      const data: any = {
+        metadata: { title: 'Inline Test' }
+      };
+
+      SolrSearchService.index('inline-oid', data);
+
+      expect(solrAddOrUpdateStub.calledOnce).to.be.true;
+      expect(solrAddOrUpdateStub.firstCall.args[0].attrs.data.id).to.equal('inline-oid');
+    });
   });
 
   describe('remove', function() {
@@ -260,6 +273,16 @@ describe('SolrSearchService', function() {
       
       const jobData = mockQueueService.now.firstCall.args[1];
       expect(jobData.id).to.equal('record-456');
+    });
+
+    it('should run delete inline when queue service is unavailable', function() {
+      const solrDeleteStub = sinon.stub(SolrSearchService, 'solrDelete').resolves();
+      SolrSearchService.queueService = undefined;
+
+      SolrSearchService.remove('record-inline-delete');
+
+      expect(solrDeleteStub.calledOnce).to.be.true;
+      expect(solrDeleteStub.firstCall.args[0].attrs.data.id).to.equal('record-inline-delete');
     });
   });
 

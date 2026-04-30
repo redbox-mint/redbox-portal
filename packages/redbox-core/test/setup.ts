@@ -7,6 +7,12 @@ import type { Services as _BrandingServiceTypes } from '../src/services/Branding
 import type { Services as _VocabServiceTypes } from '../src/services/VocabService';
 import type { Services as _VocabularyServiceTypes } from '../src/services/VocabularyService';
 import type { Services as _RvaImportServiceTypes } from '../src/services/RvaImportService';
+import type { Services as _AppConfigServiceTypes } from '../src/services/AppConfigService';
+import type { Services as _NamedQueryServiceTypes } from '../src/services/NamedQueryService';
+import type { Services as _RecordsServiceTypes } from '../src/services/RecordsService';
+import type { Services as _RecordTypesServiceTypes } from '../src/services/RecordTypesService';
+import type { Services as _UsersServiceTypes } from '../src/services/UsersService';
+import type { Services as _WorkflowStepsServiceTypes } from '../src/services/WorkflowStepsService';
 
 /**
  * Test setup file that runs before all tests.

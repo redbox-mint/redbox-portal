@@ -19,6 +19,7 @@ import {
 } from "../field-model.outline";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import type {HistoricalVocabMode} from "./dropdown-input.outline";
 
 /* Radio Input Component */
 export const RadioInputComponentName = "RadioInputComponent" as const;
@@ -34,6 +35,7 @@ export interface RadioInputFieldComponentConfigFrame extends FieldComponentConfi
     options?: RadioOption[];
     vocabRef?: string;
     inlineVocab?: boolean;
+    historicalVocabMode?: HistoricalVocabMode;
 }
 
 export interface RadioInputFieldComponentConfigOutline extends RadioInputFieldComponentConfigFrame, FieldComponentConfigOutline {

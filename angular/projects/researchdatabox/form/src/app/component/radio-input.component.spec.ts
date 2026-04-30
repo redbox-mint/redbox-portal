@@ -1,4 +1,5 @@
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { By } from '@angular/platform-browser';
 import { RadioInputComponent } from "./radio-input.component";
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { TestBed } from "@angular/core/testing";
@@ -104,5 +105,110 @@ describe('RadioInputComponent', () => {
     const labels = compiled.querySelectorAll<HTMLLabelElement>('label');
     expect(labels.length).toBeGreaterThan(0);
     expect(labels[0].getAttribute('for')).toEqual('radio_lang_test-option1');
+  });
+
+  it('should render disabled options', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      componentDefinitions: [
+        {
+          name: 'radio_disabled_test',
+          model: {
+            class: 'RadioInputModel',
+            config: {
+              value: 'legacy'
+            }
+          },
+          component: {
+            class: 'RadioInputComponent',
+            config: {
+              options: [
+                { label: 'Active', value: 'active' },
+                { label: 'Legacy', value: 'legacy', disabled: true }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const legacyInput = compiled.querySelector<HTMLInputElement>('#radio_disabled_test-legacy');
+    const activeInput = compiled.querySelector<HTMLInputElement>('#radio_disabled_test-active');
+
+    expect(legacyInput).toBeTruthy();
+    if (!legacyInput) {
+      throw new Error('Expected legacy radio input to be present');
+    }
+
+    expect(legacyInput?.disabled).toBeTrue();
+    expect(legacyInput?.checked).toBeTrue();
+
+    expect(activeInput).toBeTruthy();
+    if (!activeInput) {
+      throw new Error('Expected active radio input to be present');
+    }
+
+    legacyInput.checked = false;
+    legacyInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect((formComponent as any).form.get('radio_disabled_test')?.value).toBe('legacy');
+
+    activeInput.checked = true;
+    activeInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect((formComponent as any).form.get('radio_disabled_test')?.value).toBe('active');
+  });
+
+  it('should disable all options when the field is disabled', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      componentDefinitions: [
+        {
+          name: 'radio_field_disabled_test',
+          model: {
+            class: 'RadioInputModel',
+            config: {
+              value: 'legacy'
+            }
+          },
+          component: {
+            class: 'RadioInputComponent',
+            config: {
+              options: [
+                { label: 'Active', value: 'active' },
+                { label: 'Legacy', value: 'legacy' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const component = fixture.debugElement.query(By.directive(RadioInputComponent)).componentInstance as RadioInputComponent;
+    const compiled = fixture.nativeElement as HTMLElement;
+    const activeInput = compiled.querySelector<HTMLInputElement>('#radio_field_disabled_test-active');
+    const legacyInput = compiled.querySelector<HTMLInputElement>('#radio_field_disabled_test-legacy');
+
+    component.setDisabled(true, { emitEvent: false, onlySelf: true });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(component.isDisabled).toBeTrue();
+    expect((formComponent as any).form.get('radio_field_disabled_test')?.disabled).toBeTrue();
+    expect(activeInput?.disabled).toBeTrue();
+    expect(legacyInput?.disabled).toBeTrue();
+
+    component.onOptionChange({ label: 'Active', value: 'active' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect((formComponent as any).form.get('radio_field_disabled_test')?.value).toBe('legacy');
   });
 });

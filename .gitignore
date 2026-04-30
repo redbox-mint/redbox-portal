@@ -229,3 +229,4 @@ packages/redbox-core/coverage/*
 packages/**/coverage
 packages/**/dist
 packages/redbox-dev-tools/.nyc_output/
+packages/redbox-dev-tools/support/junit/

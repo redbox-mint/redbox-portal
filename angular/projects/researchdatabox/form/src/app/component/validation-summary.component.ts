@@ -16,7 +16,7 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { createLineageFieldFocusRequestEvent } from '../form-state/events/form-component-event.types';
-import {FormService} from "../form.service";
+import { FormService } from "../form.service";
 
 
 @Component({
@@ -25,44 +25,74 @@ import {FormService} from "../form.service";
     @let validationList = allValidationErrorsDisplay;
     @if (validationList.length === 0 && showWhenValid) {
       <div class="alert alert-info" role="alert">
-        The form is valid.
+        {{ '@dmpt-form-validation-summary-valid' | i18next }}
       </div>
     }
     @if (validationList.length > 0) {
-      <div class="alert alert-danger mt-3" role="alert">
-        <p class="mb-2">{{ '@dmpt-form-validation-summary-header' | i18next }}</p>
-        <div class="validation-summary-list mb-0">
-          @for (summary of validationList; track summary.id ?? summary.message ?? $index) {
-            @if (summary.errors.length > 0) {
-              <div class="validation-summary-item">
-                @if (summary.id) {
-                  <a [attr.data-validation-summary-id]="summary.id"
-                     [attr.data-validation-summary-message]="summary.message"
-                     [attr.href]="'#' + summary.id"
-                     (click)="onValidationSummaryClick($event, summary)">{{ getValidationSummaryLabel(summary) }}</a>
-                } @else if (summary.message) {
-                  <span [attr.data-validation-summary-id]="summary.id"
-                        [attr.data-validation-summary-message]="summary.message">{{ getValidationSummaryLabel(summary) }}</span>
-                } @else {
-                  <span [attr.data-validation-summary-id]="summary.id"
-                        [attr.data-validation-summary-message]="summary.message">{{ getValidationSummaryLabel(summary) }}</span>
-                }
-                <ul class="validation-summary-errors mb-0">
-                  @for (error of summary.errors; track trackValidationError(error, $index)) {
-                    @if (error.message) {
-                      <li [attr.data-validation-error-class]="error.class"
-                          [attr.data-validation-error-message]="error.message">{{ error.message | i18next: error.params }}</li>
-                    }
+      <div class="alert alert-danger validation-summary mt-3" role="alert">
+        <i class="fa-solid fa-circle-exclamation validation-summary__icon" aria-hidden="true"></i>
+        <div class="validation-summary__content">
+          <p class="validation-summary__header mb-2">{{ '@dmpt-form-validation-summary-header' | i18next }}</p>
+          <div class="validation-summary-list mb-0">
+            @for (summary of validationList; track summary.id ?? summary.message ?? $index) {
+              @if (summary.errors.length > 0) {
+                <div class="validation-summary-item">
+                  @if (summary.id) {
+                    <a [attr.data-validation-summary-id]="summary.id"
+                       [attr.data-validation-summary-message]="summary.message"
+                       [attr.href]="'#' + summary.id"
+                       (click)="onValidationSummaryClick($event, summary)">{{ getValidationSummaryLabel(summary) }}</a>
+                  } @else if (summary.message) {
+                    <span [attr.data-validation-summary-id]="summary.id"
+                          [attr.data-validation-summary-message]="summary.message">{{ getValidationSummaryLabel(summary) }}</span>
+                  } @else {
+                    <span [attr.data-validation-summary-id]="summary.id"
+                          [attr.data-validation-summary-message]="summary.message">{{ getValidationSummaryLabel(summary) }}</span>
                   }
-                </ul>
-              </div>
+                  <ul class="validation-summary-errors mb-0">
+                    @for (error of summary.errors; track trackValidationError(error, $index)) {
+                      @if (error.message) {
+                        <li [attr.data-validation-error-class]="error.class"
+                            [attr.data-validation-error-message]="error.message">{{ error.message | i18next: error.params }}</li>
+                      }
+                    }
+                  </ul>
+                </div>
+              }
             }
-          }
+          </div>
         </div>
       </div>
     }
   `,
   styles: [`
+    .validation-summary {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      border-color: #f1a5a5;
+      border-left: 0.35rem solid #dc2626;
+      background-color: #fff5f5;
+      color: #1f2933;
+      padding: 1rem 1.25rem;
+    }
+    .validation-summary__icon {
+      display: inline-block;
+      flex: 0 0 auto;
+      margin-top: 0;
+      color: #b91c1c;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+    .validation-summary__content {
+      min-width: 0;
+    }
+    .validation-summary__header {
+      color: #1f2933;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
     .validation-summary-list {
       margin: 0;
     }
@@ -78,7 +108,7 @@ import {FormService} from "../form.service";
   standalone: false
 })
 export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<string> {
-  protected override logName = ValidationSummaryComponentName;
+  protected override logName: string = ValidationSummaryComponentName;
 
   /**
    * The model associated with this component.

@@ -20,6 +20,10 @@ import {
   ValidationSummaryFormComponentDefinitionOutline,
 } from '../component/validation-summary.outline';
 import {
+  SuggestedValidationSummaryFieldComponentDefinitionOutline,
+  SuggestedValidationSummaryFormComponentDefinitionOutline,
+} from '../component/suggested-validation-summary.outline';
+import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
@@ -220,6 +224,14 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   }
 
   visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): void {
+    this.notImplemented();
+  }
+
+  visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): void {
     this.notImplemented();
   }
 

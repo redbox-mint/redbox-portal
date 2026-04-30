@@ -26,7 +26,6 @@ import { FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyJsonschema } from '@ngx-formly/core/json-schema';
 import { JSONSchema7 } from 'json-schema';
 import { AppConfig } from 'projects/researchdatabox/portal-ng-common/src/public-api';
-import { clone as _clone } from 'lodash'
 /**
  * Application Config  Component
  *
@@ -72,7 +71,7 @@ export class AppConfigComponent extends BaseComponent {
     let result: AppConfig = await this.appConfigService.getAppConfigForm(this.configKey)
     const jsonObject: JSONSchema7 = result.schema as JSONSchema7;
     const fieldOrder = result.fieldOrder;
-    let originalProperties = _clone(jsonObject.properties);
+    const originalProperties = jsonObject.properties ? { ...jsonObject.properties } : undefined;
     jsonObject.properties = {};
     for (let field of fieldOrder) {
       if (originalProperties) {
@@ -155,7 +154,6 @@ export class AppConfigComponent extends BaseComponent {
       }
     }
   }
-
 
   onSubmit(model: any) {
     this.formSaving = true;

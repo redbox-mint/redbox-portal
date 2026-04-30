@@ -1,7 +1,7 @@
-import {Command} from 'commander';
+import { Command } from 'commander';
 import fs from "fs";
 import * as path from 'path';
-import {ILogger} from '@researchdatabox/sails-ng-common';
+import { ILogger } from '@researchdatabox/sails-ng-common';
 import {
   migrateFormConfigFile, migrateDataClassification,
   migrateFormConfigVerify, createClientFormConfig,
@@ -47,7 +47,7 @@ export function registerMigrateFormConfigCommand(program: Command): void {
         if (globalOptions.dryRun) {
           console.log('[dry-run] Migration completed; no file written.');
         } else {
-          fs.mkdirSync(path.dirname(outputPath), {recursive: true});
+          fs.mkdirSync(path.dirname(outputPath), { recursive: true });
           fs.writeFileSync(outputPath, migrated.tsContent, 'utf8');
           console.log(`✅ Wrote migrated form config: ${outputPath}`);
         }
@@ -84,7 +84,7 @@ export function registerMigrateDataClassificationCommand(program: Command): void
         if (globalOptions.dryRun) {
           console.log('[dry-run] Migration completed; no file written.');
         } else {
-          fs.mkdirSync(path.dirname(outputPath), {recursive: true});
+          fs.mkdirSync(path.dirname(outputPath), { recursive: true });
           fs.writeFileSync(outputPath, migrated.tsContent, 'utf8');
           console.log(`✅ Wrote migrated question tree config: ${outputPath}`);
         }
@@ -132,7 +132,7 @@ export default clientFormConfig;`;
         if (globalOptions.dryRun) {
           console.log('[dry-run] Client form config built from server form config; no file written.');
         } else {
-          fs.mkdirSync(path.dirname(outputPath), {recursive: true});
+          fs.mkdirSync(path.dirname(outputPath), { recursive: true });
           fs.writeFileSync(outputPath, tsContent, 'utf8');
           console.log(`✅ Wrote client form config: ${outputPath}`);
         }
@@ -168,7 +168,7 @@ export function registerQuestionTreeDiagramCommand(program: Command) {
         if (globalOptions.dryRun) {
           console.log('[dry-run] Built diagram from form config; no file written.');
         } else {
-          fs.mkdirSync(path.dirname(outputPath), {recursive: true});
+          fs.mkdirSync(path.dirname(outputPath), { recursive: true });
           fs.writeFileSync(outputPath, diagram, 'utf8');
           console.log(`✅ Wrote diagram text file: ${outputPath}`);
         }
@@ -180,4 +180,229 @@ export function registerQuestionTreeDiagramCommand(program: Command) {
     });
 }
 
+function collectLegacyTemplates(value: unknown, pathPrefix = ''): string[] {
+  if (typeof value === 'string') {
+    return value.includes('<%') ? [pathPrefix] : [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((entry, index) => collectLegacyTemplates(entry, `${pathPrefix}[${index}]`));
+  }
+  if (value && typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>).flatMap(([key, entry]) =>
+      collectLegacyTemplates(entry, pathPrefix ? `${pathPrefix}.${key}` : key)
+    );
+  }
+  return [];
+}
 
+type LegacyConfigModule = Record<string, unknown>;
+
+function loadLegacyModule(modulePath: string): LegacyConfigModule {
+  const resolvedPath = path.resolve(modulePath);
+  const loaded = require(resolvedPath) as LegacyConfigModule;
+  if (loaded == null || typeof loaded !== 'object') {
+    throw new Error(`Legacy config module '${resolvedPath}' did not export an object`);
+  }
+  return loaded;
+}
+
+function pickLegacyExport<T extends Record<string, unknown>>(moduleExports: LegacyConfigModule, exportName: string): T {
+  const named = moduleExports[exportName];
+  if (named != null && typeof named === 'object') {
+    return named as T;
+  }
+  return moduleExports as T;
+}
+
+function toNumericStatusCodes(value: unknown): number[] {
+  if (!Array.isArray(value)) {
+    return [408, 429, 500, 502, 503, 504];
+  }
+  return value
+    .map((entry) => Number(entry))
+    .filter((entry) => Number.isFinite(entry));
+}
+
+function createMigratedFigsharePublishingConfig(
+  brand: string,
+  figshareApi: Record<string, unknown>,
+  figshareApiEnv: Record<string, unknown> = {},
+  figshareForMapping: Record<string, unknown> = {}
+) {
+  const overrideArtifacts = (figshareApiEnv.overrideArtifacts as Record<string, unknown> | undefined) ?? {};
+  const mapping = {
+    ...((figshareApi.mapping as Record<string, unknown> | undefined) ?? {}),
+    ...((overrideArtifacts.mapping as Record<string, unknown> | undefined) ?? {})
+  };
+  const resolvedBaseUrl = String(overrideArtifacts.baseURL ?? figshareApi.baseURL ?? '');
+  const resolvedFrontEndUrl = String(overrideArtifacts.frontEndURL ?? figshareApi.frontEndURL ?? '');
+  const resolvedToken = String(overrideArtifacts.APIToken ?? figshareApi.APIToken ?? '');
+
+  return {
+    enabled: Boolean(resolvedToken && resolvedBaseUrl && resolvedFrontEndUrl),
+    connection: {
+      baseUrl: resolvedBaseUrl,
+      frontEndUrl: resolvedFrontEndUrl,
+      token: resolvedToken,
+      timeoutMs: 30000,
+      operationTimeouts: {
+        metadataMs: 30000,
+        uploadInitMs: 30000,
+        uploadPartMs: 120000,
+        publishMs: 60000
+      },
+      retry: {
+        maxAttempts: Number((figshareApi.retry as Record<string, unknown> | undefined)?.maxAttempts ?? 3),
+        baseDelayMs: Number((figshareApi.retry as Record<string, unknown> | undefined)?.baseDelayMs ?? 500),
+        maxDelayMs: Number((figshareApi.retry as Record<string, unknown> | undefined)?.maxDelayMs ?? 4000),
+        retryOnStatusCodes: toNumericStatusCodes((figshareApi.retry as Record<string, unknown> | undefined)?.retryOnStatusCodes),
+        retryOnMethods: ['get', 'put', 'delete']
+      }
+    },
+    article: {
+      itemType: mapping.figshareItemType ?? 'dataset',
+      groupId: mapping.figshareItemGroupId,
+      publishMode: mapping.figshareNeedsPublishAfterFileUpload ? 'afterUploadsComplete' : 'immediate',
+      republishOnMetadataChange: true,
+      republishOnAssetChange: true
+    },
+    record: {
+      articleIdPath: mapping.recordFigArticleId ?? 'metadata.figshare_article_id',
+      articleUrlPaths: Array.isArray(mapping.recordFigArticleURL) ? mapping.recordFigArticleURL : [mapping.recordFigArticleURL ?? 'metadata.figshare_article_location'],
+      dataLocationsPath: mapping.recordDataLocations ?? 'metadata.dataLocations',
+      statusPath: 'metadata.figshareStatus',
+      errorPath: 'metadata.figshareError',
+      syncStatePath: 'metadata.figshareSyncState',
+      allFilesUploadedPath: typeof mapping.recordAllFilesUploaded === 'string' ? mapping.recordAllFilesUploaded : ''
+    },
+    selection: {
+      attachmentMode: mapping.figshareOnlyPublishSelectedAttachmentFiles ? 'selectedOnly' : 'all',
+      urlMode: mapping.figshareOnlyPublishSelectedLocationURLs ? 'selectedOnly' : 'all',
+      selectedFlagPath: 'selected'
+    },
+    authors: {
+      source: 'defaultRedboxContributors',
+      uniqueBy: mapping.recordAuthorUniqueBy ?? 'email',
+      externalNameField: mapping.recordAuthorExternalName ?? 'text_full_name',
+      maxInlineAuthors: 50,
+      contributorPaths: ['metadata.contributor_ci', 'metadata.contributors'],
+      lookup: []
+    },
+    metadata: {
+      title: { kind: 'path', path: 'metadata.title' },
+      description: { kind: 'path', path: 'metadata.description' },
+      keywords: { kind: 'path', path: 'metadata.finalKeywords', defaultValue: [] },
+      funding: { kind: 'path', path: 'metadata.funder' },
+      license: { source: { kind: 'path', path: mapping.recordLicensePath ?? 'metadata.license' }, matchBy: 'urlContains', required: true },
+      categories: { source: { kind: 'path', path: mapping.recordCategoryPath ?? 'metadata.forCodes', defaultValue: [] }, mappingStrategy: 'for2020Mapping' },
+      customFields: []
+    },
+    categories: {
+      strategy: 'for2020Mapping',
+      mappingTable: (((figshareForMapping.FORMapping as Record<string, unknown>[] | undefined) ?? []).map((entry) => ({
+        sourceCode: String(entry.redboxCode ?? entry.sourceCode ?? ''),
+        figshareCategoryId: Number(entry.figshareCategoryId ?? entry.figCode ?? 0)
+      }))).filter((entry) => entry.sourceCode !== ''),
+      allowUnmapped: false
+    },
+    assets: {
+      enableHostedFiles: true,
+      enableLinkFiles: true,
+      dedupeStrategy: 'sourceId',
+      staging: {
+        tempDir: String(figshareApi.attachmentsFigshareTempDir ?? ''),
+        cleanupPolicy: 'deleteAfterSuccess',
+        diskSpaceThresholdBytes: 1073741824
+      }
+    },
+    embargo: {
+      mode: 'recordDriven',
+      forceSync: Boolean(mapping.figshareForceEmbargoUpdateAlways),
+      accessRights: {
+        accessRights: { kind: 'path', path: 'metadata.accessRights' },
+        fullEmbargoUntil: { kind: 'path', path: 'metadata.embargoUntil' },
+        fileEmbargoUntil: { kind: 'path', path: 'metadata.embargoUntil' },
+        reason: { kind: 'path', path: 'metadata.embargoReason' }
+      }
+    },
+    queue: {
+      publishAfterUploadDelay: typeof mapping.schedulePublishAfterUploadJob === 'string' ? mapping.schedulePublishAfterUploadJob : 'in 2 minutes',
+      uploadedFilesCleanupDelay: typeof mapping.scheduleUploadedFilesCleanupJob === 'string' ? mapping.scheduleUploadedFilesCleanupJob : 'in 5 minutes'
+    },
+    workflow: {
+      transitionRules: [],
+      transitionJob: {
+        enabled: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.enabled ?? 'false') === 'true',
+        namedQuery: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.namedQuery ?? ''),
+        targetStep: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.targetStep ?? ''),
+        paramMap: ((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.paramMap as Record<string, unknown> | undefined) ?? {},
+        figshareTargetFieldKey: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.figshareTargetFieldKey ?? ''),
+        figshareTargetFieldValue: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.figshareTargetFieldValue ?? ''),
+        username: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.username ?? ''),
+        userType: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.userType ?? '')
+      }
+    },
+    testing: {
+      mode: figshareApi.testMode ? 'fixture' : 'live'
+    },
+    writeBack: {
+      articleId: 'metadata.figshare_article_id',
+      articleUrls: ['metadata.figshare_article_location'],
+      extraFields: []
+    },
+    migrationReport: {
+      brand,
+      unsupportedLegacyTemplates: collectLegacyTemplates(mapping)
+    }
+  };
+}
+
+export function registerMigrateFigshareConfigCommand(program: Command): void {
+  program
+    .command('migrate-figshare-config')
+    .description('Migrate legacy Figshare config into figsharePublishing AppConfig JSON files')
+    .requiredOption('--figshare-api <path>', 'Path to the legacy figshareAPI config module')
+    .option('--figshare-api-env <path>', 'Path to the legacy figshareAPIEnv config module')
+    .option('--figshare-for-mapping <path>', 'Path to the legacy figshareReDBoxFORMapping config module')
+    .requiredOption('-o, --output <path>', 'Directory to write migrated figsharePublishing JSON files')
+    .option('-b, --brands <brands...>', 'Brands to generate config for', ['default'])
+    .action(async (options) => {
+      try {
+        const globalOptions = program.opts();
+        const outputDir = path.resolve(options.output);
+        const brands: string[] = options.brands;
+        const figshareApi = pickLegacyExport<Record<string, unknown>>(loadLegacyModule(options.figshareApi), 'figshareAPI');
+        const figshareApiEnv = options.figshareApiEnv
+          ? pickLegacyExport<Record<string, unknown>>(loadLegacyModule(options.figshareApiEnv), 'figshareAPIEnv')
+          : {};
+        const figshareForMapping = options.figshareForMapping
+          ? pickLegacyExport<Record<string, unknown>>(loadLegacyModule(options.figshareForMapping), 'figshareReDBoxFORMapping')
+          : {};
+
+        if (!globalOptions.dryRun) {
+          fs.mkdirSync(outputDir, { recursive: true });
+        }
+
+        const report = brands.map((brand) => {
+          const migrated = createMigratedFigsharePublishingConfig(brand, figshareApi, figshareApiEnv, figshareForMapping);
+          const outputPath = path.join(outputDir, `${brand}.figsharePublishing.json`);
+          if (!globalOptions.dryRun) {
+            fs.writeFileSync(outputPath, JSON.stringify(migrated, null, 2) + '\n', 'utf8');
+          }
+          return {
+            brand,
+            outputPath,
+            unsupportedLegacyTemplates: migrated.migrationReport.unsupportedLegacyTemplates
+          };
+        });
+
+        if (globalOptions.dryRun) {
+          console.log('[dry-run] Migration report generated; no files written.');
+        }
+        console.log(JSON.stringify(report, null, 2));
+      } catch (error: any) {
+        console.error(`\n❌ Error: `, error);
+        process.exit(1);
+      }
+    });
+}

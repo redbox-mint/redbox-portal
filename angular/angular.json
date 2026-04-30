@@ -170,7 +170,7 @@
             "assets": ["projects/researchdatabox/export/src/favicon.ico", "projects/researchdatabox/export/src/assets"],
             "styles": [
               "projects/researchdatabox/export/src/styles.scss",
-              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
+              "ngx-bootstrap/datepicker/bs-datepicker.css"
             ],
             "scripts": [],
             "browser": "projects/researchdatabox/export/src/main.ts"
@@ -345,7 +345,7 @@
             "assets": ["projects/researchdatabox/report/src/favicon.ico", "projects/researchdatabox/report/src/assets"],
             "styles": [
               "projects/researchdatabox/report/src/styles.scss",
-              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
+              "ngx-bootstrap/datepicker/bs-datepicker.css"
             ],
             "scripts": [],
             "browser": "projects/researchdatabox/report/src/main.ts"
@@ -489,6 +489,93 @@
               "projects/researchdatabox/manage-users/src/assets"
             ],
             "styles": ["projects/researchdatabox/manage-users/src/styles.scss"],
+            "scripts": []
+          }
+        }
+      }
+    },
+    "@researchdatabox/record-audit": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/record-audit",
+      "sourceRoot": "projects/researchdatabox/record-audit/src",
+      "prefix": "record-audit",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": {
+              "base": "../assets/angular/record-audit"
+            },
+            "index": "projects/researchdatabox/record-audit/src/index.html",
+            "polyfills": ["zone.js"],
+            "tsConfig": "projects/researchdatabox/record-audit/tsconfig.app.json",
+            "assets": [
+              "projects/researchdatabox/record-audit/src/favicon.ico",
+              "projects/researchdatabox/record-audit/src/assets"
+            ],
+            "styles": ["projects/researchdatabox/record-audit/src/styles.scss"],
+            "scripts": [],
+            "browser": "projects/researchdatabox/record-audit/src/main.ts"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "10mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "10kb",
+                  "maximumError": "16kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "@researchdatabox/record-audit:build:production"
+            },
+            "development": {
+              "buildTarget": "@researchdatabox/record-audit:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "buildTarget": "@researchdatabox/record-audit:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": ["zone.js", "zone.js/testing"],
+            "karmaConfig": "projects/researchdatabox/record-audit/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/record-audit/tsconfig.spec.json",
+            "assets": [
+              "projects/researchdatabox/record-audit/src/favicon.ico",
+              "projects/researchdatabox/record-audit/src/assets"
+            ],
+            "styles": ["projects/researchdatabox/record-audit/src/styles.scss"],
             "scripts": []
           }
         }
@@ -696,7 +783,7 @@
             ],
             "styles": [
               "projects/researchdatabox/form/src/styles.scss",
-              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss",
+              "ngx-bootstrap/datepicker/bs-datepicker.css",
               "node_modules/leaflet/dist/leaflet.css"
             ],
             "scripts": [],
@@ -883,7 +970,7 @@
             ],
             "styles": [
               "projects/researchdatabox/deleted-records/src/styles.scss",
-              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
+              "ngx-bootstrap/datepicker/bs-datepicker.css"
             ],
             "scripts": [],
             "browser": "projects/researchdatabox/deleted-records/src/main.ts"

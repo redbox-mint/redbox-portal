@@ -8,7 +8,7 @@
     "./dist/src"
   ],
   "scripts": {
-    "test": "nyc --reporter=text mocha --exit --config test/unit/.mocharc.js dist/test/unit/**/*.test.js",
+    "test": "nyc --reporter=text mocha --exit --config test/unit/.mocharc.js dist/test/unit",
     "pretest": "npm run test:compile && mkdir -p support/junit",
     "test:clean": "rm -rf support/junit || true",
     "compile": "tsc -p tsconfig.prod.json",
@@ -73,8 +73,8 @@
   },
   "dependencies": {
     "@jsonjoy.com/json-pointer": "18.5.0",
-    "lodash": "4.17.23",
-    "lodash-es": "4.17.23",
+    "lodash": "4.18.1",
+    "lodash-es": "4.18.1",
     "luxon": "3.7.2",
     "marked": "17.0.5",
     "ts-json-schema-generator": "2.9.0"

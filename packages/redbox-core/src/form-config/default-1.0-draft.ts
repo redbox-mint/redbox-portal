@@ -23,6 +23,10 @@ const formConfig: FormConfigFrame = {
       description: 'Fields that must be valid to create a new record.',
       initialMembership: 'none',
     },
+    recommended: {
+      description: 'Recommended fields that should be encouraged but not enforced.',
+      initialMembership: 'none',
+    },
     transitionDraftToSubmitted: {
       description: 'Fields that must be valid to transition from draft to submitted.',
       initialMembership: 'all',
@@ -709,7 +713,16 @@ const formConfig: FormConfigFrame = {
                       model: {
                         class: 'SimpleInputModel',
                         config: {
-                          defaultValue: 'hello world 2! component expression',
+                          defaultValue: '',
+                          validators: [
+                            {
+                              class: 'required',
+                              groups: {
+                                include: ['recommended'],
+                                exclude: ['all', 'transitionDraftToSubmitted'],
+                              },
+                            },
+                          ],
                         },
                       },
                       component: {
@@ -1112,6 +1125,17 @@ const formConfig: FormConfigFrame = {
     {
       name: 'validation_summary_1',
       component: { class: 'ValidationSummaryComponent' },
+    },
+    {
+      name: 'suggested_validation_summary_1',
+      component: {
+        class: 'SuggestedValidationSummaryComponent',
+        config: {
+          enabledValidationGroups: ['recommended'],
+          includeTabLabel: true,
+          header: '@dmpt-form-suggested-validation-summary-header',
+        },
+      },
     },
     // {
     //   module: 'custom',

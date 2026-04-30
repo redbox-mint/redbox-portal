@@ -115,6 +115,10 @@ module.exports = {
     waitRetries: 5,
     waitSleep: 10000
   },
+  figshareDev: {
+    enabled: false,
+    mode: 'live'
+  },
   brandingConfigurationDefaults: {
     auth: dockerAuthDefaults
   },

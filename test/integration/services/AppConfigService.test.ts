@@ -1,3 +1,5 @@
+const { APP_CONFIG_SECRET_MASK } = require('../../../packages/redbox-core/dist/services/AppConfigService');
+
 describe('appConfigService', function () {
   let appConfigService;
   let originalBrandingAppConfigMap;
@@ -132,6 +134,17 @@ describe('appConfigService', function () {
     const configForm = 'systemMessage';
     const appConfigForm = await appConfigService.getAppConfigForm(branding, configForm);
     expect(appConfigForm).to.not.be.null;
+    expect(appConfigForm.schema).to.not.be.null;
+    expect(appConfigForm.fieldOrder).to.deep.equal(['enabled', 'title', 'message', 'dismissalDurationHours']);
+  });
+
+  it('should get the authorized domains and emails app config form', async () => {
+    const branding = BrandingService.getBrand('default');
+    const configForm = 'authorizedDomainsEmails';
+    const appConfigForm = await appConfigService.getAppConfigForm(branding, configForm);
+    expect(appConfigForm).to.not.be.null;
+    expect(appConfigForm.schema).to.not.be.null;
+    expect(appConfigForm.fieldOrder).to.deep.equal(['enabled', 'domainsAaf', 'emailsAaf', 'domainsOidc', 'emailsOidc']);
   });
 
   it('should register a new config model with schema', () => {
@@ -437,5 +450,72 @@ describe('appConfigService', function () {
 
     // Should not throw an error when registering with single glob
     expect(() => appConfigService.registerConfigModel(configInfo)).to.not.throw();
+  });
+
+  it('should preserve masked secret fields when updating figsharePublishing config', async () => {
+    const brandName = 'default';
+    const branding = BrandingService.getBrand(brandName);
+    const configKey = 'figsharePublishing';
+
+    await appConfigService.createOrUpdateConfig(branding, configKey, {
+      enabled: true,
+      connection: {
+        baseUrl: 'https://api.figshare.com',
+        frontEndUrl: 'https://figshare.com',
+        token: 'top-secret',
+        timeoutMs: 1000,
+        operationTimeouts: { metadataMs: 1000, uploadInitMs: 1000, uploadPartMs: 1000, publishMs: 1000 },
+        retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1, retryOnStatusCodes: [] }
+      }
+    });
+
+    const updated = await appConfigService.createOrUpdateConfig(branding, configKey, {
+      enabled: true,
+      connection: {
+        baseUrl: 'https://api.figshare.com',
+        frontEndUrl: 'https://figshare.com',
+        token: APP_CONFIG_SECRET_MASK,
+        timeoutMs: 1000,
+        operationTimeouts: { metadataMs: 1000, uploadInitMs: 1000, uploadPartMs: 1000, publishMs: 1000 },
+        retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1, retryOnStatusCodes: [] }
+      }
+    });
+
+    expect(updated.connection.token).to.equal(APP_CONFIG_SECRET_MASK);
+    const maskedUpdatedAgain = await appConfigService.createOrUpdateConfig(branding, configKey, {
+      enabled: true,
+      connection: {
+        baseUrl: 'https://api.figshare.com',
+        frontEndUrl: 'https://figshare.com',
+        token: APP_CONFIG_SECRET_MASK,
+        timeoutMs: 1000,
+        operationTimeouts: { metadataMs: 1000, uploadInitMs: 1000, uploadPartMs: 1000, publishMs: 1000 },
+        retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1, retryOnStatusCodes: [] }
+      }
+    });
+
+    expect(maskedUpdatedAgain.connection.token).to.equal(APP_CONFIG_SECRET_MASK);
+    const loaded = appConfigService.getAppConfigurationForBrand(brandName);
+    expect(loaded.figsharePublishing.connection.token).to.equal('top-secret');
+  });
+
+  it('should leave empty secret fields visible as empty', async () => {
+    const brandName = 'default';
+    const branding = BrandingService.getBrand(brandName);
+    const configKey = 'figsharePublishing';
+
+    const updated = await appConfigService.createOrUpdateConfig(branding, configKey, {
+      enabled: true,
+      connection: {
+        baseUrl: 'https://api.figshare.com',
+        frontEndUrl: 'https://figshare.com',
+        token: '',
+        timeoutMs: 1000,
+        operationTimeouts: { metadataMs: 1000, uploadInitMs: 1000, uploadPartMs: 1000, publishMs: 1000 },
+        retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1, retryOnStatusCodes: [] }
+      }
+    });
+
+    expect(updated.connection.token).to.equal('');
   });
 });

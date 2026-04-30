@@ -28,3 +28,36 @@ export class SystemMessage extends AppConfig {
         return ["enabled", "title", "message", "dismissalDurationHours"]
     }
 }
+
+export const SYSTEM_MESSAGE_SCHEMA = {
+    type: 'object',
+    title: 'System Messages',
+    properties: {
+        enabled: {
+            type: 'boolean',
+            title: 'Enabled',
+            default: false
+        },
+        title: {
+            type: 'string',
+            title: 'Message Title',
+            default: ''
+        },
+        message: {
+            type: 'string',
+            title: 'Message Body',
+            default: '',
+            widget: {
+                formlyConfig: {
+                    type: 'textarea'
+                }
+            }
+        },
+        dismissalDurationHours: {
+            type: 'number',
+            title: 'Dismissal Duration (hours)',
+            default: 8
+        }
+    },
+    required: ['enabled', 'title', 'message', 'dismissalDurationHours']
+};
