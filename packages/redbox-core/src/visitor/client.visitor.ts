@@ -1180,6 +1180,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   public buildDataMatchingSchema(
     currentSchema: Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
   ): unknown {
+    currentSchema = currentSchema ?? {};
+    schemaPath = schemaPath ?? [];
+    valuePath = valuePath ?? [];
+
     let result: unknown = structuredClone(currentValue);
     const schemaKeys = Object.keys(currentSchema);
     const propKeys = ['properties', 'optionalProperties'];
@@ -1187,7 +1191,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     // For debugging:
     // this.logger.debug(`buildDataMatchingSchema ${JSON.stringify({currentSchema, schemaPath, result, valuePath})}`);
 
-    if (schemaKeys.includes('elements') && schemaKeys.length === 1) {
+    if ((!currentSchema || schemaKeys.length === 0) && (currentValue === undefined || currentValue === null)) {
+      // If there are no components that have a data model,
+      // there will be no schema, so there is nothing to check and update.
+      return result;
+    } else if (schemaKeys.includes('elements') && schemaKeys.length === 1) {
       const elementsSchema = (currentSchema['elements'] ?? {}) as Record<string, unknown>;
       result = this.buildDataMatchingSchemaElements(elementsSchema, [...schemaPath, 'elements'], result, valuePath);
 
