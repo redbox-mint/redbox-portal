@@ -524,6 +524,14 @@ export const recordtype: RecordTypeConfig = {
                                 }
                             ]
                         }
+                    },
+                    {
+                        function: 'sails.services.doiservice.publishDoiTriggerSync',
+                        options: {
+                            forceRun: true,
+                            triggerCondition: "<%= record.workflow.stage=='draft' %>",
+                            event: 'draft'
+                        }
                     }
                 ]
             },
@@ -635,6 +643,14 @@ export const recordtype: RecordTypeConfig = {
                                     }
                                 }
                             ]
+                        }
+                    },
+                    {
+                        function: 'sails.services.doiservice.updateDoiTriggerSync',
+                        options: {
+                            forceRun: true,
+                            triggerCondition: "<%= record.workflow.stage=='draft' %>",
+                            event: 'draft'
                         }
                     }
                 ]

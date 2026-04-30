@@ -9,3 +9,4 @@ Welcome to the RedBox Portal User Guide! This document is your resource for sett
 - Customize your experience with the **[Theme Customization Guide](https://github.com/redbox-mint/redbox-portal/wiki/Theme-Customization-Guide)**.
 - Integrate systems using the **[ReDBox Portal API](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Portal-API)**.
 - Manage notifications with **[Configuring Email Notifications](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Email-Notifications)**.
+- Configure Figshare publishing with **[Configuring Figshare Publishing](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Figshare-Publishing)**.

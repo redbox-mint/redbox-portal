@@ -1,5 +1,9 @@
 // This file is a helper for dev only. It makes it easier to run webpack when parts of the mono repo are in different stages of being built. Refer to the redbox-core webpack.ts for how the hook runs webpack
+const path = require('path');
+const { createRequire } = require('module');
 const redboxCore = require('@researchdatabox/redbox-core');
+
+const requireFromHere = createRequire(__filename);
 
 const ensureTsNode = () => {
   try {
@@ -18,7 +22,7 @@ if (!defineWebpackHook) {
 }
 if (!defineWebpackHook && ensureTsNode()) {
   try {
-    defineWebpackHook = require('@researchdatabox/redbox-core/src/hooks/webpack.ts').defineWebpackHook;
+    defineWebpackHook = requireFromHere('@researchdatabox/redbox-core/src/hooks/webpack.ts').defineWebpackHook;
   } catch (e) {}
 }
 
@@ -54,7 +58,7 @@ if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 
 if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 0)) {
   if (ensureTsNode()) {
     try {
-      const srcWebpack = require('@researchdatabox/redbox-core/src/config/webpack.config.ts');
+      const srcWebpack = requireFromHere('@researchdatabox/redbox-core/src/config/webpack.config.ts');
       webpackConfig = srcWebpack && srcWebpack.webpack ? srcWebpack.webpack.config : srcWebpack.config || srcWebpack;
     } catch (e) {}
   }

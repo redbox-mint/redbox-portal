@@ -12,6 +12,8 @@ import { FormlyFieldTextArea } from '@ngx-formly/bootstrap/textarea';
 import { MenuEditorTypeComponent } from './fieldTypes/menu-editor';
 import { AdminSidebarEditorTypeComponent } from './fieldTypes/admin-sidebar-editor';
 import { HomePanelsEditorTypeComponent } from './fieldTypes/home-panels-editor';
+import { ValueBindingEditorTypeComponent } from './fieldTypes/value-binding-editor';
+import { FigshareCategoryMappingEditorTypeComponent } from './fieldTypes/figshare-category-mapping-editor';
 
 let configService: any;
 let userService: any;
@@ -55,7 +57,9 @@ describe('AppConfigComponent', () => {
         ObjectTypeComponent,
         MenuEditorTypeComponent,
         AdminSidebarEditorTypeComponent,
-        HomePanelsEditorTypeComponent
+        HomePanelsEditorTypeComponent,
+        ValueBindingEditorTypeComponent,
+        FigshareCategoryMappingEditorTypeComponent
       ],
       imports: [
         ReactiveFormsModule,
@@ -67,7 +71,9 @@ describe('AppConfigComponent', () => {
             { name: 'textarea', component: FormlyFieldTextArea },
             { name: 'menu-editor', component: MenuEditorTypeComponent },
             { name: 'admin-sidebar-editor', component: AdminSidebarEditorTypeComponent },
-            { name: 'home-panels-editor', component: HomePanelsEditorTypeComponent }
+            { name: 'home-panels-editor', component: HomePanelsEditorTypeComponent },
+            { name: 'value-binding-editor', component: ValueBindingEditorTypeComponent },
+            { name: 'figshare-category-mapping-editor', component: FigshareCategoryMappingEditorTypeComponent }
           ],
         }),
         FormlyBootstrapModule
@@ -208,11 +214,78 @@ describe('AppConfigComponent', () => {
     expect(panelsField?.fieldGroup).toBeUndefined();
   });
 
+  it('uses figshare custom editors from schema widgets', async () => {
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const app = fixture.componentInstance;
+    app.configKey = 'figsharePublishing';
+
+    fixture.autoDetectChanges(true);
+    await app.waitForInit();
+    await fixture.whenStable();
+
+    const titleField = findFieldByKey(app.fields, 'title');
+    const mappingTableField = findFieldByKey(app.fields, 'mappingTable');
+
+    expect(titleField?.type).toBe('value-binding-editor');
+    expect(mappingTableField?.type).toBe('figshare-category-mapping-editor');
+  });
+
+  it('renders doiPublishing profiles as an editable array', async () => {
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const app = fixture.componentInstance;
+    app.configKey = 'doiPublishing';
+
+    fixture.autoDetectChanges(true);
+    await app.waitForInit();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(Array.isArray((app.model as any).profiles)).toBeTrue();
+    expect((app.model as any).profiles.length).toBe(1);
+    expect((app.model as any).profiles[0].name).toBe('dataPublication');
+
+    const profilesField = findFieldByKey(app.fields, 'profiles');
+    const retryField = findFieldByKey(app.fields, 'retry');
+    const migrationField = findFieldByKey(app.fields, 'migration');
+    const operationsField = findFieldByKey(app.fields, 'operations');
+    const validationField = findFieldByKey(app.fields, 'validation');
+    const bindingField = findFieldByKey(app.fields, 'url');
+
+    expect(profilesField?.fieldArray).toBeTruthy();
+    expect(retryField).toBeTruthy();
+    expect(migrationField).toBeFalsy();
+    expect(operationsField).toBeFalsy();
+    expect(validationField?.hide).toBeTrue();
+    expect(bindingField?.type).toBe('value-binding-editor');
+
+    app.onSubmit(app.model);
+    await fixture.whenStable();
+
+    expect(appConfigService.lastSavedModel).toBe(app.model);
+    expect(appConfigService.lastSavedModel.profiles[0].name).toBe('dataPublication');
+  });
+
+  it('shows the DOI field key on binding editors', async () => {
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const app = fixture.componentInstance;
+    app.configKey = 'doiPublishing';
+
+    fixture.autoDetectChanges(true);
+    await app.waitForInit();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.debugElement.nativeElement;
+    expect(compiled.textContent).toContain('publicationYear');
+    expect(compiled.textContent).toContain('Field Key');
+  });
+
 });
 
 export function getStubAppConfigService(recordData: any = {}) {
 
   return {
+    lastSavedModel: undefined as any,
     waitForInit: function () {
       return this;
     },
@@ -333,6 +406,262 @@ export function getStubAppConfigService(recordData: any = {}) {
           }
         };
       }
+      if (configKey === 'figsharePublishing') {
+        return {
+          fieldOrder: ['metadata', 'categories'],
+          schema: {
+            type: 'object',
+            properties: {
+              metadata: {
+                type: 'object',
+                properties: {
+                  title: {
+                    type: 'object',
+                    widget: {
+                      formlyConfig: {
+                        type: 'value-binding-editor'
+                      }
+                    }
+                  }
+                }
+              },
+              categories: {
+                type: 'object',
+                properties: {
+                  mappingTable: {
+                    type: 'array',
+                    widget: {
+                      formlyConfig: {
+                        type: 'figshare-category-mapping-editor'
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          model: {
+            metadata: {
+              title: { kind: 'path', path: 'metadata.title' }
+            },
+            categories: {
+              mappingTable: []
+            }
+          }
+        };
+      }
+      if (configKey === 'doiPublishing') {
+        return {
+          fieldOrder: ['enabled', 'defaultProfile', 'connection', 'profiles'],
+          schema: {
+            type: 'object',
+            properties: {
+              enabled: { type: 'boolean' },
+              defaultProfile: { type: 'string' },
+              connection: {
+                type: 'object',
+                properties: {
+                  baseUrl: { type: 'string' },
+                  username: { type: 'string' },
+                  password: { type: 'string' },
+                  timeoutMs: { type: 'number' },
+                  retry: {
+                    type: 'object',
+                    properties: {
+                      maxAttempts: { type: 'number' },
+                      baseDelayMs: { type: 'number' },
+                      maxDelayMs: { type: 'number' },
+                      retryOnStatusCodes: {
+                        type: 'array',
+                        items: { type: 'number' }
+                      },
+                      retryOnMethods: {
+                        type: 'array',
+                        items: { type: 'string' }
+                      }
+                    }
+                  }
+                }
+              },
+              operations: {
+                type: 'object',
+                properties: {
+                  createEvent: { type: 'string' },
+                  updateEvent: { type: 'string' },
+                  allowDeleteDraft: { type: 'boolean' },
+                  allowStateChange: { type: 'boolean' }
+                }
+              },
+              profiles: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string' },
+                    enabled: { type: 'boolean' },
+                    label: { type: 'string' },
+                    metadata: {
+                      type: 'object',
+                      properties: {
+                        url: {
+                          type: 'object',
+                          widget: {
+                            formlyConfig: {
+                              type: 'value-binding-editor'
+                            }
+                          }
+                        },
+                        publicationYear: {
+                          type: 'object',
+                          widget: {
+                            formlyConfig: {
+                              type: 'value-binding-editor'
+                            }
+                          }
+                        },
+                        publisher: {
+                          type: 'object',
+                          widget: {
+                            formlyConfig: {
+                              type: 'value-binding-editor'
+                            }
+                          }
+                        },
+                        creators: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              sourcePath: { type: 'string' },
+                              itemMode: { type: 'string' },
+                              name: {
+                                type: 'object',
+                                widget: {
+                                  formlyConfig: {
+                                    type: 'value-binding-editor'
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        titles: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              title: {
+                                type: 'object',
+                                widget: {
+                                  formlyConfig: {
+                                    type: 'value-binding-editor'
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        types: {
+                          type: 'object',
+                          properties: {
+                            resourceTypeGeneral: {
+                              type: 'object',
+                              widget: {
+                                formlyConfig: {
+                                  type: 'value-binding-editor'
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    writeBack: {
+                      type: 'object',
+                      properties: {
+                        citationUrlPath: { type: 'string' },
+                        citationDoiPath: { type: 'string' }
+                      }
+                    },
+                    validation: {
+                      type: 'object',
+                      widget: {
+                        formlyConfig: {
+                          hide: true
+                        }
+                      },
+                      properties: {
+                        requireUrl: { type: 'boolean' },
+                        requirePublisher: { type: 'boolean' },
+                        requirePublicationYear: { type: 'boolean' },
+                        requireCreators: { type: 'boolean' },
+                        requireTitles: { type: 'boolean' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          model: {
+            enabled: true,
+            defaultProfile: 'dataPublication',
+            connection: {
+              baseUrl: 'https://api.test.datacite.org',
+              username: 'user',
+              password: 'password',
+              timeoutMs: 30000,
+              retry: {
+                maxAttempts: 3,
+                baseDelayMs: 500,
+                maxDelayMs: 4000,
+                retryOnStatusCodes: [408, 429, 500, 502, 503, 504],
+                retryOnMethods: ['get', 'put', 'patch', 'delete']
+              }
+            },
+            operations: {
+              createEvent: 'publish',
+              updateEvent: 'publish',
+              allowDeleteDraft: true,
+              allowStateChange: true
+            },
+            profiles: [
+              {
+                name: 'dataPublication',
+                enabled: true,
+                label: 'Data Publication',
+                metadata: {
+                  url: { kind: 'path', path: 'record.metadata.url' },
+                  publicationYear: { kind: 'path', path: 'record.metadata.year' },
+                  publisher: { kind: 'path', path: 'record.metadata.publisher' },
+                  creators: [{
+                    sourcePath: 'metadata.creators',
+                    itemMode: 'array',
+                    name: { kind: 'path', path: 'item.name' }
+                  }],
+                  titles: [{
+                    title: { kind: 'path', path: 'record.metadata.title' }
+                  }],
+                  types: {
+                    resourceTypeGeneral: { kind: 'path', path: 'record.metadata.type' }
+                  }
+                },
+                writeBack: {
+                  citationUrlPath: 'metadata.citation_url',
+                  citationDoiPath: 'metadata.citation_doi'
+                },
+                validation: {
+                  requireUrl: true,
+                  requirePublisher: true,
+                  requirePublicationYear: true,
+                  requireCreators: true,
+                  requireTitles: true
+                }
+              }
+            ]
+          }
+        };
+      }
       return {
         fieldOrder: ["enabled", "title", "message"],
         schema: {
@@ -357,6 +686,7 @@ export function getStubAppConfigService(recordData: any = {}) {
       }
     },
     saveAppConfig: function (configKey: string, model: any) {
+      this.lastSavedModel = model;
       if (configKey === "fail") {
         return Promise.reject('Failure');
       }

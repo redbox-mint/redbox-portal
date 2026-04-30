@@ -21,8 +21,8 @@
   "scripts": {
     "compile": "npm run build",
     "build": "tsc -p tsconfig.json",
-    "test": "TS_NODE_PROJECT=test/tsconfig.json mocha --require ts-node/register --require test/setup.ts \"test/**/*.test.ts\"",
-    "test:coverage": "TS_NODE_PROJECT=test/tsconfig.json nyc --no-clean --report-dir ./coverage/storage-mongo --reporter=lcov --reporter=text --exclude-after-remap=false mocha --require ts-node/register --require test/setup.ts \"test/**/*.test.ts\"",
+    "test": "TS_NODE_PROJECT=test/tsconfig.json mocha --require ts-node/register --require test/setup.ts --extension ts --recursive test",
+    "test:coverage": "TS_NODE_PROJECT=test/tsconfig.json nyc --no-clean --report-dir ./coverage/storage-mongo --reporter=lcov --reporter=text --exclude-after-remap=false mocha --require ts-node/register --require test/setup.ts --extension ts --recursive test",
     "test:compile": "tsc -p test/tsconfig.json",
     "lint": "cd ../.. && oxlint packages/sails-hook-redbox-storage-mongo/src packages/sails-hook-redbox-storage-mongo/test",
     "lint:fix": "cd ../.. && oxlint packages/sails-hook-redbox-storage-mongo/src packages/sails-hook-redbox-storage-mongo/test --fix",

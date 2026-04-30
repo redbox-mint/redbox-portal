@@ -6,11 +6,12 @@ import {
   RepeatableFieldComponentConfigFrame,
   TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
 } from "@researchdatabox/sails-ng-common";
-import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
-import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
 import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
-import {reusableFormDefinitions, VocabInlineFormConfigVisitor} from "../../src";
+import {
+  reusableFormDefinitions, VocabInlineFormConfigVisitor,
+  ClientFormConfigVisitor, ConstructFormConfigVisitor, buildRelatedObjectsFieldDefinition,
+} from "../../src";
 
 
 let expect: Chai.ExpectStatic;
@@ -411,7 +412,7 @@ describe("Client Visitor", async () => {
                   model: {
                     class: 'GroupModel',
                     config: {
-                      // @ts-ignore: testing new entry value being null
+                    // @ts-ignore: testing that null is normalised
                       newEntryValue: null,
                     },
                   },
@@ -2052,5 +2053,133 @@ describe("Client Visitor", async () => {
       expect(result.componentDefinitions).to.have.length(3);
       const qt = result.componentDefinitions[0] as QuestionTreeFormComponentDefinitionOutline;
       expect(qt.component.config?.componentDefinitions).to.have.length(4);
+  });
+
+  it("should construct the related publications fields", async () => {
+    const data: FormConfigFrame = {
+      name: 'related-objects-test',
+      componentDefinitions: [
+        ...buildRelatedObjectsFieldDefinition({
+          fieldName: "related_publications",
+          fieldLabel: "@dmpt-related-publication",
+          fieldHelp: "@dmpt-related-publication-help",
+          titleLabel: "@dataPublication-related-publication-title",
+          titlePlaceholder: "Full citation or publication title",
+          urlLabel: "@dataPublication-related-publication-url",
+          urlPlaceholder: "https://doi.org/...",
+          notesLabel: "@dataPublication-related-publication-notes",
+          notesPlaceholder: "Open access, in press, or other context",
+        })
+      ],
+    };
+    const expected: FormConfigFrame = {
+      name: 'related-objects-test',
+      componentDefinitions: [
+        {
+          component: {
+            "class": "RepeatableComponent",
+            config: {
+              addButtonShow: true,
+              allowZeroRows: false,
+              elementTemplate: {
+                component: {
+                  "class": "GroupComponent",
+                  config: {
+                    componentDefinitions: [
+                      {
+                        component: {
+                          "class": "SimpleInputComponent",
+                          config: {
+                            label: "@dataPublication-related-publication-title",
+                            placeholder: "Full citation or publication title",
+                            type: "text",
+                            wrapperCssClasses: "rb-form-related-link-inline__field",
+                          }
+                        },
+                        layout: {
+                          "class": "InlineLayout",
+                          config: {label: "@dataPublication-related-publication-title"}
+                        },
+                        model: {"class": "SimpleInputModel"},
+                        name: "related_title",
+                      },
+                      {
+                        component: {
+                          "class": "SimpleInputComponent",
+                          config: {
+                            label: "@dataPublication-related-publication-url",
+                            placeholder: "https://doi.org/...",
+                            type: "text",
+                            wrapperCssClasses: "rb-form-related-link-inline__field",
+                          },
+                        },
+                        layout: {"class": "InlineLayout", config: {label: "@dataPublication-related-publication-url"}},
+                        model: {"class": "SimpleInputModel"},
+                        name: "related_url",
+                      },
+                      {
+                        component: {
+                          "class": "TextAreaComponent",
+                          config: {
+                            cols: 20,
+                            label: "@dataPublication-related-publication-notes",
+                            placeholder: "Open access, in press, or other context",
+                            rows: 1,
+                            wrapperCssClasses: "rb-form-related-link-inline__field",
+                          }
+                        },
+                        layout: {
+                          "class": "InlineLayout",
+                          config: {label: "@dataPublication-related-publication-notes"}
+                        },
+                        model: {"class": "TextAreaModel"},
+                        name: "related_notes",
+                      }
+                    ],
+                    hostCssClasses: "rb-form-related-link-inline",
+                  }
+                },
+                layout: {
+                  "class": "RepeatableElementLayout",
+                  config: {
+                    alignment: "end",
+                    containerCssClass: "rb-form-action-row",
+                    hostCssClasses: "rb-form-action-row-layout",
+                    slotCssClass: "rb-form-action-slot",
+                  }
+                },
+                model: {
+                  "class": "GroupModel", config: {newEntryValue: {}}
+                },
+                name: "",
+              }
+            }
+          },
+          layout: {
+            "class": "DefaultLayout",
+            config: {helpText: "@dmpt-related-publication-help", label: "@dmpt-related-publication"}
+          },
+          model: {"class": "RepeatableModel"},
+          name: "related_publications"
+        }
+      ]
+    };
+
+    const constructVisitor = new ConstructFormConfigVisitor(logger);
+    const constructForm = constructVisitor.start({
+      data,
+      formMode: 'edit',
+      reusableFormDefs: reusableFormDefinitions,
+    });
+    // expect(constructForm).to.containSubset(expected);
+
+    const clientFormVisitor = new ClientFormConfigVisitor(logger);
+    const clientForm = clientFormVisitor.start({
+      form: constructForm,
+      formMode: 'edit',
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    expect(clientForm).to.containSubset(expected);
   });
 });

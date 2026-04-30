@@ -1,13 +1,13 @@
 import { Component, Input } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
   CheckboxOption,
   CheckboxInputModelValueType,
   CheckboxInputComponentName,
   CheckboxInputModelName,
-  isTypeFieldDefinitionName,
   CheckboxInputFieldComponentDefinitionFrame,
 } from '@researchdatabox/sails-ng-common';
+import { OptionInputBaseComponent } from './option-input-base.component';
 
 export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueType> {
   protected override logName = CheckboxInputModelName;
@@ -20,6 +20,7 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
       <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
       @for (opt of options; track $index) {
         <div class="form-check">
+          <!-- Checkbox groups share one control value, so selection is driven manually instead of binding each input with formControl. -->
           <input
             type="checkbox"
             class="form-check-input"
@@ -29,7 +30,8 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
             [id]="this.getOptionId(opt)"
             [attr.id]="this.getOptionId(opt)"
             [checked]="isOptionSelected(opt.value)"
-            (change)="onOptionChange($any($event.target).checked, opt.value)"
+            [attr.disabled]="isOptionDisabled(opt) ? true : null"
+            (change)="onOptionChange($any($event.target).checked, opt)"
             [class.is-valid]="showValidState"
             [class.is-invalid]="!isValid"
             [title]="tooltip | i18next">
@@ -45,11 +47,14 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
   `,
   standalone: false
 })
-export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInputModelValueType> {
+export class CheckboxInputComponent extends OptionInputBaseComponent<
+  CheckboxInputModelValueType,
+  CheckboxOption,
+  CheckboxInputFieldComponentDefinitionFrame['config'],
+  CheckboxInputFieldComponentDefinitionFrame
+> {
   protected override logName = CheckboxInputComponentName;
-  public tooltip: string = '';
   public placeholder: string | undefined = '';
-  public options: CheckboxOption[] = [];
   public multipleValues: boolean = true;
 
   /**
@@ -58,13 +63,8 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
   @Input() public override model?: CheckboxInputModel;
 
   protected override async initData(): Promise<void> {
-    const formComponentFrame = this.componentDefinition;
-    if (!isTypeFieldDefinitionName<CheckboxInputFieldComponentDefinitionFrame>(formComponentFrame, CheckboxInputComponentName)) {
-      throw new Error(`${this.logName}: Expected ${CheckboxInputComponentName} but got ${JSON.stringify(formComponentFrame)}`);
-    }
-    const config = formComponentFrame.config;
-    this.options = config?.options ?? [];
-    this.tooltip = config?.tooltip ?? "";
+    const config = this.getOptionInputConfig(CheckboxInputComponentName);
+    this.setSharedOptionConfig(config);
     this.placeholder = config?.placeholder ?? "";
     this.multipleValues = config?.multipleValues ?? true;
 
@@ -86,31 +86,21 @@ export class CheckboxInputComponent extends FormFieldBaseComponent<CheckboxInput
   /**
    * Toggle option selection. Supports array values (multi-select) and single value based on multipleValues configuration.
    */
-  public onOptionChange(checked: boolean, optionValue: string): void {
+  public onOptionChange(checked: boolean, option: CheckboxOption): void {
+    if (this.isOptionDisabled(option)) {
+      return;
+    }
+    const optionValue = option.value;
     const currentValue = this.formControl?.value;
     if (this.multipleValues) {
       const currentArray = Array.isArray(currentValue) ? currentValue : [];
-      const next = checked
+      const nextValue: CheckboxInputModelValueType = checked
         ? (currentArray.includes(optionValue) ? currentArray : [...currentArray, optionValue])
         : currentArray.filter((v: string) => v !== optionValue);
-      this.formControl.setValue(next);
+      this.setControlValue(nextValue);
     } else {
-      this.formControl.setValue(checked ? optionValue : '');
+      const nextValue: CheckboxInputModelValueType = checked ? optionValue : '';
+      this.setControlValue(nextValue);
     }
-    this.formControl.markAsDirty();
-    this.formControl.markAsTouched();
-  }
-
-  /**
-   * Generate a unique ID for each option
-   * @param opt The checkbox option
-   * @returns A unique ID string
-   */
-  getOptionId(opt: CheckboxOption): string {
-    return `${this.name}-${opt.value}`;
-  }
-
-  getOptionName(index: number): string {
-    return this.name ?? index?.toString();
   }
 }

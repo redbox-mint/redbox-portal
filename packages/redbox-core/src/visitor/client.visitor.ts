@@ -20,6 +20,10 @@ import {
   ValidationSummaryFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  SuggestedValidationSummaryFieldComponentDefinitionOutline,
+  SuggestedValidationSummaryFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   SaveStatusFieldComponentDefinitionOutline,
   SaveStatusFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
@@ -480,6 +484,15 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
+    this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+  }
+
+  visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): void {
+    this.processFieldComponentDefinition(item);
+  }
+
+  visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): void {
     this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }

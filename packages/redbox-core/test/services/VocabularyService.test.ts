@@ -157,8 +157,8 @@ describe('VocabularyService', () => {
   it('builds a tree response', async () => {
     g.VocabularyEntry.find = sinon.stub().returns({
       sort: sinon.stub().resolves([
-        {id: 'e1', vocabulary: 'v1', label: 'Parent', value: 'parent', order: 0},
-        {id: 'e2', vocabulary: 'v1', label: 'Child', value: 'child', parent: 'e1', order: 1}
+        { id: 'e1', vocabulary: 'v1', label: 'Parent', value: 'parent', order: 0 },
+        { id: 'e2', vocabulary: 'v1', label: 'Child', value: 'child', parent: 'e1', order: 1 }
       ])
     }) as unknown as VocabularyEntryModelStub['find'];
     const tree = await service.getTree('v1');
@@ -187,16 +187,17 @@ describe('VocabularyService', () => {
     g.Vocabulary.findOne = sinon.stub().onFirstCall().resolves({ id: 'v1', name: 'Access rights', type: 'flat', slug: 'access-rights', branding: 'default' }) as unknown as VocabularyModelStub['findOne'];
     const countStub = sinon.stub().resolves(2);
     g.VocabularyEntry.count = countStub as unknown as VocabularyEntryModelStub['count'];
-    g.VocabularyEntry.find = sinon.stub().returns({
+    const findStub = sinon.stub().returns({
       sort: sinon.stub().returns({
         skip: sinon.stub().returns({
           limit: sinon.stub().resolves([
-            {id: 'e1', label: 'Open', value: 'open'},
-            {id: 'e2', label: 'Closed', value: 'closed'}
+            { id: 'e1', label: 'Open', value: 'open' },
+            { id: 'e2', label: 'Closed', value: 'closed' }
           ])
         })
       })
-    }) as unknown as VocabularyEntryModelStub['find'];
+    });
+    g.VocabularyEntry.find = findStub as unknown as VocabularyEntryModelStub['find'];
 
     const result = await service.getEntries('default', 'access-rights', { search: 'op', limit: 5000, offset: 1 });
 
@@ -205,6 +206,8 @@ describe('VocabularyService', () => {
     expect(result?.meta.offset).to.equal(1);
     expect(result?.meta.vocabularyId).to.equal('v1');
     expect(countStub.calledOnce).to.equal(true);
+    expect(countStub.firstCall.args[0]).to.deep.include({ vocabulary: 'v1', historical: false });
+    expect(findStub.firstCall.args[0]).to.deep.include({ vocabulary: 'v1', historical: false });
   });
 
   it('returns null from getEntries when vocabulary does not exist', async () => {
@@ -228,8 +231,8 @@ describe('VocabularyService', () => {
         sort: sinon.stub().resolves(
           criteria.parent === null
             ? [
-              {id: 'e1', label: 'Mathematical Sciences', value: '01', identifier: '01', parent: null},
-              {id: 'e2', label: 'Physical Sciences', value: '02', identifier: '02', parent: null}
+              { id: 'e1', label: 'Mathematical Sciences', value: '01', identifier: '01', parent: null },
+              { id: 'e2', label: 'Physical Sciences', value: '02', identifier: '02', parent: null }
             ]
             : []
         )
@@ -260,8 +263,8 @@ describe('VocabularyService', () => {
         sort: sinon.stub().resolves(
           criteria.parent === 'e1'
             ? [
-              {id: 'e3', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: 'e1'},
-              {id: 'e4', label: 'Applied Mathematics', value: '0102', identifier: '0102', parent: 'e1'}
+              { id: 'e3', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: 'e1' },
+              { id: 'e4', label: 'Applied Mathematics', value: '0102', identifier: '0102', parent: 'e1' }
             ]
             : []
         )
@@ -309,7 +312,7 @@ describe('VocabularyService', () => {
         sort: sinon.stub().resolves(
           criteria.parent === 'e1'
             ? [
-              {id: 'e2', label: 'Node B', value: 'B', identifier: 'B', parent: 'e1'}
+              { id: 'e2', label: 'Node B', value: 'B', identifier: 'B', parent: 'e1' }
             ]
             : []
         )

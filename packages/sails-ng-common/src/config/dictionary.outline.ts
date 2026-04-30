@@ -10,6 +10,7 @@ import { TextAreaTypes } from './component/text-area.outline';
 import { ContentTypes } from './component/content.outline';
 import { SimpleInputTypes} from './component/simple-input.outline';
 import { ValidationSummaryTypes } from './component/validation-summary.outline';
+import { SuggestedValidationSummaryTypes } from './component/suggested-validation-summary.outline';
 import {
   TabContentFormComponentDefinitionOutline,
   TabContentFormComponentDefinitionFrame,
@@ -70,6 +71,7 @@ export type AllTypes =
   | ContentTypes
   | SimpleInputTypes
   | ValidationSummaryTypes
+  | SuggestedValidationSummaryTypes
   | TabContentTypes
   | TabTypes
   | AccordionTypes

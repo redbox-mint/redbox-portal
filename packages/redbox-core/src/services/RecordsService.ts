@@ -286,6 +286,7 @@ export namespace Services {
       'updateMeta',
       'getMeta',
       'getRecordAudit',
+      'getResolvedPermissionsSummary',
       'hasEditAccess',
       'hasViewAccess',
       'createBatch',
@@ -893,7 +894,61 @@ export namespace Services {
           },
         ] as Record<string, unknown>[];
       }
-      return audit;
+      const actionFilter = _.isString(params.action) ? params.action.trim().toLowerCase() : '';
+      const workflowStateFilter = _.isString(params.workflowState) ? params.workflowState.trim().toLowerCase() : '';
+
+      return audit.filter(auditRow => {
+        const action = String(auditRow['action'] ?? '').trim().toLowerCase();
+        const workflowStageLabel = String(_.get(auditRow, 'record.workflow.stageLabel', '')).trim().toLowerCase();
+        const actionMatches = _.isEmpty(actionFilter) || action === actionFilter;
+        const workflowMatches = _.isEmpty(workflowStateFilter) || workflowStageLabel.includes(workflowStateFilter);
+        return actionMatches && workflowMatches;
+      });
+    }
+
+    public async getResolvedPermissionsSummary(oid: string) {
+      const record = await this.getMeta(oid);
+      if (_.isEmpty(record)) {
+        throw new Error(`Record not found: ${oid}`);
+      }
+
+      const authorization = (((record as unknown) as RecordWithMeta).authorization ?? {}) as AnyRecord;
+      const resolveUsers = async (value: unknown) => {
+        const usernames = Array.isArray(value) ? value : [];
+        const resolvedUsers = [];
+        for (const usernameValue of usernames) {
+          const username = String(usernameValue ?? '');
+          if (_.isEmpty(username)) {
+            continue;
+          }
+          try {
+            const user = await firstValueFrom(UsersService.getUserWithUsername(username));
+            resolvedUsers.push({
+              username,
+              name: String(_.get(user, 'name', '')),
+              email: String(_.get(user, 'email', '')),
+            });
+          } catch (error) {
+            sails.log.warn(`RecordsService.getResolvedPermissionsSummary could not resolve user '${username}' for record '${oid}'.`);
+            sails.log.warn(error);
+            resolvedUsers.push({
+              username,
+              name: '',
+              email: '',
+            });
+          }
+        }
+        return resolvedUsers;
+      };
+
+      return {
+        edit: await resolveUsers(authorization.edit),
+        view: await resolveUsers(authorization.view),
+        editPending: _.castArray(authorization.editPending ?? []).map(value => String(value ?? '')),
+        viewPending: _.castArray(authorization.viewPending ?? []).map(value => String(value ?? '')),
+        editRoles: _.castArray(authorization.editRoles ?? []).map(value => String(value ?? '')),
+        viewRoles: _.castArray(authorization.viewRoles ?? []).map(value => String(value ?? '')),
+      };
     }
 
     createBatch(type: unknown, data: AnyRecord, harvestIdFldName: unknown): Promise<unknown> {

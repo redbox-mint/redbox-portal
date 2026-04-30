@@ -47,7 +47,7 @@ const luceneEscapeQuery: (value: string) => string =
 class SolrClient {
   options: SolrOptions;
   axios: { post: (url: string, body: unknown) => Promise<unknown> };
-  autoCommit: boolean = true; 
+  autoCommit: boolean = true;
   constructor(options: SolrOptions) {
     this.options = options;
     const baseUrl = `${this.options.https ? 'https' : 'http'}://${this.options.host}:${this.options.port}/solr/${this.options.core}/`;
@@ -269,17 +269,38 @@ export namespace Services {
       sails.log.verbose(`${this.logHeader} adding indexing job: ${id} with data:`);
       data.id = id;
       sails.log.verbose(JSON.stringify(data));
-      this.queueService.now(sails.config.solr.createOrUpdateJobName, data);
+      this.enqueueOrRunNow(
+        sails.config.solr.createOrUpdateJobName,
+        data,
+        async (job) => this.solrAddOrUpdate(job as QueueJob<RecordModel>)
+      );
     }
 
     public remove(id: string): void {
       sails.log.verbose(`${this.logHeader} adding delete-index job: ${id} with data:`);
       const data = { id: id };
-      
+
       sails.log.verbose(JSON.stringify(data));
-      this.queueService.now(sails.config.solr.deleteJobName, data);
+      this.enqueueOrRunNow(
+        sails.config.solr.deleteJobName,
+        data,
+        async (job) => this.solrDelete(job as QueueJob<RecordModel>, undefined)
+      );
     }
-    
+
+    private enqueueOrRunNow<T>(jobName: string, data: T, fallback: (job: QueueJob<T>) => Promise<void>): void {
+      if (this.queueService && typeof this.queueService.now === 'function') {
+        this.queueService.now(jobName, data);
+        return;
+      }
+
+      sails.log.warn(`${this.logHeader} queue service unavailable, running job inline: ${jobName}`);
+      fallback({ attrs: { data } }).catch((err: unknown) => {
+        sails.log.error(`${this.logHeader} inline job failed: ${jobName}`);
+        sails.log.error(err);
+      });
+    }
+
 
     public async searchAdvanced(coreId: string = 'default', type: string, query: string): Promise<Record<string, unknown>> {
       const solrConfig: SolrConfig = sails.config.solr;

@@ -22,6 +22,10 @@ import {
   ValidationSummaryFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  SuggestedValidationSummaryFieldComponentDefinitionOutline,
+  SuggestedValidationSummaryFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   SaveStatusFieldComponentDefinitionOutline,
   SaveStatusFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
@@ -255,6 +259,12 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   visitValidationSummaryFieldComponentDefinition(_item: ValidationSummaryFieldComponentDefinitionOutline): void { }
 
   visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
+    this.acceptFormComponentDefinition(item);
+  }
+
+  visitSuggestedValidationSummaryFieldComponentDefinition(_item: SuggestedValidationSummaryFieldComponentDefinitionOutline): void { }
+
+  visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): void {
     this.acceptFormComponentDefinition(item);
   }
 

@@ -22,6 +22,7 @@ describe('MongoStorageService', function () {
   let Record: any;
   let DeletedRecord: any;
   let RecordAudit: any;
+  let IntegrationAudit: any;
 
   beforeEach(function () {
     sandbox = sinon.createSandbox();
@@ -93,6 +94,16 @@ describe('MongoStorageService', function () {
       create: sandbox.stub().resolves({}),
       find: sandbox.stub().resolves([]),
     };
+    IntegrationAudit = {
+      create: sandbox.stub().resolves({}),
+      count: sandbox.stub().resolves(0),
+      find: sandbox.stub().returns({
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        then: (onFulfilled: (value: unknown) => unknown) => Promise.resolve(onFulfilled([])),
+      }),
+    };
 
     mockBucket = {
       find: sandbox.stub(),
@@ -105,6 +116,7 @@ describe('MongoStorageService', function () {
     (global as any).Record = Record;
     (global as any).DeletedRecord = DeletedRecord;
     (global as any).RecordAudit = RecordAudit;
+    (global as any).IntegrationAudit = IntegrationAudit;
     (global as any).TranslationService = { t: sandbox.stub().returns('missing attachment') };
     (global as any).RecordTypesService = { get: sandbox.stub().returns(of({ relatedTo: [] })) };
     (global as any).FormsService = { getFormByName: sandbox.stub().returns(of({ attachmentFields: [] })) };
@@ -129,6 +141,7 @@ describe('MongoStorageService', function () {
     delete (global as any).Record;
     delete (global as any).DeletedRecord;
     delete (global as any).RecordAudit;
+    delete (global as any).IntegrationAudit;
     delete (global as any).TranslationService;
     delete (global as any).RecordTypesService;
     delete (global as any).FormsService;
@@ -235,6 +248,7 @@ describe('MongoStorageService', function () {
 
     expect(response.success).to.equal(false);
     expect(String(response.message.message || response.message)).to.include('update failed');
+    expect(mockSails.log.error.calledWithMatch('updateMeta() failed for oid oid-1: update failed')).to.equal(true);
   });
 
   it('rejects getMeta for an empty oid', async function () {
@@ -633,7 +647,7 @@ describe('MongoStorageService', function () {
       service.updateDatastream(
         'oid-1',
         {
-          metaMetadata: { form: 'rdmp' },
+          metaMetadata: { form: 'rdmp', brandId: 'brand-1' },
           metadata: { files: [{ fileId: 'old', type: 'attachment' }] },
         },
         {
@@ -645,6 +659,7 @@ describe('MongoStorageService', function () {
     );
 
     expect((global as any).StorageManagerService.disk.calledOnceWith('staging')).to.be.true;
+    expect((global as any).FormsService.getFormByName.calledOnceWith('rdmp', true, 'brand-1')).to.be.true;
     await Promise.all(result);
     expect(addAndRemoveStub.calledOnce).to.be.true;
     expect(addAndRemoveStub.firstCall.args[1][0].fileId).to.equal('new');
@@ -809,6 +824,82 @@ describe('MongoStorageService', function () {
     await service.getRecordAudit({ oid: 'oid-1', dateTo: new Date('2025-01-02T00:00:00Z') });
 
     expect(RecordAudit.find.lastCall.args[0].createdAt['<=']).to.be.instanceOf(Date);
+  });
+
+  it('sanitizes integration audits before saving', async function () {
+    const response = await service.createIntegrationAudit({
+      redboxOid: 'oid-1',
+      integrationName: 'figshare',
+      integrationAction: 'syncRecordWithFigshare',
+      status: 'started',
+      traceId: 'trace-1',
+      spanId: 'span-1',
+      startedAt: '2025-01-01T00:00:00.000Z',
+      requestSummary: new Date() as any,
+      responseSummary: { safe: true },
+    });
+
+    expect(response.success).to.equal(true);
+    expect(IntegrationAudit.create.calledOnce).to.be.true;
+    expect(IntegrationAudit.create.firstCall.args[0].constructor).to.equal(Object);
+    expect(IntegrationAudit.create.firstCall.args[0]).to.include({
+      redboxOid: 'oid-1',
+      integrationName: 'figshare',
+      integrationAction: 'syncRecordWithFigshare',
+      status: 'started',
+    });
+    expect(IntegrationAudit.create.firstCall.args[0].requestSummary).to.be.undefined;
+  });
+
+  it('builds integration-audit queries from oid, status, dates, and pagination', async function () {
+    const query = {
+      sort: sandbox.stub().returnsThis(),
+      skip: sandbox.stub().returnsThis(),
+      limit: sandbox.stub().returnsThis(),
+      then: (onFulfilled: (value: unknown) => unknown) => Promise.resolve(onFulfilled([])),
+    };
+    IntegrationAudit.find.returns(query);
+
+    await service.getIntegrationAudit({
+      oid: 'oid-1',
+      status: 'failed',
+      dateFrom: new Date('2025-01-01T00:00:00Z'),
+      dateTo: new Date('2025-01-02T00:00:00Z'),
+      page: 2,
+      pageSize: 5,
+    });
+
+    expect(IntegrationAudit.find.calledOnce).to.be.true;
+    expect(IntegrationAudit.find.firstCall.args[0]).to.deep.equal({
+      redboxOid: 'oid-1',
+      status: 'failed',
+      startedAt: {
+        '>=': '2025-01-01T00:00:00.000Z',
+        '<=': '2025-01-02T00:00:00.000Z',
+      },
+    });
+    expect(query.sort.calledOnce).to.be.true;
+    expect(query.skip.calledOnceWith(5)).to.be.true;
+    expect(query.limit.calledOnceWith(5)).to.be.true;
+  });
+
+  it('counts integration-audit queries using ISO string criteria for startedAt', async function () {
+    await service.countIntegrationAudit({
+      oid: 'oid-1',
+      status: 'failed',
+      dateFrom: new Date('2025-01-01T00:00:00Z'),
+      dateTo: new Date('2025-01-02T00:00:00Z'),
+    });
+
+    expect(IntegrationAudit.count.calledOnce).to.be.true;
+    expect(IntegrationAudit.count.firstCall.args[0]).to.deep.equal({
+      redboxOid: 'oid-1',
+      status: 'failed',
+      startedAt: {
+        '>=': '2025-01-01T00:00:00.000Z',
+        '<=': '2025-01-02T00:00:00.000Z',
+      },
+    });
   });
 
   it('rejects restoreRecord for empty oids and reports failures', async function () {

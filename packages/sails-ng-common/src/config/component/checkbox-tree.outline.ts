@@ -19,6 +19,7 @@ import {
 } from "../field-model.outline";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import type {HistoricalVocabMode} from "./dropdown-input.outline";
 
 /* Checkbox Tree Component */
 export const CheckboxTreeComponentName = "CheckboxTreeComponent" as const;
@@ -32,6 +33,7 @@ export interface CheckboxTreeNode {
     parent?: string | null;
     children?: CheckboxTreeNode[];
     hasChildren?: boolean;
+    disabled?: boolean;
 }
 
 export interface CheckboxTreeSelectedItem {
@@ -44,6 +46,7 @@ export interface CheckboxTreeSelectedItem {
 export interface CheckboxTreeFieldComponentConfigFrame extends FieldComponentConfigFrame {
     vocabRef?: string;
     inlineVocab?: boolean;
+    historicalVocabMode?: HistoricalVocabMode;
     treeData?: CheckboxTreeNode[];
     leafOnly?: boolean;
     maxDepth?: number;
