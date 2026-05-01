@@ -1,6 +1,5 @@
 import { Controllers as controllers } from '../CoreController';
 import { Services } from '../services/EmailService';
-import {setReqCustomOption, setReqError} from "../utilities/RequestUtils";
 
 
 export namespace Controllers {
@@ -44,22 +43,20 @@ export namespace Controllers {
 
         public sendNotification(req: Sails.Req, res: Sails.Res) {
             if (!req.body.to){
-                setReqCustomOption(req, 'email.error.noRecipient', true);
-                setReqError(req);
                 this.sendResp(req, res, {
                     status: 400,
                     displayErrors: [{ title: "An error has occurred", detail: "No email recipient in email notification request!" }],
-                    headers: this.getNoCacheHeaders()
+                    headers: this.getNoCacheHeaders(),
+                    chronicle: {emailPropMissing: 'recipient'},
                 });
                 return;
             }
             if (!req.body.template){
-                setReqCustomOption(req, 'email.error.noTemplate', true);
-                setReqError(req);
                 this.sendResp(req, res, {
                     status: 400,
                     displayErrors: [{ title: "An error has occurred", detail: "No template specified in email notification request!" }],
-                    headers: this.getNoCacheHeaders()
+                    headers: this.getNoCacheHeaders(),
+                    chronicle: {emailPropMissing: 'template'},
                 });
                 return;
             }
@@ -73,7 +70,7 @@ export namespace Controllers {
                 subject: req.body.subject,
                 template: req.body.template,
             };
-            setReqCustomOption(req, 'email.options', options);
+            this.updateChronicle(req, {emailOptions: options});
             const config = {};
             const templateDate = req.body.data;
 
@@ -81,12 +78,11 @@ export namespace Controllers {
             try {
                 emailProperties = this.emailService.evaluateProperties(options, config, templateDate);
             } catch (error) {
-                setReqCustomOption(req, 'email.error.templateEvalFailed', true);
-                setReqError(req, error, 500);
                 return this.sendResp(req, res, {
                     status: 500,
                     displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                    headers: this.getNoCacheHeaders()
+                    headers: this.getNoCacheHeaders(),
+                    chronicle: {emailProcessStepFailed: 'evaluate properties'},
                 });
             }
             // const format = emailProperties.format;
@@ -104,28 +100,26 @@ export namespace Controllers {
             // const template = emailProperties.template;
             const templateRendered = emailProperties.templateRendered;
             if (!templateRendered) {
-                setReqCustomOption(req, 'email.error.templateRenderFailed', true);
-                setReqError(req, null, 500);
                 return this.sendResp(req, res, {
                     status: 500,
                     displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                    headers: this.getNoCacheHeaders()
+                    headers: this.getNoCacheHeaders(),
+                    chronicle: {emailProcessStepFailed: 'evaluate template'},
                 });
             }
 
             return templateRendered.subscribe((buildResult: globalThis.Record<string, unknown>) => {
                 if (buildResult['status'] != 200) {
-                  setReqCustomOption(req, 'email.error.templateBuildFailed', buildResult);
-                  setReqError(req, null, 500);
                     return this.sendResp(req, res, {
                         status: 500,
                         displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                        headers: this.getNoCacheHeaders()
+                        headers: this.getNoCacheHeaders(),
+                        chronicle: {emailProcessStepFailed: 'build template', emailProcessStepResult: buildResult},
                     });
                 } else {
-                    setReqCustomOption(req, 'email.send.data', {
+                    this.updateChronicle(req, {emailSendOptions:{
                       toRendered, subjectRendered, fromRendered, formatRendered, ccRendered, bccRendered
-                    });
+                    }});
                     const sendResponse = this.emailService.sendMessage(
                         toRendered,
                         buildResult['body'] as string,
@@ -138,26 +132,29 @@ export namespace Controllers {
 
                     return sendResponse.subscribe((sendResult: globalThis.Record<string, unknown>) => {
                         if (!sendResult['success']) {
-                            setReqCustomOption(req, 'email.error.sendFailure', sendResult);
-                            setReqError(req, null, 500);
                             return this.sendResp(req, res, {
                                 status: 500,
                                 displayErrors: [{ title: "An error has occurred", detail: "Failed to send email notification." }],
-                                headers: this.getNoCacheHeaders()
+                                headers: this.getNoCacheHeaders(),
+                                chronicle: {emailProcessStepFailed: 'send', emailProcessStepResult: buildResult},
                             });
                         } else {
-                            setReqCustomOption(req, 'email.send.result', sendResult);
-                            return this.apiRespond(req, res, {message: sendResult['msg']}, 200);
+                            return this.sendResp(req, res, {
+                              data: {message: sendResult['msg']},
+                              status: 200,
+                              headers: this.getNoCacheHeaders(),
+                              chronicle: {emailSent: true, emailSendResult: sendResult},
+                            });
                         }
                     });
                 }
             }, (error: unknown) => {
-                setReqCustomOption(req, 'email.error.templateRenderFailed', true);
-                setReqError(req, error, 500);
                 return this.sendResp(req, res, {
                     status: 500,
                     displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                    headers: this.getNoCacheHeaders()
+                    errors: [error],
+                    headers: this.getNoCacheHeaders(),
+                    chronicle: {emailProcessStepFailed: 'render template'},
                 });
             });
 

@@ -1,5 +1,6 @@
 import {Services} from "../services/TranslationService";
 import {ErrorResponseItemV2} from "./api";
+import {isTypeObjIndexSigStr} from "@researchdatabox/sails-ng-common";
 
 // Define ErrorOptions locally for ES6 target compatibility
 interface RBErrorOptions {
@@ -82,6 +83,23 @@ export class RBValidationError extends Error {
     return new Error(String(item));
   }
 
+  /**
+   * Convert a possible error to a consistent plain object representation.
+   * @param item This might be an error, or a string, or something else.
+   */
+  public static toObj(item: unknown): Record<string, unknown>  {
+    const result: Record<string, unknown> = {};
+    if (isTypeObjIndexSigStr(item)) {
+      for (const [key, value] of Object.entries(item)) {
+        if (key === 'cause') {
+          result.cause = RBValidationError.toObj(value);
+        } else {
+          result[key] = value;
+        }
+      }
+    }
+    return result;
+  }
 
   /**
    * Recursively collect the Errors and display errors.
@@ -122,9 +140,14 @@ export class RBValidationError extends Error {
       }
     }
 
+    // If there are any errors, there must be at least one display error to show the user.
     if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
-      // If there are any errors, there must be at least one display error to show the user.
       collectedDisplayErrors.push({code: 'server-error', status: '500'});
+    }
+
+    // If there are any display errors, there must be at least one error to record the error.
+    if (collectedErrors.length === 0 && collectedDisplayErrors.length > 0) {
+      collectedErrors.push(new Error(JSON.stringify(collectedDisplayErrors)));
     }
 
     return {errors: collectedErrors, displayErrors: collectedDisplayErrors};

@@ -10,6 +10,7 @@ import {
   RBValidationError,
   ErrorResponseItemV2,
 } from "./model";
+import {RequestChronicleHelper} from "./utilities/RequestChronicle";
 
 
 
@@ -495,6 +496,7 @@ export namespace Controllers.Core {
         displayErrors = [],
         meta = {},
         v1 = null,
+        chronicle = {},
       } = buildResponse ?? {};
       // Response status defaults to 200.
       let { status = 200 } = buildResponse ?? {};
@@ -505,6 +507,8 @@ export namespace Controllers.Core {
 
       this.applyResponseHeaders(res, headers);
       this.applyResponseStatus(res, status);
+
+      this.updateChronicle(req, chronicle, collectedErrors);
 
       // Delegate full version-specific responses (success + errors) to wrapper handlers.
       if (apiVersion === ApiVersion.VERSION_1_0) {
@@ -535,6 +539,12 @@ export namespace Controllers.Core {
       };
       sails.log.error("Unknown API version in sendResp", unknownSituation);
       return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
+    }
+
+    protected updateChronicle(req: Sails.Req, info?: Record<string, unknown>, errors?: (Error | unknown)[]): void {
+      const rc: RequestChronicleHelper | null = _.get(req.options, ['requestChronicle']);
+      rc?.addInfo(info ?? {});
+      (errors ?? []).forEach(error => rc?.addError(error));
     }
 
     private collectAndLogErrors(errors: (Error | unknown)[], displayErrors: ErrorResponseItemV2[]) {
