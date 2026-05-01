@@ -544,7 +544,6 @@ export namespace Controllers.Core {
         displayErrors: collectedDisplayErrors
       } = RBValidationError.collectErrors(errors, displayErrors);
 
-      sails.log.verbose(`Collected ${collectedErrors.length} ${collectedErrors.length === 1 ? 'error' : 'errors'} in sendResp.`);
       for (const error of collectedErrors) {
         sails.log.error(`Collected error in sendResp:`, error);
       }
@@ -554,37 +553,41 @@ export namespace Controllers.Core {
 
     private ensureDisplayErrors(collectedErrors: Error[], collectedDisplayErrors: ErrorResponseItemV2[]) {
       if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
+        // If there are any errors, there must be at least one display error to show the user.
         collectedDisplayErrors.push({ code: 'server-error', status: "500" });
       }
+
+      const errorsMsg = `${collectedErrors.length} ${collectedErrors.length === 1 ? 'error' : 'errors'}`;
+      const displayErrorsMsg = `display ${collectedDisplayErrors.length} ${collectedDisplayErrors.length === 1 ? 'error' : 'errors'}`;
+      sails.log.verbose(`Collected ${errorsMsg} and ${displayErrorsMsg} in sendResp.`);
     }
 
-    private resolveResponseStatus(status: number, collectedDisplayErrors: ErrorResponseItemV2[]): number {
+    private resolveResponseStatus(status: number | undefined | null, collectedDisplayErrors: ErrorResponseItemV2[]): number {
+      let resolvedStatus = 200;
       if (collectedDisplayErrors.length > 0) {
-        const statusString = collectedDisplayErrors
-          .map(i => i?.status?.toString() ?? "")
-          .reduce((prev, curr) => {
-            const currStr = curr?.toString() || "";
-            const prevStr = prev?.toString() || "";
-            // If the previous status is not 4xx or 5xx, set the status to at least 400,
-            // since there is at least one error.
-            if (!prevStr.startsWith('5') && !prevStr.startsWith('4')) {
-              return "400";
-            }
-            // Any status of 5xx will override any 4xx statuses.
-            if (!prevStr.startsWith('5') && currStr.startsWith('5')) {
-              return "500";
-            }
-            return currStr || prevStr;
-          }, status?.toString() || "");
         try {
-          sails.log.verbose(`sendResp statusString ${statusString}`);
-          status = parseInt(statusString || "500");
+          const statuses: number[] = [];
+          if (status !== undefined && status !== null) {
+            statuses.push(status)
+          }
+          statuses.push(...collectedDisplayErrors
+            .map(i => i?.status ? parseInt(i?.status?.toString()) : 0)
+          )
+          if (statuses.length > 0) {
+            resolvedStatus = Math.max(...statuses);
+          }
         } catch (error) {
-          sails.log.error(`Error in sendResp reducing status ${status}:`, error);
+          sails.log.error(`Error in sendResp resolving status ${resolvedStatus}:`, error);
+          resolvedStatus = 500;
+        }
+
+        // If there are any errors, the status code must be 4xx or 5xx.
+        if (resolvedStatus === null || resolvedStatus < 400) {
+          resolvedStatus = 500;
         }
       }
-      sails.log.verbose(`sendResp status ${status}`);
-      return status;
+      sails.log.verbose(`sendResp status ${resolvedStatus}`);
+      return resolvedStatus;
     }
 
     private applyResponseHeaders(res: Response, headers: Record<string, string>) {
