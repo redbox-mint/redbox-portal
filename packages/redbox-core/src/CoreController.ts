@@ -563,7 +563,7 @@ export namespace Controllers.Core {
     }
 
     private resolveResponseStatus(status: number, collectedDisplayErrors: ErrorResponseItemV2[]): number {
-      let resolvedStatus = status;
+      let resolvedStatus: number | null = status;
       if (collectedDisplayErrors.length > 0) {
         try {
           const statuses: number[] = [];
@@ -572,9 +572,15 @@ export namespace Controllers.Core {
           }
           statuses.push(...collectedDisplayErrors
             .map(i => i?.status ? parseInt(i?.status?.toString()) : 0)
+            .filter(i => Number.isFinite(i))
           )
           if (statuses.length > 0) {
+            // Note that Math.max has a maximum number of parameters, which a very long array (10,000+) could exceed.
+            // We don't expect that many statuses. If this becomes an issue, use Array.reduce instead.
             resolvedStatus = Math.max(...statuses);
+            if (!Number.isFinite(resolvedStatus)) {
+              resolvedStatus = null;
+            }
           }
         } catch (error) {
           sails.log.error(`Error in sendResp resolving status ${resolvedStatus}:`, error);
