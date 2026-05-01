@@ -25,11 +25,27 @@ export enum IntegrationAuditStatus {
   failed = 'failed',
 }
 
+/**
+ * Widened type aliases that accept either the core-shipped enum values or
+ * arbitrary strings supplied by hooks. The `string & {}` intersection
+ * prevents TypeScript from collapsing the union to plain `string`, so the
+ * known enum members still appear in autocomplete while hook-supplied
+ * labels are accepted without modifying the core enums.
+ *
+ * Storage already persists these fields as plain strings (see the
+ * Mongo storage hook's IntegrationAudit model) and runtime code does not
+ * validate against the enum, so widening the type is a safe, non-breaking
+ * decoupling: every existing call site continues to type-check because
+ * enum values are structurally strings.
+ */
+export type IntegrationAuditNameLike = IntegrationAuditName | (string & {});
+export type IntegrationAuditActionLike = IntegrationAuditAction | (string & {});
+
 export class IntegrationAuditModel {
   redboxOid: string = '';
   brandId?: string;
-  integrationName: IntegrationAuditName = IntegrationAuditName.figshare;
-  declare integrationAction: IntegrationAuditAction;
+  integrationName: IntegrationAuditNameLike = IntegrationAuditName.figshare;
+  declare integrationAction: IntegrationAuditActionLike;
   triggeredBy?: string;
   declare status: IntegrationAuditStatus;
   message?: string;

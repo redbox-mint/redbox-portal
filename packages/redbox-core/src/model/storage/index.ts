@@ -1,5 +1,6 @@
 export { RecordAuditModel, RecordAuditActionType } from "./RecordAuditModel";
 export { IntegrationAuditModel, IntegrationAuditAction, IntegrationAuditName, IntegrationAuditStatus } from './IntegrationAuditModel';
+export type { IntegrationAuditActionLike, IntegrationAuditNameLike } from './IntegrationAuditModel';
 export { UserModel } from "./UserModel";
 export { UserLinkModel } from "./UserLinkModel";
 export { BrandingModel } from "./BrandingModel";

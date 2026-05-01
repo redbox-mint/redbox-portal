@@ -24,9 +24,8 @@ import { QueueService } from '../QueueService';
 import { RBValidationError } from '../model/RBValidationError';
 import { StorageServiceResponse } from '../StorageServiceResponse';
 import { momentShim as moment } from '../shims/momentShim';
+import type { IntegrationAuditContext } from './IntegrationAuditService';
 import numeral from 'numeral';
-
-// removed duplicate isObservable import
 
 
 export namespace Services {
@@ -43,6 +42,19 @@ export namespace Services {
     email?: string;
     roles?: unknown[];
     [key: string]: unknown;
+  };
+
+  type RDMPQueuedTriggerAuditOptions = {
+    enabled?: boolean;
+    integrationName?: string;
+    integrationAction?: string;
+    triggeredBy?: string;
+    brandId?: string;
+    requestSummary?: Record<string, unknown>;
+  };
+
+  type RDMPQueuedTriggerOptions = AnyRecord & {
+    integrationAudit?: RDMPQueuedTriggerAuditOptions;
   };
   /**
    * WorkflowSteps related functions...
@@ -426,6 +438,79 @@ export namespace Services {
       return of(record);
     }
 
+    private isIntegrationAuditEnabled(options: RDMPQueuedTriggerOptions): boolean {
+      return options.integrationAudit?.enabled === true;
+    }
+
+    private getRecordBrandId(record: unknown): string | undefined {
+      const brandId = _.get(record, 'metaMetadata.brandId');
+      return _.isString(brandId) && !_.isEmpty(brandId) ? brandId : undefined;
+    }
+
+    private getJobId(jobObj: AnyRecord): string | undefined {
+      const jobId = _.get(jobObj, 'attrs._id') ?? _.get(jobObj, 'attrs.id') ?? _.get(jobObj, '_id') ?? _.get(jobObj, 'id');
+      if (_.isNil(jobId)) {
+        return undefined;
+      }
+      return String(jobId);
+    }
+
+    private getJobName(jobObj: AnyRecord): string | undefined {
+      const jobName = _.get(jobObj, 'attrs.name') ?? _.get(jobObj, 'name');
+      return _.isString(jobName) && !_.isEmpty(jobName) ? jobName : undefined;
+    }
+
+    private startQueuedTriggerAudit(
+      oid: string,
+      record: unknown,
+      hookFunctionString: string,
+      hookOptions: RDMPQueuedTriggerOptions,
+      jobObj: AnyRecord
+    ): IntegrationAuditContext | null {
+
+      if (!this.isIntegrationAuditEnabled(hookOptions)) {
+        return null;
+      }
+      const auditOptions = hookOptions.integrationAudit ?? {};
+      const jobId = this.getJobId(jobObj);
+      const jobName = this.getJobName(jobObj);
+      const requestSummary = {
+        oid,
+        hookFunction: hookFunctionString,
+        ...(jobId != null ? { jobId } : {}),
+        ...(jobName != null ? { jobName } : {}),
+        ...(auditOptions.requestSummary ?? {}),
+      };
+      return IntegrationAuditService.startAudit(
+        oid,
+        auditOptions.integrationAction ?? 'queuedTriggerSubscriptionHandler',
+        {
+          integrationName: auditOptions.integrationName ?? 'queueTrigger',
+          triggeredBy: auditOptions.triggeredBy ?? hookFunctionString ?? 'RDMPService.queuedTriggerSubscriptionHandler',
+          brandId: auditOptions.brandId ?? this.getRecordBrandId(record),
+          requestSummary,
+        }
+      );
+    }
+
+    private completeQueuedTriggerAudit(ctx: IntegrationAuditContext | null | undefined, details: Record<string, unknown>): void {
+      if (ctx == null) {
+        return;
+      }
+
+      IntegrationAuditService.completeAudit(ctx, details);
+
+    }
+
+    private failQueuedTriggerAudit(ctx: IntegrationAuditContext | null | undefined, error: unknown, details: Record<string, unknown>): void {
+      if (ctx == null) {
+        return;
+      }
+
+      IntegrationAuditService.failAudit(ctx, error, details);
+
+    }
+
     public queuedTriggerSubscriptionHandler(job: unknown) {
       const jobObj = job as AnyRecord;
       const data = (jobObj.attrs ?? {}) as AnyRecord;
@@ -438,17 +523,65 @@ export namespace Services {
       const hookFunctionString = _.get(triggerConfiguration, "function", null);
       sails.log.verbose(`Found hook function string ${hookFunctionString}`);
       if (hookFunctionString != null) {
-        const hookFunction = eval(hookFunctionString);
-        const options = _.get(triggerConfiguration, "options", {});
+        const rawOptions = _.get(triggerConfiguration, "options", {});
+        const options = _.isPlainObject(rawOptions) ? rawOptions as RDMPQueuedTriggerOptions : {};
+        const auditCtx = this.startQueuedTriggerAudit(String(oid ?? ''), record, String(hookFunctionString), options, jobObj);
+        let hookFunction: unknown;
+        try {
+          hookFunction = eval(String(hookFunctionString));
+        } catch (error) {
+          this.failQueuedTriggerAudit(auditCtx, error, {
+            message: 'Queued trigger hook resolution failed.',
+            responseSummary: {
+              hookFunction: String(hookFunctionString),
+            },
+          });
+          throw error;
+        }
         if (_.isFunction(hookFunction)) {
           sails.log.debug(`Triggering queuedtrigger: ${hookFunctionString}`)
-          const hookResponse = hookFunction(oid, record, options, user);
-          const response = this.convertToObservable(hookResponse);
-          return firstValueFrom(response);
+          try {
+            const hookResponse = hookFunction(oid, record, options, user);
+            const response = this.convertToObservable(hookResponse);
+            return firstValueFrom(response)
+              .then((result: unknown) => {
+                this.completeQueuedTriggerAudit(auditCtx, {
+                  message: 'Queued trigger hook completed successfully.',
+                  responseSummary: {
+                    hookFunction: String(hookFunctionString),
+                  },
+                });
+                return result;
+              })
+              .catch((error: unknown) => {
+                this.failQueuedTriggerAudit(auditCtx, error, {
+                  message: 'Queued trigger hook failed.',
+                  responseSummary: {
+                    hookFunction: String(hookFunctionString),
+                  },
+                });
+                throw error;
+              });
+          } catch (error) {
+            this.failQueuedTriggerAudit(auditCtx, error, {
+              message: 'Queued trigger hook failed.',
+              responseSummary: {
+                hookFunction: String(hookFunctionString),
+              },
+            });
+            throw error;
+          }
 
         } else {
           sails.log.error(`queued trigger function: '${hookFunctionString}' did not resolve to a valid function, what I got:`);
           sails.log.error(hookFunction);
+          this.failQueuedTriggerAudit(auditCtx, new Error(`Queued trigger function did not resolve to a valid function: ${hookFunctionString}`), {
+            message: 'Queued trigger hook did not resolve to a valid function.',
+            responseSummary: {
+              hookFunction: String(hookFunctionString),
+              resolvedType: typeof hookFunction,
+            },
+          });
         }
       }
       return of(record);

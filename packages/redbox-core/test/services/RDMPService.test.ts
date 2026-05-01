@@ -1,5 +1,5 @@
 import * as sinon from 'sinon';
-import { of, firstValueFrom } from 'rxjs';
+import { of, firstValueFrom, throwError } from 'rxjs';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject, configureModelMethod } from './testHelper';
 
 let expect: Chai.ExpectStatic;
@@ -84,6 +84,18 @@ describe('RDMPService', function () {
       addWorkspaceToRecord: sinon.stub().resolves({}),
       removeWorkspaceFromRecord: sinon.stub().resolves({})
     };
+    (global as any).IntegrationAuditService = {
+      startAudit: sinon.stub().returns({
+        redboxOid: 'oid-1',
+        integrationName: 'queueTrigger',
+        integrationAction: 'queuedTriggerSubscriptionHandler',
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        startedAt: '2026-01-01T00:00:00.000Z'
+      }),
+      completeAudit: sinon.stub(),
+      failAudit: sinon.stub()
+    };
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/RDMPService');
@@ -103,6 +115,10 @@ describe('RDMPService', function () {
     delete (global as any).WorkflowStepsService;
     delete (global as any).TranslationService;
     delete (global as any).WorkspaceService;
+    delete (global as any).IntegrationAuditService;
+    delete (global as any).testQueuedTriggerHook;
+    delete (global as any).testQueuedTriggerNonFunction;
+    delete (global as any).testQueuedTriggerThrowingHook;
     sinon.restore();
   });
 
@@ -772,6 +788,192 @@ describe('RDMPService', function () {
       const result = await firstValueFrom(RDMPService.queueTriggerCall('oid-1', record, options, {}));
 
       expect(RDMPService.queueService.now.called).to.be.true;
+    });
+  });
+
+  describe('queuedTriggerSubscriptionHandler', function () {
+    function buildQueuedTriggerJob(record: Record<string, unknown>, options: Record<string, unknown> = {}, hookFunction = 'testQueuedTriggerHook') {
+      return {
+        attrs: {
+          _id: 'job-1',
+          name: 'testJob',
+          oid: 'oid-1',
+          record,
+          triggerConfiguration: {
+            function: hookFunction,
+            options
+          },
+          user: { username: 'user-1' }
+        }
+      };
+    }
+
+    it('should not audit queued trigger execution when integration audit options are absent', async function () {
+      const record = { metaMetadata: { brandId: 'brand-1' }, metadata: {} };
+      (global as any).testQueuedTriggerHook = sinon.stub().returns(of(record));
+
+      const result = await RDMPService.queuedTriggerSubscriptionHandler(buildQueuedTriggerJob(record));
+
+      expect(result).to.deep.equal(record);
+      expect((global as any).testQueuedTriggerHook.calledOnce).to.be.true;
+      expect((global as any).IntegrationAuditService.startAudit.called).to.be.false;
+      expect((global as any).IntegrationAuditService.completeAudit.called).to.be.false;
+      expect((global as any).IntegrationAuditService.failAudit.called).to.be.false;
+    });
+
+    it('should not audit queued trigger execution when integration audit is disabled', async function () {
+      const record = { metaMetadata: { brandId: 'brand-1' }, metadata: {} };
+      (global as any).testQueuedTriggerHook = sinon.stub().returns(of(record));
+
+      await RDMPService.queuedTriggerSubscriptionHandler(buildQueuedTriggerJob(record, {
+        integrationAudit: { enabled: false }
+      }));
+
+      expect((global as any).testQueuedTriggerHook.calledOnce).to.be.true;
+      expect((global as any).IntegrationAuditService.startAudit.called).to.be.false;
+      expect((global as any).IntegrationAuditService.completeAudit.called).to.be.false;
+      expect((global as any).IntegrationAuditService.failAudit.called).to.be.false;
+    });
+
+    it('should start and complete audit with default metadata when integration audit is enabled', async function () {
+      const record = { metaMetadata: { brandId: 'brand-1' }, metadata: {} };
+      const options = {
+        integrationAudit: { enabled: true }
+      };
+      (global as any).testQueuedTriggerHook = sinon.stub().returns(of(record));
+
+      const result = await RDMPService.queuedTriggerSubscriptionHandler(buildQueuedTriggerJob(record, options));
+
+      expect(result).to.deep.equal(record);
+      expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
+      expect((global as any).IntegrationAuditService.completeAudit.calledOnce).to.be.true;
+      expect((global as any).IntegrationAuditService.failAudit.called).to.be.false;
+
+      const startArgs = (global as any).IntegrationAuditService.startAudit.firstCall.args;
+      expect(startArgs[0]).to.equal('oid-1');
+      expect(startArgs[1]).to.equal('queuedTriggerSubscriptionHandler');
+      expect(startArgs[2]).to.include({
+        integrationName: 'queueTrigger',
+        triggeredBy: 'testQueuedTriggerHook',
+        brandId: 'brand-1'
+      });
+      expect(startArgs[2].requestSummary).to.include({
+        oid: 'oid-1',
+        hookFunction: 'testQueuedTriggerHook',
+        jobId: 'job-1',
+        jobName: 'testJob'
+      });
+    });
+
+    it('should allow integration audit metadata overrides', async function () {
+      const record = { metaMetadata: { brandId: 'brand-1' }, metadata: {} };
+      const options = {
+        integrationAudit: {
+          enabled: true,
+          integrationName: 'customIntegration',
+          integrationAction: 'customAction',
+          triggeredBy: 'customTrigger',
+          brandId: 'customBrand',
+          requestSummary: {
+            source: 'unit-test'
+          }
+        }
+      };
+      (global as any).testQueuedTriggerHook = sinon.stub().returns(of(record));
+
+      await RDMPService.queuedTriggerSubscriptionHandler(buildQueuedTriggerJob(record, options));
+
+      const startArgs = (global as any).IntegrationAuditService.startAudit.firstCall.args;
+      expect(startArgs[1]).to.equal('customAction');
+      expect(startArgs[2]).to.include({
+        integrationName: 'customIntegration',
+        triggeredBy: 'customTrigger',
+        brandId: 'customBrand'
+      });
+      expect(startArgs[2].requestSummary).to.include({
+        oid: 'oid-1',
+        hookFunction: 'testQueuedTriggerHook',
+        jobId: 'job-1',
+        jobName: 'testJob',
+        source: 'unit-test'
+      });
+    });
+
+    it('should fail audit and rethrow when the queued trigger hook throws synchronously', async function () {
+      const record = { metaMetadata: { brandId: 'brand-1' }, metadata: {} };
+      const error = new Error('sync failure');
+      (global as any).testQueuedTriggerThrowingHook = sinon.stub().throws(error);
+
+      let thrown: unknown;
+      try {
+        await RDMPService.queuedTriggerSubscriptionHandler(buildQueuedTriggerJob(record, {
+          integrationAudit: { enabled: true }
+        }, 'testQueuedTriggerThrowingHook'));
+      } catch (err) {
+        thrown = err;
+      }
+
+      expect(thrown).to.equal(error);
+      expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
+      expect((global as any).IntegrationAuditService.completeAudit.called).to.be.false;
+      expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
+      expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1]).to.equal(error);
+    });
+
+    it('should fail audit and rethrow when the queued trigger hook returns an errored observable', async function () {
+      const record = { metaMetadata: { brandId: 'brand-1' }, metadata: {} };
+      const error = new Error('observable failure');
+      (global as any).testQueuedTriggerHook = sinon.stub().returns(throwError(() => error));
+
+      let thrown: unknown;
+      try {
+        await RDMPService.queuedTriggerSubscriptionHandler(buildQueuedTriggerJob(record, {
+          integrationAudit: { enabled: true }
+        }));
+      } catch (err) {
+        thrown = err;
+      }
+
+      expect(thrown).to.equal(error);
+      expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
+      expect((global as any).IntegrationAuditService.completeAudit.called).to.be.false;
+      expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
+      expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1]).to.equal(error);
+    });
+
+    it('should fail audit and rethrow when the queued trigger hook returns a rejecting promise', async function () {
+      const record = { metaMetadata: { brandId: 'brand-1' }, metadata: {} };
+      const error = new Error('promise failure');
+      (global as any).testQueuedTriggerHook = sinon.stub().rejects(error);
+
+      let thrown: unknown;
+      try {
+        await RDMPService.queuedTriggerSubscriptionHandler(buildQueuedTriggerJob(record, {
+          integrationAudit: { enabled: true }
+        }));
+      } catch (err) {
+        thrown = err;
+      }
+
+      expect(thrown).to.equal(error);
+      expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
+      expect((global as any).IntegrationAuditService.completeAudit.called).to.be.false;
+      expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
+      expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1]).to.equal(error);
+    });
+
+    it('should fail audit without throwing when the queued trigger hook does not resolve to a function', async function () {
+      const record = { metaMetadata: { brandId: 'brand-1' }, metadata: {} };
+      (global as any).testQueuedTriggerNonFunction = { not: 'callable' };
+
+      const result = await firstValueFrom(RDMPService.queuedTriggerSubscriptionHandler(buildQueuedTriggerJob(record, {
+        integrationAudit: { enabled: true }
+      }, 'testQueuedTriggerNonFunction')));
+
+      expect(result).to.deep.equal(record);
+      expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
+      expect((global as any).IntegrationAuditService.completeAudit.called).to.be.false;
+      expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
     });
   });
 

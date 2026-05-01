@@ -5,8 +5,10 @@ import { IntegrationAuditParams } from '../IntegrationAuditParams';
 
 import {
   IntegrationAuditAction,
+  IntegrationAuditActionLike,
   IntegrationAuditModel,
   IntegrationAuditName,
+  IntegrationAuditNameLike,
   IntegrationAuditStatus,
 } from '../model/storage/IntegrationAuditModel';
 import { StorageServiceResponse } from '../StorageServiceResponse';
@@ -19,8 +21,8 @@ type AnyRecord = Record<string, unknown>;
 export type IntegrationAuditContext = {
   redboxOid: string;
   brandId?: string;
-  integrationName: IntegrationAuditName;
-  integrationAction: IntegrationAuditAction;
+  integrationName: IntegrationAuditNameLike;
+  integrationAction: IntegrationAuditActionLike;
   triggeredBy?: string;
   traceId: string;
   spanId: string;
@@ -67,7 +69,7 @@ export type IntegrationAuditTraceLogResult = {
 
 type IntegrationAuditOptions = {
   brandId?: string;
-  integrationName?: IntegrationAuditName;
+  integrationName?: IntegrationAuditNameLike;
   triggeredBy?: string;
   requestSummary?: Record<string, unknown>;
   message?: string;
@@ -270,7 +272,7 @@ export namespace Services {
       }
     }
 
-    public startAudit(oid: string, action: IntegrationAuditAction, opts: IntegrationAuditOptions = {}): IntegrationAuditContext {
+    public startAudit(oid: string, action: IntegrationAuditActionLike, opts: IntegrationAuditOptions = {}): IntegrationAuditContext {
       const startedAt = new Date().toISOString();
       const traceContext = this.resolveTraceContext(opts);
       const ctx: IntegrationAuditContext = {
@@ -676,4 +678,8 @@ export namespace Services {
       }
     }
   }
+}
+
+declare global {
+  let IntegrationAuditService: Services.IntegrationAuditService;
 }
