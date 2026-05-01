@@ -444,7 +444,7 @@ describe("Client Visitor", async () => {
 
     it('should update repeatable data model that includes json type def optional properties', async () => {
       const args: FormConfigFrame = {
-        name: 'update-repeatable-with-jsontypedef-optional-propeties',
+        name: 'update-repeatable-with-jsontypedef-optional-properties',
         componentDefinitions: [
           {
             name: 'repeatable1',
