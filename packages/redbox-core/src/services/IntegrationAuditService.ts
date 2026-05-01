@@ -4,7 +4,6 @@ import { Services as services } from '../CoreService';
 import { IntegrationAuditParams } from '../IntegrationAuditParams';
 
 import {
-  IntegrationAuditAction,
   IntegrationAuditActionLike,
   IntegrationAuditModel,
   IntegrationAuditName,
