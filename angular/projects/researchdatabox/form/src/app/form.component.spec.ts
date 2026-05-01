@@ -12,7 +12,7 @@ import {
 } from "./helpers.spec";
 import { FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
-import { createFieldValueChangedEvent, createFormDefinitionChangedEvent, createFormSaveExecuteEvent, createFormStatusDirtyRequestEvent, FormComponentEventType } from './form-state/events/form-component-event.types';
+import { createFieldValueChangedEvent, createFormDefinitionChangedEvent, createFormSaveExecuteEvent, createFormStatusDirtyRequestEvent, FormComponentEventType, FormValidationBroadcastEvent } from './form-state/events/form-component-event.types';
 
 describe('FormComponent', () => {
   const setWindowSearch = (search?: string) => {
@@ -171,6 +171,47 @@ describe('FormComponent', () => {
     await fixture.whenStable();
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(true, 'S1', ["none"]);
+  });
+
+  it('broadcastFormStatus publishes current validation status and refreshes the status signal', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'broadcast-form-status',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'text_status',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'status value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+    const { formComponent } = await createFormAndWaitForReady(formConfig);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const events: FormValidationBroadcastEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_VALIDATION_BROADCAST).subscribe(event => events.push(event));
+
+    try {
+      formComponent.broadcastFormStatus();
+
+      expect(events.length).toBe(1);
+      expect(events[0].isValid).toBe(formComponent.dataStatus.valid);
+      expect(events[0].errors).toBe(formComponent.dataStatus.errors);
+      expect(events[0].status).toEqual(formComponent.dataStatus);
+      expect(formComponent.formGroupStatus()).toEqual(formComponent.dataStatus);
+    } finally {
+      sub.unsubscribe();
+    }
   });
 
   it('allows legacy callers to invoke saveForm directly (Task 17)', async () => {

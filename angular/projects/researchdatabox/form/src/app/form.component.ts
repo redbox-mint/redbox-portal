@@ -574,14 +574,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.subMaps['formGroupChangesSub'] = this.form.events.subscribe(
         (formGroupEvent: StatusChangeEvent | PristineChangeEvent | ValueChangeEvent<unknown> | unknown) => {
           if (formGroupEvent instanceof StatusChangeEvent || formGroupEvent instanceof PristineChangeEvent) {
-            this.formGroupStatus.set(this.dataStatus);
-            this.eventBus.publish(
-              createFormValidationBroadcastEvent({
-                isValid: this.dataStatus.valid,
-                errors: this.dataStatus.errors,
-                status: this.dataStatus,
-              })
-            );
+            this.broadcastFormStatus();
           }
         }
       );
@@ -604,6 +597,28 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     //     }
     //   });
     // }
+  }
+  /**
+   * Refresh the form group status signal and publish a FORM_VALIDATION_BROADCAST
+   * with the current data status.
+   *
+   * Use this whenever a control value/state has been mutated with `emitEvent: false`
+   * — e.g. expression-driven model updates — so consumers like the Save button
+   * effect can re-evaluate. Without this, silent updates can leave the UI's idea
+   * of validity out of sync with the FormGroup's actual state.
+   */
+  public broadcastFormStatus(): void {
+    if (!this.form) {
+      return;
+    }
+    this.formGroupStatus.set(this.dataStatus);
+    this.eventBus.publish(
+      createFormValidationBroadcastEvent({
+        isValid: this.dataStatus.valid,
+        errors: this.dataStatus.errors,
+        status: this.dataStatus,
+      })
+    );
   }
   /**
    * Create the form group based on the form definition map.
