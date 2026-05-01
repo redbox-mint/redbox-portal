@@ -562,8 +562,8 @@ export namespace Controllers.Core {
       sails.log.verbose(`Collected ${errorsMsg} and ${displayErrorsMsg} in sendResp.`);
     }
 
-    private resolveResponseStatus(status: number | undefined | null, collectedDisplayErrors: ErrorResponseItemV2[]): number {
-      let resolvedStatus = 200;
+    private resolveResponseStatus(status: number, collectedDisplayErrors: ErrorResponseItemV2[]): number {
+      let resolvedStatus = status;
       if (collectedDisplayErrors.length > 0) {
         try {
           const statuses: number[] = [];
@@ -582,7 +582,7 @@ export namespace Controllers.Core {
         }
 
         // If there are any errors, the status code must be 4xx or 5xx.
-        if (resolvedStatus === null || resolvedStatus < 400) {
+        if (resolvedStatus === null || resolvedStatus === undefined || resolvedStatus < 400) {
           resolvedStatus = 500;
         }
       }
