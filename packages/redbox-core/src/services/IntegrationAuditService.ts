@@ -681,5 +681,5 @@ export namespace Services {
 }
 
 declare global {
-  let IntegrationAuditService: Services.IntegrationAuditService;
+  const IntegrationAuditService: Services.IntegrationAuditService;
 }
