@@ -1201,7 +1201,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       result = this.buildDataMatchingSchemaElements(elementsSchema, [...schemaPath, 'elements'], result, valuePath);
 
     } else if (schemaKeys.includes('type') && schemaKeys.length === 1) {
-      const typeSchema = (currentSchema['type'] ?? {}) as Record<string, unknown>;
+      const typeSchema = (currentSchema['type'] ?? {}) as string | Record<string, unknown>;
       result = this.buildDataMatchingSchemaType(typeSchema, [...schemaPath, 'type'], result, valuePath);
 
     } else if (schemaKeys.length > 0 && schemaKeys.filter(k => !propKeys.includes(k)).length === 0) {
@@ -1325,7 +1325,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
    * @protected
    */
   protected buildDataMatchingSchemaType(
-    currentSchema: Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
+    currentSchema: string | Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
   ): unknown {
     const currentSchemaType = String(currentSchema);
     const currentValueType = guessType(currentValue);
@@ -1335,6 +1335,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     // Allow null values.
     const isNull = currentValueType === 'null';
 
+    // The current schema at this point in the schema structure should be a string representing the expected type.
+    // An invalid schema might provide an object instead,
+    // so check for that by comparing to the guessed type of the current value.
     if (currentValueType !== currentSchemaType && !isNull && !isTimestampString) {
       throw this.matchDataSchemaError(currentSchemaType, currentSchema, schemaPath, currentValue, valuePath);
     }
@@ -1353,7 +1356,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
    * @protected
    */
   protected matchDataSchemaError(
-    expectedType: string, currentSchema: Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
+    expectedType: string, currentSchema: string | Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
   ): Error {
     const currentValueType = guessType(currentValue);
 
