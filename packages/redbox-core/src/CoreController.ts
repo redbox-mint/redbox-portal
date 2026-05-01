@@ -501,7 +501,6 @@ export namespace Controllers.Core {
 
       // Collect and process the errors recursively
       const { collectedErrors, collectedDisplayErrors } = this.collectAndLogErrors(errors, displayErrors);
-      this.ensureDisplayErrors(collectedErrors, collectedDisplayErrors);
       status = this.resolveResponseStatus(status, collectedDisplayErrors);
 
       this.applyResponseHeaders(res, headers);
@@ -538,7 +537,7 @@ export namespace Controllers.Core {
       return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
     }
 
-    private collectAndLogErrors(errors: Error[], displayErrors: ErrorResponseItemV2[]) {
+    private collectAndLogErrors(errors: (Error | unknown)[], displayErrors: ErrorResponseItemV2[]) {
       const {
         errors: collectedErrors,
         displayErrors: collectedDisplayErrors
@@ -548,18 +547,10 @@ export namespace Controllers.Core {
         sails.log.error(`Collected error in sendResp:`, error);
       }
 
-      return { collectedErrors, collectedDisplayErrors };
-    }
-
-    private ensureDisplayErrors(collectedErrors: Error[], collectedDisplayErrors: ErrorResponseItemV2[]) {
-      if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
-        // If there are any errors, there must be at least one display error to show the user.
-        collectedDisplayErrors.push({ code: 'server-error', status: "500" });
-      }
-
       const errorsMsg = `${collectedErrors.length} ${collectedErrors.length === 1 ? 'error' : 'errors'}`;
       const displayErrorsMsg = `display ${collectedDisplayErrors.length} ${collectedDisplayErrors.length === 1 ? 'error' : 'errors'}`;
       sails.log.verbose(`Collected ${errorsMsg} and ${displayErrorsMsg} in sendResp.`);
+      return { collectedErrors, collectedDisplayErrors };
     }
 
     private resolveResponseStatus(status: number, collectedDisplayErrors: ErrorResponseItemV2[]): number {

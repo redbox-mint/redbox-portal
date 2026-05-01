@@ -33,6 +33,7 @@ export namespace Controllers {
         sails.log.verbose(error);
         return this.sendResp(req, res, {
           status: 500,
+          errors: [error],
           displayErrors: [{ code: 'vocabulary-service-error' }],
           headers: this.getNoCacheHeaders()
         });

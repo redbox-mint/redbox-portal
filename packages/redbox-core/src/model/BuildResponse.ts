@@ -29,7 +29,7 @@ export interface BuildResponseType {
    * These will be logged.
    * They are not included in the response.
    */
-  errors?: Error[];
+  errors?: (Error | unknown)[];
   /**
    * Structured detail errors.
    * These are included in the response.

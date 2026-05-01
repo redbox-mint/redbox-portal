@@ -1,5 +1,5 @@
-import { Services } from "../services/TranslationService";
-import { ErrorResponseItemV2 } from "./api";
+import {Services} from "../services/TranslationService";
+import {ErrorResponseItemV2} from "./api";
 
 // Define ErrorOptions locally for ES6 target compatibility
 interface RBErrorOptions {
@@ -37,15 +37,58 @@ export class RBValidationError extends Error {
    * @returns True if item is an instance of RBValidationError, otherwise false.
    */
   public static isRBValidationError(item: unknown): item is RBValidationError {
-    return item instanceof RBValidationError || (item instanceof Error && item?.name === RBValidationError.errorName);
+    return RBValidationError.isError(item, RBValidationError.errorName);
   }
+
+  /**
+   * Convert item to an RBValidationError.
+   * @param item The item to convert.
+   * @return An RBValidation instance representing item.
+   */
+  public static asRBValidationError(item: unknown): RBValidationError {
+    if (RBValidationError.isRBValidationError(item)) {
+      return item;
+    }
+    if (RBValidationError.isError(item)) {
+      return new RBValidationError({message: `${item.name}: ${item.message}`, options: {cause: item.cause}})
+    }
+
+    return new RBValidationError({message: String(item)});
+  }
+
+  /**
+   * Check if item is an instance of Error.
+   * @param item The item to check.
+   * @param name The expected error name. Returns false if the name is provided and does not match.
+   * @returns True if item is an instance of Error, otherwise false.
+   */
+  public static isError(item: unknown, name?: string): item is Error {
+    if (!name) {
+      return item instanceof Error;
+    }
+    return item instanceof Error && item?.name === name;
+  }
+
+  /**
+   * Convert item to an Error.
+   * @param item The item to convert.
+   * @return An Error instance representing item.
+   */
+  public static asError(item: unknown): Error {
+    if (RBValidationError.isError(item)) {
+      return item;
+    }
+
+    return new Error(String(item));
+  }
+
 
   /**
    * Recursively collect the Errors and display errors.
    * @param errors The initial array of Error instances.
    * @param displayErrors The initial array of display errors.
    */
-  public static collectErrors(errors: Error[], displayErrors: ErrorResponseItemV2[]): {
+  public static collectErrors(errors: (Error | unknown)[], displayErrors: ErrorResponseItemV2[]): {
     errors: Error[],
     displayErrors: ErrorResponseItemV2[]
   } {
@@ -61,7 +104,11 @@ export class RBValidationError extends Error {
         continue;
       }
 
-      collectedErrors.push(error);
+      if (RBValidationError.isError(error)) {
+        collectedErrors.push(error);
+      } else {
+        collectedErrors.push(RBValidationError.asError(error));
+      }
 
       // Extract and store displayErrors from any RBValidationErrors
       const maybeDisplayErrors = (error as RBValidationError)?.displayErrors;
@@ -75,7 +122,12 @@ export class RBValidationError extends Error {
       }
     }
 
-    return { errors: collectedErrors, displayErrors: collectedDisplayErrors };
+    if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
+      // If there are any errors, there must be at least one display error to show the user.
+      collectedDisplayErrors.push({code: 'server-error', status: '500'});
+    }
+
+    return {errors: collectedErrors, displayErrors: collectedDisplayErrors};
   }
 
   /**
@@ -87,7 +139,7 @@ export class RBValidationError extends Error {
    */
   public static displayMessage(options: {
     t?: Services.Translation,
-    errors?: Error[],
+    errors?: (Error | unknown)[],
     displayErrors?: ErrorResponseItemV2[],
     defaultMessage?: string
   } = {}): string {
@@ -95,8 +147,8 @@ export class RBValidationError extends Error {
     if (!t) {
       throw new Error("Must provide TranslationService as 't' to RBValidationError.displayMessage.");
     }
-    const { displayErrors: collectedDisplayErrors } = RBValidationError.collectErrors(options?.errors ?? [], options?.displayErrors ?? []);
-    const displayMessages = (collectedDisplayErrors ?? [{ title: options?.defaultMessage ?? t("An error occurred") }])
+    const {displayErrors: collectedDisplayErrors} = RBValidationError.collectErrors(options?.errors ?? [], options?.displayErrors ?? []);
+    const displayMessages = (collectedDisplayErrors ?? [{title: options?.defaultMessage ?? t("An error occurred")}])
       ?.map(displayError => {
         const code = displayError.code?.toString()?.trim() ?? "";
         const title = displayError.title?.toString()?.trim() || code;

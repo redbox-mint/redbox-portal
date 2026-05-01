@@ -17,6 +17,7 @@ import { redboxSession as redboxSessionConfigValue } from './redboxSession.confi
 import type { CompanionConfig } from './companion.config';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as PathRulesServiceModule from '../services/PathRulesService';
+import {requestChronicle} from "../middleware/requestChronicle";
 
 // Declare Sails and its config structure
 declare const sails: {
@@ -42,24 +43,13 @@ declare const sails: {
     };
 };
 
-// Extended Request interface for custom properties
-interface ExtendedRequest extends Request {
-    options?: {
-        locals?: {
-            branding?: string;
-            portal?: string;
-            [key: string]: unknown;
-        };
-    };
-    [key: string]: unknown;
-}
 declare const BrandingService: BrandingServiceModule.Services.Branding;
 declare const PathRulesService: PathRulesServiceModule.Services.PathRules;
 
 /**
  * Middleware function signature
  */
-export type MiddlewareFunction = (req: Request, res: Response, next: NextFunction) => void;
+export type MiddlewareFunction = (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) => void;
 
 /**
  * Middleware configuration object
@@ -84,6 +74,7 @@ export interface HttpMiddlewareConfig {
     router?: RequestHandler;
     www?: RequestHandler;
     favicon?: RequestHandler;
+    requestChronicle?: MiddlewareFunction;
 
     /** Allow additional custom middleware */
     [key: string]: MiddlewareFunction | RequestHandler | string[] | undefined;
@@ -211,7 +202,7 @@ export const http: HttpConfig = {
 
     middleware: {
         // Lazy load redboxSession to support async shim generation
-        redboxSession: function (req: Request, res: Response, next: NextFunction) {
+        redboxSession: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             if (!_lazyRedboxSessionMiddleware) {
                 // Initialize the session middleware with the config
                 _lazyRedboxSessionMiddleware = redboxSessionMiddleware(redboxSessionConfigValue);
@@ -228,7 +219,7 @@ export const http: HttpConfig = {
             return sails.config.passport.session()(req, res, next);
         },
 
-        companion: function (req: Request, res: Response, next: NextFunction) {
+        companion: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             const companionConfig = sails.config.companion;
             if (!companionConfig?.enabled) {
                 return next();
@@ -406,8 +397,8 @@ export const http: HttpConfig = {
             }
         },
 
-        brandingAndPortalAwareStaticRouter: function (req: Request, res: Response, next: NextFunction) {
-            const extendedReq = req as ExtendedRequest;
+        brandingAndPortalAwareStaticRouter: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
+            const extendedReq = req;
             const existsSync = fs.existsSync;
 
             // Checks the branding and portal parameters if the resource isn't overidden for the required portal and branding,
@@ -462,11 +453,12 @@ export const http: HttpConfig = {
             next();
         },
 
-        translate: function (req: Request, res: Response, next: NextFunction) {
+        translate: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             next();
         },
 
         order: [
+            'requestChronicle',
             'cacheControl',
             'redirectNoCacheHeaders',
             'cookieParser',
@@ -484,7 +476,7 @@ export const http: HttpConfig = {
             'favicon',
         ],
 
-        myBodyParser: function (req: Request, res: Response, next: NextFunction) {
+        myBodyParser: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             // ignore if there is '/attach/' on the url
             if (req.url.toLowerCase().includes('/attach')) {
                 return next();
@@ -496,12 +488,12 @@ export const http: HttpConfig = {
             return skipperMiddleware(req, res, next);
         },
 
-        poweredBy: function (req: Request, res: Response, next: NextFunction) {
+        poweredBy: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             res.set('X-Powered-By', "QCIF");
             return next();
         },
 
-        redirectNoCacheHeaders: function (req: Request, res: Response, next: NextFunction) {
+        redirectNoCacheHeaders: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             const originalRedirect = res.redirect;
 
             // Patch the redirect function so that it sets the no-cache headers
@@ -518,12 +510,12 @@ export const http: HttpConfig = {
                     return redirect.call(this, statusOrUrl, urlOrStatus);
                 }
                 return redirect.call(this, urlOrStatus);
-            } as Response['redirect'];
+            };
 
             return next();
         },
 
-        cacheControl: function (req: Request, res: Response, next: NextFunction) {
+        cacheControl: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             const sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 31536000 : sails.config.session.cookie.maxAge / 1000);
             let cacheControlHeaderVal: string | null = null;
             let expiresHeaderVal: string | null = null;
@@ -557,6 +549,8 @@ export const http: HttpConfig = {
             res.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
             res.set('Pragma', 'no-cache');
             return next();
-        }
+        },
+
+        requestChronicle: requestChronicle,
     },
 };

@@ -1,10 +1,12 @@
 // top
+export * from './handlebars-helpers';
+export * from './logger.interface';
 export * from './record.model';
 export * from './report.model';
 export * from './status.model';
 export * from './template.outline';
-export * from './handlebars-helpers';
 export * from './translation-helpers';
+export * from './typing-helpers';
 // config
 export * from './config/helpers';
 export * from './config/dictionary.outline';
@@ -38,7 +40,6 @@ export * from './config/names/naming-helpers';
 export * from './config/visitor/base.outline';
 export * from './config/visitor/base.model';
 export * from './config/visitor/common.model';
-export * from './logger.interface';
 // config/component
 export * from './config/component/checkbox-input.model';
 export * from './config/component/checkbox-input.outline';

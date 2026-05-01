@@ -1,6 +1,7 @@
 // Adapted from https://git.f3l.de/ttomasini/sails-types/raw/branch/master/sails.d.ts
 import express = require('express');
 import type { SailsConfig } from './config';
+import {RequestChronicle} from "./middleware/requestChronicle";
 
 // Augment express-session to include Sails-specific session properties
 declare module 'express-session' {
@@ -205,7 +206,12 @@ declare global {
     export interface NextFunction extends express.NextFunction {}
 
     export interface ReqOptions {
-      locals?: globalThis.Record<string, unknown>;
+      locals?: {
+        branding?: string;
+        portal?: string;
+        [key: string]: unknown;
+      };
+      requestChronicle?: RequestChronicle;
       [key: string]: unknown;
     }
 
