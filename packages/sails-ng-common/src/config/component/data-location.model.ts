@@ -52,6 +52,7 @@ export class DataLocationFieldComponentConfig extends FieldComponentConfig imple
         { label: "File path", value: "file" },
         { label: "Attachment", value: "attachment" }
     ];
+    dataTypePlaceholder = "";
     dataTypeLookup: Record<string, string> = {
         url: "URL",
         physical: "Physical location",

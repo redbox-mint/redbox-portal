@@ -1509,6 +1509,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('applyEditNotesButtonText', item.config, config);
     this.sharedProps.setPropOverride('editNotesCssClasses', item.config, config);
     this.sharedProps.setPropOverride('dataTypes', item.config, config);
+    this.sharedProps.setPropOverride('dataTypePlaceholder', item.config, config);
     this.sharedProps.setPropOverride('dataTypeLookup', item.config, config);
     this.sharedProps.setPropOverride('hideNotesForLocationTypes', item.config, config);
   }

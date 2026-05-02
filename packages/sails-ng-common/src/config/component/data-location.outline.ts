@@ -87,6 +87,7 @@ export interface DataLocationFieldComponentConfigFrame extends FileUploadFieldCo
     applyEditNotesButtonText?: string;
     editNotesCssClasses?: string;
     dataTypes?: DataLocationOption[];
+    dataTypePlaceholder?: string;
     dataTypeLookup?: Record<string, string>;
     hideNotesForLocationTypes?: string[];
 }

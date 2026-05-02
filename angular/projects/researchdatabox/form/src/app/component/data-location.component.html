@@ -99,6 +99,9 @@
       <div [class]="iscEnabled ? 'col-sm-2' : 'col-sm-3'">
         <label class="form-label">{{ typeHeader | i18next }}</label>
         <select class="form-control" [value]="draftLocation.type" (change)="onDraftTypeChange($any($event.target).value)">
+          @if (dataTypePlaceholder) {
+            <option value="" disabled>{{ dataTypePlaceholder | i18next }}</option>
+          }
           @for (opt of dataTypes; track opt.value) {
             <option [value]="opt.value">{{ opt.label | i18next }}</option>
           }
@@ -121,6 +124,7 @@
             type="text"
             class="form-control"
             [value]="draftLocation.location"
+            [disabled]="!hasSelectedDraftType() || isDisabled || isReadonly"
             [attr.aria-label]="locationHeader | i18next"
             (input)="updateDraftLocation($any($event.target).value)"
           />
@@ -142,7 +146,12 @@
       }
       <div class="col-sm-1 d-flex align-items-end">
         @if (draftLocation.type !== "attachment") {
-          <button type="button" class="btn btn-success" (click)="addLocation()">
+          <button
+            type="button"
+            class="btn btn-success"
+            [disabled]="!hasSelectedDraftType() || isDisabled || isReadonly || draftLocation.location.trim() === ''"
+            (click)="addLocation()"
+          >
             {{ (locationAddText || 'Add Location') | i18next }}
           </button>
         }

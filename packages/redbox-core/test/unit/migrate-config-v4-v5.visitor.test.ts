@@ -1399,6 +1399,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
                             typeHeader: "Type",
                             locationHeader: "Where",
                             notesHeader: "Notes",
+                            dataTypePlaceholder: "Please select",
                             columns: ["type", "location"],
                             notesEnabled: true,
                             iscEnabled: true,
@@ -1421,6 +1422,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
             typeHeader: "Type",
             locationHeader: "Where",
             notesHeader: "Notes",
+            dataTypePlaceholder: "Please select",
             notesEnabled: true,
             iscEnabled: true,
             defaultSelect: "official"

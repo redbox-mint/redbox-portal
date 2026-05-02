@@ -86,6 +86,186 @@ describe("DataLocationComponent", () => {
         expect(fixture.componentInstance).toBeDefined();
     });
 
+    it("defaults to URL when no data type placeholder is configured", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing_default_type",
+            componentDefinitions: [
+                {
+                    name: "dataLocations",
+                    component: {
+                        class: "DataLocationComponent"
+                    },
+                    model: {
+                        class: "DataLocationModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+        const selectEl = (fixture.nativeElement as HTMLElement).querySelector("select.form-control") as HTMLSelectElement;
+
+        expect(component.draftLocation.type).toBe("url");
+        expect(selectEl.options[0].text).toBe("URL");
+        expect(selectEl.options[0].value).toBe("url");
+
+        component.updateDraftLocation("https://example.com/data.csv");
+        component.addLocation();
+
+        await fixture.whenStable();
+
+        const values = (formComponent as any).form.value.dataLocations;
+        expect(values[0]).toEqual(jasmine.objectContaining({
+            type: "url",
+            location: "https://example.com/data.csv"
+        }));
+    });
+
+    it("renders an opt-in disabled data type placeholder", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing_placeholder",
+            componentDefinitions: [
+                {
+                    name: "dataLocations",
+                    component: {
+                        class: "DataLocationComponent",
+                        config: {
+                            dataTypePlaceholder: "Please select"
+                        }
+                    },
+                    model: {
+                        class: "DataLocationModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+        const selectEl = (fixture.nativeElement as HTMLElement).querySelector("select.form-control") as HTMLSelectElement;
+
+        expect(component.draftLocation.type).toBe("");
+        expect(selectEl.value).toBe("");
+        expect(selectEl.options[0].text).toBe("Please select");
+        expect(selectEl.options[0].value).toBe("");
+        expect(selectEl.options[0].disabled).toBeTrue();
+    });
+
+    it("does not add a location while the placeholder data type is selected", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing_placeholder_no_add",
+            componentDefinitions: [
+                {
+                    name: "dataLocations",
+                    component: {
+                        class: "DataLocationComponent",
+                        config: {
+                            dataTypePlaceholder: "Please select"
+                        }
+                    },
+                    model: {
+                        class: "DataLocationModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+
+        component.updateDraftLocation("https://example.com/data.csv");
+        component.addLocation();
+
+        await fixture.whenStable();
+
+        expect(component.dataLocations).toEqual([]);
+        expect((formComponent as any).form.value.dataLocations).toBeNull();
+    });
+
+    it("adds a location after a valid placeholder-backed data type selection", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing_placeholder_file",
+            componentDefinitions: [
+                {
+                    name: "dataLocations",
+                    component: {
+                        class: "DataLocationComponent",
+                        config: {
+                            dataTypePlaceholder: "Please select"
+                        }
+                    },
+                    model: {
+                        class: "DataLocationModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+
+        component.onDraftTypeChange("file");
+        component.updateDraftLocation("/data/file.csv");
+        component.addLocation();
+
+        await fixture.whenStable();
+
+        expect((formComponent as any).form.value.dataLocations[0]).toEqual(jasmine.objectContaining({
+            type: "file",
+            location: "/data/file.csv"
+        }));
+    });
+
+    it("resets to the placeholder after adding a placeholder-backed data location", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing_placeholder_reset",
+            componentDefinitions: [
+                {
+                    name: "dataLocations",
+                    component: {
+                        class: "DataLocationComponent",
+                        config: {
+                            dataTypePlaceholder: "Please select"
+                        }
+                    },
+                    model: {
+                        class: "DataLocationModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+
+        component.onDraftTypeChange("physical");
+        component.updateDraftLocation("Building 1");
+        component.updateDraftNotes("Ask archivist");
+        component.addLocation();
+
+        await fixture.whenStable();
+
+        expect(component.draftLocation.type).toBe("");
+        expect(component.draftLocation.location).toBe("");
+        expect(component.draftLocation.notes).toBe("");
+    });
+
     it("adds non-attachment locations to the form model", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",
