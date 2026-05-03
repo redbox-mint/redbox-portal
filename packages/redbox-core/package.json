@@ -42,7 +42,7 @@
     "csv-stringify": "6.7.0",
     "dompurify": "3.4.1",
     "effect": "3.21.2",
-    "ejs": "5.0.1",
+    "ejs": "5.0.2",
     "connect-mongo": "5.1.0",
     "express": "4.22.1",
     "express-session": "1.19.0",
