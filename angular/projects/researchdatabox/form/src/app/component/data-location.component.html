@@ -100,7 +100,7 @@
         <label class="form-label">{{ typeHeader | i18next }}</label>
         <select class="form-control" [value]="draftLocation.type" (change)="onDraftTypeChange($any($event.target).value)">
           @if (dataTypePlaceholder) {
-            <option value="" disabled>{{ dataTypePlaceholder | i18next }}</option>
+            <option value="" disabled [selected]="draftLocation.type === ''">{{ dataTypePlaceholder | i18next }}</option>
           }
           @for (opt of dataTypes; track opt.value) {
             <option [value]="opt.value">{{ opt.label | i18next }}</option>
