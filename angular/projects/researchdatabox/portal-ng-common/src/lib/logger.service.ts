@@ -155,7 +155,11 @@ export class LoggerService {
   private write(level: 'log' | 'debug' | 'info' | 'warn' | 'error', textOrData: unknown, data?: unknown): void {
     const writer = console[level] as (...args: unknown[]) => void;
     if (typeof textOrData === 'string' && data !== undefined) {
-      writer.call(console, '%s', textOrData, this.processData(data));
+      if (level === 'error') {
+        writer.call(console, '%s', textOrData, this.processData(data));
+        return;
+      }
+      writer.call(console, textOrData, this.processData(data));
       return;
     }
     writer.call(console, this.processData(textOrData));

@@ -306,8 +306,9 @@ export const http: HttpConfig = {
         // Lazy load redboxSession to support async shim generation
         redboxSession: function (req: Request, res: Response, next: NextFunction) {
             if (!_lazyRedboxSessionMiddleware) {
-                // Initialize the session middleware with the config
-                _lazyRedboxSessionMiddleware = redboxSessionMiddleware(redboxSessionConfigValue);
+                // Initialize the session middleware with the resolved Sails config so environment overrides apply.
+                const resolvedSessionConfig = (sails.config as { redboxSession?: typeof redboxSessionConfigValue }).redboxSession || redboxSessionConfigValue;
+                _lazyRedboxSessionMiddleware = redboxSessionMiddleware(resolvedSessionConfig);
             }
             return _lazyRedboxSessionMiddleware(req, res, next);
         },
