@@ -200,6 +200,7 @@ export class BehaviourHandler {
         eventBus: this.ctx.eventBus,
         compiledTemplateEvaluator: this.compiledTemplateEvaluator,
         logger: this.ctx.logger,
+        broadcastFormStatus: () => this.ctx.formComponent.broadcastFormStatus(),
         fieldResolverContext: { formComponent: this.ctx.formComponent },
         getLogicalFieldEntry: (targetListName, targetActionIndex) =>
           this.logicalFieldEntries.get(this.buildActionKey(targetListName, targetActionIndex)),

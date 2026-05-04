@@ -19,6 +19,7 @@ export interface BehaviourActionExecutionContext {
   eventBus: FormComponentEventBus;
   compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
   logger: LoggerService;
+  broadcastFormStatus?: () => void;
   fieldResolverContext: BehaviourFieldResolverContext;
   getLogicalFieldEntry: (listName: 'actions' | 'onError', actionIndex: number) => FormFieldCompMapEntry | undefined;
 }
@@ -71,6 +72,7 @@ async function executeSetValueAction(
   const value = await resolveActionValue(action, pipelineContext, ctx);
   resolved.control.setValue(value, { emitEvent: false });
   resolved.control.markAsDirty();
+  ctx.broadcastFormStatus?.();
 }
 
 /**
