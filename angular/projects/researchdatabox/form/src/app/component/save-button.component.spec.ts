@@ -137,6 +137,7 @@ describe('SaveButtonComponent', () => {
   it('ignores validation broadcasts from another form scope', async () => {
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
     const eventBus = TestBed.inject(FormComponentEventBus);
+    const store = TestBed.inject(Store);
     const saveButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
     const validDirtyStatus = {
       ...formComponent.dataStatus,
@@ -172,6 +173,12 @@ describe('SaveButtonComponent', () => {
     await fixture.whenStable();
 
     expect(saveButton.disabled).toBeFalse();
+
+    store.dispatch(FormActions.formValidationPending());
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(saveButton.disabled).toBeTrue();
   });
 
   it('should not publish save requested when disabled', async () => {

@@ -1,6 +1,6 @@
 import {Component, inject, effect, signal, Injector} from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
-import { FormComponent } from '../form.component';
+import { FormComponent, FormGroupStatus } from '../form.component';
 import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus, FormComponentEventType, createFormSaveRequestedEvent, FormStateFacade } from '../form-state';
 import {FormService} from "../form.service";
@@ -21,6 +21,7 @@ import {FormService} from "../form.service";
 export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   public override logName = SaveButtonComponentName;
   disabled = signal<boolean>(true);
+  private readonly validationStatus = signal<FormGroupStatus | null>(null);
   private readonly eventBus = inject(FormComponentEventBus);
   public override componentDefinition?: SaveButtonFieldComponentDefinitionOutline;
   protected currentLabel = signal<string | undefined>(this.componentDefinition?.config?.label);
@@ -41,11 +42,13 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
       const dataStatusEvent = validationSignal();
       const isSaving = this.formStateFacade.isSaving();
       const isValidationPending = this.formStateFacade.isValidationPending();
-      if (dataStatusEvent?.sourceId && dataStatusEvent.sourceId !== this.getFormEventScopeId()) {
-        return;
+      if (!dataStatusEvent?.sourceId || dataStatusEvent.sourceId === this.getFormEventScopeId()) {
+        if (dataStatusEvent?.status) {
+          this.validationStatus.set(dataStatusEvent.status);
+        }
       }
-      if (dataStatusEvent && dataStatusEvent.status) {
-        const dataStatus = dataStatusEvent.status;
+      const dataStatus = this.validationStatus();
+      if (dataStatus) {
         this.loggerService.debug(`SaveButtonComponent effect: validation or pristine signal event: `, dataStatus);
         // Disable when any of the following is true:
         // - form is invalid
