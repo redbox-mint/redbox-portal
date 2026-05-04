@@ -14,7 +14,7 @@ export function buildRedboxSessionOptions(sessionConfig: session.SessionOptions 
         }
     };
 
-    // set the isSessionDisabled function as a property of the sessionConfig object
+    // set the isSessionDisabled function as a property of the defaultSessionConfig object before merging with caller-supplied config
     defaultSessionConfig.isSessionDisabled = function (req: { path: string; _sails: { LOOKS_LIKE_ASSET_RX: RegExp } }) {
         return !!req.path.match(req._sails.LOOKS_LIKE_ASSET_RX);
     };
