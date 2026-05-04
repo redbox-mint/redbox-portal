@@ -198,6 +198,88 @@ describe('FormBehaviourManager', () => {
     expect(formComponent.queueFormStatusBroadcast).not.toHaveBeenCalled();
   }));
 
+  it('queues a status broadcast when a later behaviour action fails after a silent update', fakeAsync(() => {
+    const targetControl = new FormControl('');
+    const failingTargetControl = new FormControl('');
+    const formComponent = {
+      form: { value: { source: 'source', target: '', failingTarget: '' } },
+      formDefMap: {
+        formConfig: {
+          behaviours: [
+            {
+              name: 'partial-update-then-error',
+              condition: '/main/source::field.value.changed',
+              conditionKind: 'jsonpointer',
+              actions: [
+                {
+                  type: 'setValue',
+                  config: {
+                    fieldPath: '/main/target',
+                    fieldPathKind: 'componentJsonPointer',
+                  },
+                },
+                {
+                  type: 'setValue',
+                  config: {
+                    fieldPath: '/main/failingTarget',
+                    fieldPathKind: 'componentJsonPointer',
+                    hasValueTemplate: true,
+                    valueTemplate: '$error()',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+      getFormCompiledItems: jasmine.createSpy('getFormCompiledItems').and.resolveTo({
+        evaluate: jasmine.createSpy('evaluate').and.rejectWith(new Error('template boom')),
+      }),
+      getQuerySource: () => ({
+        queryOrigSource: [],
+        querySource: [],
+        jsonPointerSource: {
+          main: {
+            source: { metadata: { formFieldEntry: { model: { formControl: new FormControl('source') } } } },
+            target: {
+              metadata: {
+                formFieldEntry: {
+                  model: { formControl: targetControl },
+                  lineagePaths: { angularComponentsJsonPointer: '/main/target' },
+                },
+              },
+            },
+            failingTarget: {
+              metadata: {
+                formFieldEntry: {
+                  model: { formControl: failingTargetControl },
+                  lineagePaths: { angularComponentsJsonPointer: '/main/failingTarget' },
+                },
+              },
+            },
+          },
+        },
+      }),
+      requestParams: () => ({}),
+      queueFormStatusBroadcast: jasmine.createSpy('queueFormStatusBroadcast'),
+    } as any;
+
+    manager.bind(formComponent);
+
+    fieldEvents$.next({
+      type: FormComponentEventType.FIELD_VALUE_CHANGED,
+      fieldId: '/main/source',
+      sourceId: '*',
+      value: 'copied',
+      timestamp: Date.now(),
+    } as any);
+    tick();
+
+    expect(targetControl.value).toBe('copied');
+    expect(failingTargetControl.value).toBe('');
+    expect(formComponent.queueFormStatusBroadcast).toHaveBeenCalledTimes(1);
+  }));
+
   it('runs fetchMetadata processors and emits onError actions when a processor fails', fakeAsync(() => {
     const formComponent = {
       form: { value: { source: 'oid-1' } },

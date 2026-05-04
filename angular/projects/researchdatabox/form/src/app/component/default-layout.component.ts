@@ -7,7 +7,7 @@ import {
   FormFieldComponentStatus,
   DefaultLayoutName
 } from "@researchdatabox/sails-ng-common";
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldComponentType, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 import { FormService } from "../form.service";
 
 /**
@@ -77,7 +77,7 @@ import { FormService } from "../form.service";
 export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
   protected override logName: string = DefaultLayoutName;
   helpTextVisible: boolean = false;
-  componentClass?: typeof FormFieldBaseComponent<ValueType>;
+  componentClass?: FormFieldComponentType<ValueType>;
   public override componentDefinition?: FieldLayoutDefinitionFrame;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: false }) componentContainer!: ViewContainerRef;
@@ -102,7 +102,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
    */
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
-    this.componentClass = formFieldCompMapEntry?.componentClass as typeof FormFieldBaseComponent<ValueType>;
+    this.componentClass = formFieldCompMapEntry?.componentClass as FormFieldComponentType<ValueType>;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout;
     this.tooltip = this.getStringProperty('tooltip');
     if (!_isUndefined(this.formFieldCompMapEntry) && !_isNull(this.formFieldCompMapEntry)) {

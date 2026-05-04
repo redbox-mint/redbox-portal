@@ -208,6 +208,7 @@ describe('FormComponent', () => {
       expect(events[0].isValid).toBe(formComponent.dataStatus.valid);
       expect(events[0].errors).toBe(formComponent.dataStatus.errors);
       expect(events[0].status).toEqual(formComponent.dataStatus);
+      expect(events[0].sourceId).toBe(formComponent.eventScopeId);
       expect(formComponent.formGroupStatus()).toEqual(formComponent.dataStatus);
     } finally {
       sub.unsubscribe();
@@ -304,6 +305,7 @@ describe('FormComponent', () => {
 
       expect(updateSpy).not.toHaveBeenCalled();
       expect(events.length).toBeGreaterThanOrEqual(1);
+      expect(events[events.length - 1].sourceId).toBe(formComponent.eventScopeId);
     } finally {
       sub.unsubscribe();
     }
@@ -360,6 +362,7 @@ describe('FormComponent', () => {
       expect(events.length).toBeGreaterThanOrEqual(1);
       expect(events[events.length - 1].isValid).toBeFalse();
       expect(events[events.length - 1].status).toEqual(formComponent.dataStatus);
+      expect(events[events.length - 1].sourceId).toBe(formComponent.eventScopeId);
       expect(formComponent.formGroupStatus()).toEqual(formComponent.dataStatus);
     } finally {
       sub.unsubscribe();

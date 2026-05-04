@@ -41,6 +41,9 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
       const dataStatusEvent = validationSignal();
       const isSaving = this.formStateFacade.isSaving();
       const isValidationPending = this.formStateFacade.isValidationPending();
+      if (dataStatusEvent?.sourceId && dataStatusEvent.sourceId !== this.getFormEventScopeId()) {
+        return;
+      }
       if (dataStatusEvent && dataStatusEvent.status) {
         const dataStatus = dataStatusEvent.status;
         this.loggerService.debug(`SaveButtonComponent effect: validation or pristine signal event: `, dataStatus);
@@ -81,6 +84,10 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
 
   private get getFormComponent(): FormComponent {
     return this.formComponent;
+  }
+
+  private getFormEventScopeId(): string | undefined {
+    return this.formEventScopeId ?? this.getFormComponent.eventScopeId;
   }
 
   private resolveButtonCssClasses(configured: string | undefined, fallbackVariantClass: string): string {

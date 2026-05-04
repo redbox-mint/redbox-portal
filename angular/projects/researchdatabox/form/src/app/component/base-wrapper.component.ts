@@ -1,8 +1,8 @@
-import { Component, Type, Input, ViewChild, OnDestroy, inject, Injector, Signal, HostBinding } from '@angular/core';
+import { Component, Input, ViewChild, OnDestroy, inject, Injector, Signal, HostBinding } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 
 import { set as _set, get as _get } from 'lodash-es';
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldComponentType, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
   KeyValueStringNested,
   FormFieldComponentStatus,
@@ -45,7 +45,7 @@ const VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS = new Set<string>([
 })
 export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnDestroy {
   protected override logName = 'FormBaseWrapperComponent';
-  @Input() componentClass?: typeof FormFieldBaseComponent<ValueType>;
+  @Input() componentClass?: FormFieldComponentType<ValueType>;
   @Input() defaultComponentConfig?: KeyValueStringNested = null;
 
   @ViewChild(FormBaseWrapperDirective, { static: true }) formFieldDirective!: FormBaseWrapperDirective;
@@ -89,7 +89,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     this.formFieldCompMapEntry = formFieldCompMapEntry;
     const componentName = this.formFieldConfigName();
     this.loggerService.debug(`${this.logName}: Starting initWrapperComponent for '${componentName}'.`, this.formFieldCompMapEntry);
-    this.componentClass = this.formFieldCompMapEntry.componentClass as typeof FormFieldBaseComponent<ValueType>;
+    this.componentClass = this.formFieldCompMapEntry.componentClass as FormFieldComponentType<ValueType>;
 
     // If the wrapper has already been initialised, provide the component instance.
     // TODO: Does this make sense, when a different formFieldCompMapEntry might have been provided and set above?
@@ -114,13 +114,12 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     }
 
     // Select which class to use.
-    const compClass = omitLayout ? this.componentClass : this.formFieldCompMapEntry?.layoutClass || this.componentClass;
-    // TODO: can typescript typeof be converted to angular Type?
-    //       Casting to unknown then to the angular Type is bit odd?
-    const comClassTyped = compClass as unknown as Type<FormFieldBaseComponent<ValueType>>;
+    const compClass = (
+      omitLayout ? this.componentClass : this.formFieldCompMapEntry.layoutClass || this.componentClass
+    ) as FormFieldComponentType<ValueType>;
 
     // Create an instance of the component from the class.
-    const compRef = viewContainerRef.createComponent(comClassTyped);
+    const compRef = viewContainerRef.createComponent(compClass);
 
     // Provide the default css classes to the new component instance.
     if (this.defaultComponentConfig && this.formFieldCompMapEntry?.compConfigJson?.component) {
@@ -136,6 +135,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     } else {
       this.formFieldCompMapEntry.componentRef = compRef;
     }
+    compRef.instance.formEventScopeId = this.getFormComponent.eventScopeId;
 
     // Initialise the component.
     await compRef.instance.initComponent(this.formFieldCompMapEntry);

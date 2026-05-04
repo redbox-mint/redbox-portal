@@ -5,7 +5,7 @@ import {
   ViewContainerRef,
   isDevMode,
 } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldComponentType, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
   ActionRowAlignmentOptionsType,
   ActionRowLayoutName,
@@ -33,7 +33,7 @@ import { GroupFieldComponent } from './group.component';
 export class ActionRowLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {
   protected override logName = ActionRowLayoutName;
   public override componentDefinition?: FieldLayoutDefinitionFrame;
-  componentClass?: typeof FormFieldBaseComponent<ValueType>;
+  componentClass?: FormFieldComponentType<ValueType>;
 
   @ViewChild('componentContainer', { read: ViewContainerRef, static: false })
   componentContainer!: ViewContainerRef;
@@ -41,7 +41,7 @@ export class ActionRowLayoutComponent<ValueType> extends FormFieldBaseComponent<
   wrapperComponentRef?: ComponentRef<FormBaseWrapperComponent<ValueType>>;
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
-    this.componentClass = formFieldCompMapEntry?.componentClass as typeof FormFieldBaseComponent<ValueType>;
+    this.componentClass = formFieldCompMapEntry?.componentClass as FormFieldComponentType<ValueType>;
     this.componentDefinition = formFieldCompMapEntry?.compConfigJson?.layout;
 
     if (!_isUndefined(this.formFieldCompMapEntry) && !_isNull(this.formFieldCompMapEntry)) {

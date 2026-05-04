@@ -208,11 +208,6 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     this.model?.setTimeValue(timeValue);
     this.formControl?.markAsDirty();
     this.formControl?.markAsTouched();
-    try {
-      (this.formComponent as { queueFormStatusBroadcast?: () => void } | undefined)?.queueFormStatusBroadcast?.();
-    } catch (error) {
-      this.loggerService.debug(`${this.logName}: Unable to queue form status broadcast after time change.`, error);
-    }
   }
 
   public get bsConfig(): BsDatepickerConfig {

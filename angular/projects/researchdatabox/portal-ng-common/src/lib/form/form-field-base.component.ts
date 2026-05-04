@@ -3,7 +3,7 @@ import { FormControl } from '@angular/forms';
 import {
   Directive, HostBinding, ViewChild, signal, inject, TemplateRef,
   ViewContainerRef, ComponentRef, AfterViewInit, effect,
-  EffectRef, Injector, ApplicationRef
+  EffectRef, Injector, ApplicationRef, Type
 } from '@angular/core';
 import { LoggerService } from '../logger.service';
 import {  isEmpty as _isEmpty, get as _get } from 'lodash-es';
@@ -37,6 +37,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   public model?: FormFieldModel<ValueType>;
   public componentDefinition?: FormFieldComponentOrLayoutDefinition;
   public formFieldCompMapEntry?: FormFieldCompMapEntry;
+  public formEventScopeId?: string;
   public hostBindingCssClasses?: string;
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
@@ -381,6 +382,8 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 }
 
+export type FormFieldComponentType<ValueType = unknown> = Type<FormFieldBaseComponent<ValueType>>;
+
 /**
  * The complete metadata data structure describing a form field component, including the necessary constructors to create and init the component and model.
  *
@@ -390,8 +393,8 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
 export interface FormFieldCompMapEntry {
   name?: string;
   modelClass?: typeof FormFieldModel<unknown>;
-  layoutClass?: typeof FormFieldBaseComponent<unknown>;
-  componentClass?: typeof FormFieldBaseComponent<unknown>;
+  layoutClass?: FormFieldComponentType;
+  componentClass?: FormFieldComponentType;
   compConfigJson: FormComponentDefinitionFrame;
   model?: FormFieldModel<unknown>;
   component?: FormFieldBaseComponent<unknown>;

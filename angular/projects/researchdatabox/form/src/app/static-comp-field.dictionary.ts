@@ -38,7 +38,7 @@ import {
 } from './component/publish-data-location-selector.component';
 import { PublishDataLocationRefreshComponent } from './component/publish-data-location-refresh.component';
 import { RecordMetadataRetrieverComponent } from './component/record-metadata-retriever.component';
-import { FormFieldBaseComponent, FormFieldModel } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldComponentType, FormFieldModel } from '@researchdatabox/portal-ng-common';
 import {
   StaticComponentClassMapGenType,
   StaticModelClassMapGenType,
@@ -108,8 +108,8 @@ import {
  * The Component classes.
  */
 
-export type StaticComponentClassMapType = StaticComponentClassMapGenType<typeof FormFieldBaseComponent<unknown>>;
-export type AllComponentClassMapType = StaticClassMapType<string, typeof FormFieldBaseComponent<unknown>>;
+export type StaticComponentClassMapType = StaticComponentClassMapGenType<FormFieldComponentType>;
+export type AllComponentClassMapType = StaticClassMapType<string, FormFieldComponentType>;
 export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [RepeatableComponentName]: RepeatableComponent,
   [GroupFieldComponentName]: GroupFieldComponent,
@@ -178,8 +178,8 @@ export const getStaticModelClassMap = (): StaticModelClassMapType => ({
  * The Layout classes.
  */
 
-export type StaticLayoutClassMapType = StaticLayoutClassMapGenType<typeof FormFieldBaseComponent<unknown> | null>;
-export type AllLayoutClassMapType = StaticClassMapType<string, typeof FormFieldBaseComponent<unknown> | null>;
+export type StaticLayoutClassMapType = StaticLayoutClassMapGenType<FormFieldComponentType | null>;
+export type AllLayoutClassMapType = StaticClassMapType<string, FormFieldComponentType | null>;
 export const getStaticLayoutClassMap = (): StaticLayoutClassMapType => ({
   [DefaultLayoutName]: DefaultLayoutComponent,
   [ActionRowLayoutName]: ActionRowLayoutComponent,

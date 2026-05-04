@@ -5,7 +5,7 @@ import {TestBed} from "@angular/core/testing";
 import { Store } from '@ngrx/store';
 import * as FormActions from '../form-state/state/form.actions';
 import {  FormConfigFrame } from '@researchdatabox/sails-ng-common';
-import { FormComponentEventBus } from '../form-state/events';
+import { FormComponentEventBus, FormComponentEventType, FormValidationBroadcastEvent } from '../form-state/events';
 import {TranslationService} from "@researchdatabox/portal-ng-common";
 
 let formConfig: FormConfigFrame;
@@ -132,6 +132,46 @@ describe('SaveButtonComponent', () => {
     expect(saveButton.disabled).toBeFalse();
 
     expect(saveButton.textContent).toEqual("@save-button-default");
+  });
+
+  it('ignores validation broadcasts from another form scope', async () => {
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const saveButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const validDirtyStatus = {
+      ...formComponent.dataStatus,
+      valid: true,
+      invalid: false,
+      dirty: true,
+      pristine: false,
+      status: 'VALID' as const,
+    };
+
+    eventBus.publish<FormValidationBroadcastEvent>({
+      type: FormComponentEventType.FORM_VALIDATION_BROADCAST,
+      sourceId: formComponent.eventScopeId,
+      isValid: true,
+      status: validDirtyStatus,
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(saveButton.disabled).toBeFalse();
+
+    eventBus.publish<FormValidationBroadcastEvent>({
+      type: FormComponentEventType.FORM_VALIDATION_BROADCAST,
+      sourceId: 'another-form-scope',
+      isValid: false,
+      status: {
+        ...validDirtyStatus,
+        valid: false,
+        invalid: true,
+        status: 'INVALID' as const,
+      },
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(saveButton.disabled).toBeFalse();
   });
 
   it('should not publish save requested when disabled', async () => {

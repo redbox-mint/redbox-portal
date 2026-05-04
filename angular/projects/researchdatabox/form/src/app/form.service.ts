@@ -37,6 +37,7 @@ import {
 import {
   ConfigService,
   FormFieldBaseComponent,
+  FormFieldComponentType,
   FormFieldCompMapEntry,
   FormFieldModel,
   HttpClientService,
@@ -236,8 +237,8 @@ export class FormService extends HttpClientService {
       const isModuleCustom = componentConfig.module === 'custom';
 
       let modelClass: typeof FormFieldModel<unknown> | undefined = undefined;
-      let componentClass: typeof FormFieldBaseComponent<unknown> | undefined = undefined;
-      let layoutClass: typeof FormFieldBaseComponent<unknown> | undefined = undefined;
+      let componentClass: FormFieldComponentType | undefined = undefined;
+      let layoutClass: FormFieldComponentType | undefined = undefined;
 
       const modelClassName = componentConfig.model?.class || '';
       const componentClassName = componentConfig.component?.class || '';
