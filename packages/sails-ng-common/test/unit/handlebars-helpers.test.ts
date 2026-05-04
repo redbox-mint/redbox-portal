@@ -27,6 +27,11 @@ describe('Shared Handlebars Helpers', function () {
             expect(result).to.equal('18/05/2023');
         });
 
+        it('should preserve Moment-style time tokens that Luxon already supports', function () {
+            const result = handlebarsHelperDefinitions.formatDate('2023-05-18T01:02:03.000Z', 'YYYY-MM-DD HH:mm:ss');
+            expect(result).to.match(/^2023-05-18 \d{2}:\d{2}:03$/);
+        });
+
         it('should format Date instances with custom format', function () {
             const result = handlebarsHelperDefinitions.formatDate(new Date('2023-05-18T00:00:00.000Z'), 'yyyy-MM-dd');
             expect(result).to.equal('2023-05-18');

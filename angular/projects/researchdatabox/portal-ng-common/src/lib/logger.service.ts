@@ -152,47 +152,36 @@ export class LoggerService {
     return summarizeForCI(data);
   }
 
-  log(textOrData: string | any, data?: any): void {
+  private write(level: 'log' | 'debug' | 'info' | 'warn' | 'error', textOrData: unknown, data?: unknown): void {
+    const writer = console[level] as (...args: unknown[]) => void;
     if (typeof textOrData === 'string' && data !== undefined) {
-      console.log(textOrData, this.processData(data));
-    } else {
-      console.log(this.processData(textOrData));
+      writer.call(console, '%s', textOrData, this.processData(data));
+      return;
     }
+    writer.call(console, this.processData(textOrData));
+  }
+
+  log(textOrData: string | any, data?: any): void {
+    this.write('log', textOrData, data);
   }
 
   debug(textOrData: string | any, data?: any): void {
     if (!this.debugEnabled) {
       return;
     }
-    if (typeof textOrData === 'string' && data !== undefined) {
-      console.debug(textOrData, this.processData(data));
-    } else {
-      console.debug(this.processData(textOrData));
-    }
+    this.write('debug', textOrData, data);
   }
 
   info(textOrData: string | any, data?: any): void {
-    if (typeof textOrData === 'string' && data !== undefined) {
-      console.info(textOrData, this.processData(data));
-    } else {
-      console.info(this.processData(textOrData));
-    }
+    this.write('info', textOrData, data);
   }
 
   warn(textOrData: string | any, data?: any): void {
-    if (typeof textOrData === 'string' && data !== undefined) {
-      console.warn(textOrData, this.processData(data));
-    } else {
-      console.warn(this.processData(textOrData));
-    }
+    this.write('warn', textOrData, data);
   }
 
   error(textOrData: string | any, data?: any): void {
-    if (typeof textOrData === 'string' && data !== undefined) {
-      console.error(textOrData, this.processData(data));
-    } else {
-      console.error(this.processData(textOrData));
-    }
+    this.write('error', textOrData, data);
   }
 
 }
