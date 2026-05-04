@@ -206,6 +206,8 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     let timeValue = (event.target as HTMLInputElement).value as string;
     this.loggerService.info(`timeValue ${timeValue}`,'');
     this.model?.setTimeValue(timeValue);
+    this.formControl?.markAsDirty();
+    this.formControl?.markAsTouched();
     try {
       (this.formComponent as { queueFormStatusBroadcast?: () => void } | undefined)?.queueFormStatusBroadcast?.();
     } catch (error) {

@@ -133,6 +133,71 @@ describe('FormBehaviourManager', () => {
     expect(formComponent.queueFormStatusBroadcast).toHaveBeenCalledTimes(1);
   }));
 
+  it('does not queue a status broadcast for no-op setValue actions', fakeAsync(() => {
+    const targetControl = new FormControl('copied');
+    const formComponent = {
+      form: { value: { source: 'source', target: 'copied' } },
+      formDefMap: {
+        formConfig: {
+          behaviours: [
+            {
+              name: 'copy-source-noop',
+              condition: '/main/source::field.value.changed',
+              conditionKind: 'jsonpointer',
+              actions: [
+                {
+                  type: 'setValue',
+                  config: {
+                    fieldPath: '/main/target',
+                    fieldPathKind: 'componentJsonPointer',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+      getFormCompiledItems: jasmine.createSpy('getFormCompiledItems').and.resolveTo({
+        evaluate: jasmine.createSpy('evaluate').and.resolveTo('unused'),
+      }),
+      getQuerySource: () => ({
+        queryOrigSource: [],
+        querySource: [],
+        jsonPointerSource: {
+          main: {
+            source: { metadata: { formFieldEntry: { model: { formControl: new FormControl('source') } } } },
+            target: {
+              metadata: {
+                formFieldEntry: {
+                  model: { formControl: targetControl },
+                  lineagePaths: { angularComponentsJsonPointer: '/main/target' },
+                },
+              },
+            },
+          },
+        },
+      }),
+      requestParams: () => ({}),
+      queueFormStatusBroadcast: jasmine.createSpy('queueFormStatusBroadcast'),
+    } as any;
+
+    const setValueSpy = spyOn(targetControl, 'setValue').and.callThrough();
+    manager.bind(formComponent);
+
+    fieldEvents$.next({
+      type: FormComponentEventType.FIELD_VALUE_CHANGED,
+      fieldId: '/main/source',
+      sourceId: '*',
+      value: 'copied',
+      timestamp: Date.now(),
+    } as any);
+    tick();
+
+    expect(setValueSpy).not.toHaveBeenCalled();
+    expect(targetControl.dirty).toBeFalse();
+    expect(formComponent.queueFormStatusBroadcast).not.toHaveBeenCalled();
+  }));
+
   it('runs fetchMetadata processors and emits onError actions when a processor fails', fakeAsync(() => {
     const formComponent = {
       form: { value: { source: 'oid-1' } },

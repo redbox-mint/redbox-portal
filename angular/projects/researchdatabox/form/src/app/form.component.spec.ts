@@ -243,6 +243,35 @@ describe('FormComponent', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
+  it('does not publish a queued validation refresh after destroy', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'queued-form-status-destroy',
+      debugValue: false,
+      componentDefinitions: [
+        {
+          name: 'text_queued_destroy',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'queued destroy value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+    const { formComponent } = await createFormAndWaitForReady(formConfig);
+    const spy = spyOn(formComponent, 'broadcastFormStatus').and.callThrough();
+
+    formComponent.queueFormStatusBroadcast();
+    formComponent.ngOnDestroy();
+    await Promise.resolve();
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it('publishes status for regular form events without revalidating the full form again', async () => {
     const formConfig: FormConfigFrame = {
       name: 'regular-form-status-event',

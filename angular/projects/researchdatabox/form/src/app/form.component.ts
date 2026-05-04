@@ -199,6 +199,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private eventBus = inject(FormComponentEventBus);
   private focusRequestCoordinator = inject(FormComponentFocusRequestCoordinator);
   private formStatusBroadcastQueued = false;
+  private isDestroyed = false;
   public readonly eventScopeId = `form-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   /**
    * Status of the form, derived from the facade as signal
@@ -623,12 +624,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * `emitEvent: false` writes for one user action.
    */
   public queueFormStatusBroadcast(): void {
-    if (this.formStatusBroadcastQueued) {
+    if (this.isDestroyed || this.formStatusBroadcastQueued) {
       return;
     }
     this.formStatusBroadcastQueued = true;
     void Promise.resolve().then(() => {
       this.formStatusBroadcastQueued = false;
+      if (this.isDestroyed) {
+        return;
+      }
       this.broadcastFormStatus();
     });
   }
@@ -1164,6 +1168,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   override ngOnDestroy(): void {
+    this.isDestroyed = true;
+    this.formStatusBroadcastQueued = false;
     super.ngOnDestroy();
     // Clean up subscriptions
     Object.values(this.subMaps).forEach(sub => sub.unsubscribe());

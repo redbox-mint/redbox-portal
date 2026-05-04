@@ -5,6 +5,7 @@ import { createFieldValueChangedEvent } from '../events/form-component-event.typ
 import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-template-evaluator';
 import { BehaviourPipelineContext } from './behaviour-processors';
 import { BehaviourFieldResolverContext, resolveFieldByPointer } from './behaviour-field-resolver';
+import { isEqual as _isEqual } from 'lodash-es';
 
 /**
  * Dependencies shared by action execution.
@@ -69,6 +70,9 @@ async function executeSetValueAction(
   }
 
   const value = await resolveActionValue(action, pipelineContext, ctx);
+  if (_isEqual(resolved.control.value, value)) {
+    return false;
+  }
   resolved.control.setValue(value, { emitEvent: false });
   resolved.control.markAsDirty();
   return true;
