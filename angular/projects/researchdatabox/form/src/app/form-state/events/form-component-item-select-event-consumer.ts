@@ -38,12 +38,12 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
 
   /**
    * Override base bind to skip expression-based consumption.
-    * Instead, subscribe directly and enforce the sibling-only contract in code.
+   * Instead, subscribe directly and enforce the sibling-only contract in code.
    */
   override bind(options: FormComponentEventBindingOptions): void {
     this.destroy();
     this.options = options;
-    this.formComp = options.formComponent;
+    this.formComp = options.formComponent ?? this.formComp;
 
     const config = options.definition?.compConfigJson?.component?.config;
     this.onItemSelect = config?.onItemSelect;
@@ -91,10 +91,10 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
 
   /**
    * Process a field.item.selected event from a sibling component.
-    *
-    * The control update is intentionally followed by a parent-group rebroadcast
-    * so listeners attached to the containing object see the final selected row
-    * value rather than a piecemeal child-field mutation.
+   *
+   * The control update is intentionally followed by a parent-group rebroadcast
+   * so listeners attached to the containing object see the final selected row
+   * value rather than a piecemeal child-field mutation.
    */
   protected async handleItemSelected(event: FieldItemSelectedEvent): Promise<void> {
     const control = this.control;
@@ -111,7 +111,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
       control.markAsDirty();
       control.markAsTouched();
       this.publishParentValueChanged(previousParentValue);
-      this.formComp?.broadcastFormStatus();
+      this.formComp?.queueFormStatusBroadcast();
       return;
     }
 
@@ -133,7 +133,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
     control.markAsDirty();
     control.markAsTouched();
     this.publishParentValueChanged(previousParentValue);
-    this.formComp?.broadcastFormStatus();
+    this.formComp?.queueFormStatusBroadcast();
   }
 
   /**
@@ -166,10 +166,10 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
 
   /**
    * Check whether the event's fieldId shares the same parent JSON pointer
-    * as this consumer's own pointer (sibling scope).
-    *
-    * Keeping this boundary strict avoids surprising cross-tree writes for older
-    * form configs that rely on item selection only affecting adjacent fields.
+   * as this consumer's own pointer (sibling scope).
+   *
+   * Keeping this boundary strict avoids surprising cross-tree writes for older
+   * form configs that rely on item selection only affecting adjacent fields.
    */
   private isSiblingEvent(event: FieldItemSelectedEvent): boolean {
     if (!this.ownPointer || !event.fieldId) {

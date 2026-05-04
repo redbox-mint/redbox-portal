@@ -206,6 +206,11 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     let timeValue = (event.target as HTMLInputElement).value as string;
     this.loggerService.info(`timeValue ${timeValue}`,'');
     this.model?.setTimeValue(timeValue);
+    try {
+      (this.formComponent as { queueFormStatusBroadcast?: () => void } | undefined)?.queueFormStatusBroadcast?.();
+    } catch (error) {
+      this.loggerService.debug(`${this.logName}: Unable to queue form status broadcast after time change.`, error);
+    }
   }
 
   public get bsConfig(): BsDatepickerConfig {

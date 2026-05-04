@@ -118,10 +118,11 @@ describe('FormComponentItemSelectEventConsumer', () => {
       clearValue: ''
     });
     const formComponent = {
-      broadcastFormStatus: jasmine.createSpy('broadcastFormStatus')
+      queueFormStatusBroadcast: jasmine.createSpy('queueFormStatusBroadcast')
     };
 
-    consumer.bind({ ...options, formComponent } as any);
+    consumer.formComponent = formComponent as any;
+    consumer.bind(options as any);
 
     emitEvent('/record/contributors/0/funderSearch', {
       raw: {
@@ -130,7 +131,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
     });
     await Promise.resolve();
 
-    expect(formComponent.broadcastFormStatus).toHaveBeenCalledTimes(1);
+    expect(formComponent.queueFormStatusBroadcast).toHaveBeenCalledTimes(1);
   });
 
   it('should fall back to selectedItem path when raw path is unavailable', () => {

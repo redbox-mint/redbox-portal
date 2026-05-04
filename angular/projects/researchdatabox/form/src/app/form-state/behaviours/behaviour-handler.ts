@@ -188,23 +188,27 @@ export class BehaviourHandler {
     value: unknown,
     event: FormComponentEvent
   ): Promise<void> {
+    let hasSilentSetValueUpdate = false;
     for (const [actionIndex, action] of actions.entries()) {
       const actionKey = this.buildActionKey(listName, actionIndex);
       if (this.permanentlySkippedActions.has(actionKey)) {
         continue;
       }
-      await executeBehaviourAction(action, this.buildPipelineContext(value, event), {
+      const didSilentlyUpdate = await executeBehaviourAction(action, this.buildPipelineContext(value, event), {
         behaviourIndex: this.behaviourIndex,
         actionIndex,
         listName,
         eventBus: this.ctx.eventBus,
         compiledTemplateEvaluator: this.compiledTemplateEvaluator,
         logger: this.ctx.logger,
-        broadcastFormStatus: () => this.ctx.formComponent.broadcastFormStatus(),
         fieldResolverContext: { formComponent: this.ctx.formComponent },
         getLogicalFieldEntry: (targetListName, targetActionIndex) =>
           this.logicalFieldEntries.get(this.buildActionKey(targetListName, targetActionIndex)),
       });
+      hasSilentSetValueUpdate ||= didSilentlyUpdate;
+    }
+    if (hasSilentSetValueUpdate) {
+      this.ctx.formComponent.queueFormStatusBroadcast();
     }
   }
 

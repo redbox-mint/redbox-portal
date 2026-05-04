@@ -19,7 +19,6 @@ export interface BehaviourActionExecutionContext {
   eventBus: FormComponentEventBus;
   compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
   logger: LoggerService;
-  broadcastFormStatus?: () => void;
   fieldResolverContext: BehaviourFieldResolverContext;
   getLogicalFieldEntry: (listName: 'actions' | 'onError', actionIndex: number) => FormFieldCompMapEntry | undefined;
 }
@@ -28,15 +27,15 @@ export async function executeBehaviourAction(
   action: FormBehaviourActionConfig,
   pipelineContext: BehaviourPipelineContext,
   ctx: BehaviourActionExecutionContext
-): Promise<void> {
+): Promise<boolean> {
   switch (action.type) {
     case FormBehaviourActionType.SetValue:
-      await executeSetValueAction(action, pipelineContext, ctx);
-      return;
+      return await executeSetValueAction(action, pipelineContext, ctx);
     case FormBehaviourActionType.EmitEvent:
       await executeEmitEventAction(action, pipelineContext, ctx);
-      return;
+      return false;
   }
+  return false;
 }
 
 /**
@@ -51,7 +50,7 @@ async function executeSetValueAction(
   action: Extract<FormBehaviourActionConfig, { type: 'setValue' }>,
   pipelineContext: BehaviourPipelineContext,
   ctx: BehaviourActionExecutionContext
-): Promise<void> {
+): Promise<boolean> {
   const config = action.config;
   const fieldPathKind = config.fieldPathKind ?? FieldPathKind.ComponentJsonPointer;
   const resolved =
@@ -66,13 +65,13 @@ async function executeSetValueAction(
       listName: ctx.listName,
       fieldPathKind,
     });
-    return;
+    return false;
   }
 
   const value = await resolveActionValue(action, pipelineContext, ctx);
   resolved.control.setValue(value, { emitEvent: false });
   resolved.control.markAsDirty();
-  ctx.broadcastFormStatus?.();
+  return true;
 }
 
 /**

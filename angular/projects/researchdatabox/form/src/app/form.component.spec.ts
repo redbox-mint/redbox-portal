@@ -214,6 +214,72 @@ describe('FormComponent', () => {
     }
   });
 
+  it('queues only one validation refresh for multiple silent update requests', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'queued-form-status',
+      debugValue: false,
+      componentDefinitions: [
+        {
+          name: 'text_queued_status',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'queued value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+    const { formComponent } = await createFormAndWaitForReady(formConfig);
+    const spy = spyOn(formComponent, 'broadcastFormStatus').and.callThrough();
+
+    formComponent.queueFormStatusBroadcast();
+    formComponent.queueFormStatusBroadcast();
+    await Promise.resolve();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('publishes status for regular form events without revalidating the full form again', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'regular-form-status-event',
+      debugValue: false,
+      componentDefinitions: [
+        {
+          name: 'text_regular_status',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'regular value'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const events: FormValidationBroadcastEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_VALIDATION_BROADCAST).subscribe(event => events.push(event));
+    const updateSpy = spyOn(formComponent.form!, 'updateValueAndValidity').and.callThrough();
+
+    try {
+      formComponent.form?.markAsDirty();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(events.length).toBeGreaterThanOrEqual(1);
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
   it('broadcasts refreshed validation status after validation groups change', async () => {
     const formConfig: FormConfigFrame = {
       name: 'validation-group-status-broadcast',

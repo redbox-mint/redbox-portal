@@ -129,7 +129,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
     control.updateValueAndValidity();
     const formComponent = {
       getQuerySource: () => undefined,
-      broadcastFormStatus: jasmine.createSpy('broadcastFormStatus')
+      queueFormStatusBroadcast: jasmine.createSpy('queueFormStatusBroadcast')
     };
 
     spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
@@ -150,7 +150,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
 
     expect(control.value).toBe('newValue');
     expect(control.valid).toBeTrue();
-    expect(formComponent.broadcastFormStatus).toHaveBeenCalledTimes(1);
+    expect(formComponent.queueFormStatusBroadcast).toHaveBeenCalledTimes(1);
   }));
 
   it('should not update model value if unchanged', fakeAsync(() => {
@@ -167,7 +167,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
     control.setValue('sameValue');
     const formComponent = {
       getQuerySource: () => undefined,
-      broadcastFormStatus: jasmine.createSpy('broadcastFormStatus')
+      queueFormStatusBroadcast: jasmine.createSpy('queueFormStatusBroadcast')
     };
 
     spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
@@ -188,7 +188,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
     tick();
 
     expect(setValueSpy).not.toHaveBeenCalled();
-    expect(formComponent.broadcastFormStatus).not.toHaveBeenCalled();
+    expect(formComponent.queueFormStatusBroadcast).not.toHaveBeenCalled();
   }));
 
   it('should resync component display after silent model updates', fakeAsync(() => {

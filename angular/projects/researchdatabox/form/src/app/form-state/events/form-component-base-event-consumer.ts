@@ -396,13 +396,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       if (this.control && this.control.value !== targetValue) {
         await setControlValue(this.control, targetValue, { emitEvent: false });
         await syncComponentDisplayFromModel(this.options?.component);
-        // setControlValue with emitEvent:false suppresses Angular's
-        // StatusChangeEvent/PristineChangeEvent. Without an explicit re-broadcast,
-        // listeners like SaveButtonComponent never see that an expression-driven
-        // update flipped the form to valid (e.g. a downstream "required" target
-        // becoming populated), and the Save button stays disabled. Re-emit the
-        // current form status so signal-effect consumers can re-evaluate.
-        this.formComp?.broadcastFormStatus();
+        this.formComp?.queueFormStatusBroadcast();
       }
     } else if (exprTarget.startsWith(FormExpressionsTargetLayoutPrefix)) {
       const propPath = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);

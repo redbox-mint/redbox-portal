@@ -51,10 +51,11 @@ describe('FormBehaviourManager', () => {
     manager.destroy();
   });
 
-  it('binds behaviours and silently updates target field values', fakeAsync(() => {
+  it('binds behaviours and queues one status broadcast after silent target field updates', fakeAsync(() => {
     const targetControl = new FormControl('');
+    const secondTargetControl = new FormControl('');
     const formComponent = {
-      form: { value: { source: 'source', target: '' } },
+      form: { value: { source: 'source', target: '', secondTarget: '' } },
       formDefMap: {
         formConfig: {
           behaviours: [
@@ -67,6 +68,13 @@ describe('FormBehaviourManager', () => {
                   type: 'setValue',
                   config: {
                     fieldPath: '/main/target',
+                    fieldPathKind: 'componentJsonPointer',
+                  },
+                },
+                {
+                  type: 'setValue',
+                  config: {
+                    fieldPath: '/main/secondTarget',
                     fieldPathKind: 'componentJsonPointer',
                   },
                 },
@@ -92,14 +100,23 @@ describe('FormBehaviourManager', () => {
                 },
               },
             },
+            secondTarget: {
+              metadata: {
+                formFieldEntry: {
+                  model: { formControl: secondTargetControl },
+                  lineagePaths: { angularComponentsJsonPointer: '/main/secondTarget' },
+                },
+              },
+            },
           },
         },
       }),
       requestParams: () => ({}),
-      broadcastFormStatus: jasmine.createSpy('broadcastFormStatus'),
+      queueFormStatusBroadcast: jasmine.createSpy('queueFormStatusBroadcast'),
     } as any;
 
     const setValueSpy = spyOn(targetControl, 'setValue').and.callThrough();
+    const secondSetValueSpy = spyOn(secondTargetControl, 'setValue').and.callThrough();
     manager.bind(formComponent);
 
     fieldEvents$.next({
@@ -112,7 +129,8 @@ describe('FormBehaviourManager', () => {
     tick();
 
     expect(setValueSpy).toHaveBeenCalledWith('copied', { emitEvent: false });
-    expect(formComponent.broadcastFormStatus).toHaveBeenCalledTimes(1);
+    expect(secondSetValueSpy).toHaveBeenCalledWith('copied', { emitEvent: false });
+    expect(formComponent.queueFormStatusBroadcast).toHaveBeenCalledTimes(1);
   }));
 
   it('runs fetchMetadata processors and emits onError actions when a processor fails', fakeAsync(() => {

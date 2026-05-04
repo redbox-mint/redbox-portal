@@ -198,6 +198,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   private eventBus = inject(FormComponentEventBus);
   private focusRequestCoordinator = inject(FormComponentFocusRequestCoordinator);
+  private formStatusBroadcastQueued = false;
   public readonly eventScopeId = `form-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   /**
    * Status of the form, derived from the facade as signal
@@ -575,7 +576,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.subMaps['formGroupChangesSub'] = this.form.events.subscribe(
         (formGroupEvent: StatusChangeEvent | PristineChangeEvent | ValueChangeEvent<unknown> | unknown) => {
           if (formGroupEvent instanceof StatusChangeEvent || formGroupEvent instanceof PristineChangeEvent) {
-            this.broadcastFormStatus();
+            this.publishFormStatus();
           }
         }
       );
@@ -613,6 +614,29 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       return;
     }
     this.form.updateValueAndValidity({ emitEvent: false });
+    this.publishFormStatus();
+  }
+
+  /**
+   * Coalesce silent form updates into a single full-form refresh and validation
+   * broadcast. Use this from event/behaviour pipelines that may perform several
+   * `emitEvent: false` writes for one user action.
+   */
+  public queueFormStatusBroadcast(): void {
+    if (this.formStatusBroadcastQueued) {
+      return;
+    }
+    this.formStatusBroadcastQueued = true;
+    void Promise.resolve().then(() => {
+      this.formStatusBroadcastQueued = false;
+      this.broadcastFormStatus();
+    });
+  }
+
+  private publishFormStatus(): void {
+    if (!this.form) {
+      return;
+    }
     this.formGroupStatus.set(this.dataStatus);
     this.eventBus.publish(
       createFormValidationBroadcastEvent({
