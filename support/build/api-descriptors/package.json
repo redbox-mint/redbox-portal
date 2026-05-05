@@ -10,7 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "apib2swagger": "1.17.1",
-    "ejs": "5.0.1"
+    "ejs": "5.0.2"
   },
   "overrides": {
     "brace-expansion": "1.1.13",
