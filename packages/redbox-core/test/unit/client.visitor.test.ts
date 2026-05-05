@@ -1431,6 +1431,64 @@ describe("Client Visitor", async () => {
     expect(actual.componentDefinitions ?? []).to.have.length(0);
   });
 
+  it(`should omit hidden fields from group view transforms`, async function () {
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = constructor.start({
+      formMode: "view",
+      data: {
+        name: "form",
+        componentDefinitions: [
+          {
+            name: "contributor",
+            component: {
+              class: "GroupComponent",
+              config: {
+                componentDefinitions: [
+                  {
+                    name: "name",
+                    component: { class: "SimpleInputComponent", config: {} },
+                    model: { class: "SimpleInputModel", config: { defaultValue: "Mrs First01 Last01" } },
+                    layout: { class: "DefaultLayout", config: { label: "Name" } },
+                  },
+                  {
+                    name: "email",
+                    component: { class: "SimpleInputComponent", config: {} },
+                    model: { class: "SimpleInputModel", config: { defaultValue: "first01.last01@example.com" } },
+                    layout: { class: "DefaultLayout", config: { label: "Email" } },
+                  },
+                  {
+                    name: "given_name",
+                    component: { class: "SimpleInputComponent", config: { type: "hidden" } },
+                    model: { class: "SimpleInputModel", config: { defaultValue: "First01" } },
+                    layout: { class: "DefaultLayout", config: { visible: false } },
+                  },
+                  {
+                    name: "family_name",
+                    component: { class: "SimpleInputComponent", config: { type: "hidden" } },
+                    model: { class: "SimpleInputModel", config: { defaultValue: "Last01" } },
+                    layout: { class: "DefaultLayout", config: { visible: false } },
+                  },
+                ]
+              }
+            },
+            model: { class: "GroupModel", config: {} }
+          }
+        ]
+      }
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = visitor.start({ form: constructed, formMode: "view" });
+    const transformed = actual.componentDefinitions[0];
+
+    expect(transformed.component.class).to.equal("ContentComponent");
+    const template = (transformed.component.config as { template?: string }).template ?? "";
+    expect(template).to.contain("Name");
+    expect(template).to.contain("Email");
+    expect(template).to.not.contain("given_name");
+    expect(template).to.not.contain("family_name");
+  });
+
   it(`should keep action row groups in view mode`, async function () {
     const constructor = new ConstructFormConfigVisitor(logger);
     const constructed = constructor.start({

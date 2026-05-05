@@ -689,6 +689,19 @@ export class FormOverride {
   ): ContentFormComponentDefinitionOutline {
     const target = this.commonContentComponent(source, formMode);
     this.commonContentPlain(source, target);
+
+    const sourceConfig = source.component?.config as { type?: string } | undefined;
+    if (sourceConfig?.type === 'hidden') {
+      if (target.component.config) {
+        target.component.config.visible = false;
+      }
+
+      const targetLayoutConfig = target.layout?.config as { visible?: boolean } | undefined;
+      if (targetLayoutConfig) {
+        targetLayoutConfig.visible = false;
+      }
+    }
+
     return target;
   }
 
@@ -1188,7 +1201,7 @@ export class FormOverride {
   }
 
   private generateGroupTemplate(component: GroupFormComponentDefinitionOutline, rootExpr: string): string {
-    const children = this.getRenderableGroupChildren(component) ?? [];
+    const children = this.getGroupChildren(component) ?? [];
     const rows = children.map(child => this.renderLabelValueRow(child, rootExpr)).join('');
     const template = this.resolveReusableViewTemplate(
       this.reusableViewTemplateKeys.groupContainer,
@@ -1344,7 +1357,17 @@ export class FormOverride {
         ? (component.component.config as { componentDefinitions?: AllFormComponentDefinitionOutlines[] })
           .componentDefinitions
         : [];
-    return componentDefinitions ?? [];
+    return (componentDefinitions ?? []).filter(child => this.isViewRenderableComponent(child));
+  }
+
+  private isViewRenderableComponent(component: AllFormComponentDefinitionOutlines): boolean {
+    const componentConfig = component?.component?.config as { visible?: boolean; type?: string } | undefined;
+    if (componentConfig?.visible === false || componentConfig?.type === 'hidden') {
+      return false;
+    }
+
+    const layoutConfig = component?.layout?.config as { visible?: boolean } | undefined;
+    return layoutConfig?.visible !== false;
   }
 
   private getRenderableGroupChildren(component: AllFormComponentDefinitionOutlines): AllFormComponentDefinitionOutlines[] | null {
