@@ -5,6 +5,8 @@ export * from './record.model';
 export * from './report.model';
 export * from './status.model';
 export * from './template.outline';
+export * from './handlebars-helpers';
+export * from './html-helpers';
 export * from './translation-helpers';
 export * from './typing-helpers';
 // config

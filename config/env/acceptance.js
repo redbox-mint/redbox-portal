@@ -43,6 +43,11 @@ module.exports = {
     level: 'debug'
   },
   appUrl:'http://dlcfportal:1500',
+  redboxSession: {
+    cookie: {
+      secure: false
+    }
+  },
   db: {
     waitRetries: 5,
     waitSleep: 20000

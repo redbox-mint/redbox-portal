@@ -10,6 +10,8 @@ import { RequestHandler, Request, Response, NextFunction } from 'express';
 import type { PassportStatic } from 'passport';
 import * as _ from 'lodash';
 import * as fs from 'fs';
+import * as path from 'path';
+import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
 const skipper = require('skipper');
 
 import { redboxSession as redboxSessionMiddleware } from '../middleware/redboxSession';
@@ -27,6 +29,7 @@ declare const sails: {
         appPath: string;
         passport: PassportStatic; // The passport instance configured by UsersService
         companion?: CompanionConfig;
+        appUrl?: string;
         session: {
             cookie?: {
                 maxAge?: number;
@@ -199,6 +202,90 @@ const getCookieValue = (cookieHeader: string | undefined, cookieName: string): s
     return undefined;
 };
 
+const companionSendTokenCsp = "default-src 'none'; script-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; style-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+
+interface CompanionSendTokenConfig {
+    targetOrigin: string;
+    provider: string;
+    secureCookie: boolean;
+}
+
+function normalizeCompanionTargetOrigin(appUrl: string): string {
+    const trimmedAppUrl = String(appUrl ?? '').trim();
+    if (!trimmedAppUrl) {
+        return '';
+    }
+    try {
+        return new URL(trimmedAppUrl).origin;
+    } catch (_err) {
+        return trimmedAppUrl;
+    }
+}
+
+function sanitizeCompanionProvider(provider: string): string {
+    const trimmedProvider = String(provider ?? '').trim().toLowerCase();
+    if (trimmedProvider === 'drive' || trimmedProvider === 'googledrive' || trimmedProvider === 'onedrive') {
+        return trimmedProvider;
+    }
+    return '';
+}
+
+export function buildCompanionSendTokenConfig(appUrl: string, provider: string): CompanionSendTokenConfig {
+    const targetOrigin = normalizeCompanionTargetOrigin(appUrl);
+    return {
+        targetOrigin,
+        provider: sanitizeCompanionProvider(provider),
+        secureCookie: targetOrigin.startsWith('https://'),
+    };
+}
+
+export function buildCompanionSendTokenHtml(appUrl: string, provider: string): string {
+    const configJson = escapeHtmlText(JSON.stringify(buildCompanionSendTokenConfig(appUrl, provider)));
+    return `<!DOCTYPE html><html><head><meta charset="utf-8" /></head><body><div hidden id="companion-send-token-config">${configJson}</div><script>(function(){'use strict';var configElement=document.getElementById('companion-send-token-config');var config={targetOrigin:'',provider:'',secureCookie:false};try{config=JSON.parse(configElement&&configElement.textContent?configElement.textContent:'{}');}catch(_e){}var origin=typeof config.targetOrigin==='string'?config.targetOrigin:'';var provider=typeof config.provider==='string'?config.provider:'';var query=new URLSearchParams(window.location.search);var hashRaw=window.location.hash&&window.location.hash.charAt(0)==='#'?window.location.hash.slice(1):'';var hash=new URLSearchParams(hashRaw);var token=(query.get('uppyAuthToken')||hash.get('uppyAuthToken')||'').trim();if(!origin||!token){if(origin){window.location.replace(origin);}return;}if(provider){var storageKey='companion-'+provider+'-auth-token';var cookieName='uppyAuthToken--'+provider;if(provider==='drive'||provider==='googledrive'){storageKey='companion-GoogleDrive-auth-token';cookieName='uppyAuthToken--googledrive';}if(provider==='onedrive'){storageKey='companion-OneDrive-auth-token';}try{window.localStorage.setItem(storageKey,token);}catch(_e){}document.cookie=cookieName+'='+encodeURIComponent(token)+'; Path=/; Max-Age=34560000; SameSite=Lax'+(config.secureCookie?'; Secure':'');}var data={token:token};var openerRef=null;try{openerRef=window.opener||null;}catch(_e){}if(!openerRef){window.location.replace(origin);return;}var attempts=0;var send=function(){attempts+=1;try{openerRef.postMessage(data,origin);}catch(_e){}if(attempts<5){setTimeout(send,150);return;}setTimeout(function(){try{window.close();}catch(_e){}},300);};send();})();</script>Completing sign in...</body></html>`;
+}
+
+export function sanitizeStaticSegment(value: string): string | null {
+    const decoded = decodeStaticPathPart(value);
+    if (!decoded || !/^[A-Za-z0-9_-]+$/.test(decoded)) {
+        return null;
+    }
+    return decoded;
+}
+
+export function sanitizeStaticResourcePath(value: string): string | null {
+    const withoutQuery = value.split('?')[0];
+    if (!withoutQuery || withoutQuery.includes('\0')) {
+        return null;
+    }
+
+    const sanitizedParts: string[] = [];
+    for (const part of withoutQuery.split('/')) {
+        const decoded = decodeStaticPathPart(part);
+        if (!decoded || decoded === '.' || decoded === '..' || decoded.includes('\0') || decoded.includes('/') || decoded.includes('\\')) {
+            return null;
+        }
+        sanitizedParts.push(decoded);
+    }
+    return sanitizedParts.join('/');
+}
+
+export function resolvePublicAssetPath(basePublicDir: string, ...segments: string[]): string | null {
+    const resolvedBase = path.resolve(basePublicDir);
+    const resolvedPath = path.resolve(resolvedBase, ...segments);
+    if (resolvedPath !== resolvedBase && !resolvedPath.startsWith(`${resolvedBase}${path.sep}`)) {
+        return null;
+    }
+    return resolvedPath;
+}
+
+function decodeStaticPathPart(value: string): string | null {
+    try {
+        return decodeURIComponent(value);
+    } catch (_err) {
+        return null;
+    }
+}
+
 export const http: HttpConfig = {
     rootContext: '',
 
@@ -206,8 +293,9 @@ export const http: HttpConfig = {
         // Lazy load redboxSession to support async shim generation
         redboxSession: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             if (!_lazyRedboxSessionMiddleware) {
-                // Initialize the session middleware with the config
-                _lazyRedboxSessionMiddleware = redboxSessionMiddleware(redboxSessionConfigValue);
+                // Initialize the session middleware with the resolved Sails config so environment overrides apply.
+                const resolvedSessionConfig = (sails.config as { redboxSession?: typeof redboxSessionConfigValue }).redboxSession || redboxSessionConfigValue;
+                _lazyRedboxSessionMiddleware = redboxSessionMiddleware(resolvedSessionConfig);
             }
             return _lazyRedboxSessionMiddleware(req, res, next);
         },
@@ -278,20 +366,12 @@ export const http: HttpConfig = {
             if (isSendTokenPath) {
                 const appUrl = String((sails.config as { appUrl?: unknown }).appUrl ?? '').trim();
                 if (appUrl) {
-                    let targetOrigin = appUrl;
-                    try {
-                        targetOrigin = new URL(appUrl).origin;
-                    } catch (_err) {
-                        // Keep configured appUrl as-is if URL parsing fails.
-                    }
-                    const originPayload = JSON.stringify(targetOrigin);
                     res.setHeader('Content-Type', 'text/html; charset=utf-8');
                     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
                     res.setHeader('Pragma', 'no-cache');
                     res.setHeader('Expires', '0');
-                    return res.send(
-                        `<!DOCTYPE html><html><head><meta charset="utf-8" /><script>(function(){'use strict';var origin=${originPayload};var provider=${JSON.stringify(relativePathParts[0] ?? '')};var query=new URLSearchParams(window.location.search);var hashRaw=window.location.hash&&window.location.hash.charAt(0)==='#'?window.location.hash.slice(1):'';var hash=new URLSearchParams(hashRaw);var token=(query.get('uppyAuthToken')||hash.get('uppyAuthToken')||'').trim();if(!token){window.location.replace(origin);return;}if(provider){var storageKey='companion-'+provider+'-auth-token';var cookieName='uppyAuthToken--'+provider;if(provider==='drive'){storageKey='companion-GoogleDrive-auth-token';cookieName='uppyAuthToken--googledrive';}if(provider==='onedrive'){storageKey='companion-OneDrive-auth-token';}try{window.localStorage.setItem(storageKey,token);}catch(_e){}document.cookie=cookieName+'='+encodeURIComponent(token)+'; Path=/; Max-Age=34560000; SameSite=Lax';}var data={token:token};var openerRef=null;try{openerRef=window.opener||null;}catch(_e){}if(!openerRef){window.location.replace(origin);return;}var attempts=0;var send=function(){attempts+=1;try{openerRef.postMessage(data,origin);}catch(_e){}if(attempts<5){setTimeout(send,150);return;}setTimeout(function(){try{window.close();}catch(_e){}},300);};send();})();</script></head><body>Completing sign in...</body></html>`
-                    );
+                    res.setHeader('Content-Security-Policy', companionSendTokenCsp);
+                    return res.send(buildCompanionSendTokenHtml(appUrl, relativePathParts[0] ?? ''));
                 }
             }
 
@@ -418,8 +498,9 @@ export const http: HttpConfig = {
             const splitUrl = url.split('/');
 
             if (splitUrl.length > 3) {
-                const branding = splitUrl[1];
-                const portal = splitUrl[2];
+                const branding = sanitizeStaticSegment(splitUrl[1]);
+                const portal = sanitizeStaticSegment(splitUrl[2]);
+                const resourceLocation = sanitizeStaticResourcePath(splitUrl.slice(3, splitUrl.length).join("/"));
                 if (extendedReq.options == null) {
                     extendedReq.options = {};
                 }
@@ -433,26 +514,25 @@ export const http: HttpConfig = {
                     extendedReq.options.locals.portal = portal;
                 }
 
-                let resourceLocation = splitUrl.slice(3, splitUrl.length).join("/");
-                if (resourceLocation.lastIndexOf('?') != -1) {
-                    resourceLocation = resourceLocation.substring(0, resourceLocation.lastIndexOf('?'));
-                }
                 let resolvedPath: string | null = null;
-                let locationToTest = sails.config.appPath + "/.tmp/public/" + branding + "/" + portal + "/" + resourceLocation;
-                if (existsSync(locationToTest)) {
-                    resolvedPath = "/" + branding + "/" + portal + "/" + resourceLocation;
-                }
-
-                if (resolvedPath == null) {
-                    locationToTest = sails.config.appPath + "/.tmp/public/default/" + portal + "/" + resourceLocation;
-                    if (existsSync(locationToTest)) {
-                        resolvedPath = "/default/" + portal + "/" + resourceLocation;
+                if (branding && portal && resourceLocation) {
+                    const publicBasePath = path.resolve(sails.config.appPath, '.tmp', 'public');
+                    let locationToTest = resolvePublicAssetPath(publicBasePath, branding, portal, resourceLocation);
+                    if (locationToTest && existsSync(locationToTest)) {
+                        resolvedPath = "/" + branding + "/" + portal + "/" + resourceLocation;
                     }
-                }
-                if (resolvedPath == null) {
-                    locationToTest = sails.config.appPath + "/.tmp/public/default/default/" + resourceLocation;
-                    if (existsSync(locationToTest)) {
-                        resolvedPath = "/default/default/" + resourceLocation;
+
+                    if (resolvedPath == null) {
+                        locationToTest = resolvePublicAssetPath(publicBasePath, 'default', portal, resourceLocation);
+                        if (locationToTest && existsSync(locationToTest)) {
+                            resolvedPath = "/default/" + portal + "/" + resourceLocation;
+                        }
+                    }
+                    if (resolvedPath == null) {
+                        locationToTest = resolvePublicAssetPath(publicBasePath, 'default', 'default', resourceLocation);
+                        if (locationToTest && existsSync(locationToTest)) {
+                            resolvedPath = "/default/default/" + resourceLocation;
+                        }
                     }
                 }
 
