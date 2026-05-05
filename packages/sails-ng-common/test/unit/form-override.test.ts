@@ -6,6 +6,7 @@ import {
 } from '../../src/config/component/repeatable.outline';
 import { ReusableComponentName } from '../../src/config/component/reusable.outline';
 import { SimpleInputComponentName } from '../../src/config/component/simple-input.outline';
+import { GroupFieldComponentName } from '../../src/config/component/group.outline';
 import { isTypeFieldDefinitionName } from '../../src/config/form-types.outline';
 import { ILogger } from '../../src/logger.interface';
 
@@ -42,6 +43,8 @@ function createExpression(name: string) {
     },
   };
 }
+
+const normalizeTemplate = (template: string): string => template.replace(/\s+/g, ' ').trim();
 
 describe('FormOverride reusable expansion', () => {
   it('keeps wrapper expressions intact when reusable and additional items both define expressions', () => {
@@ -399,5 +402,103 @@ describe('FormOverride reusable expansion', () => {
     expect(nestedFields[0].component.config.valueField).to.equal('text_full_name');
     expect(nestedFields[1].component.config.onItemSelect.rawPath).to.equal('email');
     expect(nestedFields[2].component.config.onItemSelect.rawPath).to.equal('orcid');
+  });
+
+  it('skips hidden simple inputs when rendering group view rows', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const transformed = formOverride.applyOverrideTransform(
+      {
+        name: 'person',
+        component: {
+          class: GroupFieldComponentName,
+          config: {
+            componentDefinitions: [
+              {
+                name: 'name',
+                component: {
+                  class: SimpleInputComponentName,
+                  config: { label: 'Name' },
+                },
+              },
+              {
+                name: 'identifier',
+                component: {
+                  class: SimpleInputComponentName,
+                  config: { label: 'Identifier', type: 'hidden' },
+                },
+              },
+            ],
+          },
+        },
+      } as never,
+      'view',
+      { phase: 'client' }
+    );
+
+    expect(transformed.component.class).to.equal(ContentComponentName);
+    const template = normalizeTemplate((transformed.component.config as { template?: string }).template ?? '');
+    expect(template).to.contain('{{t "Name"}}');
+    expect(template).to.not.contain('{{t "Identifier"}}');
+    expect(template).to.not.contain('identifier');
+  });
+
+  it('skips hidden simple inputs when rendering repeatable group tables', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const transformed = formOverride.applyOverrideTransform(
+      {
+        name: 'contributors',
+        component: {
+          class: RepeatableComponentName,
+          config: {
+            elementTemplate: {
+              name: '',
+              component: {
+                class: GroupFieldComponentName,
+                config: {
+                  componentDefinitions: [
+                    {
+                      name: 'name',
+                      component: {
+                        class: SimpleInputComponentName,
+                        config: { label: 'Name' },
+                      },
+                    },
+                    {
+                      name: 'orcid',
+                      component: {
+                        class: SimpleInputComponentName,
+                        config: { label: 'ORCID', type: 'hidden' },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+        model: {
+          class: 'RepeatableModel',
+          config: {
+            value: [
+              {
+                name: 'Ada Lovelace',
+                orcid: '0000-0000-0000-0000',
+              },
+            ],
+          },
+        },
+      } as never,
+      'view',
+      { phase: 'client' }
+    );
+
+    expect(transformed.component.class).to.equal(ContentComponentName);
+    const template = normalizeTemplate((transformed.component.config as { template?: string }).template ?? '');
+    expect(template).to.contain('rb-view-repeatable-table');
+    expect(template).to.contain('<th>{{t "Name"}}</th>');
+    expect(template).to.not.contain('<th>{{t "ORCID"}}</th>');
+    expect(template).to.not.contain('get this "orcid"');
   });
 });

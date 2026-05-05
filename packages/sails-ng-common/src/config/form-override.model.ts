@@ -1175,7 +1175,7 @@ export class FormOverride {
       return `<div class="rb-view-repeatable rb-view-repeatable-list"></div>`;
     }
 
-    const groupChildren = this.getGroupChildren(elementTemplate);
+    const groupChildren = this.getRenderableGroupChildren(elementTemplate);
     const tableEligible = !!groupChildren && this.isTableEligibleGroupChildren(groupChildren);
     this.logger.debug(
       `Repeatable view transform '${component.name}' using ${tableEligible ? 'table' : 'fallback'} layout.`
@@ -1188,7 +1188,7 @@ export class FormOverride {
   }
 
   private generateGroupTemplate(component: GroupFormComponentDefinitionOutline, rootExpr: string): string {
-    const children = component?.component?.config?.componentDefinitions ?? [];
+    const children = this.getRenderableGroupChildren(component) ?? [];
     const rows = children.map(child => this.renderLabelValueRow(child, rootExpr)).join('');
     const template = this.resolveReusableViewTemplate(
       this.reusableViewTemplateKeys.groupContainer,
@@ -1224,7 +1224,7 @@ export class FormOverride {
   private renderComponentBody(component: AllFormComponentDefinitionOutlines, rootExpr: string): string {
     const className = component?.component?.class;
     if (className === GroupFieldComponentName) {
-      const children = this.getGroupChildren(component) ?? [];
+      const children = this.getRenderableGroupChildren(component) ?? [];
       return children.map(child => this.renderLabelValueRow(child, rootExpr)).join('');
     }
     if (className === RepeatableComponentName) {
@@ -1345,6 +1345,26 @@ export class FormOverride {
           .componentDefinitions
         : [];
     return componentDefinitions ?? [];
+  }
+
+  private getRenderableGroupChildren(component: AllFormComponentDefinitionOutlines): AllFormComponentDefinitionOutlines[] | null {
+    const children = this.getGroupChildren(component);
+    if (!children) {
+      return null;
+    }
+    return children.filter(child => !this.shouldSkipViewRendering(child));
+  }
+
+  private shouldSkipViewRendering(component: AllFormComponentDefinitionOutlines): boolean {
+    return this.isHiddenSimpleInput(component);
+  }
+
+  private isHiddenSimpleInput(component: AllFormComponentDefinitionOutlines): boolean {
+    if (component?.component?.class !== SimpleInputComponentName) {
+      return false;
+    }
+    const config = component.component.config as { type?: string } | undefined;
+    return config?.type === 'hidden';
   }
 
   private isTableEligibleGroupChildren(children: AllFormComponentDefinitionOutlines[]): boolean {
