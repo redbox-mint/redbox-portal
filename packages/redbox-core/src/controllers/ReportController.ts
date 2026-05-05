@@ -1,7 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel, ReportModel } from '../model';
 import { from } from 'rxjs';
-import {RequestChronicleHelper} from "../utilities/RequestChronicle";
 
 
 export namespace Controllers {
