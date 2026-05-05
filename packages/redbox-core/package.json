@@ -34,7 +34,7 @@
     "@types/uuid": "10.0.0",
     "agenda": "github:redbox-mint-contrib/agenda#adc5537f8d728c15d2677bdebdb840cc5dcc8c3e",
     "async": "3.2.6",
-    "axios": "1.15.0",
+    "axios": "1.15.2",
     "bcryptjs": "3.0.3",
     "check-disk-space": "3.4.0",
     "copy-webpack-plugin": "14.0.0",
@@ -95,6 +95,7 @@
     "wkt-parser-helper": "7.1.0"
   },
   "overrides": {
+    "axios": "1.15.2",
     "fast-xml-parser": "5.7.0",
     "immutable": "5.1.5",
     "sails-mongo": {

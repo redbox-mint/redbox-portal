@@ -15,11 +15,6 @@ export function mapMomentToLuxonFormat(fmt: string): string {
         .replace(/\bDD\b/g, 'dd').replace(/\bD\b/g, 'd')
         // weekday
         .replace(/dddd/g, 'cccc').replace(/ddd/g, 'ccc')
-        // hours/minutes/seconds
-        .replace(/\bHH\b/g, 'HH').replace(/\bH\b/g, 'H')
-        .replace(/\bhh\b/g, 'hh').replace(/\bh\b/g, 'h')
-        .replace(/\bmm\b/g, 'mm').replace(/\bm\b/g, 'm')
-        .replace(/\bss\b/g, 'ss').replace(/\bs\b/g, 's')
         // AM/PM
         .replace(/A/g, 'a');
 }

@@ -12,6 +12,9 @@ export interface RedboxSessionConfig {
     // Optional fields from comments
     cookie?: {
         maxAge?: number;
+        httpOnly?: boolean;
+        sameSite?: boolean | 'lax' | 'strict' | 'none';
+        secure?: boolean | 'auto';
     };
     host?: string;
     port?: number;

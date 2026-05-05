@@ -56,4 +56,16 @@ describe('LoggerService', () => {
     expect(consoleWarnSpy).toHaveBeenCalled();
     expect(consoleErrorSpy).toHaveBeenCalled();
   });
+
+  it('should use a constant console format string when logging string plus data', () => {
+    const consoleErrorSpy = spyOn(console, 'error');
+    const service = new LoggerService();
+    const data = { key: 'value' };
+
+    service.error('user %s controlled', data);
+
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    expect(consoleErrorSpy.calls.mostRecent().args[0]).toBe('%s');
+    expect(consoleErrorSpy.calls.mostRecent().args[1]).toBe('user %s controlled');
+  });
 });
