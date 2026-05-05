@@ -41,7 +41,6 @@ import { Services as services } from '../CoreService';
 import { QueueService } from '../QueueService';
 
 import { Agenda, type Job } from 'agenda';
-import type { Filter, Sort } from 'mongodb';
 
 type AgendaJob = {
   name: string;
@@ -56,6 +55,8 @@ type AgendaJob = {
 };
 
 type AgendaJobHandler = (job: Job) => Promise<void>;
+type AgendaJobsQuery = NonNullable<Parameters<Agenda['jobs']>[0]>;
+type AgendaJobsSort = NonNullable<Parameters<Agenda['jobs']>[1]>;
 
 
 
@@ -245,7 +246,7 @@ export namespace Services {
       }
     }
 
-    public async jobs(query: Filter<unknown> = {}, sort: Sort = {}, limit = 0, skip = 0) {
+    public async jobs(query: AgendaJobsQuery = {}, sort: AgendaJobsSort = {}, limit = 0, skip = 0) {
       return await this.agenda.jobs(query, sort, limit, skip);
     }
   }
