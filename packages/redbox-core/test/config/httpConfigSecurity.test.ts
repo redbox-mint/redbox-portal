@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import * as path from 'path';
+import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
 import {
   buildCompanionSendTokenConfig,
   buildCompanionSendTokenHtml,
@@ -11,11 +12,14 @@ import {
 describe('HTTP config security helpers', function () {
   describe('Companion send-token response', function () {
     it('should escape malicious provider values out of inert HTML text content', function () {
-      const html = buildCompanionSendTokenHtml('https://portal.example.edu/default/rdmp', 'drive</script><script>alert(1)</script>');
+      const appUrl = 'https://portal.example.edu/default/rdmp';
+      const provider = 'drive</script><script>alert(1)</script>';
+      const html = buildCompanionSendTokenHtml(appUrl, provider);
+      const expectedConfigJson = escapeHtmlText(JSON.stringify(buildCompanionSendTokenConfig(appUrl, provider)));
 
       expect(html).to.include('<div hidden id="companion-send-token-config">');
       expect(html).not.to.include('drive</script><script>alert(1)</script>');
-      expect(html).to.include('"provider":""');
+      expect(html).to.include(expectedConfigJson);
     });
 
     it('should normalize configured appUrl to an origin', function () {
@@ -34,10 +38,13 @@ describe('HTTP config security helpers', function () {
     });
 
     it('should mark HTTPS send-token cookies as Secure', function () {
-      const html = buildCompanionSendTokenHtml('https://portal.example.edu', 'onedrive');
+      const appUrl = 'https://portal.example.edu';
+      const provider = 'onedrive';
+      const html = buildCompanionSendTokenHtml(appUrl, provider);
+      const expectedConfigJson = escapeHtmlText(JSON.stringify(buildCompanionSendTokenConfig(appUrl, provider)));
 
       expect(html).to.include("config.secureCookie?'; Secure':''");
-      expect(html).to.include('"secureCookie":true');
+      expect(html).to.include(expectedConfigJson);
     });
   });
 
