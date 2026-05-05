@@ -1,4 +1,5 @@
 import { handlebarsHelperDefinitions } from '../../src/handlebars-helpers';
+import { escapeHtmlText } from '../../src/html-helpers';
 
 describe('Shared Handlebars Helpers', function () {
     let expect: any;
@@ -53,6 +54,14 @@ describe('Shared Handlebars Helpers', function () {
         it('should return original string for invalid date', function () {
             const result = handlebarsHelperDefinitions.formatDate('not-a-date');
             expect(result).to.equal('not-a-date');
+        });
+    });
+
+    describe('escapeHtmlText', function () {
+        it('should escape all HTML text context characters', function () {
+            const result = escapeHtmlText(`&<>"'`);
+
+            expect(result).to.equal('&amp;&lt;&gt;&quot;&#39;');
         });
     });
 

@@ -26,6 +26,7 @@ import {
   isArray as _isArray,
   isPlainObject as _isPlainObject,
 } from 'lodash';
+import { escapeHtmlText } from './html-helpers';
 
 function isHandlebarsOptionsArg(value: unknown): boolean {
   return (
@@ -94,15 +95,6 @@ function resolveMarkedParser(): ((value: string) => string) | null {
   return cachedMarkedParser ?? null;
 }
 
-function escapeHtml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 function isPrimitiveMetadataValue(value: unknown): boolean {
   return (
     value === null ||
@@ -126,7 +118,7 @@ function renderMetadataPrimitive(value: unknown): string {
     return '<em class="text-muted">—</em>';
   }
 
-  return escapeHtml(value);
+  return escapeHtmlText(value);
 }
 
 function renderMetadataObjectEntries(value: Record<string, unknown>): string {
@@ -137,7 +129,7 @@ function renderMetadataObjectEntries(value: Record<string, unknown>): string {
 
   const rows = entries
     .map(([key, entryValue]) => {
-      return `<div class="rb-view-metadata__nested-row"><div class="rb-view-metadata__nested-key">${escapeHtml(key)}</div><div class="rb-view-metadata__nested-value">${renderMetadataValue(entryValue)}</div></div>`;
+      return `<div class="rb-view-metadata__nested-row"><div class="rb-view-metadata__nested-key">${escapeHtmlText(key)}</div><div class="rb-view-metadata__nested-value">${renderMetadataValue(entryValue)}</div></div>`;
     })
     .join('');
 
@@ -162,7 +154,7 @@ function renderMetadataTable(value: Record<string, unknown>[]): string {
     return '<em class="text-muted">—</em>';
   }
 
-  const headerHtml = columns.map(key => `<th>${escapeHtml(key)}</th>`).join('');
+  const headerHtml = columns.map(key => `<th>${escapeHtmlText(key)}</th>`).join('');
   const rowHtml = value
     .map(row => {
       const cells = columns.map(key => `<td>${renderMetadataPrimitive(row[key])}</td>`).join('');
@@ -179,7 +171,7 @@ function renderMetadataArray(value: unknown[]): string {
   }
 
   if (value.every(entry => typeof entry === 'string')) {
-    const items = value.map(entry => `<li>${escapeHtml(entry)}</li>`).join('');
+    const items = value.map(entry => `<li>${escapeHtmlText(entry)}</li>`).join('');
     return `<ul class="rb-view-metadata__list">${items}</ul>`;
   }
 

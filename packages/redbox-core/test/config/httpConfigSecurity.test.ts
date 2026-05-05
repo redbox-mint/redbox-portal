@@ -10,10 +10,10 @@ import {
 
 describe('HTTP config security helpers', function () {
   describe('Companion send-token response', function () {
-    it('should escape malicious provider values out of inert JSON script content', function () {
+    it('should escape malicious provider values out of inert HTML text content', function () {
       const html = buildCompanionSendTokenHtml('https://portal.example.edu/default/rdmp', 'drive</script><script>alert(1)</script>');
 
-      expect(html).to.include('<script type="application/json" id="companion-send-token-config">');
+      expect(html).to.include('<div hidden id="companion-send-token-config">');
       expect(html).not.to.include('drive</script><script>alert(1)</script>');
       expect(html).to.include('"provider":""');
     });
@@ -30,7 +30,7 @@ describe('HTTP config security helpers', function () {
       const html = buildCompanionSendTokenHtml('"><img src=x onerror=alert(1)>', 'drive');
 
       expect(html).not.to.include('"><img src=x onerror=alert(1)>');
-      expect(html).to.include('&lt;img src=x onerror=alert(1)&gt;');
+      expect(html).to.include('&quot;targetOrigin&quot;:&quot;\\&quot;&gt;&lt;img src=x onerror=alert(1)&gt;&quot;');
     });
 
     it('should mark HTTPS send-token cookies as Secure', function () {
