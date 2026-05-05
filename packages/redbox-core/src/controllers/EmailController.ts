@@ -81,6 +81,7 @@ export namespace Controllers {
                 return this.sendResp(req, res, {
                     status: 500,
                     displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
+                    errors: [error],
                     headers: this.getNoCacheHeaders(),
                     chronicle: {emailProcessStepFailed: 'evaluate properties'},
                 });

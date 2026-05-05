@@ -338,11 +338,7 @@ export namespace Controllers.Core {
       const fullViewPath = sails.config.appPath + "/views/" + resolvedView;
       mergedLocal['templateDirectoryLocation'] = fullViewPath.substring(0, fullViewPath.lastIndexOf('/') + 1);
 
-      this.logger.debug("resolvedView");
-      this.logger.debug(resolvedView);
-      // this.logger.debug("mergedLocal");
-      // this.logger.debug(mergedLocal);
-
+      this.updateChronicle(req, {viewResolvedDetail: resolvedView, viewMergedLocalDetail: mergedLocal});
 
       res.view(resolvedView, mergedLocal);
     }
@@ -542,7 +538,7 @@ export namespace Controllers.Core {
     }
 
     protected updateChronicle(req: Sails.Req, info?: Record<string, unknown>, errors?: (Error | unknown)[]): void {
-      const rc: RequestChronicleHelper | null = _.get(req.options, ['requestChronicle']);
+      const rc = RequestChronicleHelper.fromReq(req);
       rc?.addInfo(info ?? {});
       (errors ?? []).forEach(error => rc?.addError(error));
     }

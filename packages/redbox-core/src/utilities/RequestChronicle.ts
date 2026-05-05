@@ -1,3 +1,4 @@
+import { Request } from 'express';
 import {ILogger} from "@researchdatabox/sails-ng-common";
 import {RBValidationError} from "../model";
 
@@ -50,7 +51,6 @@ export interface RequestChronicle {
    * Any errors encountered during the request processing.
    */
   errors?: RequestChronicleError[],
-
   /**
    * Arbitrary data added during the request processing.
    */
@@ -69,6 +69,21 @@ export class RequestChronicleHelper {
   #duration?: number;
 
   #data: RequestChronicle = {};
+
+  public static fromReq(req: Sails.Req | Request): RequestChronicleHelper {
+    const request = 'options' in req ? req : (req as {options?:  Sails.ReqOptions});
+    if (!('options' in req) || request?.options === undefined || request?.options === null) {
+      request.options = {};
+    }
+
+    if (request?.options?.requestChronicleHelper === undefined || request?.options?.requestChronicleHelper === null) {
+      // Make the event accessible to other middleware, plus anywhere that can access the req.
+      // TODO: This could use opentelemetry span or logs or trace, but that doesn't have to happen right now.
+      request.options.requestChronicleHelper = new RequestChronicleHelper();
+    }
+
+    return request.options.requestChronicleHelper;
+  }
 
   start(): void {
     if (this.#startTime !== undefined || this.#duration !== undefined) {
@@ -161,7 +176,7 @@ export class RequestChronicleHelper {
     return (this.#data.errors?.length ?? 0) > 0;
   }
 
-  public addError(error?: any): void {
+  public addError(error?: unknown): void {
     if (!Array.isArray(this.#data.errors)) {
       this.#data.errors = [];
     }
@@ -177,6 +192,12 @@ export class RequestChronicleHelper {
     for (const [key, value] of Object.entries(info ?? {})) {
       if (notAllowedKeys.includes(key)) {
         throw new Error(`Cannot overwrite request chronicle key '${key}'.`);
+      }
+      // TODO: Expecting only top-level properties, not nested props.
+      //       If nested props are wanted, this might need to merge instead of replace.
+      // TODO: should it be allowed to replace an existing arbitrary property?
+      if (this.#data[key] !== null && this.#data[key] !== undefined && this.#data[key] !== value) {
+        sails.log.warn(`Replaced existing request chronicle key '${key}' value '${this.#data[key]}' with new value '${value}'.`)
       }
       this.#data[key] = value;
     }

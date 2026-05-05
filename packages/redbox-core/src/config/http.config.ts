@@ -18,6 +18,8 @@ import type { CompanionConfig } from './companion.config';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as PathRulesServiceModule from '../services/PathRulesService';
 import {requestChronicle} from "../middleware/requestChronicle";
+import {RequestChronicleHelper} from "../utilities/RequestChronicle";
+import {UserModel} from "../model";
 
 // Declare Sails and its config structure
 declare const sails: {
@@ -216,7 +218,16 @@ export const http: HttpConfig = {
             return sails.config.passport.initialize()(req, res, next);
         },
         passportSession: function (req: Request, res: Response, next: NextFunction) {
-            return sails.config.passport.session()(req, res, next);
+            const result = sails.config.passport.session()(req, res, next);
+            const user = req.user as UserModel | undefined | null;
+            RequestChronicleHelper.fromReq(req).addInfo({
+              userId: user?.id,
+              userUsername: user?.username,
+              userType: user?.password,
+              userName: user?.type,
+              userRoles: user?.name,
+            });
+            return result;
         },
 
         companion: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
@@ -449,6 +460,11 @@ export const http: HttpConfig = {
                 if (resolvedPath != null) {
                     req.url = resolvedPath;
                 }
+
+              RequestChronicleHelper.fromReq(req).addInfo({
+                branding: branding ?? extendedReq.options.locals.branding,
+                portal: portal ?? extendedReq.options.locals.portal,
+              });
             }
             next();
         },

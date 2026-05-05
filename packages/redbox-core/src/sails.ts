@@ -1,7 +1,7 @@
 // Adapted from https://git.f3l.de/ttomasini/sails-types/raw/branch/master/sails.d.ts
 import express = require('express');
 import type { SailsConfig } from './config';
-import {RequestChronicle} from "./middleware/requestChronicle";
+import {RequestChronicleHelper} from "./utilities/RequestChronicle";
 
 // Augment express-session to include Sails-specific session properties
 declare module 'express-session' {
@@ -211,7 +211,7 @@ declare global {
         portal?: string;
         [key: string]: unknown;
       };
-      requestChronicle?: RequestChronicle;
+      requestChronicleHelper?: RequestChronicleHelper;
       [key: string]: unknown;
     }
 
