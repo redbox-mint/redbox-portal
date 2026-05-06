@@ -3,6 +3,7 @@ import { AppComponent } from './translation.component';
 import { FormBuilder } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
 import { signal } from '@angular/core';
+import { Editor } from '@tiptap/core';
 // Portal common services / stubs
 import {
   ConfigService,
@@ -157,17 +158,134 @@ describe('AppComponent (translation)', () => {
     expect(list[0].category).toBe('A');
   });
 
+  it('filter matches key and value case-insensitively and combines with category', async () => {
+    const { comp } = create();
+    comp.entries.set([
+      { key: 'app.title', value: 'Main Title', category: 'meta' },
+      { key: 'app.subtitle', value: 'Secondary', category: 'meta' },
+      { key: 'greet.hello', value: 'Hello', category: 'greetings' }
+    ]);
+    comp.selectedCategory = 'meta';
+    comp.filterText = 'title';
+    (comp as any).refreshDerived();
+    expect(comp.viewEntries().length).toBe(1);
+    expect(comp.viewEntries()[0].key).toBe('app.title');
+
+    comp.filterText = 'HELLO';
+    (comp as any).refreshDerived();
+    expect(comp.viewEntries().length).toBe(0);
+
+    comp.selectedCategory = '';
+    (comp as any).refreshDerived();
+    expect(comp.viewEntries().length).toBe(1);
+    expect(comp.viewEntries()[0].key).toBe('greet.hello');
+  });
+
+  it('sorting still applies after text filtering and clearFilter restores the list', async () => {
+    const { comp } = create();
+    comp.entries.set([
+      { key: 'b.key', value: '2', category: 'c2' },
+      { key: 'a.key', value: '1', category: 'c1' },
+      { key: 'c.key', value: 'match', category: 'c3' }
+    ]);
+    comp.setSort('key');
+    comp.filterText = 'key';
+    (comp as any).refreshDerived();
+    expect(comp.viewEntries().map(e => e.key)).toEqual(['a.key', 'b.key', 'c.key']);
+
+    comp.filterText = 'match';
+    (comp as any).refreshDerived();
+    expect(comp.viewEntries().map(e => e.key)).toEqual(['c.key']);
+
+    comp.clearFilter();
+    expect(comp.viewEntries().map(e => e.key)).toEqual(['a.key', 'b.key', 'c.key']);
+  });
+
   it('openEdit and saveEdit update entry value', async () => {
     const { comp } = create();
     comp.selectedLang = 'en';
     comp.entries.set([{ key: 'greet.hello', value: 'Hello', category: 'greetings' }]);
+    const mockEditor = {
+      getHTML: () => '<p>Hi</p>',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
     comp.openEdit({ key: 'greet.hello', value: 'Hello' });
     expect(comp.modalOpen()).toBeTrue();
-    comp.editValue = 'Hi';
+    comp.toggleHtmlSourceMode();
+    comp.htmlSourceValue = '<p>Hi</p>';
     await comp.saveEdit();
     const updated = comp.entries().find(e => e.key === 'greet.hello');
-    expect(updated?.value).toBe('Hi');
+    expect(updated?.value).toBe('<p>Hi</p>');
     expect(translationService.setEntryCalls.length).toBe(1);
+  });
+
+  it('openEdit initializes rich text state and closeModal destroys editor', async () => {
+    const { comp } = create();
+    const mockEditor = {
+      getHTML: () => '<p>Hello</p>',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+    comp.openEdit({ key: 'greet.hello', value: '<p>Hello</p>', description: 'desc' });
+    expect(comp.modalOpen()).toBeTrue();
+    expect(comp.htmlSourceValue).toBe('<p>Hello</p>');
+    expect(comp.isHtmlSourceMode).toBeFalse();
+    comp.closeModal();
+    expect(mockEditor.destroy).toHaveBeenCalled();
+    expect(comp.modalOpen()).toBeFalse();
+  });
+
+  it('ngOnDestroy destroys active editor', async () => {
+    const { comp } = create();
+    const editor = { destroy: jasmine.createSpy('destroy') } as any;
+    comp.richTextEditor = editor;
+    comp.ngOnDestroy();
+    expect(editor.destroy).toHaveBeenCalled();
+  });
+
+  it('falls back to source editing if editor creation fails', async () => {
+    const { comp } = create();
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(null);
+    comp.openEdit({ key: 'greet.hello', value: '<p>Hello</p>' });
+    expect(comp.richTextEditor).toBeNull();
+    expect(comp.isHtmlSourceMode).toBeFalse();
+    expect(comp.htmlSourceValue).toBe('<p>Hello</p>');
+  });
+
+  it('saveEdit preserves plain text values when plain text mode is active', async () => {
+    const { comp } = create();
+    comp.selectedLang = 'en';
+    comp.entries.set([{ key: 'greet.hello', value: 'Hello', category: 'greetings' }]);
+    const mockEditor = {
+      getHTML: () => '<p>Edited</p>',
+      getText: () => 'Edited',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+    comp.openEdit({ key: 'greet.hello', value: 'Hello' });
+    await comp.saveEdit();
+    expect(translationService.setEntryCalls[0].payload.value).toBe('Hello');
+  });
+
+  it('saveEdit uses the active rich text editor HTML when rich text mode is active', async () => {
+    const { comp } = create();
+    comp.selectedLang = 'en';
+    comp.entries.set([{ key: 'greet.hello', value: 'Hello', category: 'greetings' }]);
+    const mockEditor = {
+      getHTML: () => '<p>Edited</p>',
+      getText: () => 'Edited',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+    comp.openEdit({ key: 'greet.hello', value: 'Hello' });
+    comp.setEditorMode('rich');
+    await comp.saveEdit();
+    expect(translationService.setEntryCalls[0].payload.value).toBe('<p>Edited</p>');
   });
 
   it('createNewLanguage adds language and updates lists', async () => {
