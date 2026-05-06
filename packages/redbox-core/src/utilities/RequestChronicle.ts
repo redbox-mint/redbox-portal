@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import {Request} from 'express';
 import {ILogger} from "@researchdatabox/sails-ng-common";
 import {RBValidationError} from "../model";
 
@@ -25,7 +25,7 @@ export type RequestChronicleError = {
  */
 export interface RequestChronicle {
   /**
-   * Details of the result of the reqeust chronicle.
+   * Details of the result of the request chronicle.
    */
   result?: {
     timestamp?: string,
@@ -51,6 +51,7 @@ export interface RequestChronicle {
    * Any errors encountered during the request processing.
    */
   errors?: RequestChronicleError[],
+
   /**
    * Arbitrary data added during the request processing.
    */
@@ -65,13 +66,10 @@ export interface RequestChronicle {
 }
 
 export class RequestChronicleHelper {
-  #startTime?: Date;
-  #duration?: number;
-
   #data: RequestChronicle = {};
 
   public static fromReq(req: Sails.Req | Request): RequestChronicleHelper {
-    const request = 'options' in req ? req : (req as {options?:  Sails.ReqOptions});
+    const request = 'options' in req ? req : (req as { options?: Sails.ReqOptions });
     if (!('options' in req) || request?.options === undefined || request?.options === null) {
       request.options = {};
     }
@@ -86,43 +84,44 @@ export class RequestChronicleHelper {
   }
 
   start(): void {
-    if (this.#startTime !== undefined || this.#duration !== undefined) {
-      return;
-    }
-    this.#startTime = new Date();
     if (this.#data.result === undefined) {
       this.#data.result = {};
     }
-    this.#data.result.timestamp = this.#startTime.toISOString();
+    if (this.isRunning || this.isFinished) {
+      sails.log.warn(`Request Chronicle Helper: Cannot start request chronicle that is running or finished.`);
+      return;
+    }
+    this.#data.result.timestamp = (new Date()).toISOString();
   }
 
   finish(): void {
-    if (this.#startTime === undefined || this.#duration !== undefined) {
-      return;
-    }
-    this.#duration = Date.now() - this.#startTime.getTime();
-
     if (this.#data.result === undefined) {
       this.#data.result = {};
     }
+    if (!this.isRunning || this.isFinished) {
+      sails.log.warn(`Request Chronicle Helper: Cannot finish request chronicle that is not running or already finished.`);
+      return;
+    }
+    const dateNow = Date.now();
+    const startDate = this.#data.result.timestamp ? Date.parse(this.#data.result.timestamp) : dateNow;
+    this.#data.result.durationMs = dateNow - startDate;
+
     this.#data.result.outcome = this.hasErrors ? "success" : "error";
     this.#data.result.classification = this.classify();
   }
 
   get isRunning() {
-    return this.#startTime !== undefined && this.#duration === undefined;
+    return !!this.#data?.result?.timestamp && !this.#data?.result?.durationMs;
   }
 
   get isFinished() {
-    return this.#startTime !== undefined && this.#duration !== undefined;
+    return !!this.#data?.result?.timestamp && !!this.#data?.result?.durationMs;
   }
 
   updateReq(req: Sails.Req): void {
-    if (!this.isRunning) {
-      throw new Error("Must be running to update.");
-    }
-    if (this.#data.req !== undefined) {
-      throw new Error("Cannot overwrite existing req data.")
+    if (!this.isRunning || this.isFinished || this.#data.req !== undefined) {
+      sails.log.warn(`Request Chronicle Helper: Cannot update request chronicle that is not running or finished or has existing req.`);
+      return;
     }
 
     this.#data.req = {
@@ -133,11 +132,9 @@ export class RequestChronicleHelper {
   }
 
   updateRes(res: Sails.Res): void {
-    if (!this.isRunning) {
-      throw new Error("Must be running to update.");
-    }
-    if (this.#data.res !== undefined) {
-      throw new Error("Cannot overwrite existing res data.")
+    if (!this.isRunning || this.isFinished || this.#data.res !== undefined) {
+      sails.log.warn(`Request Chronicle Helper: Cannot update request chronicle that is not running or finished or has existing res.`);
+      return;
     }
 
     this.#data.res = {
@@ -147,7 +144,8 @@ export class RequestChronicleHelper {
 
   public log(logger: ILogger) {
     if (!this.isFinished) {
-      throw new Error("Must be finished before logging.");
+      sails.log.warn(`Request Chronicle Helper: Cannot log request chronicle that is not finished`);
+      return;
     }
     const data = this.#data;
     const classification = data.result?.classification;
@@ -177,6 +175,10 @@ export class RequestChronicleHelper {
   }
 
   public addError(error?: unknown): void {
+    if (!this.isRunning || this.isFinished) {
+      sails.log.warn(`Request Chronicle Helper: Cannot add error to request chronicle that is not running or finished.`);
+      return;
+    }
     if (!Array.isArray(this.#data.errors)) {
       this.#data.errors = [];
     }
@@ -188,16 +190,20 @@ export class RequestChronicleHelper {
   }
 
   public addInfo(info: Record<string, unknown>) {
+    if (!this.isRunning || this.isFinished) {
+      sails.log.warn(`Request Chronicle Helper: Cannot add info to request chronicle that is not running or finished.`);
+      return;
+    }
     const notAllowedKeys = ['result', 'req', 'res', 'errors'];
     for (const [key, value] of Object.entries(info ?? {})) {
       if (notAllowedKeys.includes(key)) {
-        throw new Error(`Cannot overwrite request chronicle key '${key}'.`);
+        sails.log.warn(`Request Chronicle Helper: Cannot overwrite request chronicle key '${key}'.`);
       }
       // TODO: Expecting only top-level properties, not nested props.
       //       If nested props are wanted, this might need to merge instead of replace.
       // TODO: should it be allowed to replace an existing arbitrary property?
       if (this.#data[key] !== null && this.#data[key] !== undefined && this.#data[key] !== value) {
-        sails.log.warn(`Replaced existing request chronicle key '${key}' value '${this.#data[key]}' with new value '${value}'.`)
+        sails.log.warn(`Request Chronicle Helper: Replaced existing request chronicle key '${key}' value '${this.#data[key]}' with new value '${value}'.`);
       }
       this.#data[key] = value;
     }
@@ -208,7 +214,11 @@ export class RequestChronicleHelper {
    * Only keep a sample of the standard successful request chronicle logs.
    * @return The classification.
    */
-  private classify(): RequestChronicleClassificationsType {
+  private classify(): RequestChronicleClassificationsType | undefined {
+    if (this.isRunning || !this.isFinished) {
+      sails.log.warn(`Request Chronicle Helper: Cannot classify request chronicle that is running or not finished.`);
+      return undefined;
+    }
     const item = this.#data;
 
     // Classify as error
@@ -216,6 +226,9 @@ export class RequestChronicleHelper {
       return "error";
     }
     if (item?.res?.statusCode?.toString()?.startsWith('5')) {
+      return "error";
+    }
+    if (item?.res?.statusCode?.toString()?.startsWith('4')) {
       return "error";
     }
     if (this.hasErrors) {
@@ -229,27 +242,9 @@ export class RequestChronicleHelper {
 
     // TODO: check for specific properties and treat the request chronicle specially if present
 
-    // Classify a 5% random selection of the remaining 'standard' and 'success' items as samples.
+    // Classify a 10% random selection of the remaining 'standard' and 'success' items as samples.
     // Discard the rest.
-    return Math.random() <= 0.05 ? "sample" : "discard";
+    return Math.random() <= 0.1 ? "sample" : "discard";
   }
 
 }
-
-
-// import {RequestChronicle} from "../middleware/requestChronicle";
-// import {RBValidationError} from "../model";
-//
-// export function getReqCustomOption(req: Sails.Req, path: string | string[]): unknown {
-//   return _get(req?.options ?? {}, path);
-// }
-//
-//
-// export function setReqError(req: Sails.Req, error?: any, statusCode?: string | number): void {
-//   if (!req.options?.requestChronicle) {
-//     throw new Error("Request Chronicle was not available.");
-//   }
-//   setReqChronicleError(req.options.requestChronicle, error, statusCode)
-// }
-//
-//

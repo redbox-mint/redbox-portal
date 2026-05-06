@@ -311,9 +311,9 @@ export const http: HttpConfig = {
             RequestChronicleHelper.fromReq(req).addInfo({
               userId: user?.id,
               userUsername: user?.username,
-              userType: user?.password,
-              userName: user?.type,
-              userRoles: user?.name,
+              userType: user?.type,
+              userName: user?.name,
+              userRoles: user?.roles,
             });
             return result;
         },

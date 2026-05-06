@@ -10,6 +10,7 @@ import {RequestChronicleHelper} from "../utilities/RequestChronicle";
  */
 export function requestChronicle(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
   const item = RequestChronicleHelper.fromReq(req);
+  item.start();
 
   // Initialize the request chronicle with request context
   item.updateReq(req);
