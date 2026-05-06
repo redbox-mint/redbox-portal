@@ -69,8 +69,8 @@ export namespace Controllers {
           return res.badRequest('appConfigId is required');
         }
         //TODO: validate post body against key?
-        await this.appConfigService.createOrUpdateConfig(brand, appConfigId, appConfig)
-        return res.json(appConfig);
+        const savedConfig = await this.appConfigService.createOrUpdateConfig(brand, appConfigId, appConfig)
+        return res.json(savedConfig);
       } catch (error) {
         sails.log.error(error);
         return res.serverError(error);

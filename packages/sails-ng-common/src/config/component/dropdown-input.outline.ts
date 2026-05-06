@@ -30,11 +30,14 @@ export interface DropdownOption {
     disabled?: boolean;
 }
 
+export type HistoricalVocabMode = 'hide' | 'disable';
+
 export interface DropdownInputFieldComponentConfigFrame extends FieldComponentConfigFrame {
     placeholder?: string;
     options?: DropdownOption[];
     vocabRef?: string;
     inlineVocab?: boolean;
+    historicalVocabMode?: HistoricalVocabMode;
 }
 
 export interface DropdownInputFieldComponentConfigOutline extends DropdownInputFieldComponentConfigFrame, FieldComponentConfigOutline {

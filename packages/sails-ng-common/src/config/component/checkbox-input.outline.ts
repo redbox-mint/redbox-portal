@@ -19,6 +19,7 @@ import {
 } from "../field-model.outline";
 import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
 import {AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import type {HistoricalVocabMode} from "./dropdown-input.outline";
 
 /* Checkbox Input Component */
 export const CheckboxInputComponentName = "CheckboxInputComponent" as const;
@@ -36,6 +37,7 @@ export interface CheckboxInputFieldComponentConfigFrame extends FieldComponentCo
     multipleValues?: boolean;
     vocabRef?: string;
     inlineVocab?: boolean;
+    historicalVocabMode?: HistoricalVocabMode;
 }
 
 export interface CheckboxInputFieldComponentConfigOutline extends CheckboxInputFieldComponentConfigFrame, FieldComponentConfigOutline {

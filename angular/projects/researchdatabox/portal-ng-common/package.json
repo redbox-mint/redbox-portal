@@ -1,11 +1,18 @@
 {
   "name": "@researchdatabox/portal-ng-common",
   "version": "0.0.1",
+  "files": [
+    "README.md",
+    "src",
+    "!src/**/*.spec.ts",
+    "ng-package.json",
+    "package.json"
+  ],
   "peerDependencies": {
     "@angular/common": "20.3.18",
     "@angular/core": "20.3.18",
     "i18next-browser-languagedetector": "8.2.1",
-    "i18next-http-backend": "3.0.2",
+    "i18next-http-backend": "3.0.5",
     "numeral": "2.0.6",
     "handlebars": "4.7.9",
     "@researchdatabox/sails-ng-common": "../../../../packages/sails-ng-common"

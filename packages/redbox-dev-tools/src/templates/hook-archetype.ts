@@ -27,6 +27,13 @@ type HookTemplateContext = {
   redboxDevToolsVersion: string;
 };
 
+type PackageJson = {
+  version?: string;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+};
+
 function toPascalCase(value: string): string {
   return value
     .split(/[^A-Za-z0-9]+/)
@@ -81,18 +88,75 @@ function shouldMarkExecutable(relativePath: string): boolean {
   return relativePath.endsWith('.sh');
 }
 
-function readPackageVersion(packageRoot: string, packageName: string): string {
-  const packageJsonPath = path.join(packageRoot, '..', packageName, 'package.json');
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')) as { version?: string };
+function readPackageJson(packageJsonPath: string): PackageJson {
+  return JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')) as PackageJson;
+}
 
-  if (!packageJson.version) {
-    throw new Error(`Could not determine version for ${packageName}`);
+function tryReadPackageJson(packageJsonPath: string): PackageJson | undefined {
+  return fs.existsSync(packageJsonPath)
+    ? readPackageJson(packageJsonPath)
+    : undefined;
+}
+
+function getScopedPackageName(packageName: string): string {
+  return `@researchdatabox/${packageName}`;
+}
+
+function readOwnPackageVersion(packageRoot: string): string {
+  const packageJson = tryReadPackageJson(path.join(packageRoot, 'package.json'));
+
+  if (!packageJson?.version) {
+    throw new Error('Could not determine version for @researchdatabox/redbox-dev-tools');
   }
 
   return packageJson.version;
 }
 
+function tryReadInstalledPackageVersion(packageRoot: string, packageName: string): string | undefined {
+  const packageJsonPath = path.join(packageRoot, 'node_modules', ...getScopedPackageName(packageName).split('/'), 'package.json');
+  return tryReadPackageJson(packageJsonPath)?.version;
+}
+
+function isReusableDependencySpecifier(versionSpecifier: string): boolean {
+  return !/^(file:|workspace:|link:|portal:)/.test(versionSpecifier);
+}
+
+function readDeclaredDependencyVersion(packageRoot: string, packageName: string): string | undefined {
+  const packageJson = tryReadPackageJson(path.join(packageRoot, 'package.json'));
+  const dependencyName = getScopedPackageName(packageName);
+  const versionSpecifier = packageJson?.dependencies?.[dependencyName]
+    ?? packageJson?.peerDependencies?.[dependencyName]
+    ?? packageJson?.devDependencies?.[dependencyName];
+
+  return versionSpecifier && isReusableDependencySpecifier(versionSpecifier)
+    ? versionSpecifier
+    : undefined;
+}
+
+function readDependencyPackageVersion(packageRoot: string, packageName: string): string {
+  const installedVersion = tryReadInstalledPackageVersion(packageRoot, packageName);
+
+  if (installedVersion) {
+    return installedVersion;
+  }
+
+  const siblingPackageJson = tryReadPackageJson(path.join(packageRoot, '..', packageName, 'package.json'));
+
+  if (siblingPackageJson?.version) {
+    return siblingPackageJson.version;
+  }
+
+  const declaredVersion = readDeclaredDependencyVersion(packageRoot, packageName);
+
+  if (declaredVersion) {
+    return declaredVersion;
+  }
+
+  throw new Error(`Could not determine version for ${getScopedPackageName(packageName)}`);
+}
+
 function buildTemplateContext(options: HookArchetypeOptions): HookTemplateContext {
+  const packageRoot = getPackageRoot();
   const packageName = normalizePackageName(options.packageName);
   const hookShortName = packageName.replace(/^redbox-hook-/, '');
   const hookPascalName = toPascalCase(hookShortName);
@@ -103,8 +167,8 @@ function buildTemplateContext(options: HookArchetypeOptions): HookTemplateContex
     hookPascalName,
     description: options.description ?? `ReDBox hook for ${hookPascalName}`,
     integrationDirName: hookShortName,
-    redboxCoreVersion: readPackageVersion(getPackageRoot(), 'redbox-core'),
-    redboxDevToolsVersion: readPackageVersion(getPackageRoot(), 'redbox-dev-tools'),
+    redboxCoreVersion: readDependencyPackageVersion(packageRoot, 'redbox-core'),
+    redboxDevToolsVersion: readOwnPackageVersion(packageRoot),
   };
 }
 

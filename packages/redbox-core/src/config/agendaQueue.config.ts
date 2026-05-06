@@ -81,6 +81,15 @@ export const agendaQueue: AgendaQueueConfig = {
             }
         },
         {
+            name: 'IntegrationAuditService-StoreIntegrationAudit',
+            fnName: 'integrationauditservice.storeIntegrationAudit',
+            options: {
+                lockLifetime: 30 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            }
+        },
+        {
             name: 'RaidMintRetryJob',
             fnName: 'raidservice.mintRetryJob'
         },

@@ -9,6 +9,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { Subscription } from "rxjs";
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
+  escapeHtmlText,
   RichTextEditorComponentName,
   RichTextEditorFieldComponentConfig,
   RichTextEditorModelName,
@@ -406,7 +407,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
       return mdEditor.getHTML();
     } catch (error) {
       this.loggerService.error(`${this.logName}: Failed to parse markdown for view mode.`, error);
-      return `<pre>${this.escapeHtml(value)}</pre>`;
+      return `<pre>${escapeHtmlText(value)}</pre>`;
     }
   }
 
@@ -428,15 +429,6 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
       return "";
     }
     return value;
-  }
-
-  private escapeHtml(value: string): string {
-    return value
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll("\"", "&quot;")
-      .replaceAll("'", "&#039;");
   }
 
   private resolveCspNonce(): string | undefined {

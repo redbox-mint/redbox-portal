@@ -185,6 +185,17 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect((migratedField.model?.config as Record<string, unknown>)?.defaultValue).to.equal(undefined);
     });
 
+    it('builds nested component JSON pointers without regex-based trailing slash trimming', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger) as unknown as {
+            buildNestedComponentJsonPointer(containerPointer: string, componentName: string): string;
+        };
+
+        expect(visitor.buildNestedComponentJsonPointer('', 'child')).to.equal('/child');
+        expect(visitor.buildNestedComponentJsonPointer('/', 'child')).to.equal('/child');
+        expect(visitor.buildNestedComponentJsonPointer('/parent/', 'child')).to.equal('/parent/child');
+        expect(visitor.buildNestedComponentJsonPointer('/parent//', 'child')).to.equal('/parent/child');
+    });
+
     it('maps LinkValueComponent to ContentComponent with a legacy-compatible link template', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({

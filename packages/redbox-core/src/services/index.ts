@@ -18,6 +18,7 @@ import * as EmailServiceModule from './EmailService';
 import * as FigshareServiceModule from './FigshareService';
 import * as FormRecordConsistencyServiceModule from './FormRecordConsistencyService';
 import * as FormsServiceModule from './FormsService';
+import * as IntegrationAuditServiceModule from './IntegrationAuditService';
 import * as I18nEntriesServiceModule from './I18nEntriesService';
 import * as NamedQueryServiceModule from './NamedQueryService';
 import * as NavigationServiceModule from './NavigationService';
@@ -63,6 +64,7 @@ export { EmailServiceModule as EmailService };
 export { FigshareServiceModule as FigshareService };
 export { FormRecordConsistencyServiceModule as FormRecordConsistencyService };
 export { FormsServiceModule as FormsService };
+export { IntegrationAuditServiceModule as IntegrationAuditService };
 export { I18nEntriesServiceModule as I18nEntriesService };
 export { NamedQueryServiceModule as NamedQueryService };
 export { NavigationServiceModule as NavigationService };
@@ -154,6 +156,9 @@ export const ServiceExports = {
   },
   get FigshareService() {
     return getOrCreateService('FigshareService', () => new FigshareServiceModule.Services.FigshareService().exports());
+  },
+  get IntegrationAuditService() {
+    return getOrCreateService('IntegrationAuditService', () => new IntegrationAuditServiceModule.Services.IntegrationAuditService().exports());
   },
   get FormRecordConsistencyService() {
     return getOrCreateService('FormRecordConsistencyService', () =>

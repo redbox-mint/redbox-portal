@@ -85,6 +85,8 @@ export interface DomPurifyConfig {
     globalSettings: DomPurifyGlobalSettings;
 }
 
+export const safeHtmlUriRegexp = /^(?:(?:https?|ftps?|mailto|tel):|(?:[^a-z:]|[a-z][a-z0-9.+\-]*(?:[^a-z0-9.+\-:]|$)))/i;
+
 export const dompurify: DomPurifyConfig = {
     /**
      * Configuration profiles for different content types
@@ -182,7 +184,7 @@ export const dompurify: DomPurifyConfig = {
             ],
             ALLOW_DATA_ATTR: false,
             ALLOW_UNKNOWN_PROTOCOLS: false,
-            ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
+            ALLOWED_URI_REGEXP: safeHtmlUriRegexp,
             SANITIZE_DOM: true,
             KEEP_CONTENT: true,
             IN_PLACE: false
@@ -205,7 +207,7 @@ export const dompurify: DomPurifyConfig = {
             ],
             ALLOW_DATA_ATTR: true,
             ALLOW_UNKNOWN_PROTOCOLS: false,
-            ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
+            ALLOWED_URI_REGEXP: safeHtmlUriRegexp,
             SANITIZE_DOM: true,
             KEEP_CONTENT: true,
             IN_PLACE: false
