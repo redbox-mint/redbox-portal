@@ -4,9 +4,8 @@
 // This is needed for webpack to generate the compiled styles.
 import "../../../styles/style.scss";
 // import "../../../styles/default.css";
-import {formValidatorsSharedDefinitions} from "@researchdatabox/sails-ng-common";
 
-export const formValidatorDefinitions = formValidatorsSharedDefinitions;
+export const formValidatorDefinitions = sails.config.validators.definitions;
 
 function safeStorageGet(key: string): any {
   try {

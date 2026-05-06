@@ -81,6 +81,7 @@ export interface GenerateAllShimsStats {
     formConfigStats: FormConfigGenerationStats;
     configShimStats: GenerationStats;
     bootstrapStats: BootstrapGenerationStats;
+    assetsCustomAssembleStats: GenerationStats;
 }
 
 export interface GenerateAllShimsSkippedResult {
@@ -901,6 +902,10 @@ export async function generateBootstrapShim(
     return { generated: written ? 1 : 0, total: 1, hookCount: hookBootstraps.length };
 }
 
+export async function generateAssetsCustomAssembleShim(configDir: string): Promise<GenerationStats> {
+
+}
+
 export async function shouldRegenerateShims(appPath: string, forceRegenerate = false): Promise<RegenerationDecision> {
     const markerPath = path.join(appPath, '.regenerate-shims');
 
@@ -962,6 +967,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
         const controllersDir = path.join(appPath, 'api', 'controllers');
         const formConfigDir = path.join(appPath, 'api', 'form-config');
         const configDir = path.join(appPath, 'config');
+        const assetsCustomAssembleDir = path.join(appPath, 'assets-assemble');
 
         await Promise.all([
             fs.mkdir(modelsDir, { recursive: true }),
@@ -972,6 +978,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             fs.mkdir(controllersDir, { recursive: true }),
             fs.mkdir(formConfigDir, { recursive: true }),
             fs.mkdir(configDir, { recursive: true }),
+            fs.mkdir(assetsCustomAssembleDir, { recursive: true }),
         ]);
 
         const genStart = performance.now();
@@ -985,6 +992,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             formConfigStats,
             configShimStats,
             bootstrapStats,
+            assetsCustomAssembleStats,
         ] = await Promise.all([
             generateModelShims(modelsDir, hookModels),
             generatePolicyShims(policiesDir, hookPolicies),
@@ -995,6 +1003,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             generateFormConfigShims(formConfigDir, hookFormConfigs),
             generateConfigShims(configDir, hookConfigs),
             generateBootstrapShim(configDir, hookBootstraps),
+            generateAssetsCustomAssembleShim(assetsCustomAssembleDir),
         ]);
 
         log.verbose(`Shim generation took ${(performance.now() - genStart).toFixed(2)}ms`);
@@ -1009,6 +1018,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
         );
         log.verbose(`Config Shims: ${configShimStats.generated}/${configShimStats.total} written`);
         log.verbose(`Bootstrap: ${bootstrapStats.generated}/${bootstrapStats.total} written (${bootstrapStats.hookCount} hook bootstraps)`);
+        log.verbose(`Assets custom assemble: ${assetsCustomAssembleStats.generated}/${assetsCustomAssembleStats.total} written`);
 
         await generatePreLiftSnapshot(appPath, hookConfigs);
 
@@ -1039,6 +1049,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
                 formConfigStats,
                 configShimStats,
                 bootstrapStats,
+                assetsCustomAssembleStats,
             },
             totalTimeMs: Number.parseFloat(totalTime),
         };
