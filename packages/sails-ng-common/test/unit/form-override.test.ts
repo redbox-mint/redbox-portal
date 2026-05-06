@@ -428,6 +428,13 @@ describe('FormOverride reusable expansion', () => {
                   config: { label: 'Identifier', type: 'hidden' },
                 },
               },
+              {
+                name: 'nickname',
+                component: {
+                  class: SimpleInputComponentName,
+                  config: { label: 'Nickname', visible: false },
+                },
+              },
             ],
           },
         },
@@ -440,7 +447,9 @@ describe('FormOverride reusable expansion', () => {
     const template = normalizeTemplate((transformed.component.config as { template?: string }).template ?? '');
     expect(template).to.contain('{{t "Name"}}');
     expect(template).to.not.contain('{{t "Identifier"}}');
+    expect(template).to.not.contain('{{t "Nickname"}}');
     expect(template).to.not.contain('identifier');
+    expect(template).to.not.contain('nickname');
   });
 
   it('skips hidden simple inputs when rendering repeatable group tables', () => {
@@ -472,6 +481,13 @@ describe('FormOverride reusable expansion', () => {
                         config: { label: 'ORCID', type: 'hidden' },
                       },
                     },
+                    {
+                      name: 'nickname',
+                      component: {
+                        class: SimpleInputComponentName,
+                        config: { label: 'Nickname', visible: false },
+                      },
+                    },
                   ],
                 },
               },
@@ -499,6 +515,8 @@ describe('FormOverride reusable expansion', () => {
     expect(template).to.contain('rb-view-repeatable-table');
     expect(template).to.contain('<th>{{t "Name"}}</th>');
     expect(template).to.not.contain('<th>{{t "ORCID"}}</th>');
+    expect(template).to.not.contain('<th>{{t "Nickname"}}</th>');
     expect(template).to.not.contain('get this "orcid"');
+    expect(template).to.not.contain('get this "nickname"');
   });
 });

@@ -1431,7 +1431,7 @@ describe("Client Visitor", async () => {
     expect(actual.componentDefinitions ?? []).to.have.length(0);
   });
 
-  it(`should omit hidden fields from group view transforms`, async function () {
+  it(`should omit non-renderable fields from group view transforms`, async function () {
     const constructor = new ConstructFormConfigVisitor(logger);
     const constructed = constructor.start({
       formMode: "view",
@@ -1468,6 +1468,12 @@ describe("Client Visitor", async () => {
                     model: { class: "SimpleInputModel", config: { defaultValue: "Last01" } },
                     layout: { class: "DefaultLayout", config: { visible: false } },
                   },
+                  {
+                    name: "nickname",
+                    component: { class: "SimpleInputComponent", config: {} },
+                    model: { class: "SimpleInputModel", config: { defaultValue: "Nick01" } },
+                    layout: { class: "DefaultLayout", config: { label: "Nickname", visible: false } },
+                  },
                 ]
               }
             },
@@ -1487,6 +1493,8 @@ describe("Client Visitor", async () => {
     expect(template).to.contain("Email");
     expect(template).to.not.contain("given_name");
     expect(template).to.not.contain("family_name");
+    expect(template).to.not.contain("Nickname");
+    expect(template).to.not.contain("nickname");
   });
 
   it(`should keep action row groups in view mode`, async function () {

@@ -1201,7 +1201,7 @@ export class FormOverride {
   }
 
   private generateGroupTemplate(component: GroupFormComponentDefinitionOutline, rootExpr: string): string {
-    const children = this.getGroupChildren(component) ?? [];
+    const children = this.getRenderableGroupChildren(component) ?? [];
     const rows = children.map(child => this.renderLabelValueRow(child, rootExpr)).join('');
     const template = this.resolveReusableViewTemplate(
       this.reusableViewTemplateKeys.groupContainer,
@@ -1357,7 +1357,7 @@ export class FormOverride {
         ? (component.component.config as { componentDefinitions?: AllFormComponentDefinitionOutlines[] })
           .componentDefinitions
         : [];
-    return (componentDefinitions ?? []).filter(child => this.isViewRenderableComponent(child));
+    return componentDefinitions ?? [];
   }
 
   private isViewRenderableComponent(component: AllFormComponentDefinitionOutlines): boolean {
@@ -1375,19 +1375,7 @@ export class FormOverride {
     if (!children) {
       return null;
     }
-    return children.filter(child => !this.shouldSkipViewRendering(child));
-  }
-
-  private shouldSkipViewRendering(component: AllFormComponentDefinitionOutlines): boolean {
-    return this.isHiddenSimpleInput(component);
-  }
-
-  private isHiddenSimpleInput(component: AllFormComponentDefinitionOutlines): boolean {
-    if (component?.component?.class !== SimpleInputComponentName) {
-      return false;
-    }
-    const config = component.component.config as { type?: string } | undefined;
-    return config?.type === 'hidden';
+    return children.filter(child => this.isViewRenderableComponent(child));
   }
 
   private isTableEligibleGroupChildren(children: AllFormComponentDefinitionOutlines[]): boolean {
