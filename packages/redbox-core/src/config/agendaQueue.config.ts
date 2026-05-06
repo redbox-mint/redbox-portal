@@ -32,7 +32,7 @@ export function parseAgendaQueueBackend(value: string | undefined, source = 'age
 
 export interface AgendaQueueSqsOptions {
     queueUrl: string;
-    region: string;
+    region?: string;
     endpoint?: string;
     queueType?: 'standard' | 'fifo';
     waitTimeSeconds?: number;

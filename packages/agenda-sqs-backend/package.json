@@ -1,0 +1,43 @@
+{
+  "name": "@agendajs/sqs-backend",
+  "version": "3.0.4",
+  "description": "Amazon SQS backend for Agenda job scheduler",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sqs": "3.1043.0",
+    "debug": "4.4.3"
+  },
+  "peerDependencies": {
+    "agenda": "6.2.4"
+  },
+  "devDependencies": {
+    "@types/debug": "4.1.13",
+    "@types/node": "24.12.0",
+    "agenda": "6.2.4",
+    "vitest": "4.1.5"
+  }
+}

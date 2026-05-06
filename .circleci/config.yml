@@ -54,6 +54,7 @@ jobs:
 
             ./support/development/refreshRootPackageLock.sh \
               . \
+              packages/agenda-sqs-backend \
               packages/redbox-core \
               packages/redbox-dev-tools \
               packages/sails-hook-redbox-storage-mongo
@@ -473,6 +474,36 @@ jobs:
           when: always
       - store_test_results:
           path: packages/redbox-core/support/junit
+  test-agenda-sqs-backend:
+    docker:
+      - image: 'cimg/node:24.14.1'
+    resource_class: medium
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install agenda SQS backend dependencies
+          command: |
+            cd ./packages/agenda-sqs-backend
+            npm ci --include=dev --ignore-scripts --strict-peer-deps
+      - run:
+          name: Typecheck agenda SQS backend
+          command: |
+            cd ./packages/agenda-sqs-backend
+            npm run typecheck
+      - run:
+          name: Run agenda SQS backend tests
+          command: |
+            cd ./packages/agenda-sqs-backend
+            npm test
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
   test-redbox-dev-tools-cli:
     machine:
       image: ubuntu-2204:current
@@ -1002,6 +1033,9 @@ workflows:
       - test-redbox-core:
           requires:
             - build
+      - test-agenda-sqs-backend:
+          requires:
+            - build
       - test-redbox-dev-tools-cli:
           requires:
             - build
@@ -1016,6 +1050,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1029,6 +1064,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1043,6 +1079,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1057,6 +1094,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1071,6 +1109,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1092,6 +1131,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1113,6 +1153,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1183,6 +1224,9 @@ workflows:
       - test-redbox-core:
           requires:
             - build
+      - test-agenda-sqs-backend:
+          requires:
+            - build
       - test-redbox-dev-tools-cli:
           requires:
             - build
@@ -1197,6 +1241,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1210,6 +1255,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1323,6 +1369,14 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - test-agenda-sqs-backend:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
       - test-redbox-dev-tools-cli:
           requires:
             - build
@@ -1347,6 +1401,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1361,6 +1416,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1376,6 +1432,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1391,6 +1448,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1406,6 +1464,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1430,6 +1489,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1454,6 +1514,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1482,6 +1543,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
