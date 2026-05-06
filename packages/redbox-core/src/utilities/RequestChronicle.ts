@@ -145,7 +145,7 @@ export class RequestChronicleHelper {
   public log(logger: ILogger) {
     if (!this.isFinished) {
       sails.log.warn(`Request Chronicle Helper: Cannot log request chronicle that is not finished`);
-      return;
+      // return;
     }
     const data = this.#data;
     const classification = data.result?.classification;
@@ -177,7 +177,7 @@ export class RequestChronicleHelper {
   public addError(error?: unknown): void {
     if (!this.isRunning || this.isFinished) {
       sails.log.warn(`Request Chronicle Helper: Cannot add error to request chronicle that is not running or finished.`);
-      return;
+      // return;
     }
     if (!Array.isArray(this.#data.errors)) {
       this.#data.errors = [];
@@ -192,7 +192,7 @@ export class RequestChronicleHelper {
   public addInfo(info: Record<string, unknown>) {
     if (!this.isRunning || this.isFinished) {
       sails.log.warn(`Request Chronicle Helper: Cannot add info to request chronicle that is not running or finished.`);
-      return;
+      // return;
     }
     const notAllowedKeys = ['result', 'req', 'res', 'errors'];
     for (const [key, value] of Object.entries(info ?? {})) {
@@ -217,7 +217,7 @@ export class RequestChronicleHelper {
   private classify(): RequestChronicleClassificationsType | undefined {
     if (this.isRunning || !this.isFinished) {
       sails.log.warn(`Request Chronicle Helper: Cannot classify request chronicle that is running or not finished.`);
-      return undefined;
+      // return undefined;
     }
     const item = this.#data;
 
