@@ -39,27 +39,18 @@
 
 import { Services as services } from '../CoreService';
 import { QueueService } from '../QueueService';
+import type { AgendaJobDefinition, AgendaQueueBackend, AgendaQueueOptions } from '../config/agendaQueue.config';
 
-import { Agenda, type Job } from 'agenda';
-import type { Filter, Sort } from 'mongodb';
-
-type AgendaJob = {
-  name: string;
-  fnName: string;
-  options?: unknown;
-  schedule?: {
-    method: string;
-    intervalOrSchedule?: string;
-    data?: unknown;
-    opts?: unknown;
-  };
-};
+import { Agenda, type Job, UnsupportedFeatureError } from '@researchdatabox/agenda';
 
 type AgendaJobHandler = (job: Job) => Promise<void>;
+type AgendaMap = Partial<Record<AgendaQueueBackend, Agenda>>;
 
 
 
 export namespace Services {
+  const EXTERNAL_SCHEDULER_GUIDANCE = 'Use an external scheduler for SQS-backed recurring jobs.';
+
   /**
    * Service class for queuing using Agenda: https://github.com/agenda/agenda
    *
@@ -76,7 +67,10 @@ export namespace Services {
       'init'
     ];
 
-    protected agenda!: Agenda;
+    protected agenda?: Agenda;
+    protected agendas: AgendaMap = {};
+    protected defaultBackend: AgendaQueueBackend = 'mongodb';
+    protected jobBackendByName = new Map<string, AgendaQueueBackend>();
 
     constructor() {
       super();
@@ -91,63 +85,43 @@ export namespace Services {
     public override async init() {
       const that = this;
       this.registerSailsHook('on', 'ready', async function () {
-
-        // set the options for Agenda, see: https://github.com/agenda/agenda#configuring-an-agenda
-        const agendaOpts: Record<string, unknown> = {};
-        _.forOwn(sails.config.agendaQueue.options, (optionVal: unknown, optionName: string) => {
-          that.setOptionIfDefined(agendaOpts, optionName, optionVal);
-        });
-        const dbManager = User.getDatastore().manager;
-        if (_.isEmpty(_.get(agendaOpts, 'db.address'))) {
-          agendaOpts['mongo'] = dbManager;
-        }
-        that.agenda = new Agenda(agendaOpts);
-        that.defineJobs(sails.config.agendaQueue.jobs, that);
-        sails.log.verbose(`AgendaQueue:: All jobs defined.`);
-        that.agenda.on('ready', () => {
-          sails.log.verbose(`AgendaQueue:: Started!`);
-        });
-        that.agenda.on('error', (err) => {
-          sails.log.error(`AgendaQueue:: Error:`);
-          sails.log.error(JSON.stringify(err));
-        });
-        that.agenda.on('start', (job: Job) => {
-          sails.log.verbose(`AgendaQueue:: Job ${job.attrs.name} starting`,);
-        });
-        that.agenda.on('complete', (job: Job) => {
-          sails.log.verbose(`AgendaQueue:: Job ${job.attrs.name} finished`);
-        });
-        that.agenda.on('fail', (err, job) => {
-          sails.log.error(`AgendaQueue:: Job ${job.attrs.name} failed`);
-          sails.log.error(err);
-        });
-        await that.agenda.start();
-
-        //Create indexes after agenda start
-        const collectionName = String(_.get(agendaOpts, 'collection', 'agendaJobs'));
-        await dbManager.collection(collectionName).createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 });
-        await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1 });
-
-        // check for in-line job schedule
-        _.each(sails.config.agendaQueue.jobs, (job: AgendaJob) => {
-          if (!_.isEmpty(job.schedule)) {
-            const method = job.schedule.method;
-            const intervalOrSchedule = job.schedule.intervalOrSchedule;
-            const data = job.schedule.data;
-            const opts = job.schedule.opts as { timezone?: string; skipImmediate?: boolean; forkMode?: boolean } | undefined;
-            if (method == 'now') {
-              that.now(job.name, data)
-            } else if (method == 'every' && intervalOrSchedule) {
-              that.every(job.name, intervalOrSchedule, data, opts);
-            } else if (method == 'schedule' && intervalOrSchedule) {
-              that.schedule(job.name, intervalOrSchedule, data);
-            } else {
-              sails.log.error(`AgendaQueue:: incorrect job schedule definition, method not found:`);
-              sails.log.error(JSON.stringify(job));
-            }
-          }
-        });
+        await that.handleReady();
       });
+    }
+
+    protected async handleReady() {
+      const queueConfig = sails.config.agendaQueue;
+      const queueOptions = queueConfig.options ?? {};
+      const jobs = queueConfig.jobs;
+      const dbManager = User.getDatastore().manager;
+      this.defaultBackend = this.getDefaultBackend(queueOptions);
+      this.jobBackendByName = new Map(
+        jobs.map((job: AgendaJobDefinition) => [job.name, this.getBackendForJob(job)])
+      );
+
+      const requiredBackends = new Set(this.jobBackendByName.values());
+      this.agendas = {};
+
+      if (requiredBackends.has('mongodb')) {
+        this.agendas.mongodb = this.createAgendaForBackend('mongodb', queueOptions, dbManager);
+      }
+      if (requiredBackends.has('sqs')) {
+        this.agendas.sqs = this.createAgendaForBackend('sqs', queueOptions, dbManager);
+      }
+
+      this.agenda = this.agendas.mongodb ?? this.agendas[this.defaultBackend] ?? this.agendas.sqs;
+      this.defineJobs(jobs, this);
+      sails.log.verbose('AgendaQueue:: All jobs defined.');
+
+      const activeAgendas = Object.values(this.agendas).filter((agenda): agenda is Agenda => !_.isNil(agenda));
+      _.each(activeAgendas, (agenda) => this.registerAgendaEvents(agenda));
+      await Promise.all(activeAgendas.map((agenda) => agenda.start()));
+
+      if (this.agendas.mongodb) {
+        await this.createMongoIndexes(dbManager, queueOptions);
+      }
+
+      this.runConfiguredStartupSchedules(jobs);
     }
 
     /*
@@ -167,17 +141,18 @@ export namespace Services {
       }
      ]
      */
-    public defineJobs(jobs: AgendaJob[], ref: AgendaQueue = this): void {
-      _.each(jobs, (job: AgendaJob) => {
+    public defineJobs(jobs: AgendaJobDefinition[], ref: AgendaQueue = this): void {
+      _.each(jobs, (job: AgendaJobDefinition) => {
         const serviceFn = _.get(sails.services, job.fnName) as unknown as AgendaJobHandler | undefined;
         if (_.isUndefined(serviceFn)) {
           sails.log.error(`AgendaQueue:: Job name: ${job.name}'s service function not found: ${job.fnName}`);
           sails.log.error(JSON.stringify(job));
         } else {
+          const agenda = ref.getAgendaForBackend(ref.getBackendForJob(job));
           if (_.isEmpty(job.options)) {
-            ref.agenda.define(job.name, serviceFn as (job: Job) => Promise<void>);
+            agenda.define(job.name, serviceFn as (job: Job) => Promise<void>);
           } else {
-            ref.agenda.define(job.name, serviceFn as (job: Job) => Promise<void>, job.options as Parameters<Agenda['define']>[2]);
+            agenda.define(job.name, serviceFn as (job: Job) => Promise<void>, job.options as Parameters<Agenda['define']>[2]);
           }
           sails.log.verbose(`AgendaQueue:: Defined job:`);
           sails.log.verbose(JSON.stringify(job));
@@ -186,14 +161,17 @@ export namespace Services {
     }
 
     public defineJob(name: string, options: unknown, serviceFn: AgendaJobHandler) {
-      if (!this.agenda) {
+      const backend = this.jobBackendByName.get(name) ?? this.defaultBackend;
+      const agenda = this.agendas[backend] ?? this.agenda;
+      if (!agenda) {
         sails.log.error(`AgendaQueue:: defineJob called before init for job: ${name}`);
         return;
       }
+      this.jobBackendByName.set(name, backend);
       if (_.isEmpty(options)) {
-        this.agenda.define(name, serviceFn as (job: Job) => Promise<void>);
+        agenda.define(name, serviceFn as (job: Job) => Promise<void>);
       } else {
-        this.agenda.define(name, serviceFn as (job: Job) => Promise<void>, options as Parameters<Agenda['define']>[2]);
+        agenda.define(name, serviceFn as (job: Job) => Promise<void>, options as Parameters<Agenda['define']>[2]);
       }
       sails.log.verbose(`AgendaQueue:: Defined job: ${name}`);
     }
@@ -206,7 +184,7 @@ export namespace Services {
      */
     public async moveCompletedJobsToHistory(_job: Job) {
       const dbManager = User.getDatastore().manager;
-      const collectionName = String(_.get(sails.config.agendaQueue, 'collection', 'agendaJobs'));
+      const collectionName = String(_.get(sails.config.agendaQueue, 'options.collection', 'agendaJobs'));
       await dbManager.collection(collectionName).find({ nextRunAt: null }).forEach(async (doc: Record<string, unknown>) => {
         await dbManager.collection(`${collectionName}History`).insertOne(doc);
         await dbManager.collection(collectionName).deleteOne({ _id: (doc as { _id?: unknown })._id });
@@ -222,31 +200,188 @@ export namespace Services {
       }
     }
 
+    private getDefaultBackend(options: AgendaQueueOptions): AgendaQueueBackend {
+      return options.backend ?? 'mongodb';
+    }
+
+    private getBackendForJob(job: Pick<AgendaJobDefinition, 'backend'>): AgendaQueueBackend {
+      return job.backend ?? this.defaultBackend;
+    }
+
+    private getBackendForJobName(jobName: string): AgendaQueueBackend {
+      const backend = this.jobBackendByName.get(jobName);
+      if (_.isNil(backend)) {
+        throw new Error(`AgendaQueue:: Unknown job '${jobName}'. Define it in sails.config.agendaQueue.jobs before queuing it.`);
+      }
+      return backend;
+    }
+
+    private getAgendaForBackend(backend: AgendaQueueBackend): Agenda {
+      const agenda = this.agendas[backend];
+      if (_.isNil(agenda)) {
+        throw new Error(`AgendaQueue:: No Agenda instance is configured for backend '${backend}'.`);
+      }
+      return agenda;
+    }
+
+    private getAgendaForJobName(jobName: string): Agenda {
+      return this.getAgendaForBackend(this.getBackendForJobName(jobName));
+    }
+
+    private ensureRecurringScheduleSupported(jobName: string) {
+      if (this.getBackendForJobName(jobName) === 'sqs') {
+        throw new UnsupportedFeatureError(`AgendaQueue:: every() is not supported for SQS-backed job '${jobName}'. ${EXTERNAL_SCHEDULER_GUIDANCE}`);
+      }
+    }
+
+    private createAgendaForBackend(backend: AgendaQueueBackend, options: AgendaQueueOptions, dbManager: unknown): Agenda {
+      const agendaOpts: Record<string, unknown> = {};
+      this.setOptionIfDefined(agendaOpts, 'backend', backend);
+      this.setOptionIfDefined(agendaOpts, 'defaultLockLifetime', options.defaultLockLifetime);
+      this.setOptionIfDefined(agendaOpts, 'processEvery', options.processEvery);
+
+      if (backend === 'mongodb') {
+        if (_.isEmpty(options.db)) {
+          agendaOpts['mongo'] = dbManager;
+        } else {
+          this.setOptionIfDefined(agendaOpts, 'db.address', options.db);
+        }
+        this.setOptionIfDefined(agendaOpts, 'db.collection', options.collection);
+      } else {
+        if (_.isEmpty(options.sqs?.queueUrl) || _.isEmpty(options.sqs?.region)) {
+          throw new Error('AgendaQueue:: SQS backend requires agendaQueue.options.sqs.queueUrl and agendaQueue.options.sqs.region.');
+        }
+        this.setOptionIfDefined(agendaOpts, 'sqs', options.sqs);
+      }
+
+      return new Agenda(agendaOpts as ConstructorParameters<typeof Agenda>[0]);
+    }
+
+    private registerAgendaEvents(agenda: Agenda) {
+      const backend = agenda.attrs.backend;
+      agenda.on('ready', () => {
+        sails.log.verbose(`AgendaQueue:: Started ${backend} backend.`);
+      });
+      agenda.on('error', (err) => {
+        sails.log.error(`AgendaQueue:: ${backend} backend error:`);
+        sails.log.error(JSON.stringify(err));
+      });
+      agenda.on('start', (job: Job) => {
+        sails.log.verbose(`AgendaQueue:: [${backend}] Job ${job.attrs.name} starting`);
+      });
+      agenda.on('complete', (job: Job) => {
+        sails.log.verbose(`AgendaQueue:: [${backend}] Job ${job.attrs.name} finished`);
+      });
+      agenda.on('fail', (err, job) => {
+        sails.log.error(`AgendaQueue:: [${backend}] Job ${job.attrs.name} failed`);
+        sails.log.error(err);
+      });
+    }
+
+    private async createMongoIndexes(dbManager: { collection: (name: string) => { createIndex: (query: Record<string, number>) => Promise<unknown> } }, options: AgendaQueueOptions) {
+      const collectionName = String(options.collection ?? 'agendaJobs');
+      await dbManager.collection(collectionName).createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 });
+      await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1 });
+    }
+
+    private runConfiguredStartupSchedules(jobs: AgendaJobDefinition[]) {
+      _.each(jobs, (job: AgendaJobDefinition) => {
+        if (_.isEmpty(job.schedule)) {
+          return;
+        }
+
+        const method = job.schedule?.method;
+        const intervalOrSchedule = job.schedule?.intervalOrSchedule;
+        const data = job.schedule?.data;
+        const opts = job.schedule?.opts;
+
+        if (method === 'now') {
+          this.now(job.name, data);
+          return;
+        }
+
+        if (method === 'every' && intervalOrSchedule) {
+          this.every(job.name, intervalOrSchedule, data, opts);
+          return;
+        }
+
+        if (method === 'schedule' && intervalOrSchedule) {
+          this.schedule(job.name, intervalOrSchedule, data);
+          return;
+        }
+
+        sails.log.error('AgendaQueue:: incorrect job schedule definition, method not found:');
+        sails.log.error(JSON.stringify(job));
+      });
+    }
+
+    private ensureScheduleSupported(jobName: string, schedule: string, data: unknown) {
+      if (this.getBackendForJobName(jobName) !== 'sqs') {
+        return;
+      }
+
+      const agenda = this.getAgendaForJobName(jobName);
+      const scheduledJob = agenda.create(jobName, data).schedule(schedule);
+      const nextRunAt = scheduledJob.attrs.nextRunAt;
+      if (!(nextRunAt instanceof Date) || Number.isNaN(nextRunAt.getTime())) {
+        throw new Error(`AgendaQueue:: schedule() received an invalid schedule for SQS-backed job '${jobName}'.`);
+      }
+
+      const delayMs = nextRunAt.getTime() - Date.now();
+      if (delayMs > 15 * 60 * 1000) {
+        throw new UnsupportedFeatureError(`AgendaQueue:: schedule() only supports delays up to 15 minutes for SQS-backed job '${jobName}'.`);
+      }
+    }
+
+    private queryTargetsSqsJobs(query: Parameters<Agenda['jobs']>[0]): boolean {
+      if (_.isNil(query) || _.isNil((query as { name?: unknown }).name)) {
+        return false;
+      }
+
+      const nameQuery = (query as { name?: unknown }).name;
+      if (_.isString(nameQuery)) {
+        return this.jobBackendByName.get(nameQuery) === 'sqs';
+      }
+
+      const inNames = (nameQuery as { $in?: unknown }).$in;
+      if (Array.isArray(inNames)) {
+        return inNames.some((name: unknown) => _.isString(name) && this.jobBackendByName.get(name) === 'sqs');
+      }
+
+      return false;
+    }
+
     public async sampleFunctionToDemonstrateHowToDefineAJobFunction(job: unknown) {
       sails.log.info(`AgendaQueue:: sample function called by job: `);
       sails.log.info(JSON.stringify(job));
     }
 
     public every(jobName: string, interval: string, data: unknown = undefined, options: { timezone?: string; skipImmediate?: boolean; forkMode?: boolean } | undefined = undefined) {
-      this.agenda.every(interval, jobName, data, options);
+      this.ensureRecurringScheduleSupported(jobName);
+      void this.getAgendaForJobName(jobName).every(interval, jobName, data, options);
     }
 
     public schedule(jobName: string, schedule: string, data: unknown = undefined) {
-      this.agenda.schedule(schedule, jobName, data);
+      this.ensureScheduleSupported(jobName, schedule, data);
+      void this.getAgendaForJobName(jobName).schedule(schedule, jobName, data);
     }
 
     public now(jobName: string, data: unknown = undefined) {
       sails.log.verbose(`AgendaQueue:: Starting job: '${jobName}' now!`)
-      try {
-        this.agenda.now(jobName, data);
-      } catch (e) {
+      void this.getAgendaForJobName(jobName).now(jobName, data).catch((e) => {
         sails.log.error(`AgendaQueue:: Failed to start job now: ${jobName}`);
         sails.log.error(e);
-      }
+      });
     }
 
-    public async jobs(query: Filter<unknown> = {}, sort: Sort = {}, limit = 0, skip = 0) {
-      return await this.agenda.jobs(query, sort, limit, skip);
+    public async jobs(...args: Parameters<Agenda['jobs']>) {
+      if (_.isNil(this.agendas.mongodb)) {
+        throw new UnsupportedFeatureError('AgendaQueue:: jobs() is only supported when a MongoDB-backed agenda is configured.');
+      }
+      if (this.queryTargetsSqsJobs(args[0])) {
+        throw new UnsupportedFeatureError('AgendaQueue:: jobs() is not supported for SQS-backed jobs.');
+      }
+      return await this.agendas.mongodb.jobs(...args);
     }
   }
 }

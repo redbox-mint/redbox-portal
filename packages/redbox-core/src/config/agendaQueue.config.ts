@@ -7,8 +7,27 @@
 
 export interface AgendaJobSchedule {
     method: 'every' | 'schedule' | 'now';
-    intervalOrSchedule: string;
+    intervalOrSchedule?: string;
     data?: unknown;
+    opts?: {
+        timezone?: string;
+        skipImmediate?: boolean;
+        forkMode?: boolean;
+    };
+}
+
+export type AgendaQueueBackend = 'mongodb' | 'sqs';
+
+export interface AgendaQueueSqsOptions {
+    queueUrl: string;
+    region: string;
+    endpoint?: string;
+    queueType?: 'standard' | 'fifo';
+    waitTimeSeconds?: number;
+    visibilityTimeout?: number;
+    fifoMessageGroupIdStrategy?: 'jobName' | 'fixed';
+    fifoMessageGroupId?: string;
+    maxMessagesPerPoll?: number;
 }
 
 export interface AgendaJobOptions {
@@ -27,6 +46,8 @@ export interface AgendaJobDefinition {
     name: string;
     /** Function to execute: 'service.method' format */
     fnName: string;
+    /** Queue backend override */
+    backend?: AgendaQueueBackend;
     /** Job options */
     options?: AgendaJobOptions;
     /** Schedule configuration */
@@ -34,6 +55,8 @@ export interface AgendaJobDefinition {
 }
 
 export interface AgendaQueueOptions {
+    /** Default backend for jobs without an override */
+    backend?: AgendaQueueBackend;
     /** MongoDB connection string */
     db?: string;
     /** MongoDB collection name */
@@ -42,6 +65,8 @@ export interface AgendaQueueOptions {
     defaultLockLifetime?: number;
     /** Process every interval */
     processEvery?: string;
+    /** SQS backend configuration */
+    sqs?: AgendaQueueSqsOptions;
 }
 
 export interface AgendaQueueConfig {
@@ -52,6 +77,12 @@ export interface AgendaQueueConfig {
 }
 
 export const agendaQueue: AgendaQueueConfig = {
+    options: {
+        backend: (process.env['sails__agendaQueue_options_backend'] as AgendaQueueBackend | undefined) ?? 'mongodb',
+        db: process.env['sails__agendaQueue_options_db'] ?? '',
+        collection: process.env['sails__agendaQueue_options_collection'] ?? 'agendaJobs',
+        processEvery: process.env['sails__agendaQueue_options_processEvery'] ?? '5 seconds',
+    },
     jobs: [
         {
             name: 'SolrSearchService-CreateOrUpdateIndex',
@@ -91,7 +122,8 @@ export const agendaQueue: AgendaQueueConfig = {
         },
         {
             name: 'RaidMintRetryJob',
-            fnName: 'raidservice.mintRetryJob'
+            fnName: 'raidservice.mintRetryJob',
+
         },
         {
             name: 'MoveCompletedJobsToHistory',
