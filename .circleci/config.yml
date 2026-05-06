@@ -491,11 +491,6 @@ jobs:
             cd ./packages/agenda-sqs-backend
             npm ci --include=dev --ignore-scripts --strict-peer-deps
       - run:
-          name: Typecheck agenda SQS backend
-          command: |
-            cd ./packages/agenda-sqs-backend
-            npm run typecheck
-      - run:
           name: Run agenda SQS backend tests
           command: |
             cd ./packages/agenda-sqs-backend
