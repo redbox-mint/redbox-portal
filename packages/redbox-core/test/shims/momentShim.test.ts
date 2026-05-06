@@ -31,6 +31,11 @@ describe('momentShim', () => {
             expect(mapMomentToLuxonFormat('A')).to.equal('a');
         });
 
+        it('should leave Luxon-compatible time tokens unchanged', () => {
+            expect(mapMomentToLuxonFormat('HH:mm:ss')).to.equal('HH:mm:ss');
+            expect(mapMomentToLuxonFormat('h:m:s')).to.equal('h:m:s');
+        });
+
         it('should map a full date format correctly', () => {
             expect(mapMomentToLuxonFormat('YYYY-MM-DD')).to.equal('yyyy-LL-dd');
             expect(mapMomentToLuxonFormat('MMMM D, YYYY')).to.equal('LLLL d, yyyy');

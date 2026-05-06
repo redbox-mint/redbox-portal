@@ -100,6 +100,7 @@
   "author": "QCIF Engineering",
   "license": "GPL2",
   "overrides": {
+    "axios": "1.15.2",
     "@aws-sdk/xml-builder": "3.972.16",
     "@sailshq/router": {
       "path-to-regexp": "0.1.13"

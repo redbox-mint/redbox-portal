@@ -237,10 +237,17 @@ export interface FigshareServiceDeps {
 
 /** Type-safe dynamic path getter for record fields driven by config paths. */
 export function getRecordField(record: RecordModel, path: string): unknown {
+  const segments = parseRecordFieldPath(path);
+  if (!segments) {
+    return undefined;
+  }
   // Walk the dot-separated path through the record
   let current: unknown = record;
-  for (const segment of path.split('.')) {
+  for (const segment of segments) {
     if (current == null || typeof current !== 'object') {
+      return undefined;
+    }
+    if (!Object.prototype.hasOwnProperty.call(current, segment)) {
       return undefined;
     }
     current = (current as Record<string, unknown>)[segment];
@@ -250,20 +257,37 @@ export function getRecordField(record: RecordModel, path: string): unknown {
 
 /** Type-safe dynamic path setter for record fields driven by config paths. */
 export function setRecordField(record: RecordModel, path: string, value: unknown): void {
-  if (typeof path !== 'string' || path.trim() === '') {
+  const segments = parseRecordFieldPath(path);
+  if (!segments) {
     throw new Error(`Invalid record field path '${String(path)}'`);
-  }
-  const segments = path.split('.');
-  if (segments.some((segment) => segment.trim() === '')) {
-    throw new Error(`Invalid record field path '${path}'`);
   }
   let current: Record<string, unknown> = record;
   for (let i = 0; i < segments.length - 1; i++) {
     const segment = segments[i];
-    if (current[segment] == null || typeof current[segment] !== 'object') {
-      current[segment] = {};
+    if (!Object.prototype.hasOwnProperty.call(current, segment) || current[segment] == null) {
+      current[segment] = Object.create(null) as Record<string, unknown>;
+    }
+    if (typeof current[segment] !== 'object') {
+      throw new Error(`Invalid record field path '${path}'`);
     }
     current = current[segment] as Record<string, unknown>;
   }
   current[segments[segments.length - 1]] = value;
+}
+
+function parseRecordFieldPath(path: string): string[] | undefined {
+  if (typeof path !== 'string' || path.trim() === '') {
+    return undefined;
+  }
+  const segments = path.split('.').map((segment) => segment.trim());
+  for (const trimmed of segments) {
+    if (trimmed === '' || isUnsafeRecordFieldPathSegment(trimmed)) {
+      return undefined;
+    }
+  }
+  return segments;
+}
+
+function isUnsafeRecordFieldPathSegment(segment: string): boolean {
+  return segment === '__proto__' || segment === 'prototype' || segment === 'constructor';
 }

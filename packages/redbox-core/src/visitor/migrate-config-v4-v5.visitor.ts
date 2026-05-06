@@ -1749,18 +1749,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         if (!propertyName) {
           continue;
         }
-          expressions.push({
-            name: `${sourceName}-${item.name}-${propertyName}`.replace(/[^a-zA-Z0-9_-]+/g, '-'),
-            description: `Populate ${item.name} from ${sourceName} metadata`,
-            config: {
-              conditionKind: ExpressionsConditionKind.JSONPointer,
-              runOnFormReady: false,
-              condition: `${sourcePointer}::field.value.changed`,
-              target: 'model.value',
-              hasTemplate: true,
-              template: this.buildEventValueTemplate(propertyName),
-            },
-          });
+        expressions.push({
+          name: `${sourceName}-${item.name}-${propertyName}`.replace(/[^a-zA-Z0-9_-]+/g, '-'),
+          description: `Populate ${item.name} from ${sourceName} metadata`,
+          config: {
+            conditionKind: ExpressionsConditionKind.JSONPointer,
+            runOnFormReady: false,
+            condition: `${sourcePointer}::field.value.changed`,
+            target: 'model.value',
+            hasTemplate: true,
+            template: this.buildEventValueTemplate(propertyName),
+          },
+        });
       }
     }
 
@@ -2172,24 +2172,24 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       item.layout = undefined;
     }
 
-        this.populateFormComponent(item);
-    }
+    this.populateFormComponent(item);
+  }
 
-    /* Question Tree */
+  /* Question Tree */
 
-    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
-        const field = this.getV4Data();
-        item.config = new QuestionTreeFieldComponentConfig();
-        this.sharedPopulateFieldComponentConfig(item.config, field);
-    }
+  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new QuestionTreeFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+  }
 
-    visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
-        const field = this.getV4Data();
-        item.config = new QuestionTreeFieldModelConfig();
-        this.sharedPopulateFieldModelConfig(item.config, field);
-    }
+  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+    const field = this.getV4Data();
+    item.config = new QuestionTreeFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
 
-    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
+  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
     this.populateFormComponent(item);
   }
 
@@ -2205,7 +2205,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     //       The outcome meta is additional data that can be included in any outcomes, but is not the 'main' outcome.
     //       A question tree may have multiple outcomes, and multiple meta properties, each with the same or multiple values.
     const availableOutcomes: QuestionTreeOutcome[] = v4OrderedOutcomes.map(o => {
-      return {value: o, label: o}
+      return { value: o, label: o }
     });
     const availableMeta: QuestionTreeMeta = {};
     const questions: QuestionTreeQuestion[] = [];
@@ -2248,10 +2248,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             meta: meta,
           });
           Object.entries(meta).forEach(([k, v]) => {
-            if (!(k in availableMeta)){
+            if (!(k in availableMeta)) {
               availableMeta[k] = {};
             }
-            if (!(v in availableMeta[k])){
+            if (!(v in availableMeta[k])) {
               availableMeta[k][v] = v;
             }
           });
@@ -2261,14 +2261,14 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             label: answerLabel,
           });
         } else {
-          throw new Error(JSON.stringify({answerOutcomeGuessedType, rawAnswer}));
+          throw new Error(JSON.stringify({ answerOutcomeGuessedType, rawAnswer }));
         }
       }
 
       const rules: QuestionTreeQuestionRules = {
         op: "or", args: [
           ...Object.entries(rawConditions).map(([ruleQuestionId, ruleAnswerValue]) => {
-            return {op: "in", q: ruleQuestionId, a: ruleAnswerValue} as QuestionTreeQuestionRuleIn;
+            return { op: "in", q: ruleQuestionId, a: ruleAnswerValue } as QuestionTreeQuestionRuleIn;
           })
         ]
       };
@@ -2575,8 +2575,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       hasExplicitLabel
         ? (definition.label as string)
         : isLegacyDataLocation
-        ? fallbackLabel
-        : (typeof definition.name === 'string' ? definition.name : undefined) || fallbackLabel;
+          ? fallbackLabel
+          : (typeof definition.name === 'string' ? definition.name : undefined) || fallbackLabel;
 
     const config = {
       label,
@@ -2628,15 +2628,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         this.isLegacyPDFListControl(field))
         ? undefined
         : hasExplicitLabel
-        ? (definition.label as string)
-        : isLegacyDataLocation
-        ? fallbackLabel
-        : // RepeatableContributor often only defines 'name'; preserve a section label on migration.
-        fallbackLabel ||
-          (typeof definition.name === 'string' ? definition.name : undefined) ||
-          (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && typeof definition.value === 'string'
-            ? definition.value
-            : undefined);
+          ? (definition.label as string)
+          : isLegacyDataLocation
+            ? fallbackLabel
+            : // RepeatableContributor often only defines 'name'; preserve a section label on migration.
+            fallbackLabel ||
+            (typeof definition.name === 'string' ? definition.name : undefined) ||
+            (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && typeof definition.value === 'string'
+              ? definition.value
+              : undefined);
     const legacyCssClasses = typeof definition.cssClasses === 'string' ? definition.cssClasses.trim() : '';
     const cssClassesMap =
       this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && legacyCssClasses
@@ -3552,9 +3552,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
 
     const normalizedContainerPointer = containerPointer && containerPointer !== '/'
-      ? containerPointer.replace(/\/+$/, '')
+      ? this.trimTrailingJsonPointerSlashes(containerPointer)
       : '';
     return `${normalizedContainerPointer}/${trimmedName}`;
+  }
+
+  private trimTrailingJsonPointerSlashes(pointer: string): string {
+    let end = pointer.length;
+    while (end > 0 && pointer.charAt(end - 1) === '/') {
+      end -= 1;
+    }
+    return pointer.slice(0, end);
   }
 
   private getCurrentContainerAngularComponentsJsonPointer(componentName?: string): string {

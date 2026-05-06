@@ -126,6 +126,11 @@ module.exports = {
     level: 'verbose'
   },
   appUrl:'http://redboxportal:1500',
+  redboxSession: {
+    cookie: {
+      secure: false
+    }
+  },
   record:{
     baseUrl: {
       redbox: "http://redbox:9000/redbox",
