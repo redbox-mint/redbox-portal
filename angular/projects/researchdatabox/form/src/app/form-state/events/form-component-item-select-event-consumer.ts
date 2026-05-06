@@ -43,6 +43,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
   override bind(options: FormComponentEventBindingOptions): void {
     this.destroy();
     this.options = options;
+    this.formComp = options.formComponent;
 
     const config = options.definition?.compConfigJson?.component?.config;
     this.onItemSelect = config?.onItemSelect;
@@ -110,6 +111,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
       control.markAsDirty();
       control.markAsTouched();
       this.publishParentValueChanged(previousParentValue);
+      this.formComp?.broadcastFormStatus();
       return;
     }
 
@@ -131,6 +133,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
     control.markAsDirty();
     control.markAsTouched();
     this.publishParentValueChanged(previousParentValue);
+    this.formComp?.broadcastFormStatus();
   }
 
   /**
