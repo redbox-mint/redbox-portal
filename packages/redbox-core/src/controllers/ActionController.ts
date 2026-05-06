@@ -26,12 +26,17 @@ export namespace Controllers {
       const config = sails.config.action[actionName];
       const options = {config: config};
       const serviceFunction = _.get(config.service, config.method);
+      this.updateChronicle(req, {actionName, actionService: config?.service, actionMethod: config?.method});
       // Can optionally return an observable to subscribe on if this is a lengthy and complicated call
       // For simpler operations, service functions can write directly to the response object
       const response = serviceFunction(req, res, options);
       if (!res.writableEnded) {
         return response.subscribe((result: unknown) => {
-          return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, {
+            data: result,
+            headers: this.getNoCacheHeaders(),
+            chronicle: {actionResult: result},
+          });
         });
       }
     }
