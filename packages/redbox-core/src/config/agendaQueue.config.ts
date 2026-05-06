@@ -18,6 +18,18 @@ export interface AgendaJobSchedule {
 
 export type AgendaQueueBackend = 'mongodb' | 'sqs';
 
+const AGENDA_QUEUE_BACKENDS: AgendaQueueBackend[] = ['mongodb', 'sqs'];
+
+export function parseAgendaQueueBackend(value: string | undefined, source = 'agendaQueue.options.backend'): AgendaQueueBackend | undefined {
+    if (typeof value === 'undefined') {
+        return undefined;
+    }
+    if ((AGENDA_QUEUE_BACKENDS as string[]).includes(value)) {
+        return value as AgendaQueueBackend;
+    }
+    throw new Error(`Invalid ${source} value '${value}'. Expected one of: ${AGENDA_QUEUE_BACKENDS.join(', ')}.`);
+}
+
 export interface AgendaQueueSqsOptions {
     queueUrl: string;
     region: string;
@@ -78,7 +90,7 @@ export interface AgendaQueueConfig {
 
 export const agendaQueue: AgendaQueueConfig = {
     options: {
-        backend: (process.env['sails__agendaQueue_options_backend'] as AgendaQueueBackend | undefined) ?? 'mongodb',
+        backend: parseAgendaQueueBackend(process.env['sails__agendaQueue_options_backend'], 'sails__agendaQueue_options_backend') ?? 'mongodb',
         db: process.env['sails__agendaQueue_options_db'] ?? '',
         collection: process.env['sails__agendaQueue_options_collection'] ?? 'agendaJobs',
         processEvery: process.env['sails__agendaQueue_options_processEvery'] ?? '5 seconds',

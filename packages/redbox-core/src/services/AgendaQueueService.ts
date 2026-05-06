@@ -343,9 +343,21 @@ export namespace Services {
         return this.jobBackendByName.get(nameQuery) === 'sqs';
       }
 
-      const inNames = (nameQuery as { $in?: unknown }).$in;
-      if (Array.isArray(inNames)) {
-        return inNames.some((name: unknown) => _.isString(name) && this.jobBackendByName.get(name) === 'sqs');
+      if (_.isPlainObject(nameQuery)) {
+        const structuredNameQuery = nameQuery as { $in?: unknown } & Record<string, unknown>;
+        const supportedKeys = ['$in'];
+        const nameQueryKeys = Object.keys(structuredNameQuery);
+        const hasOnlySupportedKeys = nameQueryKeys.length > 0 && nameQueryKeys.every((key) => supportedKeys.includes(key));
+        if (!hasOnlySupportedKeys) {
+          throw new UnsupportedFeatureError('AgendaQueue:: jobs() only supports name queries using an exact string or $in when SQS-backed jobs are configured.');
+        }
+
+        const inNames = structuredNameQuery.$in;
+        if (!Array.isArray(inNames) || !inNames.every((name: unknown) => _.isString(name))) {
+          throw new UnsupportedFeatureError('AgendaQueue:: jobs() only supports name queries using an exact string or $in when SQS-backed jobs are configured.');
+        }
+
+        return inNames.some((name: string) => this.jobBackendByName.get(name) === 'sqs');
       }
 
       return false;

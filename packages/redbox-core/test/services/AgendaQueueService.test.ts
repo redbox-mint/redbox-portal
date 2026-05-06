@@ -3,17 +3,18 @@ import('chai').then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { UnsupportedFeatureError } from '@researchdatabox/agenda';
 import { Services } from '../../src/services/AgendaQueueService';
+import { parseAgendaQueueBackend } from '../../src/config/agendaQueue.config';
 import { cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
-describe('AgendaQueueService', function() {
+describe('AgendaQueueService', function () {
   let originalSails: any;
 
-  before(function() {
+  before(function () {
     originalSails = (global as any).sails;
     delete (global as any).sails;
   });
 
-  after(function() {
+  after(function () {
     if (originalSails) {
       (global as any).sails = originalSails;
     } else {
@@ -21,12 +22,12 @@ describe('AgendaQueueService', function() {
     }
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     (global as any).sails = createMockSails();
     (global as any)._ = require('lodash');
   });
 
-  afterEach(function() {
+  afterEach(function () {
     sinon.restore();
     cleanupServiceTestGlobals();
     delete (global as any)._;
@@ -65,8 +66,8 @@ describe('AgendaQueueService', function() {
     };
   }
 
-  describe('Constructor', function() {
-    it('should instantiate without throwing error when sails is undefined', function() {
+  describe('Constructor', function () {
+    it('should instantiate without throwing error when sails is undefined', function () {
       delete (global as any).sails;
 
       let service: Services.AgendaQueue;
@@ -79,7 +80,7 @@ describe('AgendaQueueService', function() {
       expect(service).to.be.an.instanceOf(Services.AgendaQueue);
     });
 
-    it('should have a public init method', function() {
+    it('should have a public init method', function () {
       const mockSails = createMockSails();
       (global as any).sails = mockSails;
 
@@ -89,8 +90,8 @@ describe('AgendaQueueService', function() {
     });
   });
 
-  describe('exports', function() {
-    it('should export all public methods without sails defined', function() {
+  describe('exports', function () {
+    it('should export all public methods without sails defined', function () {
       delete (global as any).sails;
 
       const service = new Services.AgendaQueue();
@@ -106,8 +107,20 @@ describe('AgendaQueueService', function() {
     });
   });
 
-  describe('every', function() {
-    it('allows recurring schedules for Mongo-backed jobs', function() {
+  describe('config parsing', function () {
+    it('accepts supported backend values', function () {
+      expect(parseAgendaQueueBackend('mongodb', 'test-env')).to.equal('mongodb');
+      expect(parseAgendaQueueBackend('sqs', 'test-env')).to.equal('sqs');
+      expect(parseAgendaQueueBackend(undefined, 'test-env')).to.equal(undefined);
+    });
+
+    it('rejects unsupported backend values', function () {
+      expect(() => parseAgendaQueueBackend('redis', 'test-env')).to.throw("Invalid test-env value 'redis'. Expected one of: mongodb, sqs.");
+    });
+  });
+
+  describe('every', function () {
+    it('allows recurring schedules for Mongo-backed jobs', function () {
       const service = new Services.AgendaQueue();
       const agendaEvery = sinon.stub();
 
@@ -119,12 +132,12 @@ describe('AgendaQueueService', function() {
       expect(agendaEvery.calledOnceWithExactly('5 minutes', 'mongo-job', { sample: true }, { timezone: 'UTC' })).to.equal(true);
     });
 
-    it('defaults unknown jobs to Mongo recurring schedules', function() {
+    it('defaults unknown jobs to Mongo recurring schedules', function () {
       const service = new Services.AgendaQueue();
       expect(() => service.every('default-job', '5 minutes')).to.throw("AgendaQueue:: Unknown job 'default-job'. Define it in sails.config.agendaQueue.jobs before queuing it.");
     });
 
-    it('rejects recurring schedules for SQS-backed jobs', function() {
+    it('rejects recurring schedules for SQS-backed jobs', function () {
       const service = new Services.AgendaQueue();
       const agendaEvery = sinon.stub();
 
@@ -136,8 +149,8 @@ describe('AgendaQueueService', function() {
     });
   });
 
-  describe('routing', function() {
-    it('routes now() to the job backend', function() {
+  describe('routing', function () {
+    it('routes now() to the job backend', function () {
       const service = new Services.AgendaQueue();
       const sqsAgenda = createAgendaStub({ attrs: { backend: 'sqs' } });
 
@@ -149,7 +162,7 @@ describe('AgendaQueueService', function() {
       expect(sqsAgenda.now.calledOnceWithExactly('sqs-job', { sample: true })).to.equal(true);
     });
 
-    it('routes schedule() to the Mongo backend', function() {
+    it('routes schedule() to the Mongo backend', function () {
       const service = new Services.AgendaQueue();
       const mongoAgenda = createAgendaStub({ attrs: { backend: 'mongodb' } });
 
@@ -161,7 +174,7 @@ describe('AgendaQueueService', function() {
       expect(mongoAgenda.schedule.calledOnceWithExactly('in 5 minutes', 'mongo-job', { sample: true })).to.equal(true);
     });
 
-    it('rejects SQS schedules over 15 minutes', function() {
+    it('rejects SQS schedules over 15 minutes', function () {
       const service = new Services.AgendaQueue();
       const sqsAgenda = createAgendaStub({
         attrs: { backend: 'sqs' },
@@ -178,7 +191,7 @@ describe('AgendaQueueService', function() {
       expect(sqsAgenda.schedule.called).to.equal(false);
     });
 
-    it('rejects invalid SQS schedules', function() {
+    it('rejects invalid SQS schedules', function () {
       const service = new Services.AgendaQueue();
       const sqsAgenda = createAgendaStub({
         attrs: { backend: 'sqs' },
@@ -195,7 +208,7 @@ describe('AgendaQueueService', function() {
       expect(sqsAgenda.schedule.called).to.equal(false);
     });
 
-    it('rejects jobs() when only SQS is configured', async function() {
+    it('rejects jobs() when only SQS is configured', async function () {
       const service = new Services.AgendaQueue();
 
       (service as any).agendas = { sqs: createAgendaStub({ attrs: { backend: 'sqs' } }) };
@@ -209,7 +222,7 @@ describe('AgendaQueueService', function() {
       }
     });
 
-    it('rejects jobs() queries that target SQS-backed jobs', async function() {
+    it('rejects jobs() queries that target SQS-backed jobs', async function () {
       const service = new Services.AgendaQueue();
       const mongoAgenda = createAgendaStub({ attrs: { backend: 'mongodb' } });
 
@@ -228,10 +241,30 @@ describe('AgendaQueueService', function() {
       }
       expect(mongoAgenda.jobs.called).to.equal(false);
     });
+
+    it('rejects unsupported name query operators when SQS-backed jobs are configured', async function () {
+      const service = new Services.AgendaQueue();
+      const mongoAgenda = createAgendaStub({ attrs: { backend: 'mongodb' } });
+
+      (service as any).agendas = { mongodb: mongoAgenda };
+      (service as any).jobBackendByName = new Map([
+        ['mongo-job', 'mongodb'],
+        ['sqs-job', 'sqs']
+      ]);
+
+      try {
+        await service.jobs({ name: { $regex: '^sqs-' } } as any);
+        throw new Error('Expected jobs() to throw');
+      } catch (error) {
+        expect(error).to.be.instanceOf(UnsupportedFeatureError);
+        expect((error as Error).message).to.equal('AgendaQueue:: jobs() only supports name queries using an exact string or $in when SQS-backed jobs are configured.');
+      }
+      expect(mongoAgenda.jobs.called).to.equal(false);
+    });
   });
 
-  describe('startup configuration', function() {
-    it('applies the default backend and per-job overrides', async function() {
+  describe('startup configuration', function () {
+    it('applies the default backend and per-job overrides', async function () {
       const mockSails = createMockSails({
         config: {
           agendaQueue: {
@@ -274,7 +307,7 @@ describe('AgendaQueueService', function() {
       expect(mongoAgenda.define.calledOnceWithExactly('override-job', sinon.match.func)).to.equal(true);
     });
 
-    it('starts only the required backends', async function() {
+    it('starts only the required backends', async function () {
       const mockSails = createMockSails({
         config: {
           agendaQueue: {
@@ -310,7 +343,7 @@ describe('AgendaQueueService', function() {
       expect(sqsAgenda.start.calledOnce).to.equal(true);
     });
 
-    it('allows inline startup every schedules for Mongo-backed jobs', async function() {
+    it('allows inline startup every schedules for Mongo-backed jobs', async function () {
       const mockSails = createMockSails({
         config: {
           agendaQueue: {
@@ -348,7 +381,7 @@ describe('AgendaQueueService', function() {
       expect(mongoAgenda.every.calledOnceWithExactly('5 minutes', 'history-job', undefined, undefined)).to.equal(true);
     });
 
-    it('rejects inline startup every schedules for SQS-backed jobs', async function() {
+    it('rejects inline startup every schedules for SQS-backed jobs', async function () {
       const mockSails = createMockSails({
         config: {
           agendaQueue: {
