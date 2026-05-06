@@ -337,7 +337,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
+            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
       - run:
           name: Setup test directories
           command: |
@@ -450,7 +450,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva
+            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs
       - run:
           name: Install packages
           command: |
@@ -521,7 +521,7 @@ jobs:
           name: Compile shared packages
           command: |
             nvm install
-            npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:core
+            npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core
       - run:
           name: Install redbox-dev-tools dependencies
           command: |
@@ -584,6 +584,7 @@ jobs:
             npm run compile:raido
             npm run compile:rva
             npm run compile:sails-ng-common
+            npm run compile:agenda-sqs
             npm run compile:core
       - run:
           name: Run storage-mongo package tests with coverage
@@ -687,10 +688,10 @@ jobs:
           - release
       release_version:
         type: string
-        default: ""
+        default: ''
       dist_tag:
         type: string
-        default: "latest"
+        default: 'latest'
     docker:
       - image: 'cimg/node:24.14.1'
     resource_class: medium
@@ -955,7 +956,7 @@ parameters:
     default: none
   npm_publish_version:
     type: string
-    default: ""
+    default: ''
   npm_publish_dist_tag:
     type: enum
     enum:
@@ -966,7 +967,7 @@ parameters:
 workflows:
   build_test_gendocs_and_deploy:
     when:
-      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [none, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - build:
           filters:
@@ -1168,7 +1169,7 @@ workflows:
               ignore: /^dependabot.*/
   build_test_dependabot:
     when:
-      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [none, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - refresh-dependabot-package-locks:
           filters:
@@ -1270,7 +1271,7 @@ workflows:
               ignore: /^dependabot.*/
   release_build_test_gendocs_and_deploy:
     when:
-      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [none, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - build:
           filters:
@@ -1532,7 +1533,7 @@ workflows:
               ignore: /.*/
       - npm-publish-backend:
           release_kind: release
-          release_version: ""
+          release_version: ''
           dist_tag: latest
           context:
             - npm-publish
@@ -1553,7 +1554,7 @@ workflows:
               ignore: /.*/
   npm_beta_publish:
     when:
-      equal: [ beta, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [beta, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - npm-publish-backend:
           release_kind: beta

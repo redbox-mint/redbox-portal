@@ -35,6 +35,7 @@
     "agenda": "6.2.4"
   },
   "devDependencies": {
+    "@tsconfig/node24": "24.0.4",
     "@types/debug": "4.1.13",
     "@types/node": "24.12.0",
     "agenda": "6.2.4",
