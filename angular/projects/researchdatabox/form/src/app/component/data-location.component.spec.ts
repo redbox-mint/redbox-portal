@@ -358,7 +358,7 @@ describe("DataLocationComponent", () => {
         const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
         const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
 
-        component.isDisabled = true;
+        (component as any).isDisabled = true;
         fixture.detectChanges();
 
         const nativeEl = fixture.nativeElement as HTMLElement;
@@ -391,7 +391,7 @@ describe("DataLocationComponent", () => {
         const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
         const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
 
-        component.isReadonly = true;
+        (component as any).isReadonly = true;
         fixture.detectChanges();
 
         const nativeEl = fixture.nativeElement as HTMLElement;
