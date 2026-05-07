@@ -20,13 +20,17 @@
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { AppConfigAttributes } from '../waterline-models/AppConfig';
 import { Services as services } from '../CoreService';
-import { ConfigModels, type ConfigModelInfo } from '../configmodels/ConfigModels';
+import { ConfigModels, type ConfigModelInfo, type ConfigModelFormAdapter } from '../configmodels/ConfigModels';
 import type { BrandingConfigurationDefaultsConfig } from '../config/brandingConfigurationDefaults.config';
 import type { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
 
+export const APP_CONFIG_SECRET_MASK = '__REDACTED__'
+export const APP_CONFIG_SECRET_CLEAR = '__CLEAR_SECRET__';
 
+type AppConfigData = Record<string, unknown>;
+type AppConfigRecordLike = AppConfigAttributes & Record<string, unknown>;
 
 export namespace Services {
   /**
@@ -74,7 +78,7 @@ export namespace Services {
 
     async initAllConfigFormSchemas(): Promise<void> {
       const configKeys: string[] = ConfigModels.getConfigKeys();
-      
+
       // First pass: collect all TS globs before generating any schemas
       for (const configKey of configKeys) {
         const modelDefinition: ConfigModelInfo | undefined = ConfigModels.getModelInfo(configKey);
@@ -99,12 +103,131 @@ export namespace Services {
       this.brandingAppConfigMap[branding.name] = appConfig as BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails };
     }
 
+    private getSecretFields(configKey: string): string[] {
+      return ConfigModels.getModelInfo(configKey)?.secretFields ?? [];
+    }
+
+    private isMaskedSecretPlaceholder(value: unknown): boolean {
+      return typeof value === 'string' && value === APP_CONFIG_SECRET_MASK;
+    }
+
+    private shouldMaskSecretValue(value: unknown): boolean {
+      if (typeof value === 'string') {
+        return value.trim() !== '';
+      }
+      return value != null;
+    }
+
+    private maskSecretFields<T>(configKey: string, configData: T): T {
+      const secretFields = this.getSecretFields(configKey);
+      if (secretFields.length === 0 || configData == null) {
+        return configData;
+      }
+      const masked = _.cloneDeep(configData);
+      secretFields.forEach((fieldPath: string) => {
+        if (_.has(masked, fieldPath) && this.shouldMaskSecretValue(_.get(masked, fieldPath))) {
+          _.set(masked, fieldPath, APP_CONFIG_SECRET_MASK);
+        }
+      });
+      return masked;
+    }
+
+
+
+    private mergeSecretFields(configKey: string, incomingConfig: unknown, existingConfig?: unknown): unknown {
+      const secretFields = this.getSecretFields(configKey);
+      if (secretFields.length === 0 || incomingConfig == null) {
+        return incomingConfig;
+      }
+
+      const merged = _.cloneDeep(incomingConfig);
+      secretFields.forEach((fieldPath: string) => {
+        const incomingValue = _.get(merged, fieldPath);
+        if (this.isMaskedSecretPlaceholder(incomingValue)) {
+          if (existingConfig != null && _.has(existingConfig, fieldPath)) {
+            _.set(merged, fieldPath, _.get(existingConfig, fieldPath));
+          } else {
+            _.unset(merged, fieldPath);
+          }
+        } else if (incomingValue === APP_CONFIG_SECRET_CLEAR) {
+          _.unset(merged, fieldPath);
+        }
+      });
+
+      return merged;
+    }
+
+    private prepareConfigModelForForm(configKey: string, model: unknown): object {
+      const formAdapter = ConfigModels.getModelInfo(configKey)?.formAdapter?.toForm;
+      const transformed = typeof formAdapter === 'function'
+        ? formAdapter(_.cloneDeep(model))
+        : _.cloneDeep(model);
+      return transformed as object;
+    }
+
+    private prepareConfigModelForSave(configKey: string, model: unknown): AppConfigData {
+      const formAdapter = ConfigModels.getModelInfo(configKey)?.formAdapter?.fromForm;
+      const transformed = typeof formAdapter === 'function'
+        ? formAdapter(_.cloneDeep(model))
+        : _.cloneDeep(model);
+      return transformed as AppConfigData;
+    }
+
     public getAppConfigurationForBrand(brandName: string): BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails } {
       return _.get(this.brandingAppConfigMap, brandName, sails.config.brandingConfigurationDefaults == undefined ? {} : sails.config.brandingConfigurationDefaults) as BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails };
     }
 
     public getAllConfigurationForBrand = (brandId: string): Promise<AppConfigAttributes[]> => {
       return AppConfig.find({ branding: brandId }) as unknown as Promise<AppConfigAttributes[]>;
+    }
+
+    private getConfigRecordTimestamp(record: AppConfigRecordLike | undefined): number {
+      const updatedAt = Date.parse(String(record?.updatedAt ?? ''));
+      if (!Number.isNaN(updatedAt)) {
+        return updatedAt;
+      }
+      const createdAt = Date.parse(String(record?.createdAt ?? ''));
+      if (!Number.isNaN(createdAt)) {
+        return createdAt;
+      }
+      return 0;
+    }
+
+    private chooseLatestConfigRecord(records: AppConfigAttributes[]): AppConfigAttributes | undefined {
+      return records.reduce<AppConfigAttributes | undefined>((latest, current) => {
+        if (latest == null) {
+          return current;
+        }
+        return this.getConfigRecordTimestamp(current as AppConfigRecordLike) >= this.getConfigRecordTimestamp(latest as AppConfigRecordLike)
+          ? current
+          : latest;
+      }, undefined);
+    }
+
+    private reduceToLatestConfigRecords(records: AppConfigAttributes[]): AppConfigAttributes[] {
+      const latestByKey = new Map<string, AppConfigAttributes>();
+
+      for (const record of records) {
+        const key = String(record.configKey ?? '');
+        const currentLatest = latestByKey.get(key);
+        if (currentLatest == null) {
+          latestByKey.set(key, record);
+          continue;
+        }
+        if (this.getConfigRecordTimestamp(record as AppConfigRecordLike) >= this.getConfigRecordTimestamp(currentLatest as AppConfigRecordLike)) {
+          latestByKey.set(key, record);
+        }
+      }
+
+      return Array.from(latestByKey.values());
+    }
+
+    private async findLatestConfigRecord(brandId: string, configKey: string): Promise<AppConfigAttributes | undefined> {
+      const records = await (AppConfig.find({ branding: brandId, configKey }) as unknown as Promise<AppConfigAttributes[]>);
+      if (records.length > 1) {
+        sails.log.warn(`Multiple appconfig records found for branding '${brandId}' and key '${configKey}'. Using the most recently updated record.`);
+      }
+      return this.chooseLatestConfigRecord(records);
     }
 
     public async loadAppConfigurationModel(brandId: string): Promise<BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails }> {
@@ -125,18 +248,22 @@ export namespace Services {
 
 
       const appConfigItems: AppConfigAttributes[] = await this.getAllConfigurationForBrand(brandId);
-      for (const appConfigItem of appConfigItems) {
+      const latestAppConfigItems = this.reduceToLatestConfigRecords(appConfigItems);
+      if (latestAppConfigItems.length !== appConfigItems.length) {
+        sails.log.warn(`Duplicate appconfig records detected for branding '${brandId}'. Using the most recently updated record for each config key.`);
+      }
+      for (const appConfigItem of latestAppConfigItems) {
         _.set(appConfiguration, appConfigItem.configKey, appConfigItem.configData);
       }
       return appConfiguration as unknown as BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails };
     }
 
     public async getAppConfigByBrandAndKey(brandId: string, configKey: string): Promise<unknown> {
-      const dbConfig = await AppConfig.findOne({ branding: brandId, configKey });
+      const dbConfig = await this.findLatestConfigRecord(brandId, configKey);
 
       // If no config exists in the DB return the default settings
       if (dbConfig != null) {
-        return dbConfig.configData;
+        return this.maskSecretFields(configKey, dbConfig.configData);
       }
 
       let config = _.get(sails.config.brandingConfigurationDefaults, configKey, {});
@@ -148,34 +275,37 @@ export namespace Services {
         const modelClass = modelInfo.class;
         config = new modelClass();
       }
-      return config;
+      return this.maskSecretFields(configKey, config);
     }
 
-    public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: string): Promise<unknown> {
-      const dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
+    public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: AppConfigData): Promise<unknown> {
+      const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
+      const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
+      const mergedConfigData = this.mergeSecretFields(configKey, preparedConfigData, dbConfig?.configData);
 
       // Create if no config exists
       let record;
       if (dbConfig == null) {
-        record = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: configData });
+        record = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: mergedConfigData });
       } else {
-        record = await AppConfig.updateOne({ branding: branding.id, configKey }).set({ configData: configData });
+        record = await AppConfig.updateOne({ branding: branding.id, configKey }).set({ configData: mergedConfigData });
       }
 
       await this.refreshBrandingAppConfigMap(branding);
-      return (record as unknown as AppConfigAttributes).configData;
+      return this.maskSecretFields(configKey, (record as unknown as AppConfigAttributes).configData);
     }
 
-    public async createConfig(brandName: string, configKey: string, configData: string): Promise<unknown> {
+    public async createConfig(brandName: string, configKey: string, configData: AppConfigData): Promise<unknown> {
       const branding: BrandingModel = BrandingService.getBrand(brandName);
-      const dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
+      const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
+      const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
 
       // Create if no config exists
       if (dbConfig == null) {
-        const createdRecord = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: configData });
+        const createdRecord = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: this.mergeSecretFields(configKey, preparedConfigData) });
 
         await this.refreshBrandingAppConfigMap(branding);
-        return (createdRecord as unknown as AppConfigAttributes).configData;
+        return this.maskSecretFields(configKey, (createdRecord as unknown as AppConfigAttributes).configData);
       }
 
       throw Error(`Config with key ${configKey} for branding ${brandName} already exists`);
@@ -189,11 +319,12 @@ export namespace Services {
       if (!modelDefinition) {
         throw new Error(`Config model not found for form ${configForm}`);
       }
-      const modelCtor = modelDefinition.class as { new (...args: never[]): object; getFieldOrder?: () => string[] };
+      const modelCtor = modelDefinition.class as { new(...args: never[]): object; getFieldOrder?: () => string[] };
       const model = _.get(appConfig, configForm, new modelCtor()) as object;
       const jsonSchema = this.getJsonSchema(modelDefinition);
       const fieldOrder = typeof modelCtor.getFieldOrder === 'function' ? modelCtor.getFieldOrder() : [];
-      const configData = { model: model, schema: jsonSchema, fieldOrder: fieldOrder };
+      const preparedModel = this.prepareConfigModelForForm(configForm, model);
+      const configData = { model: this.maskSecretFields(configForm, preparedModel), schema: jsonSchema, fieldOrder: fieldOrder };
       return configData;
     }
 
@@ -241,9 +372,9 @@ export namespace Services {
      * - If a prebuilt JSON schema is provided, it will be cached and preferred.
      * - If a TS glob is provided, it will be used to find model types for schema generation.
      */
-    public registerConfigModel(info: { key: string; modelName: string; class: { new (...args: never[]): object; getFieldOrder?: () => string[] }; schema?: unknown; tsGlob?: string | string[] }): void {
+    public registerConfigModel(info: { key: string; modelName: string; class: { new(...args: never[]): object; getFieldOrder?: () => string[] }; schema?: unknown; tsGlob?: string | string[]; secretFields?: string[]; formAdapter?: ConfigModelFormAdapter }): void {
       // persist in ConfigModels registry
-      ConfigModels.register(info.key, { modelName: info.modelName, class: info.class, schema: info.schema, tsGlob: info.tsGlob });
+      ConfigModels.register(info.key, { modelName: info.modelName, class: info.class, schema: info.schema, tsGlob: info.tsGlob, secretFields: info.secretFields, formAdapter: info.formAdapter });
       // cache schema if provided
       if (info.schema) {
         this.modelSchemaMap[info.modelName] = info.schema;

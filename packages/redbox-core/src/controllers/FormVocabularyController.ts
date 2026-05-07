@@ -1,5 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
+import { toBoolean } from '@researchdatabox/sails-ng-common';
 
 export namespace Controllers {
   export class FormVocabulary extends controllers.Core.Controller {
@@ -69,6 +70,7 @@ export namespace Controllers {
       const rawLimit = req.param('limit');
       const rawOffset = req.param('offset');
       const search = String(req.param('search') ?? '').trim();
+      const includeHistoricalValues = toBoolean(req.param('includeHistoricalValues'));
 
       const hasLimit = rawLimit !== undefined && rawLimit !== null && rawLimit !== '';
       const hasOffset = rawOffset !== undefined && rawOffset !== null && rawOffset !== '';
@@ -90,6 +92,7 @@ export namespace Controllers {
           search,
           limit,
           offset,
+          includeHistoricalValues,
         });
       } catch (error) {
         sails.log.verbose('Error getting vocabulary entries:');

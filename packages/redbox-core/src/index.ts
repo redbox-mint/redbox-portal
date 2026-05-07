@@ -50,6 +50,10 @@ export {
 }
     from "./RecordAuditParams";
 export {
+    IntegrationAuditParams
+}
+    from "./IntegrationAuditParams";
+export {
     ILogger
 }
     from "./Logger";
@@ -65,6 +69,33 @@ export * from './configmodels/ConfigModels';
 export * from './configmodels/MenuConfig';
 export * from './configmodels/HomePanelConfig';
 export * from './configmodels/AdminSidebarConfig';
+export * from './configmodels/FigsharePublishing';
+export {
+  DoiPublishing,
+  DOI_PUBLISHING_SCHEMA,
+  createDefaultBinding,
+  fromDoiPublishingFormModel,
+  resolveDoiConnectionPassword,
+  toDoiPublishingFormModel
+} from './configmodels/DoiPublishing';
+export type {
+  DoiPublishingConfigData,
+  DoiPublishingFormData,
+  DoiProfile,
+  DoiProfileFormEntry,
+  DoiCreatorMapping,
+  DoiContributorMapping,
+  DoiTitleMapping,
+  DoiSubjectMapping,
+  DoiDateMapping,
+  DoiIdentifierMapping,
+  DoiRelatedIdentifierMapping,
+  DoiRightsMapping,
+  DoiDescriptionMapping,
+  DoiGeoLocationMapping,
+  DoiFundingReferenceMapping,
+  DoiRelatedItemMapping
+} from './configmodels/DoiPublishing';
 export * from './configmodels/AppConfig.interface';
 export * from './configmodels/AuthorizedDomainsEmails';
 export * from './configmodels/SystemMessage';

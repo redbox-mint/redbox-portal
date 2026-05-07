@@ -1,21 +1,22 @@
-import {FieldModelConfig, FieldModelDefinition} from "../field-model.model";
-import {FormComponentDefinition} from "../form-component.model";
-import {FormConfigVisitorOutline} from "../visitor/base.outline";
+import { FieldModelConfig, FieldModelDefinition } from "../field-model.model";
+import { FormComponentDefinition } from "../form-component.model";
+import { FormConfigVisitorOutline } from "../visitor/base.outline";
 import {
     FieldComponentConfigKind,
     FieldComponentDefinitionKind,
     FieldModelConfigKind,
     FieldModelDefinitionKind, FormComponentDefinitionKind
 } from "../shared.outline";
-import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
-import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import { FieldComponentConfig, FieldComponentDefinition } from "../field-component.model";
+import { AvailableFieldLayoutDefinitionOutlines } from "../dictionary.outline";
 import {
     DropdownInputComponentName,
     DropdownInputFieldComponentConfigOutline,
     DropdownInputFieldComponentDefinitionOutline, DropdownInputFieldModelConfigOutline,
     DropdownInputFieldModelDefinitionOutline,
     DropdownInputFormComponentDefinitionOutline, DropdownInputModelName, DropdownInputModelValueType,
-    DropdownOption
+    DropdownOption,
+    HistoricalVocabMode
 } from "./dropdown-input.outline";
 
 /* Dropdown Input Component */
@@ -26,6 +27,7 @@ export class DropdownInputFieldComponentConfig extends FieldComponentConfig impl
     options: DropdownOption[] = [];
     vocabRef?: string;
     inlineVocab?: boolean;
+    historicalVocabMode?: HistoricalVocabMode;
 
     constructor() {
         super();
@@ -87,11 +89,11 @@ export class DropdownInputFormComponentDefinition extends FormComponentDefinitio
 }
 
 export const DropdownInputMap = [
-    {kind: FieldComponentConfigKind, def: DropdownInputFieldComponentConfig},
-    {kind: FieldComponentDefinitionKind, def: DropdownInputFieldComponentDefinition, class: DropdownInputComponentName},
-    {kind: FieldModelConfigKind, def: DropdownInputFieldModelConfig},
-    {kind: FieldModelDefinitionKind, def: DropdownInputFieldModelDefinition, class: DropdownInputModelName},
-    {kind: FormComponentDefinitionKind, def: DropdownInputFormComponentDefinition, class: DropdownInputComponentName},
+    { kind: FieldComponentConfigKind, def: DropdownInputFieldComponentConfig },
+    { kind: FieldComponentDefinitionKind, def: DropdownInputFieldComponentDefinition, class: DropdownInputComponentName },
+    { kind: FieldModelConfigKind, def: DropdownInputFieldModelConfig },
+    { kind: FieldModelDefinitionKind, def: DropdownInputFieldModelDefinition, class: DropdownInputModelName },
+    { kind: FormComponentDefinitionKind, def: DropdownInputFormComponentDefinition, class: DropdownInputComponentName },
 ];
 export const DropdownInputDefaults = {
     [FormComponentDefinitionKind]: {

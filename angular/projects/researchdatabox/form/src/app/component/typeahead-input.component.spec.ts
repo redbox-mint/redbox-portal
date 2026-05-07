@@ -1,11 +1,11 @@
-import {TestBed} from "@angular/core/testing";
-import {TypeaheadModule} from "ngx-bootstrap/typeahead";
-import {By} from "@angular/platform-browser";
-import {firstValueFrom} from "rxjs";
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
-import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
-import {TypeaheadDataService} from "../service/typeahead-data.service";
-import {TypeaheadInputComponent} from "./typeahead-input.component";
+import { TestBed } from "@angular/core/testing";
+import { TypeaheadModule } from "ngx-bootstrap/typeahead";
+import { By } from "@angular/platform-browser";
+import { firstValueFrom } from "rxjs";
+import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
+import { createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets } from "../helpers.spec";
+import { TypeaheadDataService } from "../service/typeahead-data.service";
+import { TypeaheadInputComponent } from "./typeahead-input.component";
 import type { TypeaheadMatch } from "ngx-bootstrap/typeahead";
 
 describe("TypeaheadInputComponent", () => {
@@ -38,22 +38,22 @@ describe("TypeaheadInputComponent", () => {
                             sourceType: "static",
                             valueMode: "optionObject",
                             staticOptions: [
-                                {label: "Jane Doe", value: "jane"},
-                                {label: "John Smith", value: "john"}
+                                { label: "Jane Doe", value: "jane" },
+                                { label: "John Smith", value: "john" }
                             ]
                         }
                     },
                     model: {
                         class: "TypeaheadInputModel",
                         config: {
-                            value: {label: "Jane Doe", value: "jane"}
+                            value: { label: "Jane Doe", value: "jane" }
                         }
                     }
                 }
             ]
         };
 
-        const {fixture} = await createFormAndWaitForReady(formConfig);
+        const { fixture } = await createFormAndWaitForReady(formConfig);
         const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
         expect(input.value).toBe("Jane Doe");
     });
@@ -81,7 +81,7 @@ describe("TypeaheadInputComponent", () => {
             ]
         };
 
-        const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
         const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
 
         (formComponent as any).form.get("person_lookup")?.setValue("Andrew");
@@ -102,8 +102,8 @@ describe("TypeaheadInputComponent", () => {
                         config: {
                             sourceType: "static",
                             staticOptions: [
-                                {label: "Alice Scott", value: "Alice Scott"},
-                                {label: "Jane Doe", value: "Jane Doe"}
+                                { label: "Alice Scott", value: "Alice Scott" },
+                                { label: "Jane Doe", value: "Jane Doe" }
                             ]
                         }
                     },
@@ -115,10 +115,10 @@ describe("TypeaheadInputComponent", () => {
             ]
         };
 
-        const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
         const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
 
-        (formComponent as any).form.get("person_lookup")?.setValue("Alice Scott", {emitEvent: false});
+        (formComponent as any).form.get("person_lookup")?.setValue("Alice Scott", { emitEvent: false });
         fixture.detectChanges();
         await fixture.whenStable();
         fixture.detectChanges();
@@ -137,7 +137,7 @@ describe("TypeaheadInputComponent", () => {
                         config: {
                             sourceType: "static",
                             valueMode: "optionObject",
-                            staticOptions: [{label: "Alpha", value: "alpha"}]
+                            staticOptions: [{ label: "Alpha", value: "alpha" }]
                         }
                     },
                     model: {
@@ -148,7 +148,7 @@ describe("TypeaheadInputComponent", () => {
             ]
         };
 
-        const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
         const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
         input.value = "Custom Person";
         input.dispatchEvent(new Event("input"));
@@ -175,7 +175,7 @@ describe("TypeaheadInputComponent", () => {
                         config: {
                             sourceType: "static",
                             requireSelection: true,
-                            staticOptions: [{label: "Alpha", value: "alpha"}]
+                            staticOptions: [{ label: "Alpha", value: "alpha" }]
                         }
                     },
                     model: {
@@ -186,7 +186,7 @@ describe("TypeaheadInputComponent", () => {
             ]
         };
 
-        const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
         const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
         input.value = "Custom Person";
         input.dispatchEvent(new Event("input"));
@@ -206,7 +206,7 @@ describe("TypeaheadInputComponent", () => {
                         class: "TypeaheadInputComponent",
                         config: {
                             sourceType: "static",
-                            staticOptions: [{label: "Jane Doe", value: "jane"}]
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }]
                         }
                     },
                     model: {
@@ -217,7 +217,7 @@ describe("TypeaheadInputComponent", () => {
             ]
         };
 
-        const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
         const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
 
         component.onSelect({
@@ -232,6 +232,53 @@ describe("TypeaheadInputComponent", () => {
         expect((formComponent as any).form.get("person_lookup")?.dirty).toBeTrue();
     });
 
+    it("keeps the display control in sync with disabled state changes", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }]
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {}
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+
+        expect(component.displayControl.disabled).toBeFalse();
+        expect(input.disabled).toBeFalse();
+
+        component.setDisabled(true, { emitEvent: false, onlySelf: true });
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(component.isDisabled).toBeTrue();
+        expect(component.displayControl.disabled).toBeTrue();
+        expect(input.disabled).toBeTrue();
+        expect((formComponent as any).form.get("person_lookup")?.disabled).toBeTrue();
+
+        component.setDisabled(false, { emitEvent: false, onlySelf: true });
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(component.isDisabled).toBeFalse();
+        expect(component.displayControl.disabled).toBeFalse();
+        expect(input.disabled).toBeFalse();
+        expect((formComponent as any).form.get("person_lookup")?.disabled).toBeFalse();
+    });
+
     it("shows misconfiguration message when named query source lacks queryId", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",
@@ -244,12 +291,12 @@ describe("TypeaheadInputComponent", () => {
                             sourceType: "namedQuery"
                         }
                     },
-                    model: {class: "TypeaheadInputModel", config: {}}
+                    model: { class: "TypeaheadInputModel", config: {} }
                 }
             ]
         };
 
-        const {fixture} = await createFormAndWaitForReady(formConfig);
+        const { fixture } = await createFormAndWaitForReady(formConfig);
         const text = String((fixture.nativeElement as HTMLElement).textContent ?? "");
         expect(text).toContain("Missing queryId for namedQuery typeahead source");
     });
@@ -266,27 +313,27 @@ describe("TypeaheadInputComponent", () => {
                             sourceType: "external"
                         }
                     },
-                    model: {class: "TypeaheadInputModel", config: {}}
+                    model: { class: "TypeaheadInputModel", config: {} }
                 }
             ]
         };
 
-        const {fixture} = await createFormAndWaitForReady(formConfig);
+        const { fixture } = await createFormAndWaitForReady(formConfig);
         const text = String((fixture.nativeElement as HTMLElement).textContent ?? "");
         expect(text).toContain("Missing provider for external typeahead source");
     });
 
     it("renders named query suggestions with labelTemplate from query response fields", async () => {
-      setUpDynamicAssets({
-        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
-          switch (keyStr) {
-            case "componentDefinitions__0__component__config__labelTemplate":
-              return `${context?.raw?.title ?? ""} (${context?.raw?.code ?? ""})`;
-            default:
-              throw new Error(`Unknown key: ${keyStr}`);
-          }
-        }
-      });
+        setUpDynamicAssets({
+            callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+                switch (keyStr) {
+                    case "componentDefinitions__0__component__config__labelTemplate":
+                        return `${context?.raw?.title ?? ""} (${context?.raw?.code ?? ""})`;
+                    default:
+                        throw new Error(`Unknown key: ${keyStr}`);
+                }
+            }
+        });
 
         const typeaheadDataService = TestBed.inject(TypeaheadDataService);
         spyOn(typeaheadDataService, "searchNamedQuery").and.resolveTo([
@@ -315,12 +362,12 @@ describe("TypeaheadInputComponent", () => {
                             minChars: 1
                         }
                     },
-                    model: {class: "TypeaheadInputModel", config: {}}
+                    model: { class: "TypeaheadInputModel", config: {} }
                 }
             ]
         };
 
-        const {fixture} = await createFormAndWaitForReady(formConfig);
+        const { fixture } = await createFormAndWaitForReady(formConfig);
         const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
         component.displayControl.setValue("atlas");
         const options = await firstValueFrom(component.suggestions$);
@@ -356,12 +403,12 @@ describe("TypeaheadInputComponent", () => {
                             minChars: 1
                         }
                     },
-                    model: {class: "TypeaheadInputModel", config: {}}
+                    model: { class: "TypeaheadInputModel", config: {} }
                 }
             ]
         };
 
-        const {fixture} = await createFormAndWaitForReady(formConfig);
+        const { fixture } = await createFormAndWaitForReady(formConfig);
         const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
         component.displayControl.setValue("aus");
         const options = await firstValueFrom(component.suggestions$);
@@ -373,5 +420,220 @@ describe("TypeaheadInputComponent", () => {
             "utf8_name",
             "utf8_name"
         );
+    });
+
+    it("resolves pre-populated historical vocabulary labels in hide mode", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        spyOn(typeaheadDataService, "searchVocabularyEntries").and.callFake(async (
+            _vocabRef: string,
+            search: string,
+            _limit: number,
+            _offset: number,
+            includeHistoricalValues?: boolean
+        ) => {
+            if (includeHistoricalValues && search === "legacy") {
+                return [
+                    { label: "Legacy Label", value: "legacy", sourceType: "vocabulary", historical: true }
+                ];
+            }
+            return [];
+        });
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "vocab_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "vocabulary",
+                            vocabRef: "access-rights",
+                            minChars: 1,
+                            historicalVocabMode: "hide"
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {
+                            value: "legacy"
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+        expect(input.value).toBe("Legacy Label");
+        expect(typeaheadDataService.searchVocabularyEntries).toHaveBeenCalledWith("access-rights", "legacy", 25, 0, true);
+    });
+
+    it("hides historical vocabulary suggestions by default", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        spyOn(typeaheadDataService, "searchVocabularyEntries").and.resolveTo([
+            { label: "Active", value: "active", sourceType: "vocabulary" },
+            { label: "Legacy", value: "legacy", sourceType: "vocabulary", historical: true }
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "vocab_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "vocabulary",
+                            vocabRef: "access-rights",
+                            minChars: 1
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.displayControl.setValue("a");
+        const options = await firstValueFrom(component.suggestions$);
+        expect(options.map(option => option.value)).toEqual(["active"]);
+        expect(typeaheadDataService.searchVocabularyEntries).toHaveBeenCalledWith("access-rights", "a", 25, 0, false);
+    });
+
+    it("requests historical suggestions when the stored vocabulary value is historical in hide mode", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        const searchVocabularyEntries = spyOn(typeaheadDataService, "searchVocabularyEntries").and.callFake(async (
+            _vocabRef: string,
+            search: string,
+            _limit: number,
+            _offset: number,
+            includeHistoricalValues?: boolean
+        ) => {
+            if (includeHistoricalValues && (search === "legacy" || search === "leg")) {
+                return [
+                    { label: "Legacy", value: "legacy", sourceType: "vocabulary", historical: true }
+                ];
+            }
+            return [];
+        });
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "vocab_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "vocabulary",
+                            vocabRef: "access-rights",
+                            minChars: 1,
+                            historicalVocabMode: "hide"
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {
+                            value: "legacy"
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        searchVocabularyEntries.calls.reset();
+
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.displayControl.setValue("leg");
+        const options = await firstValueFrom(component.suggestions$);
+
+        expect(options.map(option => option.value)).toEqual(["legacy"]);
+        expect(searchVocabularyEntries).toHaveBeenCalledOnceWith("access-rights", "leg", 25, 0, true);
+    });
+
+    it("retains historical vocabulary suggestions in disable mode", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        spyOn(typeaheadDataService, "searchVocabularyEntries").and.resolveTo([
+            { label: "Active", value: "active", sourceType: "vocabulary" },
+            { label: "Legacy", value: "legacy", sourceType: "vocabulary", historical: true },
+            { label: "Other Legacy", value: "other-legacy", sourceType: "vocabulary", historical: true }
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "vocab_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "vocabulary",
+                            vocabRef: "access-rights",
+                            minChars: 1,
+                            historicalVocabMode: "disable"
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {
+                            value: "legacy"
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.displayControl.setValue("leg");
+        const options = await firstValueFrom(component.suggestions$);
+        expect(options.map(option => option.value)).toEqual(["active", "legacy", "other-legacy"]);
+        expect(typeaheadDataService.searchVocabularyEntries).toHaveBeenCalledWith("access-rights", "leg", 25, 0, true);
+        expect(options[1]?.disabled).toBeTrue();
+        expect(options[2]?.disabled).toBeTrue();
+    });
+
+    it("does not select disabled historical vocabulary suggestions", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "vocab_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "vocabulary",
+                            vocabRef: "access-rights",
+                            minChars: 1,
+                            historicalVocabMode: "disable"
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.onSelect({
+            item: {
+                label: "Legacy",
+                value: "legacy",
+                sourceType: "vocabulary",
+                historical: true,
+                disabled: true
+            }
+        } as TypeaheadMatch);
+
+        expect((formComponent as any).form.get("vocab_lookup")?.value).toBeNull();
     });
 });

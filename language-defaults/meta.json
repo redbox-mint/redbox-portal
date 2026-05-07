@@ -3307,6 +3307,266 @@
     "category": "view",
     "description": "Translation for view-record-audit-workflow-state"
   },
+  "@record-audit-page-title": {
+    "category": "view",
+    "description": "Translation for record-audit-page-title"
+  },
+  "@record-audit-page-description": {
+    "category": "view",
+    "description": "Translation for record-audit-page-description"
+  },
+  "@record-audit-tab-audit-history": {
+    "category": "view",
+    "description": "Translation for record-audit-tab-audit-history"
+  },
+  "@record-audit-tab-permissions": {
+    "category": "view",
+    "description": "Translation for record-audit-tab-permissions"
+  },
+  "@record-audit-tab-integration-audit": {
+    "category": "view",
+    "description": "Translation for record-audit-tab-integration-audit"
+  },
+  "@record-audit-action-created": {
+    "category": "view",
+    "description": "Translation for record-audit-action-created"
+  },
+  "@record-audit-action-updated": {
+    "category": "view",
+    "description": "Translation for record-audit-action-updated"
+  },
+  "@record-audit-action-deleted": {
+    "category": "view",
+    "description": "Translation for record-audit-action-deleted"
+  },
+  "@record-audit-action-destroyed": {
+    "category": "view",
+    "description": "Translation for record-audit-action-destroyed"
+  },
+  "@record-audit-action-restored": {
+    "category": "view",
+    "description": "Translation for record-audit-action-restored"
+  },
+  "@record-audit-col-updated": {
+    "category": "view",
+    "description": "Translation for record-audit-col-updated"
+  },
+  "@record-audit-col-action": {
+    "category": "view",
+    "description": "Translation for record-audit-col-action"
+  },
+  "@record-audit-col-workflow-state": {
+    "category": "view",
+    "description": "Translation for record-audit-col-workflow-state"
+  },
+  "@record-audit-col-updated-by": {
+    "category": "view",
+    "description": "Translation for record-audit-col-updated-by"
+  },
+  "@record-audit-col-changed-fields": {
+    "category": "view",
+    "description": "Translation for record-audit-col-changed-fields"
+  },
+  "@record-audit-col-technical-data": {
+    "category": "view",
+    "description": "Translation for record-audit-col-technical-data"
+  },
+  "@record-audit-diff-col-field": {
+    "category": "view",
+    "description": "Translation for record-audit-diff-col-field"
+  },
+  "@record-audit-diff-col-change-type": {
+    "category": "view",
+    "description": "Translation for record-audit-diff-col-change-type"
+  },
+  "@record-audit-diff-col-previous-value": {
+    "category": "view",
+    "description": "Translation for record-audit-diff-col-previous-value"
+  },
+  "@record-audit-diff-col-new-value": {
+    "category": "view",
+    "description": "Translation for record-audit-diff-col-new-value"
+  },
+  "@record-audit-diff-col-path": {
+    "category": "view",
+    "description": "Translation for record-audit-diff-col-path"
+  },
+  "@record-audit-section-field-changes": {
+    "category": "view",
+    "description": "Translation for record-audit-section-field-changes"
+  },
+  "@record-audit-note-update-only": {
+    "category": "view",
+    "description": "Translation for record-audit-note-update-only"
+  },
+  "@record-audit-note-no-previous-snapshot": {
+    "category": "view",
+    "description": "Translation for record-audit-note-no-previous-snapshot"
+  },
+  "@record-audit-entries-count": {
+    "category": "view",
+    "description": "Translation for record-audit-entries-count"
+  },
+  "@record-audit-changed-fields-count": {
+    "category": "view",
+    "description": "Translation for record-audit-changed-fields-count"
+  },
+  "@record-audit-link-json": {
+    "category": "view",
+    "description": "Translation for record-audit-link-json"
+  },
+  "@record-audit-filter-date-from": {
+    "category": "view",
+    "description": "Translation for record-audit-filter-date-from"
+  },
+  "@record-audit-filter-date-to": {
+    "category": "view",
+    "description": "Translation for record-audit-filter-date-to"
+  },
+  "@record-audit-filter-action": {
+    "category": "view",
+    "description": "Translation for record-audit-filter-action"
+  },
+  "@record-audit-filter-action-all": {
+    "category": "view",
+    "description": "Translation for record-audit-filter-action-all"
+  },
+  "@record-audit-filter-workflow-state": {
+    "category": "view",
+    "description": "Translation for record-audit-filter-workflow-state"
+  },
+  "@record-audit-filter-workflow-state-placeholder": {
+    "category": "view",
+    "description": "Translation for record-audit-filter-workflow-state-placeholder"
+  },
+  "@record-audit-filter-apply": {
+    "category": "view",
+    "description": "Translation for record-audit-filter-apply"
+  },
+  "@record-audit-filter-clear": {
+    "category": "view",
+    "description": "Translation for record-audit-filter-clear"
+  },
+  "@record-audit-permissions-heading-edit": {
+    "category": "view",
+    "description": "Translation for record-audit-permissions-heading-edit"
+  },
+  "@record-audit-permissions-heading-view": {
+    "category": "view",
+    "description": "Translation for record-audit-permissions-heading-view"
+  },
+  "@record-audit-permissions-heading-roles": {
+    "category": "view",
+    "description": "Translation for record-audit-permissions-heading-roles"
+  },
+  "@record-audit-permissions-heading-pending": {
+    "category": "view",
+    "description": "Translation for record-audit-permissions-heading-pending"
+  },
+  "@record-audit-integration-col-started": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-started"
+  },
+  "@record-audit-integration-col-completed": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-completed"
+  },
+  "@record-audit-integration-col-duration": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-duration"
+  },
+  "@record-audit-integration-col-integration-name": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-integration-name"
+  },
+  "@record-audit-integration-col-status": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-status"
+  },
+  "@record-audit-integration-col-trace": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-trace"
+  },
+  "@record-audit-integration-col-action": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-action"
+  },
+  "@record-audit-integration-col-actions": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-actions"
+  },
+  "@record-audit-integration-col-event-count": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-event-count"
+  },
+  "@record-audit-integration-col-triggered-by": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-triggered-by"
+  },
+  "@record-audit-integration-col-message": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-col-message"
+  },
+  "@record-audit-integration-trace-events": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-trace-events"
+  },
+  "@record-audit-integration-filter-date-from": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-filter-date-from"
+  },
+  "@record-audit-integration-filter-date-to": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-filter-date-to"
+  },
+  "@record-audit-integration-filter-integration-name": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-filter-integration-name"
+  },
+  "@record-audit-integration-filter-integration-name-placeholder": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-filter-integration-name-placeholder"
+  },
+  "@record-audit-integration-filter-status": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-filter-status"
+  },
+  "@record-audit-integration-filter-status-all": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-filter-status-all"
+  },
+  "@record-audit-integration-filter-apply": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-filter-apply"
+  },
+  "@record-audit-integration-filter-clear": {
+    "category": "view",
+    "description": "Translation for record-audit-integration-filter-clear"
+  },
+  "@record-audit-pagination-page-of": {
+    "category": "view",
+    "description": "Translation for record-audit-pagination-page-of"
+  },
+  "@record-audit-show-technical-data": {
+    "category": "view",
+    "description": "Translation for record-audit-show-technical-data"
+  },
+  "@record-audit-hide-technical-data": {
+    "category": "view",
+    "description": "Translation for record-audit-hide-technical-data"
+  },
+  "@record-audit-loading": {
+    "category": "view",
+    "description": "Translation for record-audit-loading"
+  },
+  "@record-audit-error": {
+    "category": "view",
+    "description": "Translation for record-audit-error"
+  },
+  "@record-audit-empty": {
+    "category": "view",
+    "description": "Translation for record-audit-empty"
+  },
   "not-enough-disk-space": {
     "category": "not",
     "description": "Translation for not-enough-disk-space"

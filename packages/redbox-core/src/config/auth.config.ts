@@ -67,6 +67,7 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/api/users/link/candidates', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api/users/:id/links', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api/users/:id/audit', role: 'Admin', can_read: true },
+        { path: '/:branding/:portal/api/integration-audit(/*)', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api/users/link', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/users/:id/disable', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/users/:id/enable', role: 'Admin', can_update: true },

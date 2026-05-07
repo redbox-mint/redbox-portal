@@ -48,3 +48,52 @@ export class AuthorizedDomainsEmails extends AppConfig {
         return ["enabled", "domainsAaf", "emailsAaf", "domainsOidc", "emailsOidc",];
     }
 }
+
+export const AUTHORIZED_DOMAINS_EMAILS_SCHEMA = {
+    type: 'object',
+    title: 'Authorized Domains and Emails',
+    properties: {
+        enabled: {
+            type: 'boolean',
+            title: 'Enabled',
+            default: false
+        },
+        domainsAaf: {
+            type: 'array',
+            title: 'Authorized Domains for AAF',
+            items: {
+                type: 'string',
+                default: ''
+            },
+            default: []
+        },
+        emailsAaf: {
+            type: 'array',
+            title: 'Authorized Emails for AAF',
+            items: {
+                type: 'string',
+                default: ''
+            },
+            default: []
+        },
+        domainsOidc: {
+            type: 'array',
+            title: 'Authorized Domains for OIDC',
+            items: {
+                type: 'string',
+                default: ''
+            },
+            default: []
+        },
+        emailsOidc: {
+            type: 'array',
+            title: 'Authorized Emails for OIDC',
+            items: {
+                type: 'string',
+                default: ''
+            },
+            default: []
+        }
+    },
+    required: ['enabled', 'domainsAaf', 'emailsAaf', 'domainsOidc', 'emailsOidc']
+};

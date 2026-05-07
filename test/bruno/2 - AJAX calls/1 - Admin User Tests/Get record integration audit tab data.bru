@@ -1,0 +1,45 @@
+meta {
+  name: Get record integration audit tab data
+  type: http
+  seq: 59
+}
+
+get {
+  url: {{host}}/default/rdmp/record/viewAudit/{{dmpOid}}/integration-audit?page=1&pageSize=5
+  body: none
+  auth: none
+}
+
+headers {
+  Pragma: no-cache
+  Accept-Encoding: gzip, deflate, br
+  X-CSRF-Token:
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  Content-Type: application/json;charset=utf-8
+  Accept: application/json, text/plain, */*
+  Connection: keep-alive
+  Referer: {{host}}/default/rdmp/record/viewAudit/{{dmpOid}}
+  X-Source: jsclient
+  Cache-Control: no-cache
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Integration audit tab response includes paging summary", function () {
+      const jsonData = res.getBody();
+      expect(jsonData.summary).to.have.property("numFound");
+      expect(jsonData.summary).to.have.property("page", 1);
+      expect(jsonData.summary).to.have.property("pageSize", 5);
+      expect(jsonData.summary).to.have.property("totalPages");
+      expect(jsonData.records).to.be.an("array");
+  });
+}

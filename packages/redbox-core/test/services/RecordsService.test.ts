@@ -126,7 +126,8 @@ describe('RecordsService', function () {
       getRole: sinon.stub().returns(null)
     };
     (global as any).UsersService = {
-      hasRole: sinon.stub().returns(true)
+      hasRole: sinon.stub().returns(true),
+      getUserWithUsername: sinon.stub().returns(of(null))
     };
     (global as any).WorkflowStepsService = {
       getFirst: sinon.stub().returns(of({ name: 'draft', config: { form: 'default-form', addJsonLdContext: false } })),
@@ -215,6 +216,55 @@ describe('RecordsService', function () {
       await RecordsService.getRecordAudit(params);
 
       expect(mockStorageService.getRecordAudit.calledWith(params)).to.be.true;
+    });
+  });
+
+  describe('getResolvedPermissionsSummary', function () {
+    it('resolves edit and view users while preserving roles and pending lists', async function () {
+      mockStorageService.getMeta.resolves({
+        redboxOid: 'record-123',
+        authorization: {
+          edit: ['editor'],
+          view: ['viewer'],
+          editPending: ['pending-editor'],
+          viewPending: ['pending-viewer'],
+          editRoles: ['Admin'],
+          viewRoles: ['Researcher']
+        }
+      });
+      (global as any).UsersService.getUserWithUsername.withArgs('editor').returns(of({ name: 'Editor', email: 'editor@example.com' }));
+      (global as any).UsersService.getUserWithUsername.withArgs('viewer').returns(of({ name: 'Viewer', email: 'viewer@example.com' }));
+
+      const result = await RecordsService.getResolvedPermissionsSummary('record-123');
+
+      expect(result).to.deep.equal({
+        edit: [{ username: 'editor', name: 'Editor', email: 'editor@example.com' }],
+        view: [{ username: 'viewer', name: 'Viewer', email: 'viewer@example.com' }],
+        editPending: ['pending-editor'],
+        viewPending: ['pending-viewer'],
+        editRoles: ['Admin'],
+        viewRoles: ['Researcher']
+      });
+    });
+
+    it('falls back to blank user details when a username cannot be resolved', async function () {
+      mockStorageService.getMeta.resolves({
+        redboxOid: 'record-123',
+        authorization: {
+          edit: ['missing-user'],
+          view: [],
+          editPending: [],
+          viewPending: [],
+          editRoles: [],
+          viewRoles: []
+        }
+      });
+      (global as any).UsersService.getUserWithUsername.withArgs('missing-user').returns(of(null));
+
+      const result = await RecordsService.getResolvedPermissionsSummary('record-123');
+
+      expect(result.edit).to.deep.equal([{ username: 'missing-user', name: '', email: '' }]);
+      expect(result.view).to.deep.equal([]);
     });
   });
 
@@ -692,6 +742,7 @@ describe('RecordsService', function () {
       expect(exported).to.have.property('updateMeta');
       expect(exported).to.have.property('getMeta');
       expect(exported).to.have.property('getRecordAudit');
+      expect(exported).to.have.property('getResolvedPermissionsSummary');
       expect(exported).to.have.property('hasEditAccess');
       expect(exported).to.have.property('hasViewAccess');
       expect(exported).to.have.property('delete');

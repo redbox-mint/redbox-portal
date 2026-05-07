@@ -1,7 +1,7 @@
 /**
  * Routes Config Interface
  * (sails.config.routes)
- *
+ * 
  * URL to controller/action mapping configuration.
  */
 
@@ -176,9 +176,9 @@ export const routes: RoutesConfig = {
     // Auth routes
     'post /user/login_local': 'UserController.localLogin',
     'post /user/login_aaf': { controller: 'UserController', action: 'aafLogin', csrf: false },
-    'get /user/login_oidc': { controller: 'UserController', action: 'openIdConnectLogin' },
+    'get /user/login_oidc': { controller: 'UserController', action: 'openIdConnectLogin', csrf: false },
     'HEAD /user/begin_oidc': { policy: 'disallowedHeadRequestHandler' },
-    'get /user/begin_oidc': { controller: 'UserController', action: 'beginOidc' },
+    'get /user/begin_oidc': { controller: 'UserController', action: 'beginOidc', csrf: false },
     'get /user/info': 'UserController.info',
     'get /:branding/:portal/user/info': 'UserController.info',
     'get /:branding/:portal/user/login': 'UserController.login',
@@ -220,6 +220,9 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/record/:recordType/edit': 'RecordController.edit',
     'get /:branding/:portal/record/edit/:oid': 'RecordController.edit',
     'get /:branding/:portal/record/viewAudit/:oid': 'RecordAuditController.render',
+    'get /:branding/:portal/record/viewAudit/:oid/audit': 'RecordAuditController.getAuditData',
+    'get /:branding/:portal/record/viewAudit/:oid/permissions': 'RecordAuditController.getPermissionsData',
+    'get /:branding/:portal/record/viewAudit/:oid/integration-audit': 'RecordAuditController.getIntegrationAuditData',
     'get /:branding/:portal/record/finalise/:recordType/edit/:oid': {
         controller: 'RecordController',
         action: 'edit',
@@ -316,13 +319,14 @@ export const routes: RoutesConfig = {
     ...buildMergedApiRouteConfig(),
 
     // Translation routes
-    'get /:branding/:portal/locales/:lng/:ns.json': { controller: 'TranslationController', action: 'getNamespace' },
-    'get /:branding/:portal/locales/:lng/translation.json': { controller: 'TranslationController', action: 'getNamespace' },
-    'get /:branding/:portal/locales': { controller: 'TranslationController', action: 'getLanguages' },
+    'get /:branding/:portal/locales/:lng/:ns.json': { controller: 'TranslationController', action: 'getNamespace', csrf: false },
+    'get /:branding/:portal/locales/:lng/translation.json': { controller: 'TranslationController', action: 'getNamespace', csrf: false },
+    'get /:branding/:portal/locales': { controller: 'TranslationController', action: 'getLanguages', csrf: false },
 
     // Workspace routes
     'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
     'get /:branding/:portal/workspaces/types': 'WorkspaceTypesController.get',
+
 
     // App i18n routes (CSRF enabled)
     'get /:branding/:portal/app/i18n/entries': { controller: 'TranslationController', action: 'listEntriesApp' },

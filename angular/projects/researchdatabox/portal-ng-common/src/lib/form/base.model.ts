@@ -72,7 +72,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
     this.formControl = this.postCreateGetFormControl();
     // If the config specifies, disable the form control.
     if (this.fieldConfig.config?.disabled) {
-      this.formControl.disable();
+      this.formControl.disable({emitEvent: false, onlySelf: true});
     }
     console.debug(`${this.logName}: created form control with model class '${this.fieldConfig?.class}' and initial value: ${JSON.stringify(this.initValue)}.`);
   }
@@ -171,13 +171,9 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
    * @param opts The modify options.
    */
   public setDisabled(disabled: boolean, opts?: ModifyOptions): void {
-    const isDisabled = this.formControl?.disabled;
-    if (isDisabled === undefined) {
-      return;
-    }
-    if (!disabled && isDisabled) {
+    if (!disabled && this.formControl?.disabled) {
       this.formControl?.enable(opts);
-    } else if (disabled && !isDisabled) {
+    } else if (disabled && this.formControl?.enabled) {
       this.formControl?.disable(opts);
     }
   }

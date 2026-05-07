@@ -18,6 +18,10 @@ import {
   ValidationSummaryFormComponentDefinitionOutline,
 } from '../component/validation-summary.outline';
 import {
+  SuggestedValidationSummaryFieldComponentDefinitionOutline,
+  SuggestedValidationSummaryFormComponentDefinitionOutline,
+} from '../component/suggested-validation-summary.outline';
+import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
@@ -198,6 +202,10 @@ export interface FormConfigVisitorOutline {
   visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void;
 
   visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void;
+
+  visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): void;
+
+  visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): void;
 
   /* Group */
 

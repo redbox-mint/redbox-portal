@@ -21,6 +21,11 @@ export function createMockSails(overrides: any = {}): any {
         rootContext: '',
       },
       appUrl: 'http://localhost:1500',
+      environment: 'development',
+      figshareDev: {
+        enabled: false,
+        mode: 'live'
+      },
     },
     log: {
       verbose: sinon.stub(),

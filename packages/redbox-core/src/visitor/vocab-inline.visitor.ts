@@ -12,6 +12,8 @@ import {
   DropdownOption,
   FormConfigOutline,
   FormConfigVisitor,
+  FormComponentDefinitionOutline,
+  HistoricalVocabMode,
   GroupFieldComponentDefinitionOutline,
   GroupFormComponentDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
@@ -25,30 +27,43 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { VocabularyEntryAttributes } from '../waterline-models';
 
+type InlineCheckboxTreeNode = CheckboxTreeNode & { disabled?: boolean };
+
 type ComponentConfigWithInlineVocab = {
   options?: DropdownOption[] | RadioOption[] | CheckboxOption[];
   treeData?: CheckboxTreeNode[];
   vocabRef?: string;
   inlineVocab?: boolean;
+  historicalVocabMode?: HistoricalVocabMode;
+};
+
+type ResolveVocabsOptions = {
+  includeHistoricalValues?: boolean;
 };
 
 
 export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   protected override logName = 'VocabInlineFormConfigVisitor';
   private branding = '';
+  private includeHistoricalValues = false;
   private pendingResolutions: Promise<void>[] = [];
 
   constructor(logger: ILogger) {
     super(logger);
   }
 
-  public async resolveVocabs(form: FormConfigOutline, brandingOverride?: string): Promise<void> {
+  public async resolveVocabs(
+    form: FormConfigOutline,
+    brandingOverride?: string,
+    options?: ResolveVocabsOptions
+  ): Promise<void> {
     const branding = this.resolveBranding(brandingOverride);
     if (!branding) {
       return;
     }
 
     this.branding = branding;
+    this.includeHistoricalValues = options?.includeHistoricalValues === true;
     this.pendingResolutions = [];
     form.accept(this);
     await Promise.all(this.pendingResolutions);
@@ -65,19 +80,19 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-    this.enqueueIfInlineVocab(item.name, item.component?.config, false);
+    this.enqueueIfInlineVocab(item, item.component?.config, false);
   }
 
   visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-    this.enqueueIfInlineVocab(item.name, item.component?.config, false);
+    this.enqueueIfInlineVocab(item, item.component?.config, false);
   }
 
   visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-    this.enqueueIfInlineVocab(item.name, item.component?.config, false);
+    this.enqueueIfInlineVocab(item, item.component?.config, false);
   }
 
   visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
-    this.enqueueIfInlineVocab(item.name, item.component?.config, true);
+    this.enqueueIfInlineVocab(item, item.component?.config, true);
   }
 
   visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
@@ -129,7 +144,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   }
 
   private enqueueIfInlineVocab(
-    name: string | undefined,
+    definition: FormComponentDefinitionOutline,
     componentConfig: ComponentConfigWithInlineVocab | undefined,
     treeMode: boolean
   ): void {
@@ -138,25 +153,27 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     }
 
     this.pendingResolutions.push(
-      this.resolveInlineVocab({ config: componentConfig, name: String(name ?? '') }, componentConfig, treeMode)
+      this.resolveInlineVocab(definition, componentConfig, treeMode)
     );
   }
 
   private async resolveInlineVocab(
-    definition: { config?: ComponentConfigWithInlineVocab; name?: string },
+    definition: FormComponentDefinitionOutline,
     componentConfig: ComponentConfigWithInlineVocab,
     treeMode: boolean
   ): Promise<void> {
 
     try {
       const entries = await this.fetchAllEntries(this.branding, String(componentConfig.vocabRef ?? ''));
+      const filteredEntries = this.filterHistoricalEntries(entries, definition, componentConfig, treeMode);
       if (treeMode) {
-        componentConfig.treeData = this.buildTreeData(entries);
+        componentConfig.treeData = this.buildTreeData(filteredEntries, componentConfig);
         return;
       }
-      componentConfig.options = entries.map((entry) => ({
+      componentConfig.options = filteredEntries.map((entry) => ({
         label: String(entry?.label ?? ''),
-        value: String(entry?.value ?? '')
+        value: String(entry?.value ?? ''),
+        disabled: this.shouldDisableHistoricalEntry(entry, componentConfig) ? true : undefined
       }));
     } catch (error) {
       this.logger.warn(
@@ -177,7 +194,11 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     let total: number | null = null;
 
     while (total === null || allEntries.length < total) {
-      const response = await VocabularyService.getEntries(branding, vocabRef, { limit, offset });
+      const response = await VocabularyService.getEntries(branding, vocabRef, {
+        limit,
+        offset,
+        includeHistoricalValues: this.includeHistoricalValues
+      });
       if (!response) {
         throw new Error(`Inline vocabulary '${vocabRef}' was not found for branding '${branding}'`);
       }
@@ -200,10 +221,122 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     return allEntries;
   }
 
-  private buildTreeData(entries: VocabularyEntryAttributes[]): CheckboxTreeNode[] {
-    const nodeById = new Map<string, CheckboxTreeNode>();
+  private filterHistoricalEntries(
+    entries: VocabularyEntryAttributes[],
+    definition: FormComponentDefinitionOutline,
+    componentConfig: ComponentConfigWithInlineVocab,
+    treeMode: boolean
+  ): VocabularyEntryAttributes[] {
+    return entries.filter((entry) => {
+      if (!this.isHistorical(entry)) {
+        return true;
+      }
+      if (!this.includeHistoricalValues) {
+        return false;
+      }
+      if (this.shouldDisableHistoricalEntry(entry, componentConfig)) {
+        return true;
+      }
+
+      const selectedValues = treeMode
+        ? this.selectedTreeValuesFromModelValue(definition?.model?.config?.value)
+        : this.selectedValuesFromModelValue(definition?.model?.config?.value);
+      return this.entryMatchesSelectedValue(entry, selectedValues, treeMode);
+    });
+  }
+
+  private shouldDisableHistoricalEntry(
+    entry: VocabularyEntryAttributes,
+    componentConfig: ComponentConfigWithInlineVocab
+  ): boolean {
+    return this.includeHistoricalValues &&
+      componentConfig.historicalVocabMode === 'disable' &&
+      this.isHistorical(entry);
+  }
+
+  private isHistorical(entry: VocabularyEntryAttributes): boolean {
+    return entry?.historical === true;
+  }
+
+  private entryMatchesSelectedValue(
+    entry: VocabularyEntryAttributes,
+    selectedValues: Set<string>,
+    treeMode: boolean
+  ): boolean {
+    if (selectedValues.size === 0) {
+      return false;
+    }
+    if (treeMode) {
+      return selectedValues.has(this.entryTreeNotation(entry)) || selectedValues.has(this.entryValue(entry));
+    }
+    return selectedValues.has(this.entryValue(entry));
+  }
+
+  private entryValue(entry: VocabularyEntryAttributes): string {
+    return String(entry?.value ?? '');
+  }
+
+  private entryTreeNotation(entry: VocabularyEntryAttributes): string {
+    return String(entry?.identifier ?? '').trim() || String(entry?.value ?? '').trim();
+  }
+
+  private selectedValuesFromModelValue(value: unknown): Set<string> {
+    const values = new Set<string>();
+    if (value === null || value === undefined) {
+      return values;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item) => this.addSelectedValue(values, item));
+      return values;
+    }
+    this.addSelectedValue(values, value);
+    return values;
+  }
+
+  private selectedTreeValuesFromModelValue(value: unknown): Set<string> {
+    const values = new Set<string>();
+    if (value === null || value === undefined) {
+      return values;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item) => this.addSelectedTreeValue(values, item));
+      return values;
+    }
+    this.addSelectedTreeValue(values, value);
+    return values;
+  }
+
+  private addSelectedValue(values: Set<string>, item: unknown): void {
+    if (item === null || item === undefined) {
+      return;
+    }
+    values.add(String(item));
+  }
+
+  private addSelectedTreeValue(values: Set<string>, item: unknown): void {
+    if (item === null || item === undefined) {
+      return;
+    }
+    if (typeof item === 'object') {
+      const selected = item as { notation?: unknown; value?: unknown };
+      if (selected.notation !== null && selected.notation !== undefined) {
+        values.add(String(selected.notation));
+      }
+      if (selected.value !== null && selected.value !== undefined) {
+        values.add(String(selected.value));
+      }
+      return;
+    }
+    values.add(String(item));
+  }
+
+  private buildTreeData(
+    entries: VocabularyEntryAttributes[],
+    componentConfig: ComponentConfigWithInlineVocab
+  ): CheckboxTreeNode[] {
+    const nodeById = new Map<string, InlineCheckboxTreeNode>();
     const entryIds = new Set<string>();
-    const rootNodes: CheckboxTreeNode[] = [];
+    const rootNodes: InlineCheckboxTreeNode[] = [];
 
     for (const entry of entries) {
       const id = String(entry?.id ?? '').trim();
@@ -218,7 +351,8 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
         notation: String(entry.identifier ?? '').trim() || String(entry?.value ?? '').trim() || undefined,
         parent: String(entry.parent ?? '').trim() || null,
         children: [],
-        hasChildren: false
+        hasChildren: false,
+        disabled: this.shouldDisableHistoricalEntry(entry, componentConfig) ? true : undefined
       });
     }
 

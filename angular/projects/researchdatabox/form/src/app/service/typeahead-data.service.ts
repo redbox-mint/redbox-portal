@@ -1,14 +1,14 @@
-import {APP_BASE_HREF} from "@angular/common";
-import {HttpClient} from "@angular/common/http";
-import {Inject, Injectable} from "@angular/core";
-import {firstValueFrom} from "rxjs";
-import {get as _get} from "lodash-es";
-import {ConfigService, HttpClientService, UtilityService} from "@researchdatabox/portal-ng-common";
-import {TypeaheadOption} from "@researchdatabox/sails-ng-common";
+import { APP_BASE_HREF } from "@angular/common";
+import { HttpClient } from "@angular/common/http";
+import { Inject, Injectable } from "@angular/core";
+import { firstValueFrom } from "rxjs";
+import { get as _get } from "lodash-es";
+import { ConfigService, HttpClientService, UtilityService } from "@researchdatabox/portal-ng-common";
+import { TypeaheadOption } from "@researchdatabox/sails-ng-common";
 
 type WrappedResponse<T> = { data?: T };
 
-@Injectable({providedIn: "root"})
+@Injectable({ providedIn: "root" })
 export class TypeaheadDataService extends HttpClientService {
     constructor(
         @Inject(HttpClient) protected override http: HttpClient,
@@ -35,11 +35,13 @@ export class TypeaheadDataService extends HttpClientService {
             label: String(opt?.label ?? ""),
             value: String(opt?.value ?? ""),
             sourceType: opt?.sourceType ?? "static",
+            historical: opt?.historical === true,
+            disabled: opt?.disabled === true,
             raw: opt?.raw
         }));
     }
 
-    public async searchVocabularyEntries(vocabRef: string, search: string, limit = 25, offset = 0): Promise<TypeaheadOption[]> {
+    public async searchVocabularyEntries(vocabRef: string, search: string, limit = 25, offset = 0, includeHistoricalValues = false): Promise<TypeaheadOption[]> {
         await this.waitForInit();
         const trimmedVocabRef = String(vocabRef ?? "").trim();
         if (!trimmedVocabRef) {
@@ -47,16 +49,20 @@ export class TypeaheadDataService extends HttpClientService {
         }
 
         const url = `${this.brandingAndPortalUrl}/vocab/${encodeURIComponent(trimmedVocabRef)}/entries`;
+        const params: Record<string, string> = {
+            search: String(search ?? ""),
+            limit: String(limit),
+            offset: String(offset)
+        };
+        if (includeHistoricalValues) {
+            params["includeHistoricalValues"] = "true";
+        }
         const response = await firstValueFrom(
             this.http.get<WrappedResponse<Array<Record<string, unknown>>> | Array<Record<string, unknown>>>(url, {
                 responseType: "json",
                 observe: "body",
                 context: this.httpContext,
-                params: {
-                    search: String(search ?? ""),
-                    limit: String(limit),
-                    offset: String(offset)
-                }
+                params
             })
         );
 
@@ -66,6 +72,7 @@ export class TypeaheadDataService extends HttpClientService {
                 label: String(entry?.["label"] ?? ""),
                 value: String(entry?.["value"] ?? ""),
                 sourceType: "vocabulary" as const,
+                historical: entry?.["historical"] === true,
                 raw: entry
             }))
             .filter((entry) => Boolean(entry.label || entry.value));
