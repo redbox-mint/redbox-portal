@@ -1,11 +1,13 @@
 
 describe('The Agenda Queue Service', function () {
-  let processedTestData = null;
+  let resolveProcessedTestData: ((data: string) => void) | null = null;
 
   before(function (done) {
-    let testQueueConsumer = function (job) {
+    let testQueueConsumer = function (job: { attrs: { data: string } }) {
       let data = job.attrs.data;
-      processedTestData = data;
+      if (resolveProcessedTestData && data === 'Test data') {
+        resolveProcessedTestData(data);
+      }
       sails.log.debug(`Received ${data}`)
       return data;
     };
@@ -14,23 +16,26 @@ describe('The Agenda Queue Service', function () {
   });
 
   it("Send a job and check it's executed", async function () {
-    this.timeout(30000);
-    processedTestData = null;
+    this.timeout(90000);
 
-    AgendaQueueService.now('testJob', 'Test data');
+    const processed = new Promise<string>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        resolveProcessedTestData = null;
+        reject(new Error('Timed out waiting for testJob to finish processing in Agenda queue.'));
+      }, 60000);
 
-    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    const maxAttempts = 40;
+      resolveProcessedTestData = (data) => {
+        clearTimeout(timeout);
+        resolveProcessedTestData = null;
+        resolve(data);
+      };
+    });
 
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      if (processedTestData === 'Test data') {
-        return;
-      }
-
-      await wait(500);
+    await AgendaQueueService.now('testJob', 'Test data');
+    const processedData = await processed;
+    if (processedData !== 'Test data') {
+      throw new Error(`Expected testJob to process 'Test data', received '${processedData}'.`);
     }
-
-    throw new Error('Timed out waiting for testJob to finish processing in Agenda queue.');
   });
 
 

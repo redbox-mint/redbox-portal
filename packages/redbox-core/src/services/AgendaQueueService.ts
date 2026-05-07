@@ -303,8 +303,14 @@ export namespace Services {
 
       if (backend === 'mongodb') {
         const { MongoBackend } = await import('@agendajs/mongo-backend');
-        agendaOptions.backend = typeof options.db === 'string' && options.db.length > 0
-          ? new MongoBackend({ address: options.db, collection: options.collection })
+        const datastoreUrl = _.get(sails.config, 'datastores.mongodb.url');
+        const address = typeof options.db === 'string' && options.db.length > 0
+          ? options.db
+          : typeof datastoreUrl === 'string' && datastoreUrl.length > 0
+            ? datastoreUrl
+            : undefined;
+        agendaOptions.backend = !_.isNil(address)
+          ? new MongoBackend({ address, collection: options.collection })
           : new MongoBackend({ mongo: dbManager as Db, collection: options.collection });
         return new AgendaConstructor(agendaOptions as ConstructorParameters<typeof AgendaConstructor>[0]);
       }
@@ -339,7 +345,7 @@ export namespace Services {
       });
       agenda.on('error', (err) => {
         sails.log.error(`AgendaQueue:: ${backend} backend error:`);
-        sails.log.error(JSON.stringify(err));
+        sails.log.error(err instanceof Error ? err.stack ?? err.message : JSON.stringify(err));
       });
       agenda.on('start', (job: Job) => {
         sails.log.verbose(`AgendaQueue:: [${backend}] Job ${job.attrs.name} starting`);
@@ -465,11 +471,12 @@ export namespace Services {
       void this.getAgendaForJobName(jobName).schedule(schedule, jobName, data);
     }
 
-    public now(jobName: string, data: unknown = undefined) {
+    public async now(jobName: string, data: unknown = undefined) {
       sails.log.verbose(`AgendaQueue:: Starting job: '${jobName}' now!`)
-      void this.getAgendaForJobName(jobName).now(jobName, data).catch((e) => {
+      return await this.getAgendaForJobName(jobName).now(jobName, data).catch((e) => {
         sails.log.error(`AgendaQueue:: Failed to start job now: ${jobName}`);
         sails.log.error(e);
+        throw e;
       });
     }
 
