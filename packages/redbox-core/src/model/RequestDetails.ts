@@ -11,7 +11,7 @@ export class RequestDetails {
     ips: string[];
     method: string;
     originalUrl: string;
-    params: Record<string, string>;
+    params: Record<string, string | string[]>;
     path: string;
     protocol: string;
     query: Record<string, string | undefined>;
@@ -38,7 +38,7 @@ export class RequestDetails {
         this.originalUrl = req.originalUrl;
         this.params = req.params;
         this.path = req.path;
-        this.protocol =req.protocol;
+        this.protocol = req.protocol;
         this.query = req.query;
         this.route = req.route;
         this.secure = req.secure;
@@ -47,6 +47,6 @@ export class RequestDetails {
         this.xhr = req.xhr;
         this.headers = req.headers;
         this.url = req.url;
-        this.rawHeaders = req.rawHeaders;        
+        this.rawHeaders = req.rawHeaders;
     }
 }

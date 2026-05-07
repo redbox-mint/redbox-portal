@@ -20,7 +20,7 @@
 import { Controllers as controllers } from '../CoreController';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
-
+import { toParamString } from '../utilities/RequestParamUtils';
 
 export namespace Controllers {
   /**
@@ -42,9 +42,9 @@ export namespace Controllers {
 
     public async getNamespace(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = req.params.branding;
-        const lng = req.params.lng;
-        const ns = req.params.ns || 'translation';
+        const brandingName = toParamString(req.params.branding);
+        const lng = toParamString(req.params.lng);
+        const ns = toParamString(req.params.ns, 'translation');
 
         const branding = BrandingService.getBrand(brandingName);
         if (!branding) {
@@ -93,7 +93,7 @@ export namespace Controllers {
      */
     public async getLanguages(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = req.params.branding;
+        const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
         if (!branding) {
           return res.badRequest({ message: `Unknown branding: ${brandingName}` });
@@ -132,7 +132,7 @@ export namespace Controllers {
      */
     public async listEntriesApp(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = req.params.branding;
+        const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
         if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         const locale = req.param('locale');
@@ -148,7 +148,7 @@ export namespace Controllers {
 
     public async setEntryApp(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = req.params.branding;
+        const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
         if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         const locale = req.param('locale');
@@ -168,7 +168,7 @@ export namespace Controllers {
 
     public async getBundleApp(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = req.params.branding;
+        const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
         if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         const locale = req.param('locale');
@@ -184,7 +184,7 @@ export namespace Controllers {
 
     public async setBundleApp(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = req.params.branding;
+        const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
         if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         const locale = req.param('locale');
